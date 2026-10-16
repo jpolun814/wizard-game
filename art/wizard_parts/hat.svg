@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="798" height="1000" viewBox="-100 -320 798 1000">
+  <defs>
+    <linearGradient id="cone" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#b08cf0"/>
+      <stop offset="0.55" stop-color="#5a33a0"/>
+      <stop offset="1" stop-color="#2a1656"/>
+    </linearGradient>
+    <linearGradient id="brim" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5a3a9e"/>
+      <stop offset="1" stop-color="#1d0f3c"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(-150.05,-94.7) scale(1.35)">
+    <!-- cone: starts narrower than the brim, rises, and the tip bends over to the right -->
+    <path d="M140 224 C 150 120 250 0 350 -100 C 395 -70 440 -20 466 224 Z"
+          fill="url(#cone)" stroke="#1d0f3c" stroke-width="5" stroke-linejoin="round"/>
+    <!-- wide brim: the cone grows out of it -->
+    <ellipse cx="303" cy="222" rx="250" ry="46" fill="url(#brim)" stroke="#1d0f3c" stroke-width="5"/>
+    <!-- gold band where the cone meets the brim -->
+    <path d="M140 214 C 200 246 406 246 466 214" fill="none" stroke="#e0b64a" stroke-width="11" stroke-linecap="round"/>
+    <path d="M140 214 C 200 246 406 246 466 214" fill="none" stroke="#fff1a8" stroke-width="2.5" stroke-linecap="round" opacity="0.7"/>
+    <!-- stars on the cone -->
+    <path d="M250 120 L256 136 L273 137 L260 147 L265 164 L250 154 L235 164 L240 147 L227 137 L244 136 Z" fill="#ffd76a" stroke="#8a6a1a" stroke-width="2"/>
+    <path d="M356 130 L360 142 L373 143 L363 150 L367 162 L356 155 L345 162 L349 150 L339 143 L352 142 Z" fill="#ffd76a" stroke="#8a6a1a" stroke-width="2"/>
+    <path d="M330 40 L333 49 L342 50 L335 56 L338 65 L330 60 L322 65 L325 56 L318 50 L327 49 Z" fill="#ffd76a" stroke="#8a6a1a" stroke-width="1.5"/>
+  </g>
+</svg>
