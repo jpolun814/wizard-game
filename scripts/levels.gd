@@ -7,7 +7,7 @@ extends RefCounted
 
 const LEVELS := [
 	{"waves": [
-		{"grunt": 2},
+		{"basic": 2},
 		{"spitter": 2},
 		{"blinder": 2},
 		{"muter": 2},

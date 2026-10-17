@@ -158,3 +158,49 @@ static func button_name(mask: int) -> String:
 	if mask & RIGHT:
 		names.append("Right")
 	return " + ".join(names)
+
+
+## A copy of a sprite recoloured to a school's exact colour, done on the CPU so the colour is written exactly.
+## Each coloured pixel becomes the school colour scaled by how bright it is against the sprite's main body colour,
+## so the body is the school colour and the shading stays in proportion. The sprite is shrunk first: enemies are
+## drawn small, so this loses nothing you can see and makes the work quick.
+static func recoloured(source: Texture2D, school: String, shrink: int = 4) -> ImageTexture:
+	var image := source.get_image()
+	image.resize(image.get_width() / shrink, image.get_height() / shrink, Image.INTERPOLATE_BILINEAR)
+	var body_lum := _luminance(_main_colour(image))
+	var target: Color = SCHOOL_COLORS[school]
+	for y in image.get_height():
+		for x in image.get_width():
+			var c := image.get_pixel(x, y)
+			if c.a < 0.5 or _chroma(c) <= 0.15:
+				continue
+			var k := clampf(_luminance(c) / body_lum, 0.0, 1.6)
+			image.set_pixel(x, y, Color(target.r * k, target.g * k, target.b * k, c.a))
+	return ImageTexture.create_from_image(image)
+
+
+## The most common coloured pixel: the sprite's main body colour.
+static func _main_colour(image: Image) -> Color:
+	var counts := {}
+	var sample := {}
+	for y in range(0, image.get_height(), 2):
+		for x in range(0, image.get_width(), 2):
+			var c := image.get_pixel(x, y)
+			if c.a < 0.5 or _chroma(c) <= 0.15:
+				continue
+			var key := c.to_html(false)
+			counts[key] = counts.get(key, 0) + 1
+			sample[key] = c
+	var best := ""
+	for key in counts:
+		if best == "" or counts[key] > counts[best]:
+			best = key
+	return sample[best] if best != "" else Color.WHITE
+
+
+static func _chroma(c: Color) -> float:
+	return maxf(maxf(c.r, c.g), c.b) - minf(minf(c.r, c.g), c.b)
+
+
+static func _luminance(c: Color) -> float:
+	return 0.299 * c.r + 0.587 * c.g + 0.114 * c.b

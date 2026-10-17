@@ -6,6 +6,7 @@ extends CharacterBody2D
 
 const KINDS := {
 	"grunt": {"name": "Grunt", "desc": "Charges you and hits on contact.", "frames": "res://art/enemies/grunt", "idle": "idle", "feet": -0.2, "hit": 30.0, "school": "Fire", "weak": "Ice", "resist": "Fire", "damage": 8, "debuff": "", "seconds": 0.0},
+	"basic": {"name": "Walker", "desc": "A plain enemy with no weakness and no resistance.", "frames": "res://art/enemies/grunt", "idle": "idle", "feet": -0.2, "hit": 30.0, "school": "", "weak": "", "resist": "", "damage": 8, "debuff": "", "seconds": 0.0},
 	"muter": {"name": "Muter", "desc": "Its touch silences your casting for a while.", "frames": "res://art/enemies/muter", "idle": "idle", "feet": -0.5, "hit": 24.0, "school": "Force", "weak": "Lightning", "resist": "Force", "damage": 4, "debuff": "mute", "seconds": 12.0},
 	"rooter": {"name": "Rooter", "desc": "Roots you on touch, then bursts. Runs fast.", "frames": "res://art/enemies/rooter", "speed": 3.0, "idle": "idle", "feet": 1.5, "hit": 24.0, "school": "Ice", "weak": "Fire", "resist": "Ice", "damage": 0, "debuff": "root", "seconds": 2.0},
 	"blinder": {"name": "Blinder", "desc": "Flies in and blinds you on touch.", "frames": "res://art/enemies/blinder", "idle": "fly", "feet": 0.7, "hit": 44.0, "school": "Lightning", "weak": "Fire", "resist": "Lightning", "damage": 4, "debuff": "blind", "seconds": 5.0},
@@ -49,7 +50,7 @@ var _base_scale := 1.0
 func _ready() -> void:
 	add_to_group("mobs")
 	collision_mask = 1 | 8  # terrain and fire walls only, so enemies walk past each other; the player walks through fire walls
-	_visual.sprite_frames = _build_frames(KINDS[kind]["frames"], KINDS[kind]["idle"])
+	_visual.sprite_frames = _frames_for(kind)
 	# Each enemy's hitbox matches its drawn body, with the feet still at the bottom of the box.
 	var hitbox: CollisionShape2D = $CollisionShape2D
 	hitbox.shape = hitbox.shape.duplicate()
@@ -60,12 +61,21 @@ func _ready() -> void:
 	var first: Texture2D = _visual.sprite_frames.get_frame_texture("idle", 0)
 	_base_scale = TARGET_HEIGHT / first.get_height()
 	# Tint toward the school's colour, but keep most of the art's own colours.
-	_visual.self_modulate = Color.WHITE.lerp(SpellData.SCHOOL_COLORS[KINDS[kind]["school"]], 0.4)
 	_visual.play("idle")
 
 
+## The animation frames for each enemy kind, recoloured to its school. Built once per kind and reused.
+static var _frame_cache := {}
+
+
+func _frames_for(kind_name: String) -> SpriteFrames:
+	if not _frame_cache.has(kind_name):
+		_frame_cache[kind_name] = _build_frames(KINDS[kind_name]["frames"], KINDS[kind_name]["idle"], KINDS[kind_name]["school"])
+	return _frame_cache[kind_name]
+
+
 ## Builds the animations from the frame files in a folder: idle (looping), hit and death.
-func _build_frames(dir: String, idle_prefix: String) -> SpriteFrames:
+func _build_frames(dir: String, idle_prefix: String, school: String) -> SpriteFrames:
 	var frames := SpriteFrames.new()
 	var files := DirAccess.get_files_at(dir)
 	files.sort()
@@ -78,7 +88,7 @@ func _build_frames(dir: String, idle_prefix: String) -> SpriteFrames:
 		frames.set_animation_speed(anim_name, 12.0)
 		for f in files:
 			if f.begins_with(prefix + "_") and f.ends_with(".png"):
-				frames.add_frame(anim_name, load(dir + "/" + f))
+				frames.add_frame(anim_name, SpellData.recoloured(load(dir + "/" + f), school) if school != "" else load(dir + "/" + f))
 	return frames
 
 

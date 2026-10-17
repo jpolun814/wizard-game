@@ -518,10 +518,11 @@ func _update_insight() -> void:
 	if mob == null:
 		return
 	var data: Dictionary = Mob.KINDS[mob.kind]
-	_insight_text.text = "[b]%s[/b]   Health %d / %d\n[color=#%s]Weak to %s[/color]\nResists %s\n[i]%s[/i]" % [
+	var weak := _school_bb(data["weak"]) if data["weak"] != "" else "nothing"
+	var resist := _school_bb(data["resist"]) if data["resist"] != "" else "nothing"
+	_insight_text.text = "[b]%s[/b]   Health %d / %d\nWeak to %s\nResists %s\n[i]%s[/i]" % [
 		data["name"], mob.hp, Mob.MAX_HP,
-		SpellData.SCHOOL_COLORS[data["weak"]].to_html(false), data["weak"],
-		_school_bb(data["resist"]), data["desc"],
+		weak, resist, data["desc"],
 	]
 	_insight_tip.position = get_viewport().get_mouse_position() + Vector2(18, 18)
 

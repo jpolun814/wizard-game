@@ -293,8 +293,8 @@ func _page_school(column: VBoxContainer, school: String) -> void:
 	var mouse := MouseIcon.new(_school_mask(school), SpellData.SCHOOL_COLORS[school], Vector2(44, 64))
 	mouse.size_flags_horizontal = Control.SIZE_SHRINK_CENTER  # keep the mouse its own size, not the page's width
 	column.add_child(mouse)
-	column.add_child(_mob_row("Weak to this school", "weak", school))
-	column.add_child(_mob_row("Resists this school", "resist", school))
+	column.add_child(_mob_row("Strong against", "weak", school))
+	column.add_child(_mob_row("Shrugs off", "resist", school))
 	for spell_name in SpellData.SPELLS:
 		var s: Dictionary = SpellData.SPELLS[spell_name]
 		if s["school"] != school:
@@ -367,7 +367,7 @@ func _mob_row(label_text: String, key: String, school: String) -> HBoxContainer:
 			continue
 		found = true
 		# The frame is much larger than the enemy in it, so show only the part that has something drawn.
-		var source: Texture2D = load("%s/%s_0.png" % [data["frames"], data["idle"]])
+		var source: Texture2D = SpellData.recoloured(load("%s/%s_0.png" % [data["frames"], data["idle"]]), data["school"]) if data["school"] != "" else load("%s/%s_0.png" % [data["frames"], data["idle"]])
 		var picture := TextureRect.new()
 		var crop := AtlasTexture.new()
 		crop.atlas = source
