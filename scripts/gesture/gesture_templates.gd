@@ -3,7 +3,7 @@ class_name GestureTemplates
 ## Reference shapes the recognizer matches against, plus the simpler shapes the spellbook draws.
 
 ## Recognizer template name -> gesture name. Several templates can share a gesture.
-const ALIASES := {"line": "flick", "zig_tall": "zigzag"}
+const ALIASES := {"line": "flick", "zig_tall": "zigzag", "funnel": "tornado", "mountain": "volcano"}
 
 
 ## Templates for the $1 recognizer.
@@ -15,6 +15,8 @@ static func recognizer_templates() -> Dictionary:
 		"zig_tall": PackedVector2Array([Vector2(0, 0), Vector2(-40, 40), Vector2(0, 80), Vector2(-40, 120)]),
 		"stonefall": _circle_and_drop(),
 		"cross": PackedVector2Array([Vector2(0, 0), Vector2(100, 100), Vector2(50, 50), Vector2(100, 0), Vector2(0, 100)]),
+		"funnel": PackedVector2Array([Vector2(-50, -40), Vector2(50, -40), Vector2(0, 50), Vector2(-50, -40)]),
+		"mountain": PackedVector2Array([Vector2(-50, 40), Vector2(0, -50), Vector2(50, 40), Vector2(-50, 40)]),
 	}
 
 
@@ -35,6 +37,15 @@ static func preview_points(gesture: String) -> PackedVector2Array:
 			return recognizer_templates()["zig_tall"]
 		"stonefall":
 			return recognizer_templates()["stonefall"]
+		"tornado":
+			var zigzag := PackedVector2Array()
+			for i in 13:
+				var t := float(i) / 12.0
+				var half := lerpf(50.0, 12.0, t)
+				zigzag.append(Vector2(half if i % 2 == 0 else -half, -50.0 + t * 100.0))
+			return zigzag
+		"volcano":
+			return recognizer_templates()["mountain"]
 		"icicles":
 			return PackedVector2Array([Vector2(-40, -40), Vector2(0, 30), Vector2(40, -40)])
 		"snowfall":

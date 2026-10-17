@@ -19,6 +19,7 @@ var stamina := MAX_STAMINA
 var focus := "wand"          # the held focus item, see FocusItem.FOCI
 var movement_enabled := true  # the arena turns this off while a typing box or the spellbook is open
 var infinite_time := 0.0  # Chant of Boundless Vigour: stamina does not run out while this lasts
+var slow_time := 0.0  # frost slows the caster while this lasts
 var _shove := Vector2.ZERO  # a Push on the caster: slides them for a moment, then fades
 var mute_time := 0.0          # no rituals while above zero
 var root_time := 0.0          # no walking or jumping while above zero
@@ -126,6 +127,8 @@ func apply_debuff(kind: String, seconds: float) -> void:
 			root_time = maxf(root_time, seconds)
 		"blind":
 			blind_time = maxf(blind_time, seconds)
+		"slow":
+			slow_time = maxf(slow_time, seconds)
 	debuff_applied.emit(kind)
 
 
@@ -181,6 +184,7 @@ func _physics_process(delta: float) -> void:
 	mute_time -= delta
 	root_time -= delta
 	blind_time -= delta
+	slow_time -= delta
 	infinite_time -= delta
 	if infinite_time > 0.0:
 		stamina = MAX_STAMINA
@@ -197,7 +201,7 @@ func _physics_process(delta: float) -> void:
 		if Input.is_action_just_pressed("jump") and is_on_floor() and spend(JUMP_COST):
 			velocity.y = JUMP_VELOCITY
 		# Walking is free; running drains stamina. With none left you still walk, at half speed.
-		var speed := SPEED if stamina > 0.0 else SPEED * 0.5
+		var speed := (SPEED if stamina > 0.0 else SPEED * 0.5) * (0.5 if slow_time > 0.0 else 1.0)
 		velocity.x = Input.get_axis("move_left", "move_right") * speed
 		if is_on_floor() and absf(velocity.x) > 10.0 and stamina > 0.0:
 			drain(RUN_COST * delta)

@@ -143,7 +143,7 @@ func _end() -> void:
 	var ring_centre := Vector2.ZERO
 	var icicles: Array = _icicle_triangles(relative) if options.has("icicles") else []
 	var snow_line := _snowfall_line(relative) if options.has("snowfall") else PackedVector2Array()
-	var peaks := _chain_peaks(relative) if options.has("chain") else PackedVector2Array()
+	var funnel := _funnel_stroke(relative) if options.has("tornado") else PackedVector2Array()
 	if ring_split >= 0:
 		# A closed ring with a straight line out of it is a Push. The line can point any way.
 		gesture = "circle_push"
@@ -151,15 +151,14 @@ func _end() -> void:
 		var ring := relative.slice(0, ring_split)
 		ring_centre = _relative_centroid(ring)
 		info["radius"] = _mean_distance(ring, ring_centre)
-	elif peaks.size() > 0:
-		gesture = "chain"
-		score = 1.0
-		info["pieces"] = peaks.size()
-		info["peaks"] = _to_world(peaks)
 	elif snow_line.size() >= 2:
 		gesture = "snowfall"
 		score = 1.0
 		info["line"] = _to_world(snow_line)
+	elif funnel.size() > 0:
+		gesture = "tornado"
+		score = 1.0
+		info["line"] = _to_world(funnel)
 	elif not icicles.is_empty():
 		gesture = "icicles"
 		score = 1.0
@@ -208,25 +207,10 @@ func _end() -> void:
 		elif entry.targeting == "shape":
 			# Shapes are placed where they were drawn, so the arena works from info rather than one point.
 			spawn = _origin
+		if entry.targeting == "shape" and info["line"].is_empty():
+			info["line"] = _to_world(relative)
 		cast_resolved.emit(entry.spell, entry.targeting, spawn, aim, info)
 
-
-
-## The hump tops of a wave (like a lowercase m): each is one bounce of Chain Lightning. Returns them in
-## stroke space, or nothing when the stroke is not a wide wave.
-func _chain_peaks(points: PackedVector2Array) -> PackedVector2Array:
-	var peaks := PackedVector2Array()
-	var low := points[0]
-	var high := points[0]
-	for p in points:
-		low = low.min(p)
-		high = high.max(p)
-	if high.x - low.x <= high.y - low.y:
-		return peaks  # a tall zigzag is Spark, not a wave
-	for turn in _turning_points(points):
-		if not turn[1]:
-			peaks.append(points[turn[0]])
-	return peaks
 
 
 func _is_vertical(points: PackedVector2Array) -> bool:
@@ -367,13 +351,13 @@ func _icicle_triangles(points: PackedVector2Array) -> Array:
 
 ## Where a stroke turns vertically by a real amount. Each entry is [point index, true for a bottom
 ## (lowest on screen) or false for a top].
-func _turning_points(points: PackedVector2Array) -> Array:
+func _turning_points(points: PackedVector2Array, axis := 1) -> Array:
 	var turns: Array = []
 	var ext := 0
 	var state := 0  # 1 going down the screen, -1 going up, 0 not decided yet
 	for i in range(1, points.size()):
-		var y: float = points[i].y
-		var ext_y: float = points[ext].y
+		var y: float = points[i][axis]
+		var ext_y: float = points[ext][axis]
 		if state == 0:
 			if y > ext_y + ICICLE_TURN:
 				state = 1
@@ -441,3 +425,42 @@ func _to_world(points: PackedVector2Array) -> PackedVector2Array:
 	for p in points:
 		out.append(_origin + p)
 	return out
+
+
+## A tornado: a zigzag going back and forth that is wide at the top and narrow at the bottom. Spark is a zigzag
+## of the same width, so it is not a tornado. Returns the stroke, or nothing.
+func _funnel_stroke(points: PackedVector2Array) -> PackedVector2Array:
+	if _turning_points(points, 0).size() < 4:
+		return PackedVector2Array()
+	var low := points[0]
+	var high := points[0]
+	for p in points:
+		low = low.min(p)
+		high = high.max(p)
+	var height := high.y - low.y
+	if height < 60.0:
+		return PackedVector2Array()
+	var top_min := INF
+	var top_max := -INF
+	var bottom_min := INF
+	var bottom_max := -INF
+	for p in points:
+		if p.y < low.y + height * 0.3:
+			top_min = minf(top_min, p.x)
+			top_max = maxf(top_max, p.x)
+		elif p.y > high.y - height * 0.3:
+			bottom_min = minf(bottom_min, p.x)
+			bottom_max = maxf(bottom_max, p.x)
+	var top_width := top_max - top_min
+	var bottom_width := bottom_max - bottom_min
+	if top_width < 50.0 or top_width < bottom_width * 1.5:
+		return PackedVector2Array()
+	return points
+
+
+## Casts a stroke that was not drawn with the mouse, such as a dark wizard's. It resolves exactly like a drawn one.
+func cast_stroke(mask: int, points: PackedVector2Array) -> void:
+	_stroke = points
+	_origin = points[0]
+	_active_mask = mask
+	_end()

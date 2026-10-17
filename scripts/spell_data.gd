@@ -10,8 +10,8 @@ const BLINK_MAX := 300.0
 
 ## Short damage figure per spell, for the spellbook.
 const DAMAGE := {
-	"Ignite": "12 damage", "Firewall": "4 damage per half second", "Cinderburst": "25 damage",
-	"Frostbolt": "6 damage, slows", "Blink": "8 damage to foes in the way", "Chain Lightning": "12 damage, less on each hop", "Icicles": "6 damage every half second", "Snowfall": "slows what is inside", "Push": "no damage, moves foes",
+	"Ignite": "12 damage", "Firewall": "4 damage per half second",
+	"Frostbolt": "6 damage, slows", "Tornado": "no damage, swirls enemies", "Volcano": "lava damage, sets ground on fire", "Blink": "8 damage to foes in the way", "Icicles": "6 damage every half second", "Snowfall": "slows what is inside", "Push": "no damage, moves foes",
 	"Barrier": "blocks damage", "Spark": "20 damage",
 	"Force Wall": "no damage, bats back bolts", "Stonefall": "30 damage", "Stone Wall": "solid, no damage",
 }
@@ -21,7 +21,7 @@ const SCHOOL_COLORS := {
 	"Fire": Color("#ff6a2a"),
 	"Ice": Color("#7fd8ff"),
 	"Force": Color("#b07cff"),
-	"Lightning": Color("#ffe85a"),
+	"Storm": Color("#ffe85a"),
 	"Earth": Color("#b8864a"),
 	"Shadow": Color("#7a5aa0"),
 }
@@ -40,25 +40,25 @@ const SPELLS := {
 		"school": "Fire", "draw": "Straight vertical line. The wall appears at the middle of the stroke.",
 		"effect": "A wall of fire for 4 seconds. Mobs cannot pass it. You can walk through it, and it burns you and any mob in it, 4 damage every half second.",
 	},
-	"Cinderburst": {
-		"buttons": LEFT, "gesture": "circle_cw", "targeting": "positional", "cost": 30.0,
-		"school": "Fire", "draw": "Clockwise circle. The burst goes off at its center.",
-		"effect": "Burst at the circle's center. 25 damage to everything inside.",
-	},
 	"Frostbolt": {
 		"buttons": RIGHT, "gesture": "flick", "targeting": "directional", "cost": 15.0,
 		"school": "Ice", "draw": "Straight stroke, not vertical. Same stroke as Ignite.",
 		"effect": "Bolt along your stroke. 6 damage and slows the mob for 2 seconds.",
 	},
+	"Tornado": {
+		"buttons": LEFT | RIGHT, "gesture": "tornado", "targeting": "shape", "cost": 30.0,
+		"school": "Storm", "draw": "A zigzag going back and forth, wide at the top and narrow at the bottom. A spinning wind forms where you draw it.",
+		"effect": "Lasts 6 seconds. Bats back enemy shots and swirls enemies around inside it."
+	},
+	"Volcano": {
+		"buttons": LEFT, "gesture": "volcano", "targeting": "shape", "cost": 25.0,
+		"school": "Fire", "draw": "A mountain: an upward-pointing triangle, drawn in one stroke.",
+		"effect": "Erupts for a few seconds, throwing lava balls. Each one sets the ground or platform it lands on on fire."
+	},
 	"Blink": {
 		"buttons": LEFT | RIGHT, "gesture": "flick", "targeting": "directional", "cost": 6.0,
-		"school": "Lightning", "draw": "A straight stroke. You zip along it, through anything in your way.",
+		"school": "Storm", "draw": "A straight stroke. You zip along it, through anything in your way.",
 		"effect": "Teleports you along the stroke, up to 300 px, stopping short of walls. Costs more the farther you go. Foes in the way take 8 damage."
-	},
-	"Chain Lightning": {
-		"buttons": LEFT | RIGHT, "gesture": "chain", "targeting": "shape", "cost": 6.0,
-		"school": "Lightning", "draw": "A wave, like a lowercase m. Each hump is one bounce, and you can draw as many as you want.",
-		"effect": "A bolt hops from hump to hump, striking foes near each one. Costs 6 stamina per hump."
 	},
 	"Icicles": {
 		"buttons": RIGHT, "gesture": "icicles", "targeting": "shape", "cost": 8.0,
@@ -82,7 +82,7 @@ const SPELLS := {
 	},
 	"Spark": {
 		"buttons": LEFT | RIGHT, "gesture": "zigzag", "targeting": "positional", "cost": 10.0,
-		"school": "Lightning", "draw": "A tall zigzag going down. Start down and to the left, then zig right. The strike lands at its middle.",
+		"school": "Storm", "draw": "A tall zigzag going down. Start down and to the left, then zig right. The strike lands at its middle.",
 		"effect": "Lightning strikes down from above through the middle of your stroke. 20 damage.",
 	},
 	"Force Wall": {
@@ -125,13 +125,13 @@ static func cost_for(spell_name: String, info: Dictionary) -> float:
 	if spell_name == "Blink":
 		return maxf(2.0, roundf(base * clampf(info.get("length", 0.0), 0.0, BLINK_MAX) / 100.0))
 	var radius: float = info.get("radius", 0.0)
-	if (spell_name == "Push" or spell_name == "Cinderburst") and radius > 0.0:
+	if spell_name == "Push" and radius > 0.0:
 		return roundf(base * clampf(radius / 40.0, 0.5, 4.0))
 	if spell_name == "Snowfall":
 		var width := _width_of(info.get("line", PackedVector2Array()))
 		if width > 0.0:
 			return roundf(base * clampf(width / 100.0, 0.5, 4.0))
-	if spell_name == "Icicles" or spell_name == "Chain Lightning":
+	if spell_name == "Icicles":
 		return base * int(info.get("pieces", 1))
 	return base
 
@@ -165,7 +165,11 @@ static func button_name(mask: int) -> String:
 ## so the body is the school colour and the shading stays in proportion. The sprite is shrunk first: enemies are
 ## drawn small, so this loses nothing you can see and makes the work quick.
 static func recoloured(source: Texture2D, school: String, shrink: int = 4) -> ImageTexture:
-	var image := source.get_image()
+	return recoloured_image(source.get_image(), school, shrink)
+
+
+## The same, from an image that is already loaded.
+static func recoloured_image(image: Image, school: String, shrink: int = 4) -> ImageTexture:
 	image.resize(image.get_width() / shrink, image.get_height() / shrink, Image.INTERPOLATE_BILINEAR)
 	var body_lum := _luminance(_main_colour(image))
 	var target: Color = SCHOOL_COLORS[school]

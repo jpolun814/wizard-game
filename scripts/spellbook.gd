@@ -15,7 +15,7 @@ const GOLD := Color("#c9a24a")
 const BOOK_SIZE := Vector2(1000, 572)
 
 ## The schools, in the order they appear in the book.
-const SCHOOLS := ["Fire", "Ice", "Force", "Lightning", "Earth"]
+const SCHOOLS := ["Fire", "Ice", "Force", "Storm", "Earth"]
 
 var _spread := 0
 var _pages: Array[Callable] = []
@@ -293,8 +293,6 @@ func _page_school(column: VBoxContainer, school: String) -> void:
 	var mouse := MouseIcon.new(_school_mask(school), SpellData.SCHOOL_COLORS[school], Vector2(44, 64))
 	mouse.size_flags_horizontal = Control.SIZE_SHRINK_CENTER  # keep the mouse its own size, not the page's width
 	column.add_child(mouse)
-	column.add_child(_mob_row("Strong against", "weak", school))
-	column.add_child(_mob_row("Shrugs off", "resist", school))
 	for spell_name in SpellData.SPELLS:
 		var s: Dictionary = SpellData.SPELLS[spell_name]
 		if s["school"] != school:
@@ -349,37 +347,6 @@ func _ritual_effect(ritual_id: String) -> String:
 
 func _page_blank(_column: VBoxContainer) -> void:
 	pass
-
-
-## A labelled row of the pictures of the enemies whose Mob.KINDS entry under key is this school.
-func _mob_row(label_text: String, key: String, school: String) -> HBoxContainer:
-	var row := HBoxContainer.new()
-	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	row.add_theme_constant_override("separation", 10)
-	var label := _ink(label_text, 13)
-	label.autowrap_mode = TextServer.AUTOWRAP_OFF
-	label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	row.add_child(label)
-	var found := false
-	for kind in Mob.KINDS:
-		var data: Dictionary = Mob.KINDS[kind]
-		if data[key] != school:
-			continue
-		found = true
-		# The frame is much larger than the enemy in it, so show only the part that has something drawn.
-		var source: Texture2D = SpellData.recoloured(load("%s/%s_0.png" % [data["frames"], data["idle"]]), data["school"]) if data["school"] != "" else load("%s/%s_0.png" % [data["frames"], data["idle"]])
-		var picture := TextureRect.new()
-		var crop := AtlasTexture.new()
-		crop.atlas = source
-		crop.region = Rect2(source.get_image().get_used_rect())
-		picture.texture = crop
-		picture.custom_minimum_size = Vector2(44, 44)
-		picture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		picture.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		row.add_child(picture)
-	if not found:
-		row.add_child(_ink("none", 13, SUBTLE))
-	return row
 
 
 ## Moves the book to the top of the screen while the typing box is open, back to the centre when it closes.

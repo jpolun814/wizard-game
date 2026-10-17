@@ -32,6 +32,7 @@ var _insight_text: RichTextLabel
 ## The minimap is hidden until its chant brings it into view. Health and stamina are always shown.
 var _revealed := {"minimap": false, "insight": false}
 var _rng := RandomNumberGenerator.new()
+var debug_panel: DebugPanel  # F1 opens it: buttons that summon enemies for testing
 var _cells := {}  # the generated arena's tiles, see ArenaGen
 
 
@@ -62,6 +63,10 @@ func _ready() -> void:
 
 	spellbook = Spellbook.new()
 	add_child(spellbook)
+	debug_panel = DebugPanel.new()
+	debug_panel.arena = self
+	add_child(debug_panel)
+	debug_panel.visible = true  # open for testing; F1 hides it
 
 	# The player starts on open ground. The waves come from the director, one level at a time.
 	var open := _clear_columns()
@@ -115,6 +120,10 @@ func _on_portal_entered(body: Node2D) -> void:
 
 
 func _input(event: InputEvent) -> void:
+	var toggle := event as InputEventKey
+	if toggle and toggle.pressed and not toggle.echo and toggle.keycode == KEY_F1:
+		debug_panel.visible = not debug_panel.visible
+		return
 	var key := event as InputEventKey
 	if ritual.visible or key == null or not key.pressed or key.echo:
 		return
@@ -258,6 +267,8 @@ func _visible_hud_rects() -> Array[Rect2]:
 	for control in [_hp_bar, _stamina_bar, _minimap]:
 		if control.visible:
 			rects.append(control.get_global_rect())
+	if debug_panel.visible:
+		rects.append(debug_panel.panel.get_global_rect())
 	return rects
 
 
@@ -289,27 +300,125 @@ func _on_cast_resolved(spell: String, targeting: String, origin: Vector2, aim: f
 		_on_feedback("Not enough stamina for %s (needs %d)" % [spell, cost], Color.ORANGE)
 		return
 
+	spawn_spell(spell, targeting, origin, aim, info, player.global_position)
+
+
+## Makes a spell take effect in the world. The player's spells and the dark wizard's both come through here.
+## from is where the caster stands.
+func spawn_spell(spell: String, targeting: String, origin: Vector2, aim: float, info: Dictionary, from: Vector2) -> void:
 	# Barrier wraps the caster rather than appearing somewhere in the world.
 	if spell == "Barrier":
 		player.raise_shield(BARRIER_SECONDS)
 		return
-	# Blink zips the caster along the stroke, so it starts from the caster, not the stroke.
+	# Blink zips the player along the stroke, so it starts from the caster, not the stroke.
 	if spell == "Blink":
 		_blink(aim, info.get("length", 0.0))
 		return
-	# Icicles and snowfall are placed where they were drawn, not at one point.
+	# Icicles, snowfall, tornados and volcanoes are placed where they were drawn, not at one point.
 	if targeting == "shape":
 		_place_shapes(spell, info)
 		return
 	# Stone Wall rises from where the stroke began, on the ground. Angled spells keep their origin and aim.
 	if targeting == "directional" and spell != "Stone Wall":
 		# Other directional spells leave the caster along the stroke; positional ones appear where drawn.
-		origin = player.global_position + Vector2.from_angle(aim) * MUZZLE_OFFSET
+		origin = from + Vector2.from_angle(aim) * MUZZLE_OFFSET
 	var effect := SpellEffect.new()
 	add_child(effect)
 	effect.zone_radius = info.get("radius", 0.0)
 	effect.setup(spell, origin, aim)
 	effect.broke.connect(func() -> void: _on_feedback("%s broke" % spell, Color.ORANGE))
+
+
+## Picks the dark wizard's next spell from the situation and draws it at the player. Returns false if it is not
+## casting this moment: nothing is worth casting, or it cannot afford what is.
+func wizard_cast(wizard: Node2D) -> bool:
+	var choice := _choose_wizard_spell(wizard)
+	if choice == "":
+		return false
+	var data: Dictionary = SpellData.SPELLS[choice]
+	var template := GestureTemplates.preview_points(data["gesture"])
+	if template.size() < 2:
+		return false
+	wizard.stamina -= SpellData.cost(choice)
+	wizard.last_spell = choice
+	var target: Vector2 = player.global_position
+	var points := PackedVector2Array()
+	if data["targeting"] == "positional" or data["targeting"] == "shape":
+		var centre := Vector2.ZERO
+		for p in template:
+			centre += p / template.size()
+		for p in template:
+			points.append(target + p - centre)
+	else:
+		var start: Vector2 = wizard.global_position + Vector2(0, -20)
+		var angle := (target - start).angle() - (template[template.size() - 1] - template[0]).angle()
+		for p in template:
+			points.append(start + (p - template[0]).rotated(angle))
+	wizard.start_drawing(_densify(points), SpellData.SCHOOL_COLORS[data["school"]], Callable(self, "_finish_wizard_cast").bind(wizard, data["buttons"]))
+	return true
+
+
+## Weighs each spell the dark wizard can cast against the fight, then picks one at random by weight.
+func _choose_wizard_spell(wizard: Node2D) -> String:
+	var names := ["Ignite", "Frostbolt", "Spark", "Stonefall", "Icicles", "Volcano", "Tornado"]
+	var total := 0.0
+	var scores := []
+	for spell_name in names:
+		var score := _wizard_score(spell_name, wizard)
+		scores.append(score)
+		total += score
+	if total <= 0.0:
+		return ""
+	var pick := randf() * total
+	for i in names.size():
+		pick -= scores[i]
+		if pick <= 0.0 and scores[i] > 0.0:
+			return names[i]
+	return ""
+
+
+## How much a spell is worth right now: close or far, whether the player is moving or slowed, and whether the
+## wizard just cast it. A spell it cannot afford is worth nothing.
+func _wizard_score(spell_name: String, wizard: Node2D) -> float:
+	if wizard.stamina < SpellData.cost(spell_name):
+		return 0.0
+	var gap: float = player.global_position.distance_to(wizard.global_position)
+	var still: bool = player.velocity.length() < 25.0
+	var score := 1.0
+	match spell_name:
+		"Ignite":
+			score = 2.0 if gap > 120.0 else 0.8
+		"Frostbolt":
+			score = 0.3 if player.slow_time > 0.0 else 1.8
+		"Spark":
+			score = 2.0 if gap < 260.0 else 0.6
+		"Stonefall":
+			score = 2.5 if still else 0.5
+		"Icicles":
+			score = 1.4 if player.is_on_floor() else 0.4
+		"Volcano":
+			score = 1.6 if gap > 140.0 else 0.3
+		"Tornado":
+			score = 1.2 if gap < 180.0 else 0.2
+	if spell_name == wizard.last_spell:
+		score *= 0.25  # it does not keep repeating the same spell
+	return score
+
+
+## The stroke with points in between, so it is as dense as one drawn with the mouse.
+func _densify(points: PackedVector2Array) -> PackedVector2Array:
+	var out := PackedVector2Array()
+	for i in points.size() - 1:
+		var steps := maxi(1, int(points[i].distance_to(points[i + 1]) / 2.0))
+		for k in steps:
+			out.append(points[i].lerp(points[i + 1], float(k) / steps))
+	out.append(points[points.size() - 1])
+	return out
+
+
+## A dark wizard's spell resolves here, placed from the wizard rather than the player.
+func _on_wizard_cast(spell: String, targeting: String, origin: Vector2, aim: float, info: Dictionary, wizard: Node2D) -> void:
+	spawn_spell(spell, targeting, origin, aim, info, wizard.global_position)
 
 
 const BLINK_DAMAGE := 8
@@ -329,10 +438,10 @@ func _blink(aim: float, length: float) -> void:
 	for mob in get_tree().get_nodes_in_group("mobs"):
 		var closest := Geometry2D.get_closest_point_to_segment(mob.global_position, start, end)
 		if closest.distance_to(mob.global_position) <= 24.0:
-			mob.take_damage(BLINK_DAMAGE, "Lightning")
+			mob.take_damage(BLINK_DAMAGE, "Storm")
 	player.global_position = end
-	Fx.burst(self, start, SpellData.SCHOOL_COLORS["Lightning"], 12, 120.0, 0.25)
-	Fx.burst(self, end, SpellData.SCHOOL_COLORS["Lightning"], 12, 120.0, 0.25)
+	Fx.burst(self, start, SpellData.SCHOOL_COLORS["Storm"], 12, 120.0, 0.25)
+	Fx.burst(self, end, SpellData.SCHOOL_COLORS["Storm"], 12, 120.0, 0.25)
 
 
 
@@ -452,40 +561,9 @@ func _too_close(col: int, taken: Array[int]) -> bool:
 
 
 ## Icicles stand as the triangles they were drawn as. Snowfall is a band along the drawn line.
-const CHAIN_DAMAGE := 12
-const CHAIN_REACH := 40.0  # how close to a hump a foe must be to be struck
-const CHAIN_HOP_TIME := 0.15
-
-
-## Chain Lightning: a bolt hops from hump to hump along the wave, striking foes near each hump. Each hop
-## hits a little less than the one before. The line is drawn where the bolt goes, then fades.
-func _chain(peaks: PackedVector2Array) -> void:
-	var bolt := Line2D.new()
-	bolt.points = peaks
-	bolt.width = 3.0
-	bolt.default_color = SpellData.SCHOOL_COLORS["Lightning"].lerp(Color.WHITE, 0.4)
-	bolt.joint_mode = Line2D.LINE_JOINT_ROUND
-	add_child(bolt)
-	var tween := create_tween()
-	for i in peaks.size():
-		tween.tween_callback(_chain_hop.bind(peaks[i], maxi(4, CHAIN_DAMAGE - 2 * i)))
-		tween.tween_interval(CHAIN_HOP_TIME)
-	tween.tween_property(bolt, "modulate:a", 0.0, 0.4)
-	tween.tween_callback(bolt.queue_free)
-
-
-func _chain_hop(point: Vector2, damage: int) -> void:
-	for mob in get_tree().get_nodes_in_group("mobs"):
-		if mob.global_position.distance_to(point) <= CHAIN_REACH:
-			mob.take_damage(damage, "Lightning")
-	Fx.burst(self, point, SpellData.SCHOOL_COLORS["Lightning"], 10, 120.0, 0.25)
-
 
 
 func _place_shapes(spell: String, info: Dictionary) -> void:
-	if spell == "Chain Lightning":
-		_chain(info["peaks"])
-		return
 	if spell == "Icicles":
 		for tri in info["shapes"]:
 			var centre: Vector2 = (tri[0] + tri[1] + tri[2]) / 3.0
@@ -496,6 +574,15 @@ func _place_shapes(spell: String, info: Dictionary) -> void:
 			add_child(effect)
 			effect.polygon = local
 			effect.setup(spell, centre, 0.0)
+	elif spell == "Tornado" or spell == "Volcano":
+		var centre := Vector2.ZERO
+		for p in info["line"]:
+			centre += p / info["line"].size()
+		if spell == "Volcano":
+			centre = _ground_below(centre)
+		var node: Node2D = Tornado.new() if spell == "Tornado" else Volcano.new()
+		node.position = centre
+		add_child(node)
 	elif spell == "Snowfall":
 		var line: PackedVector2Array = info["line"]
 		var left := line[0].x
@@ -550,3 +637,21 @@ func _ground_below(point: Vector2) -> Vector2:
 	query.collision_mask = 1  # terrain only
 	var hit := get_world_2d().direct_space_state.intersect_ray(query)
 	return hit["position"] if not hit.is_empty() else point + Vector2(0, 25)
+
+
+## Debug: summons one enemy of a kind on the far side of the screen, ahead of where the wizard is facing.
+func summon_far_side(kind: String) -> void:
+	var zoom: float = player.get_node("Camera2D").zoom.x
+	var half_view := get_viewport().get_visible_rect().size.x * 0.5 / zoom
+	var x := clampf(player.global_position.x + player._facing * half_view * 0.8, ArenaGen.LEFT_WALL * TILE + 16.0, ArenaGen.RIGHT_WALL * TILE - 16.0)
+	var mob := MOB_SCENE.instantiate()
+	mob.kind = kind
+	mob.player = player
+	mob.position = Vector2(x, player.global_position.y - 40.0)
+	add_child(mob)
+
+
+## A dark wizard has finished drawing its stroke: the spell is cast from the stroke it drew.
+func _finish_wizard_cast(points: PackedVector2Array, wizard: Node2D, mask: int) -> void:
+	if is_instance_valid(wizard):
+		wizard.caster.cast_stroke(mask, points)

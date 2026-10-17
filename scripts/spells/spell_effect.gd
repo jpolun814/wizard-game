@@ -19,10 +19,10 @@ const FORCE_WALL_KNOCK := 300.0
 const FORCE_ZONE_LIFE := 0.5
 const FIREWALL_TICK := 0.5
 const FIREWALL_DAMAGE := 4
-const CINDERBURST_DAMAGE := 25
 const SPARK_DAMAGE := 20
 const KNOCK_SPEED := 700.0
 const SLOW_SECONDS := 2.0
+const FIREBALL_KNOCK := 420.0  # how hard a fireball pushes what it hits
 const ICICLE_LIFE := 4.0  # an icicle stands this long, then melts
 const ICICLE_TICK := 0.5
 const ICICLE_DAMAGE := 6
@@ -82,12 +82,6 @@ func setup(spell_name: String, origin: Vector2, aim_angle: float) -> void:
 				shape.shape = rect
 				_add_solid_block(Vector2(20, 120))
 				_add_flame_column(Vector2(10, 60), 40, Vector2(0, -80))
-			"Cinderburst":
-				_life = 0.5
-				var circle := CircleShape2D.new()
-				circle.radius = 70.0
-				shape.shape = circle
-				Fx.burst(get_parent(), origin, PROJECTILES.get("Ignite")["color"], 60, 260.0, 0.6)
 			"Push":
 				# A circle of force: everything inside it is shoved once, along the line drawn out of the circle.
 				_life = FORCE_ZONE_LIFE
@@ -205,8 +199,6 @@ func _draw() -> void:
 			_draw_snow(fade)
 		"Firewall":
 			_draw_firewall(fade)
-		"Cinderburst":
-			_draw_shockwave(fade)
 		"Spark":
 			_draw_lightning(fade)
 		"Force Wall":
@@ -256,15 +248,6 @@ func _draw_firewall(fade: float) -> void:
 		draw_circle(tip, 2.0, Color(1.0, 0.9, 0.5, 0.9 * fade))
 
 
-func _draw_shockwave(fade: float) -> void:
-	var radius := 70.0 * minf(1.0, _age / 0.25)
-	draw_circle(Vector2.ZERO, radius, Color(1.0, 0.55, 0.15, 0.18 * fade))
-	draw_arc(Vector2.ZERO, radius, 0.0, TAU, 48, Color(1.0, 0.8, 0.4, fade), 4.0)
-	draw_arc(Vector2.ZERO, radius * 0.7, 0.0, TAU, 40, Color(1.0, 0.95, 0.7, fade * 0.7), 2.0)
-	if _age < 0.2:
-		draw_circle(Vector2.ZERO, 26.0 * (1.0 - _age / 0.2), Color(1.0, 0.95, 0.8, 0.9))
-
-
 func _draw_lightning(fade: float) -> void:
 	# Three layers: a wide soft glow, a brighter sheath, and a white-hot core.
 	draw_polyline(_bolt, Color(1.0, 0.95, 0.4, 0.18 * fade), 14.0)
@@ -289,14 +272,6 @@ func _physics_process(delta: float) -> void:
 			if _tick <= 0.0:
 				_tick = FIREWALL_TICK
 				_damage_overlapping(_area_tick_damage())
-				for body in get_overlapping_bodies():
-					if body.is_in_group("player"):
-						body.take_damage(FIREWALL_DAMAGE)
-		"Cinderburst":
-			# Wait one physics frame so overlaps are registered before the burst.
-			if not _burst_done and _age > 0.05:
-				_burst_done = true
-				_damage_overlapping(CINDERBURST_DAMAGE)
 		"Spark":
 			if not _burst_done and _age > 0.05:
 				_burst_done = true
@@ -310,6 +285,8 @@ func _physics_process(delta: float) -> void:
 			for body in get_overlapping_bodies():
 				if body.is_in_group("mobs"):
 					body.apply_slow(0.3)
+				elif body.is_in_group("player"):
+					body.apply_debuff("slow", 0.3)
 		"Force Wall":
 			# Shove any mob standing against the wall away from it, a few times a second.
 			_tick -= delta
@@ -331,6 +308,12 @@ func _physics_process(delta: float) -> void:
 
 func _on_projectile_hit(body: Node2D) -> void:
 	if body.is_in_group("player"):
+		if _age > 0.15 and not _spent:  # a shot does not hit its own caster right after it leaves
+			_spent = true
+			body.take_damage(PROJECTILES[spell]["damage"])
+			if spell == "Frostbolt":
+				body.apply_debuff("slow", SLOW_SECONDS)
+			_finish()
 		return
 	# A stone wall stops anything.
 	if body.has_meta("stone_wall"):
@@ -348,6 +331,8 @@ func _on_projectile_hit(body: Node2D) -> void:
 		var damage: int = PROJECTILES[spell]["damage"]
 		if damage > 0:
 			body.take_damage(damage, _school())
+		if spell == "Ignite":
+			body.knock_back(_aim * FIREBALL_KNOCK)  # a fireball shoves the enemy a little along its path
 		if spell == "Frostbolt":
 			body.apply_slow(SLOW_SECONDS)
 	_finish()
@@ -360,6 +345,8 @@ func _damage_overlapping(amount: int) -> void:
 	for body in get_overlapping_bodies():
 		if body.is_in_group("mobs"):
 			body.take_damage(amount, _school())
+		elif body.is_in_group("player"):
+			body.take_damage(amount)
 
 
 ## Ends the effect. A projectile's trail is let go to finish fading rather than vanishing with it.
@@ -393,6 +380,9 @@ func _push_overlapping_mobs() -> void:
 		if body.is_in_group("mobs"):
 			var side := 1.0 if (body.global_position - global_position).dot(normal) >= 0.0 else -1.0
 			body.knock_back(normal * side * FORCE_WALL_KNOCK)
+		elif body.is_in_group("player"):
+			var side_p := 1.0 if (body.global_position - global_position).dot(normal) >= 0.0 else -1.0
+			body.push(normal * side_p * FORCE_WALL_KNOCK)
 
 
 ## Damages every mob within a radius of a point.
@@ -400,6 +390,9 @@ func _damage_within(point: Vector2, radius: float, amount: int) -> void:
 	for mob in get_tree().get_nodes_in_group("mobs"):
 		if mob.global_position.distance_to(point) <= radius:
 			mob.take_damage(amount, _school())
+	var player := get_tree().get_first_node_in_group("player") as Node2D
+	if player and player.global_position.distance_to(point) <= radius:
+		player.take_damage(amount)
 
 
 ## Force wall: a violet band lying along the slash, crisp edges and a shimmer running along it. It fades as it runs out.
