@@ -28,13 +28,17 @@ func add_template(template_name: String, points: PackedVector2Array) -> void:
 
 ## Returns {"name": String, "score": float}. Score is 1.0 for a perfect match.
 ## Name is "" when there are no templates or the stroke is degenerate.
-func recognize(points: PackedVector2Array) -> Dictionary:
+## only, if given, limits the match to those template names: shapes that mean nothing on the button being held
+## are never chosen over the ones that do.
+func recognize(points: PackedVector2Array, only: Array = []) -> Dictionary:
 	if templates.is_empty() or points.size() < 2 or path_length(points) <= 0.0:
 		return {"name": "", "score": 0.0}
 	var candidate := _normalize(points)
 	var best_distance := INF
 	var best_name := ""
 	for template_name in templates:
+		if not only.is_empty() and not only.has(template_name):
+			continue
 		var d := _distance_at_best_angle(candidate, templates[template_name])
 		if d < best_distance:
 			best_distance = d

@@ -1,9 +1,10 @@
 class_name Volcano
 extends Node2D
 
-## A volcano that erupts for a few seconds. It throws lava balls in arcs. Each one that lands sets the ground or
-## platform beneath it on fire for a while, and burns whatever is standing there. The rock is drawn plainly;
-## the lava, the crater and the lava balls sit on a glowing layer.
+## A volcano that erupts for a few seconds. A mound of rock heaves up out of the ground with fire roaring from its
+## top, and it throws balls of fire in arcs. Each one that lands sets the ground or platform beneath it on fire for
+## a while, and burns whatever is standing there. All of it is pixel art: the rock from the cemetery, the flames
+## and fireballs from the effect strips.
 
 const LIFE := 4.5
 const ERUPT_INTERVAL := 0.45
@@ -12,18 +13,43 @@ const LAVA_DAMAGE := 12
 const LAVA_REACH := 30.0
 const FIRE_WIDTH := 40.0
 const FIRE_SECONDS := 5.0
+const CRATER_Y := -78.0  # the top of the mound, where the fire comes out
 
+var team := "player"
 var _age := 0.0
 var _erupt := 0.0
 var _balls: Array = []  # each lava ball is {"pos": world position, "vel": velocity}
 var _glow: Node2D
+var _mound: Sprite2D
+var _ball_frames: SpriteFrames
 
 
 func _ready() -> void:
+	add_to_group("danger")
+	Sfx.play("volcano", global_position)
+	Fx.debris(get_parent(), global_position, Color("#5a4238"), 12, 200.0)
+	GameCamera.shake_scene(get_tree(), 0.3)
 	_glow = Node2D.new()
 	_glow.material = Fx.additive()
 	add_child(_glow)
 	_glow.draw.connect(_draw_glow)
+	# The mound heaves up out of the ground, standing on its bottom edge.
+	_mound = Sprite2D.new()
+	_mound.texture = load("res://art/props/mound.png")
+	_mound.offset = Vector2(0, -_mound.texture.get_height() * 0.5 + 3.0)
+	_mound.scale = Vector2(1.0, 0.0)
+	add_child(_mound)
+	create_tween().tween_property(_mound, "scale:y", 1.0, 0.25).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	# Fire roars out of its top for as long as it erupts.
+	var vent := PixelFx.sprite("flame", 30.0)
+	vent.scale = Vector2.ONE * 2.0
+	vent.offset = Vector2(0, -PixelArt.FX["flame"]["size"].y * 0.5)
+	vent.position = Vector2(0, CRATER_Y + 8.0)
+	vent.z_index = 1
+	add_child(vent)
+	create_tween().tween_property(vent, "modulate:a", 0.0, 0.5).set_delay(LIFE - 0.4)
+	PixelFx.play(get_parent(), global_position + Vector2(0, CRATER_Y + 10.0), "blast_fire", 18.0, 1.5, Color.WHITE, true)
+	_ball_frames = PixelFx.frames("fireball", 18.0, true)
 
 
 func _physics_process(delta: float) -> void:
@@ -31,7 +57,8 @@ func _physics_process(delta: float) -> void:
 	_erupt -= delta
 	if _age < LIFE and _erupt <= 0.0:
 		_erupt = ERUPT_INTERVAL
-		_balls.append({"pos": global_position + Vector2(0, -30), "vel": Vector2(randf_range(-180.0, 180.0), -480.0)})
+		_balls.append({"pos": global_position + Vector2(0, CRATER_Y), "vel": Vector2(randf_range(-180.0, 180.0), -480.0), "age": 0.0})
+		Fx.smoke(get_parent(), global_position + Vector2(0, CRATER_Y - 20.0), Color(0.2, 0.17, 0.17, 0.6), 2, 26.0, 60.0)
 	var flying := []
 	for ball in _balls:
 		var before: Vector2 = ball["pos"]
@@ -41,70 +68,54 @@ func _physics_process(delta: float) -> void:
 		if landing != Vector2.INF:
 			_land(landing)
 		else:
-			flying.append({"pos": after, "vel": velocity})
+			flying.append({"pos": after, "vel": velocity, "age": ball["age"] + delta})
 	_balls = flying
 	queue_redraw()
 	_glow.queue_redraw()
-	if _age >= LIFE and _balls.is_empty():
-		queue_free()
+	if _age >= LIFE and _balls.is_empty() and _mound.scale.y > 0.99:
+		# The mound sinks back into the ground before it goes.
+		var tween := create_tween()
+		tween.tween_property(_mound, "scale:y", 0.0, 0.3)
+		tween.tween_callback(queue_free)
+		set_physics_process(false)
 
 
 ## Where a lava ball crosses the ground between two points, or Vector2.INF if it does not.
 func _landing_between(from: Vector2, to: Vector2) -> Vector2:
 	var query := PhysicsRayQueryParameters2D.create(from, to)
-	query.collision_mask = 1  # terrain only
+	query.collision_mask = 1 | 16  # the ground and platforms
 	var hit := get_world_2d().direct_space_state.intersect_ray(query)
 	return hit["position"] if not hit.is_empty() else Vector2.INF
 
 
 ## A lava ball lands: the ground catches fire, and anything standing close by is burned.
 func _land(point: Vector2) -> void:
-	Hazard.place(get_parent(), point, "fire", FIRE_WIDTH, FIRE_SECONDS)
-	for mob in get_tree().get_nodes_in_group("mobs"):
-		if mob.global_position.distance_to(point) <= LAVA_REACH:
-			mob.take_damage(LAVA_DAMAGE, "Fire")
-	var player := get_tree().get_first_node_in_group("player") as Node2D
-	if player and player.global_position.distance_to(point) <= LAVA_REACH:
-		player.take_damage(LAVA_DAMAGE)
-	Fx.burst(get_parent(), point, Color("#ff7a2a"), 12, 140.0, 0.35)
+	var hazard := Hazard.place(get_parent(), point, "fire", FIRE_WIDTH, FIRE_SECONDS)
+	hazard.team = team
+	SpellTargets.hurt_within(get_tree(), point + Vector2(0, -12), LAVA_REACH, LAVA_DAMAGE, "Fire", team)
+	PixelFx.play(get_parent(), point, "blast_small", 20.0, 1.0, Color.WHITE, true)
+	Sfx.play("fire_hit", point, -6.0)
 
 
-## The rock and the smoke.
+## The mountain and the ground round it are dangerous while it erupts.
+func danger_at(point: Vector2) -> bool:
+	return _age < LIFE and absf(point.x - global_position.x) < 110.0 and point.y > global_position.y - 120.0
+
+
+## The fireballs in flight, each turned along its path.
 func _draw() -> void:
-	var t := _age
-	var peak := -70.0 * (1.0 + 0.03 * sin(t * 2.0))
-	draw_colored_polygon(PackedVector2Array([Vector2(-70, 0), Vector2(-8, peak), Vector2(8, peak), Vector2(70, 0)]), Color("#3b2c26"))
-	draw_colored_polygon(PackedVector2Array([Vector2(-8, peak), Vector2(0, -40), Vector2(-40, 0), Vector2(-70, 0)]), Color("#5a4238"))
-	# Ridges down the rock, for texture.
-	for i in 3:
-		var side := -1.0 if i % 2 == 0 else 1.0
-		draw_line(Vector2(side * 10.0, peak + 6.0), Vector2(side * (30.0 + 10.0 * i), -10.0), Color(0.22, 0.16, 0.14, 0.8), 2.0)
-	# Smoke rising from the crater and fading.
-	for i in 7:
-		var k := fmod(t * 0.3 + float(i) / 7.0, 1.0)
-		draw_circle(Vector2(sin(float(i) * 2.1 + t) * 10.0, peak - 10.0 - k * 60.0), 6.0 + k * 14.0, Color(0.35, 0.33, 0.33, 0.35 * (1.0 - k)))
-
-
-## The light: lava streams, the crater, and the lava balls with their trails.
-func _draw_glow() -> void:
-	var t := _age
-	var peak := -70.0 * (1.0 + 0.03 * sin(t * 2.0))
-	for i in 4:
-		var side := -1.0 if i % 2 == 0 else 1.0
-		var reach := 26.0 + 14.0 * float(i / 2)
-		var points := PackedVector2Array()
-		for s in 12:
-			var k := float(s) / 11.0
-			points.append(Vector2(side * (6.0 + reach * k), peak + 66.0 * k))
-		_glow.draw_polyline(points, Color(1.0, 0.45, 0.15, 0.35), 8.0)
-		_glow.draw_polyline(points, Color("#ffb040"), 2.5)
-	_glow.draw_circle(Vector2(0, peak + 4.0), 26.0 + 3.0 * sin(t * 6.0), Color(1.0, 0.45, 0.15, 0.10))
-	_glow.draw_circle(Vector2(0, peak + 4.0), 14.0, Color(1.0, 0.5, 0.2, 0.25))
-	_glow.draw_circle(Vector2(0, peak + 4.0), 5.0 + 2.0 * sin(t * 6.0), Color("#ffe0a0"))
 	for ball in _balls:
 		var local: Vector2 = ball["pos"] - global_position
 		var vel: Vector2 = ball["vel"]
-		_glow.draw_line(local, local - vel.normalized() * 18.0, Color(1.0, 0.6, 0.2, 0.5), 5.0)
-		_glow.draw_circle(local, 9.0, Color(1.0, 0.45, 0.15, 0.3))
-		_glow.draw_circle(local, 5.0, Color("#ff7a2a"))
-		_glow.draw_circle(local, 2.5, Color("#ffe6a0"))
+		var frame := _ball_frames.get_frame_texture("default", int(ball["age"] * 18.0) % _ball_frames.get_frame_count("default"))
+		draw_set_transform(local, vel.angle(), Vector2.ONE)
+		draw_texture(frame, -frame.get_size() * 0.5 - Vector2(18, 0))
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+
+## The light the eruption throws: a glow over the crater, and one round each fireball.
+func _draw_glow() -> void:
+	if _age < LIFE:
+		_glow.draw_circle(Vector2(0, CRATER_Y), 30.0 + 4.0 * sin(_age * 6.0), Color(1.0, 0.45, 0.15, 0.12))
+	for ball in _balls:
+		Fx.draw_glow(_glow, ball["pos"] - global_position, 16.0, Color(1.0, 0.5, 0.15, 0.4))

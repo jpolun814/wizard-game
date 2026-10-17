@@ -1,0 +1,246 @@
+# HANDOFF: read this before you touch anything
+
+This is the guide for any AI model picking up this game. It tells you what the game is, what the owner wants, how
+the code fits together, and the mistakes that have already been made, so you don't make them again.
+`docs/original_vision.md` is the first design document. It is older than the game: use it for intent, but
+trust the code and this file where they disagree.
+
+---
+
+## 1. What the game is
+
+A 2D side-view arena roguelite built in Godot 4.7.2 and GDScript. You are a wizard, and you cast spells by
+**actually doing magic**:
+
+- **Fast spells:** hold a school's mouse button(s) and draw a shape. The shape is read by a $1 recognizer
+  plus hand-written shape detectors.
+- **Rituals:** press Enter and type a pseudo-Latin chant. Typing accuracy sets the ritual's power.
+
+Waves of enemies fight you in random maps. Each level ends in a duel with a **dark wizard** who casts the same
+spells you do, drawing them visibly.
+
+**The owner's taste, in their words:**
+- "sick as hell"
+- "not a fan of the cartoony style"
+- "that dark wizard was a lot of fun"
+
+**The look:** dark gothic pixel art.
+- **Levels:**
+  - Level 1: a blood-moon cemetery.
+  - Level 2: a haunted swamp.
+  - Level 3: a gothic cathedral interior.
+- **Characters and art:** LuizMelo characters, Ansimuz GothicVania environments, and CC0 pixel effects.
+
+## 2. The ten rules that matter most
+
+1. **Spells must reflect something real, and must be counterable.** Fire Nova (a magic ring blast) was removed
+   because it "doesn't seem to reflect anything in real life and is impossible to block."
+   - Every spell needs a real-world analogue: a flamethrower, a lightning strike, quicksand, a boulder.
+   - Every spell needs a counterplay: block it, dodge it, or take cover.
+   - Ground, stone walls, ice and platforms block things physically.
+2. **The gesture is a picture of the effect.**
+   - Volcano is a mountain triangle. Fire Breath is a cone (`<`). Quicksand is a U (the pit).
+   - Storm Cloud is a bumpy cloud top. Fissure is a jagged crack. Gravity Well is an inward spiral.
+   - Icicles are V shapes. Push is a circle (the area) plus a line out of it (the direction).
+   - Never assign an arbitrary shape.
+3. **No code-drawn pictures.** "All the other code-drawn pictures stick out like sore thumbs; they absolutely
+   have to be replaced."
+   - Everything in the world must be real pixel art from free assets.
+   - The only exceptions are interface elements: health bars, the gesture trail, shadows, and pixel snowflakes
+     or shards made of pixel squares.
+   - Before adding `draw_circle`, `draw_line` or `draw_polygon` for a world object, look for an asset first.
+4. **Pixel art at one consistent pixel size.**
+   - 1 art pixel equals 1 world pixel. Camera zoom is 1.5. The texture filter is "Nearest Mipmap" (project setting `2`).
+   - Only whole-number scales: 2x for the dark wizard, the lightning and the swamp/cathedral backdrops.
+   - Never use 0.6x, 1.5x or similar on pixel art.
+   - Tiles are 16 px art composed 2x2 into 32 px world cells.
+5. **Don't make things solid or harmful unless the spell's real-world analogue would be.**
+   - Firewall: anyone can pass through it ("I wanted the fire wall to be something anyone could pass
+     through").
+   - Force Wall: only touches projectiles.
+   - Gravity Well: does no damage.
+   - Storm Cloud: hits everyone under it, including the caster.
+   - Lightning: cannot pass through platforms.
+   - Stonefall: does not explode; it thuds.
+6. **Consistency within a role.** All melee enemies look the same (skeletons). The owner disliked the earth
+   melee enemy looking different. Schools are shown by a coloured outline and tint, not by different creatures.
+7. **Never commit, push or delete the owner's files without being asked.**
+   - The working tree carries a very large uncommitted diff, all intentional. Never run `git checkout .`,
+     `git reset --hard` or `git clean`.
+   - `art_source/enemies/` and `art/wizard_parts/` are the owner's original art, now unused. Keep them.
+8. **Test before you claim.**
+   - Run `tests/test_gestures.gd` and the showcase screenshots, and actually look at the screenshots.
+   - Tell the owner what you could not verify (you cannot hear sounds or feel the controls).
+9. **Keep text short in game.** The owner disliked wordy spellbook entries, repeated "costs no stamina",
+   explaining edge cases, and filler headings like "Incantations, continued."
+10. **Don't change what they didn't ask about.** When feedback names five things, fix those five, check
+    nothing else broke, and report briefly.
+
+## 3. Run, test and look
+
+```
+GODOT="/c/Users/Jordan Polun/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_console.exe"
+"$GODOT" --headless --path . --import                          # after adding or changing any asset
+"$GODOT" --headless --path . --quit-after 200                  # parse check: grep the output for "SCRIPT ERROR"
+"$GODOT" --headless -s tests/test_gestures.gd                  # must print "137 of 137" (or more, if you add checks)
+"$GODOT" --path . tests/showcase.tscn -- scenario=spells out=C:/some/dir          # a screenshot of every spell
+"$GODOT" --path . tests/showcase.tscn -- scenario=spells only=Fire_Breath out=DIR # one spell, frame by frame
+"$GODOT" --path . tests/showcase.tscn -- scenario=biome wave=10 out=DIR           # a level's look (wave 10 = swamp, 17 = church)
+"$GODOT" --headless --path . tests/showcase.tscn -- scenario=soak wave=8 out=DIR  # a wave of random play; look for errors
+```
+
+- **Other scenarios:** `world`, `kinds`, `ui` (portal, spellbook pages, pause, game over), `wizard` (a dark-wizard
+  duel) and `brawl`.
+- **Screenshots need a window:** don't pass `--headless` for them.
+- **Looking at screenshots:**
+  - Open the PNGs with your image-reading tool.
+  - To compare many, paste crops into one contact sheet with PIL.
+  - Crop lower than you think: ground-level effects sit near the bottom.
+- **Scripts run with `-s` cannot see autoloads (`Sfx`).** Anything that needs the game must run as a scene, which
+  is why the showcase is a scene.
+- **Python:** use `python -I` for anything that reads downloaded files. Install packages with
+  `pip install --isolated --index-url https://pypi.org/simple <pkg>`.
+- **Shell quirk:** in this environment, long bash heredocs containing apostrophes sometimes fail to parse. Write
+  the Python edit script to a file in the scratchpad and run that.
+
+## 4. Controls
+
+| Key or button | Action |
+|---|---|
+| A / D | Move |
+| W or Space | Jump |
+| S | Drop through a wooden platform |
+| Left mouse | Fire school |
+| Right mouse | Ice school |
+| Middle mouse | Force school |
+| Left + Right | Storm school |
+| Left + Middle | Earth school |
+| Tab | Spellbook (arrow keys turn pages) |
+| Enter | Incantation box |
+| E | Swap focus (wand or staff) |
+| M | Mute |
+| Esc | Pause and controls list |
+| F1 | Debug summon panel |
+| R | New run, on the game-over screen |
+
+## 5. Spells (`scripts/spell_data.gd` is the single source of truth)
+
+| School | Spell | Shape | Real thing | Counterplay |
+|---|---|---|---|---|
+| Fire | Ignite | straight flick | thrown fireball | dodge, Force Wall, walls |
+| Fire | Firewall | vertical line | burning brush line | it's passable and only burns; walk out of it |
+| Fire | Volcano | triangle mountain | eruption | stay out of the arc |
+| Fire | Fire Breath | cone `<` | flamethrower from the mouth (follows facing, rises on a jump) | cover, Barrier, distance |
+| Ice | Frostbolt | flick | thrown ice spear | as Ignite |
+| Ice | Icicles | V or upside-down V, chained | stalactites and stalagmites | step around |
+| Ice | Snowfall | star then a level line | snow cloud | leave the area |
+| Ice | Ice Prison | box | freezing a volume solid; empty, it's a block | Force/Earth shatter; Barrier |
+| Force | Push | circle then a line out | a shove of air | positioning |
+| Force | Barrier | circle | a shield bubble | wait it out |
+| Force | Force Wall | slash | a deflecting plane (projectiles only) | timing |
+| Force | Gravity Well | inward spiral | a vortex; pulls, no damage | walk out |
+| Storm | Tornado | zigzag, wide at the top | a whirlwind | avoid it |
+| Storm | Blink | flick | a lightning-step teleport | |
+| Storm | Spark | tall zigzag | a lightning strike from the sky; stops at the first platform or ground | shelter under a platform |
+| Storm | Storm Cloud | bumpy cloud top | a thundercloud; strikes everyone under it | shelter |
+| Earth | Stonefall | circle with a line down | a dropped boulder | watch the shadow |
+| Earth | Stone Wall | line starting on the ground, a platform or another stone wall | a raised slab | Push topples it |
+| Earth | Fissure | jagged crack along the ground | rock spikes erupt | jump |
+| Earth | Quicksand | U | a sinking pit; flyers pass over | jump out early |
+
+**Targeting types:** `directional`, `positional`, `angled`, `shape` and `cone`. The caster's `cast_resolved`
+signal passes `info` (radius, line, rect, shapes, aim, spread, reach), and `arena.spawn_spell` routes it.
+**Teams:** every spell is `"player"` or `"enemy"` (`scripts/spells/spell_targets.gd`). Player spells hurt
+enemies **and the player**; the dark wizard's spells hurt only the player.
+
+## 6. Designing a new spell: checklist
+
+1. **Name the real-world thing.** If you can't, stop.
+2. **Pick the school by what it is:**
+   - Fire: heat and burning.
+   - Ice: cold, slowing, freezing, solid ice.
+   - Force: kinetic pushes, shields, deflection.
+   - Storm: air, electricity, wind, speed.
+   - Earth: stone, ground, sand, weight.
+3. **Draw what it looks like.** The stroke should be the thing's silhouette or its motion.
+4. **Make sure the shape is distinguishable from every other shape on the same button(s).** The recognizer
+   only compares within the held button combination. Add a test case to `tests/test_gestures.gd` and add the
+   preview to `GestureTemplates.preview_points`. The dark wizard draws from those previews too.
+5. **Physics honesty:** what blocks it, who it hurts (the caster too?), and whether it goes through platforms.
+6. **Telegraph:** the enemy or player must see it coming. Examples: Stonefall's shadow, the falling-shot ring,
+   the cloud's flicker.
+7. **Art from a free pack,** recoloured to the school's colour in `tools/prepare_gothic_art.py`.
+8. **A sound,** chosen with `tools/audio_profile.py` or mixed in `tools/make_sounds.py`. Say plainly that you
+   couldn't listen to it.
+9. **Teach the dark wizard to use it** (`scripts/wizard_brain.gd`): a score in `_attack` and a stroke in
+   `_attack_stroke`.
+10. **Spellbook:** the stats line comes from `SpellData.DAMAGE`. Keep it short.
+
+## 7. Art: where it comes from and how it's built
+
+- **The pipeline:** `tools/prepare_gothic_art.py <downloads dir>`. It builds `art/chars`, `art/mobs`,
+  `art/tiles`, `art/props`, `art/backgrounds`, `art/fx`, `art/ui`, and generates `scripts/pixel_art.gd`
+  (frame sizes and body boxes).
+- **Folder names** the script expects are listed in its docstring.
+- **Downloads are not kept in the repo.** Re-download them into a scratch folder.
+- **Credits:** every source and licence is in `art/CREDITS.md`. Add a line for anything new.
+- **Good sources (filter for CC0):**
+  - kenney.nl: everything is CC0. Its "Tiny Dungeon" and "1-Bit" packs suit the style.
+  - opengameart.org: check the licence badge on each page. CC-BY or CC-BY-SA requires attribution; avoid it
+    unless the owner agrees.
+  - itch.io: LuizMelo, Ansimuz and CodeManu have CC0 packs. Check the page's licence field.
+    `tools/itch_download.py` fetches free pages.
+- **Judging an asset:**
+  - It must be dark, gothic and pixel art, at roughly the same pixel density as the characters.
+  - No cartoon, vector or painterly art.
+  - Look at it (make a contact sheet) before using it.
+  - Check whether an "effect" sheet secretly contains a character. The GothicVania "fire-sprites" were a
+    fire-casting wizard, not fire.
+- **Recolouring:** `recolour()` does a hue turn or a dark-to-light ramp, and `key_out()` removes a flat
+  background colour.
+- **Character frames** are cut so the feet sit on the bottom edge and the body is centred, so flipping a frame
+  never shifts the character.
+- **The wand:** the wizard art only has a staff. `wandify()` cuts the staff down to a wand in every frame,
+  creating `art/chars/wizard_wand`.
+
+## 8. Godot pitfalls that already bit
+
+- **Never `load()` a texture inside `_draw()` into a local variable.** It gets freed before rendering and draws
+  as a **white rectangle**. Use `preload()` constants or a cache.
+- **`var x := dict["k"]` fails to parse** ("Cannot infer type"). Give it an explicit type.
+- **`Parallax2D` vertical scroll:** use `scroll_scale.y = 1`, or layers drift off the ground line.
+- **Raycasts and one-way platforms:** cast from above, downward, when testing "is it covered".
+- **numpy on Windows:** `np.arange` is int32. Multiplying by a sample rate overflowed; use `dtype=float64`.
+- **Label wrapping:** a Label with autowrap has zero minimum width inside an HBox, and its text collapses. Turn
+  autowrap off for short labels.
+- **CanvasLayer order:** sky -20, HUD 3, spellbook 5, ritual box 10, debug panel 20.
+- **Physics layers:**
+  - 1: terrain, stone walls, ice blocks, and spell areas by default.
+  - 2: mobs.
+  - 4: player.
+  - 16: one-way platforms.
+  - Player and walking-mob masks are 17. Flyers have mask 0.
+
+## 9. Code style
+
+- **Comments:** plain English `##` doc comments that say *why*, written like the existing ones. No jargon.
+- **Names:** descriptive. Match the surrounding code.
+- **Spell scripts:** each one is a self-contained Node with a `team`, `danger_at(point)` (the dark wizard avoids
+  danger) and the `"danger"` group.
+
+## 10. Known issues and ideas
+
+**Known issues:**
+- The wand frames keep a faint line in a couple of run frames.
+- The death animation still shows a staff.
+- Sounds are untested by ear.
+
+**Ideas the owner may like:**
+- Carry HP between waves.
+- Choose a reward between waves.
+- Spells that combine: fire melts ice, storm plus water.
+- Give the dark wizard a personality per level.
+- A gesture tutorial room.
+- Music (CC0 dark ambient).
+
+When unsure, ask the owner one clear question rather than guessing big.

@@ -5,7 +5,8 @@ extends CanvasLayer
 ## box works out which ritual it is from the text. Accuracy (edit distance against the closest
 ## known incantation) sets how strong the ritual is. The incantations aren't shown here.
 
-signal finished(ritual_id: String, accuracy: float)
+## unfinished is true when the words typed are the start of a chant, stopped short.
+signal finished(ritual_id: String, accuracy: float, unfinished: bool)
 signal cancelled
 
 ## "kind" is "ritual" (has an effect) or "toggle" (shows or hides a HUD module). Neither costs stamina.
@@ -78,16 +79,33 @@ func _input(event: InputEvent) -> void:
 
 
 func _on_submit(typed: String) -> void:
+	if typed.strip_edges().is_empty():
+		cancel()  # Enter on an empty box just closes it
+		return
 	visible = false
 	_line.release_focus()
 	var best_id := ""
 	var best_acc := 0.0
+	var best_start := 0.0
 	for id in RITUALS:
-		var acc := accuracy(typed, RITUALS[id]["text"])
-		if acc > best_acc or best_id == "":
+		var text: String = RITUALS[id]["text"]
+		var acc := accuracy(typed, text)
+		var start := start_accuracy(typed, text)
+		if maxf(acc, start) > maxf(best_acc, best_start) or best_id == "":
 			best_id = id
 			best_acc = acc
-	finished.emit(best_id, best_acc)
+			best_start = start
+	var unfinished := best_acc < BACKFIRE_BELOW and best_start >= BACKFIRE_BELOW
+	finished.emit(best_id, best_acc, unfinished)
+
+
+## How well the typed words match the start of a chant, as far as they go. Stopping partway through a chant is
+## bailing out, not getting it wrong.
+static func start_accuracy(typed: String, target: String) -> float:
+	var a := typed.strip_edges().to_lower()
+	if a.is_empty() or a.length() >= target.length():
+		return 0.0
+	return accuracy(a, target.substr(0, a.length()))
 
 
 ## Power scales from 0 at the backfire threshold to 1 at full-power accuracy.

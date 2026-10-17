@@ -132,25 +132,41 @@ func _end() -> void:
 		_report("Stroke too short", Color.GRAY)
 		return
 
-	var result := recognizer.recognize(relative)
+	var options: Dictionary = _bindings.get(mask, {})
+	var result := recognizer.recognize(relative, _templates_for(options))
 	var score: float = result.score
 	var gesture: String = GestureTemplates.ALIASES.get(result.name, result.name)
-	var options: Dictionary = _bindings.get(mask, {})
 	# Some shapes are read from the stroke itself, since the recognizer can't tell them apart reliably. The
 	# info dictionary carries what the arena needs to place each effect.
-	var info := {"radius": 0.0, "pieces": 1, "shapes": [], "line": PackedVector2Array()}
-	var ring_split := _ring_then_line_split(relative) if options.has("circle_push") else -1
+	var info := {"radius": 0.0, "pieces": 1, "shapes": [], "line": PackedVector2Array(), "rect": Rect2()}
+	var spiral := _inward_spiral(relative) if options.has("spiral") else {}
+	var ring_split := _ring_then_line_split(relative) if options.has("circle_push") and spiral.is_empty() else -1
 	var ring_centre := Vector2.ZERO
+	var box := _box(relative) if options.has("square") else Rect2()
 	var icicles: Array = _icicle_triangles(relative) if options.has("icicles") else []
 	var snow_line := _snowfall_line(relative) if options.has("snowfall") else PackedVector2Array()
 	var funnel := _funnel_stroke(relative) if options.has("tornado") else PackedVector2Array()
-	if ring_split >= 0:
+	var cloud := _cloud_line(relative) if options.has("cloud") else PackedVector2Array()
+	var crack := _crack_line(relative) if options.has("fissure") else PackedVector2Array()
+	var pit := _pit_stroke(relative) if options.has("pit") else PackedVector2Array()
+	var cone := _cone(relative) if options.has("cone") else {}
+	if not spiral.is_empty():
+		# A spiral wound inward is a Gravity Well, centred where it ends up.
+		gesture = "spiral"
+		score = 1.0
+		info["radius"] = spiral["reach"]
+		info["center"] = _origin + spiral["center"]
+	elif ring_split >= 0:
 		# A closed ring with a straight line out of it is a Push. The line can point any way.
 		gesture = "circle_push"
 		score = 1.0
 		var ring := relative.slice(0, ring_split)
 		ring_centre = _relative_centroid(ring)
 		info["radius"] = _mean_distance(ring, ring_centre)
+	elif box.size != Vector2.ZERO:
+		gesture = "square"
+		score = 1.0
+		info["rect"] = Rect2(_origin + box.position, box.size)
 	elif snow_line.size() >= 2:
 		gesture = "snowfall"
 		score = 1.0
@@ -159,6 +175,22 @@ func _end() -> void:
 		gesture = "tornado"
 		score = 1.0
 		info["line"] = _to_world(funnel)
+	elif cloud.size() > 0:
+		gesture = "cloud"
+		score = 1.0
+		info["line"] = _to_world(cloud)
+	elif crack.size() > 0:
+		gesture = "fissure"
+		score = 1.0
+		info["line"] = _to_world(crack)
+	elif pit.size() > 0:
+		gesture = "pit"
+		score = 1.0
+		info["line"] = _to_world(pit)
+	elif not cone.is_empty():
+		gesture = "cone"
+		score = 1.0
+		info.merge(cone)
 	elif not icicles.is_empty():
 		gesture = "icicles"
 		score = 1.0
@@ -176,19 +208,17 @@ func _end() -> void:
 	if gesture == "flick" and options.has("stone_wall") and _starts_on_ground():
 		gesture = "stone_wall"
 	var entry = options.get(gesture)
+	# A cast that works shows its name where it was drawn (the arena does that), so only failures are reported here.
 	if score < tolerance:
-		_report("MISFIRE: not recognised (score %.2f)" % score, Color.RED)
+		_report("Misfire: that shape was too rough to read (%d%% match). A steadier stroke, or a wand, helps." % roundi(score * 100.0), Color("#ff7a7a"))
 		misfired.emit()
 	elif entry == null:
-		_report("MISFIRE: no spell on this button for that shape (Tab for the spellbook)", Color.RED)
+		_report("Misfire: %s has no spell drawn like that. Tab opens the spellbook." % SpellData.button_name(mask), Color("#ff7a7a"))
 		misfired.emit()
 	else:
 		var aim := 0.0
-		var msg := "CAST %s [%s] score %.2f" % [entry.spell, entry.targeting, score]
 		if entry.targeting == "directional":
 			aim = (relative[relative.size() - 1] - relative[0]).angle()
-			msg += "  aim %.0f deg" % rad_to_deg(aim)
-		_report(msg, Color.GREEN)
 		if entry.targeting == "directional":
 			info["length"] = (relative[relative.size() - 1] - relative[0]).length()
 		# A drawn circle sets how big the spell is, which sets its cost (Cinderburst, Push).
@@ -207,10 +237,25 @@ func _end() -> void:
 		elif entry.targeting == "shape":
 			# Shapes are placed where they were drawn, so the arena works from info rather than one point.
 			spawn = _origin
+		if info.has("center"):
+			spawn = info["center"]
+		if info.has("aim"):
+			aim = info["aim"]
 		if entry.targeting == "shape" and info["line"].is_empty():
 			info["line"] = _to_world(relative)
 		cast_resolved.emit(entry.spell, entry.targeting, spawn, aim, info)
 
+
+
+## The recognizer templates that mean something on a button. A straight line is wanted wherever any spell is drawn
+## as one (a flick, a wall, a stone wall).
+func _templates_for(options: Dictionary) -> Array:
+	var names := []
+	for template_name in recognizer.templates:
+		var gesture: String = GestureTemplates.ALIASES.get(template_name, template_name)
+		if options.has(gesture) or (gesture == "flick" and (options.has("wall") or options.has("stone_wall") or options.has("flick_toward"))):
+			names.append(template_name)
+	return names
 
 
 func _is_vertical(points: PackedVector2Array) -> bool:
@@ -303,10 +348,53 @@ func _ring_then_line_split(points: PackedVector2Array) -> int:
 		if points[k].distance_to(points[0]) < 20.0:
 			split = k
 	var tail := points.slice(split)
-	var tail_length := UnistrokeRecognizer.path_length(tail)
-	if tail_length >= 40.0 and tail[tail.size() - 1].distance_to(tail[0]) >= 0.9 * tail_length:
+	var chord := tail[tail.size() - 1].distance_to(tail[0])
+	if chord >= 30.0 and _max_deviation(tail) <= chord * 0.15 + 4.0:
 		return split
 	return -1
+
+
+## A cone drawn as <: two straight arms of similar length meeting at a point. Returns {"aim": the way from the
+## point out through the open end, "spread": the angle between the arms, "reach": how far the fire goes}, or {} when
+## the stroke isn't one. A closed triangle (a volcano) or a hooked line is not a cone.
+func _cone(points: PackedVector2Array) -> Dictionary:
+	if points.size() < 6:
+		return {}
+	var a := points[0]
+	var b := points[points.size() - 1]
+	var tip_index := -1
+	var farthest := 0.0
+	for i in range(1, points.size() - 1):
+		var away := Geometry2D.get_closest_point_to_segment(points[i], a, b).distance_to(points[i])
+		if away > farthest:
+			farthest = away
+			tip_index = i
+	if tip_index < 0:
+		return {}
+	var tip := points[tip_index]
+	var first := a.distance_to(tip)
+	var second := b.distance_to(tip)
+	var shorter := minf(first, second)
+	if shorter < 25.0 or maxf(first, second) > shorter * 2.5 or a.distance_to(b) < shorter * 0.25:
+		return {}
+	if _max_deviation(points.slice(0, tip_index + 1)) > maxf(6.0, first * 0.16):
+		return {}
+	if _max_deviation(points.slice(tip_index)) > maxf(6.0, second * 0.16):
+		return {}
+	var spread := absf(angle_difference((a - tip).angle(), (b - tip).angle()))
+	if spread < deg_to_rad(18.0) or spread > deg_to_rad(120.0):
+		return {}
+	return {"aim": ((a + b) * 0.5 - tip).angle(), "spread": spread, "reach": first + second}
+
+
+## How far a stroke strays from the straight line between its two ends.
+func _max_deviation(points: PackedVector2Array) -> float:
+	var a := points[0]
+	var b := points[points.size() - 1]
+	var worst := 0.0
+	for p in points:
+		worst = maxf(worst, Geometry2D.get_closest_point_to_segment(p, a, b).distance_to(p))
+	return worst
 
 
 ## The average distance of points from their centre: the radius of a drawn circle.
@@ -351,7 +439,7 @@ func _icicle_triangles(points: PackedVector2Array) -> Array:
 
 ## Where a stroke turns vertically by a real amount. Each entry is [point index, true for a bottom
 ## (lowest on screen) or false for a top].
-func _turning_points(points: PackedVector2Array, axis := 1) -> Array:
+func _turning_points(points: PackedVector2Array, axis := 1, threshold := ICICLE_TURN) -> Array:
 	var turns: Array = []
 	var ext := 0
 	var state := 0  # 1 going down the screen, -1 going up, 0 not decided yet
@@ -359,23 +447,23 @@ func _turning_points(points: PackedVector2Array, axis := 1) -> Array:
 		var y: float = points[i][axis]
 		var ext_y: float = points[ext][axis]
 		if state == 0:
-			if y > ext_y + ICICLE_TURN:
+			if y > ext_y + threshold:
 				state = 1
 				ext = i
-			elif y < ext_y - ICICLE_TURN:
+			elif y < ext_y - threshold:
 				state = -1
 				ext = i
 		elif state == 1:
 			if y > ext_y:
 				ext = i
-			elif ext_y - y > ICICLE_TURN:
+			elif ext_y - y > threshold:
 				turns.append([ext, true])
 				state = -1
 				ext = i
 		else:
 			if y < ext_y:
 				ext = i
-			elif y - ext_y > ICICLE_TURN:
+			elif y - ext_y > threshold:
 				turns.append([ext, false])
 				state = 1
 				ext = i
@@ -387,11 +475,10 @@ func _turning_points(points: PackedVector2Array, axis := 1) -> Array:
 func _snowfall_line(points: PackedVector2Array) -> PackedVector2Array:
 	if points.size() < 3 or _count_crossings(points) < 4:
 		return PackedVector2Array()
+	# The level line is the run at the end of the stroke that stays close to the height it finishes at.
+	var end_y := points[points.size() - 1].y
 	var start := points.size() - 1
-	while start > 0:
-		var step := points[start] - points[start - 1]
-		if step.length() > 1.0 and absf(step.y) > 0.3 * absf(step.x):
-			break
+	while start > 0 and absf(points[start - 1].y - end_y) <= 12.0:
 		start -= 1
 	var line := points.slice(start)
 	if line.size() < 2 or absf(line[line.size() - 1].x - line[0].x) < 40.0:
@@ -456,6 +543,119 @@ func _funnel_stroke(points: PackedVector2Array) -> PackedVector2Array:
 	if top_width < 50.0 or top_width < bottom_width * 1.5:
 		return PackedVector2Array()
 	return points
+
+
+## Gravity Well: a spiral wound inward, turning at least one and a half times while it closes in on its middle.
+## Returns {"center", "reach"} in stroke space, or nothing.
+func _inward_spiral(points: PackedVector2Array) -> Dictionary:
+	if points.size() < 16 or absf(_total_turning(points)) < deg_to_rad(500.0):
+		return {}
+	# The middle is where the stroke ends up: the average of its last few points.
+	var tail := points.slice(int(points.size() * 0.85))
+	var centre := _relative_centroid(tail)
+	var reach := points[0].distance_to(centre)
+	var halfway := points[points.size() / 2].distance_to(centre)
+	if reach < 25.0 or halfway > reach * 0.8:
+		return {}
+	return {"center": centre, "reach": reach}
+
+
+## The total angle a stroke turns through, signed: a full clockwise circle is about TAU.
+func _total_turning(points: PackedVector2Array) -> float:
+	# Directions are measured over spans of a few pixels, so the tiny jitter of a hand-drawn line cancels out.
+	var total := 0.0
+	var last_dir := Vector2.ZERO
+	var anchor := points[0]
+	for p in points:
+		var step := p - anchor
+		if step.length() < 6.0:
+			continue
+		if last_dir != Vector2.ZERO:
+			total += last_dir.angle_to(step)
+		last_dir = step
+		anchor = p
+	return total
+
+
+## Ice Prison: a closed box. Its four corners must be sharp (a circle never reaches the corners of its bounding
+## box) and its sides must hug the box. Returns the box in stroke space, or an empty Rect2.
+func _box(points: PackedVector2Array) -> Rect2:
+	var low := points[0]
+	var high := points[0]
+	for p in points:
+		low = low.min(p)
+		high = high.max(p)
+	var size := high - low
+	var side := minf(size.x, size.y)
+	if side < 24.0 or size.x > size.y * 3.5 or size.y > size.x * 3.5:
+		return Rect2()
+	if points[0].distance_to(points[points.size() - 1]) > maxf(20.0, side * 0.3):
+		return Rect2()  # not closed
+	for corner in [low, Vector2(high.x, low.y), high, Vector2(low.x, high.y)]:
+		var nearest := INF
+		for p in points:
+			nearest = minf(nearest, p.distance_to(corner))
+		if nearest > side * 0.17 + 4.0:
+			return Rect2()
+	var on_edges := 0
+	for p in points:
+		var edge := minf(minf(p.x - low.x, high.x - p.x), minf(p.y - low.y, high.y - p.y))
+		if edge <= side * 0.12 + 3.0:
+			on_edges += 1
+	if on_edges < points.size() * 0.75:
+		return Rect2()
+	return Rect2(low, size)
+
+
+## Storm Cloud: the bumpy top of a cloud, drawn across. Wide and low, always moving the same way across, with at
+## least two bumps. Returns the stroke, or nothing.
+func _cloud_line(points: PackedVector2Array) -> PackedVector2Array:
+	var size := _extent(points)
+	if size.x < 70.0 or size.x < size.y * 2.0 or size.y < 10.0:
+		return PackedVector2Array()
+	if not _turning_points(points, 0, 14.0).is_empty():
+		return PackedVector2Array()  # it doubles back across: a zigzag, not a cloud
+	if _turning_points(points, 1, 8.0).size() < 3:
+		return PackedVector2Array()
+	return points
+
+
+## Fissure: a jagged crack drawn sideways along the ground, starting on it. Returns the stroke, or nothing.
+func _crack_line(points: PackedVector2Array) -> PackedVector2Array:
+	var size := _extent(points)
+	if size.x < 60.0 or size.x < size.y * 2.5 or not _starts_on_ground():
+		return PackedVector2Array()
+	if not _turning_points(points, 0, 14.0).is_empty():
+		return PackedVector2Array()
+	if _turning_points(points, 1, 5.0).size() < 3:
+		return PackedVector2Array()
+	return points
+
+
+## Quicksand: a U, down one side and up the other, with both ends well above its bottom. Returns the stroke, or
+## nothing.
+func _pit_stroke(points: PackedVector2Array) -> PackedVector2Array:
+	var turns := _turning_points(points)
+	if turns.size() != 1 or not turns[0][1]:
+		return PackedVector2Array()
+	var bottom: Vector2 = points[turns[0][0]]
+	var first := points[0]
+	var last := points[points.size() - 1]
+	if bottom.y - first.y < 25.0 or bottom.y - last.y < 25.0 or absf(last.x - first.x) < 40.0:
+		return PackedVector2Array()
+	if bottom.x < minf(first.x, last.x) or bottom.x > maxf(first.x, last.x):
+		return PackedVector2Array()  # the bottom must lie between the two ends
+	return points
+
+
+## The width and height of a stroke's bounding box.
+func _extent(points: PackedVector2Array) -> Vector2:
+	var low := points[0]
+	var high := points[0]
+	for p in points:
+		low = low.min(p)
+		high = high.max(p)
+	return high - low
 
 
 ## Casts a stroke that was not drawn with the mouse, such as a dark wizard's. It resolves exactly like a drawn one.

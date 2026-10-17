@@ -39,16 +39,11 @@ func _process(delta: float) -> void:
 		queue_free()
 
 
+## Each shard is a little block of pixels with a darker edge, so it reads as a chip of ice or stone.
 func _draw() -> void:
 	var fade := clampf(1.0 - _age / DURATION, 0.0, 1.0)
 	for shard in _shards:
-		var s: float = shard["size"]
-		var rot: float = shard["rot"]
-		var origin: Vector2 = shard["pos"]
-		# A thin triangle, so each piece reads as a sliver of ice.
-		var pts := PackedVector2Array([
-			origin + Vector2(s, 0).rotated(rot),
-			origin + Vector2(-s * 0.4, s * 0.6).rotated(rot),
-			origin + Vector2(-s * 0.4, -s * 0.6).rotated(rot),
-		])
-		draw_colored_polygon(pts, Color(color.r, color.g, color.b, 0.9 * fade))
+		var s := floorf(shard["size"] * 0.6) + 1.0
+		var at: Vector2 = (shard["pos"] as Vector2).floor()
+		draw_rect(Rect2(at - Vector2(1, 1), Vector2(s + 2.0, s + 1.0)), Color(color.darkened(0.55), 0.9 * fade))
+		draw_rect(Rect2(at, Vector2(s, s - 1.0)), Color(color, 0.95 * fade))

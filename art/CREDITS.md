@@ -1,0 +1,77 @@
+# Asset credits
+
+Everything below is free to use in commercial and non-commercial games. CC0 assets need no credit, but it is
+listed here anyway so you always know where a file came from. `tools/prepare_gothic_art.py`, `tools/prepare_art.py`
+and `tools/make_sounds.py` rebuild the game's copies from the unzipped packs.
+
+## Art (CC0)
+
+The game's pixel art is built from these packs by `tools/prepare_gothic_art.py` (characters cut into frames, tiles
+packed into atlases, effects into strips).
+
+| Where in the project | Source | License |
+|---|---|---|
+| `art/chars/wizard/` (the player) | [Wizard Pack](https://luizmelo.itch.io/wizard-pack) by LuizMelo | CC0 1.0 |
+| `art/chars/dark_wizard/` | [Evil Wizard 2](https://luizmelo.itch.io/evil-wizard-2) by LuizMelo | CC0 1.0 |
+| `art/mobs/` (skeleton, goblin, flying eye), the eye's and goblin's shots | [Monsters Creatures Fantasy](https://luizmelo.itch.io/monsters-creatures-fantasy) by LuizMelo | CC0 1.0 |
+| `art/tiles/cemetery`, cemetery props, `art/backgrounds/cemetery/`, the volcano's mound | [GothicVania Cemetery](https://ansimuz.itch.io/gothicvania-cemetery) by ansimuz | CC0 1.0 |
+| `art/tiles/swamp`, swamp props, `art/backgrounds/swamp/` | [GothicVania Swamp](https://opengameart.org/content/gotthicvania-swamp) by ansimuz | CC0 1.0 |
+| `art/tiles/church`, `art/tiles/stone`, church props, `art/backgrounds/church/` | [GothicVania Church](https://opengameart.org/content/gothicvania-church-pack) by ansimuz | CC0 1.0 |
+| the wooden walkway planks, crate, barrel, street lamp | [GothicVania Town](https://ansimuz.itch.io/gothicvania-town) by ansimuz | CC0 1.0 |
+| `art/fx/fireball`, `icespear`, `thunder_orb` | [Spell Effects](https://opengameart.org/content/spell-effects-by-starsteelgaming) by StarsteelGaming | CC0 |
+| `art/fx/magic_bolt`, `dark_bolt`, `dark_orb`, `ice_lance`, `rock`, `shield` | [Pixel Art Spells](https://opengameart.org/content/pixel-art-spells) by DevWizard | CC0 |
+| `art/fx/lightning` | [Lighting Strike](https://opengameart.org/content/lighting-strike) by Remedyn | CC0 |
+| `art/fx/blast_*` | [Animated Explosions](https://opengameart.org/content/animated-explosions) by ansimuz | CC0 |
+| `art/fx/flame`, `flame_blue` | [Animated Fire](https://opengameart.org/content/animated-fire) by BenHickling | CC0 |
+| `art/fx/enemy_death` | GothicVania Church by ansimuz | CC0 1.0 |
+| `art/fx/vortex`, `ring`, `slash`, `ice_burst`, `freeze`, `wind`, `bubbles` (some recoloured) | [Free Pixel Effects Pack](https://opengameart.org/content/free-pixel-effects-pack) by CodeManu | CC0 |
+| `art/fx/portal_open`, `portal_loop` (recoloured violet) | [Portals](https://opengameart.org/content/portals) by LetargicDev | CC0 |
+| `art/fx/wind_bolt` | Pixel Art Spells by DevWizard | CC0 |
+| `art/props/rock_spike_*` (recoloured to stone) | [Pixel Icicles](https://kamioo.itch.io/pixel-icicles) by Kamioo | CC0 |
+| `art/props/cloud_storm_*`, `cloud_snow_*` (recoloured) | [Pixel Art Clouds](https://opengameart.org/node/159981) by DustDFG | CC0 |
+| `art/props/wand`, `staff` | [Kenney – Tiny Dungeon](https://kenney.nl/assets/tiny-dungeon) | CC0 1.0 |
+| `art/ui/book.png` (the spellbook) | [Pixel Art Book](https://foxeldev.itch.io/pixelbooks) by Foxel Games | CC0 1.0 |
+| `art/chars/wizard_wand/` | the Wizard Pack frames above, with the staff cut down to a wand by `prepare_gothic_art.py` | CC0 1.0 |
+| `art/tiles/ice`, `art/props/ice_fill` (church stone, recoloured), `art/props/quicksand` (swamp water, recoloured) | GothicVania Church and Swamp by ansimuz | CC0 1.0 |
+| `art/particles/` (soft glows, smoke and sparks behind the pixel effects) | [Kenney – Particle Pack](https://kenney.nl/assets/particle-pack) | CC0 1.0 |
+
+The original enemy art (`art_source/enemies/`) and wizard parts (`art/wizard_parts/`) were in the project before
+and are no longer drawn by the game.
+
+## Fonts (SIL Open Font License 1.1)
+
+| File | Font | License |
+|---|---|---|
+| `fonts/Jersey15-Regular.ttf` (HUD, damage numbers) | [Jersey 15](https://fonts.google.com/specimen/Jersey+15) by The Soft Type Project (scfried) | OFL 1.1 (`fonts/OFL-Jersey15.txt`) |
+| `fonts/Jacquard24-Regular.ttf` (titles) | [Jacquard 24](https://fonts.google.com/specimen/Jacquard+24) by The Soft Type Project (scfried) | OFL 1.1 (`fonts/OFL-Jacquard24.txt`) |
+
+## Sound (CC0)
+
+| Files in `audio/` | Source | License |
+|---|---|---|
+| `player_hurt`, `jump`, `mob_shoot`, `pickup` | [Kenney – New Platformer Pack](https://kenney.nl/assets/new-platformer-pack) | CC0 1.0 |
+| `force`, `barrier`, `quake` | [Kenney – Sci-fi Sounds](https://kenney.nl/assets/sci-fi-sounds) | CC0 1.0 |
+| `type`, `ui_click` | [Kenney – Interface Sounds](https://kenney.nl/assets/interface-sounds) | CC0 1.0 |
+| `book_open`, `book_close`, `page_*` | [Kenney – RPG Audio](https://kenney.nl/assets/rpg-audio) | CC0 1.0 |
+| `step_*` | [Kenney – Impact Sounds](https://kenney.nl/assets/impact-sounds) | CC0 1.0 |
+| `portal_open`, `portal_enter`, `gravity`, `heal`, `wizard_cast`, `summon` | [Magic spell SFX](https://opengameart.org/content/magic-spell-sfx) by JaggedStone (OpenGameArt) | CC0 |
+| `cast_fire`, `fire_hit`, `fire_wall`, `stones_*`, `mob_die_1` | [80 CC0 RPG SFX](https://opengameart.org/content/80-cc0-rpg-sfx) by rubberduck (OpenGameArt) | CC0 |
+| `mob_hurt_*`, `mob_die_2` | [80 CC0 creature SFX](https://opengameart.org/content/80-cc0-creature-sfx) by rubberduck (OpenGameArt) | CC0 |
+| `ice_shatter_*`, `explosion`, `misfire`, `ritual_ok`, `wave_start`, `game_over` | [100 CC0 SFX](https://opengameart.org/content/100-cc0-sfx) by rubberduck (OpenGameArt) | CC0 |
+| `tornado`, `thunder` | [100 CC0 SFX #2](https://opengameart.org/content/100-cc0-sfx-2) by rubberduck (OpenGameArt) | CC0 |
+| `volcano` | [Fireball 1](https://opengameart.org/content/fireball-1) (Julien Matthey, via OpenGameArt) | CC0 |
+| `freeze` | [Freeze spell](https://opengameart.org/content/freeze-spell-0) (OpenGameArt) | CC0 |
+| `cast_ice`, `snow` | [Ice spells](https://opengameart.org/content/ice-spells) (OpenGameArt) | CC0 |
+| `earth` | [Earth element magic spell](https://opengameart.org/content/earth-element-magic-spell) (OpenGameArt) | CC0 |
+
+### Mixed sounds
+
+`tools/make_sounds.py` builds these by layering recordings from the packs above and below with a little synthesis
+(a noise crack, a low thump):
+
+| File | Made from |
+|---|---|
+| `spark` (lightning strike) | a synthesized crack, `groundhit` from the [Electricity Game Sound Pack](https://opengameart.org/node/150369) by faxcorp (CC0), and the thunder from 100 CC0 SFX #2 |
+| `blink` (teleport zip) | `teleport` from the Electricity Game Sound Pack, and an air rush from 100 CC0 SFX #2 |
+| `push` (force push) | a synthesized thump and whump, and an air rush from 100 CC0 SFX #2 |
+| `fire_breath` (jet of flame) | `thrusterFire_003` from Kenney – Sci-fi Sounds, and a burst from [Fire Staff Sound Effects](https://opengameart.org/content/fire-staff-sound-effects) by LEGIT Audio (CC0) |

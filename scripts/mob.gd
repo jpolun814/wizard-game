@@ -1,38 +1,45 @@
 class_name Mob
 extends CharacterBody2D
 
-## An enemy. Each one has a role (melee walker, ranged shooter, or flyer) and a school. The school sets its
+## An enemy. Each one has a role (melee walker, ranged shooter, flyer, or wizard) and a school. The school sets its
 ## colour and what it is weak or resistant to. Some schools also give their enemies a particular trick.
+## The creatures are LuizMelo's skeleton, goblin, mushroom and flying eye, and the dark wizard is his Evil Wizard
+## (art/mobs, art/chars). Each keeps its own colours with an outline in its school's colour. "scale" draws a
+## creature bigger, always at a whole number of pixels so the pixel art stays sharp.
+## A walker's origin is at its feet, so it stands exactly on the ground; a flyer's is the middle of its body.
+## Every attack is telegraphed: walkers wind up, shooters charge a glow, flyers hover before they dive.
 
 const KINDS := {
-	"basic": {"name": "Basic", "desc": "A plain enemy with no weakness and no resistance.", "role": "melee", "frames": "res://art/enemies/grunt", "idle": "idle", "feet": -0.2, "hit": 30.0, "school": "", "weak": "", "resist": "", "damage": 8, "speed": 1.0, "effect": ""},
-	"dark_wizard": {"name": "Dark Wizard", "desc": "Keeps its distance and casts spells like yours.", "role": "wizard", "frames": "res://art/enemies/muter", "idle": "idle", "feet": -0.5, "hit": 24.0, "school": "Shadow", "weak": "", "resist": "", "damage": 0, "speed": 1.0, "effect": ""},
-	"force_melee": {"name": "Melee Force", "desc": "A plain walker with no strengths or weaknesses.", "role": "melee", "frames": "res://art/enemies/grunt", "idle": "idle", "feet": -0.2, "hit": 30.0, "school": "Force", "weak": "", "resist": "", "damage": 8, "speed": 1.0, "effect": "big_knockback"},
-	"force_ranged": {"name": "Ranged Force", "desc": "Fires plain orbs from a distance.", "role": "ranged", "frames": "res://art/enemies/muter", "idle": "idle", "feet": -0.5, "hit": 24.0, "school": "Force", "weak": "", "resist": "", "damage": 0, "speed": 1.0, "effect": "", "shot": {"interval": 2.2, "damage": 6}},
-	"force_flyer": {"name": "Flying Force", "desc": "A plain flier that swoops down at you.", "role": "flyer", "frames": "res://art/enemies/blinder", "idle": "fly", "feet": 0.7, "hit": 44.0, "school": "Force", "weak": "", "resist": "", "damage": 6, "speed": 1.0, "effect": ""},
-	"fire_melee": {"name": "Melee Fire", "desc": "Leaves a trail of fire as it walks.", "role": "melee", "frames": "res://art/enemies/grunt", "idle": "idle", "feet": -0.2, "hit": 30.0, "school": "Fire", "weak": "Ice", "resist": "Fire", "damage": 8, "speed": 1.0, "effect": "fire_trail"},
-	"fire_ranged": {"name": "Ranged Fire", "desc": "Drops fireballs straight down on you from above.", "role": "ranged", "frames": "res://art/enemies/muter", "idle": "idle", "feet": -0.5, "hit": 24.0, "school": "Fire", "weak": "Ice", "resist": "Fire", "damage": 0, "speed": 1.0, "effect": "", "shot": {"interval": 2.0, "damage": 8, "above": true}},
-	"fire_flyer": {"name": "Flying Fire", "desc": "Drops fireballs while it flies over the arena.", "role": "flyer", "frames": "res://art/enemies/blinder", "idle": "fly", "feet": 0.7, "hit": 44.0, "school": "Fire", "weak": "Ice", "resist": "Fire", "damage": 6, "speed": 1.0, "effect": "", "shot": {"interval": 1.4, "damage": 6, "drop": true}},
-	"ice_melee": {"name": "Melee Ice", "desc": "Leaves frost patches that slow you.", "role": "melee", "frames": "res://art/enemies/grunt", "idle": "idle", "feet": -0.2, "hit": 30.0, "school": "Ice", "weak": "Fire", "resist": "Ice", "damage": 6, "speed": 0.9, "effect": "frost_trail"},
-	"ice_ranged": {"name": "Ranged Ice", "desc": "Fires a bolt that slows you.", "role": "ranged", "frames": "res://art/enemies/muter", "idle": "idle", "feet": -0.5, "hit": 24.0, "school": "Ice", "weak": "Fire", "resist": "Ice", "damage": 0, "speed": 1.0, "effect": "", "shot": {"interval": 2.0, "damage": 4, "slow": true}},
-	"ice_flyer": {"name": "Flying Ice", "desc": "Drops snow and icicles from above.", "role": "flyer", "frames": "res://art/enemies/blinder", "idle": "fly", "feet": 0.7, "hit": 44.0, "school": "Ice", "weak": "Fire", "resist": "Ice", "damage": 4, "speed": 1.0, "effect": "", "shot": {"interval": 1.8, "damage": 3, "slow": true, "drop": true}},
-	"earth_melee": {"name": "Melee Earth", "desc": "Heavy. Hits hard and knocks you back.", "role": "melee", "frames": "res://art/enemies/grunt", "idle": "idle", "feet": -0.2, "hit": 30.0, "school": "Earth", "weak": "Storm", "resist": "Earth", "damage": 14, "speed": 0.6, "effect": "knockback"},
-	"earth_ranged": {"name": "Ranged Earth", "desc": "Hurls boulders in an arc.", "role": "ranged", "frames": "res://art/enemies/muter", "idle": "idle", "feet": -0.5, "hit": 24.0, "school": "Earth", "weak": "Storm", "resist": "Earth", "damage": 0, "speed": 1.0, "effect": "", "shot": {"interval": 2.6, "damage": 10, "gravity": 420.0}},
-	"earth_flyer": {"name": "Flying Earth", "desc": "Drops boulders from the air.", "role": "flyer", "frames": "res://art/enemies/blinder", "idle": "fly", "feet": 0.7, "hit": 44.0, "school": "Earth", "weak": "Storm", "resist": "Earth", "damage": 8, "speed": 1.0, "effect": "", "shot": {"interval": 2.2, "damage": 8, "gravity": 300.0, "drop": true}},
-	"storm_melee": {"name": "Melee Storm", "desc": "Fast. Explodes when it reaches you.", "role": "melee", "frames": "res://art/enemies/grunt", "idle": "idle", "feet": -0.2, "hit": 30.0, "school": "Storm", "weak": "Earth", "resist": "Storm", "damage": 6, "speed": 2.6, "effect": "explode"},
-	"storm_ranged": {"name": "Ranged Storm", "desc": "Fires a fan of zaps.", "role": "ranged", "frames": "res://art/enemies/muter", "idle": "idle", "feet": -0.5, "hit": 24.0, "school": "Storm", "weak": "Earth", "resist": "Storm", "damage": 0, "speed": 1.0, "effect": "", "shot": {"interval": 2.4, "damage": 5, "spread": 3}},
-	"storm_flyer": {"name": "Flying Storm", "desc": "Divebombs you, then flies away.", "role": "flyer", "frames": "res://art/enemies/blinder", "idle": "fly", "feet": 0.7, "hit": 44.0, "school": "Storm", "weak": "Earth", "resist": "Storm", "damage": 8, "speed": 1.0, "effect": ""},
+	"basic": {"name": "Basic", "desc": "A plain enemy with no weakness and no resistance.", "role": "melee", "art": "skeleton", "hp": 30, "school": "", "weak": "", "resist": "", "damage": 8, "speed": 1.0, "effect": ""},
+	"dark_wizard": {"name": "Dark Wizard", "desc": "Duels you with your own spells. Hit it while it draws to break its cast.", "role": "wizard", "art": "dark_wizard", "scale": 2.0, "hp": 120, "school": "Shadow", "weak": "", "resist": "", "damage": 0, "speed": 1.0, "effect": ""},
+	"force_melee": {"name": "Melee Force", "desc": "A plain walker that hits hard enough to send you flying.", "role": "melee", "art": "skeleton", "hp": 30, "school": "Force", "weak": "", "resist": "", "damage": 8, "speed": 1.0, "effect": "big_knockback"},
+	"force_ranged": {"name": "Ranged Force", "desc": "Fires plain orbs from a distance.", "role": "ranged", "art": "goblin", "hp": 24, "school": "Force", "weak": "", "resist": "", "damage": 0, "speed": 1.0, "effect": "", "shot": {"interval": 2.2, "damage": 6}},
+	"force_flyer": {"name": "Flying Force", "desc": "A plain flier that swoops down at you.", "role": "flyer", "art": "eye", "hp": 22, "school": "Force", "weak": "", "resist": "", "damage": 6, "speed": 1.0, "effect": ""},
+	"fire_melee": {"name": "Melee Fire", "desc": "Leaves a trail of fire as it walks.", "role": "melee", "art": "skeleton", "hp": 30, "school": "Fire", "weak": "Ice", "resist": "Fire", "damage": 8, "speed": 1.0, "effect": "fire_trail"},
+	"fire_ranged": {"name": "Ranged Fire", "desc": "Calls fireballs down on you from above. Watch for the mark on the ground.", "role": "ranged", "art": "goblin", "hp": 24, "school": "Fire", "weak": "Ice", "resist": "Fire", "damage": 0, "speed": 1.0, "effect": "", "shot": {"interval": 2.4, "damage": 8, "above": true}},
+	"fire_flyer": {"name": "Flying Fire", "desc": "Drops fireballs while it flies over you.", "role": "flyer", "art": "eye", "hp": 22, "school": "Fire", "weak": "Ice", "resist": "Fire", "damage": 6, "speed": 1.0, "effect": "", "shot": {"interval": 1.4, "damage": 6, "drop": true}},
+	"ice_melee": {"name": "Melee Ice", "desc": "Leaves falling snow that slows you.", "role": "melee", "art": "skeleton", "hp": 34, "school": "Ice", "weak": "Fire", "resist": "Ice", "damage": 6, "speed": 0.9, "effect": "frost_trail"},
+	"ice_ranged": {"name": "Ranged Ice", "desc": "Fires a bolt that slows you.", "role": "ranged", "art": "goblin", "hp": 24, "school": "Ice", "weak": "Fire", "resist": "Ice", "damage": 0, "speed": 1.0, "effect": "", "shot": {"interval": 2.0, "damage": 4, "slow": true}},
+	"ice_flyer": {"name": "Flying Ice", "desc": "Drops icicles from above that slow you.", "role": "flyer", "art": "eye", "hp": 22, "school": "Ice", "weak": "Fire", "resist": "Ice", "damage": 4, "speed": 1.0, "effect": "", "shot": {"interval": 1.8, "damage": 3, "slow": true, "drop": true}},
+	"earth_melee": {"name": "Melee Earth", "desc": "Big and heavy. Hits hard and knocks you back.", "role": "melee", "art": "skeleton", "hp": 48, "school": "Earth", "weak": "Storm", "resist": "Earth", "damage": 14, "speed": 0.6, "effect": "knockback"},
+	"earth_ranged": {"name": "Ranged Earth", "desc": "Hurls boulders in an arc.", "role": "ranged", "art": "goblin", "hp": 28, "school": "Earth", "weak": "Storm", "resist": "Earth", "damage": 0, "speed": 1.0, "effect": "", "shot": {"interval": 2.6, "damage": 10, "gravity": 420.0}},
+	"earth_flyer": {"name": "Flying Earth", "desc": "Drops boulders from the air.", "role": "flyer", "art": "eye", "hp": 26, "school": "Earth", "weak": "Storm", "resist": "Earth", "damage": 8, "speed": 1.0, "effect": "", "shot": {"interval": 2.2, "damage": 8, "gravity": 300.0, "drop": true}},
+	"storm_melee": {"name": "Melee Storm", "desc": "Fast. Explodes when it reaches you.", "role": "melee", "art": "skeleton", "hp": 20, "school": "Storm", "weak": "Earth", "resist": "Storm", "damage": 6, "speed": 2.6, "effect": "explode"},
+	"storm_ranged": {"name": "Ranged Storm", "desc": "Fires a fan of zaps.", "role": "ranged", "art": "goblin", "hp": 24, "school": "Storm", "weak": "Earth", "resist": "Storm", "damage": 0, "speed": 1.0, "effect": "", "shot": {"interval": 2.4, "damage": 5, "spread": 3}},
+	"storm_flyer": {"name": "Flying Storm", "desc": "Divebombs you, then flies away.", "role": "flyer", "art": "eye", "hp": 22, "school": "Storm", "weak": "Earth", "resist": "Storm", "damage": 8, "speed": 1.4, "effect": ""},
 }
 const SPEED := 80.0
 const TERMINAL_FALL := 900.0  # no enemy falls faster than this
-const FALL_LIMIT := 400.0     # an enemy below this has fallen off the map and is removed
-const MAX_HP := 30
-const TARGET_HEIGHT := 64.0   # the on-screen height of every enemy, whatever the art's native size
-const CONTACT_RANGE := 50.0   # bodies stop about 42px apart when pressed together, so this must be larger
-const CONTACT_COOLDOWN := 1.0
+const FALL_LIMIT := 800.0     # an enemy below this has fallen off the map and is removed
+const CONTACT_RANGE := 40.0   # how close (middle to middle) a walker must be to hit
+const CONTACT_COOLDOWN := 1.1
+const WINDUP := 0.3           # a walker draws back this long before it hits
+const CHARGE := 0.45          # a shooter's glow builds this long before it fires
+const DIVE_WARNING := 0.4     # a flyer hangs and shakes this long before it dives
 const KNOCK_DECAY := 1500.0
-const MOB_JUMP := -320.0      # enough to clear a block, or reach a player standing above
-const BURST_DAMAGE := 4       # a Stormrunner's explosion hurts everything close by this much
+const MOB_JUMP := -420.0      # enough to clear two blocks
+const MOB_JUMP_HIGH := -560.0 # enough to reach a platform when the player is up on one
+const BURST_DAMAGE := 6       # a Stormrunner's explosion hurts everything close by this much
 const BURST_RADIUS := 60.0
 const SPIT_RANGE := 480.0       # a ranged enemy fires from this far away
 const SPIT_STAND_RANGE := 300.0 # and stops walking once it is this close
@@ -41,146 +48,222 @@ const DIVE_SPEED := 340.0       # how fast a flyer dives at you
 const RETREAT_SPEED := 240.0    # how fast it flies away after a dive
 const FIRE_TRAIL_INTERVAL := 0.45
 const FROST_TRAIL_INTERVAL := 0.8
+const SPAWN_TIME := 0.7         # enemies fade in over a summoning circle and cannot act until it is done
 const PATROL := 0
 const DIVE := 1
 const RETREAT := 2
+const HOVER := 3
+const DRAW_TIME := 0.8          # how long the dark wizard takes to draw a spell
+const CREATURE_ANIMATIONS := {
+	"idle": {"fps": 8.0}, "walk": {"fps": 10.0}, "attack": {"fps": 14.0, "loop": false},
+	"hit": {"fps": 12.0, "loop": false}, "death": {"fps": 8.0, "loop": false},
+}
+## The dark wizard holds its staff's shadow up while it draws, and throws a burst of shadow when the spell goes off.
+const WIZARD_ANIMATIONS := {
+	"idle": {"fps": 8.0}, "walk": {"from": "run", "fps": 12.0}, "jump": {"fps": 8.0, "loop": false},
+	"fall": {"fps": 8.0}, "channel": {"from": "release", "fps": 8.0, "first": 0, "last": 3},
+	"burst": {"from": "cast", "fps": 16.0, "loop": false, "first": 3, "last": 5},
+	"hit": {"fps": 10.0, "loop": false}, "death": {"fps": 8.0, "loop": false},
+}
+## The dark wizard's hooded body, at its drawn size: its staff and the shadow flame on it are not part of the target.
+const WIZARD_BODY := Rect2(-16, -52, 30, 52)
 
 var kind := "basic"  # set before the mob enters the tree
+var player: Node2D
+var hp := 30
+var max_hp := 30
 var caster: Caster  # only the dark wizard has one: it casts from its own strokes
-var _cast_timer := 2.0
+var brain: WizardBrain
 var stamina := 100.0      # the dark wizard spends stamina on spells, and it regenerates like yours
 var last_spell := ""
-var _look: Node2D
-var _staff: Sprite2D
-var _hand_right: Sprite2D
-var _hand_rest := Vector2.ZERO
-var _cast_pose := 0.0
+var _bursting := 0.0  # time left of the dark wizard's burst of shadow as a spell goes off
 var _draw_time := 0.0
+var _draw_total := DRAW_TIME
 var _stroke := PackedVector2Array()
 var _stroke_colour := Color.WHITE
 var _on_drawn: Callable
-const DRAW_TIME := 0.8
-const WIZARD_SPEED := 300.0  # the same as the player's running speed
-var player: Node2D
-var hp := MAX_HP
+var _shield_time := 0.0
 var _cooldown := 0.0
 var _slow_time := 0.0
 var _knock_x := 0.0
+var _drift := Vector2.ZERO  # a pull (Gravity Well) that fades
 var _dead := false
 var _gravity: float = ProjectSettings.get_setting("physics/2d/default_gravity")
-var _walk_t := 0.0
 var _idle_t := 0.0
-var _squash := Vector2.ONE
 var _facing := 1.0
 var _shot_timer := 1.5
 var _root_time := 0.0
+var _frozen_time := 0.0
 var _base_scale := 1.0
 var _lunge := 0.0        # 1 the moment an enemy attacks, fading to 0: it lunges toward the player
+var _windup := 0.0       # counting down to a melee hit
+var _charge := 0.0       # counting down to a shot
+var _flash := 0.0
+var _spawn := SPAWN_TIME
 var _trail_timer := 0.0
 var _fly_state := PATROL
 var _fly_timer := 2.0
 var _fly_goal_x := 0.0
 var _fly_target := Vector2.ZERO
 var _fly_away := 1.0
+var _body_size := Vector2(30, 40)  # the hitbox, in world pixels
+var _body_center := Vector2(0, -20)
+var _overlay: Node2D               # draws health bar, ice, shield and charge glows on top of the sprite
+var _material: ShaderMaterial
 @onready var _visual: AnimatedSprite2D = $Visual
-static var _frame_cache := {}  # recoloured animation frames, built once per enemy kind
+var _bubble: AnimatedSprite2D  # the Barrier round the dark wizard
+const ICE := preload("res://art/props/ice_fill.png")
 
 
 func _ready() -> void:
 	add_to_group("mobs")
 	var data: Dictionary = KINDS[kind]
-	_visual.sprite_frames = _frames_for(kind)
-	# Each enemy's hitbox matches its drawn body, with the feet still at the bottom of the box.
-	var hitbox: CollisionShape2D = $CollisionShape2D
-	hitbox.shape = hitbox.shape.duplicate()
-	var hit_h: float = data["hit"]
-	(hitbox.shape as RectangleShape2D).size = Vector2(40.0, hit_h)
-	hitbox.position = Vector2(0.0, 25.0 - hit_h / 2.0)
-	_visual.animation_finished.connect(_on_animation_finished)
-	var first: Texture2D = _visual.sprite_frames.get_frame_texture("idle", 0)
-	_base_scale = TARGET_HEIGHT / first.get_height()
-	_visual.play("idle")
+	max_hp = data.get("hp", 30)
+	hp = max_hp
+	_overlay = Node2D.new()
+	_overlay.z_index = 10
+	_overlay.draw.connect(_draw_overlay)
+	_overlay.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
+	add_child(_overlay)
+	if data["role"] == "wizard":
+		_build_wizard()
+	else:
+		_build_creature(data)
 	if data["role"] == "flyer":
 		collision_mask = 0  # flyers pass through the terrain; they reach you from above
 		_fly_goal_x = global_position.x
 		_fly_timer = 1.0 + randf() * 2.0
-	_shot_timer = 0.5 + randf() * 1.0
-	if data["role"] == "wizard":
-		_build_wizard_look()
-		caster = Caster.new()
-		add_child(caster)
-		caster.set_process(false)  # cast from its own strokes only, never from the mouse
-		caster.ground_check = Callable(get_parent(), "_is_ground_at")
-		caster.cast_resolved.connect(Callable(get_parent(), "_on_wizard_cast").bind(self))
+	_shot_timer = 0.8 + randf() * 1.2
+	# Every enemy arrives through a summoning circle.
+	Fx.pop(get_parent(), global_position + Vector2(0, -2 if not _flies() else 18), "magic_02", _school_colour(), 70.0, SPAWN_TIME + 0.2, 1.2, 1.5)
+	Sfx.play("summon", global_position)
+	modulate.a = 0.0
 
 
-## The animation frames for each enemy kind, recoloured to its school. Built once per kind and reused.
-func _frames_for(kind_name: String) -> SpriteFrames:
-	if not _frame_cache.has(kind_name):
-		var data: Dictionary = KINDS[kind_name]
-		_frame_cache[kind_name] = _build_frames(data["frames"], data["idle"], data["school"])
-	return _frame_cache[kind_name]
+## A creature drawn from art/mobs: its frames, its size, and a hitbox that matches the body in the drawing.
+func _build_creature(data: Dictionary) -> void:
+	var art: String = data["art"]
+	var info: Dictionary = PixelArt.CHARACTERS[art]
+	_visual.sprite_frames = CharFrames.build("res://art/mobs/" + art, CREATURE_ANIMATIONS)
+	_base_scale = data.get("scale", 1.0)
+	var body: Rect2 = info["body"]
+	var frame: Vector2 = info["size"]
+	var hitbox: CollisionShape2D = $CollisionShape2D
+	if info["flyer"]:
+		# A flyer's frames are centred on the middle of its body; its body is a circle.
+		_visual.offset = Vector2.ZERO
+		var circle := CircleShape2D.new()
+		circle.radius = minf(body.size.x, body.size.y) * 0.5 * _base_scale * 0.9
+		hitbox.shape = circle
+		_body_center = Vector2.ZERO
+		_body_size = Vector2.ONE * circle.radius * 2.0
+	else:
+		# A walker's frames have its feet on the bottom edge. Its hitbox is its body, not a weapon held out.
+		_visual.offset = Vector2(0, -frame.y * 0.5)
+		var rect := RectangleShape2D.new()
+		rect.size = Vector2(body.size.x * 0.85, body.size.y * 0.95) * _base_scale
+		hitbox.shape = rect
+		_body_size = rect.size
+		_body_center = Vector2(0, -rect.size.y * 0.5)
+	hitbox.position = _body_center
+	_apply_material()
+	_visual.animation_finished.connect(_on_animation_finished)
+	_visual.play("idle")
+	_visual.frame = randi() % maxi(1, _visual.sprite_frames.get_frame_count("idle"))
 
 
-## Builds the animations from the frame files in a folder: idle (looping), walk, hit and death.
-func _build_frames(dir: String, idle_prefix: String, school: String) -> SpriteFrames:
-	var frames := SpriteFrames.new()
-	var files := DirAccess.get_files_at(dir)
-	files.sort()
-	var animations := [["idle", idle_prefix, true], ["walk", "walk", true], ["hit", "hit", false], ["death", "death", false]]
-	for entry in animations:
-		var anim_name: String = entry[0]
-		var prefix: String = entry[1]
-		frames.add_animation(anim_name)
-		frames.set_animation_loop(anim_name, entry[2])
-		frames.set_animation_speed(anim_name, 12.0)
-		for f in files:
-			if f.begins_with(prefix + "_") and f.ends_with(".png"):
-				if school != "":
-					frames.add_frame(anim_name, SpellData.recoloured_image(Image.load_from_file(dir + "/" + f), school))
-				else:
-					frames.add_frame(anim_name, load(dir + "/" + f))
-	return frames
+## The creature's own colours, with a little of its school's colour and an outline in it. Plain enemies get no
+## outline at all.
+func _apply_material() -> void:
+	var school: String = KINDS[kind]["school"]
+	_material = ShaderMaterial.new()
+	_material.shader = load("res://scripts/mob.gdshader")
+	_material.set_shader_parameter("school_color", _school_colour())
+	_material.set_shader_parameter("tint", 0.0 if school in ["", "Shadow"] else 0.22)
+	_material.set_shader_parameter("outline", 0.0 if school == "" else 0.9)
+	_visual.material = _material
+
+
+func _school_colour() -> Color:
+	var school: String = KINDS[kind]["school"]
+	return SpellData.SCHOOL_COLORS.get(school, Color("#d8d0e8"))
+
+
+func _flies() -> bool:
+	return KINDS[kind]["role"] == "flyer"
+
+
+## The middle of the enemy's body in the world. Spells and the player's aim go here.
+func center() -> Vector2:
+	return global_position + _body_center
 
 
 func _physics_process(delta: float) -> void:
 	if global_position.y > FALL_LIMIT:
 		queue_free()
 		return
+	if _spawn > 0.0:
+		_spawn -= delta
+		modulate.a = clampf(1.0 - _spawn / SPAWN_TIME, 0.0, 1.0)
+		if not _flies():
+			_fall(delta)
+			velocity.x = 0.0
+			move_and_slide()
+		return
+	modulate.a = 1.0
 	_cooldown -= delta
 	_root_time -= delta
-	if _slow_time > 0.0:
-		_slow_time -= delta
+	_shield_time -= delta
+	_slow_time -= delta
 	_knock_x = move_toward(_knock_x, 0.0, KNOCK_DECAY * delta)
-	if KINDS[kind]["role"] == "wizard":
-		_pose_wizard(delta)
-		_wizard(delta)
+	_drift = _drift.move_toward(Vector2.ZERO, 900.0 * delta)
+	if _frozen_time > 0.0:
+		_frozen_time -= delta
+		_windup = 0.0
+		_charge = 0.0
+		if _frozen_time <= 0.0:
+			Shatter.spawn(get_parent(), center(), Color("#cdeeff"))
+		if not _flies():
+			_fall(delta)
+			velocity.x = _knock_x + _drift.x
+			move_and_slide()
 		return
-	if KINDS[kind]["role"] == "flyer":
-		_fly(delta)
-	else:
-		_walk(delta)
+	match KINDS[kind]["role"]:
+		"wizard":
+			_wizard(delta)
+		"flyer":
+			_fly(delta)
+		_:
+			_walk(delta)
 
 
-## Walkers and shooters stay on the ground: they walk, jump blocks, shoot, or attack on contact.
-func _walk(delta: float) -> void:
-	var data: Dictionary = KINDS[kind]
+func _fall(delta: float) -> void:
 	if not is_on_floor():
 		velocity.y = minf(velocity.y + _gravity * delta, TERMINAL_FALL)
+
+
+## Walkers and shooters stay on the ground: they walk, jump blocks, shoot, or wind up and hit.
+func _walk(delta: float) -> void:
+	var data: Dictionary = KINDS[kind]
+	_fall(delta)
+	velocity.y += _drift.y * delta * 4.0
 	var speed: float = SPEED * data["speed"]
 	if _slow_time > 0.0:
 		speed *= 0.5
-	var distance := player.global_position.distance_to(global_position) if player else INF
+	var to_player: Vector2 = player.center() - center() if player else Vector2.ZERO
+	var distance := to_player.length() if player else INF
 	var shooter: bool = data["role"] == "ranged"
-	var stands_to_shoot := shooter and distance < SPIT_STAND_RANGE
-	if player and not stands_to_shoot and _root_time <= 0.0:
-		velocity.x = signf(player.global_position.x - global_position.x) * speed + _knock_x
-	else:
-		velocity.x = _knock_x
-	# Enemies jump when a wall blocks them, or when the player is above them and close by.
-	if is_on_floor() and player and _root_time <= 0.0 and not stands_to_shoot:
-		var above := player.global_position.y < global_position.y - 30.0 and distance < 160.0
-		if is_on_wall() or above:
+	var sees := player != null and _can_reach_player()
+	var stands_to_shoot := shooter and distance < SPIT_STAND_RANGE and sees
+	var close := absf(to_player.x) < 18.0  # right on top of the player: stop instead of walking through
+	var moving := player != null and not stands_to_shoot and _root_time <= 0.0 and _windup <= 0.0 and _charge <= 0.0 and not close
+	velocity.x = (signf(to_player.x) * speed if moving else 0.0) + _knock_x + _drift.x
+	# Enemies jump when a wall blocks them, and leap up to a platform when the player is standing on it.
+	if is_on_floor() and player and _root_time <= 0.0 and moving:
+		var above := to_player.y < -50.0 and absf(to_player.x) < 140.0
+		if above:
+			velocity.y = MOB_JUMP_HIGH
+		elif is_on_wall():
 			velocity.y = MOB_JUMP
 	move_and_slide()
 	# Some melee enemies leave something behind as they walk.
@@ -190,50 +273,77 @@ func _walk(delta: float) -> void:
 			var fire: bool = data["effect"] == "fire_trail"
 			_trail_timer = FIRE_TRAIL_INTERVAL if fire else FROST_TRAIL_INTERVAL
 			if fire:
-				Hazard.place(get_parent(), global_position + Vector2(0, 25), "fire", 26.0, 3.0)
+				Hazard.place(get_parent(), global_position, "fire", 26.0, 3.0)
 			else:
 				_leave_snow()
-	if shooter and player and distance < SPIT_RANGE:
+	if shooter and player:
+		_update_shooter(delta, distance, sees, data["shot"])
+	if data["role"] == "melee" and player:
+		_update_melee(delta, distance)
+
+
+## A walker that is close enough draws back, then lunges. If the player moved away during the wind-up, it misses.
+func _update_melee(delta: float, distance: float) -> void:
+	if _windup > 0.0:
+		_windup -= delta
+		if _windup <= 0.0:
+			if distance < CONTACT_RANGE + 10.0 and _can_reach_player():
+				_attack()
+			_lunge = 1.0
+			_cooldown = CONTACT_COOLDOWN
+		return
+	if _cooldown <= 0.0 and distance < CONTACT_RANGE and _can_reach_player():
+		_windup = WINDUP if KINDS[kind]["effect"] != "explode" else WINDUP * 0.6
+
+
+## A shooter in range charges its shot (a glow builds in front of it), then fires.
+func _update_shooter(delta: float, distance: float, sees: bool, shot: Dictionary) -> void:
+	if _charge > 0.0:
+		_charge -= delta
+		if _charge <= 0.0:
+			_shoot(shot)
+		return
+	if distance < SPIT_RANGE and (sees or shot.get("above", false)):
 		_shot_timer -= delta
 		if _shot_timer <= 0.0:
-			_shot_timer = data["shot"]["interval"]
-			_shoot(data["shot"])
-	if data["role"] == "melee" and player and _cooldown <= 0.0 and distance < CONTACT_RANGE and _can_reach_player():
-		_attack()
-		_cooldown = CONTACT_COOLDOWN
+			_shot_timer = shot["interval"]
+			_charge = CHARGE
 
 
-## Flyers drift over the arena above the player. Every so often they dive at the player, hit, and fly away.
+## Flyers drift over the arena above the player. Every so often they hang still, shaking, then dive at the
+## player, hit, and fly away.
 func _fly(delta: float) -> void:
 	var data: Dictionary = KINDS[kind]
 	if player == null:
 		return
 	var before := global_position
-	var cruise_y := maxf(player.global_position.y - 130.0, 30.0)
-	var speed_mult: float = data["speed"]
+	var cruise_y := minf(player.center().y - 130.0, ArenaGen.GROUND_Y - 110.0)
+	var speed_mult: float = data["speed"] * (0.5 if _slow_time > 0.0 else 1.0)
 	_fly_timer -= delta
 	match _fly_state:
 		PATROL:
-			global_position.x += signf(_fly_goal_x - global_position.x) * FLY_SPEED * delta
+			global_position.x += signf(_fly_goal_x - global_position.x) * FLY_SPEED * speed_mult * delta
 			global_position.y = move_toward(global_position.y, cruise_y, 160.0 * delta)
 			if absf(_fly_goal_x - global_position.x) < 12.0:
 				_fly_goal_x = player.global_position.x + randf_range(-280.0, 280.0)
+			if _fly_timer <= 0.0 and _root_time <= 0.0:
+				_fly_state = HOVER
+				_fly_timer = DIVE_WARNING
+				Sfx.play("mob_hurt", global_position, -6.0, 0.3)
+		HOVER:
+			# The warning before a dive: it stops and shakes.
 			if _fly_timer <= 0.0:
 				_fly_state = DIVE
-				_fly_target = player.global_position + Vector2(0, -8)
+				_fly_target = player.center()
 				_fly_timer = 1.6
 		DIVE:
-			var to_target := _fly_target - global_position
+			var to_target := _fly_target - center()
 			global_position += to_target.normalized() * DIVE_SPEED * speed_mult * delta
-			if global_position.distance_to(player.global_position) < CONTACT_RANGE and _can_reach_player():
+			if center().distance_to(player.center()) < CONTACT_RANGE and _can_reach_player():
 				_attack()
-				_fly_away = signf(global_position.x - player.global_position.x)
-				_fly_state = RETREAT
-				_fly_timer = 1.4
+				_start_retreat()
 			elif _fly_timer <= 0.0 or to_target.length() < 6.0:
-				_fly_away = signf(global_position.x - player.global_position.x)
-				_fly_state = RETREAT
-				_fly_timer = 1.4
+				_start_retreat()
 		RETREAT:
 			global_position.x += _fly_away * RETREAT_SPEED * delta
 			global_position.y = move_toward(global_position.y, cruise_y - 60.0, 200.0 * delta)
@@ -241,42 +351,74 @@ func _fly(delta: float) -> void:
 				_fly_state = PATROL
 				_fly_goal_x = player.global_position.x + randf_range(-280.0, 280.0)
 				_fly_timer = 2.5
-	global_position.x = clampf(global_position.x + _knock_x * delta, ArenaGen.LEFT_WALL * 16.0, ArenaGen.RIGHT_WALL * 16.0)
-	if _hits_terrain(before, global_position):
-		global_position = before  # flyers cannot pass through platforms or walls
+	global_position += (Vector2(_knock_x, 0.0) + _drift) * delta
+	global_position.x = clampf(global_position.x, ArenaGen.left_edge() + 16.0, ArenaGen.right_edge() - 16.0)
+	# Flyers never sink into the ground, even mid-dive.
+	global_position.y = minf(global_position.y, ArenaGen.GROUND_Y - _body_size.y * 0.5 - _body_center.y - 2.0)
+	if _hits_terrain(before + _body_center, center()):
+		global_position = before  # flyers cannot pass through stone or walls
 		if _fly_state == DIVE:
-			_fly_state = RETREAT
-			_fly_timer = 1.2
+			_start_retreat()
 	if data.get("shot", {}).size() > 0:
 		_shot_timer -= delta
-		if _shot_timer <= 0.0:
-			_shot_timer = data["shot"]["interval"]
-			_shoot(data["shot"])
+		var shot: Dictionary = data["shot"]
+		# A dropping flyer waits until it is over the player before it lets go.
+		var lined_up: bool = not shot.get("drop", false) or absf(player.global_position.x - global_position.x) < 70.0
+		if _shot_timer <= 0.0 and lined_up and _fly_state != DIVE:
+			_shot_timer = shot["interval"]
+			_shoot(shot)
 
 
-## Fires one of this enemy's shots. Shots take the enemy's school colour.
+func _start_retreat() -> void:
+	_fly_away = signf(global_position.x - player.global_position.x)
+	if _fly_away == 0.0:
+		_fly_away = 1.0
+	_fly_state = RETREAT
+	_fly_timer = 1.4
+
+
+## Fires one of this enemy's shots, in its school colour. Plain shots fly at the player; some arc, some fan out,
+## some fall straight down from the flyer, and fire casters call one down from above the player.
 func _shoot(shot: Dictionary) -> void:
-	var school: String = KINDS[kind]["school"]
-	var colour: Color = SpellData.SCHOOL_COLORS[school] if school != "" else Color("#d8d0e8")
-	var origin := _visual.global_position  # shots leave the middle of the sprite
-	var aim := player.global_position
+	var colour := _school_colour()
+	var origin := center() + Vector2(_facing * _body_size.x * 0.5, -4.0)
+	if shot.get("above", false):
+		var drop_x: float = player.global_position.x + player.velocity.x * 0.35
+		FallingShot.call_down(get_parent(), Vector2(drop_x, player.global_position.y), colour, shot["damage"])
+		Sfx.play("mob_shoot", origin)
+		return
+	if shot.get("drop", false):
+		EnemyBolt.fire(get_parent(), center() + Vector2(0, 10), center() + Vector2(0, 100), colour, shot["damage"], shot.get("gravity", 300.0), shot.get("slow", false))
+		Sfx.play("mob_shoot", center())
+		return
+	var aim: Vector2 = player.center()
 	var count: int = shot.get("spread", 1)
 	for i in count:
-		var angle := 0.0 if count == 1 else (i - (count - 1) * 0.5) * 0.12
+		var angle := 0.0 if count == 1 else (i - (count - 1) * 0.5) * 0.14
 		var target := origin + (aim - origin).rotated(angle)
-		EnemyBolt.fire(get_parent(), origin, target, colour, shot["damage"], shot.get("gravity", 0.0), shot.get("slow", false))
+		var gravity: float = shot.get("gravity", 0.0)
+		if gravity > 0.0:
+			# Lob it so it comes down on the player: aim above them by how far the arc will drop.
+			var flight := origin.distance_to(aim) / EnemyBolt.SPEED
+			target = aim + Vector2(0, -0.5 * gravity * flight * flight)
+		EnemyBolt.fire(get_parent(), origin, target, colour, shot["damage"], gravity, shot.get("slow", false))
+	Sfx.play("mob_shoot", origin)
 
 
-## True when nothing solid stands between the enemy and the player. Enemies cannot hit through a platform.
+## True when nothing solid stands between the enemy and the player. Enemies cannot hit through stone.
 func _can_reach_player() -> bool:
-	var query := PhysicsRayQueryParameters2D.create(global_position, player.global_position)
-	query.collision_mask = 1  # terrain only
+	var query := PhysicsRayQueryParameters2D.create(center(), player.center())
+	query.collision_mask = 1  # terrain only; platforms do not block
 	return get_world_2d().direct_space_state.intersect_ray(query).is_empty()
 
 
 ## Damage from a spell of the given school. Weak to a school takes double; resisting it takes nothing.
+## A frozen enemy hit by force or earth shatters out of the ice and takes extra.
 func take_damage(amount: int, school := "") -> void:
-	if _dead:
+	if _dead or _spawn > 0.0:
+		return
+	if _shield_time > 0.0:
+		FloatText.spawn(get_parent(), center() + Vector2(0, -_body_size.y * 0.5), "Blocked", Color(0.8, 0.7, 1.0), 0.8)
 		return
 	var data: Dictionary = KINDS[kind]
 	var dealt := amount
@@ -284,41 +426,69 @@ func take_damage(amount: int, school := "") -> void:
 		dealt = 0
 	elif school != "" and school == data["weak"]:
 		dealt = amount * 2
+	if _frozen_time > 0.0 and school in ["Force", "Earth"]:
+		dealt = roundi(dealt * 1.5)
+		_frozen_time = 0.0
+		Shatter.spawn(get_parent(), center(), Color("#cdeeff"))
+		Sfx.play("ice_shatter", center())
+	var text_at := center() + Vector2(0, -_body_size.y * 0.5 - 6.0)
 	if dealt <= 0:
-		_show_damage_text("Resisted", Color(0.7, 0.7, 0.75))
+		FloatText.spawn(get_parent(), text_at, "Resisted", Color(0.75, 0.75, 0.82), 0.8)
 		return
 	hp -= dealt
-	_squash = Vector2(1.2, 0.8)  # flinch when hit
-	_show_damage_text("-%d%s" % [dealt, "!" if dealt > amount else ""], Color.YELLOW if dealt <= amount else Color("#ff8a3a"))
-	# Sparks take the spell's colour, not the enemy's, and nothing sparks on the killing blow.
-	if hp > 0:
-		var spark_school: String = school if school != "" else data["school"]
-		var spark: Color = SpellData.SCHOOL_COLORS[spark_school] if SpellData.SCHOOL_COLORS.has(spark_school) else Color("#d8d0e8")
-		Fx.burst(get_parent(), global_position, spark, 10, 120.0, 0.3)
+	_flash = 1.0
+	var weak := dealt > amount
+	FloatText.spawn(get_parent(), text_at, "%d%s" % [dealt, "!" if weak else ""], Color("#ff9a3a") if weak else Color("#fff0a0"), 1.25 if weak else 1.0)
+	if data["role"] == "wizard" and brain:
+		brain.on_hurt(dealt)
+	# Sparks take the spell's colour, not the enemy's.
+	var spark: Color = SpellData.SCHOOL_COLORS.get(school, _school_colour())
+	Fx.burst(get_parent(), center(), spark, 8, 120.0, 0.3, true)
 	if hp <= 0:
 		_die()
-	elif _visual.sprite_frames.has_animation("hit") and _visual.sprite_frames.get_frame_count("hit") > 0:
-		_visual.play("hit")
+	else:
+		Sfx.play("mob_hurt", center())
+		if _visual.sprite_frames.has_animation("hit") and _windup <= 0.0 and _charge <= 0.0 and not is_drawing():
+			_visual.play("hit")
 
 
-## A defeated enemy plays its death animation, then disappears.
+## A defeated enemy bursts into smoke and its school's sparks, plays its death tumble, then disappears.
 func _die() -> void:
 	_dead = true
 	remove_from_group("mobs")
 	set_physics_process(false)
-	if _visual.sprite_frames.has_animation("death") and _visual.sprite_frames.get_frame_count("death") > 0:
+	# Shots and spells pass through a body that is already falling over.
+	set_deferred("collision_layer", 0)
+	set_deferred("collision_mask", 0)
+	_windup = 0.0
+	_charge = 0.0
+	_frozen_time = 0.0
+	Sfx.play("mob_die", center())
+	Fx.burst(get_parent(), center(), _school_colour(), 18, 180.0, 0.6, true)
+	Fx.smoke(get_parent(), center(), Color(0.25, 0.2, 0.3, 0.6), 5, 30.0)
+	GameCamera.shake_scene(get_tree(), 0.18)
+	if _visual.sprite_frames.has_animation("death"):
 		_visual.play("death")
 	else:
 		var tween := create_tween()
-		tween.tween_property(self, "modulate:a", 0.0, 0.25)
+		tween.tween_property(self, "position:y", position.y + 30.0, 0.35).set_ease(Tween.EASE_IN)
+		tween.parallel().tween_property(self, "modulate:a", 0.0, 0.35)
+		tween.parallel().tween_property(self, "rotation", 1.2 * _facing, 0.35)
 		tween.tween_callback(queue_free)
 
 
 func _on_animation_finished() -> void:
 	if _dead and _visual.animation == "death":
-		queue_free()
-	elif not _dead and _visual.animation == "hit":
+		var tween := create_tween()
+		tween.tween_interval(0.4)
+		tween.tween_property(self, "modulate:a", 0.0, 0.4)
+		tween.tween_callback(queue_free)
+	elif not _dead and _visual.animation in ["hit", "attack", "burst"]:
 		_visual.play("idle")
+
+
+func is_dead() -> bool:
+	return _dead
 
 
 func apply_root(seconds: float) -> void:
@@ -331,193 +501,305 @@ func apply_slow(seconds: float) -> void:
 	_slow_time = maxf(_slow_time, seconds)
 
 
+## Encases the enemy in ice: it cannot move or attack until it thaws or something shatters it.
+## Returns false for ice enemies, which shrug it off.
+func freeze(seconds: float) -> bool:
+	if KINDS[kind]["school"] == "Ice" or _dead:
+		return false
+	_frozen_time = maxf(_frozen_time, seconds)
+	return true
+
+
+func is_frozen() -> bool:
+	return _frozen_time > 0.0
+
+
 func knock_back(impulse: Vector2) -> void:
+	if _frozen_time > 0.0:
+		impulse *= 0.4  # a block of ice is heavy
 	_knock_x = impulse.x
 	velocity.y = minf(velocity.y, impulse.y)  # a little lift for upward knocks
+
+
+## A steady pull, such as a Gravity Well's. Call it every frame the pull lasts.
+func pull(force: Vector2, delta: float) -> void:
+	_drift += force * delta
+
+
+func raise_shield(seconds: float) -> void:
+	if _bubble == null:
+		# The same pixel bubble as the player's Barrier, sized to the body.
+		_bubble = PixelFx.sprite("shield", 10.0)
+		_bubble.scale = Vector2.ONE * maxf(2.0, ceilf(maxf(_body_size.x, _body_size.y) / 40.0))
+		_bubble.position = _body_center
+		_bubble.material = Fx.additive()
+		_bubble.z_index = 9
+		add_child(_bubble)
+	_shield_time = maxf(_shield_time, seconds)
+	Sfx.play("barrier", center())
+
+
+func has_shield() -> bool:
+	return _shield_time > 0.0
 
 
 ## An enemy hits the player. Its effect (knockback, or an explosion) comes after the damage.
 func _attack() -> void:
 	var data: Dictionary = KINDS[kind]
 	_lunge = 1.0
+	if data["effect"] == "explode":
+		_explode()
+		return
 	player.take_damage(data["damage"])
+	Sfx.play("stones" if data["school"] == "Earth" else "fire_hit" if data["school"] == "Fire" else "push", player.center(), -6.0)
 	match data["effect"]:
 		"knockback":
 			player.push(Vector2(signf(player.global_position.x - global_position.x) * 420.0, -160.0))
 		"big_knockback":
 			player.push(Vector2(signf(player.global_position.x - global_position.x) * 900.0, -220.0))
-		"explode":
-			_explode()
 
 
 func _explode() -> void:
-	var burst := Burst.new()
-	burst.global_position = global_position
-	get_parent().add_child(burst)
+	Fx.impact(get_parent(), center(), _school_colour(), 70.0)
+	Fx.pop(get_parent(), center(), "spark_02", _school_colour(), 90.0, 0.3, 1.4, 3.0)
+	Sfx.play("explosion", center())
+	GameCamera.shake_scene(get_tree(), 0.4)
 	# Damage the player and any other enemy close enough to the blast.
-	if global_position.distance_to(player.global_position) <= BURST_RADIUS:
-		player.take_damage(BURST_DAMAGE)
+	if center().distance_to(player.center()) <= BURST_RADIUS:
+		player.take_damage(BURST_DAMAGE + KINDS[kind]["damage"])
 	for other in get_tree().get_nodes_in_group("mobs"):
-		if other != self and other.global_position.distance_to(global_position) <= BURST_RADIUS:
+		if other != self and other.center().distance_to(center()) <= BURST_RADIUS:
 			other.take_damage(BURST_DAMAGE)
-	queue_free()
-
-
-## A short expanding ring that fades out, left behind where the enemy exploded.
-class Burst extends Node2D:
-	const DURATION := 0.4
-	var _t := 0.0
-
-	func _process(delta: float) -> void:
-		_t += delta
-		queue_redraw()
-		if _t >= DURATION:
-			queue_free()
-
-	func _draw() -> void:
-		var progress := _t / DURATION
-		draw_circle(Vector2.ZERO, 10.0 + (BURST_RADIUS - 10.0) * progress, Color(0.55, 0.36, 0.18, 0.8 * (1.0 - progress)))
-
-
-func _show_damage_text(text: String, color: Color) -> void:
-	var number := Label.new()
-	number.text = text
-	number.position = Vector2(-10, -50)
-	number.modulate = color
-	add_child(number)
-	var tween := create_tween()
-	tween.tween_property(number, "position:y", -90.0, 0.6)
-	tween.parallel().tween_property(number, "modulate:a", 0.0, 0.6)
-	tween.tween_callback(number.queue_free)
+	_die()
 
 
 func _process(delta: float) -> void:
-	_animate(delta)
-
-
-## A hop while walking, a gentle idle bob, a squash when hit, a lunge when attacking, and a turn to face
-## where the enemy is going. Flyers hover instead of hopping.
-func _animate(delta: float) -> void:
-	var flying: bool = KINDS[kind]["role"] == "flyer"
-	var moving := (flying or is_on_floor()) and absf(velocity.x) > 5.0 and not _dead
-	if flying and player and not _dead:
-		moving = absf(global_position.x - _fly_goal_x) > 4.0
-	if moving:
-		_walk_t += delta * 9.0
-		_facing = signf(velocity.x) if not flying else signf(player.global_position.x - global_position.x) if player else _facing
 	_idle_t += delta
-	_squash = _squash.lerp(Vector2.ONE, minf(delta * 8.0, 1.0))
+	_flash = maxf(_flash - delta * 6.0, 0.0)
+	_animate(delta)
+	queue_redraw()
+	_overlay.queue_redraw()
+
+
+## Picks the animation for what the enemy is doing: attacking (the wind-up of a hit, the charge of a shot, a
+## flyer's dive), flinching, walking or idling, and faces where it is going. Flyers bob as they hover.
+func _animate(delta: float) -> void:
+	var flying := _flies()
+	var wizard: bool = KINDS[kind]["role"] == "wizard"
+	if player and not _dead and _frozen_time <= 0.0:
+		if flying or wizard or _windup > 0.0 or _charge > 0.0 or absf(velocity.x) < 5.0:
+			_facing = signf(player.global_position.x - global_position.x) if player.global_position.x != global_position.x else _facing
+		else:
+			_facing = signf(velocity.x)
 	var lunge := 0.0
-	if _lunge > 0.0 and player:
-		lunge = sin(_lunge * PI) * 12.0 * signf(player.global_position.x - global_position.x)
+	if _lunge > 0.0:
+		lunge = roundf(sin(_lunge * PI) * 8.0) * _facing
 		_lunge = maxf(_lunge - delta * 3.0, 0.0)
-	var walking := moving and not flying and _visual.sprite_frames.get_frame_count("walk") > 0
-	var wanted := "walk" if walking else "idle"
-	if not _dead and _visual.animation != "hit" and _visual.animation != wanted:
+	_bursting = maxf(_bursting - delta, 0.0)
+	var shake := Vector2.ZERO
+	if flying and _fly_state == HOVER:
+		shake = Vector2(randi_range(-1, 1), randi_range(-1, 1))
+	var moving := not _dead and _frozen_time <= 0.0 and absf(velocity.x) > 5.0 and (is_on_floor() or flying)
+	var wanted := "idle"
+	if wizard:
+		if _bursting > 0.0:
+			wanted = "burst"
+		elif is_drawing():
+			wanted = "channel"
+		elif not is_on_floor():
+			wanted = "jump" if velocity.y < 0.0 else "fall"
+		elif moving:
+			wanted = "walk"
+	elif _windup > 0.0 or _charge > 0.0 or (flying and _fly_state == DIVE):
+		wanted = "attack"
+	elif moving and _visual.sprite_frames.has_animation("walk"):
+		wanted = "walk"
+	var busy: bool = _visual.animation == "hit" or (_visual.animation == "attack" and _visual.is_playing())
+	if not _dead and _visual.animation != wanted and not (busy and wanted != "attack" and wanted != "burst"):
 		_visual.play(wanted)
-	var hop := absf(sin(_walk_t)) * 3.0 if walking else 0.0
-	var idle := sin(_idle_t * 2.5) * 0.6 if not walking else 0.0
-	_visual.position = Vector2(lunge, KINDS[kind]["feet"] - hop + idle)  # each kind's art sits so its feet meet the collision box
-	_visual.scale = Vector2(_base_scale * _squash.x * _facing, _base_scale * _squash.y)
+	_visual.speed_scale = 0.0 if _frozen_time > 0.0 else 1.0
+	var bob := roundf(sin(_idle_t * 3.0) * 2.0) if flying else 0.0
+	_visual.position = Vector2(lunge, bob) + shake
+	_visual.scale = Vector2(_base_scale, _base_scale)
+	_visual.flip_h = _facing < 0.0
+	if _material:
+		var charging := 0.0
+		if _windup > 0.0:
+			charging = 0.35 * (1.0 - _windup / WINDUP)
+		_material.set_shader_parameter("flash", maxf(_flash, charging))
+		_material.set_shader_parameter("flash_color", Color.WHITE if _flash > charging else _school_colour().lightened(0.5))
+		_material.set_shader_parameter("frozen", 1.0 if _frozen_time > 0.0 else 0.0)
+
+
+## A soft shadow under the enemy on the ground below it.
+func _draw() -> void:
+	if _dead:
+		return
+	var query := PhysicsRayQueryParameters2D.create(global_position + Vector2(0, -2), global_position + Vector2(0, 260))
+	query.collision_mask = 1 | 16
+	var hit := get_world_2d().direct_space_state.intersect_ray(query)
+	if hit.is_empty():
+		return
+	var below: float = hit["position"].y - global_position.y
+	var fade := clampf(1.0 - below / 220.0, 0.15, 1.0)
+	var width := _body_size.x * 0.6 * (0.6 + 0.4 * fade)
+	var points := PackedVector2Array()
+	for i in 18:
+		points.append(Vector2(cos(TAU * i / 18.0) * width, below + sin(TAU * i / 18.0) * width * 0.25))
+	draw_colored_polygon(points, Color(0, 0, 0, 0.3 * fade))
+
+
+## Things drawn over the sprite: the shot charging, the ice block, the shield, the health bar and the stroke the
+## dark wizard is drawing.
+func _draw_overlay() -> void:
+	if _dead:
+		return
+	var o := _overlay
+	if _charge > 0.0:
+		# A pixel orb of the enemy's magic gathering in front of it.
+		var k := 1.0 - _charge / CHARGE
+		var at := _body_center + Vector2(_facing * _body_size.x * 0.5, -4.0)
+		var c := _school_colour()
+		Fx.draw_glow(o, at, 6.0 + 12.0 * k, Color(c.r, c.g, c.b, 0.5 + 0.5 * k))
+		var orbs := PixelFx.frames("dark_orb", 12.0, true)
+		var orb := orbs.get_frame_texture("default", int(_idle_t * 12.0) % orbs.get_frame_count("default"))
+		var size := 1.0 + floorf(k * 2.0)
+		o.draw_texture_rect(orb, Rect2(at - Vector2.ONE * 8.0 * size, Vector2.ONE * 16.0 * size), false, c.lightened(0.4))
+	if _frozen_time > 0.0:
+		# Encased in a block of pixel-art ice, seen through.
+		var box := Rect2((_body_center - _body_size * 0.5 - Vector2(6, 6)).floor(), (_body_size + Vector2(12, 10)).floor())
+		o.draw_texture_rect(ICE, box, true, Color(1, 1, 1, 0.6))
+	if _bubble:
+		_bubble.visible = _shield_time > 0.0
+		_bubble.modulate = Color(0.8, 0.6, 1.0, 0.75 * clampf(_shield_time / 0.4, 0.0, 1.0))
+	var wizard: bool = KINDS[kind]["role"] == "wizard"
+	if hp < max_hp or wizard:
+		var width := 40.0 if wizard else 28.0
+		var top := _body_center.y - _body_size.y * 0.5 - (26.0 if wizard else 9.0)
+		var bar := Rect2(Vector2(-width * 0.5, top), Vector2(width, 4.0))
+		o.draw_rect(bar.grow(1.0), Color(0.05, 0.03, 0.08, 0.85))
+		o.draw_rect(Rect2(bar.position, Vector2(width * clampf(float(hp) / max_hp, 0.0, 1.0), 4.0)), Color("#e84a5f") if not wizard else Color("#b65cff"))
+	if _draw_time > 0.0 and _stroke.size() >= 2:
+		var progress := 1.0 - _draw_time / _draw_total
+		var count := clampi(int(_stroke.size() * progress), 2, _stroke.size())
+		var local := PackedVector2Array()
+		for i in count:
+			local.append(_stroke[i] - global_position)
+		var c := _stroke_colour
+		o.draw_polyline(local, Color(c.r, c.g, c.b, 0.25), 7.0)
+		o.draw_polyline(local, Color(c.r, c.g, c.b, 0.9), 3.0)
+		o.draw_polyline(local, Color(1.0, 1.0, 1.0, 0.9), 1.0)
+		Fx.draw_glow(o, local[local.size() - 1], 8.0, Color(c.r, c.g, c.b, 0.9))
 
 
 ## An ice enemy leaves snow falling behind it, the same as the Snowfall spell.
 func _leave_snow() -> void:
 	var snow := SpellEffect.new()
+	snow.team = "enemy"
 	snow.polygon = PackedVector2Array([Vector2(0, -60), Vector2(40, -60), Vector2(40, 60), Vector2(0, 60)])
 	get_parent().add_child(snow)
-	snow.setup("Snowfall", global_position + Vector2(-20, 0), 0.0)
+	snow.setup("Snowfall", center() + Vector2(-20, 0), 0.0)
 
 
-## True when solid terrain lies between two points. Flyers use it to stay out of platforms and walls.
+## True when solid terrain lies between two points. Flyers use it to stay out of stone and walls.
 func _hits_terrain(from: Vector2, to: Vector2) -> bool:
 	var query := PhysicsRayQueryParameters2D.create(from, to)
 	query.collision_mask = 1
 	return not get_world_2d().direct_space_state.intersect_ray(query).is_empty()
 
 
-## A dark wizard holds its distance on the ground and, every few seconds, casts a spell at the player.
+# --- The dark wizard ------------------------------------------------------------------------------------------
+
+
+## The dark wizard: a hooded figure with a staff wreathed in shadow, drawn twice the size of everyone else so it
+## looms over the duel. Its hitbox is the hooded body, not the staff.
+func _build_wizard() -> void:
+	_visual.sprite_frames = CharFrames.build("res://art/chars/dark_wizard", WIZARD_ANIMATIONS)
+	_base_scale = KINDS[kind].get("scale", 1.0)
+	_visual.offset = Vector2(0, -PixelArt.CHARACTERS["dark_wizard"]["size"].y * 0.5)
+	var hitbox: CollisionShape2D = $CollisionShape2D
+	var rect := RectangleShape2D.new()
+	rect.size = WIZARD_BODY.size * _base_scale * Vector2(0.9, 0.95)
+	hitbox.shape = rect
+	_body_size = rect.size
+	_body_center = Vector2(0, -rect.size.y * 0.5)
+	hitbox.position = _body_center
+	_apply_material()
+	_visual.animation_finished.connect(_on_animation_finished)
+	_visual.play("idle")
+	# Dark wisps rising off the robes.
+	var wisps := Fx.trail(Color(0.45, 0.2, 0.6, 0.55), 18, 0.9, 30.0, Vector2(0, -40), "smoke_04", 14.0)
+	wisps.material = null
+	wisps.position = Vector2(0, -10)
+	wisps.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
+	wisps.emission_rect_extents = Vector2(14, 6)
+	add_child(wisps)
+	move_child(wisps, 0)
+	caster = Caster.new()
+	add_child(caster)
+	caster.set_process(false)  # it casts from its own strokes only, never from the mouse
+	caster.ground_check = Callable(get_parent(), "_is_ground_at")
+	caster.cast_resolved.connect(Callable(get_parent(), "_on_wizard_cast").bind(self))
+	brain = WizardBrain.new(self)
+
+
+## Where the dark wizard's mouth would be under its hood, for Fire Breath.
+func mouth() -> Vector2:
+	return global_position + Vector2(6.0 * _facing, -44.0) * _base_scale
+
+
+## The dark wizard's turn: its brain moves it and decides when to cast.
 func _wizard(delta: float) -> void:
-	if not is_on_floor():
-		velocity.y = minf(velocity.y + _gravity * delta, TERMINAL_FALL)
-	if player:
-		var gap := player.global_position.x - global_position.x
-		var toward := signf(gap)
-		if absf(gap) < 240.0:
-			velocity.x = -toward * WIZARD_SPEED
-		elif absf(gap) > 320.0:
-			velocity.x = toward * WIZARD_SPEED
-		else:
-			velocity.x = 0.0
-		caster.anchor = global_position
-	stamina = minf(100.0, stamina + 20.0 * delta)
-	if is_on_floor() and (is_on_wall() or (player and player.global_position.y < global_position.y - 60.0)):
-		velocity.y = -450.0
-	move_and_slide()
-	_cast_timer -= delta
+	_fall(delta)
+	stamina = minf(100.0, stamina + WizardBrain.STAMINA_REGEN * delta)
 	if _draw_time > 0.0:
 		_draw_time -= delta
-		queue_redraw()
 		if _draw_time <= 0.0:
-			_on_drawn.call(_stroke)
+			var stroke := _stroke
 			_stroke = PackedVector2Array()
-	if _cast_timer <= 0.0 and player and _draw_time <= 0.0:
-		if get_parent().call("wizard_cast", self):
-			_cast_timer = 2.5 + randf() * 1.5
-		else:
-			_cast_timer = 0.6
+			_bursting = 0.35
+			_visual.play("burst")
+			_on_drawn.call(stroke)
+	if player:
+		caster.anchor = center()
+		brain.think(delta)
+	velocity.x += _knock_x + _drift.x
+	if _root_time > 0.0:
+		velocity.x = _knock_x
+	move_and_slide()
+	global_position.x = clampf(global_position.x, ArenaGen.left_edge() + 12.0, ArenaGen.right_edge() - 12.0)
 
 
-## The dark wizard is the player\'s own character, recoloured dark with red eyes.
-func _build_wizard_look() -> void:
-	var scene: Node = load("res://scenes/player.tscn").instantiate()
-	_look = scene.get_node("Look")
-	scene.remove_child(_look)
-	scene.queue_free()
-	_look.scale = Vector2.ONE * 0.07
-	_look.position = Vector2(0, -2)  # the same placement as the player's artwork
-	var body_box: CollisionShape2D = $CollisionShape2D
-	(body_box.shape as RectangleShape2D).size = Vector2(40.0, 46.0)
-	body_box.position = Vector2.ZERO
-	_look.modulate = Color(0.5, 0.32, 0.6)
-	var eyes := _look.get_node_or_null("Eyes")
-	if eyes:
-		eyes.modulate = Color(1.0, 0.25, 0.2)
-	_staff = _look.get_node("Staff")
-	_hand_right = _look.get_node("HandRight")
-	_hand_rest = _hand_right.position
-	add_child(_look)
-	_visual.visible = false
-
-
-## Shows the stroke being drawn in front of the dark wizard for a moment, then calls on_done with it.
-func start_drawing(points: PackedVector2Array, colour: Color, on_done: Callable) -> void:
+## Starts drawing a stroke in front of the dark wizard. After DRAW_TIME it calls on_done with the stroke.
+## Being hit hard while drawing breaks the spell (see WizardBrain.on_hurt).
+func start_drawing(points: PackedVector2Array, colour: Color, on_done: Callable, draw_time := DRAW_TIME) -> void:
 	_stroke = points
 	_stroke_colour = colour
 	_on_drawn = on_done
-	_draw_time = DRAW_TIME
+	_draw_time = draw_time
+	_draw_total = draw_time
+	Sfx.play("wizard_cast", center())
 
 
-func _draw() -> void:
-	if _draw_time <= 0.0 or _stroke.is_empty():
+func is_drawing() -> bool:
+	return _draw_time > 0.0
+
+
+## Drops the spell being drawn, with a puff of sparks so the player can see they broke it.
+func interrupt_cast() -> void:
+	if _draw_time <= 0.0:
 		return
-	var progress := 1.0 - _draw_time / DRAW_TIME
-	var count := int(_stroke.size() * progress)
-	var local := PackedVector2Array()
-	for i in count:
-		local.append(_stroke[i] - global_position)
-	if local.size() >= 2:
-		draw_polyline(local, Color(_stroke_colour.r, _stroke_colour.g, _stroke_colour.b, 0.9), 3.0)
-		draw_polyline(local, Color(1.0, 1.0, 1.0, 0.9), 1.0)
+	_draw_time = 0.0
+	_stroke = PackedVector2Array()
+	Fx.burst(get_parent(), center() + Vector2(_facing * 14.0, -16.0), _stroke_colour, 14, 140.0, 0.4, true)
+	FloatText.spawn(get_parent(), center() + Vector2(0, -44), "Interrupted!", Color("#d9b8ff"), 0.9)
+	Sfx.play("misfire", center())
 
 
-## The wizard lifts its staff and hand while drawing, and faces the player.
-func _pose_wizard(delta: float) -> void:
-	var drawing := 1.0 if _draw_time > 0.0 else 0.0
-	_cast_pose = move_toward(_cast_pose, drawing, delta * 5.0)
-	if player:
-		_look.scale.x = 0.07 * signf(player.global_position.x - global_position.x)
-	_look.position.y = -2.0 - (absf(sin(_walk_t)) * 3.0 if is_on_floor() and absf(velocity.x) > 5.0 else 0.0)
-	_look.position.y = 20.0 - (absf(sin(_walk_t)) * 3.0 if is_on_floor() and absf(velocity.x) > 5.0 else 0.0)
-	_staff.rotation = -0.5 * _cast_pose
-	_hand_right.position = _hand_rest + Vector2(0, -140.0 * _cast_pose)
+## Moves the dark wizard straight to a point, leaving a flash where it was and where it lands.
+func blink_to(point: Vector2) -> void:
+	var colour: Color = SpellData.SCHOOL_COLORS["Storm"]
+	Fx.pop(get_parent(), center(), "twirl_02", colour, 60.0, 0.3, 0.4, 6.0)
+	global_position = point
+	velocity = Vector2.ZERO
+	Fx.pop(get_parent(), center(), "twirl_02", colour, 30.0, 0.3, 2.0, -6.0)
