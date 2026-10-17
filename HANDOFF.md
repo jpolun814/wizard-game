@@ -5,6 +5,20 @@ the code fits together, and the mistakes that have already been made, so you don
 `docs/original_vision.md` is the first design document. It is older than the game: use it for intent, but
 trust the code and this file where they disagree.
 
+**Read this file first, then the chapter for the job in hand** (`docs/handoff/`):
+
+| Chapter | Read it before you... |
+|---|---|
+| `01_feedback_log.md` | do anything at all: every request the owner made, quoted, and the lesson behind it |
+| `02_codebase_map.md` | change code: every script, the scene tree, coordinates, physics layers |
+| `03_gestures_and_spell_design.md` | add or change a spell or gesture: how recognition works, design rules, school identities, vetted ideas |
+| `04_art_and_assets.md` | add or change anything visible: style rules, every source, how to judge and process an asset |
+| `05_audio.md` | touch sound: sources, layering, choosing sounds you can't hear |
+| `06_enemies_and_ai.md` | touch enemies or the dark wizard |
+| `07_testing.md` | say anything is done |
+| `08_working_with_the_owner.md` | reply to the owner |
+| `09_godot_pitfalls.md` | debug something strange |
+
 ---
 
 ## 1. What the game is
