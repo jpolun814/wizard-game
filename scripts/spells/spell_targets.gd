@@ -13,7 +13,11 @@ static func affects(body: Node, team: String) -> bool:
 	if body.is_in_group("player"):
 		return true
 	if body.is_in_group("mobs"):
-		return team == "player" and not body.is_dead()
+		if body.is_dead():
+			return false
+		if team == "enemy":
+			return body.kind == "dark_wizard"  # its own spells burn it too, but never its fellow enemies
+		return true
 	return false
 
 
@@ -33,10 +37,25 @@ static func all(tree: SceneTree, team: String) -> Array:
 	var out := []
 	if team == "player":
 		out.append_array(tree.get_nodes_in_group("mobs"))
+	else:
+		for mob in tree.get_nodes_in_group("mobs"):
+			if mob.kind == "dark_wizard":
+				out.append(mob)
 	var player := tree.get_first_node_in_group("player")
 	if player and not player.dead:
 		out.append(player)
 	return out
+
+
+## The surface a point sits on. A point under the ground is moved up to the ground above it, so a drawn spell that
+## starts underground still lands on top of the earth.
+static func surface_over(world: World2D, point: Vector2) -> Vector2:
+	var query := PhysicsRayQueryParameters2D.create(Vector2(point.x, point.y - 800.0), point)
+	query.collision_mask = 1
+	var hit := world.direct_space_state.intersect_ray(query)
+	if not hit.is_empty():
+		return hit["position"]
+	return solid_below(world, point + Vector2(0, -40))
 
 
 ## The middle of a body, for distance checks. Enemies and the player both have center(); anything else uses its

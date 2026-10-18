@@ -16,8 +16,8 @@
 
 - **1 art pixel = 1 world pixel.** The camera zoom is 1.5. Mixing densities looks broken.
 - **Whole-number scales only,** and only on purpose:
-  - 2x: the dark wizard (a looming boss), Spark's lightning, the swamp and church backdrops (far scenery reads
-    bigger), the Barrier bubble, and the fire vent.
+  - 2x: Spark's lightning, the swamp and church backdrops (far scenery reads bigger), the Barrier bubble, the
+    fire vent and the tornado funnel. The dark wizard is 1x, the same size as the player.
   - 3x: the portal arch.
   - 5x: the spellbook (UI).
 - **Filtering:** "Nearest Mipmap" (project setting `default_texture_filter=2`). Pixel fonts need

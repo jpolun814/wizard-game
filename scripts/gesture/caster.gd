@@ -142,12 +142,13 @@ func _end() -> void:
 	var spiral := _inward_spiral(relative) if options.has("spiral") else {}
 	var ring_split := _ring_then_line_split(relative) if options.has("circle_push") and spiral.is_empty() else -1
 	var ring_centre := Vector2.ZERO
-	var box := _box(relative) if options.has("square") else Rect2()
-	var icicles: Array = _icicle_triangles(relative) if options.has("icicles") else []
+	# Icicles are open V strokes. A closed loop (a circle, a crystal) is never an icicle.
+	var extent := _extent(relative)
+	var closed := relative[0].distance_to(relative[relative.size() - 1]) < 0.3 * maxf(extent.x, extent.y)
+	var icicles: Array = _icicle_triangles(relative) if options.has("icicles") and not closed else []
 	var snow_line := _snowfall_line(relative) if options.has("snowfall") else PackedVector2Array()
 	var funnel := _funnel_stroke(relative) if options.has("tornado") else PackedVector2Array()
 	var cloud := _cloud_line(relative) if options.has("cloud") else PackedVector2Array()
-	var crack := _crack_line(relative) if options.has("fissure") else PackedVector2Array()
 	var pit := _pit_stroke(relative) if options.has("pit") else PackedVector2Array()
 	var cone := _cone(relative) if options.has("cone") else {}
 	if not spiral.is_empty():
@@ -163,10 +164,6 @@ func _end() -> void:
 		var ring := relative.slice(0, ring_split)
 		ring_centre = _relative_centroid(ring)
 		info["radius"] = _mean_distance(ring, ring_centre)
-	elif box.size != Vector2.ZERO:
-		gesture = "square"
-		score = 1.0
-		info["rect"] = Rect2(_origin + box.position, box.size)
 	elif snow_line.size() >= 2:
 		gesture = "snowfall"
 		score = 1.0
@@ -179,10 +176,6 @@ func _end() -> void:
 		gesture = "cloud"
 		score = 1.0
 		info["line"] = _to_world(cloud)
-	elif crack.size() > 0:
-		gesture = "fissure"
-		score = 1.0
-		info["line"] = _to_world(crack)
 	elif pit.size() > 0:
 		gesture = "pit"
 		score = 1.0
@@ -209,7 +202,9 @@ func _end() -> void:
 		gesture = "stone_wall"
 	var entry = options.get(gesture)
 	# A cast that works shows its name where it was drawn (the arena does that), so only failures are reported here.
-	if score < tolerance:
+	# Earth Fall's circle and drop are hard to draw cleanly, so it is read with a looser eye than the other shapes.
+	var needed := tolerance - 0.12 if gesture == "stonefall" else tolerance
+	if score < needed:
 		_report("Misfire: that shape was too rough to read (%d%% match). A steadier stroke, or a wand, helps." % roundi(score * 100.0), Color("#ff7a7a"))
 		misfired.emit()
 	elif entry == null:
@@ -241,6 +236,14 @@ func _end() -> void:
 			spawn = info["center"]
 		if info.has("aim"):
 			aim = info["aim"]
+		if entry.spell == "Ice Prison":
+			# The circle drawn round the target is the box the ice fills: its bounds, wherever it was drawn.
+			var low := relative[0]
+			var high := relative[0]
+			for p in relative:
+				low = low.min(p)
+				high = high.max(p)
+			info["rect"] = Rect2(_origin + low, high - low)
 		if entry.targeting == "shape" and info["line"].is_empty():
 			info["line"] = _to_world(relative)
 		cast_resolved.emit(entry.spell, entry.targeting, spawn, aim, info)
@@ -579,33 +582,6 @@ func _total_turning(points: PackedVector2Array) -> float:
 
 ## Ice Prison: a closed box. Its four corners must be sharp (a circle never reaches the corners of its bounding
 ## box) and its sides must hug the box. Returns the box in stroke space, or an empty Rect2.
-func _box(points: PackedVector2Array) -> Rect2:
-	var low := points[0]
-	var high := points[0]
-	for p in points:
-		low = low.min(p)
-		high = high.max(p)
-	var size := high - low
-	var side := minf(size.x, size.y)
-	if side < 24.0 or size.x > size.y * 3.5 or size.y > size.x * 3.5:
-		return Rect2()
-	if points[0].distance_to(points[points.size() - 1]) > maxf(20.0, side * 0.3):
-		return Rect2()  # not closed
-	for corner in [low, Vector2(high.x, low.y), high, Vector2(low.x, high.y)]:
-		var nearest := INF
-		for p in points:
-			nearest = minf(nearest, p.distance_to(corner))
-		if nearest > side * 0.17 + 4.0:
-			return Rect2()
-	var on_edges := 0
-	for p in points:
-		var edge := minf(minf(p.x - low.x, high.x - p.x), minf(p.y - low.y, high.y - p.y))
-		if edge <= side * 0.12 + 3.0:
-			on_edges += 1
-	if on_edges < points.size() * 0.75:
-		return Rect2()
-	return Rect2(low, size)
-
 
 ## Storm Cloud: the bumpy top of a cloud, drawn across. Wide and low, always moving the same way across, with at
 ## least two bumps. Returns the stroke, or nothing.
@@ -616,18 +592,6 @@ func _cloud_line(points: PackedVector2Array) -> PackedVector2Array:
 	if not _turning_points(points, 0, 14.0).is_empty():
 		return PackedVector2Array()  # it doubles back across: a zigzag, not a cloud
 	if _turning_points(points, 1, 8.0).size() < 3:
-		return PackedVector2Array()
-	return points
-
-
-## Fissure: a jagged crack drawn sideways along the ground, starting on it. Returns the stroke, or nothing.
-func _crack_line(points: PackedVector2Array) -> PackedVector2Array:
-	var size := _extent(points)
-	if size.x < 60.0 or size.x < size.y * 2.5 or not _starts_on_ground():
-		return PackedVector2Array()
-	if not _turning_points(points, 0, 14.0).is_empty():
-		return PackedVector2Array()
-	if _turning_points(points, 1, 5.0).size() < 3:
 		return PackedVector2Array()
 	return points
 

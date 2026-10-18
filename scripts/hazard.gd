@@ -42,15 +42,12 @@ func _ready() -> void:
 	if kind != "fire":
 		return
 	# Small pixel-art flames along the patch, each a little out of step with the next.
-	var count := maxi(1, int(width / 28.0))
-	for i in count:
-		var flame := PixelFx.sprite("flame", 26.0 + randf() * 8.0)
-		flame.offset = Vector2(0, -PixelArt.FX["flame"]["size"].y * 0.5)
-		flame.position = Vector2((i + 0.5) * width / count - width * 0.5, 4.0)
-		flame.flip_h = i % 2 == 1
-		flame.frame = randi() % 60
-		add_child(flame)
-		_flames.append(flame)
+	# One band of flame along the patch: a trail of fire, as the walker's footprints leave it.
+	var band := PixelFx.sprite("fire_band", 12.0)
+	band.offset = Vector2(0, -PixelArt.FX["fire_band"]["size"].y * 0.5)
+	band.position = Vector2(0, 4.0)
+	add_child(band)
+	_flames.append(band)
 
 
 func _physics_process(delta: float) -> void:

@@ -43,6 +43,14 @@
 - **Area2D defaults** to layer 1. A Force Wall with mask 1 sees shots (areas on layer 1) and terrain bodies.
 - **Flyers** have collision mask 0 and are moved by hand; check walls with raycasts.
 
+## Startup and loading
+
+- **Don't load every asset at launch.** `Sfx` used to decode all ~100 sounds in `_ready`, which added many seconds
+  before the window showed. It now keeps paths and loads a sound the first time it plays. Do the same for any big
+  set of assets.
+- **Name clashes.** A local variable named `size` inside a Control's `_draw` hides the `size` property and fails
+  to compile ("Identifier not found"). Use `box` or similar.
+
 ## Labels and containers
 
 - **Collapsing labels.** An autowrapping Label has zero minimum width inside an HBox, so its text collapses to

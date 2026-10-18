@@ -13,8 +13,8 @@
   - fire melee leaves a fire trail;
   - ice melee leaves snow;
   - earth melee knocks you back;
-  - storm melee is fast and explodes;
-  - fire ranged calls a fireball down onto a marked spot;
+  - storm melee is fast and explodes for 35 damage;
+  - fire ranged hurls fireballs at you (its shots are tinted by school, like every ranged enemy's);
   - ice ranged slows;
   - earth ranged lobs rocks;
   - storm ranged fires a fan;

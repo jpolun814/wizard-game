@@ -6,7 +6,7 @@ extends Node2D
 const MOB_SCENE := preload("res://scenes/mob.tscn")
 const TILE := ArenaGen.TILE
 const MUZZLE_OFFSET := 26.0  # spawn directional spells just outside the caster's body
-const BARRIER_SECONDS := 2.5
+const BARRIER_SECONDS := 6.0
 const MISFIRE_COST := 10.0
 const PICKUP_RANGE := 48.0
 const BLINK_DAMAGE := 8
@@ -85,14 +85,15 @@ func _ready() -> void:
 	var middle := open.filter(func(c: int) -> bool: return absi(c) < 12)
 	var pool: Array = middle if not middle.is_empty() else open
 	var start: int = pool[_rng.randi() % pool.size()]
-	player.position = Vector2(ArenaGen.column_x(start), ArenaGen.GROUND_Y)
+	player.position = Vector2(ArenaGen.column_x(start), ArenaGen.surface_y(_cells, start))
 	camera.reset_smoothing()
 	# You keep your focus from map to map. The other one lies somewhere in each map, to swap for with E.
 	player.focus = Levels.held_focus
 	var other := "staff" if player.focus == "wand" else "wand"
 	var spots := open.filter(func(c: int) -> bool: return absi(c - start) > 8)
 	if not spots.is_empty():
-		_spawn_focus(other, Vector2(ArenaGen.column_x(spots[_rng.randi() % spots.size()]), ArenaGen.GROUND_Y))
+		var spot: int = spots[_rng.randi() % spots.size()]
+		_spawn_focus(other, Vector2(ArenaGen.column_x(spot), ArenaGen.surface_y(_cells, spot)))
 	_director = WaveDirector.new()
 	_director.arena = self
 	add_child(_director)
@@ -123,7 +124,7 @@ func spawn_mob(kind: String) -> bool:
 		# Enemies arrive within sight, so you can see them come, but not on top of you.
 		var ok := gap >= 200 and (gap <= near_view * 1.3 or attempt > 40)
 		if ok and not _too_close(c, taken):
-			_add_mob(kind, Vector2(ArenaGen.column_x(c), ArenaGen.GROUND_Y))
+			_add_mob(kind, Vector2(ArenaGen.column_x(c), ArenaGen.surface_y(_cells, c)))
 			return true
 	return false
 
@@ -142,7 +143,7 @@ func _on_wave_cleared() -> void:
 	_portal = Portal.new()
 	var far_right: bool = player.global_position.x < 0.0
 	var col := ArenaGen.RIGHT_WALL - 3 if far_right else ArenaGen.LEFT_WALL + 3
-	_portal.position = Vector2(ArenaGen.column_x(col), ArenaGen.GROUND_Y - Portal.RY - 4.0)
+	_portal.position = Vector2(ArenaGen.column_x(col), ArenaGen.surface_y(_cells, col) - Portal.RY - 4.0)
 	_portal.body_entered.connect(_on_portal_entered)
 	add_child(_portal)
 	hud.point_to_portal(_portal)
@@ -270,6 +271,8 @@ func _visible_hud_rects() -> Array[Rect2]:
 func _on_cast_resolved(spell: String, targeting: String, origin: Vector2, aim: float, info: Dictionary) -> void:
 	player.play_cast_release()
 	var cost := SpellData.cost_for(spell, info)
+	if player.focus == "staff":
+		cost *= 0.75  # a staff channels spells better: a quarter off every cast
 	var colour: Color = SpellData.SCHOOL_COLORS[SpellData.SPELLS[spell]["school"]]
 	var label_at := get_global_mouse_position() + Vector2(0, -22)
 	if not player.spend(cost):
@@ -279,6 +282,14 @@ func _on_cast_resolved(spell: String, targeting: String, origin: Vector2, aim: f
 		return
 	FloatText.spawn(self, label_at, spell, colour.lightened(0.25), 0.9)
 	spawn_spell(spell, targeting, origin, aim, info, player, "player")
+
+
+## The biome's earth, which a stone wall is made of: the same texture the ground is cut from.
+func _earth_texture() -> Texture2D:
+	for child in get_children():
+		if child is Terrain:
+			return child.get("_fill_texture")
+	return null
 
 
 ## Makes a spell take effect in the world. The player's spells and the dark wizard's both come through here.
@@ -322,6 +333,9 @@ func spawn_spell(spell: String, targeting: String, origin: Vector2, aim: float, 
 	var effect := SpellEffect.new()
 	effect.team = team
 	effect.zone_radius = info.get("radius", 0.0)
+	effect.wall_length = info.get("length", 0.0)
+	if spell == "Stone Wall":
+		effect.wall_texture = _earth_texture()
 	add_child(effect)
 	effect.setup(spell, origin, aim)
 	effect.broke.connect(func() -> void: _on_feedback("%s broke" % spell, Color.ORANGE))
@@ -359,7 +373,7 @@ func _blink(caster_node: Node2D, aim: float, length: float, team: String) -> voi
 
 ## The spells whose shape says where they go: icicles stand as the triangles they were drawn as, snow falls over
 ## the drawn line, a tornado or volcano forms under the middle of the drawing, a storm cloud hangs along its line,
-## a fissure runs along the ground from the stroke's start to its end, quicksand opens under the U, and an ice
+## quicksand opens under the U, and an ice
 ## prison fills the drawn box.
 func _place_shapes(spell: String, info: Dictionary, team: String) -> void:
 	var line: PackedVector2Array = info.get("line", PackedVector2Array())
@@ -405,14 +419,7 @@ func _place_shapes(spell: String, info: Dictionary, team: String) -> void:
 			cloud.width = SpellData._width_of(line)
 			cloud.position = centre
 			add_child(cloud)
-		"Fissure":
-			var fissure := Fissure.new()
-			fissure.team = team
-			fissure.from_x = line[0].x
-			fissure.to_x = line[line.size() - 1].x
-			fissure.position = Vector2(line[0].x, line[0].y)
-			add_child(fissure)
-		"Quicksand":
+		"Mudslide":
 			var sand := Quicksand.new()
 			sand.team = team
 			sand.width = SpellData._width_of(line)
@@ -475,11 +482,13 @@ func _on_ritual_finished(id: String, acc: float, unfinished: bool) -> void:
 	Fx.pop(self, player.global_position + Vector2(0, -2), "magic_02", Color(1.0, 0.9, 0.6), 80.0, 0.8, 1.3, 2.0)
 	match id:
 		"second_wind":
-			player.heal(roundi(30.0 * power))
+			player.heal(roundi(45.0 * power))
 			Sfx.play("heal", player.center())
 			Fx.burst(self, player.center(), Color("#7dff9a"), 20, 90.0, 0.8, true, "star_04")
 		"boundless":
-			player.grant_unlimited(15.0)
+			player.grant_unlimited(20.0)
+		"double_jump":
+			player.grant_air_jump(20.0)
 		"bonfire":
 			var fire := Bonfire.new()
 			add_child(fire)

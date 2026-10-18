@@ -53,7 +53,7 @@ spells you do, drawing them visibly.
    - Every spell needs a counterplay: block it, dodge it, or take cover.
    - Ground, stone walls, ice and platforms block things physically.
 2. **The gesture is a picture of the effect.**
-   - Volcano is a mountain triangle. Fire Breath is a cone (`<`). Quicksand is a U (the pit).
+   - Volcano is a mountain triangle. Fire Breath is a cone (`<`). Mudslide is a U (the pit of mud).
    - Storm Cloud is a bumpy cloud top. Fissure is a jagged crack. Gravity Well is an inward spiral.
    - Icicles are V shapes. Push is a circle (the area) plus a line out of it (the direction).
    - Never assign an arbitrary shape.
@@ -65,12 +65,12 @@ spells you do, drawing them visibly.
    - Before adding `draw_circle`, `draw_line` or `draw_polygon` for a world object, look for an asset first.
 4. **Pixel art at one consistent pixel size.**
    - 1 art pixel equals 1 world pixel. Camera zoom is 1.5. The texture filter is "Nearest Mipmap" (project setting `2`).
-   - Only whole-number scales: 2x for the dark wizard, the lightning and the swamp/cathedral backdrops.
+   - Only whole-number scales: 2x for the lightning, the tornado and the swamp/cathedral backdrops; 1x for characters.
    - Never use 0.6x, 1.5x or similar on pixel art.
    - Tiles are 16 px art composed 2x2 into 32 px world cells.
 5. **Don't make things solid or harmful unless the spell's real-world analogue would be.**
    - Firewall: anyone can pass through it ("I wanted the fire wall to be something anyone could pass
-     through").
+	 through").
    - Force Wall: only touches projectiles.
    - Gravity Well: does no damage.
    - Storm Cloud: hits everyone under it, including the caster.
@@ -148,7 +148,7 @@ GODOT="/c/Users/Jordan Polun/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.
 | Ice | Frostbolt | flick | thrown ice spear | as Ignite |
 | Ice | Icicles | V or upside-down V, chained | stalactites and stalagmites | step around |
 | Ice | Snowfall | star then a level line | snow cloud | leave the area |
-| Ice | Ice Prison | box | freezing a volume solid; empty, it's a block | Force/Earth shatter; Barrier |
+| Ice | Ice Prison | circle | freezing a volume solid; empty, it's a block | Force/Earth shatter; Barrier |
 | Force | Push | circle then a line out | a shove of air | positioning |
 | Force | Barrier | circle | a shield bubble | wait it out |
 | Force | Force Wall | slash | a deflecting plane (projectiles only) | timing |
@@ -160,7 +160,7 @@ GODOT="/c/Users/Jordan Polun/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.
 | Earth | Stonefall | circle with a line down | a dropped boulder | watch the shadow |
 | Earth | Stone Wall | line starting on the ground, a platform or another stone wall | a raised slab | Push topples it |
 | Earth | Fissure | jagged crack along the ground | rock spikes erupt | jump |
-| Earth | Quicksand | U | a sinking pit; flyers pass over | jump out early |
+| Earth | Mudslide | U | a pit of mud: no damage, slows, you can't jump; flyers pass over | walk out |
 
 **Targeting types:** `directional`, `positional`, `angled`, `shape` and `cone`. The caster's `cast_resolved`
 signal passes `info` (radius, line, rect, shapes, aim, spread, reach), and `arena.spawn_spell` routes it.

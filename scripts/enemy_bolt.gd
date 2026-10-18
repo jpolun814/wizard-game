@@ -19,7 +19,7 @@ var _age := 0.0
 
 ## Creates a shot from an enemy toward a target point, and returns it. A gravity above zero makes it arc down.
 ## A slowing shot slows the player for a moment when it hits.
-static func fire(parent: Node, origin: Vector2, target: Vector2, color: Color, damage: int, gravity := 0.0, slows := false) -> EnemyBolt:
+static func fire(parent: Node, origin: Vector2, target: Vector2, color: Color, damage: int, gravity := 0.0, slows := false, art := "magic_bolt") -> EnemyBolt:
 	var bolt := EnemyBolt.new()
 	bolt.global_position = origin
 	var direction := (target - origin).normalized()
@@ -40,10 +40,15 @@ static func fire(parent: Node, origin: Vector2, target: Vector2, color: Color, d
 	if gravity <= 0.0:
 		var trail := Fx.trail(color, 20, 0.25, 10.0, Vector2.ZERO, "circle_05", 7.0)
 		bolt.add_child(trail)
-		# A bolt of dark magic in the enemy's colour.
-		var shot := PixelFx.sprite("magic_bolt", 14.0)
-		shot.scale = Vector2.ONE * 2.0
-		shot.modulate = color.lightened(0.3)
+		# A pixel-art shot in the enemy's school colour: the sprite is recoloured by the mob shader, so a fire shot
+		# is orange, an ice shot blue, whatever art it is drawn with.
+		var shot := PixelFx.sprite(art, 14.0)
+		shot.scale = Vector2.ONE * (1.0 if art == "fireball" else 2.0)
+		var recolour := ShaderMaterial.new()
+		recolour.shader = load("res://scripts/mob.gdshader")
+		recolour.set_shader_parameter("school_color", color)
+		recolour.set_shader_parameter("tint", 1.0)
+		shot.material = recolour
 		bolt.add_child(shot)
 	return bolt
 

@@ -12,9 +12,6 @@ const PROJECTILES := {
 	"Ignite": {"speed": 700.0, "damage": 12, "life": 2.0, "color": Color("#ff7a2a")},
 	"Frostbolt": {"speed": 600.0, "damage": 6, "life": 2.0, "color": Color("#b8f0ff")},
 }
-const STONEFALL_DAMAGE := 30
-const STONEFALL_RADIUS := 60.0
-const STONEFALL_DELAY := 0.6
 const FORCE_ZONE_LIFE := 0.5
 const FIREWALL_TICK := 0.5
 const FIREWALL_DAMAGE := 4
@@ -28,10 +25,13 @@ const ICICLE_LIFE := 4.0  # an icicle stands this long, then melts
 const ICICLE_TICK := 0.5
 const ICICLE_DAMAGE := 6
 const SNOW_LIFE := 6.0
-const STONE_WALL_LENGTH := 140.0
+const STONE_WALL_LENGTH := 140.0  # a wall drawn without a length of its own
+const STONE_WALL_MIN := 60.0
+const STONE_WALL_MAX := 240.0
 # Images drawn every frame are held here, so they stay loaded between frames.
 const ROCK := preload("res://art/fx/rock.png")
 const STONE := preload("res://art/tiles/stone.png")
+const FIRE_SHEET := preload("res://art/fx/flame.png")
 const ICE := preload("res://art/props/ice_fill.png")
 const SNOW_CLOUDS := [preload("res://art/props/cloud_snow_big.png"), preload("res://art/props/cloud_snow_small_1.png"),
 		preload("res://art/props/cloud_snow_small_2.png")]
@@ -45,6 +45,12 @@ var _tick := 0.0
 var _burst_done := false
 var _spent := false
 var zone_radius := 40.0  # the Push circle's radius, set by the caster from the drawn circle
+var wall_length := 0.0  # a Stone Wall's length: the distance the stroke was drawn over (0 for the default)
+var _wall_length := STONE_WALL_LENGTH
+var wall_texture: Texture2D  # the biome's earth, set by the arena for a Stone Wall
+var _wall_stages: Array[Texture2D] = []  # the wall as it is whole, part crumbled and mostly crumbled
+var _health := 0.0
+var _max_health := 0.0
 var _spark_depth := 400.0  # how far the strike reaches down from where it starts
 var _trail: CPUParticles2D
 var polygon := PackedVector2Array()  # local outline for icicles and the snow band, set by the arena before setup
@@ -102,7 +108,6 @@ func setup(spell_name: String, origin: Vector2, aim_angle: float) -> void:
 				_add_flames()
 				add_to_group("danger")
 				Sfx.play("fire_wall", global_position)
-				PixelFx.play(get_parent(), global_position + Vector2(0, FIREWALL_HEIGHT * 0.5), "blast_fire", 20.0, 1.0, Color.WHITE, true)
 			"Push":
 				# A circle of force: everything inside it is shoved once, along the line drawn out of the circle.
 				_life = FORCE_ZONE_LIFE
@@ -114,9 +119,12 @@ func setup(spell_name: String, origin: Vector2, aim_angle: float) -> void:
 				# A solid slab that rises along the stroke from the ground and stays until a Push knocks it down.
 				_life = 99999.0
 				rotation = aim_angle
-				global_position = origin + Vector2.from_angle(aim_angle) * STONE_WALL_LENGTH * 0.5
-				_add_stone_slab(Vector2(STONE_WALL_LENGTH, 22))
-				Sfx.play("earth", origin)
+				_wall_length = clampf(wall_length, STONE_WALL_MIN, STONE_WALL_MAX) if wall_length > 0.0 else STONE_WALL_LENGTH
+				global_position = origin + Vector2.from_angle(aim_angle) * _wall_length * 0.5
+				_add_stone_slab(Vector2(_wall_length, 22))
+				_build_wall()
+				Sfx.play("stones", origin, -2.0)  # pebbles shifting under the slab
+				Sfx.play("quake", origin)  # and the ground heaving under it
 				Fx.debris(get_parent(), origin, Color("#a08060"), 10, 200.0)
 				GameCamera.shake_scene(get_tree(), 0.2)
 			"Force Wall":
@@ -128,20 +136,24 @@ func setup(spell_name: String, origin: Vector2, aim_angle: float) -> void:
 				shape.shape = force_rect
 				collision_mask = 1  # shots live on layer 1; characters (layers 2 and 4) are never touched
 				area_entered.connect(_on_force_area)
-				for side in [-1.0, 1.0]:
-					var slash := PixelFx.sprite("slash", 76.0, false)
-					slash.scale = Vector2(1.0 * side, 1.0)
-					slash.rotation = PI * 0.5
-					slash.position = Vector2(side * 30.0, 0)
-					slash.material = Fx.additive()
-					add_child(slash)
+				# A simple flick of force: a bolt of arcane light streaks forward through the wall and fades.
+				var flick := PixelFx.sprite("magic_bolt", 18.0, false)
+				flick.scale = Vector2.ONE * 2.0
+				flick.modulate = Color(1.0, 0.75, 1.0)  # a touch brighter, so the flick is more present
+				flick.material = Fx.additive()
+				flick.position = Vector2(-30.0, 0)
+				add_child(flick)
+				var streak := create_tween()
+				streak.tween_property(flick, "position", Vector2(30.0, 0), 0.3)
+				streak.parallel().tween_property(flick, "modulate:a", 0.0, 0.3)
 				Sfx.play("force", origin)
 			"Stonefall":
-				# A boulder that drops onto the ground under the stroke after a short delay.
-				_life = STONEFALL_DELAY + 0.6
-				global_position = SpellTargets.ground_below(get_world_2d(), origin + Vector2(0, -40))
-				add_to_group("danger")
-				Sfx.play("stones", global_position, -4.0)
+				# A boulder that falls onto the ground under the stroke and stays where it lands, as a loose rock.
+				var boulder := Boulder.new()
+				boulder.team = team
+				boulder.global_position = origin + Vector2(0, -260)
+				get_parent().add_child(boulder)
+				queue_free()
 			"Spark":
 				# A strike from the sky: it comes straight down through the stroke and stops at the first thing it meets,
 				# a platform or the ground. Nothing under a platform can be struck from above it.
@@ -165,6 +177,14 @@ func setup(spell_name: String, origin: Vector2, aim_angle: float) -> void:
 
 
 ## The trail behind a projectile. Ice leaves drifting snow; fire leaves rising embers and a little smoke.
+## One frame of the pixel fire the flames are cut from, for the embers that fly off fire.
+func _pixel_ember() -> Texture2D:
+	var ember := AtlasTexture.new()
+	ember.atlas = FIRE_SHEET
+	ember.region = Rect2(20 * 64, 0, 64, 64)
+	return ember
+
+
 func _make_trail() -> CPUParticles2D:
 	var trail: CPUParticles2D
 	match spell:
@@ -174,6 +194,7 @@ func _make_trail() -> CPUParticles2D:
 			trail.material = null
 		_:
 			trail = Fx.trail(Color("#ff9a40"), 60, 0.35, 25.0, Vector2(0, -60), "flame_05", 12.0)
+			trail.texture = _pixel_ember()  # the same pixel fire as the flames, not a soft particle
 			trail.angle_min = -180.0
 			trail.angle_max = 180.0
 	return trail
@@ -189,15 +210,18 @@ func _glow_material() -> CanvasItemMaterial:
 ## The firewall is three pixel-art flames stacked on each other, each burning out of step with the others, with
 ## embers rising off it.
 func _add_flames() -> void:
-	for i in 3:
-		var flame := PixelFx.sprite("flame", 26.0 + i * 4.0)
-		flame.offset = Vector2(0, -PixelArt.FX["flame"]["size"].y * 0.5)
-		flame.position = Vector2(0, FIREWALL_HEIGHT * 0.5 + 4.0 - i * 42.0)
-		flame.flip_h = i == 1
-		flame.frame = i * 17
-		flame.z_index = 1 - i
+	# Four tall flames of the pixel fire, overlapping up the wall, so they read as one wall of fire.
+	for i in 4:
+		var flame := PixelFx.sprite("fire_wall", 14.0 + i * 2.0)
+		flame.scale = Vector2.ONE * 2.0
+		flame.offset = Vector2(0, -PixelArt.FX["fire_wall"]["size"].y * 0.5)
+		flame.position = Vector2(0, FIREWALL_HEIGHT * 0.5 - i * FIREWALL_HEIGHT / 3.0)
+		flame.flip_h = i % 2 == 1
+		flame.frame = i * 2
+		flame.z_index = 1 - i % 2
 		add_child(flame)
 	var p := Fx.trail(Color(1.0, 0.55, 0.2), 24, 0.8, 20.0, Vector2(0, -60), "spark_01", 6.0)
+	p.texture = _pixel_ember()  # the same pixel fire as the flames, not a soft particle
 	p.direction = Vector2.UP
 	p.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
 	p.emission_rect_extents = Vector2(14, FIREWALL_HEIGHT * 0.4)
@@ -221,8 +245,6 @@ func _draw() -> void:
 			_draw_force_wall(fade)
 		"Stone Wall":
 			_draw_stone_wall()
-		"Stonefall":
-			_draw_boulder()
 
 
 ## The light the firewall throws on what's behind it; the flames themselves are sprites.
@@ -264,29 +286,21 @@ func _physics_process(delta: float) -> void:
 			if not _burst_done and _age > 0.05:
 				_burst_done = true
 				_apply_force_zone()
-		"Stonefall":
-			if not _burst_done and _age >= STONEFALL_DELAY:
-				_burst_done = true
-				SpellTargets.hurt_within(get_tree(), global_position + Vector2(0, -20), STONEFALL_RADIUS, STONEFALL_DAMAGE, "Earth", team)
-				Fx.debris(get_parent(), global_position, Color("#9c7a52"), 12, 200.0)
-				Fx.smoke(get_parent(), global_position, Color(0.45, 0.38, 0.3, 0.5), 5, 30.0, 30.0)
-				Sfx.play("quake", global_position)
-				GameCamera.shake_scene(get_tree(), 0.5)
 	if _age >= _life:
 		_finish()
 
 
 func _on_projectile_hit(body: Node2D) -> void:
 	if body.is_in_group("player"):
-		# A shot does not hit its own caster right after it leaves.
-		if team == "enemy" or _age > 0.15:
-			if not _spent:
-				_spent = true
-				body.take_damage(PROJECTILES[spell]["damage"])
-				if spell == "Frostbolt":
-					body.apply_debuff("slow", SLOW_SECONDS)
-				_impact_effect()
-				_finish()
+		# A shot never hurts the one who cast it.
+		if team == "player" or _spent:
+			return
+		_spent = true
+		body.take_damage(PROJECTILES[spell]["damage"])
+		if spell == "Frostbolt":
+			body.apply_debuff("slow", SLOW_SECONDS)
+		_impact_effect()
+		_finish()
 		return
 	if body.is_in_group("mobs"):
 		if team == "enemy" or _spent or body.is_dead():
@@ -332,6 +346,14 @@ func reflect(direction: Vector2) -> void:
 	Sfx.play("force", global_position, -4.0)
 
 
+## Wind turns a shot to a new heading. Unlike a reflection, it stays with whoever fired it.
+func deflect(direction: Vector2) -> void:
+	if not PROJECTILES.has(spell):
+		return
+	_aim = direction.normalized()
+	rotation = _aim.angle()
+
+
 func _damage_overlapping(amount: int) -> void:
 	for body in get_overlapping_bodies():
 		SpellTargets.hurt(body, amount, _school(), team)
@@ -372,8 +394,6 @@ func danger_at(point: Vector2) -> bool:
 			return absf(point.x - global_position.x) < 24.0 and absf(point.y - global_position.y) < FIREWALL_HEIGHT * 0.5 + 10.0
 		"Icicles":
 			return Geometry2D.is_point_in_polygon(point - global_position, polygon) or (point - global_position).length() < 24.0
-		"Stonefall":
-			return not _burst_done and point.distance_to(global_position) < STONEFALL_RADIUS + 10.0
 	return false
 
 
@@ -381,25 +401,6 @@ func danger_at(point: Vector2) -> bool:
 func _draw_force_wall(fade: float) -> void:
 	Fx.draw_glow(self, Vector2.ZERO, 50.0, Color(0.7, 0.5, 1.0, 0.25 * fade))
 
-
-## Stonefall: a shadow grows on the ground as the boulder drops onto it, then the dust ring spreads out.
-func _draw_boulder() -> void:
-	var rock: Texture2D = ROCK
-	if _age < STONEFALL_DELAY:
-		var t := _age / STONEFALL_DELAY
-		var shadow := 10.0 + 22.0 * t
-		draw_set_transform(Vector2.ZERO, 0.0, Vector2(1.0, 0.25))
-		draw_circle(Vector2.ZERO, shadow, Color(0, 0, 0, 0.35 * t))
-		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
-		var y := lerpf(-320.0, -18.0, t * t)
-		draw_set_transform(Vector2(0, y), floorf(t * 8.0) * PI * 0.5, Vector2.ONE * 3.0)
-		draw_texture(rock, -rock.get_size() * 0.5)
-		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
-	else:
-		var t := clampf((_age - STONEFALL_DELAY) / 0.6, 0.0, 1.0)
-		draw_set_transform(Vector2(0, -24.0), 0.0, Vector2.ONE * 3.0)
-		draw_texture(rock, -rock.get_size() * 0.5, Color(1, 1, 1, 1.0 - t))
-		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 
 ## A solid stone slab. Enemies and shots collide with it; it is knocked down by a Push.
@@ -418,31 +419,65 @@ func _add_stone_slab(size: Vector2) -> void:
 	tween.tween_property(self, "scale", Vector2.ONE, 0.18).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
 
 
-## Knocked down by a Push: the slab stops blocking, tips over, and fades away.
-func topple() -> void:
-	for child in get_children():
-		if child is StaticBody2D:
-			child.get_child(0).set_deferred("disabled", true)
-	Sfx.play("stones", global_position)
-	Fx.debris(get_parent(), global_position, Color("#a08060"), 8, 160.0)
-	var tween := create_tween()
-	tween.tween_property(self, "rotation", rotation + PI / 2.0, 0.4)
-	tween.parallel().tween_property(self, "modulate:a", 0.0, 0.4)
-	tween.tween_callback(queue_free)
-
-
-## Stone Wall: a slab cut from the same stone as the arena's pillars, with a dark outline. Crisp, no glow.
+## Stone Wall: a slab of the biome's earth. It has health, and its face crumbles as it is struck.
 func _draw_stone_wall() -> void:
-	var stone: Texture2D = STONE
-	var source := Rect2(Terrain.ATLAS_CELL + Terrain.ATLAS_PAD, Terrain.ATLAS_CELL + Terrain.ATLAS_PAD, Terrain.ATLAS_TILE, Terrain.ATLAS_TILE)
-	var half := STONE_WALL_LENGTH * 0.5
-	var blocks := 6
-	var w := STONE_WALL_LENGTH / blocks
-	for i in blocks:
-		draw_texture_rect_region(stone, Rect2(-half + i * w, -11, w, 22), source, Color(0.92, 0.9, 0.95))
-		draw_line(Vector2(-half + i * w, -11), Vector2(-half + i * w, 11), Color("#3a3640"), 1.0)
-	draw_rect(Rect2(-half, -11, STONE_WALL_LENGTH, 4), Color(1, 1, 1, 0.18))
-	draw_rect(Rect2(-half, -11, STONE_WALL_LENGTH, 22), Color("#2b2730"), false, 2.0)
+	var ratio := _health / maxf(_max_health, 1.0)
+	var stage := 0 if ratio > 0.66 else (1 if ratio > 0.33 else 2)
+	var half := _wall_length * 0.5
+	var corners := PackedVector2Array([Vector2(-half, -11), Vector2(half, -11), Vector2(half, 11), Vector2(-half, 11)])
+	var uvs := PackedVector2Array()
+	for corner in corners:
+		uvs.append(corner / float(ArenaGen.TILE))  # the same scale as the ground, so the earth looks the same
+	draw_polygon(corners, PackedColorArray([Color("#2a1f1a")]))  # the dark earth behind the face
+	draw_polygon(corners, PackedColorArray([Color.WHITE]), uvs, _wall_stages[stage])
+
+
+## The wall's health and its three faces, cut from the earth texture: whole, then with some of it knocked out.
+func _build_wall() -> void:
+	texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
+	_max_health = _wall_length * 0.45
+	_health = _max_health
+	var source := wall_texture.get_image()
+	var rng := RandomNumberGenerator.new()
+	rng.randomize()
+	_wall_stages.clear()
+	for share in [0.0, 0.2, 0.5]:
+		var face := source.duplicate()
+		for i in int(share * face.get_width() * face.get_height() / 16.0):
+			var x := rng.randi_range(0, face.get_width() - 4)
+			var y := rng.randi_range(0, face.get_height() - 4)
+			face.fill_rect(Rect2i(x, y, 4, 4), Color(0, 0, 0, 0))
+		_wall_stages.append(ImageTexture.create_from_image(face))
+	var strike_zone := Area2D.new()
+	var zone := CollisionShape2D.new()
+	var box := RectangleShape2D.new()
+	box.size = Vector2(_wall_length, 22)
+	zone.shape = box
+	strike_zone.add_child(zone)
+	strike_zone.collision_mask = 1  # enemy shots live on layer 1
+	strike_zone.area_entered.connect(_on_wall_struck)
+	add_child(strike_zone)
+
+
+## An enemy shot that reaches the wall takes some of its health; the wall crumbles away when it has none left.
+func _on_wall_struck(area: Area2D) -> void:
+	var damage := 0
+	if area is EnemyBolt:
+		damage = (area as EnemyBolt)._damage
+	elif area is SpellEffect and PROJECTILES.has(area.spell):
+		damage = PROJECTILES[area.spell]["damage"]
+	else:
+		return
+	_health -= damage
+	if _health <= 0.0:
+		Fx.debris(get_parent(), global_position, Color("#6b5a48"), 16, 220.0)
+		Sfx.play("stones", global_position)
+		GameCamera.shake_scene(get_tree(), 0.15)
+		queue_free()
+		return
+	Fx.debris(get_parent(), area.global_position, Color("#6b5a48"), 5, 120.0)
+	Sfx.play("stones", global_position, -6.0)
+	queue_redraw()
 
 
 ## True when a point lies inside the Push circle.
@@ -460,14 +495,15 @@ func _apply_force_zone() -> void:
 		if body.is_in_group("mobs"):
 			body.knock_back(_aim * KNOCK_SPEED)
 		else:
-			body.push(_aim * KNOCK_SPEED)
+			body.push(_aim * KNOCK_SPEED * 1.6)  # a push lifts the caster well above a jump (a jump is about 140 px; this is several times that)
 	for item in get_tree().get_nodes_in_group("items"):
 		if _in_force_zone(item.global_position):
 			item.knock(_aim * KNOCK_SPEED * 0.6)
+	for rock in get_tree().get_nodes_in_group("rocks"):
+		if _in_force_zone(rock.global_position):
+			rock.push(_aim * KNOCK_SPEED * 1.6)
 	for node in get_parent().get_children():
-		if node is SpellEffect and node.spell == "Stone Wall" and _in_force_zone(node.global_position):
-			node.topple()
-		elif node is EnemyBolt and _in_force_zone(node.global_position) and team == "player":
+		if node is EnemyBolt and _in_force_zone(node.global_position) and team == "player":
 			node.push(_aim)
 		elif node is SpellEffect and node != self and node.team != team and PROJECTILES.has(node.spell) and _in_force_zone(node.global_position):
 			node.reflect(_aim)

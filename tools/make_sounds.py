@@ -15,6 +15,7 @@ Needs numpy and soundfile.
 """
 
 import os
+import shutil
 import sys
 
 import numpy as np
@@ -111,10 +112,54 @@ def fire_breath(dl, rng):
     return mix(1.3, (roar, 0.0, 0.8), (burst, 0.0, 0.7))
 
 
+def chant(dl, rng):
+    """A phrase of the Gregorian chant, from its loudest part: low, tonal, swelling in and out."""
+    voice = load(os.path.join(dl, "new_assets", "chant.ogg"))
+    length = seconds(2.6)
+    window = np.abs(voice[: len(voice) - length]).reshape(-1)[::441]  # coarse loudness, every 10 ms
+    span = seconds(0.1) * 1
+    energy = np.convolve(window ** 2, np.ones(260) / 260, mode="valid")
+    start = int(np.argmax(energy)) * 441
+    return fade(voice[start:start + length], 0.35, 0.9)
+
+
+def roar(dl, rng):
+    """The jet roar with its hiss taken out: the broad rumble below about a kilohertz is kept."""
+    source = load(os.path.join(dl, "scifi", "Audio", "thrusterFire_003.ogg"))[: seconds(4.0)]
+    spectrum = np.fft.rfft(source)
+    freqs = np.fft.rfftfreq(len(source), 1 / RATE)
+    above = freqs > 1000.0  # the hiss lives above a kilohertz; the roar's body is the broad band below it
+    spectrum[above] *= np.exp(-((freqs[above] - 1000.0) / 300.0) ** 2)
+    low = np.fft.irfft(spectrum, len(source))
+    return fade(low / (np.abs(low).max() or 1.0) * 0.9, 0.2, 0.8)
+
+
+# Sounds copied in as they are: name in audio/ -> file in new_assets/ (both CC0, see art/CREDITS.md).
+NEW_ASSETS = {"quicksand.ogg": "mud_17.ogg"}  # a male grunt for the jump was tried first: it sounded like retching
+
+
+def jump(dl, rng):
+    """A short, springy jump: the first part of a recording of a jump, loud enough to hear over the rest."""
+    source = load(os.path.join(dl, "new_assets", "jump_long.ogg"))[: seconds(0.45)]
+    return fade(source / (np.abs(source).max() or 1.0) * 0.9, 0.005, 0.2)
+
+
+def quake(dl, rng):
+    """The low explosion, with its bass folded up into overtones. A sub-bass rumble is silent on small speakers, so
+    a little distortion adds the harmonics that carry the rumble through them, and a share of the original keeps its body."""
+    source = load(os.path.join(dl, "scifi", "Audio", "lowFrequency_explosion_001.ogg"))
+    x = source / (np.abs(source).max() or 1.0)
+    shaped = np.tanh(6.0 * x) / np.tanh(6.0)
+    return fade(0.7 * shaped + 0.3 * x, 0.01, 0.4) * 0.9
+
+
 def main():
     dl = sys.argv[1] if len(sys.argv) > 1 else "."
     rng = np.random.default_rng(7)
-    for name, build in [("spark", spark), ("blink", blink), ("push", push), ("fire_breath", fire_breath)]:
+    for out_name, src_name in NEW_ASSETS.items():
+        shutil.copy(os.path.join(dl, "new_assets", src_name), os.path.join(ROOT, "audio", out_name))
+    for name, build in [("spark", spark), ("blink", blink), ("push", push), ("fire_breath", fire_breath),
+                        ("ritual_ok", chant), ("tornado", roar), ("jump", jump), ("quake", quake)]:
         sf.write(os.path.join(ROOT, "audio", name + ".wav"), build(dl, rng), RATE, subtype="PCM_16")
         print("wrote", name)
 

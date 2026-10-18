@@ -11,7 +11,7 @@ const FOCI := {
 	"wand": {"name": "Wand", "tolerance": 0.70, "color": Color(0.6, 0.4, 0.2), "length": 26.0,
 		"note": "Forgiving gestures. Good for learning."},
 	"staff": {"name": "Staff", "tolerance": 0.90, "color": Color(0.35, 0.22, 0.1), "length": 40.0,
-		"note": "Needs precise gestures."},
+		"note": "Needs precise gestures. Spells cost a quarter less stamina."},
 }
 const HOVER := 8.0
 

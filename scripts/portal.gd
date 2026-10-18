@@ -24,6 +24,8 @@ func _ready() -> void:
 		frames.add_frame("loop", PixelFx.frames("portal_loop", 10.0, true).get_frame_texture("default", frame))
 	arch.sprite_frames = frames
 	arch.scale = Vector2.ONE * 3.0
+	arch.modulate = Color(0.7, 0.66, 0.78)  # the violet light, greyed down to sit with the dark stone
+	arch.z_index = -1  # a layer behind the ground, so the archway sits in the earth rather than on it
 	arch.position = Vector2(0, RY + 4.0 - 48.0)  # its foot on the ground
 	arch.animation_finished.connect(func() -> void: arch.play("loop"))
 	add_child(arch)

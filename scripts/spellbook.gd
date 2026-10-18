@@ -7,6 +7,7 @@ extends CanvasLayer
 ## up, and every spell's shape is drawn on the book's own pixel grid.
 
 const INK := Color("#3a1d1a")
+const TEXT_INK := Color(INK, 0.86)  # the writing is a touch lighter than the drawings, as if the pen was lifted
 const HEADING := Color("#6e1420")
 const SUBTLE := Color("#6b4434")
 const PAPER_DARK := Color("#b88f72")
@@ -29,6 +30,10 @@ var _left: VBoxContainer
 var _right: VBoxContainer
 var _text_font: Font
 var _title_font: Font
+var _faces: Array[Font] = []
+var _title_faces: Array[Font] = []
+const FACE_FILES := ["res://fonts/PirataOne-Regular.ttf"]  # the face the book is written in
+var _arrows: Array = []  # the page-turn arrows currently on the book
 
 
 ## The book itself, one frame of its sheet at a time. play() runs a list of frames, then calls back.
@@ -82,13 +87,16 @@ class MouseIcon extends Control:
 		"..#####..",
 	]
 
-	func _init(button_mask: int, lit_color: Color) -> void:
+	var mouse_scale := 1.0
+
+	func _init(button_mask: int, lit_color: Color, size_up := 1.0) -> void:
 		mask = button_mask
 		lit = lit_color
-		custom_minimum_size = Vector2(9, 12) * Spellbook.SCALE * 0.6
+		mouse_scale = size_up
+		custom_minimum_size = Vector2(9, 12) * Spellbook.SCALE * 0.6 * size_up
 
 	func _draw() -> void:
-		var px := Spellbook.SCALE * 0.6
+		var px := Spellbook.SCALE * 0.6 * mouse_scale
 		var idle := Color("#e9d7bd")
 		for y in SHAPE.size():
 			var row: String = SHAPE[y]
@@ -102,29 +110,60 @@ class MouseIcon extends Control:
 					"R":
 						colour = lit if mask & SpellData.RIGHT else idle
 					"W":
-						colour = lit if mask & SpellData.MIDDLE else Spellbook.SUBTLE
+						colour = lit if mask & SpellData.MIDDLE else Color("#b9a27c")
 					"B":
 						colour = idle
 				if colour.a > 0.0:
 					draw_rect(Rect2(Vector2(x, y) * px, Vector2(px, px)), colour)
 
 
-## A gesture's shape on the book's pixel grid, scaled to fit its box: a dot where the stroke starts and an arrow
-## where it ends. Spells that must start on the ground show a strip of hatched earth under the start.
+## An arrow pointing the way the book turns: 1 to the right, -1 to the left.
+class PageArrow extends Control:
+	var direction := 1
+	var scale_up := 1.0
+
+	func _init(turn: int, size_up: float) -> void:
+		direction = turn
+		scale_up = size_up
+		custom_minimum_size = Vector2(24, 16) * scale_up
+
+	func _draw() -> void:
+		var flip := 1.0 if direction > 0 else -1.0
+		var centre := custom_minimum_size * 0.5
+		var tip := centre + Vector2(9.0 * flip, 0) * scale_up
+		var tail := centre + Vector2(-9.0 * flip, 0) * scale_up
+		draw_line(tail, tip, Spellbook.INK, 2.0, true)
+		draw_line(tip, tip + Vector2(-5.5 * flip, -4.5) * scale_up, Spellbook.INK, 2.0, true)
+		draw_line(tip, tip + Vector2(-5.5 * flip, 4.5) * scale_up, Spellbook.INK, 2.0, true)
+
+
+## A gesture's shape, drawn as a hand would ink it: a smooth stroke with a fine second line beside it, an arrowhead
+## where it ends, a dot where it starts. A spell that must start on the ground has a hatched line of earth under it.
 class Preview extends Control:
 	var points := PackedVector2Array()
 	var ground := NAN
-	const CELLS := 15  # the picture is this many pixels across
 
 	func _init(pts: PackedVector2Array, ground_y := NAN) -> void:
 		points = pts
 		ground = ground_y
-		custom_minimum_size = Vector2.ONE * CELLS * Spellbook.SCALE * 0.6
+		custom_minimum_size = Vector2.ONE * 72.0
+
+	## The point halfway along a stroke (by length) and the direction of travel there.
+	func _halfway(path: PackedVector2Array) -> Array:
+		var total := 0.0
+		for i in path.size() - 1:
+			total += path[i].distance_to(path[i + 1])
+		var walked := 0.0
+		for i in path.size() - 1:
+			var step := path[i].distance_to(path[i + 1])
+			if walked + step >= total * 0.5:
+				return [path[i].lerp(path[i + 1], (total * 0.5 - walked) / maxf(step, 0.001)), path[i + 1] - path[i]]
+			walked += step
+		return [path[0], path[1] - path[0]]
 
 	func _draw() -> void:
 		if points.size() < 2:
 			return
-		var px := Spellbook.SCALE * 0.6
 		var low := points[0]
 		var high := points[0]
 		for p in points:
@@ -132,31 +171,55 @@ class Preview extends Control:
 			high = high.max(p)
 		var extent := maxf(maxf(high.x - low.x, high.y - low.y), 1.0)
 		var middle := (low + high) * 0.5
-		var to_cell := func(p: Vector2) -> Vector2:
-			return ((p - middle) / extent * (CELLS - 3) + Vector2.ONE * CELLS * 0.5).floor()
+		var box := size.x
+		var scale_to := (box - 14.0) / extent
+		var to_pic := func(p: Vector2) -> Vector2:
+			return (p - middle) * scale_to + Vector2.ONE * box * 0.5
+		var drawn := PackedVector2Array()
+		for p in points:
+			drawn.append(to_pic.call(p))
 		if not is_nan(ground):
-			var gy: float = to_cell.call(Vector2(middle.x, ground)).y + 1.0
-			for x in CELLS:
-				draw_rect(Rect2(Vector2(x, gy) * px, Vector2(px, px)), Spellbook.SUBTLE)
-				if x % 2 == 0:
-					draw_rect(Rect2(Vector2(x, gy + 1.0) * px, Vector2(px, px)), Spellbook.PAPER_DARK)
-		var filled := {}
-		for i in points.size() - 1:
-			var a: Vector2 = to_cell.call(points[i])
-			var b: Vector2 = to_cell.call(points[i + 1])
-			var steps := int(maxf(absf(b.x - a.x), absf(b.y - a.y))) + 1
-			for k in steps + 1:
-				filled[a.lerp(b, float(k) / steps).round()] = true
-		for cell in filled:
-			draw_rect(Rect2(cell * px, Vector2(px, px)), Spellbook.HEADING)
-		var start: Vector2 = to_cell.call(points[0])
-		draw_rect(Rect2((start - Vector2.ONE) * px, Vector2(px, px) * 3.0), Spellbook.INK)
-		var tip: Vector2 = to_cell.call(points[points.size() - 1])
-		var heading := (points[points.size() - 1] - points[maxi(0, points.size() - 4)]).normalized()
-		for side in [-1.0, 1.0]:
-			var barb := (tip - heading.rotated(side * 0.6) * 2.0).round()
-			draw_rect(Rect2(barb * px, Vector2(px, px)), Spellbook.HEADING)
-			draw_rect(Rect2(((tip + barb) * 0.5).round() * px, Vector2(px, px)), Spellbook.HEADING)
+			var gy: float = to_pic.call(Vector2(middle.x, ground)).y + 3.0
+			draw_line(Vector2(6.0, gy), Vector2(box - 6.0, gy), Spellbook.SUBTLE, 1.5, true)
+			for x in range(10, int(box) - 6, 6):
+				draw_line(Vector2(x, gy), Vector2(x - 4.0, gy + 5.0), Spellbook.PAPER_DARK, 1.0, true)
+		# The ink: a soft wash underneath, then the line itself and a fainter second pass for a hand-drawn edge.
+		draw_polyline(drawn, Color(Spellbook.INK, 0.18), 5.0, true)
+		draw_polyline(drawn, Spellbook.INK, 2.2, true)
+		var offset := PackedVector2Array()
+		for p in drawn:
+			offset.append(p + Vector2(0.8, -0.6))
+		draw_polyline(offset, Color(Spellbook.HEADING, 0.55), 1.0, true)
+		draw_circle(drawn[0], 3.0, Spellbook.INK)
+		# An arrowhead only where the stroke really ends somewhere else: a closed ring has no end to point at. It points
+		# along the last stretch of the stroke, so it is never at a wrong angle.
+		var tip := drawn[drawn.size() - 1]
+		# Aim along the last third of the stroke, measured along the ink, so a spiral or a zigzag points the way it is
+		# travelling at its end rather than across its whole span.
+		var total := 0.0
+		for i in drawn.size() - 1:
+			total += drawn[i].distance_to(drawn[i + 1])
+		var run := maxf(18.0, total / 3.0)
+		var back := drawn[0]
+		var walked := 0.0
+		for i in range(drawn.size() - 1, 0, -1):
+			walked += drawn[i].distance_to(drawn[i - 1])
+			back = drawn[i - 1]
+			if walked >= run:
+				break
+		var heading := (tip - back).normalized()
+		var closed := drawn[0].distance_to(tip) < 0.25 * maxf(extent * scale_to, 1.0)
+		if closed:
+			# A loop has no end to point at, so its arrow sits halfway round, pointing the way the loop is drawn.
+			var half := _halfway(drawn)
+			var along: Vector2 = (half[1] as Vector2).normalized()
+			var mid: Vector2 = half[0]
+			draw_line(mid, mid - along.rotated(0.5) * 7.0, Spellbook.INK, 2.2, true)
+			draw_line(mid, mid - along.rotated(-0.5) * 7.0, Spellbook.INK, 2.2, true)
+		if heading != Vector2.ZERO and not closed:
+			var base := tip - heading * 7.0
+			draw_line(tip, base + heading.orthogonal() * 3.5, Spellbook.INK, 2.2, true)
+			draw_line(tip, base - heading.orthogonal() * 3.5, Spellbook.INK, 2.2, true)
 
 
 func _ready() -> void:
@@ -170,9 +233,14 @@ func _ready() -> void:
 	for first in range(0, ritual_ids.size(), INCANTATIONS_PER_PAGE):
 		_pages.append(_page_incantations.bind(ritual_ids.slice(first, first + INCANTATIONS_PER_PAGE), first == 0))
 
-	# Pixel faces to match the book: a blackletter for headings and spell names, a plain one for the rest.
-	_title_font = _pixel_font("res://fonts/Jacquard24-Regular.ttf")
-	_text_font = _pixel_font("res://fonts/Jersey15-Regular.ttf")
+	# Each page is set in one of the candidate hands, in turn, so the pages can be compared as the book is turned.
+	for path in FACE_FILES:
+		var face: Font = load(path)
+		var heavy := FontVariation.new()
+		heavy.base_font = face
+		heavy.variation_embolden = 0.5  # titles are pressed a little harder than the text
+		_faces.append(face)
+		_title_faces.append(heavy)
 
 	var viewport_size := get_viewport().get_visible_rect().size
 	_book = BookArt.new()
@@ -184,12 +252,6 @@ func _ready() -> void:
 	_right = _page_column(PAGES[1])
 
 	_show_spread()
-
-
-func _pixel_font(path: String) -> Font:
-	var font: FontFile = load(path)
-	font.antialiasing = TextServer.FONT_ANTIALIASING_NONE
-	return font
 
 
 func _input(event: InputEvent) -> void:
@@ -254,20 +316,52 @@ func _page_column(page: Rect2) -> VBoxContainer:
 
 
 func _show_spread() -> void:
+	_use_face(_spread * 2)
 	_fill(_left, _pages[_spread * 2])
+	_use_face(_spread * 2 + 1)
 	if _spread * 2 + 1 < _pages.size():
 		_fill(_right, _pages[_spread * 2 + 1])
 	else:
 		_fill(_right, _page_blank)
+	_show_arrows()
+
+
+## Sets the text and title faces for the page at this index.
+func _use_face(page: int) -> void:
+	var i := page % _faces.size()
+	_text_font = _faces[i]
+	_title_font = _title_faces[i]
+
+
+## Arrows show where the book turns. The first page is blank apart from one large arrow; every other page has a small
+## arrow in its outer bottom corner for each way the book can turn from it.
+func _show_arrows() -> void:
+	for arrow in _arrows:
+		arrow.queue_free()
+	_arrows.clear()
+	var last_spread := ceili(_pages.size() / 2.0) - 1
+	if _spread > 0:
+		_add_arrow(Vector2(PAGES[0].position.x, PAGES[0].end.y) * SCALE + Vector2(8, -30), -1, 1.0)
+	if _spread < last_spread:
+		_add_arrow(Vector2(PAGES[1].end.x, PAGES[1].end.y) * SCALE + Vector2(-34, -30), 1, 1.0)
+
+
+func _add_arrow(at: Vector2, direction: int, size: float) -> void:
+	var arrow := PageArrow.new(direction, size)
+	arrow.position = at.floor()
+	_book.add_child(arrow)
+	_arrows.append(arrow)
 
 
 func _fill(column: VBoxContainer, builder: Callable) -> void:
 	for child in column.get_children():
 		child.queue_free()
+	column.alignment = BoxContainer.ALIGNMENT_BEGIN
+	column.add_theme_constant_override("separation", 6)
 	builder.call(column)
 
 
-func _ink(text: String, size := 20, color := INK) -> Label:
+func _ink(text: String, size := 24, color := TEXT_INK) -> Label:
 	var label := Label.new()
 	label.text = text
 	label.add_theme_color_override("font_color", color)
@@ -277,18 +371,18 @@ func _ink(text: String, size := 20, color := INK) -> Label:
 	return label
 
 
-## A blackletter label for headings and names.
-func _title_label(text: String, size: int, color := HEADING) -> Label:
+## A label in the heading hand, for headings and names.
+func _title_label(text: String, size: int, color := TEXT_INK) -> Label:
 	var label := _ink(text, size, color)
 	label.add_theme_font_override("font", _title_font)
 	return label
 
 
 ## A heading in red ink, with a pixel rule under it.
-func _heading(text: String, size := 36) -> VBoxContainer:
+func _heading(text: String, size := 44) -> VBoxContainer:
 	var block := VBoxContainer.new()
 	block.add_theme_constant_override("separation", 0)
-	block.add_child(_title_label(text, size, HEADING))
+	block.add_child(_title_label(text, size, TEXT_INK))
 	block.add_child(_rule(HEADING))
 	return block
 
@@ -310,28 +404,39 @@ func _school_mask(school: String) -> int:
 
 
 ## A row showing a school's mouse with its buttons lit, next to the school's name.
-func _school_row(school: String) -> HBoxContainer:
+func _school_row(school: String, mouse_scale := 1.0) -> HBoxContainer:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 16)
-	row.add_child(MouseIcon.new(_school_mask(school), SpellData.SCHOOL_COLORS[school]))
-	var name := _title_label(school, 32, HEADING)
+	row.add_child(MouseIcon.new(_school_mask(school), SpellData.SCHOOL_COLORS[school], mouse_scale))
+	var name := _title_label(school, 38, TEXT_INK)
+	name.autowrap_mode = TextServer.AUTOWRAP_OFF  # a short name must keep its full width, or the row mis-centres
 	name.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(name)
 	return row
 
 
 func _page_contents(column: VBoxContainer) -> void:
-	column.add_child(_heading("Spellbook", 44))
+	# The cheat sheet: each school's mouse with the buttons that cast it lit, and the school's name. The rows share one
+	# column, so the mice line up, and the whole sheet sits in the middle of the page, up and down and across.
+	var sheet := VBoxContainer.new()
+	sheet.add_theme_constant_override("separation", 22)
+	sheet.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	for school in SCHOOLS:
-		column.add_child(_school_row(school))
-	column.add_child(_ink("Hold a school's buttons and draw its shape. Tab closes the book; the arrow keys turn the pages.", 18, SUBTLE))
+		var row := _school_row(school, 1.5)
+		row.alignment = BoxContainer.ALIGNMENT_BEGIN
+		sheet.add_child(row)
+	var centre := CenterContainer.new()
+	centre.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	centre.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	centre.add_child(sheet)
+	column.add_child(centre)
 
 
 func _page_school(column: VBoxContainer, school: String) -> void:
 	# The school's name, with its mouse beside it.
 	var top := HBoxContainer.new()
 	top.add_theme_constant_override("separation", 10)
-	var heading := _heading(school, 40)
+	var heading := _heading(school, 46)
 	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	top.add_child(heading)
 	top.add_child(MouseIcon.new(_school_mask(school), SpellData.SCHOOL_COLORS[school]))
@@ -353,7 +458,7 @@ func _spell_entry(spell_name: String, s: Dictionary) -> HBoxContainer:
 	var text := VBoxContainer.new()
 	text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	text.add_theme_constant_override("separation", -4)
-	text.add_child(_title_label(spell_name, 30, HEADING))
+	text.add_child(_title_label(spell_name, 36, TEXT_INK))
 	text.add_child(_ink("%d stamina · %s" % [roundi(s["cost"]), SpellData.DAMAGE[spell_name]], 18, SUBTLE))
 	row.add_child(text)
 	return row
@@ -363,19 +468,19 @@ func _spell_entry(spell_name: String, s: Dictionary) -> HBoxContainer:
 ## pressing Enter, which the first page says once.
 func _page_incantations(column: VBoxContainer, ritual_ids: Array, first: bool) -> void:
 	if first:
-		column.add_child(_heading("Incantations", 40))
+		column.add_child(_heading("Incantations", 46))
 		column.add_child(_ink("Press Enter, type the words, press Enter.", 18, SUBTLE))
 	for ritual_id in ritual_ids:
 		var r: Dictionary = RitualInput.RITUALS[ritual_id]
-		column.add_child(_title_label(r["name"], 28, HEADING))
-		column.add_child(_ink("“%s”" % r["text"], 20, INK))
+		column.add_child(_title_label(r["name"], 34, TEXT_INK))
+		column.add_child(_ink("“%s”" % r["text"], 20, TEXT_INK))
 		column.add_child(_ink(_ritual_effect(ritual_id), 18, SUBTLE))
 
 
 func _ritual_effect(ritual_id: String) -> String:
 	match ritual_id:
 		"second_wind":
-			return "Heals you; a truer chant heals more."
+			return "Heals you."
 		"minimap":
 			return "Shows or hides the minimap."
 		"insight":
@@ -383,7 +488,9 @@ func _ritual_effect(ritual_id: String) -> String:
 		"bonfire":
 			return "A healing bonfire for 15 seconds."
 		"boundless":
-			return "Endless stamina for 15 seconds."
+			return "Endless stamina for 20 seconds."
+		"double_jump":
+			return "One extra jump in the air for 20 seconds."
 	return ""
 
 

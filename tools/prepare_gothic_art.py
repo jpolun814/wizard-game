@@ -13,6 +13,8 @@ The downloads dir holds the unzipped packs, each in its own folder:
     icicles                     Kamioo, Pixel Icicles                 (rock spikes)
     x_clouds                    DustDFG, Pixel Art Clouds             (storm and snow clouds)
     x_tinydungeon               Kenney, Tiny Dungeon                  (the wand and staff on the ground)
+    creasta_tornado/            Creasta, Tornado pixel sprite sheet   (the tornado: mytronado.png, 5 x 12 frames)
+    pixflame/                   zonked, Pixel Flame VFX (CC0)          (fire-a and fire-b: the breath, trail and wall of fire)
     books/foxel                 Foxel Games, Pixel Art Book           (the spellbook)
 Some effects are recoloured here to their school's colours (a hue turn, or a ramp from dark to light).
 
@@ -155,6 +157,9 @@ FX_SHEETS = {
     "goblin_bomb": (LUIZ_MONSTERS_13 + "Goblin/Bomb_sprite.png", 100),
     "shield": ("x_spells/Pixelart Spells/PNG Files/Pixelart Shield.png", 48),
     "wind_bolt": ("x_spells/Pixelart Spells/PNG Files/Wind Bolt.png", 16),
+    "fire_puff": ("pixflame/fire-a-168x62.png", 24),
+    "fire_wall": ("pixflame/fire-b-294x77.png", 42),
+    "fire_trail": ("pixflame/fire-d-144x54.png", 24),
 }
 # Effects laid out in a grid and recoloured: name -> (sheet, frame width, frame height, and a recolouring: None,
 # ("hue", degrees), or ("ramp", dark colour, light colour)). Empty cells are skipped.
@@ -561,6 +566,13 @@ def main():
         sheet = Image.open(os.path.join(dl, src)).convert("RGBA")
         cells = [sheet.crop((x, y, x + fw, y + fh)) for y in range(0, sheet.height, fh) for x in range(0, sheet.width, fw)]
         fx[name] = strip(cells, os.path.join(fx_dir, name + ".png"))
+    # The tornado: a 5 x 12 grid of big frames, cut and scaled down to 96 px so it is pixel art at 2x in the game.
+    # Frames 0-15 are its birth and 16-59 its loop (tornado.gd plays them in that order).
+    sheet = Image.open(os.path.join(dl, "creasta_tornado", "mytronado.png")).convert("RGBA")
+    fw, fh = sheet.width // 5, sheet.height // 12
+    cells = [sheet.crop((x * fw, y * fh, (x + 1) * fw, (y + 1) * fh)).resize((96, 96), Image.LANCZOS)
+             for y in range(12) for x in range(5)]
+    fx["tornado"] = strip(cells, os.path.join(fx_dir, "tornado.png"))
     for name, (src, fw, fh, how) in FX_RECOLOURED.items():
         sheet = Image.open(os.path.join(dl, src)).convert("RGBA")
         fx[name] = strip([recolour(f, how) for f in grid_frames(sheet, fw, fh)], os.path.join(fx_dir, name + ".png"))

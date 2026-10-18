@@ -10,7 +10,7 @@ signal died
 const SPEED := 300.0
 const JUMP_VELOCITY := -520.0
 const JUMP_COST := 5.0  # stamina a jump takes; with less than this, you can't jump
-const RUN_COST := 0.5    # stamina per second of running on the ground
+const RUN_COST := 0.12   # stamina per second of walking or running on the ground
 const MAX_HP := 100
 const MAX_STAMINA := 100.0
 const STAMINA_REGEN := 20.0   # per second
@@ -39,6 +39,9 @@ var focus := "wand"          # the held focus item, see FocusItem.FOCI
 var movement_enabled := true  # the arena turns this off while a typing box or the spellbook is open
 var infinite_time := 0.0  # Chant of Boundless Vigour: stamina does not run out while this lasts
 var slow_time := 0.0  # frost slows the caster while this lasts
+var sink_time := 0.0  # quicksand: slowed, and unable to jump while this lasts
+var air_jump_time := 0.0  # the Chant of the Second Leap: a jump in the air is allowed while this lasts
+var air_jump_ready := false  # the air jump is spent by one use, and comes back when the wizard lands
 var _shove := Vector2.ZERO  # a Push on the caster: slides them for a moment, then fades
 var mute_time := 0.0          # no rituals while above zero
 var root_time := 0.0          # no walking or jumping while above zero
@@ -191,6 +194,8 @@ func apply_debuff(kind: String, seconds: float) -> void:
 			blind_time = maxf(blind_time, seconds)
 		"slow":
 			slow_time = maxf(slow_time, seconds)
+		"sink":
+			sink_time = maxf(sink_time, seconds)
 	debuff_applied.emit(kind)
 
 
@@ -254,6 +259,10 @@ func _physics_process(delta: float) -> void:
 	root_time -= delta
 	blind_time -= delta
 	slow_time -= delta
+	sink_time -= delta
+	air_jump_time -= delta
+	if is_on_floor():
+		air_jump_ready = true
 	infinite_time -= delta
 	if infinite_time > 0.0:
 		stamina = MAX_STAMINA
@@ -278,16 +287,22 @@ func _physics_process(delta: float) -> void:
 		if Input.is_action_pressed("move_down") and _on_platform():
 			# S while standing on a wooden platform drops through it.
 			_drop = DROP_TIME
-		elif _jump_buffer > 0.0 and _coyote > 0.0 and spend(JUMP_COST):
+		elif _jump_buffer > 0.0 and _coyote > 0.0 and sink_time <= 0.0 and spend(JUMP_COST):
 			velocity.y = JUMP_VELOCITY
 			_jump_buffer = 0.0
 			_coyote = 0.0
+			Sfx.play("jump", global_position)
+		elif _jump_buffer > 0.0 and air_jump_time > 0.0 and air_jump_ready and sink_time <= 0.0 and not is_on_floor():
+			# The second leap: a jump in the air, free of stamina, once per landing.
+			velocity.y = JUMP_VELOCITY * 0.9
+			_jump_buffer = 0.0
+			air_jump_ready = false
 			Sfx.play("jump", global_position)
 		# Letting go of jump early cuts the jump short, so small hops are easy.
 		if Input.is_action_just_released("jump") and velocity.y < JUMP_VELOCITY * 0.4:
 			velocity.y = JUMP_VELOCITY * 0.4
 		# Walking is free; running drains stamina. With none left you still walk, at half speed.
-		var speed := (SPEED if stamina > 0.0 else SPEED * 0.5) * (0.5 if slow_time > 0.0 else 1.0)
+		var speed := (SPEED if stamina > 0.0 else SPEED * 0.5) * (0.5 if slow_time > 0.0 else 1.0) * (0.4 if sink_time > 0.0 else 1.0)
 		velocity.x = Input.get_axis("move_left", "move_right") * speed
 		if is_on_floor() and absf(velocity.x) > 10.0 and stamina > 0.0:
 			drain(RUN_COST * delta)
@@ -298,6 +313,9 @@ func _physics_process(delta: float) -> void:
 		velocity.y = minf(velocity.y, _shove.y)
 	_shove = _shove.move_toward(Vector2.ZERO, 1500.0 * delta)
 
+	# Walking into a ledge one tile high: a small hop lifts the wizard up it, so slopes and steps are walkable.
+	if is_on_floor() and is_on_wall() and absf(velocity.x) > 10.0 and not dead and sink_time <= 0.0:
+		velocity.y = minf(velocity.y, -330.0)
 	move_and_slide()
 	# A character pushed out of the map's sides is put back inside.
 	global_position.x = clampf(global_position.x, ArenaGen.left_edge() + 12.0, ArenaGen.right_edge() - 12.0)
@@ -316,6 +334,12 @@ func _on_platform() -> bool:
 	query.collision_mask = 1 | PLATFORM_LAYER
 	var hit := get_world_2d().direct_space_state.intersect_ray(query)
 	return not hit.is_empty() and hit["collider"] is StaticBody2D and hit["collider"].collision_layer == PLATFORM_LAYER
+
+
+## Chant of the Second Leap: one extra jump in the air, for a while.
+func grant_air_jump(seconds: float) -> void:
+	air_jump_time = maxf(air_jump_time, seconds)
+	air_jump_ready = true
 
 
 func grant_unlimited(seconds: float) -> void:

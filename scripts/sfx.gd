@@ -10,11 +10,11 @@ const VOLUME := {
 	"cast_fire": -6.0, "fire_hit": -8.0, "fire_wall": -6.0, "fire_breath": -5.0, "volcano": -6.0,
 	"cast_ice": -6.0, "ice_shatter": -10.0, "freeze": -6.0, "snow": -10.0,
 	"force": -10.0, "barrier": -8.0, "push": -4.0, "gravity": -6.0,
-	"spark": -5.0, "thunder": -8.0, "tornado": -8.0, "blink": -8.0,
+	"spark": -5.0, "quicksand": -4.0, "thunder": -8.0, "tornado": -1.0, "blink": -8.0,
 	"earth": -6.0, "stones": -4.0, "quake": -4.0, "explosion": -6.0,
 	"misfire": -6.0, "mob_hurt": -12.0, "mob_die": -10.0, "mob_shoot": -12.0,
-	"player_hurt": -4.0, "jump": -16.0, "step": -26.0, "type": -22.0,
-	"portal_open": -6.0, "portal_enter": -4.0, "ritual_ok": -8.0, "heal": -8.0,
+	"player_hurt": -4.0, "jump": -14.0, "step": -26.0, "type": -22.0,
+	"portal_open": -6.0, "portal_enter": -4.0, "ritual_ok": -4.0, "heal": -8.0,
 	"book_open": -8.0, "book_close": -8.0, "page": -8.0, "pickup": -8.0,
 	"wizard_cast": -8.0, "wave_start": -10.0, "game_over": -6.0, "summon": -12.0, "ui_click": -10.0,
 }
@@ -22,7 +22,8 @@ const MAX_DISTANCE := 1400.0  # world sounds farther than this from the camera a
 const POOL := 24              # how many sounds can play at once
 
 var muted := false
-var _streams := {}  # name -> Array of AudioStream variants
+var _streams := {}  # name -> Array of file paths, one per variant
+var _loaded := {}   # path -> AudioStream, filled in the first time a sound plays
 var _players: Array[AudioStreamPlayer2D] = []
 var _flat: Array[AudioStreamPlayer] = []
 var _next := 0
@@ -40,7 +41,9 @@ func _ready() -> void:
 			key = base.substr(0, base.length() - tail.length() - 1)
 		if not _streams.has(key):
 			_streams[key] = []
-		_streams[key].append(load("res://audio/" + file))
+		# The path is kept, and the file is only loaded the first time the sound plays: loading every sound at launch
+		# made the game take most of a minute to open.
+		_streams[key].append("res://audio/" + file)
 	for i in POOL:
 		var p := AudioStreamPlayer2D.new()
 		p.max_distance = MAX_DISTANCE
@@ -59,7 +62,10 @@ func play(sound: String, at: Variant = null, volume_db := 0.0, pitch_spread := 0
 	if muted or not _streams.has(sound):
 		return
 	var variants: Array = _streams[sound]
-	var stream: AudioStream = variants[randi() % variants.size()]
+	var path: String = variants[randi() % variants.size()]
+	if not _loaded.has(path):
+		_loaded[path] = load(path)
+	var stream: AudioStream = _loaded[path]
 	var loudness: float = VOLUME.get(sound, 0.0) + volume_db
 	var pitch := 1.0 + randf_range(-pitch_spread, pitch_spread)
 	if at == null:

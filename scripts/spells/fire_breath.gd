@@ -148,7 +148,7 @@ func danger_at(point: Vector2) -> bool:
 
 ## Each puff is a pixel-art flame, growing as it spreads and dying out at the end of its flight.
 func _draw() -> void:
-	var flames := PixelFx.frames("flame", 30.0, true)
+	var flames := PixelFx.frames("fire_puff", 14.0, true)
 	var count := flames.get_frame_count("default")
 	for puff in _puffs:
 		var t: float = clampf(puff["age"] / puff["life"], 0.0, 1.0)
@@ -156,7 +156,10 @@ func _draw() -> void:
 		# Hot and yellow at the mouth, cooling to orange and red as it spreads.
 		var colour := Color(1.0, 0.9, 0.6).lerp(Color(1.0, 0.45, 0.25), t)
 		colour.a = 1.0 - t * t
-		draw_set_transform(puff["pos"], 0.0, Vector2(1.0 if int(puff["size"] * 10.0) % 2 == 0 else -1.0, 1.0))
+		# The flame is turned to the way the breath is travelling, so it streams out of the mouth rather than standing up.
+		var heading: Vector2 = puff["vel"]
+		var turn := heading.angle() + PI * 0.5 if heading.length() > 1.0 else 0.0
+		draw_set_transform(puff["pos"], turn, Vector2(2.0 if int(puff["size"] * 10.0) % 2 == 0 else -2.0, 2.0))
 		draw_texture(frame, -frame.get_size() * Vector2(0.5, 0.75), colour)
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 	if _age < LIFE and _caster_alive():

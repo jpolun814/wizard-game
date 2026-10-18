@@ -199,6 +199,13 @@ func is_paused() -> bool:
 	return _pause.visible
 
 
+func _input(event: InputEvent) -> void:
+	var key := event as InputEventKey
+	if key and key.pressed and not key.echo and key.keycode == KEY_ESCAPE and _pause.visible:
+		toggle_pause()  # the game is paused, so only the HUD hears Esc: it resumes
+		get_viewport().set_input_as_handled()
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	if not _game_over.visible or _game_over.modulate.a < 0.5:
 		return

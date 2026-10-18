@@ -40,6 +40,10 @@ const PLANK_WIDTH := 16  # one wooden plank of a walkway; two span a cell
 var cells := {}
 var biome := "cemetery"
 var _textures := {}  # material -> atlas texture
+const GRASS_BAND := 16.0  # how deep the grass along the top of the ground is, in world pixels
+var _edges := PackedFloat32Array()  # the ground's top edge height at each column boundary, left to right
+var _fill_texture: Texture2D  # the biome's plain earth, which repeats under the surface
+var _grass_texture: Texture2D  # the biome's grassy top, its first few pixels repeat along the surface
 
 
 ## Builds everything from the generated cells. Call once, after adding the terrain to the tree.
@@ -50,14 +54,43 @@ func build(map_cells: Dictionary, biome_name: String, rng: RandomNumberGenerator
 	_textures[ArenaGen.GROUND] = load("res://art/tiles/%s.png" % tiles)
 	_textures[ArenaGen.PLATFORM] = load("res://art/props/plank.png")
 	_textures[ArenaGen.STONE] = load("res://art/tiles/stone.png")
+	texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
+	_fill_texture = _piece_texture(_textures[ArenaGen.GROUND], CENTER)  # the lit, rocky middle of the earth, not the black depths
+	_grass_texture = _piece_texture(_textures[ArenaGen.GROUND], TOP)
+	_build_edges()
 	_build_collision()
 	_scatter_props(rng)
 	queue_redraw()
 
 
+## The ground's top edge: one height at each column boundary, the average of the columns either side. Drawing and
+## collision both follow these edges, so a slope between two columns is a straight, smooth ramp.
+func _build_edges() -> void:
+	var heights := PackedFloat32Array()
+	for h in ArenaGen.column_heights:
+		heights.append((ArenaGen.GROUND_ROW + h) * float(ArenaGen.TILE))  # the smooth heights, not the rounded ones
+	_edges.clear()
+	_edges.append(heights[0])
+	for k in range(1, heights.size()):
+		_edges.append((heights[k - 1] + heights[k]) * 0.5)
+	_edges.append(heights[heights.size() - 1])
+
+
+## A repeating texture cut from one piece of the biome's atlas.
+func _piece_texture(atlas: Texture2D, piece: Vector2i) -> Texture2D:
+	var image := atlas.get_image()
+	if image.is_compressed():
+		image.decompress()
+	var source := Rect2i(piece * ATLAS_CELL + Vector2i(ATLAS_PAD, ATLAS_PAD), Vector2i(ATLAS_TILE, ATLAS_TILE))
+	return ImageTexture.create_from_image(image.get_region(source))
+
+
 func _draw() -> void:
+	_draw_ground()
 	for cell in cells:
 		var material: int = cells[cell]
+		if material == ArenaGen.GROUND:
+			continue  # the ground is drawn as one smooth surface, see _draw_ground
 		if material == ArenaGen.PLATFORM:
 			# Wooden planks, flush with the cell's top where you stand.
 			var plank: Texture2D = _textures[material]
@@ -86,8 +119,10 @@ func _piece_for(cell: Vector2i, material: int) -> Vector2i:
 		right = true
 	if material == ArenaGen.GROUND:
 		# The ground meets the walls at both ends of the map, so it carries on under them.
-		left = left or cells.has(cell + Vector2i.LEFT)
-		right = right or cells.has(cell + Vector2i.RIGHT)
+		# A neighbour that has ground just under this row joins on too: on a slope the next column's top is one row lower,
+		# and without this every step would get a rounded end and read as a separate block.
+		left = left or cells.has(cell + Vector2i.LEFT) or cells.has(cell + Vector2i.LEFT + Vector2i.DOWN)
+		right = right or cells.has(cell + Vector2i.RIGHT) or cells.has(cell + Vector2i.RIGHT + Vector2i.DOWN)
 	if not up and not down:
 		if not left and not right:
 			return SINGLE
@@ -114,7 +149,32 @@ func _same(cell: Vector2i, material: int) -> bool:
 	return cells.get(cell, -1) == material
 
 
-## One static body for solid ground and one for platforms. Each row's runs of cells become single strips.
+## The ground: earth filling everything under the surface, with a band of grass along the top, both following the edges.
+func _draw_ground() -> void:
+	var top := PackedVector2Array()
+	for k in _edges.size():
+		top.append(Vector2((ArenaGen.FIRST_COL + k) * ArenaGen.TILE, _edges[k]))
+	var bottom := (ArenaGen.GROUND_ROW + ArenaGen.DEPTH + 1) * float(ArenaGen.TILE)
+	var fill := PackedVector2Array(top)
+	fill.append(Vector2(top[top.size() - 1].x, bottom))
+	fill.append(Vector2(top[0].x, bottom))
+	var fill_uvs := PackedVector2Array()
+	for p in fill:
+		fill_uvs.append(p / float(ArenaGen.TILE))
+	draw_polygon(fill, PackedColorArray([Color("#2a1f1a")]))  # an opaque base, so the earth is never see-through
+	draw_polygon(fill, PackedColorArray([Color.WHITE]), fill_uvs, _fill_texture)
+	var band := PackedVector2Array(top)
+	var uvs := PackedVector2Array()
+	for p in top:
+		uvs.append(Vector2(p.x, 0.0) / float(ArenaGen.TILE))
+	for i in range(top.size() - 1, -1, -1):
+		band.append(top[i] + Vector2(0, GRASS_BAND))
+		uvs.append(Vector2(top[i].x, GRASS_BAND) / float(ArenaGen.TILE))
+	draw_polygon(band, PackedColorArray([Color.WHITE]), uvs, _grass_texture)
+
+
+## One static body for solid stone and one for platforms. Stone's runs of cells become single strips. The ground is a
+## row of sloped blocks under its smooth top, one per column, so walking up a slope never catches on a step.
 func _build_collision() -> void:
 	var solid := StaticBody2D.new()
 	solid.collision_layer = 1
@@ -122,8 +182,19 @@ func _build_collision() -> void:
 	var ledges := StaticBody2D.new()
 	ledges.collision_layer = PLATFORM_LAYER
 	add_child(ledges)
+	var bottom := (ArenaGen.GROUND_ROW + ArenaGen.DEPTH + 1) * float(ArenaGen.TILE)
+	for k in range(_edges.size() - 1):
+		var x0 := (ArenaGen.FIRST_COL + k) * float(ArenaGen.TILE)
+		var x1 := x0 + ArenaGen.TILE
+		var block := ConvexPolygonShape2D.new()
+		block.points = PackedVector2Array([Vector2(x0, _edges[k]), Vector2(x1, _edges[k + 1]), Vector2(x1, bottom), Vector2(x0, bottom)])
+		var shape := CollisionShape2D.new()
+		shape.shape = block
+		solid.add_child(shape)
 	var rows := {}
 	for cell in cells:
+		if cells[cell] == ArenaGen.GROUND:
+			continue  # the ground's blocks are above
 		if not rows.has(cell.y):
 			rows[cell.y] = []
 		rows[cell.y].append(cell.x)
@@ -176,6 +247,7 @@ func _scatter_props(rng: RandomNumberGenerator) -> void:
 		var size := sprite.texture.get_size()
 		sprite.flip_h = rng.randf() < 0.5
 		# Stand the prop on the ground: its bottom edge sits a pixel or two into the surface.
-		sprite.position = Vector2(roundf(ArenaGen.column_x(c) - size.x * 0.5 + rng.randf_range(-6.0, 6.0)), ArenaGen.GROUND_Y - size.y + 3.0)
+		var surface := ArenaGen.surface_y(cells, c)
+		sprite.position = Vector2(roundf(ArenaGen.column_x(c) - size.x * 0.5 + rng.randf_range(-6.0, 6.0)), surface - size.y + 3.0)
 		sprite.z_index = -1
 		add_child(sprite)

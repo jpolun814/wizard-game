@@ -60,14 +60,10 @@ static func preview_points(gesture: String) -> PackedVector2Array:
 			return PackedVector2Array([Vector2(0, 100), Vector2(100, 20)])
 		"cross":
 			return recognizer_templates()["cross"]
-		"square":
-			return _square(80.0)
 		"spiral":
 			return _spiral(60.0, 2.0)
 		"cloud":
 			return _cloud(4, 160.0, 26.0)
-		"fissure":
-			return _crack(200.0, 14.0)
 		"pit":
 			return _pit(90.0, 60.0)
 		"cone":
@@ -155,16 +151,6 @@ static func _cloud(bumps: int, width: float, height: float) -> PackedVector2Arra
 
 
 ## A crack along the ground: a jagged line running sideways with small sharp zigs.
-static func _crack(length: float, depth: float) -> PackedVector2Array:
-	var pts := PackedVector2Array()
-	var steps := int(length / 20.0)
-	for i in steps + 1:
-		pts.append(Vector2(length * i / steps, (depth if i % 2 == 1 else 0.0)))
-	return pts
-
-
-## A cone, drawn as <: in along one side to its point, then back out along the other. Fire leaves from the point
-## and spreads toward the open end, which here faces right. half_angle is in radians.
 static func _cone(length: float, half_angle: float) -> PackedVector2Array:
 	var top := Vector2.from_angle(-half_angle) * length
 	var bottom := Vector2.from_angle(half_angle) * length

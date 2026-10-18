@@ -27,6 +27,7 @@ packed into atlases, effects into strips).
 | `art/fx/vortex`, `ring`, `slash`, `ice_burst`, `freeze`, `wind`, `bubbles` (some recoloured) | [Free Pixel Effects Pack](https://opengameart.org/content/free-pixel-effects-pack) by CodeManu | CC0 |
 | `art/fx/portal_open`, `portal_loop` (recoloured violet) | [Portals](https://opengameart.org/content/portals) by LetargicDev | CC0 |
 | `art/fx/wind_bolt` | Pixel Art Spells by DevWizard | CC0 |
+| `art/fx/tornado` (born and loop, 60 frames cut from one sheet, scaled to 96 px) | [Tornado pixel sprite sheet](https://creasta.itch.io/tornado-pixel-sprite-sheet) by Creasta | **Licence not stated on the page.** The author's comment says it is free with no credit required. Owner approved its use; get written confirmation of the licence before release |
 | `art/props/rock_spike_*` (recoloured to stone) | [Pixel Icicles](https://kamioo.itch.io/pixel-icicles) by Kamioo | CC0 |
 | `art/props/cloud_storm_*`, `cloud_snow_*` (recoloured) | [Pixel Art Clouds](https://opengameart.org/node/159981) by DustDFG | CC0 |
 | `art/props/wand`, `staff` | [Kenney – Tiny Dungeon](https://kenney.nl/assets/tiny-dungeon) | CC0 1.0 |
@@ -49,22 +50,26 @@ and are no longer drawn by the game.
 
 | Files in `audio/` | Source | License |
 |---|---|---|
-| `player_hurt`, `jump`, `mob_shoot`, `pickup` | [Kenney – New Platformer Pack](https://kenney.nl/assets/new-platformer-pack) | CC0 1.0 |
-| `force`, `barrier`, `quake` | [Kenney – Sci-fi Sounds](https://kenney.nl/assets/sci-fi-sounds) | CC0 1.0 |
+| `player_hurt`, `mob_shoot` | [Kenney – New Platformer Pack](https://kenney.nl/assets/new-platformer-pack) | CC0 1.0 |
+| `jump` | [Jumping man sounds](https://opengameart.org/content/jumping-man-sounds) by IgnasD | CC0 |
+| `pickup` | [Kenney – RPG Audio](https://kenney.nl/assets/rpg-audio) (cloth rustle) | CC0 1.0 |
+| `force`, `barrier`, `quake`, `tornado` (a jet roar) | [Kenney – Sci-fi Sounds](https://kenney.nl/assets/sci-fi-sounds) | CC0 1.0 |
 | `type`, `ui_click` | [Kenney – Interface Sounds](https://kenney.nl/assets/interface-sounds) | CC0 1.0 |
 | `book_open`, `book_close`, `page_*` | [Kenney – RPG Audio](https://kenney.nl/assets/rpg-audio) | CC0 1.0 |
 | `step_*` | [Kenney – Impact Sounds](https://kenney.nl/assets/impact-sounds) | CC0 1.0 |
 | `portal_open`, `portal_enter`, `gravity`, `heal`, `wizard_cast`, `summon` | [Magic spell SFX](https://opengameart.org/content/magic-spell-sfx) by JaggedStone (OpenGameArt) | CC0 |
 | `cast_fire`, `fire_hit`, `fire_wall`, `stones_*`, `mob_die_1` | [80 CC0 RPG SFX](https://opengameart.org/content/80-cc0-rpg-sfx) by rubberduck (OpenGameArt) | CC0 |
-| `mob_hurt_*`, `mob_die_2` | [80 CC0 creature SFX](https://opengameart.org/content/80-cc0-creature-sfx) by rubberduck (OpenGameArt) | CC0 |
+| `mob_hurt_1`, `mob_hurt_3`, `mob_die_2` | [80 CC0 creature SFX](https://opengameart.org/content/80-cc0-creature-sfx) by rubberduck (OpenGameArt) | CC0 |
 | `ice_shatter_*`, `explosion`, `misfire`, `ritual_ok`, `wave_start`, `game_over` | [100 CC0 SFX](https://opengameart.org/content/100-cc0-sfx) by rubberduck (OpenGameArt) | CC0 |
-| `tornado`, `thunder` | [100 CC0 SFX #2](https://opengameart.org/content/100-cc0-sfx-2) by rubberduck (OpenGameArt) | CC0 |
+| `thunder` | [100 CC0 SFX #2](https://opengameart.org/content/100-cc0-sfx-2) by rubberduck (OpenGameArt) | CC0 |
 | `volcano` | [Fireball 1](https://opengameart.org/content/fireball-1) (Julien Matthey, via OpenGameArt) | CC0 |
 | `freeze` | [Freeze spell](https://opengameart.org/content/freeze-spell-0) (OpenGameArt) | CC0 |
 | `cast_ice`, `snow` | [Ice spells](https://opengameart.org/content/ice-spells) (OpenGameArt) | CC0 |
 | `earth` | [Earth element magic spell](https://opengameart.org/content/earth-element-magic-spell) (OpenGameArt) | CC0 |
 
 ### Mixed sounds
+
+`ritual_ok` (a low chant, cut from [Chant](https://opengameart.org/content/chant) by christislord, CC0), `tornado` (a jet roar with its hiss removed), `quicksand` ([25 CC0 mud sfx](https://opengameart.org/content/25-cc0-mud-sfx) by rubberduck) and `jump` ([Jumping man sounds](https://opengameart.org/content/jumping-man-sounds) by IgnasD, CC0) are listed here too.
 
 `tools/make_sounds.py` builds these by layering recordings from the packs above and below with a little synthesis
 (a noise crack, a low thump):
@@ -75,3 +80,7 @@ and are no longer drawn by the game.
 | `blink` (teleport zip) | `teleport` from the Electricity Game Sound Pack, and an air rush from 100 CC0 SFX #2 |
 | `push` (force push) | a synthesized thump and whump, and an air rush from 100 CC0 SFX #2 |
 | `fire_breath` (jet of flame) | `thrusterFire_003` from Kenney – Sci-fi Sounds, and a burst from [Fire Staff Sound Effects](https://opengameart.org/content/fire-staff-sound-effects) by LEGIT Audio (CC0) |
+
+## Fire (fire wall, fire breath, burning ground)
+
+- `art/fx/fire_wall.png` (fire-b), `art/fx/fire_puff.png` (fire-a) and `art/fx/fire_trail.png` (fire-d): [Pixel Flame VFX](https://opengameart.org/node/108106) by zonked, CC0.

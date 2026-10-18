@@ -39,6 +39,13 @@
 5. **Tell the owner plainly** that you chose by analysis and could not listen. They do listen, and they have
    rejected sounds before (Blink, Spark and Push).
 
+## Sounds that are made from a recording with its problem removed
+
+- **`tornado`:** a jet roar with everything above about a kilohertz rolled off, so the hiss goes and the rumble stays.
+- **`ritual_ok`:** a 2.6-second phrase cut from the loudest part of a Gregorian chant (`new_assets/chant.ogg`).
+- Both are built in `tools/make_sounds.py`. `NEW_ASSETS` copies `quicksand` (a mud squelch) and `jump` (a male grunt)
+  into `audio/`.
+
 ## What the owner wants from sounds
 
 - **Accurate to the action:**

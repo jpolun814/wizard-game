@@ -23,6 +23,7 @@ const TOO_CLOSE := 95.0       # this close it acts to get you off it
 const INTERRUPT_DAMAGE := 6   # a hit this big while it draws breaks the spell
 const QUICK_DRAW := 0.35      # defensive signs are drawn quickly
 const ATTACK_DRAW := 0.8      # attacks take longer, which is your chance to interrupt them
+const ATTACK_RANGE := 460.0   # it only casts at you from about a screen away, never across the map
 const SHOT_SPEED := 650.0     # roughly how fast its bolts fly, for leading a moving target
 
 var mob: Node2D               # the dark wizard
@@ -37,6 +38,7 @@ var _strafe_timer := 0.0
 var _escape_time := 0.0
 var _escape_dir := 0.0
 var _jump_cooldown := 0.0
+var _hop_timer := 1.5  # counting down to its next hop while it walks
 var _pressure := 0.0          # how many shots you have thrown at it lately
 var _seen_shots := {}
 var _recent: Array[String] = []  # its last two attacks, which it avoids repeating
@@ -146,7 +148,7 @@ func _choose_defence(eta: float) -> String:
 	var options := {"jump": 1.0}
 	if mob.stamina >= 15.0 and eta > QUICK_DRAW + 0.05:
 		options["reflect"] = 0.6 + 1.6 * skill  # a skilled wizard sends your spells back at you
-	if mob.stamina >= 25.0 and eta > QUICK_DRAW + 0.05:
+	if mob.stamina >= 35.0 and eta > QUICK_DRAW + 0.05:
 		options["shield"] = 0.5
 	if mob.stamina >= 10.0:
 		options["blink_side"] = 0.7
@@ -244,8 +246,14 @@ func _footwork(delta: float, to_player: Vector2, sees: bool) -> float:
 		dir = 0.0
 	if mob.is_on_floor() and _jump_cooldown <= 0.0:
 		var blocked: bool = dir != 0.0 and mob.is_on_wall()
-		var above: bool = not sees and to_player.y < -60.0
-		if blocked or above:
+		# Up onto a ledge you are standing on, whether or not it can see you, or when it is blocked.
+		var above: bool = to_player.y < -50.0 and absf(to_player.x) < 260.0
+		# While it moves it hops every second or two, so it is never a statue on the ground.
+		_hop_timer -= delta
+		var hop: bool = dir != 0.0 and _hop_timer <= 0.0
+		if hop:
+			_hop_timer = _rng.randf_range(1.0, 2.2) - 0.3 * skill
+		if blocked or above or hop:
 			mob.velocity.y = JUMP
 			_jump_cooldown = 0.9
 	return dir * speed
@@ -287,6 +295,8 @@ func _clear_line(from: Vector2, to: Vector2) -> bool:
 ## Picks an attack for the situation and starts drawing it. Returns false if nothing is worth casting now.
 func _attack(to_player: Vector2, sees: bool) -> bool:
 	var player: Node2D = mob.player
+	if absf(to_player.x) > ATTACK_RANGE:
+		return false  # too far off to aim at you: it waits for you to come within reach
 	var gap := absf(to_player.x)
 	var still: bool = player.velocity.length() < 30.0
 	var stuck: bool = player.root_time > 0.0 or player.slow_time > 0.0
@@ -304,8 +314,7 @@ func _attack(to_player: Vector2, sees: bool) -> bool:
 		"Tornado": (0.6 + _pressure * 0.5) if gap < 260.0 else 0.2,
 		"Storm Cloud": (1.6 if not sees else 1.0) if grounded else 0.4,
 		"Ice Prison": 1.3 if gap < 360.0 and not stuck else 0.0,
-		"Quicksand": 1.1 if grounded and not stuck else 0.0,
-		"Fissure": 1.5 if same_ground and gap < 340.0 and gap > 80.0 else 0.0,
+		"Mudslide": 1.1 if grounded and not stuck else 0.0,
 		"Gravity Well": (0.4 + _pressure * 0.4) if gap < 300.0 else 0.0,
 		"Firewall": 1.6 if closing and gap < 280.0 and gap > 90.0 else 0.0,
 		"Snowfall": 0.4 if grounded else 0.0,
@@ -384,18 +393,10 @@ func _attack_stroke(spell_name: String) -> PackedVector2Array:
 			var x := _predict(ATTACK_DRAW).x
 			return _offset(GestureTemplates.preview_points("cloud"), Vector2(x, player.center().y - 160.0), 1.0)
 		"Ice Prison":
-			return _offset(GestureTemplates.preview_points("square"), _predict(ATTACK_DRAW * 0.6), 0.8)
-		"Quicksand":
+			return _offset(GestureTemplates.preview_points("circle"), _predict(ATTACK_DRAW * 0.6), 0.8)
+		"Mudslide":
 			var x := _predict(ATTACK_DRAW * 0.6).x
 			return _offset(GestureTemplates.preview_points("pit"), Vector2(x, feet.y - 60.0), 1.0)
-		"Fissure":
-			# A crack from the wizard's feet toward you, along the ground.
-			var crack := GestureTemplates.preview_points("fissure")
-			var length := clampf(absf(player.global_position.x - mob.global_position.x) + 40.0, 120.0, 360.0)
-			var out := PackedVector2Array()
-			for p in crack:
-				out.append(mob.global_position + Vector2(facing * (16.0 + p.x * length / 200.0), -4.0 - p.y * 0.8))
-			return _densify(out)
 		"Gravity Well":
 			# Beyond you if you are close (it drags you away from it), between you if you keep shooting at it.
 			var spot: Vector2 = player.center() + Vector2(facing * 80.0, 0.0)

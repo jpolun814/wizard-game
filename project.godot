@@ -19,6 +19,10 @@ config/icon="res://icon.svg"
 
 Sfx="*res://scripts/sfx.gd"
 
+[debug]
+
+file_logging/enable_file_logging.pc=false
+
 [display]
 
 window/size/viewport_width=1280

@@ -177,7 +177,7 @@ func _plan() -> void:
 					var spell_name: String = names[rng.randi() % names.size()]
 					var gesture: String = SpellData.SPELLS[spell_name].get("preview", SpellData.SPELLS[spell_name]["gesture"])
 					var spot: Vector2 = _player().global_position + Vector2(rng.randf_range(-250.0, 250.0), rng.randf_range(-160.0, -20.0))
-					if gesture in ["stone_wall", "fissure"]:
+					if gesture == "stone_wall":
 						spot.y = ArenaGen.GROUND_Y - 40.0
 					_cast(spell_name, _stroke(gesture, spot, rng.randf_range(0.8, 1.3)))
 					_player().hp = 9999)
@@ -206,7 +206,7 @@ func _plan_spells() -> void:
 		["Fire Breath", func() -> PackedVector2Array: return _stroke("cone", ahead.call(60, -26), 1.0)],
 		["Icicles", func() -> PackedVector2Array: return _stroke("icicles", ahead.call(160, -40), 1.0)],
 		["Snowfall", func() -> PackedVector2Array: return _stroke("snowfall", ahead.call(150, -90), 1.0)],
-		["Ice Prison", func() -> PackedVector2Array: return _stroke("square", ahead.call(170, -26), 0.8)],
+		["Ice Prison", func() -> PackedVector2Array: return _stroke("circle", ahead.call(170, -26), 0.8)],
 		["Push", func() -> PackedVector2Array:
 			var pts := PackedVector2Array()
 			var c: Vector2 = ahead.call(150, -26)
@@ -229,13 +229,7 @@ func _plan_spells() -> void:
 			_cast("Stone Wall", first)
 			var top: Vector2 = start + (first[first.size() - 1] - start).normalized() * (SpellEffect.STONE_WALL_LENGTH - 6.0)
 			return _densify(PackedVector2Array([top, top + Vector2(110, 0)]))],
-		["Fissure", func() -> PackedVector2Array:
-			var start: Vector2 = ahead.call(40, -4)
-			var pts := PackedVector2Array()
-			for i in 11:
-				pts.append(start + Vector2(i * 22.0, -10.0 if i % 2 == 1 else 0.0))
-			return _densify(pts)],
-		["Quicksand", func() -> PackedVector2Array: return _stroke("pit", ahead.call(170, -50), 1.2)],
+		["Mudslide", func() -> PackedVector2Array: return _stroke("pit", ahead.call(170, -50), 1.2)],
 	]
 	if only != "":
 		spells = spells.filter(func(entry: Array) -> bool: return entry[0] == only)
@@ -263,8 +257,6 @@ func _plan_spells() -> void:
 				delay = 1.4
 			"Fire Breath":
 				delay = 0.5
-			"Fissure":
-				delay = 0.35
 			"Spark", "Blink":
 				delay = 0.08
 			"Gravity Well", "Tornado":

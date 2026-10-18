@@ -26,8 +26,10 @@ Each wave gets a **fresh map**: the portal reloads the arena scene with `Levels.
   y grows downward.
 - **Map size:** 12 chunks x 6 columns, columns -36..35, with stone side walls. `ArenaGen.left_edge()` and
   `right_edge()` give the walkable span.
-- **Chunks:** `ArenaGen.CHUNKS`, 8 rows above the ground. Platforms are 4 rows up (y = 64). The end chunks are
-  always open.
+- **Chunks:** `ArenaGen.CHUNKS`, 6 rows above the ground. The ground is smooth waves (`ArenaGen._ground_heights`,
+  stored in `ArenaGen.column_heights`), and each chunk's structures stand on the rounded ground of their column. Use
+  `ArenaGen.surface_y(cells, col)` for where ground is in a column; the flat `GROUND_Y` is only a fallback. The end
+  chunks are always flat and open.
 - **Origins:** characters have their origin at the feet. Use `center()` for aiming and distance checks.
 - **Helpers:** `SpellTargets.ground_below(world, point)` hits ground or platforms; `solid_below` hits ground
   only.
@@ -105,11 +107,12 @@ never block each other.
   - The dark wizard parts are `_build_wizard`, `start_drawing`, `interrupt_cast`, `blink_to` and `mouth`.
 - **`wizard_brain.gd`:** the dark wizard's AI (see `06_enemies_and_ai.md`).
 - **Other enemy pieces:** `enemy_bolt.gd` (enemy shots, reflectable), `falling_shot.gd` (the fire caster's
-  marked fireball from above), `hazard.gd` (fire and frost ground patches).
+  fireball, sometimes used by flyers), `hazard.gd` (fire and frost ground patches).
 
 ### Visuals
-- **`terrain.gd`:** autotiling (`_piece_for`, including deep-earth pieces), merged collision strips, wooden plank
-  platforms and props.
+- **`terrain.gd`:** the ground is one smooth surface: `_build_edges` takes the column tops, `_draw_ground` fills it
+  with the biome's earth and a grass band, and `_build_collision` adds one sloped block per column. Stone, pillars
+  and platforms are still drawn and collided cell by cell (`_piece_for`, merged strips, wooden planks).
 - **`backdrop.gd`:** `PLACES`, the per-biome sky and Parallax2D layers. Vertical scroll is 1.
 - **`pixel_fx.gd`:** `PixelFx.frames`, `sprite` and `play` for the strips in `art/fx`.
 - **`char_frames.gd`:** builds a SpriteFrames from `<anim>_<n>.png` files, cached per folder.

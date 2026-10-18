@@ -18,8 +18,8 @@ const DAMAGE := {
 	"Gravity Well": "no damage, pulls foes together",
 	"Tornado": "no damage, swirls foes", "Blink": "8 damage to foes in the way", "Spark": "20 damage",
 	"Storm Cloud": "10 damage per strike",
-	"Stonefall": "30 damage", "Stone Wall": "solid, no damage · must start on solid ground", "Fissure": "14 damage, launches",
-	"Quicksand": "3 damage per half second, traps",
+	"Stonefall": "30 damage", "Stone Wall": "solid, no damage · must start on solid ground",
+	"Mudslide": "no damage, slows, stops jumping",
 }
 
 ## Colour of each school: used to tint the enemies of that school and to glow the spells.
@@ -73,9 +73,9 @@ const SPELLS := {
 		"effect": "Snow falls over the line for 6 seconds. Anything inside it is slowed.",
 	},
 	"Ice Prison": {
-		"buttons": RIGHT, "gesture": "square", "targeting": "shape", "cost": 14.0,
-		"school": "Ice", "draw": "A box, drawn round your target and closed where you started. The box fills with ice.",
-		"effect": "Enemies inside are frozen solid for 3 seconds; Force or Earth shatters them out for extra damage. Drawn round nothing, it is a block of ice you can stand on or hide behind. Bigger boxes cost more.",
+		"buttons": RIGHT, "gesture": "circle", "targeting": "shape", "cost": 14.0,
+		"school": "Ice", "draw": "A circle, drawn round your target and closed where you started. The circle fills with ice.",
+		"effect": "Enemies inside are frozen solid for 3 seconds; Force or Earth shatters them out for extra damage. Drawn round nothing, it is a block of ice you can stand on or hide behind. Bigger circles cost more.",
 	},
 	"Push": {
 		"buttons": MIDDLE, "gesture": "circle_push", "targeting": "angled", "cost": 10.0,
@@ -83,9 +83,9 @@ const SPELLS := {
 		"effect": "Moves every foe inside the circle along the line, no damage, and knocks down stone walls inside it. A bigger circle costs more stamina.",
 	},
 	"Barrier": {
-		"buttons": MIDDLE, "gesture": "circle", "targeting": "positional", "cost": 25.0,
+		"buttons": MIDDLE, "gesture": "circle", "targeting": "positional", "cost": 35.0,
 		"school": "Force", "draw": "A circle, either way round. The shield wraps around you.",
-		"effect": "Shield around you for 2.5 seconds. Blocks all damage, including enemy contact.",
+		"effect": "Shield around you for 6 seconds. Blocks all damage, including enemy contact.",
 	},
 	"Force Wall": {
 		"buttons": MIDDLE, "gesture": "flick", "targeting": "angled", "cost": 15.0,
@@ -126,17 +126,12 @@ const SPELLS := {
 	"Stone Wall": {
 		"buttons": LEFT | MIDDLE, "gesture": "stone_wall", "targeting": "directional", "cost": 30.0,
 		"school": "Earth", "draw": "A straight stroke that starts on the ground, a platform or another stone wall. It cannot be drawn in mid-air: the wall grows out of whatever solid thing the stroke starts on.",
-		"effect": "A solid stone wall that stays up until a force blast, a Push, knocks it down.",
+		"effect": "A solid stone wall that stays up until a force blast, a Push, knocks it down. The wall is as long as the stroke you draw, and longer walls cost more.",
 	},
-	"Fissure": {
-		"buttons": LEFT | MIDDLE, "gesture": "fissure", "targeting": "shape", "cost": 20.0,
-		"school": "Earth", "draw": "A jagged crack drawn sideways along the ground, starting on it.",
-		"effect": "The ground splits along the crack, from where you started to where you stopped. Anyone standing on it is thrown up and takes 14 damage. Longer cracks cost more.",
-	},
-	"Quicksand": {
+	"Mudslide": {
 		"buttons": LEFT | MIDDLE, "gesture": "pit", "targeting": "shape", "cost": 18.0,
-		"school": "Earth", "draw": "A U: down, round the bottom and up again, over the ground. The pit opens on the ground below it.",
-		"effect": "The ground turns to sand for 5 seconds. Walkers in it are stuck fast and take 3 damage every half second. Flyers pass over. Wider pits cost more.",
+		"school": "Earth", "draw": "A U: down, round the bottom and up again, over the ground. The mud opens on the ground below it.",
+		"effect": "The ground turns to mud for 5 seconds. Walkers in it are slowed and cannot jump; no damage. Flyers pass over. Wider pits cost more.",
 	},
 }
 
@@ -181,11 +176,11 @@ static func cost_for(spell_name: String, info: Dictionary) -> float:
 			var cloud := _width_of(line)
 			if cloud > 0.0:
 				return roundf(base * clampf(cloud / 150.0, 0.7, 1.8))
-		"Fissure":
-			var crack := _width_of(line)
-			if crack > 0.0:
-				return roundf(base * clampf(crack / 200.0, 0.6, 1.8))
-		"Quicksand":
+		"Stone Wall":
+			var length: float = info.get("length", 0.0)
+			if length > 0.0:
+				return roundf(base * clampf(length / 140.0, 0.5, 1.7))
+		"Mudslide":
 			var pit := _width_of(line)
 			if pit > 0.0:
 				return roundf(base * clampf(pit / 100.0, 0.7, 2.0))

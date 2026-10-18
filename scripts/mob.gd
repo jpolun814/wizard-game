@@ -11,12 +11,12 @@ extends CharacterBody2D
 
 const KINDS := {
 	"basic": {"name": "Basic", "desc": "A plain enemy with no weakness and no resistance.", "role": "melee", "art": "skeleton", "hp": 30, "school": "", "weak": "", "resist": "", "damage": 8, "speed": 1.0, "effect": ""},
-	"dark_wizard": {"name": "Dark Wizard", "desc": "Duels you with your own spells. Hit it while it draws to break its cast.", "role": "wizard", "art": "dark_wizard", "scale": 2.0, "hp": 120, "school": "Shadow", "weak": "", "resist": "", "damage": 0, "speed": 1.0, "effect": ""},
+	"dark_wizard": {"name": "Dark Wizard", "desc": "Duels you with your own spells. Hit it while it draws to break its cast.", "role": "wizard", "art": "dark_wizard", "scale": 1.0, "hp": 120, "school": "Shadow", "weak": "", "resist": "", "damage": 0, "speed": 1.0, "effect": ""},
 	"force_melee": {"name": "Melee Force", "desc": "A plain walker that hits hard enough to send you flying.", "role": "melee", "art": "skeleton", "hp": 30, "school": "Force", "weak": "", "resist": "", "damage": 8, "speed": 1.0, "effect": "big_knockback"},
 	"force_ranged": {"name": "Ranged Force", "desc": "Fires plain orbs from a distance.", "role": "ranged", "art": "goblin", "hp": 24, "school": "Force", "weak": "", "resist": "", "damage": 0, "speed": 1.0, "effect": "", "shot": {"interval": 2.2, "damage": 6}},
 	"force_flyer": {"name": "Flying Force", "desc": "A plain flier that swoops down at you.", "role": "flyer", "art": "eye", "hp": 22, "school": "Force", "weak": "", "resist": "", "damage": 6, "speed": 1.0, "effect": ""},
 	"fire_melee": {"name": "Melee Fire", "desc": "Leaves a trail of fire as it walks.", "role": "melee", "art": "skeleton", "hp": 30, "school": "Fire", "weak": "Ice", "resist": "Fire", "damage": 8, "speed": 1.0, "effect": "fire_trail"},
-	"fire_ranged": {"name": "Ranged Fire", "desc": "Calls fireballs down on you from above. Watch for the mark on the ground.", "role": "ranged", "art": "goblin", "hp": 24, "school": "Fire", "weak": "Ice", "resist": "Fire", "damage": 0, "speed": 1.0, "effect": "", "shot": {"interval": 2.4, "damage": 8, "above": true}},
+	"fire_ranged": {"name": "Ranged Fire", "desc": "Hurls fireballs at you.", "role": "ranged", "art": "goblin", "hp": 24, "school": "Fire", "weak": "Ice", "resist": "Fire", "damage": 0, "speed": 1.0, "effect": "", "shot": {"interval": 2.4, "damage": 8, "art": "fireball"}},
 	"fire_flyer": {"name": "Flying Fire", "desc": "Drops fireballs while it flies over you.", "role": "flyer", "art": "eye", "hp": 22, "school": "Fire", "weak": "Ice", "resist": "Fire", "damage": 6, "speed": 1.0, "effect": "", "shot": {"interval": 1.4, "damage": 6, "drop": true}},
 	"ice_melee": {"name": "Melee Ice", "desc": "Leaves falling snow that slows you.", "role": "melee", "art": "skeleton", "hp": 34, "school": "Ice", "weak": "Fire", "resist": "Ice", "damage": 6, "speed": 0.9, "effect": "frost_trail"},
 	"ice_ranged": {"name": "Ranged Ice", "desc": "Fires a bolt that slows you.", "role": "ranged", "art": "goblin", "hp": 24, "school": "Ice", "weak": "Fire", "resist": "Ice", "damage": 0, "speed": 1.0, "effect": "", "shot": {"interval": 2.0, "damage": 4, "slow": true}},
@@ -24,7 +24,7 @@ const KINDS := {
 	"earth_melee": {"name": "Melee Earth", "desc": "Big and heavy. Hits hard and knocks you back.", "role": "melee", "art": "skeleton", "hp": 48, "school": "Earth", "weak": "Storm", "resist": "Earth", "damage": 14, "speed": 0.6, "effect": "knockback"},
 	"earth_ranged": {"name": "Ranged Earth", "desc": "Hurls boulders in an arc.", "role": "ranged", "art": "goblin", "hp": 28, "school": "Earth", "weak": "Storm", "resist": "Earth", "damage": 0, "speed": 1.0, "effect": "", "shot": {"interval": 2.6, "damage": 10, "gravity": 420.0}},
 	"earth_flyer": {"name": "Flying Earth", "desc": "Drops boulders from the air.", "role": "flyer", "art": "eye", "hp": 26, "school": "Earth", "weak": "Storm", "resist": "Earth", "damage": 8, "speed": 1.0, "effect": "", "shot": {"interval": 2.2, "damage": 8, "gravity": 300.0, "drop": true}},
-	"storm_melee": {"name": "Melee Storm", "desc": "Fast. Explodes when it reaches you.", "role": "melee", "art": "skeleton", "hp": 20, "school": "Storm", "weak": "Earth", "resist": "Storm", "damage": 6, "speed": 2.6, "effect": "explode"},
+	"storm_melee": {"name": "Melee Storm", "desc": "Fast. Explodes when it reaches you.", "role": "melee", "art": "skeleton", "hp": 20, "school": "Storm", "weak": "Earth", "resist": "Storm", "damage": 35, "speed": 2.6, "effect": "explode"},
 	"storm_ranged": {"name": "Ranged Storm", "desc": "Fires a fan of zaps.", "role": "ranged", "art": "goblin", "hp": 24, "school": "Storm", "weak": "Earth", "resist": "Storm", "damage": 0, "speed": 1.0, "effect": "", "shot": {"interval": 2.4, "damage": 5, "spread": 3}},
 	"storm_flyer": {"name": "Flying Storm", "desc": "Divebombs you, then flies away.", "role": "flyer", "art": "eye", "hp": 22, "school": "Storm", "weak": "Earth", "resist": "Storm", "damage": 8, "speed": 1.4, "effect": ""},
 }
@@ -46,7 +46,7 @@ const SPIT_STAND_RANGE := 300.0 # and stops walking once it is this close
 const FLY_SPEED := 120.0        # how fast a flyer drifts while it patrols
 const DIVE_SPEED := 340.0       # how fast a flyer dives at you
 const RETREAT_SPEED := 240.0    # how fast it flies away after a dive
-const FIRE_TRAIL_INTERVAL := 0.45
+const FIRE_TRAIL_INTERVAL := 0.2  # short enough that each patch of the trail overlaps the last
 const FROST_TRAIL_INTERVAL := 0.8
 const SPAWN_TIME := 0.7         # enemies fade in over a summoning circle and cannot act until it is done
 const PATROL := 0
@@ -401,7 +401,7 @@ func _shoot(shot: Dictionary) -> void:
 			# Lob it so it comes down on the player: aim above them by how far the arc will drop.
 			var flight := origin.distance_to(aim) / EnemyBolt.SPEED
 			target = aim + Vector2(0, -0.5 * gravity * flight * flight)
-		EnemyBolt.fire(get_parent(), origin, target, colour, shot["damage"], gravity, shot.get("slow", false))
+		EnemyBolt.fire(get_parent(), origin, target, colour, shot["damage"], gravity, shot.get("slow", false), shot.get("art", "magic_bolt"))
 	Sfx.play("mob_shoot", origin)
 
 
@@ -566,7 +566,7 @@ func _explode() -> void:
 	GameCamera.shake_scene(get_tree(), 0.4)
 	# Damage the player and any other enemy close enough to the blast.
 	if center().distance_to(player.center()) <= BURST_RADIUS:
-		player.take_damage(BURST_DAMAGE + KINDS[kind]["damage"])
+		player.take_damage(KINDS[kind]["damage"])
 	for other in get_tree().get_nodes_in_group("mobs"):
 		if other != self and other.center().distance_to(center()) <= BURST_RADIUS:
 			other.take_damage(BURST_DAMAGE)

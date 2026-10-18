@@ -39,7 +39,7 @@ func _process(_delta: float) -> bool:
 			for shaky in [false, true]:
 				_check(spell_name, s["buttons"], shape, size, shaky, false)
 		# Directions that should not matter: a circle drawn the other way, a flick to the left.
-		if s["gesture"] in ["circle", "flick", "square", "cloud", "fissure", "pit", "icicles", "spiral", "cone"]:
+		if s["gesture"] in ["circle", "flick", "cloud", "pit", "icicles", "spiral", "cone"]:
 			_check(spell_name, s["buttons"], shape, 1.0, false, true)
 	# A Fire Breath cone can point any way, and the fire must go toward its open end.
 	for angle in [0.0, PI * 0.5, PI, -PI * 0.5, PI * 0.25]:
@@ -67,7 +67,7 @@ func _check(spell_name: String, buttons: int, shape: PackedVector2Array, size: f
 	points = _densify(points)
 	# Strokes that must start on the ground are placed there; everything else is drawn in the air.
 	var offset := Vector2(0, -260)
-	if gesture in ["stone_wall", "fissure"]:
+	if gesture == "stone_wall":
 		offset = Vector2(0, GROUND_Y - points[0].y - 4.0)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash(spell_name) + int(size * 10.0)

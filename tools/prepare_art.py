@@ -26,7 +26,8 @@ PARTICLES = ["circle_05", "dirt_01", "dirt_02", "dirt_03", "fire_01", "fire_02",
              "muzzle_01", "slash_01", "window_01"]
 
 # Sound name in the game -> file in the downloads folder.
-# spark, blink, push and fire_breath are mixed from several recordings by tools/make_sounds.py.
+# spark, blink, push, fire_breath, ritual_ok and tornado are made by tools/make_sounds.py; jump and quicksand come from
+# the files in tools/make_sounds.py's NEW_ASSETS.
 SOUNDS = {
     "cast_fire": "oga/80-CC0-RPG-SFX_0/spell_fire_04.ogg",
     "fire_hit": "oga/80-CC0-RPG-SFX_0/spell_fire_07.ogg",
@@ -42,31 +43,26 @@ SOUNDS = {
     "barrier": "scifi/Audio/forceField_002.ogg",
     "gravity": "oga/magical_4.ogg",
     "thunder": "oga/sfx_100_v2/sfx100v2_thunder_01.ogg",
-    "tornado": "oga/sfx_100_v2/sfx100v2_air_01.ogg",
     "earth": "oga/Earth%20Element%20Magic%20Spell_3.ogg",
     "stones_1": "oga/80-CC0-RPG-SFX_0/stones_01.ogg",
     "stones_2": "oga/80-CC0-RPG-SFX_0/stones_02.ogg",
     "stones_3": "oga/80-CC0-RPG-SFX_0/stones_04.ogg",
-    "quake": "scifi/Audio/lowFrequency_explosion_001.ogg",
     "explosion": "oga/100-CC0-SFX_0/explosion.ogg",
     "misfire": "oga/100-CC0-SFX_0/weird_03.ogg",
     "mob_hurt_1": "oga/80-CC0-creature-SFX_0/hurt_01.ogg",
-    "mob_hurt_2": "oga/80-CC0-creature-SFX_0/hurt_02.ogg",
     "mob_hurt_3": "oga/80-CC0-creature-SFX_0/hurt_04.ogg",
     "mob_die_1": "oga/80-CC0-RPG-SFX_0/creature_die_01.ogg",
     "mob_die_2": "oga/80-CC0-creature-SFX_0/monster_05.ogg",
     "mob_shoot": "platformer/Sounds/sfx_throw.ogg",
     "player_hurt": "platformer/Sounds/sfx_hurt.ogg",
-    "jump": "platformer/Sounds/sfx_jump.ogg",
     "portal_open": "oga/magical_3.ogg",
     "portal_enter": "oga/magical_1_0.ogg",
-    "ritual_ok": "oga/100-CC0-SFX_0/bell_01.ogg",
     "type": "ui_sounds/Audio/click_002.ogg",
     "book_open": "rpg_audio/Audio/bookOpen.ogg",
     "book_close": "rpg_audio/Audio/bookClose.ogg",
     "page_1": "rpg_audio/Audio/bookFlip1.ogg",
     "page_2": "rpg_audio/Audio/bookFlip2.ogg",
-    "pickup": "platformer/Sounds/sfx_gem.ogg",
+    "pickup": "rpg_audio/Audio/cloth1.ogg",  # a cloth rustle: the gem chime sounded whimsical
     "heal": "oga/magical_5.ogg",
     "wizard_cast": "oga/magical_7_0.ogg",
     "wave_start": "oga/100-CC0-SFX_0/gong_02.ogg",
