@@ -33,7 +33,7 @@
 - **Lambda captures.** Lambdas capture variables by value at creation. Use arrays or dictionaries as mutable
   boxes (see `showcase.gd`).
 - **Freeing during iteration.** A body can leave the `mobs` group mid-loop when your damage kills it. Read
-  `is_in_group` **before** calling `hurt` (see Fissure and the old Fire Nova).
+  `is_in_group` **before** calling `hurt` (see the old Fire Nova).
 - **Deferred changes.** Changing collision state inside physics callbacks needs `set_deferred`.
 
 ## Physics

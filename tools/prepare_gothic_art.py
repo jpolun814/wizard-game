@@ -138,23 +138,15 @@ BACKDROPS = {
 FX = {
     "fireball": ("x_starsteel/Fireball{}.png", 9),
     "icespear": ("x_starsteel/Icespear{}.png", 6),
-    "thunder_orb": ("x_starsteel/Thundersphere{}.png", 8),
     "lightning": ("x_lightning/Lighting Strike {}.png", 7),
-    "enemy_death": ("x_church/gothicvania church files/SPRITES/fx/enemy-death/enemy-death-sprites/enemy-death{}.png", 9),
 }
 FX_SHEETS = {
     "blast_small": ("x_explosions/explosions-pack/spritesheets/explosion-2.png", 64),
     "blast_fire": ("x_explosions/explosions-pack/spritesheets/explosion-3.png", 80),
-    "blast_dust": ("x_explosions/explosions-pack/spritesheets/explosion-4.png", 128),
-    "blast_big": ("x_explosions/explosions-pack/spritesheets/explosion-5.png", 192),
     "blast_ring": ("x_explosions/explosions-pack/spritesheets/explosion-1.png", 32),
     "dark_orb": ("x_spells/Pixelart Spells/PNG Files/Darkness Orb.png", 16),
-    "dark_bolt": ("x_spells/Pixelart Spells/PNG Files/Darkness Bolt.png", 16),
-    "magic_bolt": ("x_spells/Pixelart Spells/PNG Files/Arcane Bolt.png", 16),
-    "ice_lance": ("x_spells/Pixelart Spells/PNG Files/Ice Lance.png", 16),
     "rock": ("x_spells/Pixelart Spells/PNG Files/Rock Sling.png", 16),
-    "eye_shot": (LUIZ_MONSTERS_13 + "Flying eye/projectile_sprite.png", 48),
-    "goblin_bomb": (LUIZ_MONSTERS_13 + "Goblin/Bomb_sprite.png", 100),
+    "magic_bolt": ("x_spells/Pixelart Spells/PNG Files/Arcane Bolt.png", 16),
     "shield": ("x_spells/Pixelart Spells/PNG Files/Pixelart Shield.png", 48),
     "wind_bolt": ("x_spells/Pixelart Spells/PNG Files/Wind Bolt.png", 16),
     "fire_puff": ("pixflame/fire-a-168x62.png", 24),
@@ -167,10 +159,8 @@ FORCE_RAMP = ("ramp", (40, 14, 70), (236, 214, 255))
 FX_RECOLOURED = {
     "vortex": ("x_freefx/13_vortex_spritesheet.png", 100, 100, FORCE_RAMP),
     "ring": ("x_freefx/10_weaponhit_spritesheet.png", 100, 100, None),
-    "slash": ("x_freefx/14_phantom_spritesheet.png", 100, 100, FORCE_RAMP),
     "ice_burst": ("x_freefx/12_nebula_spritesheet.png", 100, 100, None),
     "freeze": ("x_freefx/19_freezing_spritesheet.png", 100, 100, None),
-    "wind": ("x_freefx/7_firespin_spritesheet.png", 100, 100, ("ramp", (70, 84, 104), (240, 248, 255))),
     "bubbles": ("x_freefx/20_magicbubbles_spritesheet.png", 100, 100, ("ramp", (60, 40, 18), (214, 178, 112))),
     "portal_open": ("x_portals/portalRings1.png", 32, 32, ("hue", 150)),
     "portal_loop": ("x_portals/portalRings2.png", 32, 32, ("hue", 150)),
@@ -178,7 +168,6 @@ FX_RECOLOURED = {
 # Effects laid out in a grid, read left to right and top to bottom: name -> (sheet, frame width, frame height).
 FX_GRIDS = {
     "flame": ("x_fire/fire5_64_0.png", 64, 64),
-    "flame_blue": ("x_fire/fire6_64_0.png", 64, 64),
 }
 
 

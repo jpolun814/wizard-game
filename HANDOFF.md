@@ -54,7 +54,7 @@ spells you do, drawing them visibly.
    - Ground, stone walls, ice and platforms block things physically.
 2. **The gesture is a picture of the effect.**
    - Volcano is a mountain triangle. Fire Breath is a cone (`<`). Mudslide is a U (the pit of mud).
-   - Storm Cloud is a bumpy cloud top. Fissure is a jagged crack. Gravity Well is an inward spiral.
+   - Storm Cloud is a bumpy cloud top. Gravity Well is an inward spiral.
    - Icicles are V shapes. Push is a circle (the area) plus a line out of it (the direction).
    - Never assign an arbitrary shape.
 3. **No code-drawn pictures.** "All the other code-drawn pictures stick out like sore thumbs; they absolutely
@@ -159,7 +159,6 @@ GODOT="/c/Users/Jordan Polun/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.
 | Storm | Storm Cloud | bumpy cloud top | a thundercloud; strikes everyone under it | shelter |
 | Earth | Stonefall | circle with a line down | a dropped boulder | watch the shadow |
 | Earth | Stone Wall | line starting on the ground, a platform or another stone wall | a raised slab | Push topples it |
-| Earth | Fissure | jagged crack along the ground | rock spikes erupt | jump |
 | Earth | Mudslide | U | a pit of mud: no damage, slows, you can't jump; flyers pass over | walk out |
 
 **Targeting types:** `directional`, `positional`, `angled`, `shape` and `cone`. The caster's `cast_resolved`

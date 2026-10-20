@@ -92,7 +92,7 @@ never block each other.
   Stone Wall, Force Wall, Stonefall and Spark. `setup()` branches by spell, and so do `_physics_process` and
   `_draw`. Images drawn every frame are `preload` constants.
 - **One file per newer spell:** `fire_breath.gd`, `volcano.gd`, `tornado.gd`, `ice_prison.gd`,
-  `gravity_well.gd`, `storm_cloud.gd`, `fissure.gd`, `quicksand.gd`.
+  `gravity_well.gd`, `storm_cloud.gd`, `quicksand.gd`.
 - **`spell_targets.gd`:** team logic, `affects`, `hurt`, `all`, `hurt_within`, `ground_below` and `solid_below`.
 - **Conventions:** every spell has `team`, joins the `"danger"` group, and implements `danger_at(point)`, which
   the dark wizard uses to avoid hazards.
