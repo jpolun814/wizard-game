@@ -84,3 +84,7 @@ and are no longer drawn by the game.
 ## Fire (fire wall, fire breath, burning ground)
 
 - `art/fx/fire_wall.png` (fire-b), `art/fx/fire_puff.png` (fire-a) and `art/fx/fire_trail.png` (fire-d): [Pixel Flame VFX](https://opengameart.org/node/108106) by zonked, CC0.
+
+## Volcano
+
+- `art/props/volcano_mound.png`: [2D Platformer Volcano Pack 1.1](https://opengameart.org/content/2d-platformer-volcano-pack-11) by Tio Aimar, CC0 (volcano_pack_68).

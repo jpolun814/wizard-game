@@ -85,7 +85,7 @@ func _physics_process(delta: float) -> void:
 func _on_body_entered(body: Node2D) -> void:
 	if body.is_in_group("player"):
 		if not reflected:
-			body.take_damage(_damage)
+			body.take_damage(_damage, true, true)
 			if _slows:
 				body.apply_debuff("slow", 2.0)
 			_burst()

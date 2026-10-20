@@ -6,8 +6,7 @@ extends Node2D
 ## it off. Drawn around nothing, the box becomes a solid block of ice that stands for a while: a step to climb or
 ## a wall that stops shots.
 
-const FREEZE_SECONDS := 3.0
-const PLAYER_FREEZE := 1.4   # you break out of ice faster than enemies do
+const FREEZE_SECONDS := 4.0
 const BLOCK_LIFE := 6.0
 const MIN_SIZE := 24.0
 const MAX_SIZE := 160.0
@@ -36,10 +35,9 @@ func _ready() -> void:
 			if not body.freeze(FREEZE_SECONDS):
 				FloatText.spawn(get_parent(), body.center() + Vector2(0, -30), "Immune", Color("#bfe9ff"), 0.8)
 		else:
-			body.apply_debuff("root", PLAYER_FREEZE)
-			if not body.has_shield():
+			if body.freeze(FREEZE_SECONDS):
 				_held = body
-				_life = PLAYER_FREEZE
+				_life = FREEZE_SECONDS
 	if not _frozen_any:
 		_make_block()
 	texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED

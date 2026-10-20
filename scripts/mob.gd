@@ -92,6 +92,7 @@ var _idle_t := 0.0
 var _facing := 1.0
 var _shot_timer := 1.5
 var _root_time := 0.0
+var _nojump_time := 0.0  # while above zero, the walker cannot jump (mudslide)
 var _frozen_time := 0.0
 var _base_scale := 1.0
 var _lunge := 0.0        # 1 the moment an enemy attacks, fading to 0: it lunges toward the player
@@ -216,6 +217,7 @@ func _physics_process(delta: float) -> void:
 	modulate.a = 1.0
 	_cooldown -= delta
 	_root_time -= delta
+	_nojump_time -= delta
 	_shield_time -= delta
 	_slow_time -= delta
 	_knock_x = move_toward(_knock_x, 0.0, KNOCK_DECAY * delta)
@@ -262,7 +264,7 @@ func _walk(delta: float) -> void:
 	var moving := player != null and not stands_to_shoot and _root_time <= 0.0 and _windup <= 0.0 and _charge <= 0.0 and not close
 	velocity.x = (signf(to_player.x) * speed if moving else 0.0) + _knock_x + _drift.x
 	# Enemies jump when a wall blocks them, and leap up to a platform when the player is standing on it.
-	if is_on_floor() and player and _root_time <= 0.0 and moving:
+	if is_on_floor() and player and _root_time <= 0.0 and _nojump_time <= 0.0 and moving:
 		var above := to_player.y < -50.0 and absf(to_player.x) < 140.0
 		if above:
 			velocity.y = MOB_JUMP_HIGH
@@ -494,6 +496,10 @@ func _on_animation_finished() -> void:
 
 func is_dead() -> bool:
 	return _dead
+
+
+func apply_no_jump(seconds: float) -> void:
+	_nojump_time = maxf(_nojump_time, seconds)
 
 
 func apply_root(seconds: float) -> void:

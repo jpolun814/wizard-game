@@ -183,7 +183,7 @@ static func cost_for(spell_name: String, info: Dictionary) -> float:
 		"Mudslide":
 			var pit := _width_of(line)
 			if pit > 0.0:
-				return roundf(base * clampf(pit / 100.0, 0.7, 2.0))
+				return roundf(base * clampf(pit / 140.0, 0.5, 1.7))
 		"Ice Prison":
 			var box: Rect2 = info.get("rect", Rect2())
 			if box.has_area():

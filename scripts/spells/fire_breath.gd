@@ -82,20 +82,17 @@ func _mouth_position() -> Vector2:
 	return SpellTargets.center_of(caster_node)
 
 
-## The way the fire leaves the mouth now: the drawn direction, mirrored when the caster has turned round.
+## The way the fire leaves the mouth now: the drawn direction, read from the way the wizard faced when casting and
+## mirrored to face wherever the wizard faces now. Flames sent after a turn go the new way.
 func _direction() -> Vector2:
 	var drawn := Vector2.from_angle(aim)
-	if _facing() != _cast_facing:
-		drawn.x = -drawn.x
-	return drawn
+	return Vector2(drawn.x * _cast_facing * _facing(), drawn.y)
 
 
 func _spawn_puff() -> void:
 	var velocity := _direction().rotated(randf_range(-0.5, 0.5) * spread) * PUFF_SPEED * randf_range(0.85, 1.1)
-	# The puff carries a little of the caster's own movement, as breath does.
-	var carried: Vector2 = caster_node.velocity * 0.3 if caster_node is CharacterBody2D else Vector2.ZERO
 	var life := reach / PUFF_SPEED * 1.25
-	_puffs.append({"pos": _mouth, "vel": velocity + carried, "age": 0.0, "life": life, "size": randf_range(0.8, 1.25), "stopped": false})
+	_puffs.append({"pos": _mouth, "vel": velocity, "age": 0.0, "life": life, "size": randf_range(0.8, 1.25), "stopped": false})
 
 
 ## Each puff flies on until its time is up, or until it hits something solid, where it stops and flares.

@@ -100,8 +100,18 @@ func _strike() -> void:
 	for body in _under():
 		var hit_at := SpellTargets.center_of(body)
 		var ground := SpellTargets.ground_below(get_world_2d(), hit_at)
-		var bolt := PixelFx.play(get_parent(), Vector2(hit_at.x, ground.y + 4.0), "lightning", 24.0, 1.0, Color(1.0, 1.0, 0.85), true)
-		bolt.z_index = 3
+		# The bolt is stacked from the ground up to the cloud: whole 200 px sprites, then one piece for what is left over,
+		# so it reaches the cloud without going above it.
+		var reach := ground.y + 4.0 - global_position.y
+		var whole := floori(reach / 200.0)
+		for k in whole:
+			var bolt := PixelFx.play(get_parent(), Vector2(hit_at.x, ground.y + 4.0 - k * 200.0), "lightning", 24.0, 1.0, Color(1.0, 1.0, 0.85), true)
+			bolt.z_index = 3
+		var rest := reach - whole * 200.0
+		if rest > 1.0:
+			var top_piece := PixelFx.play(get_parent(), Vector2(hit_at.x, ground.y + 4.0 - whole * 200.0), "lightning", 24.0, 1.0, Color(1.0, 1.0, 0.85), true)
+			top_piece.scale = Vector2(1.0, rest / 200.0)  # squashed to end exactly at the cloud
+			top_piece.z_index = 3
 		SpellTargets.hurt(body, DAMAGE, "Storm", team)
 		Fx.impact(get_parent(), hit_at, Color("#ffe85a"), 36.0)
 		struck = true

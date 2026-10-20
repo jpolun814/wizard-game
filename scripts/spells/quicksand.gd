@@ -8,7 +8,7 @@ extends Node2D
 const LIFE := 5.0
 const TICK := 0.5
 const MIN_WIDTH := 60.0
-const MAX_WIDTH := 200.0
+const MAX_WIDTH := 240.0
 const DEPTH := 18.0  # how far above the surface feet can be and still be caught
 
 var team := "player"
@@ -70,7 +70,7 @@ func _physics_process(delta: float) -> void:
 			continue
 		if body.is_in_group("mobs"):
 			body.apply_slow(0.3)
-			body.apply_root(0.12)  # stuck fast while in the sand, barely able to crawl out
+			body.apply_no_jump(0.3)  # the sand holds them down: slowed, and unable to jump
 		else:
 			body.apply_debuff("sink", 0.3)  # you can walk, slowly, but not jump out
 	if _age >= LIFE:

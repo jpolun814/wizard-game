@@ -243,11 +243,23 @@ func _scatter_props(rng: RandomNumberGenerator) -> void:
 			continue
 		var sprite := Sprite2D.new()
 		sprite.texture = load("res://art/props/%s.png" % props[rng.randi() % props.size()])
-		sprite.centered = false
 		var size := sprite.texture.get_size()
 		sprite.flip_h = rng.randf() < 0.5
-		# Stand the prop on the ground: its bottom edge sits a pixel or two into the surface.
-		var surface := ArenaGen.surface_y(cells, c)
-		sprite.position = Vector2(roundf(ArenaGen.column_x(c) - size.x * 0.5 + rng.randf_range(-6.0, 6.0)), surface - size.y + 3.0)
+		# Stand the prop on the slope it is on: its two feet sit on the smooth ground either side of it, and it is tilted
+		# to match, with its bottom edge three pixels into the surface so no part of it floats above the ground.
+		var x := roundf(ArenaGen.column_x(c) + rng.randf_range(-6.0, 6.0))
+		var left := _ground_y(x - size.x * 0.5)
+		var right := _ground_y(x + size.x * 0.5)
+		var lean := atan2(right - left, size.x)
+		var middle := Vector2(x, (left + right) * 0.5)
+		sprite.rotation = lean
+		sprite.position = middle + Vector2(0, 3.0) - Vector2(0, size.y * 0.5).rotated(lean)
 		sprite.z_index = -1
 		add_child(sprite)
+
+
+## The height of the smooth ground at an x position, as the terrain draws it.
+func _ground_y(x: float) -> float:
+	var k := x / float(ArenaGen.TILE) - ArenaGen.FIRST_COL
+	var i := clampi(int(floor(k)), 0, _edges.size() - 2)
+	return lerpf(_edges[i], _edges[i + 1], clampf(k - i, 0.0, 1.0))

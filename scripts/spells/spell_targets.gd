@@ -27,6 +27,11 @@ static func hurt(body: Node, amount: int, school: String, team: String) -> void:
 	if not affects(body, team):
 		return
 	if body.is_in_group("player"):
+		if school in ["Force", "Earth"] and body.is_frozen():
+			amount = roundi(amount * 1.5)  # a frozen player is shattered out of the ice, as a frozen enemy is
+			body.thaw()
+			Shatter.spawn(body.get_parent(), body.center(), Color("#cdeeff"))
+			Sfx.play("ice_shatter", body.center())
 		body.take_damage(amount)
 	else:
 		body.take_damage(amount, school)

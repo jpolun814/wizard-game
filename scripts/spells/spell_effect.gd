@@ -129,7 +129,7 @@ func setup(spell_name: String, origin: Vector2, aim_angle: float) -> void:
 				GameCamera.shake_scene(get_tree(), 0.2)
 			"Force Wall":
 				# A short-lived wall of force that only touches shots: it bats them back. Characters pass through it.
-				_life = 0.8  # a quick flash of force: the timing is the challenge
+				_life = 1.3  # a flash of force that stays long enough to be seen
 				var force_rect := RectangleShape2D.new()
 				force_rect.size = Vector2(124, 26)  # long along the slash, so it deflects along its angle
 				rotation = aim_angle
@@ -296,7 +296,7 @@ func _on_projectile_hit(body: Node2D) -> void:
 		if team == "player" or _spent:
 			return
 		_spent = true
-		body.take_damage(PROJECTILES[spell]["damage"])
+		body.take_damage(PROJECTILES[spell]["damage"], true, true)
 		if spell == "Frostbolt":
 			body.apply_debuff("slow", SLOW_SECONDS)
 		_impact_effect()
@@ -493,7 +493,7 @@ func _apply_force_zone() -> void:
 		if not (_in_force_zone(middle) or _in_force_zone(body.global_position)):
 			continue
 		if body.is_in_group("mobs"):
-			body.knock_back(_aim * KNOCK_SPEED)
+			body.knock_back(_aim * KNOCK_SPEED * 1.6)  # the same lift as the player gets
 		else:
 			body.push(_aim * KNOCK_SPEED * 1.6)  # a push lifts the caster well above a jump (a jump is about 140 px; this is several times that)
 	for item in get_tree().get_nodes_in_group("items"):

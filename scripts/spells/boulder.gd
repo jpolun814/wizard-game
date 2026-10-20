@@ -7,7 +7,7 @@ extends RigidBody2D
 const RADIUS := 18.0
 const LANDING_RADIUS := 36.0
 const LANDING_DAMAGE := 30
-const HEALTH := 60.0
+const HEALTH := 63.0  # the same as a default stone wall (45% of its length)
 const ROCK := preload("res://art/fx/rock.png")
 
 var team := "player"

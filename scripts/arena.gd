@@ -400,7 +400,7 @@ func _place_shapes(spell: String, info: Dictionary, team: String) -> void:
 		"Volcano":
 			var volcano := Volcano.new()
 			volcano.team = team
-			volcano.position = _ground_below(centre)
+			volcano.position = SpellTargets.surface_over(get_world_2d(), centre)  # always on the surface, never under it
 			add_child(volcano)
 		"Snowfall":
 			var left := line[0].x

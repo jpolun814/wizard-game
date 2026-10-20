@@ -13,14 +13,15 @@ const LAVA_DAMAGE := 12
 const LAVA_REACH := 30.0
 const FIRE_WIDTH := 40.0
 const FIRE_SECONDS := 5.0
-const CRATER_Y := -78.0  # the top of the mound, where the fire comes out
+const CRATER_Y := -70.0  # the top of the mountain's crater, in its own picture: where the fire comes out
 
 var team := "player"
 var _age := 0.0
 var _erupt := 0.0
+var _lean := 0.0  # the slope the volcano stands on; its vent, crater and fire lean the same way
 var _balls: Array = []  # each lava ball is {"pos": world position, "vel": velocity}
 var _glow: Node2D
-var _mound: Sprite2D
+var _mound: Sprite2D  # the mountain, heaving up out of the ground
 var _ball_frames: SpriteFrames
 
 
@@ -33,22 +34,28 @@ func _ready() -> void:
 	_glow.material = Fx.additive()
 	add_child(_glow)
 	_glow.draw.connect(_draw_glow)
-	# The mound heaves up out of the ground, standing on its bottom edge.
+	# The mountain heaves up out of the ground, standing on its bottom edge.
 	_mound = Sprite2D.new()
-	_mound.texture = load("res://art/props/mound.png")
+	_mound.texture = load("res://art/props/volcano_mound.png")
+	_mound.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	_mound.offset = Vector2(0, -_mound.texture.get_height() * 0.5 + 3.0)
 	_mound.scale = Vector2(1.0, 0.0)
+	_lean = _slope()  # the mountain leans with the ground it stands on
+	_mound.rotation = _lean
+	# Sunk far enough that the lowest corner of the tilted mountain still sits below the ground line.
+	_mound.position = Vector2(0, 2.0 + absf(sin(_lean)) * _mound.texture.get_width() * 0.5)
+	_mound.z_index = -1  # a layer behind the ground, so the mountain sits in the earth rather than on it
 	add_child(_mound)
 	create_tween().tween_property(_mound, "scale:y", 1.0, 0.25).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	# Fire roars out of its top for as long as it erupts.
-	var vent := PixelFx.sprite("flame", 30.0)
+	var vent := PixelFx.sprite("fire_puff", 14.0)
 	vent.scale = Vector2.ONE * 2.0
-	vent.offset = Vector2(0, -PixelArt.FX["flame"]["size"].y * 0.5)
-	vent.position = Vector2(0, CRATER_Y + 8.0)
+	vent.offset = Vector2(0, -PixelArt.FX["fire_puff"]["size"].y * 0.5)
+	vent.position = _crater(8.0)
+	vent.rotation = _lean
 	vent.z_index = 1
 	add_child(vent)
 	create_tween().tween_property(vent, "modulate:a", 0.0, 0.5).set_delay(LIFE - 0.4)
-	PixelFx.play(get_parent(), global_position + Vector2(0, CRATER_Y + 10.0), "blast_fire", 18.0, 1.5, Color.WHITE, true)
 	_ball_frames = PixelFx.frames("fireball", 18.0, true)
 
 
@@ -57,8 +64,8 @@ func _physics_process(delta: float) -> void:
 	_erupt -= delta
 	if _age < LIFE and _erupt <= 0.0:
 		_erupt = ERUPT_INTERVAL
-		_balls.append({"pos": global_position + Vector2(0, CRATER_Y), "vel": Vector2(randf_range(-180.0, 180.0), -480.0), "age": 0.0})
-		Fx.smoke(get_parent(), global_position + Vector2(0, CRATER_Y - 20.0), Color(0.2, 0.17, 0.17, 0.6), 2, 26.0, 60.0)
+		_balls.append({"pos": global_position + _crater(0.0), "vel": Vector2(randf_range(-180.0, 180.0), -480.0).rotated(_lean), "age": 0.0})
+		Fx.smoke(get_parent(), global_position + _crater(-20.0), Color(0.2, 0.17, 0.17, 0.6), 2, 26.0, 60.0)
 	var flying := []
 	for ball in _balls:
 		var before: Vector2 = ball["pos"]
@@ -116,6 +123,19 @@ func _draw() -> void:
 ## The light the eruption throws: a glow over the crater, and one round each fireball.
 func _draw_glow() -> void:
 	if _age < LIFE:
-		_glow.draw_circle(Vector2(0, CRATER_Y), 30.0 + 4.0 * sin(_age * 6.0), Color(1.0, 0.45, 0.15, 0.12))
+		_glow.draw_circle(_crater(0.0), 30.0 + 4.0 * sin(_age * 6.0), Color(1.0, 0.45, 0.15, 0.12))
 	for ball in _balls:
 		Fx.draw_glow(_glow, ball["pos"] - global_position, 16.0, Color(1.0, 0.5, 0.15, 0.4))
+
+
+## The angle of the ground under the volcano, from the surface either side of its foot.
+func _slope() -> float:
+	var left := SpellTargets.solid_below(get_world_2d(), global_position + Vector2(-40, -40))
+	var right := SpellTargets.solid_below(get_world_2d(), global_position + Vector2(40, -40))
+	return atan2(right.y - left.y, right.x - left.x)
+
+
+## A point above the crater (lift is how far above the top of the mountain). The crater moves with the mountain: it is
+## sunk and leans with it.
+func _crater(lift: float) -> Vector2:
+	return _mound.position + Vector2(0, CRATER_Y + lift).rotated(_lean)

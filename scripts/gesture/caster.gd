@@ -436,7 +436,10 @@ func _icicle_triangles(points: PackedVector2Array) -> Array:
 			if turns[j][1] != want_bottoms:
 				right = points[turns[j][0]]
 				break
-		triangles.append(PackedVector2Array([left, points[turn[0]], right]))
+		var apex: Vector2 = points[turn[0]]
+		if (left - apex).normalized().dot((right - apex).normalized()) < cos(deg_to_rad(50.0)):
+			continue  # an apex wider than 50 degrees is a triangle, not an icicle
+		triangles.append(PackedVector2Array([left, apex, right]))
 	return triangles
 
 

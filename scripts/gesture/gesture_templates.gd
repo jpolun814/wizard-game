@@ -51,7 +51,7 @@ static func preview_points(gesture: String) -> PackedVector2Array:
 		"volcano":
 			return recognizer_templates()["mountain"]
 		"icicles":
-			return PackedVector2Array([Vector2(-40, -40), Vector2(0, 30), Vector2(40, -40)])
+			return PackedVector2Array([Vector2(-25, -50), Vector2(0, 30), Vector2(25, -50)])
 		"snowfall":
 			return _star_and_line()
 		"circle_push":

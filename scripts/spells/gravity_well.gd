@@ -6,7 +6,7 @@ extends Node2D
 ## for your other spells. The wider the spiral, the farther it reaches.
 
 const LIFE := 2.4
-const PULL := 900.0          # pull strength at the middle; it weakens toward the edge
+const PULL := 2250.0         # pull strength at the middle; it weakens toward the edge
 const SWALLOW_RADIUS := 0.55 # shots this far in (as a share of the reach) are swallowed
 const MIN_REACH := 70.0
 const MAX_REACH := 210.0
@@ -73,11 +73,7 @@ func _pull(delta: float) -> void:
 			continue
 		var strength := PULL * (1.0 - distance / reach * 0.7)
 		var force := to_middle.normalized() * strength
-		if body.is_in_group("mobs"):
-			body.pull(force, delta)
-		else:
-			var share := 0.45 if team == "player" else 0.7
-			body.push(to_middle.normalized() * strength * share * 0.35)
+		body.pull(force, delta)
 
 
 ## Enemy shots and the other side's spells that come close spiral in and are gone.

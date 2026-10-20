@@ -48,6 +48,7 @@ var root_time := 0.0          # no walking or jumping while above zero
 var blind_time := 0.0         # the caster's gesture trail is hidden while above zero
 var dead := false
 var _shield_time := 0.0
+var _frozen_time := 0.0  # frozen in ice: rooted, and shattered out of it by Force or Earth
 var _since_spend := 0.0
 var _facing := 1.0
 var _flash := 0.0        # red flash after being hit
@@ -115,7 +116,7 @@ func _ready() -> void:
 
 ## Where the wizard's mouth is, for Fire Breath.
 func mouth() -> Vector2:
-	return global_position + Vector2(8.0 * _facing, -62.0)
+	return global_position + Vector2(26.0 * _facing, -56.0)  # at the front of the wizard, around the face
 
 
 ## The middle of the wizard's body, relative to its feet.
@@ -135,6 +136,23 @@ func raise_shield(seconds: float) -> void:
 
 func has_shield() -> bool:
 	return _shield_time > 0.0
+
+
+## Encases the player in ice: rooted for the same time an enemy stays frozen. A Barrier stops it.
+func freeze(seconds: float) -> bool:
+	if has_shield():
+		return false
+	_frozen_time = maxf(_frozen_time, seconds)
+	root_time = maxf(root_time, seconds)
+	return true
+
+
+func is_frozen() -> bool:
+	return _frozen_time > 0.0
+
+
+func thaw() -> void:
+	_frozen_time = 0.0
 
 
 ## Spend stamina if there is enough. Returns false and spends nothing otherwise.
@@ -165,8 +183,8 @@ func heal(amount: int) -> void:
 
 ## A hit takes health and then gives a short grace, in which no other hit lands. A burn (grace_hit false) takes
 ## health without starting that grace, so a burn and a blow can both land.
-func take_damage(amount: int, grace_hit := true) -> void:
-	if _shield_time > 0.0 or dead or (grace_hit and _grace > 0.0) or amount <= 0:
+func take_damage(amount: int, grace_hit := true, projectile := false) -> void:
+	if (projectile and _shield_time > 0.0) or dead or (grace_hit and _grace > 0.0) or amount <= 0:
 		return
 	hp -= amount
 	_flash = 0.3
@@ -256,6 +274,7 @@ func _draw_shield() -> void:
 
 func _physics_process(delta: float) -> void:
 	_shield_time -= delta
+	_frozen_time -= delta
 	_grace -= delta
 	_shield_emitter.emitting = _shield_time > 0.0
 	mute_time -= delta
@@ -351,6 +370,10 @@ func grant_unlimited(seconds: float) -> void:
 
 
 ## A Push on the caster: they are shoved along the line for a moment.
+func pull(force: Vector2, delta: float) -> void:
+	_shove += force * delta
+
+
 func push(impulse: Vector2) -> void:
 	_shove = impulse
 
