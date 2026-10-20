@@ -163,13 +163,16 @@ func heal(amount: int) -> void:
 	hp = mini(hp + amount, MAX_HP)
 
 
-func take_damage(amount: int) -> void:
-	if _shield_time > 0.0 or dead or _grace > 0.0 or amount <= 0:
+## A hit takes health and then gives a short grace, in which no other hit lands. A burn (grace_hit false) takes
+## health without starting that grace, so a burn and a blow can both land.
+func take_damage(amount: int, grace_hit := true) -> void:
+	if _shield_time > 0.0 or dead or (grace_hit and _grace > 0.0) or amount <= 0:
 		return
 	hp -= amount
 	_flash = 0.3
 	_hurt_anim = 0.25
-	_grace = HURT_GRACE
+	if grace_hit:
+		_grace = HURT_GRACE
 	Sfx.play("player_hurt", center())
 	GameCamera.shake_scene(get_tree(), 0.35 + amount * 0.02)
 	FloatText.spawn(get_parent(), center() + Vector2(0, -24), "-%d" % amount, Color("#ff5a5a"), 1.1)

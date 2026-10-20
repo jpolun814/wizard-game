@@ -15,7 +15,7 @@ const KINDS := {
 	"force_melee": {"name": "Melee Force", "desc": "A plain walker that hits hard enough to send you flying.", "role": "melee", "art": "skeleton", "hp": 30, "school": "Force", "weak": "", "resist": "", "damage": 8, "speed": 1.0, "effect": "big_knockback"},
 	"force_ranged": {"name": "Ranged Force", "desc": "Fires plain orbs from a distance.", "role": "ranged", "art": "goblin", "hp": 24, "school": "Force", "weak": "", "resist": "", "damage": 0, "speed": 1.0, "effect": "", "shot": {"interval": 2.2, "damage": 6}},
 	"force_flyer": {"name": "Flying Force", "desc": "A plain flier that swoops down at you.", "role": "flyer", "art": "eye", "hp": 22, "school": "Force", "weak": "", "resist": "", "damage": 6, "speed": 1.0, "effect": ""},
-	"fire_melee": {"name": "Melee Fire", "desc": "Leaves a trail of fire as it walks.", "role": "melee", "art": "skeleton", "hp": 30, "school": "Fire", "weak": "Ice", "resist": "Fire", "damage": 8, "speed": 1.0, "effect": "fire_trail"},
+	"fire_melee": {"name": "Melee Fire", "desc": "Burns as it walks. Touching it sets you alight.", "role": "melee", "art": "skeleton", "hp": 30, "school": "Fire", "weak": "Ice", "resist": "Fire", "damage": 8, "speed": 1.0, "effect": "fire_trail"},
 	"fire_ranged": {"name": "Ranged Fire", "desc": "Hurls fireballs at you.", "role": "ranged", "art": "goblin", "hp": 24, "school": "Fire", "weak": "Ice", "resist": "Fire", "damage": 0, "speed": 1.0, "effect": "", "shot": {"interval": 2.4, "damage": 8, "art": "fireball"}},
 	"fire_flyer": {"name": "Flying Fire", "desc": "Drops fireballs while it flies over you.", "role": "flyer", "art": "eye", "hp": 22, "school": "Fire", "weak": "Ice", "resist": "Fire", "damage": 6, "speed": 1.0, "effect": "", "shot": {"interval": 1.4, "damage": 6, "drop": true}},
 	"ice_melee": {"name": "Melee Ice", "desc": "Leaves falling snow that slows you.", "role": "melee", "art": "skeleton", "hp": 34, "school": "Ice", "weak": "Fire", "resist": "Ice", "damage": 6, "speed": 0.9, "effect": "frost_trail"},
@@ -46,7 +46,6 @@ const SPIT_STAND_RANGE := 300.0 # and stops walking once it is this close
 const FLY_SPEED := 120.0        # how fast a flyer drifts while it patrols
 const DIVE_SPEED := 340.0       # how fast a flyer dives at you
 const RETREAT_SPEED := 240.0    # how fast it flies away after a dive
-const FIRE_TRAIL_INTERVAL := 0.2  # short enough that each patch of the trail overlaps the last
 const FROST_TRAIL_INTERVAL := 0.8
 const SPAWN_TIME := 0.7         # enemies fade in over a summoning circle and cannot act until it is done
 const PATROL := 0
@@ -101,6 +100,8 @@ var _charge := 0.0       # counting down to a shot
 var _flash := 0.0
 var _spawn := SPAWN_TIME
 var _trail_timer := 0.0
+var _touch_timer := 0.0  # between the burns a fire walker gives to whoever touches it
+const TOUCH_BURN := 6
 var _fly_state := PATROL
 var _fly_timer := 2.0
 var _fly_goal_x := 0.0
@@ -118,6 +119,8 @@ const ICE := preload("res://art/props/ice_fill.png")
 func _ready() -> void:
 	add_to_group("mobs")
 	var data: Dictionary = KINDS[kind]
+	if data_effect_is_fire():
+		_set_alight()
 	max_hp = data.get("hp", 30)
 	hp = max_hp
 	_overlay = Node2D.new()
@@ -266,16 +269,18 @@ func _walk(delta: float) -> void:
 		elif is_on_wall():
 			velocity.y = MOB_JUMP
 	move_and_slide()
+	# Touching a burning walker sets you alight, whether or not it is attacking.
+	if data_effect_is_fire() and player and not player.dead:
+		_touch_timer -= delta
+		if _touch_timer <= 0.0 and player.center().distance_to(center()) < 34.0:
+			_touch_timer = 0.6
+			player.take_damage(TOUCH_BURN, false)  # a burn never blocks a sword blow, nor is blocked by one
 	# Some melee enemies leave something behind as they walk.
 	if is_on_floor() and absf(velocity.x) > 5.0:
 		_trail_timer -= delta
-		if _trail_timer <= 0.0 and data["effect"] in ["fire_trail", "frost_trail"]:
-			var fire: bool = data["effect"] == "fire_trail"
-			_trail_timer = FIRE_TRAIL_INTERVAL if fire else FROST_TRAIL_INTERVAL
-			if fire:
-				Hazard.place(get_parent(), global_position, "fire", 26.0, 3.0)
-			else:
-				_leave_snow()
+		if _trail_timer <= 0.0 and data["effect"] == "frost_trail":
+			_trail_timer = FROST_TRAIL_INTERVAL
+			_leave_snow()
 	if shooter and player:
 		_update_shooter(delta, distance, sees, data["shot"])
 	if data["role"] == "melee" and player:
@@ -803,3 +808,17 @@ func blink_to(point: Vector2) -> void:
 	global_position = point
 	velocity = Vector2.ZERO
 	Fx.pop(get_parent(), center(), "twirl_02", colour, 30.0, 0.3, 2.0, -6.0)
+
+
+func data_effect_is_fire() -> bool:
+	return KINDS[kind]["effect"] == "fire_trail"
+
+
+## A burning walker: one flame, tall enough to cover its whole body, stands on it and moves with it.
+func _set_alight() -> void:
+	var flame := PixelFx.sprite("fire_wall", 14.0)
+	flame.scale = Vector2.ONE * 3.0  # three times the size, so the fire rises round the whole body
+	# The flame's bottom sits on the walker's feet (its origin), and it is drawn behind the walker.
+	flame.position = Vector2(0, -PixelArt.FX["fire_wall"]["size"].y * 0.5 * flame.scale.y + 55.0)  # 55: the feet sit this far below the origin
+	flame.z_index = -1
+	add_child(flame)
