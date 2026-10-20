@@ -88,6 +88,7 @@ func _physics_process(delta: float) -> void:
 			else:
 				body.push(Vector2(tangent.x * SWIRL_SPEED * 0.6, -160.0))
 	_turn_far_side_shots()
+	_blow_clouds(delta)
 	if _age >= LIFE:
 		queue_free()
 
@@ -134,3 +135,32 @@ func _inside(point: Vector2) -> bool:
 		if band.has_point(point - global_position):
 			return true
 	return false
+
+
+## The wind dissipates storm clouds and Blizzard snow that pass through it: they thin away and are gone.
+func _blow_clouds(_delta: float) -> void:
+	for node in get_parent().get_children():
+		var is_cloud: bool = node is StormCloud or (node is SpellEffect and node.spell == "Blizzard")
+		if not is_cloud or node.has_meta("dissipating"):
+			continue
+		if not _over_cloud(node):
+			continue
+		node.set_meta("dissipating", true)
+		var fade := node.create_tween()
+		fade.tween_property(node, "modulate:a", 0.0, 1.2)
+		fade.tween_callback(node.queue_free)
+
+
+## True when the funnel is in or under a cloud or snow, whichever part of it is wide.
+func _over_cloud(node: Node2D) -> bool:
+	var left: float
+	var right: float
+	if node is StormCloud:
+		left = node.global_position.x - node.width * 0.5 - 40.0
+		right = node.global_position.x + node.width * 0.5 + 40.0
+	else:
+		left = node.global_position.x - 40.0
+		right = node.global_position.x + node.polygon[2].x + 40.0
+	var top := node.global_position.y - 220.0
+	var bottom := node.global_position.y + 140.0
+	return global_position.x >= left and global_position.x <= right and global_position.y >= top and global_position.y <= bottom

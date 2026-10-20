@@ -22,6 +22,12 @@ func shake(amount: float) -> void:
 	_trauma = minf(_trauma + amount, 1.0)
 
 
+## How far the screen is moving right now, in pixels: the same amount a stroke drawn on the ground is nudged by.
+static func shake_px(tree: SceneTree) -> float:
+	var camera := tree.get_first_node_in_group("game_camera") as GameCamera
+	return camera._trauma * camera._trauma * MAX_OFFSET if camera else 0.0
+
+
 ## Shakes the camera in the current scene, if there is one. Call it from anywhere.
 static func shake_scene(tree: SceneTree, amount: float) -> void:
 	var camera := tree.get_first_node_in_group("game_camera") as GameCamera

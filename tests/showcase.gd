@@ -205,7 +205,7 @@ func _plan_spells() -> void:
 		["Volcano", func() -> PackedVector2Array: return _stroke("volcano", ahead.call(200, -60), 0.9)],
 		["Fire Breath", func() -> PackedVector2Array: return _stroke("cone", ahead.call(60, -26), 1.0)],
 		["Icicles", func() -> PackedVector2Array: return _stroke("icicles", ahead.call(160, -40), 1.0)],
-		["Snowfall", func() -> PackedVector2Array: return _stroke("snowfall", ahead.call(150, -90), 1.0)],
+		["Blizzard", func() -> PackedVector2Array: return _stroke("snowfall", ahead.call(150, -90), 1.0)],
 		["Ice Prison", func() -> PackedVector2Array: return _stroke("circle", ahead.call(170, -26), 0.8)],
 		["Push", func() -> PackedVector2Array:
 			var pts := PackedVector2Array()

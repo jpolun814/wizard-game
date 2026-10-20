@@ -14,13 +14,14 @@ const ALIASES := {"line": "flick", "zig_tall": "zigzag", "funnel": "tornado", "m
 static func recognizer_templates() -> Dictionary:
 	return {
 		"line": PackedVector2Array([Vector2(0, 0), Vector2(100, 0)]),
+		"earthquake": _three_peaks(),
 		"circle_cw": _ring(false),
 		"circle_ccw": _ring(true),
 		"zig_tall": PackedVector2Array([Vector2(0, 0), Vector2(-40, 40), Vector2(0, 80), Vector2(-40, 120)]),
 		"stonefall": _circle_and_drop(),
 		"cross": PackedVector2Array([Vector2(0, 0), Vector2(100, 100), Vector2(50, 50), Vector2(100, 0), Vector2(0, 100)]),
 		"funnel": PackedVector2Array([Vector2(-50, -40), Vector2(50, -40), Vector2(0, 50), Vector2(-50, -40)]),
-		"mountain": PackedVector2Array([Vector2(-50, 40), Vector2(0, -50), Vector2(50, 40), Vector2(-50, 40)]),
+		"mountain": PackedVector2Array([Vector2(-50, 40), Vector2(0, -50), Vector2(50, 40), Vector2(0, 40), Vector2(0, -50)]),  # a peak, its base, and the vent up through its middle
 	}
 
 
@@ -51,7 +52,7 @@ static func preview_points(gesture: String) -> PackedVector2Array:
 		"volcano":
 			return recognizer_templates()["mountain"]
 		"icicles":
-			return PackedVector2Array([Vector2(-25, -50), Vector2(0, 30), Vector2(25, -50)])
+			return PackedVector2Array([Vector2(-25, 50), Vector2(0, -30), Vector2(25, 50)])
 		"snowfall":
 			return _star_and_line()
 		"circle_push":
@@ -64,6 +65,8 @@ static func preview_points(gesture: String) -> PackedVector2Array:
 			return _spiral(60.0, 2.0)
 		"cloud":
 			return _cloud(4, 160.0, 26.0)
+		"earthquake":
+			return _three_peaks()
 		"pit":
 			return _pit(90.0, 60.0)
 		"cone":
@@ -164,3 +167,8 @@ static func _pit(width: float, depth: float) -> PackedVector2Array:
 		var a := PI - PI * i / 24.0
 		pts.append(Vector2(cos(a) * width * 0.5, sin(a) * depth))
 	return pts
+
+
+## Three mountain peaks along the ground: up and down, three times.
+static func _three_peaks() -> PackedVector2Array:
+	return PackedVector2Array([Vector2(-60, 0), Vector2(-45, -30), Vector2(-30, 0), Vector2(-15, -30), Vector2(0, 0), Vector2(15, -30), Vector2(30, 0), Vector2(45, -30), Vector2(60, 0)])

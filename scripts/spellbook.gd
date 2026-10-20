@@ -148,6 +148,13 @@ class Preview extends Control:
 		ground = ground_y
 		custom_minimum_size = Vector2.ONE * 72.0
 
+	# The stroke is drawn out again and again, as if the wizard were casting it: it traces itself, then rests with its arrow.
+	var _clock := 0.0
+
+	func _process(delta: float) -> void:
+		_clock += delta
+		queue_redraw()
+
 	## The point halfway along a stroke (by length) and the direction of travel there.
 	func _halfway(path: PackedVector2Array) -> Array:
 		var total := 0.0
@@ -184,10 +191,12 @@ class Preview extends Control:
 			for x in range(10, int(box) - 6, 6):
 				draw_line(Vector2(x, gy), Vector2(x - 4.0, gy + 5.0), Spellbook.PAPER_DARK, 1.0, true)
 		# The ink: a soft wash underneath, then the line itself and a fainter second pass for a hand-drawn edge.
-		draw_polyline(drawn, Color(Spellbook.INK, 0.18), 5.0, true)
-		draw_polyline(drawn, Spellbook.INK, 2.2, true)
+		var shown := clampf(fmod(_clock, 3.2) / 1.8, 0.0, 1.0)  # the stroke traces itself over 1.8 s, then rests
+		var traced := drawn.slice(0, maxi(2, int(drawn.size() * shown)))
+		draw_polyline(traced, Color(Spellbook.INK, 0.18), 5.0, true)
+		draw_polyline(traced, Spellbook.INK, 2.2, true)
 		var offset := PackedVector2Array()
-		for p in drawn:
+		for p in traced:
 			offset.append(p + Vector2(0.8, -0.6))
 		draw_polyline(offset, Color(Spellbook.HEADING, 0.55), 1.0, true)
 		draw_circle(drawn[0], 3.0, Spellbook.INK)
@@ -209,14 +218,14 @@ class Preview extends Control:
 				break
 		var heading := (tip - back).normalized()
 		var closed := drawn[0].distance_to(tip) < 0.25 * maxf(extent * scale_to, 1.0)
-		if closed:
+		if closed and shown >= 1.0:
 			# A loop has no end to point at, so its arrow sits halfway round, pointing the way the loop is drawn.
 			var half := _halfway(drawn)
 			var along: Vector2 = (half[1] as Vector2).normalized()
 			var mid: Vector2 = half[0]
 			draw_line(mid, mid - along.rotated(0.5) * 7.0, Spellbook.INK, 2.2, true)
 			draw_line(mid, mid - along.rotated(-0.5) * 7.0, Spellbook.INK, 2.2, true)
-		if heading != Vector2.ZERO and not closed:
+		if heading != Vector2.ZERO and not closed and shown >= 1.0:
 			var base := tip - heading * 7.0
 			draw_line(tip, base + heading.orthogonal() * 3.5, Spellbook.INK, 2.2, true)
 			draw_line(tip, base - heading.orthogonal() * 3.5, Spellbook.INK, 2.2, true)

@@ -33,6 +33,9 @@ var _puffs: Array = []     # each is {pos, vel, age, life, size, stopped}
 
 func _ready() -> void:
 	spread = clampf(spread, MIN_SPREAD, MAX_SPREAD)
+	# A breath cast the other way turns the wizard round to face it.
+	if is_instance_valid(caster_node) and caster_node.is_in_group("player") and absf(cos(aim)) > 0.2:
+		caster_node.set("_facing", signf(cos(aim)))
 	reach = clampf(reach, MIN_REACH, MAX_REACH)
 	# Drawn as solid colour, not light, so the flames stay orange against any backdrop. The puffs live in world
 	# space, so this node stays at the world's origin.

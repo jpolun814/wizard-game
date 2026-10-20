@@ -140,6 +140,7 @@ func _add_mob(kind: String, feet: Vector2) -> Node2D:
 
 ## Once a wave is cleared, a portal opens at the far end of the map. Walking through it brings the next wave, in a new map.
 func _on_wave_cleared() -> void:
+	get_tree().call_group("lasting", "queue_free")  # clouds, mud, ice, snow and volcanoes end with the wave
 	_portal = Portal.new()
 	var far_right: bool = player.global_position.x < 0.0
 	var col := ArenaGen.RIGHT_WALL - 3 if far_right else ArenaGen.LEFT_WALL + 3
@@ -297,6 +298,9 @@ func _earth_texture() -> Texture2D:
 func spawn_spell(spell: String, targeting: String, origin: Vector2, aim: float, info: Dictionary, caster_node: Node2D, team: String) -> void:
 	var from: Vector2 = caster_node.center()
 	match spell:
+		"Earthquake":
+			add_child(EarthquakeEffect.new())
+			return
 		"Barrier":
 			# Barrier wraps the caster rather than appearing somewhere in the world.
 			caster_node.raise_shield(BARRIER_SECONDS)
@@ -383,15 +387,20 @@ func _place_shapes(spell: String, info: Dictionary, team: String) -> void:
 	match spell:
 		"Icicles":
 			for tri in info["shapes"]:
-				var middle: Vector2 = (tri[0] + tri[1] + tri[2]) / 3.0
+				# An icicle hangs from its point, which is the lowest corner. Never under the ground: one that would sink in is
+				# lifted until its point stands on the surface.
+				var by_height: Array = Array(tri)
+				by_height.sort_custom(func(a: Vector2, b: Vector2) -> bool: return a.y > b.y)
+				var base: Vector2 = (by_height[0] + by_height[1]) * 0.5  # the wide base, on the lowest edge
+				var lift := SpellTargets.surface_over(get_world_2d(), base).y + 6.0 - base.y  # the base sits just under the surface, hidden by the ground
 				var local := PackedVector2Array()
 				for p in tri:
-					local.append(p - middle)
+					local.append(p - base)
 				var effect := SpellEffect.new()
 				effect.team = team
 				add_child(effect)
 				effect.polygon = local
-				effect.setup(spell, middle, 0.0)
+				effect.setup(spell, base + Vector2(0, lift), 0.0)
 		"Tornado":
 			var tornado := Tornado.new()
 			tornado.team = team
@@ -402,7 +411,7 @@ func _place_shapes(spell: String, info: Dictionary, team: String) -> void:
 			volcano.team = team
 			volcano.position = SpellTargets.surface_over(get_world_2d(), centre)  # always on the surface, never under it
 			add_child(volcano)
-		"Snowfall":
+		"Blizzard":
 			var left := line[0].x
 			var right := line[0].x
 			for p in line:

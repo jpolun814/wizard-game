@@ -5,7 +5,7 @@ extends Node2D
 ## walks into it is dragged down: slowed to a crawl and hurt a little at a time. Flyers pass over it untouched.
 ## A wider U makes a wider pit.
 
-const LIFE := 5.0
+const LIFE := 99999.0  # the mud stays until the wave ends
 const TICK := 0.5
 const MIN_WIDTH := 60.0
 const MAX_WIDTH := 240.0
@@ -29,6 +29,7 @@ func _ready() -> void:
 		var x := lerpf(-width * 0.5, width * 0.5, float(i) / (SAMPLES - 1))
 		_surface[i] = SpellTargets.solid_below(get_world_2d(), global_position + Vector2(x, -40)).y - global_position.y
 	add_to_group("danger")
+	add_to_group("lasting")
 	z_index = 1
 	texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
 	Sfx.play("quicksand", global_position, -4.0)

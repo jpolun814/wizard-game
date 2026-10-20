@@ -317,8 +317,9 @@ func _attack(to_player: Vector2, sees: bool) -> bool:
 		"Mudslide": 1.1 if grounded and not stuck else 0.0,
 		"Gravity Well": (0.4 + _pressure * 0.4) if gap < 300.0 else 0.0,
 		"Firewall": 1.6 if closing and gap < 280.0 and gap > 90.0 else 0.0,
-		"Snowfall": 0.4 if grounded else 0.0,
+		"Blizzard": 0.4 if grounded else 0.0,
 		"Fire Breath": 1.8 if gap < 240.0 else 0.0,
+		"Earthquake": 1.5 if grounded and gap < 300.0 and _own_walkers_near(300.0) < 2 else 0.0,
 	}
 	if _sheltered():
 		# Under a platform: lightning from above cannot reach you.
@@ -394,6 +395,9 @@ func _attack_stroke(spell_name: String) -> PackedVector2Array:
 			return _offset(GestureTemplates.preview_points("cloud"), Vector2(x, player.center().y - 160.0), 1.0)
 		"Ice Prison":
 			return _offset(GestureTemplates.preview_points("circle"), _predict(ATTACK_DRAW * 0.6), 0.8)
+		"Earthquake":
+			# Drawn in the air above the middle of the fight, where the peaks read clearly.
+			return _offset(GestureTemplates.preview_points("earthquake"), Vector2(_predict(ATTACK_DRAW * 0.6).x, player.center().y - 120.0), 1.0)
 		"Mudslide":
 			var x := _predict(ATTACK_DRAW * 0.6).x
 			return _offset(GestureTemplates.preview_points("pit"), Vector2(x, feet.y - 60.0), 1.0)
@@ -408,7 +412,7 @@ func _attack_stroke(spell_name: String) -> PackedVector2Array:
 		"Firewall":
 			var x: float = lerpf(mob.global_position.x, player.global_position.x, 0.5)
 			return _line(Vector2(x, feet.y - 110.0), Vector2(x, feet.y - 20.0))
-		"Snowfall":
+		"Blizzard":
 			return _offset(GestureTemplates.preview_points("snowfall"), Vector2(feet.x - 30.0, player.center().y - 70.0), 0.8)
 		"Fire Breath":
 			return _breath_stroke()
@@ -503,3 +507,15 @@ func _pick(weights: Dictionary) -> String:
 		if roll <= 0.0 and weights[key] > 0.0:
 			return key
 	return ""
+
+
+## How many of the wizard's own walkers stand within reach of the player: an earthquake would shake them too.
+func _own_walkers_near(reach: float) -> int:
+	var count := 0
+	var target: Node2D = mob.player
+	for other in mob.get_tree().get_nodes_in_group("mobs"):
+		if other == mob or other.is_dead() or other.kind == "dark_wizard" or other.KINDS[other.kind]["role"] == "flyer":
+			continue
+		if other.center().distance_to(target.center()) < reach:
+			count += 1
+	return count

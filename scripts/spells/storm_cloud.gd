@@ -5,7 +5,7 @@ extends Node2D
 ## rains, and every second it flickers and strikes everyone beneath it with lightning: foes, and you too if you stand
 ## under it. A wider cloud covers more ground and costs more.
 
-const LIFE := 6.0
+const LIFE := 99999.0  # the cloud stays until the wave ends
 const STRIKE_EVERY := 1.0
 const WARNING := 0.3     # the cloud flickers this long before each strike
 const DAMAGE := 10
@@ -24,6 +24,7 @@ const CLOUDS := [preload("res://art/props/cloud_storm_big.png"), preload("res://
 
 
 func _ready() -> void:
+	add_to_group("lasting")
 	width = clampf(width, MIN_WIDTH, MAX_WIDTH)
 	add_to_group("danger")
 	z_index = 4

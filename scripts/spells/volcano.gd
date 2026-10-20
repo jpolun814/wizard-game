@@ -6,7 +6,9 @@ extends Node2D
 ## a while, and burns whatever is standing there. All of it is pixel art: the rock from the cemetery, the flames
 ## and fireballs from the effect strips.
 
-const LIFE := 4.5
+const ERUPT_SECONDS := 3.0  # how long it erupts each time
+const DORMANT_MIN := 15.0  # how long it sleeps between eruptions, at least and at most
+const DORMANT_MAX := 45.0
 const ERUPT_INTERVAL := 0.45
 const GRAVITY := 900.0
 const LAVA_DAMAGE := 12
@@ -17,6 +19,9 @@ const CRATER_Y := -70.0  # the top of the mountain's crater, in its own picture:
 
 var team := "player"
 var _age := 0.0
+var _erupting := true  # it erupts for a while, then sleeps for a while, until the wave ends
+var _phase := ERUPT_SECONDS  # time left in the current eruption or sleep
+var _vent: AnimatedSprite2D
 var _erupt := 0.0
 var _lean := 0.0  # the slope the volcano stands on; its vent, crater and fire lean the same way
 var _balls: Array = []  # each lava ball is {"pos": world position, "vel": velocity}
@@ -43,7 +48,7 @@ func _ready() -> void:
 	_lean = _slope()  # the mountain leans with the ground it stands on
 	_mound.rotation = _lean
 	# Sunk far enough that the lowest corner of the tilted mountain still sits below the ground line.
-	_mound.position = Vector2(0, 2.0 + absf(sin(_lean)) * _mound.texture.get_width() * 0.5)
+	_mound.position = Vector2(0, _seat_y() - global_position.y - 1.0)
 	_mound.z_index = -1  # a layer behind the ground, so the mountain sits in the earth rather than on it
 	add_child(_mound)
 	create_tween().tween_property(_mound, "scale:y", 1.0, 0.25).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
@@ -55,14 +60,20 @@ func _ready() -> void:
 	vent.rotation = _lean
 	vent.z_index = 1
 	add_child(vent)
-	create_tween().tween_property(vent, "modulate:a", 0.0, 0.5).set_delay(LIFE - 0.4)
+	_vent = vent
+	add_to_group("lasting")
 	_ball_frames = PixelFx.frames("fireball", 18.0, true)
 
 
 func _physics_process(delta: float) -> void:
 	_age += delta
 	_erupt -= delta
-	if _age < LIFE and _erupt <= 0.0:
+	_phase -= delta
+	if _phase <= 0.0:
+		_erupting = not _erupting
+		_phase = ERUPT_SECONDS if _erupting else randf_range(DORMANT_MIN, DORMANT_MAX)
+		_vent.visible = _erupting
+	if _erupting and _erupt <= 0.0:
 		_erupt = ERUPT_INTERVAL
 		_balls.append({"pos": global_position + _crater(0.0), "vel": Vector2(randf_range(-180.0, 180.0), -480.0).rotated(_lean), "age": 0.0})
 		Fx.smoke(get_parent(), global_position + _crater(-20.0), Color(0.2, 0.17, 0.17, 0.6), 2, 26.0, 60.0)
@@ -79,12 +90,6 @@ func _physics_process(delta: float) -> void:
 	_balls = flying
 	queue_redraw()
 	_glow.queue_redraw()
-	if _age >= LIFE and _balls.is_empty() and _mound.scale.y > 0.99:
-		# The mound sinks back into the ground before it goes.
-		var tween := create_tween()
-		tween.tween_property(_mound, "scale:y", 0.0, 0.3)
-		tween.tween_callback(queue_free)
-		set_physics_process(false)
 
 
 ## Where a lava ball crosses the ground between two points, or Vector2.INF if it does not.
@@ -106,7 +111,7 @@ func _land(point: Vector2) -> void:
 
 ## The mountain and the ground round it are dangerous while it erupts.
 func danger_at(point: Vector2) -> bool:
-	return _age < LIFE and absf(point.x - global_position.x) < 110.0 and point.y > global_position.y - 120.0
+	return _erupting and absf(point.x - global_position.x) < 110.0 and point.y > global_position.y - 120.0
 
 
 ## The fireballs in flight, each turned along its path.
@@ -122,17 +127,30 @@ func _draw() -> void:
 
 ## The light the eruption throws: a glow over the crater, and one round each fireball.
 func _draw_glow() -> void:
-	if _age < LIFE:
+	if _erupting:
 		_glow.draw_circle(_crater(0.0), 30.0 + 4.0 * sin(_age * 6.0), Color(1.0, 0.45, 0.15, 0.12))
 	for ball in _balls:
 		Fx.draw_glow(_glow, ball["pos"] - global_position, 16.0, Color(1.0, 0.5, 0.15, 0.4))
 
 
-## The angle of the ground under the volcano, from the surface either side of its foot.
+## The angle of the ground under the volcano, from the surface under either bottom corner of its picture.
 func _slope() -> float:
-	var left := SpellTargets.solid_below(get_world_2d(), global_position + Vector2(-40, -40))
-	var right := SpellTargets.solid_below(get_world_2d(), global_position + Vector2(40, -40))
-	return atan2(right.y - left.y, right.x - left.x)
+	var left := SpellTargets.solid_below(get_world_2d(), global_position + Vector2(-_half_width(), -40))
+	var right := SpellTargets.solid_below(get_world_2d(), global_position + Vector2(_half_width(), -40))
+	return atan2(right.y - left.y, 2.0 * _half_width())
+
+
+## The height (world y) its bottom edge must sit at so that both bottom corners are on or under the ground.
+func _seat_y() -> float:
+	var half := _half_width()
+	var left := SpellTargets.solid_below(get_world_2d(), global_position + Vector2(-half, -40))
+	var right := SpellTargets.solid_below(get_world_2d(), global_position + Vector2(half, -40))
+	var drop := sin(_lean) * half
+	return maxf(left.y + drop, right.y - drop) + 2.0
+
+
+func _half_width() -> float:
+	return _mound.texture.get_width() * 0.5
 
 
 ## A point above the crater (lift is how far above the top of the mountain). The crater moves with the mountain: it is

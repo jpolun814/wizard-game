@@ -408,7 +408,7 @@ func _shoot(shot: Dictionary) -> void:
 			# Lob it so it comes down on the player: aim above them by how far the arc will drop.
 			var flight := origin.distance_to(aim) / EnemyBolt.SPEED
 			target = aim + Vector2(0, -0.5 * gravity * flight * flight)
-		EnemyBolt.fire(get_parent(), origin, target, colour, shot["damage"], gravity, shot.get("slow", false), shot.get("art", "magic_bolt"))
+		EnemyBolt.fire(get_parent(), origin, _quake_target(origin, target), colour, shot["damage"], gravity, shot.get("slow", false), shot.get("art", "magic_bolt"))
 	Sfx.play("mob_shoot", origin)
 
 
@@ -709,7 +709,7 @@ func _leave_snow() -> void:
 	snow.team = "enemy"
 	snow.polygon = PackedVector2Array([Vector2(0, -60), Vector2(40, -60), Vector2(40, 60), Vector2(0, 60)])
 	get_parent().add_child(snow)
-	snow.setup("Snowfall", center() + Vector2(-20, 0), 0.0)
+	snow.setup("Blizzard", center() + Vector2(-20, 0), 0.0)
 
 
 ## True when solid terrain lies between two points. Flyers use it to stay out of stone and walls.
@@ -828,3 +828,10 @@ func _set_alight() -> void:
 	flame.position = Vector2(0, -PixelArt.FX["fire_wall"]["size"].y * 0.5 * flame.scale.y + 55.0)  # 55: the feet sit this far below the origin
 	flame.z_index = -1
 	add_child(flame)
+
+
+## While the ground shakes, a shooter's aim is turned a few degrees off its mark.
+func _quake_target(origin: Vector2, target: Vector2) -> Vector2:
+	if not EarthquakeEffect.active:
+		return target
+	return origin + (target - origin).rotated(deg_to_rad(randf_range(-EarthquakeEffect.AIM_DEGREES, EarthquakeEffect.AIM_DEGREES)))

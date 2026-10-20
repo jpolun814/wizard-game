@@ -627,6 +627,13 @@ func _extent(points: PackedVector2Array) -> Vector2:
 
 ## Casts a stroke that was not drawn with the mouse, such as a dark wizard's. It resolves exactly like a drawn one.
 func cast_stroke(mask: int, points: PackedVector2Array) -> void:
+	if EarthquakeEffect.active:
+		# Shaken ground shakes a hand: each point is nudged by the screen's shake, as the player's are.
+		var px := GameCamera.shake_px(get_tree())
+		var shaken := PackedVector2Array()
+		for p in points:
+			shaken.append(p + Vector2(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)) * px)
+		points = shaken
 	_stroke = points
 	_origin = points[0]
 	_active_mask = mask

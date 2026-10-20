@@ -21,10 +21,17 @@ const SPARK_SKY := 420.0  # the strike starts this far above where it lands
 const KNOCK_SPEED := 700.0
 const SLOW_SECONDS := 2.0
 const FIREBALL_KNOCK := 420.0  # how hard a fireball pushes what it hits
-const ICICLE_LIFE := 4.0  # an icicle stands this long, then melts
+const ICICLE_LIFE := 99999.0  # an icicle stands until the wave ends, or fire melts it
 const ICICLE_TICK := 0.5
 const ICICLE_DAMAGE := 6
-const SNOW_LIFE := 6.0
+const MELT_TICK := 0.5  # fire takes a slice off an icicle this often
+const MELT_STEP := 0.25  # and each slice is this share of its height
+const PILE_GROW := 2.0  # snow lands on the ground at this many pixels a second, up to PILE_MAX
+const REPOSE := 4.0  # how steep a heap of snow can be before it slides, in pixels of height per column
+const MELT_RADIUS := 40.0  # fire melts snow this far from itself
+const PILE_MELT := 35.0  # fire melts the pile at this many pixels a second
+const SNOW_STEP := 6.0  # how often the ground under the snow is checked, in pixels
+const SNOW_LIFE := 99999.0  # the snow falls until the wave ends
 const STONE_WALL_LENGTH := 140.0  # a wall drawn without a length of its own
 const STONE_WALL_MIN := 60.0
 const STONE_WALL_MAX := 240.0
@@ -51,6 +58,12 @@ var wall_texture: Texture2D  # the biome's earth, set by the arena for a Stone W
 var _wall_stages: Array[Texture2D] = []  # the wall as it is whole, part crumbled and mostly crumbled
 var _health := 0.0
 var _max_health := 0.0
+var _melt_time := 0.0
+var _pile := PackedFloat32Array()
+var _pile_body: StaticBody2D  # the landed snow is solid: it can be walked on
+var _pile_shapes: Array = []
+var _pile_timer := 0.0  # how deep the landed snow is in each stretch of the ground under the line
+var _snow_floors := PackedFloat32Array()  # the ground under the line, every few pixels, so the snow lands on it
 var _spark_depth := 400.0  # how far the strike reaches down from where it starts
 var _trail: CPUParticles2D
 var polygon := PackedVector2Array()  # local outline for icicles and the snow band, set by the arena before setup
@@ -83,16 +96,20 @@ func setup(spell_name: String, origin: Vector2, aim_angle: float) -> void:
 			"Icicles":
 				# Ice where it was drawn. It hurts what walks through it, then melts.
 				_life = ICICLE_LIFE
+				add_to_group("lasting")
 				texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
+				z_index = -1  # behind the ground, as if it hangs from it
 				var icicle := ConvexPolygonShape2D.new()
 				icicle.points = polygon
 				shape.shape = icicle
 				add_to_group("danger")
 				Sfx.play("ice_shatter", origin, 2.0)
 				Fx.burst(get_parent(), origin, Color("#dff6ff"), 8, 80.0, 0.4, true, "star_04")
-			"Snowfall":
+			"Blizzard":
 				# A band of snow along the drawn line. It slows whatever is inside.
 				_life = SNOW_LIFE
+				add_to_group("lasting")
+				_snow_floors = _snow_ground()
 				var snow_band := ConvexPolygonShape2D.new()
 				snow_band.points = polygon
 				shape.shape = snow_band
@@ -202,7 +219,7 @@ func _make_trail() -> CPUParticles2D:
 
 ## Fire and lightning add light to what's behind them. Ice, force and stone are solid, with no glow.
 func _glow_material() -> CanvasItemMaterial:
-	if spell in ["Frostbolt", "Push", "Icicles", "Snowfall", "Force Wall", "Stonefall", "Stone Wall"]:
+	if spell in ["Frostbolt", "Push", "Icicles", "Blizzard", "Force Wall", "Stonefall", "Stone Wall"]:
 		return null
 	return Fx.additive()
 
@@ -237,7 +254,7 @@ func _draw() -> void:
 			_draw_push_zone()
 		"Icicles":
 			_draw_icicle(fade)
-		"Snowfall":
+		"Blizzard":
 			_draw_snow(fade)
 		"Firewall":
 			_draw_firewall(fade)
@@ -270,18 +287,28 @@ func _physics_process(delta: float) -> void:
 				_burst_done = true
 				_damage_overlapping(SPARK_DAMAGE)
 		"Icicles":
+			if _fire_touches():
+				# Each fire tick takes a slice off the top; the point stays where it is until the icicle is gone.
+				_melt_time -= delta
+				if _melt_time <= 0.0:
+					_melt_time = MELT_TICK
+					scale.y = maxf(scale.y - MELT_STEP, 0.0)
+					if scale.y <= 0.05:
+						queue_free()
+						return
 			_tick -= delta
 			if _tick <= 0.0:
 				_tick = ICICLE_TICK
 				_damage_overlapping(ICICLE_DAMAGE)
-		"Snowfall":
+		"Blizzard":
+			_grow_pile(delta)
 			for body in get_overlapping_bodies():
 				if not SpellTargets.affects(body, team):
 					continue
 				if body.is_in_group("mobs"):
-					body.apply_slow(0.3)
+					body.apply_slow(2.0)  # the slow lingers a second or two after leaving the snow
 				else:
-					body.apply_debuff("slow", 0.3)
+					body.apply_debuff("slow", 2.0)
 		"Push":
 			if not _burst_done and _age > 0.05:
 				_burst_done = true
@@ -374,7 +401,7 @@ func _finish() -> void:
 func _school() -> String:
 	if SpellData.SPELLS.has(spell):
 		return SpellData.SPELLS[spell]["school"]
-	return "Ice" if spell == "Snowfall" else "Fire"
+	return "Ice" if spell == "Blizzard" else "Fire"
 
 
 ## A shot touched the force wall: it turns around and now hurts the side that fired it.
@@ -542,11 +569,181 @@ func _draw_snow(fade: float) -> void:
 		draw_texture(cloud, Vector2(x, -60.0 - cloud.get_height() * 0.6 + bob), Color(1, 1, 1, fade * grow))
 		x += cloud.get_width() * 0.7
 		i += 1
-	var count := clampi(int(width / 4.0), 24, 90)
+	# A white wash from the top of the falling snow down to the ground under it, so the whole fall looks snowier.
+	var wash := PackedVector2Array()
+	for seg in _snow_floors.size():
+		wash.append(Vector2(seg * SNOW_STEP, _snow_floors[seg]))
+	for seg in range(_snow_floors.size() - 1, -1, -1):
+		wash.append(Vector2(seg * SNOW_STEP, -50.0))
+	draw_colored_polygon(wash, Color(1.0, 1.0, 1.0, 0.14 * fade * grow))
+	var count := clampi(int(width * _snow_height() / 26.0), 30, 1400)  # a heavy fall: flakes by the area the snow covers
 	for k in count:
-		var fx := floorf(fmod(k * 37.0 + _age * 10.0, width) + sin(_age * 2.0 + k) * 5.0)
-		var fy := floorf(fmod(_age * 55.0 + k * 23.0, 110.0) - 50.0)
+		var fx := floorf(fmod(k * 37.0 + _age * 10.0, _wash_width()) + sin(_age * 2.0 + k) * 2.0)
+		var column := clampi(int(fx / SNOW_STEP), 0, _snow_floors.size() - 1)
+		var landing := _snow_floors[column] - _pile[column] if _pile.size() == _snow_floors.size() else _snow_floors[column]
+		var fy := floorf(fmod(_age * 55.0 + k * 23.0, landing + 50.0) - 50.0)  # falls until it lands on the top of the pile
 		var s := 2.0 + float(k % 2)
 		var a := fade * grow * clampf((fy + 50.0) / 12.0, 0.0, 1.0)
 		draw_rect(Rect2(fx - 1.0, fy - 1.0, s + 2.0, s + 2.0), Color(0.2, 0.36, 0.6, 0.8 * a))
 		draw_rect(Rect2(fx, fy, s, s), Color(1, 1, 1, a))
+	# The snow that has landed: a pile on the ground under the line, which fire melts.
+	for seg in _pile.size():
+		if _pile[seg] > 0.5:
+			draw_rect(Rect2(seg * SNOW_STEP, _snow_floors[seg] - _pile[seg], SNOW_STEP + 1.0, _pile[seg]), Color(0.92, 0.96, 1.0, fade * grow))
+
+
+## True when fire is touching this effect: a fire hazard, or a fire spell in flight.
+func _fire_touches() -> bool:
+	for node in get_parent().get_children():
+		if node == self or not node is Node2D:
+			continue
+		var near := global_position.distance_to(node.global_position)
+		if node is Hazard and node.kind == "fire" and near < 40.0 + node.width * 0.5:
+			return true
+		if node is SpellEffect and node.spell in ["Ignite", "Firewall"] and near < 40.0:
+			return true
+		if node is FireBreath:
+			for puff in node._puffs:
+				if puff["pos"].distance_to(global_position) < 30.0:
+					return true
+	return false
+
+
+## The ground height (local) under the snow line, sampled every SNOW_STEP pixels across it.
+func _snow_ground() -> PackedFloat32Array:
+	var floors := PackedFloat32Array()
+	var x := 0.0
+	while x <= _cloud_right():
+		floors.append(SpellTargets.solid_below(get_world_2d(), global_position + Vector2(x, -40)).y - global_position.y)
+		x += SNOW_STEP
+	return floors
+
+
+## How far the snow falls on average, from the line to the ground.
+func _snow_height() -> float:
+	var total := 0.0
+	for f in _snow_floors:
+		total += f + 50.0
+	return total / maxf(float(_snow_floors.size()), 1.0)
+
+
+## Snow that lands builds up on the ground under the line; fire near the snow melts it.
+func _grow_pile(delta: float) -> void:
+	if _pile.size() != _snow_floors.size():
+		_pile.resize(_snow_floors.size())
+		_pile.fill(0.0)
+	var cloud_bottom := -60.0 + 0.4 * _cloud_height()
+	# Snow falls onto every stretch under the clouds, and what lands slides downhill until its slope is no steeper than REPOSE.
+	for seg in _pile.size():
+		_pile[seg] = minf(_pile[seg] + PILE_GROW * delta, maxf(_snow_floors[seg] - cloud_bottom, 0.0))
+	for seg in range(_pile.size() - 1):
+		var drop := _pile[seg] - _pile[seg + 1]
+		if absf(drop) > REPOSE:
+			var flow := (absf(drop) - REPOSE) * 0.25
+			if drop > 0.0:
+				_pile[seg] -= flow
+				_pile[seg + 1] += flow
+			else:
+				_pile[seg + 1] -= flow
+				_pile[seg] += flow
+	# Each flame melts the snow within a radius of itself, most where it is hottest, and no stretch melts faster than
+	# the hottest flame over it.
+	var melt := PackedFloat32Array()
+	melt.resize(_pile.size())
+	melt.fill(0.0)
+	for source in _fire_over_snow():
+		var at_x: float = source[0]
+		var strength: float = source[1]
+		for seg in _pile.size():
+			var distance := absf(seg * SNOW_STEP - at_x)
+			if distance < MELT_RADIUS:
+				melt[seg] = maxf(melt[seg], strength * (1.0 - distance / MELT_RADIUS))
+	for seg in _pile.size():
+		_pile[seg] = maxf(_pile[seg] - melt[seg] * delta, 0.0)
+	if _pile_body == null:
+		_build_pile_body()
+	_pile_timer -= delta
+	if _pile_timer <= 0.0:
+		_pile_timer = 0.1
+		_sync_pile_body()
+
+
+## The width the white wash covers, which is where the snow falls.
+func _wash_width() -> float:
+	return maxf((_snow_floors.size() - 1) * SNOW_STEP, 1.0)
+
+
+## How tall the clouds are: the tallest of the snow clouds drawn above the line.
+func _cloud_height() -> float:
+	var tallest := 0.0
+	for cloud in SNOW_CLOUDS:
+		tallest = maxf(tallest, cloud.get_height())
+	return tallest
+
+
+
+## A StaticBody for the landed snow: one solid stretch per segment, which follows the height of the pile.
+func _build_pile_body() -> void:
+	_pile_body = StaticBody2D.new()
+	_pile_body.collision_layer = 1  # solid, like the ground: walkers and the player stand on it
+	_pile_body.collision_mask = 0
+	add_child(_pile_body)
+	for seg in _snow_floors.size():
+		var shape := CollisionShape2D.new()
+		var box := RectangleShape2D.new()
+		box.size = Vector2(SNOW_STEP, 1.0)
+		shape.shape = box
+		shape.disabled = true
+		_pile_body.add_child(shape)
+		_pile_shapes.append(shape)
+
+
+func _sync_pile_body() -> void:
+	for seg in _pile_shapes.size():
+		var shape: CollisionShape2D = _pile_shapes[seg]
+		var height: float = _pile[seg]
+		shape.disabled = height < 1.0
+		if not shape.disabled:
+			(shape.shape as RectangleShape2D).size = Vector2(SNOW_STEP, height)
+			shape.position = Vector2(seg * SNOW_STEP + SNOW_STEP * 0.5, _snow_floors[seg] - height * 0.5)
+
+
+## The fire over the snow band, as [x along the line, how fast it melts]: a fireball melts hard, fire that stays melts slower.
+func _fire_over_snow() -> Array:
+	var sources := []
+	# Fire counts from up to 40 px beyond the snow on any side, so fire touching the side of a pile melts it too.
+	var left := global_position.x - 50.0
+	var right := global_position.x + polygon[2].x + 50.0
+	var top := global_position.y - 100.0
+	var bottom := global_position.y + 130.0
+	for node in get_parent().get_children():
+		if node == self or not node is Node2D:
+			continue
+		var at: Vector2 = node.global_position
+		if at.x < left or at.x > right or at.y < top or at.y > bottom:
+			continue
+		if node is Hazard and node.kind == "fire":
+			sources.append([at.x - global_position.x, PILE_MELT])
+		elif node is SpellEffect and node.spell == "Ignite":
+			sources.append([at.x - global_position.x, PILE_MELT * 3.0])
+		elif node is SpellEffect and node.spell == "Firewall":
+			sources.append([at.x - global_position.x, PILE_MELT])
+		elif node is FireBreath:
+			for puff in node._puffs:
+				var pos: Vector2 = puff["pos"]
+				if pos.x >= left and pos.x <= right and pos.y >= top and pos.y <= bottom:
+					sources.append([pos.x - global_position.x, PILE_MELT])
+	return sources
+
+
+## The right edge of the snow clouds as they are drawn: the snow falls no further than this.
+func _cloud_right() -> float:
+	var x := -10.0
+	var i := 0
+	var edge := 0.0
+	while x < polygon[2].x + 10.0:
+		var cloud: Texture2D = SNOW_CLOUDS[i % SNOW_CLOUDS.size()]
+		edge = x + cloud.get_width()
+		x += cloud.get_width() * 0.7
+		i += 1
+	return maxf(edge, polygon[2].x)
