@@ -1,7 +1,7 @@
-class_name Quicksand
+class_name Mudslide
 extends Node2D
 
-## Quicksand: a U drawn over the ground, the shape of a pit. The ground under it turns to churning sand. Anyone who
+## Mudslide: a U drawn over the ground, the shape of a pit. The ground under it turns to churning sand. Anyone who
 ## walks into it is dragged down: slowed to a crawl and hurt a little at a time. Flyers pass over it untouched.
 ## A wider U makes a wider pit.
 

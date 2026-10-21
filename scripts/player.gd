@@ -50,7 +50,7 @@ var dead := false
 var _shield_time := 0.0
 var _frozen_time := 0.0  # frozen in ice: rooted, and shattered out of it by Force or Earth
 var _since_spend := 0.0
-var _facing := 1.0
+var facing := 1.0
 var _flash := 0.0        # red flash after being hit
 var _grace := 0.0        # time left of the safety after a hit
 var _coyote := 0.0
@@ -116,7 +116,7 @@ func _ready() -> void:
 
 ## Where the wizard's mouth is, for Fire Breath.
 func mouth() -> Vector2:
-	return global_position + Vector2(26.0 * _facing, -56.0)  # at the front of the wizard, around the face
+	return global_position + Vector2(26.0 * facing, -56.0)  # at the front of the wizard, around the face
 
 
 ## The middle of the wizard's body, relative to its feet.
@@ -395,7 +395,7 @@ func _animate(delta: float) -> void:
 	if focus != _dressed_as:
 		_dress_for_focus()
 	if absf(velocity.x) > 10.0 and not dead:
-		_facing = signf(velocity.x)
+		facing = signf(velocity.x)
 	_releasing = maxf(_releasing - delta, 0.0)
 	_hurt_anim = maxf(_hurt_anim - delta, 0.0)
 	var wanted := "idle"
@@ -413,11 +413,11 @@ func _animate(delta: float) -> void:
 		wanted = "run"
 	if _sprite.animation != wanted:
 		_sprite.play(wanted)
-	_sprite.flip_h = _facing < 0.0
+	_sprite.flip_h = facing < 0.0
 	_glow.visible = casting and not dead
 	if _glow.visible:
 		var head := WAND_HEAD if focus == "wand" else STAFF_HEAD
-		_glow.position = Vector2(head.x * _facing, head.y)
+		_glow.position = Vector2(head.x * facing, head.y)
 		_glow.modulate = Color(cast_color, 0.9)
 	_flash = maxf(_flash - delta, 0.0)
 	# After a hit the wizard blinks while it can't be hurt again.

@@ -83,7 +83,7 @@ and are no longer drawn by the game.
 
 ## Fire (fire wall, fire breath, burning ground)
 
-- `art/fx/fire_wall.png` (fire-b), `art/fx/fire_puff.png` (fire-a) and `art/fx/fire_trail.png` (fire-d): [Pixel Flame VFX](https://opengameart.org/node/108106) by zonked, CC0.
+- `art/fx/fire_wall.png` (fire-b), `art/fx/fire_puff.png` (fire-a) and `art/fx/fire_band.png` (made from fire-d): [Pixel Flame VFX](https://opengameart.org/node/108106) by zonked, CC0.
 
 ## Volcano
 

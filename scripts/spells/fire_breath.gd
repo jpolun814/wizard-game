@@ -32,10 +32,11 @@ var _puffs: Array = []     # each is {pos, vel, age, life, size, stopped}
 
 
 func _ready() -> void:
+	add_to_group("fires")
 	spread = clampf(spread, MIN_SPREAD, MAX_SPREAD)
 	# A breath cast the other way turns the wizard round to face it.
 	if is_instance_valid(caster_node) and caster_node.is_in_group("player") and absf(cos(aim)) > 0.2:
-		caster_node.set("_facing", signf(cos(aim)))
+		caster_node.facing = signf(cos(aim))
 	reach = clampf(reach, MIN_REACH, MAX_REACH)
 	# Drawn as solid colour, not light, so the flames stay orange against any backdrop. The puffs live in world
 	# space, so this node stays at the world's origin.
@@ -75,8 +76,9 @@ func _caster_alive() -> bool:
 
 
 func _facing() -> float:
-	var facing = caster_node.get("_facing") if is_instance_valid(caster_node) else null
-	return facing if facing is float and facing != 0.0 else 1.0
+	if not is_instance_valid(caster_node) or caster_node.facing == 0.0:
+		return 1.0
+	return caster_node.facing
 
 
 func _mouth_position() -> Vector2:
@@ -164,3 +166,11 @@ func _draw() -> void:
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 	if _age < LIFE and _caster_alive():
 		Fx.draw_glow(self, _mouth, 12.0, Color(1.0, 0.8, 0.35, 0.8))
+
+
+## Where each puff of flame is now, in the world.
+func flame_points() -> PackedVector2Array:
+	var points := PackedVector2Array()
+	for puff in _puffs:
+		points.append(puff["pos"])
+	return points

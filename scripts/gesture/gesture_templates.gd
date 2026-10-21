@@ -120,18 +120,6 @@ static func _circle_and_drop() -> PackedVector2Array:
 	return pts
 
 
-## A box drawn from its top-left corner, clockwise, back to where it started: the block of ice.
-static func _square(side: float) -> PackedVector2Array:
-	var h := side * 0.5
-	var corners := [Vector2(-h, -h), Vector2(h, -h), Vector2(h, h), Vector2(-h, h), Vector2(-h, -h)]
-	var pts := PackedVector2Array()
-	for i in 4:
-		for k in 8:
-			pts.append(corners[i].lerp(corners[i + 1], k / 8.0))
-	pts.append(corners[4])
-	return pts
-
-
 ## A spiral that starts wide and winds in to its middle: things being drawn into the well.
 static func _spiral(outer: float, turns: float) -> PackedVector2Array:
 	var pts := PackedVector2Array()
@@ -172,3 +160,11 @@ static func _pit(width: float, depth: float) -> PackedVector2Array:
 ## Three mountain peaks along the ground: up and down, three times.
 static func _three_peaks() -> PackedVector2Array:
 	return PackedVector2Array([Vector2(-60, 0), Vector2(-45, -30), Vector2(-30, 0), Vector2(-15, -30), Vector2(0, 0), Vector2(15, -30), Vector2(30, 0), Vector2(45, -30), Vector2(60, 0)])
+
+
+## The box a stroke fits in.
+static func bounds(points: PackedVector2Array) -> Rect2:
+	var box := Rect2(points[0], Vector2.ZERO)
+	for p in points:
+		box = box.expand(p)
+	return box

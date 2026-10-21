@@ -78,10 +78,10 @@ func _pull(delta: float) -> void:
 
 ## Enemy shots and the other side's spells that come close spiral in and are gone.
 func _swallow_shots() -> void:
-	for node in get_parent().get_children():
+	for node in get_tree().get_nodes_in_group("shots"):
 		var is_bolt := node is EnemyBolt and team == "player"
-		var is_spell: bool = node is SpellEffect and node.team != team and SpellEffect.PROJECTILES.has(node.spell)
-		if (is_bolt or is_spell) and node.global_position.distance_to(global_position) < reach * SWALLOW_RADIUS:
+		var is_spell: bool = node is Projectile and node.team != team
+		if (is_bolt or is_spell or node is LavaBall) and node.global_position.distance_to(global_position) < reach * SWALLOW_RADIUS:
 			Fx.pop(get_parent(), node.global_position, "circle_05", Color(0.8, 0.6, 1.0), 20.0, 0.25, 0.2)
 			node.queue_free()
 

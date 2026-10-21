@@ -168,16 +168,29 @@ class Preview extends Control:
 			walked += step
 		return [path[0], path[1] - path[0]]
 
+	## The first share of a stroke, measured along its length, so the pen moves at an even speed however few or
+	## unevenly spaced its points are.
+	func _traced(path: PackedVector2Array, share: float) -> PackedVector2Array:
+		var total := 0.0
+		for i in path.size() - 1:
+			total += path[i].distance_to(path[i + 1])
+		var left := total * share
+		var out := PackedVector2Array([path[0]])
+		for i in path.size() - 1:
+			var step := path[i].distance_to(path[i + 1])
+			if step >= left:
+				out.append(path[i].lerp(path[i + 1], left / maxf(step, 0.001)))
+				return out
+			out.append(path[i + 1])
+			left -= step
+		return out
+
 	func _draw() -> void:
 		if points.size() < 2:
 			return
-		var low := points[0]
-		var high := points[0]
-		for p in points:
-			low = low.min(p)
-			high = high.max(p)
-		var extent := maxf(maxf(high.x - low.x, high.y - low.y), 1.0)
-		var middle := (low + high) * 0.5
+		var bounds := GestureTemplates.bounds(points)
+		var extent := maxf(maxf(bounds.size.x, bounds.size.y), 1.0)
+		var middle := bounds.get_center()
 		var box := size.x
 		var scale_to := (box - 14.0) / extent
 		var to_pic := func(p: Vector2) -> Vector2:
@@ -191,8 +204,8 @@ class Preview extends Control:
 			for x in range(10, int(box) - 6, 6):
 				draw_line(Vector2(x, gy), Vector2(x - 4.0, gy + 5.0), Spellbook.PAPER_DARK, 1.0, true)
 		# The ink: a soft wash underneath, then the line itself and a fainter second pass for a hand-drawn edge.
-		var shown := clampf(fmod(_clock, 3.2) / 1.8, 0.0, 1.0)  # the stroke traces itself over 1.8 s, then rests
-		var traced := drawn.slice(0, maxi(2, int(drawn.size() * shown)))
+		var shown := clampf(fmod(_clock, 2.6) / 1.4, 0.0, 1.0)  # the stroke traces itself over 1.4 s, then rests
+		var traced := _traced(drawn, shown)
 		draw_polyline(traced, Color(Spellbook.INK, 0.18), 5.0, true)
 		draw_polyline(traced, Spellbook.INK, 2.2, true)
 		var offset := PackedVector2Array()

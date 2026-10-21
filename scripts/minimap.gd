@@ -20,7 +20,7 @@ var _cell := MAX_CELL
 
 
 func _ready() -> void:
-	_terrain = arena._terrain()
+	_terrain = arena.map_cells()
 	var lo := Vector2i(1 << 20, 1 << 20)
 	var hi := Vector2i(-(1 << 20), -(1 << 20))
 	for cell in _terrain:

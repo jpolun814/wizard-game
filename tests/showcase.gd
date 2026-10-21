@@ -227,7 +227,7 @@ func _plan_spells() -> void:
 			var start: Vector2 = ahead.call(90, -2)
 			var first := _densify(PackedVector2Array([start, ahead.call(160, -100)]))
 			_cast("Stone Wall", first)
-			var top: Vector2 = start + (first[first.size() - 1] - start).normalized() * (SpellEffect.STONE_WALL_LENGTH - 6.0)
+			var top: Vector2 = start + (first[first.size() - 1] - start).normalized() * (StoneWall.LENGTH - 6.0)
 			return _densify(PackedVector2Array([top, top + Vector2(110, 0)]))],
 		["Mudslide", func() -> PackedVector2Array: return _stroke("pit", ahead.call(170, -50), 1.2)],
 	]
@@ -240,7 +240,7 @@ func _plan_spells() -> void:
 			for mob in _arena.get_tree().get_nodes_in_group("mobs"):
 				mob.queue_free()
 			for node in _arena.get_children():
-				if node is SpellEffect or node is Tornado or node is Volcano or node is Hazard or node is StormCloud or node is Quicksand or node is IcePrison or node is GravityWell or node is FireBreath:
+				if node is SpellEffect or node is Tornado or node is Volcano or node is Hazard or node is StormCloud or node is Mudslide or node is IcePrison or node is GravityWell or node is FireBreath:
 					node.queue_free())
 		_at(t + 0.1, func() -> void:
 			var x: float = _player().global_position.x
@@ -269,7 +269,7 @@ func _plan_spells() -> void:
 			# The breath follows the mouth: it rises when you jump and turns when you turn.
 			_at(t + 0.4 + delay + 0.02, func() -> void: _player().velocity.y = -520.0)
 			_at(t + 0.4 + delay + 0.2, func() -> void: _snap("Fire_Breath_jump"))
-			_at(t + 0.4 + delay + 0.22, func() -> void: _player()._facing = -1.0)
+			_at(t + 0.4 + delay + 0.22, func() -> void: _player().facing = -1.0)
 			_at(t + 0.4 + delay + 0.45, func() -> void: _snap("Fire_Breath_turn"))
 		t += 2.2
 

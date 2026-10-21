@@ -99,7 +99,7 @@ func _on_area(area: Area2D) -> void:
 	if _shots.has(area):
 		return
 	var shot_bolt := area is EnemyBolt and team == "player" and not (area as EnemyBolt).reflected
-	var shot_spell := area is SpellEffect and SpellEffect.PROJECTILES.has(area.spell)
+	var shot_spell := area is Projectile or area is LavaBall
 	if shot_bolt or shot_spell:
 		_shots[area] = area.global_position
 
@@ -119,7 +119,7 @@ func _turn_far_side_shots() -> void:
 		_shots[shot] = null
 		if shot is EnemyBolt:
 			(shot as EnemyBolt).push(back)
-		elif shot.team != team:
+		elif shot.team != team or shot is LavaBall:
 			shot.reflect(back)
 		else:
 			shot.deflect(back)  # the wind turns your own shot, but it stays yours
@@ -139,28 +139,13 @@ func _inside(point: Vector2) -> bool:
 
 ## The wind dissipates storm clouds and Blizzard snow that pass through it: they thin away and are gone.
 func _blow_clouds(_delta: float) -> void:
-	for node in get_parent().get_children():
-		var is_cloud: bool = node is StormCloud or (node is SpellEffect and node.spell == "Blizzard")
-		if not is_cloud or node.has_meta("dissipating"):
-			continue
-		if not _over_cloud(node):
-			continue
-		node.set_meta("dissipating", true)
-		var fade := node.create_tween()
-		fade.tween_property(node, "modulate:a", 0.0, 1.2)
-		fade.tween_callback(node.queue_free)
+	for cloud in get_tree().get_nodes_in_group("clouds"):
+		if _over_cloud(cloud):
+			cloud.dissipate()
 
 
 ## True when the funnel is in or under a cloud or snow, whichever part of it is wide.
-func _over_cloud(node: Node2D) -> bool:
-	var left: float
-	var right: float
-	if node is StormCloud:
-		left = node.global_position.x - node.width * 0.5 - 40.0
-		right = node.global_position.x + node.width * 0.5 + 40.0
-	else:
-		left = node.global_position.x - 40.0
-		right = node.global_position.x + node.polygon[2].x + 40.0
-	var top := node.global_position.y - 220.0
-	var bottom := node.global_position.y + 140.0
-	return global_position.x >= left and global_position.x <= right and global_position.y >= top and global_position.y <= bottom
+func _over_cloud(cloud: Node2D) -> bool:
+	var span: Vector2 = cloud.span()
+	var below := global_position.y - cloud.global_position.y
+	return global_position.x >= span.x - 40.0 and global_position.x <= span.y + 40.0 and below >= -220.0 and below <= 140.0

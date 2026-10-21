@@ -17,11 +17,6 @@ static func tex(texture_name: String) -> Texture2D:
 	return _textures[texture_name]
 
 
-## A soft round glow, used wherever something should shine.
-static func dot_texture() -> Texture2D:
-	return tex("circle_05")
-
-
 ## Fades a colour from solid to transparent over a particle's life.
 static func fade_ramp(color: Color) -> Gradient:
 	var g := Gradient.new()

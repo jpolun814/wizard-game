@@ -122,7 +122,7 @@ func _incoming_shot() -> Dictionary:
 	for node in mob.get_tree().get_nodes_in_group("projectiles"):
 		if node.team != "player":
 			continue
-		var velocity: Vector2 = node._aim * SpellEffect.PROJECTILES[node.spell]["speed"]
+		var velocity: Vector2 = node.velocity()
 		var rel: Vector2 = mob.center() - node.global_position
 		var closing := rel.dot(velocity.normalized())
 		if closing <= 0.0:
@@ -219,7 +219,7 @@ func _blink_away(player: Node2D) -> void:
 func _footwork(delta: float, to_player: Vector2, sees: bool) -> float:
 	if mob.is_drawing():
 		return 0.0
-	var speed := WALK_SPEED * (0.5 if mob._slow_time > 0.0 else 1.0)
+	var speed := WALK_SPEED * (0.5 if mob.is_slowed() else 1.0)
 	if _escape_time > 0.0:
 		return _escape_dir * speed * 1.3
 	var gap := absf(to_player.x)
@@ -451,7 +451,20 @@ func _begin_cast(spell_name: String, stroke: PackedVector2Array, draw_time: floa
 	var mask: int = data["buttons"]
 	var caster: Caster = mob.caster
 	mob.start_drawing(stroke, SpellData.SCHOOL_COLORS[data["school"]], func(points: PackedVector2Array) -> void:
-		caster.cast_stroke(mask, points), draw_time)
+		caster.cast_stroke(mask, _shaken(points)), draw_time)
+
+
+## While the ground shakes, each point of the wizard's stroke is nudged by the screen's shake, the same amount the
+## player's stroke is nudged by the shaking view.
+func _shaken(points: PackedVector2Array) -> PackedVector2Array:
+	var tree := mob.get_tree()
+	if not Earthquake.is_shaking(tree):
+		return points
+	var px := GameCamera.shake_px(tree)
+	var shaken := PackedVector2Array()
+	for p in points:
+		shaken.append(p + Vector2(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)) * px)
+	return shaken
 
 
 # --- Shapes -----------------------------------------------------------------------------------------------------
@@ -471,12 +484,7 @@ func _offset(shape: PackedVector2Array, middle: Vector2, scale: float) -> Packed
 
 
 func _box_centre(points: PackedVector2Array) -> Vector2:
-	var low := points[0]
-	var high := points[0]
-	for p in points:
-		low = low.min(p)
-		high = high.max(p)
-	return (low + high) * 0.5
+	return GestureTemplates.bounds(points).get_center()
 
 
 func _centre_of(points: PackedVector2Array) -> Vector2:

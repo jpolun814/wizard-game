@@ -65,12 +65,12 @@ const SPELLS := {
 	"Icicles": {
 		"buttons": RIGHT, "gesture": "icicles", "targeting": "shape", "cost": 16.0,
 		"school": "Ice", "draw": "A V hangs an icicle from above it. An upside-down V grows one up from below. Each V is one icicle, so a row like VVVVVV is six.",
-		"effect": "Each icicle stands for 4 seconds, then melts. An enemy that walks through one takes 6 damage. Costs 8 stamina per icicle.",
+		"effect": "Each icicle stands until the wave ends, or until fire melts it. An enemy that walks through one takes 6 damage. Costs 8 stamina per icicle.",
 	},
 	"Ice Prison": {
 		"buttons": RIGHT, "gesture": "circle", "targeting": "shape", "cost": 14.0,
 		"school": "Ice", "draw": "A circle, drawn round your target and closed where you started. The circle fills with ice.",
-		"effect": "Enemies inside are frozen solid for 3 seconds; Force or Earth shatters them out for extra damage. Drawn round nothing, it is a block of ice you can stand on or hide behind. Bigger circles cost more.",
+		"effect": "Enemies inside are frozen solid for 3 seconds; Force or Earth shatters them out for extra damage. Drawn round nobody, it fizzles. Bigger circles cost more.",
 	},
 	"Blizzard": {
 		"buttons": RIGHT, "gesture": "snowfall", "targeting": "shape", "cost": 20.0,
@@ -174,11 +174,11 @@ static func cost_for(spell_name: String, info: Dictionary) -> float:
 			if reach > 0.0:
 				return roundf(base * clampf(reach / 160.0, 0.7, 1.4))
 		"Blizzard":
-			var width := _width_of(line)
+			var width := width_of(line)
 			if width > 0.0:
 				return roundf(base * clampf(width / 100.0, 0.5, 4.0))
 		"Storm Cloud":
-			var cloud := _width_of(line)
+			var cloud := width_of(line)
 			if cloud > 0.0:
 				return roundf(base * clampf(cloud / 150.0, 0.7, 1.8))
 		"Stone Wall":
@@ -186,7 +186,7 @@ static func cost_for(spell_name: String, info: Dictionary) -> float:
 			if length > 0.0:
 				return roundf(base * clampf(length / 140.0, 0.5, 1.7))
 		"Mudslide":
-			var pit := _width_of(line)
+			var pit := width_of(line)
 			if pit > 0.0:
 				return roundf(base * clampf(pit / 140.0, 0.5, 1.7))
 		"Ice Prison":
@@ -199,7 +199,7 @@ static func cost_for(spell_name: String, info: Dictionary) -> float:
 
 
 ## The horizontal span of a drawn line, which is how wide a snowfall, cloud, crack or pit is.
-static func _width_of(points: PackedVector2Array) -> float:
+static func width_of(points: PackedVector2Array) -> float:
 	if points.is_empty():
 		return 0.0
 	var left := points[0].x

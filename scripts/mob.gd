@@ -15,7 +15,7 @@ const KINDS := {
 	"force_melee": {"name": "Melee Force", "desc": "A plain walker that hits hard enough to send you flying.", "role": "melee", "art": "skeleton", "hp": 30, "school": "Force", "weak": "", "resist": "", "damage": 8, "speed": 1.0, "effect": "big_knockback"},
 	"force_ranged": {"name": "Ranged Force", "desc": "Fires plain orbs from a distance.", "role": "ranged", "art": "goblin", "hp": 24, "school": "Force", "weak": "", "resist": "", "damage": 0, "speed": 1.0, "effect": "", "shot": {"interval": 2.2, "damage": 6}},
 	"force_flyer": {"name": "Flying Force", "desc": "A plain flier that swoops down at you.", "role": "flyer", "art": "eye", "hp": 22, "school": "Force", "weak": "", "resist": "", "damage": 6, "speed": 1.0, "effect": ""},
-	"fire_melee": {"name": "Melee Fire", "desc": "Burns as it walks. Touching it sets you alight.", "role": "melee", "art": "skeleton", "hp": 30, "school": "Fire", "weak": "Ice", "resist": "Fire", "damage": 8, "speed": 1.0, "effect": "fire_trail"},
+	"fire_melee": {"name": "Melee Fire", "desc": "Burns as it walks. Touching it sets you alight.", "role": "melee", "art": "skeleton", "hp": 30, "school": "Fire", "weak": "Ice", "resist": "Fire", "damage": 8, "speed": 1.0, "effect": "burning"},
 	"fire_ranged": {"name": "Ranged Fire", "desc": "Hurls fireballs at you.", "role": "ranged", "art": "goblin", "hp": 24, "school": "Fire", "weak": "Ice", "resist": "Fire", "damage": 0, "speed": 1.0, "effect": "", "shot": {"interval": 2.4, "damage": 8, "art": "fireball"}},
 	"fire_flyer": {"name": "Flying Fire", "desc": "Drops fireballs while it flies over you.", "role": "flyer", "art": "eye", "hp": 22, "school": "Fire", "weak": "Ice", "resist": "Fire", "damage": 6, "speed": 1.0, "effect": "", "shot": {"interval": 1.4, "damage": 6, "drop": true}},
 	"ice_melee": {"name": "Melee Ice", "desc": "Leaves falling snow that slows you.", "role": "melee", "art": "skeleton", "hp": 34, "school": "Ice", "weak": "Fire", "resist": "Ice", "damage": 6, "speed": 0.9, "effect": "frost_trail"},
@@ -89,7 +89,7 @@ var _drift := Vector2.ZERO  # a pull (Gravity Well) that fades
 var _dead := false
 var _gravity: float = ProjectSettings.get_setting("physics/2d/default_gravity")
 var _idle_t := 0.0
-var _facing := 1.0
+var facing := 1.0
 var _shot_timer := 1.5
 var _root_time := 0.0
 var _nojump_time := 0.0  # while above zero, the walker cannot jump (mudslide)
@@ -120,7 +120,7 @@ const ICE := preload("res://art/props/ice_fill.png")
 func _ready() -> void:
 	add_to_group("mobs")
 	var data: Dictionary = KINDS[kind]
-	if data_effect_is_fire():
+	if _burns():
 		_set_alight()
 	max_hp = data.get("hp", 30)
 	hp = max_hp
@@ -164,16 +164,27 @@ func _build_creature(data: Dictionary) -> void:
 	else:
 		# A walker's frames have its feet on the bottom edge. Its hitbox is its body, not a weapon held out.
 		_visual.offset = Vector2(0, -frame.y * 0.5)
-		var rect := RectangleShape2D.new()
-		rect.size = Vector2(body.size.x * 0.85, body.size.y * 0.95) * _base_scale
-		hitbox.shape = rect
-		_body_size = rect.size
-		_body_center = Vector2(0, -rect.size.y * 0.5)
+		_set_walker_body(Vector2(body.size.x * 0.85, body.size.y * 0.95) * _base_scale)
 	hitbox.position = _body_center
+	_start_animating()
+	_visual.frame = randi() % maxi(1, _visual.sprite_frames.get_frame_count("idle"))
+
+
+## A walker's hitbox: a box of this size standing on its feet.
+func _set_walker_body(size: Vector2) -> void:
+	var rect := RectangleShape2D.new()
+	rect.size = size
+	var hitbox: CollisionShape2D = $CollisionShape2D
+	hitbox.shape = rect
+	_body_size = size
+	_body_center = Vector2(0, -size.y * 0.5)
+	hitbox.position = _body_center
+
+
+func _start_animating() -> void:
 	_apply_material()
 	_visual.animation_finished.connect(_on_animation_finished)
 	_visual.play("idle")
-	_visual.frame = randi() % maxi(1, _visual.sprite_frames.get_frame_count("idle"))
 
 
 ## The creature's own colours, with a little of its school's colour and an outline in it. Plain enemies get no
@@ -272,7 +283,7 @@ func _walk(delta: float) -> void:
 			velocity.y = MOB_JUMP
 	move_and_slide()
 	# Touching a burning walker sets you alight, whether or not it is attacking.
-	if data_effect_is_fire() and player and not player.dead:
+	if _burns() and player and not player.dead:
 		_touch_timer -= delta
 		if _touch_timer <= 0.0 and player.center().distance_to(center()) < 34.0:
 			_touch_timer = 0.6
@@ -388,7 +399,7 @@ func _start_retreat() -> void:
 ## some fall straight down from the flyer, and fire casters call one down from above the player.
 func _shoot(shot: Dictionary) -> void:
 	var colour := _school_colour()
-	var origin := center() + Vector2(_facing * _body_size.x * 0.5, -4.0)
+	var origin := center() + Vector2(facing * _body_size.x * 0.5, -4.0)
 	if shot.get("above", false):
 		var drop_x: float = player.global_position.x + player.velocity.x * 0.35
 		FallingShot.call_down(get_parent(), Vector2(drop_x, player.global_position.y), colour, shot["damage"])
@@ -480,7 +491,7 @@ func _die() -> void:
 		var tween := create_tween()
 		tween.tween_property(self, "position:y", position.y + 30.0, 0.35).set_ease(Tween.EASE_IN)
 		tween.parallel().tween_property(self, "modulate:a", 0.0, 0.35)
-		tween.parallel().tween_property(self, "rotation", 1.2 * _facing, 0.35)
+		tween.parallel().tween_property(self, "rotation", 1.2 * facing, 0.35)
 		tween.tween_callback(queue_free)
 
 
@@ -502,8 +513,8 @@ func apply_no_jump(seconds: float) -> void:
 	_nojump_time = maxf(_nojump_time, seconds)
 
 
-func apply_root(seconds: float) -> void:
-	_root_time = maxf(_root_time, seconds)
+func is_slowed() -> bool:
+	return _slow_time > 0.0
 
 
 func apply_slow(seconds: float) -> void:
@@ -599,12 +610,12 @@ func _animate(delta: float) -> void:
 	var wizard: bool = KINDS[kind]["role"] == "wizard"
 	if player and not _dead and _frozen_time <= 0.0:
 		if flying or wizard or _windup > 0.0 or _charge > 0.0 or absf(velocity.x) < 5.0:
-			_facing = signf(player.global_position.x - global_position.x) if player.global_position.x != global_position.x else _facing
+			facing = signf(player.global_position.x - global_position.x) if player.global_position.x != global_position.x else facing
 		else:
-			_facing = signf(velocity.x)
+			facing = signf(velocity.x)
 	var lunge := 0.0
 	if _lunge > 0.0:
-		lunge = roundf(sin(_lunge * PI) * 8.0) * _facing
+		lunge = roundf(sin(_lunge * PI) * 8.0) * facing
 		_lunge = maxf(_lunge - delta * 3.0, 0.0)
 	_bursting = maxf(_bursting - delta, 0.0)
 	var shake := Vector2.ZERO
@@ -632,7 +643,7 @@ func _animate(delta: float) -> void:
 	var bob := roundf(sin(_idle_t * 3.0) * 2.0) if flying else 0.0
 	_visual.position = Vector2(lunge, bob) + shake
 	_visual.scale = Vector2(_base_scale, _base_scale)
-	_visual.flip_h = _facing < 0.0
+	_visual.flip_h = facing < 0.0
 	if _material:
 		var charging := 0.0
 		if _windup > 0.0:
@@ -669,7 +680,7 @@ func _draw_overlay() -> void:
 	if _charge > 0.0:
 		# A pixel orb of the enemy's magic gathering in front of it.
 		var k := 1.0 - _charge / CHARGE
-		var at := _body_center + Vector2(_facing * _body_size.x * 0.5, -4.0)
+		var at := _body_center + Vector2(facing * _body_size.x * 0.5, -4.0)
 		var c := _school_colour()
 		Fx.draw_glow(o, at, 6.0 + 12.0 * k, Color(c.r, c.g, c.b, 0.5 + 0.5 * k))
 		var orbs := PixelFx.frames("dark_orb", 12.0, true)
@@ -703,9 +714,10 @@ func _draw_overlay() -> void:
 		Fx.draw_glow(o, local[local.size() - 1], 8.0, Color(c.r, c.g, c.b, 0.9))
 
 
-## An ice enemy leaves snow falling behind it, the same as the Snowfall spell.
+## An ice enemy leaves snow falling behind it for a few seconds: a passing blizzard, with no pile.
 func _leave_snow() -> void:
-	var snow := SpellEffect.new()
+	var snow := Blizzard.new()
+	snow.lasting = false
 	snow.team = "enemy"
 	snow.polygon = PackedVector2Array([Vector2(0, -60), Vector2(40, -60), Vector2(40, 60), Vector2(0, 60)])
 	get_parent().add_child(snow)
@@ -722,22 +734,14 @@ func _hits_terrain(from: Vector2, to: Vector2) -> bool:
 # --- The dark wizard ------------------------------------------------------------------------------------------
 
 
-## The dark wizard: a hooded figure with a staff wreathed in shadow, drawn twice the size of everyone else so it
-## looms over the duel. Its hitbox is the hooded body, not the staff.
+## The dark wizard: a hooded figure with a staff wreathed in shadow, the same size as the player. Its hitbox is the
+## hooded body, not the staff.
 func _build_wizard() -> void:
 	_visual.sprite_frames = CharFrames.build("res://art/chars/dark_wizard", WIZARD_ANIMATIONS)
 	_base_scale = KINDS[kind].get("scale", 1.0)
 	_visual.offset = Vector2(0, -PixelArt.CHARACTERS["dark_wizard"]["size"].y * 0.5)
-	var hitbox: CollisionShape2D = $CollisionShape2D
-	var rect := RectangleShape2D.new()
-	rect.size = WIZARD_BODY.size * _base_scale * Vector2(0.9, 0.95)
-	hitbox.shape = rect
-	_body_size = rect.size
-	_body_center = Vector2(0, -rect.size.y * 0.5)
-	hitbox.position = _body_center
-	_apply_material()
-	_visual.animation_finished.connect(_on_animation_finished)
-	_visual.play("idle")
+	_set_walker_body(WIZARD_BODY.size * _base_scale * Vector2(0.9, 0.95))
+	_start_animating()
 	# Dark wisps rising off the robes.
 	var wisps := Fx.trail(Color(0.45, 0.2, 0.6, 0.55), 18, 0.9, 30.0, Vector2(0, -40), "smoke_04", 14.0)
 	wisps.material = null
@@ -756,7 +760,7 @@ func _build_wizard() -> void:
 
 ## Where the dark wizard's mouth would be under its hood, for Fire Breath.
 func mouth() -> Vector2:
-	return global_position + Vector2(6.0 * _facing, -44.0) * _base_scale
+	return global_position + Vector2(6.0 * facing, -44.0) * _base_scale
 
 
 ## The dark wizard's turn: its brain moves it and decides when to cast.
@@ -802,22 +806,13 @@ func interrupt_cast() -> void:
 		return
 	_draw_time = 0.0
 	_stroke = PackedVector2Array()
-	Fx.burst(get_parent(), center() + Vector2(_facing * 14.0, -16.0), _stroke_colour, 14, 140.0, 0.4, true)
+	Fx.burst(get_parent(), center() + Vector2(facing * 14.0, -16.0), _stroke_colour, 14, 140.0, 0.4, true)
 	FloatText.spawn(get_parent(), center() + Vector2(0, -44), "Interrupted!", Color("#d9b8ff"), 0.9)
 	Sfx.play("misfire", center())
 
 
-## Moves the dark wizard straight to a point, leaving a flash where it was and where it lands.
-func blink_to(point: Vector2) -> void:
-	var colour: Color = SpellData.SCHOOL_COLORS["Storm"]
-	Fx.pop(get_parent(), center(), "twirl_02", colour, 60.0, 0.3, 0.4, 6.0)
-	global_position = point
-	velocity = Vector2.ZERO
-	Fx.pop(get_parent(), center(), "twirl_02", colour, 30.0, 0.3, 2.0, -6.0)
-
-
-func data_effect_is_fire() -> bool:
-	return KINDS[kind]["effect"] == "fire_trail"
+func _burns() -> bool:
+	return KINDS[kind]["effect"] == "burning"
 
 
 ## A burning walker: one flame, tall enough to cover its whole body, stands on it and moves with it.
@@ -832,6 +827,6 @@ func _set_alight() -> void:
 
 ## While the ground shakes, a shooter's aim is turned a few degrees off its mark.
 func _quake_target(origin: Vector2, target: Vector2) -> Vector2:
-	if not EarthquakeEffect.active:
+	if not Earthquake.is_shaking(get_tree()):
 		return target
-	return origin + (target - origin).rotated(deg_to_rad(randf_range(-EarthquakeEffect.AIM_DEGREES, EarthquakeEffect.AIM_DEGREES)))
+	return origin + (target - origin).rotated(deg_to_rad(randf_range(-Earthquake.AIM_DEGREES, Earthquake.AIM_DEGREES)))

@@ -81,12 +81,8 @@ func push(impulse: Vector2) -> void:
 
 ## Enemy shots and spells that reach it take some of its health.
 func _on_struck(area: Area2D) -> void:
-	var damage := 0
-	if area is EnemyBolt:
-		damage = (area as EnemyBolt)._damage
-	elif area is SpellEffect and SpellEffect.PROJECTILES.has(area.spell):
-		damage = SpellEffect.PROJECTILES[area.spell]["damage"]
-	else:
+	var damage := SpellTargets.shot_damage(area)
+	if damage <= 0:
 		return
 	_health -= damage
 	if _health <= 0.0:

@@ -96,7 +96,7 @@ spells you do, drawing them visibly.
 GODOT="/c/Users/Jordan Polun/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_console.exe"
 "$GODOT" --headless --path . --import                          # after adding or changing any asset
 "$GODOT" --headless --path . --quit-after 200                  # parse check: grep the output for "SCRIPT ERROR"
-"$GODOT" --headless -s tests/test_gestures.gd                  # must print "137 of 137" (or more, if you add checks)
+"$GODOT" --headless -s tests/test_gestures.gd                  # must print "136 of 136" (or more, if you add checks)
 "$GODOT" --path . tests/showcase.tscn -- scenario=spells out=C:/some/dir          # a screenshot of every spell
 "$GODOT" --path . tests/showcase.tscn -- scenario=spells only=Fire_Breath out=DIR # one spell, frame by frame
 "$GODOT" --path . tests/showcase.tscn -- scenario=biome wave=10 out=DIR           # a level's look (wave 10 = swamp, 17 = church)
@@ -148,7 +148,7 @@ GODOT="/c/Users/Jordan Polun/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.
 | Ice | Frostbolt | flick | thrown ice spear | as Ignite |
 | Ice | Icicles | V or upside-down V, chained | stalactites and stalagmites | step around |
 | Ice | Snowfall | star then a level line | snow cloud | leave the area |
-| Ice | Ice Prison | circle | freezing a volume solid; empty, it's a block | Force/Earth shatter; Barrier |
+| Ice | Ice Prison | circle | freezing whoever is inside solid; around nobody, it fizzles | Force/Earth shatter; Barrier |
 | Force | Push | circle then a line out | a shove of air | positioning |
 | Force | Barrier | circle | a shield bubble | wait it out |
 | Force | Force Wall | slash | a deflecting plane (projectiles only) | timing |
@@ -234,12 +234,40 @@ enemies **and the player**; the dark wizard's spells hurt only the player.
   - 16: one-way platforms.
   - Player and walking-mob masks are 17. Flyers have mask 0.
 
-## 9. Code style
+## 9. Code style and structure
+
+This code was grown one request at a time, which turns code into spaghetti unless each change keeps the shape
+clean. It was cleaned up once, without losing any behaviour. Keep it that way:
 
 - **Comments:** plain English `##` doc comments that say *why*, written like the existing ones. No jargon.
-- **Names:** descriptive. Match the surrounding code.
-- **Spell scripts:** each one is a self-contained Node with a `team`, `danger_at(point)` (the dark wizard avoids
-  danger) and the `"danger"` group.
+- **Names:** descriptive, and named after what the thing is *now*. When a feature changes, rename it (Quicksand
+  became `Mudslide`; the fire walker's effect became `"burning"` when it stopped leaving a trail).
+- **One script per spell effect.** Never add a branch on the spell's name (`if spell == "..."`) to a shared
+  script. Simple effects extend `SpellEffect` (`scripts/spells/spell_effect.gd`) and fill in `_begin`, `_act`
+  and `_finish`; bigger ones are their own Node. Add the new class to `arena._new_effect` or `spawn_spell`.
+  A new `class_name` is only registered after `godot --import`.
+- **Every spell** has a `team`, joins the `"danger"` group, and implements `danger_at(point)` (the dark wizard
+  avoids danger).
+- **Find nodes through groups, not by scanning the tree.** `"fires"`, `"clouds"`, `"shots"`, `"rocks"`,
+  `"lasting"`, `"earthquakes"`, `"danger"`, `"mobs"` (full list in `02_codebase_map.md`). Anything new that
+  burns joins `"fires"` and is then melted, lit and avoided by everything else for free.
+- **Check types with the class** (`node is Projectile`, `area is EnemyBolt`), not with spell-name strings.
+- **Ask the object, don't reach into it.** Never read another script's `_underscore` variable or call its
+  `_method`. Make it public (`facing`, `damage`, `earth_texture`) or add a small method (`is_slowed()`,
+  `span()`, `dissipate()`, `velocity()`). No static flags for world state: `Earthquake.is_shaking(tree)` asks
+  the group instead.
+- **One helper, not copies.** Shared logic lives in one place: `SpellTargets` (teams, ground, `fire_points`,
+  `fire_heat_near`, `shot_damage`), `GestureTemplates.bounds()` for a stroke's box, `PixelFx` for art frames. Look
+  there before writing a loop.
+- **Keep dependencies pointing one way.** The gesture code (`scripts/gesture/`) knows nothing about spells; it
+  must load under `-s`, where autoloads like `Sfx` don't exist. Spell-specific behaviour goes in the spell, the
+  arena or the AI (the earthquake's shaky hand is in `wizard_brain._shaken`, not in the caster).
+- **Use the engine.** Prefer Godot's own tools (groups, signals, `Area2D` overlaps, `StaticBody2D`, tweens,
+  `Rect2` helpers) over hand-rolled bookkeeping.
+- **Delete dead code** (unused functions, signals, art) in the same change that makes it dead, and update
+  `art/CREDITS.md`, `tools/prepare_gothic_art.py` and these docs to match.
+- **Refactoring:** change one thing at a time and re-run the full check after each step (startup, gestures,
+  soak waves 3/7/12/17, the spells showcase), comparing screenshots against a baseline taken first.
 
 ## 10. Known issues and ideas
 

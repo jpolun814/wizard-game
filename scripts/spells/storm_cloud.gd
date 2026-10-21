@@ -15,6 +15,7 @@ const HEIGHT := 34.0
 
 var team := "player"
 var width := 150.0
+var _dissipating := false
 var _age := 0.0
 var _next := 0.6
 var _warning := 0.0
@@ -24,6 +25,7 @@ const CLOUDS := [preload("res://art/props/cloud_storm_big.png"), preload("res://
 
 
 func _ready() -> void:
+	add_to_group("clouds")
 	add_to_group("lasting")
 	width = clampf(width, MIN_WIDTH, MAX_WIDTH)
 	add_to_group("danger")
@@ -135,3 +137,18 @@ func _draw() -> void:
 	for puff in _puffs:
 		var cloud: Texture2D = puff["texture"]
 		draw_texture(cloud, Vector2(puff["x"], puff["y"] - cloud.get_height() * 0.5), Color(light.r, light.g, light.b, grow))
+
+
+## Where the cloud reaches, left and right, in the world.
+func span() -> Vector2:
+	return Vector2(global_position.x - width * 0.5, global_position.x + width * 0.5)
+
+
+## The wind of a tornado thins the cloud away until it is gone.
+func dissipate() -> void:
+	if _dissipating:
+		return
+	_dissipating = true
+	var fade := create_tween()
+	fade.tween_property(self, "modulate:a", 0.0, 1.2)
+	fade.tween_callback(queue_free)

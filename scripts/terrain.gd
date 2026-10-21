@@ -42,7 +42,7 @@ var biome := "cemetery"
 var _textures := {}  # material -> atlas texture
 const GRASS_BAND := 16.0  # how deep the grass along the top of the ground is, in world pixels
 var _edges := PackedFloat32Array()  # the ground's top edge height at each column boundary, left to right
-var _fill_texture: Texture2D  # the biome's plain earth, which repeats under the surface
+var earth_texture: Texture2D  # the biome's plain earth, which repeats under the surface
 var _grass_texture: Texture2D  # the biome's grassy top, its first few pixels repeat along the surface
 
 
@@ -55,7 +55,7 @@ func build(map_cells: Dictionary, biome_name: String, rng: RandomNumberGenerator
 	_textures[ArenaGen.PLATFORM] = load("res://art/props/plank.png")
 	_textures[ArenaGen.STONE] = load("res://art/tiles/stone.png")
 	texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
-	_fill_texture = _piece_texture(_textures[ArenaGen.GROUND], CENTER)  # the lit, rocky middle of the earth, not the black depths
+	earth_texture = _piece_texture(_textures[ArenaGen.GROUND], CENTER)  # the lit, rocky middle of the earth, not the black depths
 	_grass_texture = _piece_texture(_textures[ArenaGen.GROUND], TOP)
 	_build_edges()
 	_build_collision()
@@ -162,7 +162,7 @@ func _draw_ground() -> void:
 	for p in fill:
 		fill_uvs.append(p / float(ArenaGen.TILE))
 	draw_polygon(fill, PackedColorArray([Color("#2a1f1a")]))  # an opaque base, so the earth is never see-through
-	draw_polygon(fill, PackedColorArray([Color.WHITE]), fill_uvs, _fill_texture)
+	draw_polygon(fill, PackedColorArray([Color.WHITE]), fill_uvs, earth_texture)
 	var band := PackedVector2Array(top)
 	var uvs := PackedVector2Array()
 	for p in top:

@@ -1,11 +1,10 @@
-class_name EarthquakeEffect
+class_name Earthquake
 extends Node
 
 ## An earthquake that shakes the whole arena for several seconds. The screen shakes, and everything on the ground is
 ## knocked from side to side on a beat. Flyers are untouched. While it lasts, strokes drawn on the ground are nudged by
 ## the same shake as the screen, and ranged enemies aim wide.
 
-static var active := false
 const SECONDS := 6.0
 const BEAT := 0.4
 const KNOCK := 160.0
@@ -17,13 +16,14 @@ var _side := 1.0
 
 
 func _ready() -> void:
-	active = true
+	add_to_group("earthquakes")
 	GameCamera.shake_scene(get_tree(), 0.6)
 	Sfx.play("quake", null, 0.0)
 
 
-func _exit_tree() -> void:
-	active = false
+## True while an earthquake is shaking the ground.
+static func is_shaking(tree: SceneTree) -> bool:
+	return tree.get_first_node_in_group("earthquakes") != null
 
 
 func _physics_process(delta: float) -> void:

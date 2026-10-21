@@ -31,6 +31,7 @@ var _director: WaveDirector
 var _place := {}  # which level and wave this is, see Levels.place_of
 var _portal: Portal
 var _leaving := false
+var _ground: Terrain
 
 
 func _ready() -> void:
@@ -43,10 +44,10 @@ func _ready() -> void:
 	add_child(backdrop)
 	move_child(backdrop, 0)
 	backdrop.build(ArenaGen.BIOMES[biome]["backdrop"])
-	var terrain := Terrain.new()
-	add_child(terrain)
-	move_child(terrain, 1)
-	terrain.build(_cells, biome, _rng)
+	_ground = Terrain.new()
+	add_child(_ground)
+	move_child(_ground, 1)
+	_ground.build(_cells, biome, _rng)
 	# The camera follows the player but never shows past the walls at either end of the map.
 	var camera: Camera2D = player.get_node("Camera2D")
 	camera.limit_left = ArenaGen.LEFT_WALL * TILE + TILE / 2
@@ -208,8 +209,8 @@ func _process(_delta: float) -> void:
 	caster.anchor = player.center()
 	caster.blocked_rects = _visible_hud_rects()
 	caster.hide_trail = player.is_blind()
-	player.casting = caster._active_mask != 0  # the wizard holds the staff up while a stroke is drawn
-	player.cast_color = caster._school_color(caster._active_mask)  # and the crystal shows the school being drawn
+	player.casting = caster.is_drawing()  # the wizard holds the staff up while a stroke is drawn
+	player.cast_color = caster.drawing_color()  # and the crystal shows the school being drawn
 	caster.tolerance = FocusItem.FOCI[player.focus]["tolerance"]
 	_minimap.visible = _revealed["minimap"]
 	_update_insight()
@@ -236,7 +237,7 @@ func _build_overlays() -> void:
 
 
 ## The map as tile blocks. Cell (0, 0) is the top-left corner of the arena, and y grows downward.
-func _terrain() -> Dictionary:
+func map_cells() -> Dictionary:
 	return _cells
 
 
@@ -287,10 +288,7 @@ func _on_cast_resolved(spell: String, targeting: String, origin: Vector2, aim: f
 
 ## The biome's earth, which a stone wall is made of: the same texture the ground is cut from.
 func _earth_texture() -> Texture2D:
-	for child in get_children():
-		if child is Terrain:
-			return child.get("_fill_texture")
-	return null
+	return _ground.earth_texture
 
 
 ## Makes a spell take effect in the world. The player's spells and the dark wizard's both come through here.
@@ -299,7 +297,7 @@ func spawn_spell(spell: String, targeting: String, origin: Vector2, aim: float, 
 	var from: Vector2 = caster_node.center()
 	match spell:
 		"Earthquake":
-			add_child(EarthquakeEffect.new())
+			add_child(Earthquake.new())
 			return
 		"Barrier":
 			# Barrier wraps the caster rather than appearing somewhere in the world.
@@ -334,15 +332,41 @@ func spawn_spell(spell: String, targeting: String, origin: Vector2, aim: float, 
 	# along the stroke; positional ones appear where drawn.
 	if targeting == "directional" and spell != "Stone Wall":
 		origin = from + Vector2.from_angle(aim) * MUZZLE_OFFSET
-	var effect := SpellEffect.new()
+	if spell == "Stonefall":
+		# A boulder falls onto the ground under the stroke and stays where it lands, as a loose rock.
+		var boulder := Boulder.new()
+		boulder.team = team
+		boulder.global_position = origin + Vector2(0, -260)
+		add_child(boulder)
+		return
+	var effect := _new_effect(spell)
 	effect.team = team
-	effect.zone_radius = info.get("radius", 0.0)
-	effect.wall_length = info.get("length", 0.0)
-	if spell == "Stone Wall":
+	if effect is PushZone:
+		effect.zone_radius = info.get("radius", 0.0)
+	elif effect is StoneWall:
+		effect.wall_length = info.get("length", 0.0)
 		effect.wall_texture = _earth_texture()
 	add_child(effect)
 	effect.setup(spell, origin, aim)
-	effect.broke.connect(func() -> void: _on_feedback("%s broke" % spell, Color.ORANGE))
+
+
+## A new effect of the kind a spell needs.
+func _new_effect(spell: String) -> SpellEffect:
+	match spell:
+		"Ignite", "Frostbolt":
+			return Projectile.new()
+		"Firewall":
+			return Firewall.new()
+		"Push":
+			return PushZone.new()
+		"Force Wall":
+			return ForceWall.new()
+		"Stone Wall":
+			return StoneWall.new()
+		"Spark":
+			return SparkStrike.new()
+	push_error("No spell effect for %s" % spell)
+	return SpellEffect.new()
 
 
 ## Blink: the caster zips along the stroke, stopping short of walls. Foes in the way take damage.
@@ -396,11 +420,11 @@ func _place_shapes(spell: String, info: Dictionary, team: String) -> void:
 				var local := PackedVector2Array()
 				for p in tri:
 					local.append(p - base)
-				var effect := SpellEffect.new()
-				effect.team = team
-				add_child(effect)
-				effect.polygon = local
-				effect.setup(spell, base + Vector2(0, lift), 0.0)
+				var icicle := Icicle.new()
+				icicle.team = team
+				icicle.polygon = local
+				add_child(icicle)
+				icicle.setup(spell, base + Vector2(0, lift), 0.0)
 		"Tornado":
 			var tornado := Tornado.new()
 			tornado.team = team
@@ -417,21 +441,21 @@ func _place_shapes(spell: String, info: Dictionary, team: String) -> void:
 			for p in line:
 				left = minf(left, p.x)
 				right = maxf(right, p.x)
-			var effect := SpellEffect.new()
-			effect.team = team
-			add_child(effect)
-			effect.polygon = PackedVector2Array([Vector2(0, -60), Vector2(right - left, -60), Vector2(right - left, 60), Vector2(0, 60)])
-			effect.setup(spell, Vector2(left, centre.y), 0.0)
+			var snow := Blizzard.new()
+			snow.team = team
+			snow.polygon = PackedVector2Array([Vector2(0, -60), Vector2(right - left, -60), Vector2(right - left, 60), Vector2(0, 60)])
+			add_child(snow)
+			snow.setup(spell, Vector2(left, centre.y), 0.0)
 		"Storm Cloud":
 			var cloud := StormCloud.new()
 			cloud.team = team
-			cloud.width = SpellData._width_of(line)
+			cloud.width = SpellData.width_of(line)
 			cloud.position = centre
 			add_child(cloud)
 		"Mudslide":
-			var sand := Quicksand.new()
+			var sand := Mudslide.new()
 			sand.team = team
-			sand.width = SpellData._width_of(line)
+			sand.width = SpellData.width_of(line)
 			sand.position = centre
 			add_child(sand)
 		"Ice Prison":
@@ -636,7 +660,7 @@ func _ground_below(point: Vector2) -> Vector2:
 func summon_far_side(kind: String) -> void:
 	var zoom: float = player.get_node("Camera2D").zoom.x
 	var half_view := get_viewport().get_visible_rect().size.x * 0.5 / zoom
-	var x := clampf(player.global_position.x + player._facing * half_view * 0.75, ArenaGen.left_edge() + 24.0, ArenaGen.right_edge() - 24.0)
+	var x := clampf(player.global_position.x + player.facing * half_view * 0.75, ArenaGen.left_edge() + 24.0, ArenaGen.right_edge() - 24.0)
 	var ground := SpellTargets.solid_below(get_world_2d(), Vector2(x, ArenaGen.GROUND_Y - 4.0 * TILE))
 	_add_mob(kind, ground)
 

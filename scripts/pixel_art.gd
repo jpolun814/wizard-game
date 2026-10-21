@@ -27,7 +27,6 @@ const FX := {
 	"rock": {"size": Vector2(16, 16), "frames": 1},
 	"fire_puff": {"size": Vector2(24, 62), "frames": 7},
 	"fire_band": {"size": Vector2(96, 54), "frames": 6},
-	"fire_trail": {"size": Vector2(24, 54), "frames": 6},
 	"fire_wall": {"size": Vector2(42, 77), "frames": 7},
 	"flame": {"size": Vector2(64, 64), "frames": 60},
 	"vortex": {"size": Vector2(100, 100), "frames": 61},

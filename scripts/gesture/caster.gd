@@ -71,6 +71,16 @@ func _update_emitter() -> void:
 
 
 ## The colour of the school that a button combination casts; white if it casts nothing.
+## True while a stroke is being drawn.
+func is_drawing() -> bool:
+	return _active_mask != 0
+
+
+## The colour of the school whose buttons are held for the stroke being drawn.
+func drawing_color() -> Color:
+	return _school_color(_active_mask)
+
+
 func _school_color(mask: int) -> Color:
 	for spell_name in SpellData.SPELLS:
 		var s: Dictionary = SpellData.SPELLS[spell_name]
@@ -238,12 +248,8 @@ func _end() -> void:
 			aim = info["aim"]
 		if entry.spell == "Ice Prison":
 			# The circle drawn round the target is the box the ice fills: its bounds, wherever it was drawn.
-			var low := relative[0]
-			var high := relative[0]
-			for p in relative:
-				low = low.min(p)
-				high = high.max(p)
-			info["rect"] = Rect2(_origin + low, high - low)
+			var box := GestureTemplates.bounds(relative)
+			info["rect"] = Rect2(_origin + box.position, box.size)
 		if entry.targeting == "shape" and info["line"].is_empty():
 			info["line"] = _to_world(relative)
 		cast_resolved.emit(entry.spell, entry.targeting, spawn, aim, info)
@@ -525,12 +531,10 @@ func _to_world(points: PackedVector2Array) -> PackedVector2Array:
 func _funnel_stroke(points: PackedVector2Array) -> PackedVector2Array:
 	if _turning_points(points, 0).size() < 4:
 		return PackedVector2Array()
-	var low := points[0]
-	var high := points[0]
-	for p in points:
-		low = low.min(p)
-		high = high.max(p)
-	var height := high.y - low.y
+	var box := GestureTemplates.bounds(points)
+	var low := box.position
+	var high := box.end
+	var height := box.size.y
 	if height < 60.0:
 		return PackedVector2Array()
 	var top_min := INF
@@ -599,7 +603,7 @@ func _cloud_line(points: PackedVector2Array) -> PackedVector2Array:
 	return points
 
 
-## Quicksand: a U, down one side and up the other, with both ends well above its bottom. Returns the stroke, or
+## Mudslide: a U, down one side and up the other, with both ends well above its bottom. Returns the stroke, or
 ## nothing.
 func _pit_stroke(points: PackedVector2Array) -> PackedVector2Array:
 	var turns := _turning_points(points)
@@ -617,23 +621,11 @@ func _pit_stroke(points: PackedVector2Array) -> PackedVector2Array:
 
 ## The width and height of a stroke's bounding box.
 func _extent(points: PackedVector2Array) -> Vector2:
-	var low := points[0]
-	var high := points[0]
-	for p in points:
-		low = low.min(p)
-		high = high.max(p)
-	return high - low
+	return GestureTemplates.bounds(points).size
 
 
 ## Casts a stroke that was not drawn with the mouse, such as a dark wizard's. It resolves exactly like a drawn one.
 func cast_stroke(mask: int, points: PackedVector2Array) -> void:
-	if EarthquakeEffect.active:
-		# Shaken ground shakes a hand: each point is nudged by the screen's shake, as the player's are.
-		var px := GameCamera.shake_px(get_tree())
-		var shaken := PackedVector2Array()
-		for p in points:
-			shaken.append(p + Vector2(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)) * px)
-		points = shaken
 	_stroke = points
 	_origin = points[0]
 	_active_mask = mask

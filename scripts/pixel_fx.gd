@@ -53,3 +53,8 @@ static func play(parent: Node, at: Vector2, effect: String, fps := 16.0, scale :
 	s.animation_finished.connect(s.queue_free)
 	parent.add_child(s)
 	return s
+
+
+## One frame of the pixel fire the flames are cut from, for the embers that fly off fire.
+static func ember() -> Texture2D:
+	return frames("flame").get_frame_texture("default", 20)

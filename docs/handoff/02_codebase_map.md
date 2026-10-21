@@ -88,14 +88,23 @@ never block each other.
   - Below 0.6 accuracy a chant backfires (handled in the arena).
 
 ### Spells (`scripts/spells/`)
-- **`spell_effect.gd`:** the multi-purpose Area2D for Ignite, Frostbolt, Icicles, Snowfall, Firewall, Push,
-  Stone Wall, Force Wall, Stonefall and Spark. `setup()` branches by spell, and so do `_physics_process` and
-  `_draw`. Images drawn every frame are `preload` constants.
-- **One file per newer spell:** `fire_breath.gd`, `volcano.gd`, `tornado.gd`, `ice_prison.gd`,
-  `gravity_well.gd`, `storm_cloud.gd`, `quicksand.gd`.
-- **`spell_targets.gd`:** team logic, `affects`, `hurt`, `all`, `hurt_within`, `ground_below` and `solid_below`.
-- **Conventions:** every spell has `team`, joins the `"danger"` group, and implements `danger_at(point)`, which
-  the dark wizard uses to avoid hazards.
+- **One script per effect.** Every spell's effect in the world is its own script; there is no shared script that
+  branches on the spell's name.
+  - `spell_effect.gd` (`SpellEffect`) is a small base for the simpler effects: it holds `spell`, `team` and the
+    life timer, and calls `_begin` (start), `_act` (each physics frame) and `_finish` (end) on its subclasses.
+  - Its subclasses: `projectile.gd` (Ignite, Frostbolt), `firewall.gd`, `icicle.gd`, `blizzard.gd`,
+    `push_zone.gd`, `force_wall.gd`, `stone_wall.gd`, `spark_strike.gd`. The arena picks one in `_new_effect`.
+  - Standalone effects: `fire_breath.gd`, `volcano.gd`, `tornado.gd`, `ice_prison.gd`, `gravity_well.gd`,
+    `storm_cloud.gd`, `mudslide.gd`, `boulder.gd` (Stonefall's rock), `lava_ball.gd` (a volcano's shots), `earthquake.gd`.
+- **`spell_targets.gd`:** team logic (`affects`, `hurt`, `all`, `hurt_within`), the ground (`ground_below`,
+  `solid_below`, `surface_over`), fire (`fire_points`, `fire_heat_near`) and `shot_damage`.
+- **Conventions:**
+  - Every spell has `team`, joins the `"danger"` group, and implements `danger_at(point)`, which the dark wizard
+    uses to avoid hazards.
+  - Spells find each other through groups, never by scanning the arena's children: `"fires"` (anything burning),
+    `"clouds"` (storm clouds and blizzards, which a tornado dissipates), `"shots"` (enemy bolts, projectiles and lava balls),
+    `"rocks"` (boulders), `"lasting"` (effects cleared when the wave ends), `"earthquakes"`.
+  - Check what a node is with its class (`node is Projectile`), not by comparing spell names.
 
 ### Enemies
 - **`mob.gd`:**
@@ -104,10 +113,10 @@ never block each other.
   - Creature frames are built by `CharFrames`. The shader `mob.gdshader` adds a slight school tint, a 1 px
     school-coloured outline, the hit flash and the frozen look.
   - Every attack is telegraphed: melee wind-up, shooter charge, flyer hover.
-  - The dark wizard parts are `_build_wizard`, `start_drawing`, `interrupt_cast`, `blink_to` and `mouth`.
+  - The dark wizard parts are `_build_wizard`, `start_drawing`, `interrupt_cast` and `mouth`.
 - **`wizard_brain.gd`:** the dark wizard's AI (see `06_enemies_and_ai.md`).
 - **Other enemy pieces:** `enemy_bolt.gd` (enemy shots, reflectable), `falling_shot.gd` (the fire caster's
-  fireball, sometimes used by flyers), `hazard.gd` (fire and frost ground patches).
+  fireball, sometimes used by flyers), `hazard.gd` (burning ground where a volcano's lava lands).
 
 ### Visuals
 - **`terrain.gd`:** the ground is one smooth surface: `_build_edges` takes the column tops, `_draw_ground` fills it

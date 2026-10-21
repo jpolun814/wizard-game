@@ -12,7 +12,7 @@ var reflected := false
 var _velocity := Vector2.RIGHT * SPEED
 var _gravity := 0.0
 var _slows := false
-var _damage := 6
+var damage := 6
 var _color := Color("#7fd8ff")
 var _age := 0.0
 
@@ -27,7 +27,7 @@ static func fire(parent: Node, origin: Vector2, target: Vector2, color: Color, d
 	bolt._gravity = gravity
 	bolt._slows = slows
 	bolt._color = color
-	bolt._damage = damage
+	bolt.damage = damage
 	bolt.rotation = direction.angle()
 	var shape := CollisionShape2D.new()
 	var circle := CircleShape2D.new()
@@ -36,6 +36,7 @@ static func fire(parent: Node, origin: Vector2, target: Vector2, color: Color, d
 	bolt.add_child(shape)
 	bolt.collision_mask = 5  # terrain and the player; enemies are passed through until it is reflected
 	bolt.body_entered.connect(bolt._on_body_entered)
+	bolt.add_to_group("shots")
 	parent.add_child(bolt)
 	if gravity <= 0.0:
 		var trail := Fx.trail(color, 20, 0.25, 10.0, Vector2.ZERO, "circle_05", 7.0)
@@ -85,14 +86,14 @@ func _physics_process(delta: float) -> void:
 func _on_body_entered(body: Node2D) -> void:
 	if body.is_in_group("player"):
 		if not reflected:
-			body.take_damage(_damage, true, true)
+			body.take_damage(damage, true, true)
 			if _slows:
 				body.apply_debuff("slow", 2.0)
 			_burst()
 		return
 	if body.is_in_group("mobs"):
 		if reflected and not body.is_dead():
-			body.take_damage(_damage, "Force")
+			body.take_damage(damage, "Force")
 			_burst()
 		return
 	_burst()  # terrain and walls stop it

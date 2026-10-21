@@ -96,9 +96,9 @@
 
 ## Interactions worth building (owner-approved direction: physical consistency)
 
-- **Fire and ice:** Fire melts an Ice Prison block or icicles; Frost puts out fire patches.
+- **Fire and ice:** Fire melts icicles and Blizzard snow; Frost puts out fire patches.
 - **Storm and stone:** lightning hits a Stone Wall instead of whoever is behind it.
-- **Push and hazards:** pushing an enemy into Quicksand or fire makes those hazards a combo.
+- **Push and hazards:** pushing an enemy into Mudslide or fire makes those hazards a combo.
 - **Wind and fire:** Tornado carries fire patches, becoming a fire whirl.
 - **Force and ice:** a frozen enemy shatters with Force or Earth. This already exists; keep the pattern.
 

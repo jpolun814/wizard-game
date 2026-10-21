@@ -151,7 +151,6 @@ FX_SHEETS = {
     "wind_bolt": ("x_spells/Pixelart Spells/PNG Files/Wind Bolt.png", 16),
     "fire_puff": ("pixflame/fire-a-168x62.png", 24),
     "fire_wall": ("pixflame/fire-b-294x77.png", 42),
-    "fire_trail": ("pixflame/fire-d-144x54.png", 24),
 }
 # Effects laid out in a grid and recoloured: name -> (sheet, frame width, frame height, and a recolouring: None,
 # ("hue", degrees), or ("ramp", dark colour, light colour)). Empty cells are skipped.

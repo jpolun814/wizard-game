@@ -28,8 +28,12 @@
 - **Autoloads and `-s`.** Scripts run with `-s` (extending SceneTree) can't see autoloads like `Sfx`. Make a
   scene instead (the showcase does).
 - **Test timing.** In a SceneTree test, nodes' `_ready` hasn't run during `_initialize`. Do checks in `_process`.
-- **Private fields.** `node.get("_facing")` works for script variables. It returns null if the variable doesn't
-  exist, so check the type.
+- **Private fields.** Don't read another script's `_underscore` variables, even though `node.get("_x")` works:
+  give the script a public property or method instead (see section 9 of `HANDOFF.md`).
+- **New `class_name`.** A new global class isn't known until `godot --headless --path . --import` has run; until
+  then other scripts fail to parse with "Identifier not declared".
+- **What `-s` scripts can load.** A `-s` test that preloads a script which mentions an autoload (even indirectly,
+  through a class it uses) fails to compile. Keep the gesture code free of spell and autoload references.
 - **Lambda captures.** Lambdas capture variables by value at creation. Use arrays or dictionaries as mutable
   boxes (see `showcase.gd`).
 - **Freeing during iteration.** A body can leave the `mobs` group mid-loop when your damage kills it. Read
@@ -42,8 +46,18 @@
   the sky downward.
 - **Area2D defaults** to layer 1. A Force Wall with mask 1 sees shots (areas on layer 1) and terrain bodies.
 - **Flyers** have collision mask 0 and are moved by hand; check walls with raycasts.
+- **Rescaling an Area2D re-fires `area_entered`.** Changing a node's scale rebuilds its shapes, and anything already
+  inside is reported as entering again. A melting icicle took two slices from one fireball until it remembered which
+  shots had struck it. Guard one-time hits with a set of instance ids.
+- **Fast things and thin ground.** Move a fast shot by hand and raycast from its old position to its new one each
+  frame (see `lava_ball.gd`), so it can't skip through a thin platform between frames.
 
 ## Startup and loading
+
+- **Logs.** Godot's file log once grew to 270 GB (`godot.log` under the user data folder) when stuck headless
+  test runs printed errors every frame, and made the game slow to start. File logging is off in
+  `project.godot` (`file_logging/enable_file_logging.pc=false`). Always run tests with a time limit
+  (`--quit-after`, or `timeout` in the shell) and kill leftover Godot processes.
 
 - **Don't load every asset at launch.** `Sfx` used to decode all ~100 sounds in `_ready`, which added many seconds
   before the window showed. It now keeps paths and loads a sound the first time it plays. Do the same for any big

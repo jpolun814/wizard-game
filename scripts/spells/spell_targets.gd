@@ -22,8 +22,8 @@ static func affects(body: Node, team: String) -> bool:
 
 
 ## Hurts the body if the spell's team affects it. Enemies take school damage (weak, resisted); the player takes
-## it plain.
-static func hurt(body: Node, amount: int, school: String, team: String) -> void:
+## it plain. A shot's hurt (shot true) is stopped by the player's Barrier, as every shot is.
+static func hurt(body: Node, amount: int, school: String, team: String, shot := false) -> void:
 	if not affects(body, team):
 		return
 	if body.is_in_group("player"):
@@ -32,7 +32,7 @@ static func hurt(body: Node, amount: int, school: String, team: String) -> void:
 			body.thaw()
 			Shatter.spawn(body.get_parent(), body.center(), Color("#cdeeff"))
 			Sfx.play("ice_shatter", body.center())
-		body.take_damage(amount)
+		body.take_damage(amount, true, shot)
 	else:
 		body.take_damage(amount, school)
 
@@ -70,11 +70,11 @@ static func center_of(body: Node2D) -> Vector2:
 
 
 ## Hurts every affected body within a radius of a point, and returns how many it hit.
-static func hurt_within(tree: SceneTree, point: Vector2, radius: float, amount: int, school: String, team: String) -> int:
+static func hurt_within(tree: SceneTree, point: Vector2, radius: float, amount: int, school: String, team: String, shot := false) -> int:
 	var hit := 0
 	for body in all(tree, team):
 		if center_of(body).distance_to(point) <= radius:
-			hurt(body, amount, school, team)
+			hurt(body, amount, school, team, shot)
 			hit += 1
 	return hit
 
@@ -94,3 +94,44 @@ static func solid_below(world: World2D, point: Vector2, reach := 800.0) -> Vecto
 	query.collision_mask = 1
 	var hit := world.direct_space_state.intersect_ray(query)
 	return hit["position"] if not hit.is_empty() else Vector2(point.x, ArenaGen.GROUND_Y)
+
+
+## Every fire burning, as {at: where it is, heat: how fiercely it melts, size: how far it reaches past that point,
+## shot: true for a fireball or ball of lava in flight}. Burning ground and a firewall are steady heat; a fireball or a
+## ball of lava is three times as hot; each puff of breath is a small flame.
+static func fire_points(tree: SceneTree) -> Array:
+	var fires := []
+	for node in tree.get_nodes_in_group("fires"):
+		if node is Hazard:
+			fires.append({"at": node.global_position, "heat": 1.0, "size": node.width * 0.5, "shot": false})
+		elif (node is Projectile and node.spell == "Ignite") or node is LavaBall:
+			fires.append({"at": node.global_position, "heat": 3.0, "size": 0.0, "shot": true})
+		elif node is Firewall:
+			for point in node.flame_points():
+				fires.append({"at": point, "heat": 1.0, "size": 12.0, "shot": false})
+		elif node is FireBreath:
+			for point in node.flame_points():
+				fires.append({"at": point, "heat": 1.0, "size": -10.0, "shot": false})
+	return fires
+
+
+## The heat of the hottest steady fire (not a shot in flight) within reach of a box in the world, or 0 if none is.
+static func fire_heat_near(tree: SceneTree, box: Rect2, reach: float) -> float:
+	var heat := 0.0
+	for fire in fire_points(tree):
+		if fire["shot"]:
+			continue
+		var at: Vector2 = fire["at"]
+		var nearest := at.clamp(box.position, box.end)
+		if at.distance_to(nearest) < reach + fire["size"]:
+			heat = maxf(heat, fire["heat"])
+	return heat
+
+
+## How much a shot that touched something hurts it: an enemy's bolt or one of the spell projectiles. Anything else, 0.
+static func shot_damage(area: Area2D) -> int:
+	if area is EnemyBolt:
+		return area.damage
+	if area is Projectile or area is LavaBall:
+		return area.damage()
+	return 0
