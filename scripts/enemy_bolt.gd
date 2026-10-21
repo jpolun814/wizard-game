@@ -1,14 +1,16 @@
 class_name EnemyBolt
 extends Area2D
 
-## A shot fired by an enemy. It stops at walls and hurts the player. A force wall or a push can send it back
-## the other way, and a sent-back bolt hurts enemies instead. Some shots fall (gravity) and some slow the player.
+## A shot fired by an enemy. It stops at walls and hurts whatever it touches: the player, or another enemy. It can't hit
+## the enemy that fired it until it has flown out of that enemy's body. Some shots fall (gravity) and some slow the player.
 
 const SPEED := 300.0
 const LIFE := 3.0
+const CLEAR_CHECK_AFTER := 0.05  # the overlaps of a new shot are not known until a few physics frames have passed
 const ROCK := preload("res://art/fx/rock.png")  # held here so it stays loaded between frames
 
-var reflected := false
+var _clear := false  # it has flown out of its shooter's body: from then on it can hit the shooter too
+var _shooter: Node
 var _velocity := Vector2.RIGHT * SPEED
 var _gravity := 0.0
 var _slows := false
@@ -19,7 +21,7 @@ var _age := 0.0
 
 ## Creates a shot from an enemy toward a target point, and returns it. A gravity above zero makes it arc down.
 ## A slowing shot slows the player for a moment when it hits.
-static func fire(parent: Node, origin: Vector2, target: Vector2, color: Color, damage: int, gravity := 0.0, slows := false, art := "magic_bolt") -> EnemyBolt:
+static func fire(parent: Node, origin: Vector2, target: Vector2, color: Color, damage: int, gravity := 0.0, slows := false, art := "magic_bolt", shooter: Node = null) -> EnemyBolt:
 	var bolt := EnemyBolt.new()
 	bolt.global_position = origin
 	var direction := (target - origin).normalized()
@@ -27,6 +29,7 @@ static func fire(parent: Node, origin: Vector2, target: Vector2, color: Color, d
 	bolt._gravity = gravity
 	bolt._slows = slows
 	bolt._color = color
+	bolt._shooter = shooter
 	bolt.damage = damage
 	bolt.rotation = direction.angle()
 	var shape := CollisionShape2D.new()
@@ -34,7 +37,7 @@ static func fire(parent: Node, origin: Vector2, target: Vector2, color: Color, d
 	circle.radius = 6.0
 	shape.shape = circle
 	bolt.add_child(shape)
-	bolt.collision_mask = 5  # terrain and the player; enemies are passed through until it is reflected
+	bolt.collision_mask = 7  # terrain, enemies and the player
 	bolt.body_entered.connect(bolt._on_body_entered)
 	bolt.add_to_group("shots")
 	parent.add_child(bolt)
@@ -54,27 +57,22 @@ static func fire(parent: Node, origin: Vector2, target: Vector2, color: Color, d
 	return bolt
 
 
-## A force wall has batted this shot: it turns around and now hurts enemies.
-func reflect() -> void:
-	if reflected:
-		return
-	reflected = true
-	Sfx.play("force", global_position, -4.0)
-	_velocity = -_velocity
-	rotation = _velocity.angle()
-	collision_mask = 7
-
-
-## A push sends the shot flying the way the push points. Like a batted-back shot, it now hurts enemies.
-func push(direction: Vector2) -> void:
-	reflected = true
+## A force wall, push or tornado turns this shot: it flies off along the new heading.
+func reflect(direction: Vector2) -> void:
 	_velocity = direction.normalized() * SPEED
 	rotation = _velocity.angle()
-	collision_mask = 7
+	Sfx.play("force", global_position, -4.0)
+
+
+## Which way it is flying right now.
+func heading() -> Vector2:
+	return _velocity.normalized()
 
 
 func _physics_process(delta: float) -> void:
 	_age += delta
+	if _age >= CLEAR_CHECK_AFTER and not _clear and not get_overlapping_bodies().has(_shooter):
+		_clear = true
 	_velocity.y += _gravity * delta
 	position += _velocity * delta
 	rotation = _velocity.angle()
@@ -84,19 +82,17 @@ func _physics_process(delta: float) -> void:
 
 
 func _on_body_entered(body: Node2D) -> void:
+	if body == _shooter and not _clear:
+		return
+	if body.is_in_group("mobs") and body.is_dead():
+		return
 	if body.is_in_group("player"):
-		if not reflected:
-			body.take_damage(damage, true, true)
-			if _slows:
-				body.apply_debuff("slow", 2.0)
-			_burst()
-		return
-	if body.is_in_group("mobs"):
-		if reflected and not body.is_dead():
-			body.take_damage(damage, "Force")
-			_burst()
-		return
-	_burst()  # terrain and walls stop it
+		body.take_damage(damage, true, true)
+		if _slows:
+			body.apply_debuff("slow", 2.0)
+	elif body.is_in_group("mobs"):
+		body.take_damage(damage)
+	_burst()  # whatever it hits, it stops there
 
 
 ## A small blast where it ends.

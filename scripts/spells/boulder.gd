@@ -10,7 +10,6 @@ const LANDING_DAMAGE := 30
 const HEALTH := 63.0  # the same as a default stone wall (45% of its length)
 const ROCK := preload("res://art/fx/rock.png")
 
-var team := "player"
 var _health := HEALTH
 var _landed := false
 var _speed := 0.0  # how fast it was moving last frame, which is how hard it hits
@@ -62,12 +61,12 @@ func _on_contact(body: Node) -> void:
 		if _speed < 120.0 or now - int(_last_bump.get(body, -10000)) < 600:
 			return
 		_last_bump[body] = now
-		SpellTargets.hurt(body, clampi(int(_speed / 40.0), 4, 40), "Earth", team)
+		SpellTargets.hurt(body, clampi(int(_speed / 40.0), 4, 40), "Earth")
 		return
 	if _landed:
 		return
 	_landed = true
-	SpellTargets.hurt_within(get_tree(), global_position, LANDING_RADIUS, LANDING_DAMAGE, "Earth", team)
+	SpellTargets.hurt_within(get_tree(), global_position, LANDING_RADIUS, LANDING_DAMAGE, "Earth")
 	Fx.debris(get_parent(), global_position, Color("#9c7a52"), 12, 200.0)
 	Fx.smoke(get_parent(), global_position, Color(0.45, 0.38, 0.3, 0.5), 5, 30.0, 30.0)
 	Sfx.play("quake", global_position)

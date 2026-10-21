@@ -4,7 +4,7 @@ extends Area2D
 ## A ball of molten rock thrown by a volcano. It flies in an arc, and where it lands the ground or platform catches
 ## fire and anything close by is burned. A ball that strikes someone lands on them. It is a shot like any other: a
 ## Force Wall, Push or Tornado turns it, a Gravity Well swallows it, a Barrier stops it, and a stone wall takes the
-## blow. Lava burns whoever it lands on, whichever volcano threw it, so any of those spells turns it.
+## blow. Lava burns whoever it lands on, the caster included.
 
 const GRAVITY := 900.0
 const DAMAGE := 12
@@ -13,18 +13,16 @@ const FIRE_WIDTH := 40.0
 const FIRE_SECONDS := 5.0
 const LIFE := 6.0  # one thrown off the map is gone after this
 
-var team := "player"
 var velocity := Vector2.ZERO
 var _age := 0.0
 var _spent := false
 
 
 ## Throws a ball of lava from a point, and returns it.
-static func throw(parent: Node, from: Vector2, launch: Vector2, by_team: String) -> LavaBall:
+static func throw(parent: Node, from: Vector2, launch: Vector2) -> LavaBall:
 	var ball := LavaBall.new()
 	ball.global_position = from
 	ball.velocity = launch
-	ball.team = by_team
 	parent.add_child(ball)
 	return ball
 
@@ -67,7 +65,7 @@ func _physics_process(delta: float) -> void:
 
 ## It strikes someone in its way. A Barrier stops it dead; otherwise it lands on them.
 func _on_body(body: Node2D) -> void:
-	if _spent or not SpellTargets.affects(body, team):
+	if _spent or not SpellTargets.affects(body):
 		return
 	if body.has_shield():
 		_spent = true
@@ -85,8 +83,7 @@ func _land(ground: Vector2, struck := Vector2.INF) -> void:
 	if struck == Vector2.INF:
 		struck = ground
 	var hazard := Hazard.place(get_parent(), ground, FIRE_WIDTH, FIRE_SECONDS)
-	hazard.team = team
-	SpellTargets.hurt_within(get_tree(), struck + Vector2(0, -12), REACH, DAMAGE, "Fire", team, true)
+	SpellTargets.hurt_within(get_tree(), struck + Vector2(0, -12), REACH, DAMAGE, "Fire", true)
 	PixelFx.play(get_parent(), struck, "blast_small", 20.0, 1.0, Color.WHITE, true)
 	Sfx.play("fire_hit", struck, -6.0)
 	queue_free()
@@ -99,9 +96,9 @@ func reflect(direction: Vector2) -> void:
 	Sfx.play("force", global_position, -4.0)
 
 
-## Wind turns it the same way.
-func deflect(direction: Vector2) -> void:
-	reflect(direction)
+## Which way it is flying right now.
+func heading() -> Vector2:
+	return velocity.normalized()
 
 
 func damage() -> int:

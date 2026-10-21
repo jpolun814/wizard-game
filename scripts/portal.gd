@@ -5,6 +5,7 @@ extends Area2D
 ## into. Pixel art from LetargicDev's Portals, drawn three times its size.
 
 const RY := 28.0  # half the height of the way through; the arena stands the portal this far (and a bit) off the ground
+const SINK := 10.0  # the archway's foot is pushed this far into the ground, so the ground hides it
 
 var _t := 0.0
 
@@ -25,8 +26,8 @@ func _ready() -> void:
 	arch.sprite_frames = frames
 	arch.scale = Vector2.ONE * 3.0
 	arch.modulate = Color(0.7, 0.66, 0.78)  # the violet light, greyed down to sit with the dark stone
-	arch.z_index = -1  # a layer behind the ground, so the archway sits in the earth rather than on it
-	arch.position = Vector2(0, RY + 4.0 - 48.0)  # its foot on the ground
+	arch.z_index = -2  # behind the ground and the props on it, so the archway sits in the earth rather than on it
+	arch.position = Vector2(0, RY + 4.0 - 48.0 + SINK)  # its foot sunk into the ground
 	arch.animation_finished.connect(func() -> void: arch.play("loop"))
 	add_child(arch)
 	arch.play("default")

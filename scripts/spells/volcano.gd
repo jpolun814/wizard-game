@@ -12,7 +12,6 @@ const ERUPT_INTERVAL := 0.45
 const GROUND_SAMPLES := 9  # the ground is measured at this many points across the foot of the mountain
 const CRATER_Y := -70.0  # the top of the mountain's crater, in its own picture: where the fire comes out
 
-var team := "player"
 var _age := 0.0
 var _erupting := true  # it erupts for a while, then sleeps for a while, until the wave ends
 var _phase := ERUPT_SECONDS  # time left in the current eruption or sleep
@@ -67,7 +66,7 @@ func _physics_process(delta: float) -> void:
 		_vent.visible = _erupting
 	if _erupting and _erupt <= 0.0:
 		_erupt = ERUPT_INTERVAL
-		LavaBall.throw(get_parent(), global_position + _crater(0.0), Vector2(randf_range(-180.0, 180.0), -480.0).rotated(_lean), team)
+		LavaBall.throw(get_parent(), global_position + _crater(0.0), Vector2(randf_range(-180.0, 180.0), -480.0).rotated(_lean))
 		Fx.smoke(get_parent(), global_position + _crater(-20.0), Color(0.2, 0.17, 0.17, 0.6), 2, 26.0, 60.0)
 	_glow.queue_redraw()
 

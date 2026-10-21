@@ -41,15 +41,14 @@ func _begin(origin: Vector2, _aim_angle: float) -> void:
 	_add_shape(band)
 	if lasting:
 		_build_pile_body()
-	if team == "player":
-		Sfx.play("snow", origin)
+	Sfx.play("snow", origin)
 
 
 func _act(delta: float) -> void:
 	if lasting:
 		_grow_pile(delta)
 	for body in get_overlapping_bodies():
-		if not SpellTargets.affects(body, team):
+		if not SpellTargets.affects(body):
 			continue
 		if body.is_in_group("mobs"):
 			body.apply_slow(SLOW_SECONDS)

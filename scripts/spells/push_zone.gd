@@ -32,7 +32,7 @@ func _inside(point: Vector2) -> bool:
 
 
 func _push_everything() -> void:
-	for body in SpellTargets.all(get_tree(), team):
+	for body in SpellTargets.all(get_tree()):
 		if not (_inside(SpellTargets.center_of(body)) or _inside(body.global_position)):
 			continue
 		if body.is_in_group("mobs"):
@@ -46,9 +46,7 @@ func _push_everything() -> void:
 		if _inside(rock.global_position):
 			rock.push(aim * KNOCK_SPEED * 1.6)
 	for node in get_tree().get_nodes_in_group("shots"):
-		if node is EnemyBolt and team == "player" and _inside(node.global_position):
-			node.push(aim)
-		elif (node is LavaBall or (node is Projectile and node.team != team)) and _inside(node.global_position):
+		if _inside(node.global_position):
 			node.reflect(aim)
 
 

@@ -32,7 +32,7 @@ func _physics_process(delta: float) -> void:
 	queue_redraw()
 	if not _landed and _age >= WARNING + FALL:
 		_landed = true
-		SpellTargets.hurt_within(get_tree(), global_position + Vector2(0, -16), RADIUS, damage, "Fire", "enemy")
+		SpellTargets.hurt_within(get_tree(), global_position + Vector2(0, -16), RADIUS, damage, "Fire")
 		Fx.impact(get_parent(), global_position + Vector2(0, -6), colour, 50.0)
 		Fx.smoke(get_parent(), global_position, Color(0.3, 0.25, 0.25, 0.4), 3, 22.0, 30.0)
 		Sfx.play("fire_hit", global_position)

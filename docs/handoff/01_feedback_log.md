@@ -169,6 +169,17 @@ This document set is the result.
 
 ---
 
+## Round 8
+
+> "idk how much more clear i can be about this- there are no teams once a spell is cast. aside from the very
+> specific ones we talked about (ignite and frostbolt) anyone should be impacted by any spell. that means friendly
+> fire, that means getting hit by your own spell, that kind of thing. same for the dark wizard, same for the mobs"
+
+**Lesson:** a spell has no side. The code had a team on every spell, and each rule (who it hurts) came from it. Remove
+the concept. A shot can't hit its shooter only while it is still inside the shooter's body; after that it can.
+
+---
+
 ## Patterns across all rounds
 
 1. **Physical plausibility.** Asked about in nearly every round: fire, lightning, walls, clouds and rocks should

@@ -1,30 +1,23 @@
 class_name SpellTargets
 extends RefCounted
 
-## Who a spell can hurt. Every spell belongs to a team: "player" for yours and "enemy" for the dark wizard's.
-## Your spells hurt enemies, and they hurt you too if you are caught in them. The dark wizard's spells hurt only
-## you, so it can't blow itself up.
+## Who a spell can hurt. A spell has no side: once it is cast it hurts whoever it touches, the caster and its own
+## allies included. The few shots that pass their caster by are handled by the shot itself (see Projectile).
 
 
-## True when a spell of this team affects the body (an enemy or the player).
-static func affects(body: Node, team: String) -> bool:
+## True when a spell can hurt the body: the player, or an enemy still standing.
+static func affects(body: Node) -> bool:
 	if body == null or not is_instance_valid(body):
 		return false
 	if body.is_in_group("player"):
 		return true
-	if body.is_in_group("mobs"):
-		if body.is_dead():
-			return false
-		if team == "enemy":
-			return body.kind == "dark_wizard"  # its own spells burn it too, but never its fellow enemies
-		return true
-	return false
+	return body.is_in_group("mobs") and not body.is_dead()
 
 
-## Hurts the body if the spell's team affects it. Enemies take school damage (weak, resisted); the player takes
-## it plain. A shot's hurt (shot true) is stopped by the player's Barrier, as every shot is.
-static func hurt(body: Node, amount: int, school: String, team: String, shot := false) -> void:
-	if not affects(body, team):
+## Hurts the body. Enemies take school damage (weak, resisted); the player takes it plain. A shot's hurt (shot true)
+## is stopped by the player's Barrier, as every shot is.
+static func hurt(body: Node, amount: int, school: String, shot := false) -> void:
+	if not affects(body):
 		return
 	if body.is_in_group("player"):
 		if school in ["Force", "Earth"] and body.is_frozen():
@@ -37,15 +30,10 @@ static func hurt(body: Node, amount: int, school: String, team: String, shot := 
 		body.take_damage(amount, school)
 
 
-## Every body a spell of this team affects: enemies (for your spells) and the player.
-static func all(tree: SceneTree, team: String) -> Array:
+## Every body a spell can reach: every enemy, and the player while alive.
+static func all(tree: SceneTree) -> Array:
 	var out := []
-	if team == "player":
-		out.append_array(tree.get_nodes_in_group("mobs"))
-	else:
-		for mob in tree.get_nodes_in_group("mobs"):
-			if mob.kind == "dark_wizard":
-				out.append(mob)
+	out.append_array(tree.get_nodes_in_group("mobs"))
 	var player := tree.get_first_node_in_group("player")
 	if player and not player.dead:
 		out.append(player)
@@ -70,11 +58,11 @@ static func center_of(body: Node2D) -> Vector2:
 
 
 ## Hurts every affected body within a radius of a point, and returns how many it hit.
-static func hurt_within(tree: SceneTree, point: Vector2, radius: float, amount: int, school: String, team: String, shot := false) -> int:
+static func hurt_within(tree: SceneTree, point: Vector2, radius: float, amount: int, school: String, shot := false) -> int:
 	var hit := 0
-	for body in all(tree, team):
+	for body in all(tree):
 		if center_of(body).distance_to(point) <= radius:
-			hurt(body, amount, school, team, shot)
+			hurt(body, amount, school, shot)
 			hit += 1
 	return hit
 

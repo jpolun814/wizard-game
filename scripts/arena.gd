@@ -283,7 +283,7 @@ func _on_cast_resolved(spell: String, targeting: String, origin: Vector2, aim: f
 		Sfx.play("misfire", player.center(), -6.0)
 		return
 	FloatText.spawn(self, label_at, spell, colour.lightened(0.25), 0.9)
-	spawn_spell(spell, targeting, origin, aim, info, player, "player")
+	spawn_spell(spell, targeting, origin, aim, info, player)
 
 
 ## The biome's earth, which a stone wall is made of: the same texture the ground is cut from.
@@ -292,8 +292,8 @@ func _earth_texture() -> Texture2D:
 
 
 ## Makes a spell take effect in the world. The player's spells and the dark wizard's both come through here.
-## caster is whoever cast it (the player or a dark wizard), and team says whose side the spell is on.
-func spawn_spell(spell: String, targeting: String, origin: Vector2, aim: float, info: Dictionary, caster_node: Node2D, team: String) -> void:
+## caster is whoever cast it: the player or a dark wizard.
+func spawn_spell(spell: String, targeting: String, origin: Vector2, aim: float, info: Dictionary, caster_node: Node2D) -> void:
 	var from: Vector2 = caster_node.center()
 	match spell:
 		"Earthquake":
@@ -305,12 +305,11 @@ func spawn_spell(spell: String, targeting: String, origin: Vector2, aim: float, 
 			return
 		"Blink":
 			# Blink zips the caster along the stroke, so it starts from the caster, not the stroke.
-			_blink(caster_node, aim, info.get("length", 0.0), team)
+			_blink(caster_node, aim, info.get("length", 0.0))
 			return
 		"Fire Breath":
 			# The fire pours out of the caster, toward the cone's open end.
 			var breath := FireBreath.new()
-			breath.team = team
 			breath.caster_node = caster_node
 			breath.aim = aim
 			breath.spread = info.get("spread", 0.8)
@@ -319,14 +318,13 @@ func spawn_spell(spell: String, targeting: String, origin: Vector2, aim: float, 
 			return
 		"Gravity Well":
 			var well := GravityWell.new()
-			well.team = team
 			well.reach = info.get("radius", 60.0) * 2.0
 			well.position = origin
 			add_child(well)
 			return
 	# Icicles, snowfall, tornados, volcanoes and the rest are placed where they were drawn, not at one point.
 	if targeting == "shape":
-		_place_shapes(spell, info, team)
+		_place_shapes(spell, info)
 		return
 	# Stone Wall rises from where the stroke began, on the ground. Other directional spells leave the caster
 	# along the stroke; positional ones appear where drawn.
@@ -335,12 +333,11 @@ func spawn_spell(spell: String, targeting: String, origin: Vector2, aim: float, 
 	if spell == "Stonefall":
 		# A boulder falls onto the ground under the stroke and stays where it lands, as a loose rock.
 		var boulder := Boulder.new()
-		boulder.team = team
 		boulder.global_position = origin + Vector2(0, -260)
 		add_child(boulder)
 		return
 	var effect := _new_effect(spell)
-	effect.team = team
+	effect.caster = caster_node
 	if effect is PushZone:
 		effect.zone_radius = info.get("radius", 0.0)
 	elif effect is StoneWall:
@@ -369,8 +366,8 @@ func _new_effect(spell: String) -> SpellEffect:
 	return SpellEffect.new()
 
 
-## Blink: the caster zips along the stroke, stopping short of walls. Foes in the way take damage.
-func _blink(caster_node: Node2D, aim: float, length: float, team: String) -> void:
+## Blink: the caster zips along the stroke, stopping short of walls. Whoever is in the way takes damage, the caster aside.
+func _blink(caster_node: Node2D, aim: float, length: float) -> void:
 	var dir := Vector2.from_angle(aim)
 	var start: Vector2 = caster_node.global_position
 	var end := start + dir * minf(length, SpellData.BLINK_MAX)
@@ -381,13 +378,13 @@ func _blink(caster_node: Node2D, aim: float, length: float, team: String) -> voi
 		end = hit["position"] + Vector2(0, 20) - dir * 16.0
 	end.x = clampf(end.x, ArenaGen.left_edge() + 14.0, ArenaGen.right_edge() - 14.0)
 	end.y = minf(end.y, ArenaGen.GROUND_Y)
-	for body in SpellTargets.all(get_tree(), team):
+	for body in SpellTargets.all(get_tree()):
 		if body == caster_node:
 			continue
 		var middle := SpellTargets.center_of(body)
 		var closest := Geometry2D.get_closest_point_to_segment(middle, start + Vector2(0, -20), end + Vector2(0, -20))
 		if closest.distance_to(middle) <= 24.0:
-			SpellTargets.hurt(body, BLINK_DAMAGE, "Storm", team)
+			SpellTargets.hurt(body, BLINK_DAMAGE, "Storm")
 	var colour: Color = SpellData.SCHOOL_COLORS["Storm"]
 	Fx.pop(self, start + Vector2(0, -24), "twirl_02", colour, 60.0, 0.3, 0.3, 8.0)
 	Fx.burst(self, start + Vector2(0, -24), colour, 12, 120.0, 0.25, true)
@@ -403,7 +400,7 @@ func _blink(caster_node: Node2D, aim: float, length: float, team: String) -> voi
 ## the drawn line, a tornado or volcano forms under the middle of the drawing, a storm cloud hangs along its line,
 ## quicksand opens under the U, and an ice
 ## prison fills the drawn box.
-func _place_shapes(spell: String, info: Dictionary, team: String) -> void:
+func _place_shapes(spell: String, info: Dictionary) -> void:
 	var line: PackedVector2Array = info.get("line", PackedVector2Array())
 	var centre := Vector2.ZERO
 	for p in line:
@@ -421,18 +418,15 @@ func _place_shapes(spell: String, info: Dictionary, team: String) -> void:
 				for p in tri:
 					local.append(p - base)
 				var icicle := Icicle.new()
-				icicle.team = team
 				icicle.polygon = local
 				add_child(icicle)
 				icicle.setup(spell, base + Vector2(0, lift), 0.0)
 		"Tornado":
 			var tornado := Tornado.new()
-			tornado.team = team
 			tornado.position = centre
 			add_child(tornado)
 		"Volcano":
 			var volcano := Volcano.new()
-			volcano.team = team
 			volcano.position = SpellTargets.surface_over(get_world_2d(), centre)  # always on the surface, never under it
 			add_child(volcano)
 		"Blizzard":
@@ -442,25 +436,21 @@ func _place_shapes(spell: String, info: Dictionary, team: String) -> void:
 				left = minf(left, p.x)
 				right = maxf(right, p.x)
 			var snow := Blizzard.new()
-			snow.team = team
 			snow.polygon = PackedVector2Array([Vector2(0, -60), Vector2(right - left, -60), Vector2(right - left, 60), Vector2(0, 60)])
 			add_child(snow)
 			snow.setup(spell, Vector2(left, centre.y), 0.0)
 		"Storm Cloud":
 			var cloud := StormCloud.new()
-			cloud.team = team
 			cloud.width = SpellData.width_of(line)
 			cloud.position = centre
 			add_child(cloud)
 		"Mudslide":
 			var sand := Mudslide.new()
-			sand.team = team
 			sand.width = SpellData.width_of(line)
 			sand.position = centre
 			add_child(sand)
 		"Ice Prison":
 			var prison := IcePrison.new()
-			prison.team = team
 			prison.rect = info["rect"]
 			add_child(prison)
 
@@ -471,7 +461,7 @@ func _on_wizard_cast(spell: String, targeting: String, origin: Vector2, aim: flo
 		return
 	wizard.stamina -= SpellData.cost_for(spell, info)
 	wizard.last_spell = spell
-	spawn_spell(spell, targeting, origin, aim, info, wizard, "enemy")
+	spawn_spell(spell, targeting, origin, aim, info, wizard)
 
 
 func _on_misfire() -> void:

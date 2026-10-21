@@ -94,6 +94,8 @@ var _shot_timer := 1.5
 var _root_time := 0.0
 var _nojump_time := 0.0  # while above zero, the walker cannot jump (mudslide)
 var _frozen_time := 0.0
+var _flame: Node2D  # a burning walker's flame; it goes out while the walker is frozen
+var _relight := 0.0  # seconds until the flame is lit again after a freeze
 var _base_scale := 1.0
 var _lunge := 0.0        # 1 the moment an enemy attacks, fading to 0: it lunges toward the player
 var _windup := 0.0       # counting down to a melee hit
@@ -103,6 +105,7 @@ var _spawn := SPAWN_TIME
 var _trail_timer := 0.0
 var _touch_timer := 0.0  # between the burns a fire walker gives to whoever touches it
 const TOUCH_BURN := 6
+const RELIGHT_SECONDS := 1.5  # a frozen walker's flame comes back this long after it is freed
 var _fly_state := PATROL
 var _fly_timer := 2.0
 var _fly_goal_x := 0.0
@@ -217,6 +220,7 @@ func _physics_process(delta: float) -> void:
 	if global_position.y > FALL_LIMIT:
 		queue_free()
 		return
+	_update_flame(delta)
 	if _spawn > 0.0:
 		_spawn -= delta
 		modulate.a = clampf(1.0 - _spawn / SPAWN_TIME, 0.0, 1.0)
@@ -283,7 +287,7 @@ func _walk(delta: float) -> void:
 			velocity.y = MOB_JUMP
 	move_and_slide()
 	# Touching a burning walker sets you alight, whether or not it is attacking.
-	if _burns() and player and not player.dead:
+	if _burns() and _flame_lit() and player and not player.dead:
 		_touch_timer -= delta
 		if _touch_timer <= 0.0 and player.center().distance_to(center()) < 34.0:
 			_touch_timer = 0.6
@@ -406,7 +410,7 @@ func _shoot(shot: Dictionary) -> void:
 		Sfx.play("mob_shoot", origin)
 		return
 	if shot.get("drop", false):
-		EnemyBolt.fire(get_parent(), center() + Vector2(0, 10), center() + Vector2(0, 100), colour, shot["damage"], shot.get("gravity", 300.0), shot.get("slow", false))
+		EnemyBolt.fire(get_parent(), center() + Vector2(0, 10), center() + Vector2(0, 100), colour, shot["damage"], shot.get("gravity", 300.0), shot.get("slow", false), "magic_bolt", self)
 		Sfx.play("mob_shoot", center())
 		return
 	var aim: Vector2 = player.center()
@@ -419,7 +423,7 @@ func _shoot(shot: Dictionary) -> void:
 			# Lob it so it comes down on the player: aim above them by how far the arc will drop.
 			var flight := origin.distance_to(aim) / EnemyBolt.SPEED
 			target = aim + Vector2(0, -0.5 * gravity * flight * flight)
-		EnemyBolt.fire(get_parent(), origin, _quake_target(origin, target), colour, shot["damage"], gravity, shot.get("slow", false), shot.get("art", "magic_bolt"))
+		EnemyBolt.fire(get_parent(), origin, _quake_target(origin, target), colour, shot["damage"], gravity, shot.get("slow", false), shot.get("art", "magic_bolt"), self)
 	Sfx.play("mob_shoot", origin)
 
 
@@ -718,7 +722,6 @@ func _draw_overlay() -> void:
 func _leave_snow() -> void:
 	var snow := Blizzard.new()
 	snow.lasting = false
-	snow.team = "enemy"
 	snow.polygon = PackedVector2Array([Vector2(0, -60), Vector2(40, -60), Vector2(40, 60), Vector2(0, 60)])
 	get_parent().add_child(snow)
 	snow.setup("Blizzard", center() + Vector2(-20, 0), 0.0)
@@ -823,6 +826,19 @@ func _set_alight() -> void:
 	flame.position = Vector2(0, -PixelArt.FX["fire_wall"]["size"].y * 0.5 * flame.scale.y + 55.0)  # 55: the feet sit this far below the origin
 	flame.z_index = -1
 	add_child(flame)
+	_flame = flame
+
+
+## A frozen walker's flame goes out, and comes back a moment after the ice is gone.
+func _update_flame(delta: float) -> void:
+	if _flame == null:
+		return
+	_relight = RELIGHT_SECONDS if _frozen_time > 0.0 else maxf(_relight - delta, 0.0)
+	_flame.visible = _flame_lit()
+
+
+func _flame_lit() -> bool:
+	return _relight <= 0.0 and _frozen_time <= 0.0
 
 
 ## While the ground shakes, a shooter's aim is turned a few degrees off its mark.

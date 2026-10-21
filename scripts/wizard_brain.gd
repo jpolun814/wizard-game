@@ -120,7 +120,7 @@ func _plan(reaction: String, delay: float) -> void:
 func _incoming_shot() -> Dictionary:
 	var best := {}
 	for node in mob.get_tree().get_nodes_in_group("projectiles"):
-		if node.team != "player":
+		if node.caster != mob.player:
 			continue
 		var velocity: Vector2 = node.velocity()
 		var rel: Vector2 = mob.center() - node.global_position
@@ -137,7 +137,7 @@ func _incoming_shot() -> Dictionary:
 ## Counts how many shots you have thrown lately, so it knows when to put up walls.
 func _track_shots() -> void:
 	for node in mob.get_tree().get_nodes_in_group("projectiles"):
-		if node.team == "player" and not _seen_shots.has(node.get_instance_id()):
+		if node.caster == mob.player and not _seen_shots.has(node.get_instance_id()):
 			_seen_shots[node.get_instance_id()] = true
 			_pressure += 1.0
 	if _seen_shots.size() > 64:
@@ -273,11 +273,9 @@ func _safe_side() -> float:
 	return -1.0 if left < right else 1.0
 
 
-## True when one of your spells (or anything else on your side) would hurt it at this point.
+## True when anything that hurts (any spell, its own included) would reach it at this point.
 func _in_danger(point: Vector2) -> bool:
 	for node in mob.get_tree().get_nodes_in_group("danger"):
-		if node.get("team") != "player":
-			continue
 		if node.danger_at(point):
 			return true
 	return false

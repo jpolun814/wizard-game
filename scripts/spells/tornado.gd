@@ -12,7 +12,6 @@ const SWIRL_SPEED := 420.0
 const TIP := 90.0  # the funnel's narrow end is this far below its middle
 const DIE_TIME := 1.1  # the last moments: the birth played backwards, the funnel sinks back into the ground
 
-var team := "player"
 var _age := 0.0
 var _swirl := 0.0
 var _funnel: AnimatedSprite2D
@@ -79,7 +78,7 @@ func _physics_process(delta: float) -> void:
 	if _swirl <= 0.0:
 		_swirl = SWIRL_INTERVAL
 		for body in get_overlapping_bodies():
-			if not SpellTargets.affects(body, team):
+			if not SpellTargets.affects(body):
 				continue
 			var around: Vector2 = body.global_position - global_position
 			var tangent := around.rotated(PI * 0.5).normalized()
@@ -94,13 +93,9 @@ func _physics_process(delta: float) -> void:
 
 
 ## A shot that enters the funnel keeps going until it reaches the far side, and only then is turned back the way it
-## came. Shots from the other side are reflected onto this side; your own shots are turned but stay yours.
+## came.
 func _on_area(area: Area2D) -> void:
-	if _shots.has(area):
-		return
-	var shot_bolt := area is EnemyBolt and team == "player" and not (area as EnemyBolt).reflected
-	var shot_spell := area is Projectile or area is LavaBall
-	if shot_bolt or shot_spell:
+	if not _shots.has(area) and area.is_in_group("shots"):
 		_shots[area] = area.global_position
 
 
@@ -117,12 +112,7 @@ func _turn_far_side_shots() -> void:
 			continue
 		var back: Vector2 = -from_centre.normalized()
 		_shots[shot] = null
-		if shot is EnemyBolt:
-			(shot as EnemyBolt).push(back)
-		elif shot.team != team or shot is LavaBall:
-			shot.reflect(back)
-		else:
-			shot.deflect(back)  # the wind turns your own shot, but it stays yours
+		shot.reflect(back)
 
 
 func danger_at(point: Vector2) -> bool:

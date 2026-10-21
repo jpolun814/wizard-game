@@ -27,18 +27,13 @@ func _begin(origin: Vector2, aim_angle: float) -> void:
 	Sfx.play("force", origin)
 
 
-## A shot that touches the wall turns around and now hurts the side that fired it.
+## A shot that touches the wall is turned back, as a mirror would send it, and from then on it can hit whoever sent it.
 func _on_shot(area: Area2D) -> void:
-	if area is EnemyBolt and team == "player":
-		(area as EnemyBolt).reflect()
-	elif area is Projectile and area.team != team:
-		var normal := Vector2(-sin(rotation), cos(rotation))
-		var incoming: Vector2 = area.aim
-		area.reflect(incoming - 2.0 * incoming.dot(normal) * normal)
-	elif area is LavaBall:
-		var normal := Vector2(-sin(rotation), cos(rotation))
-		var incoming: Vector2 = area.velocity.normalized()
-		area.reflect(incoming - 2.0 * incoming.dot(normal) * normal)
+	if not area.is_in_group("shots"):
+		return
+	var normal := Vector2(-sin(rotation), cos(rotation))
+	var incoming: Vector2 = area.heading()
+	area.reflect(incoming - 2.0 * incoming.dot(normal) * normal)
 
 
 func _draw() -> void:

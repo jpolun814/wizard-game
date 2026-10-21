@@ -11,7 +11,6 @@ const SWALLOW_RADIUS := 0.55 # shots this far in (as a share of the reach) are s
 const MIN_REACH := 70.0
 const MAX_REACH := 210.0
 
-var team := "player"
 var reach := 120.0
 var _age := 0.0
 var _collapsed := false
@@ -66,7 +65,7 @@ func _physics_process(delta: float) -> void:
 ## Everyone within reach is drawn toward the middle; harder the closer they are. Your own well tugs at you
 ## more gently than at your foes.
 func _pull(delta: float) -> void:
-	for body in SpellTargets.all(get_tree(), team):
+	for body in SpellTargets.all(get_tree()):
 		var to_middle := global_position - SpellTargets.center_of(body)
 		var distance := to_middle.length()
 		if distance > reach or distance < 4.0:
@@ -76,12 +75,10 @@ func _pull(delta: float) -> void:
 		body.pull(force, delta)
 
 
-## Enemy shots and the other side's spells that come close spiral in and are gone.
+## Any shot that comes close spirals in and is gone.
 func _swallow_shots() -> void:
 	for node in get_tree().get_nodes_in_group("shots"):
-		var is_bolt := node is EnemyBolt and team == "player"
-		var is_spell: bool = node is Projectile and node.team != team
-		if (is_bolt or is_spell or node is LavaBall) and node.global_position.distance_to(global_position) < reach * SWALLOW_RADIUS:
+		if node.global_position.distance_to(global_position) < reach * SWALLOW_RADIUS:
 			Fx.pop(get_parent(), node.global_position, "circle_05", Color(0.8, 0.6, 1.0), 20.0, 0.25, 0.2)
 			node.queue_free()
 

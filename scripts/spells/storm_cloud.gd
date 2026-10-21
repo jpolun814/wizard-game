@@ -13,7 +13,6 @@ const MIN_WIDTH := 80.0
 const MAX_WIDTH := 280.0
 const HEIGHT := 34.0
 
-var team := "player"
 var width := 150.0
 var _dissipating := false
 var _age := 0.0
@@ -81,10 +80,10 @@ func _physics_process(delta: float) -> void:
 			_warning = WARNING
 
 
-## Everyone under the cloud the spell can hurt, with nothing solid in between: foes, and whoever cast it. Lightning
+## Everyone under the cloud, with nothing solid in between. Lightning
 ## cannot come down through a platform or the ground.
 func _under() -> Array:
-	return SpellTargets.all(get_tree(), team).filter(func(body: Node2D) -> bool:
+	return SpellTargets.all(get_tree()).filter(func(body: Node2D) -> bool:
 		var middle := SpellTargets.center_of(body)
 		if not _below(middle):
 			return false
@@ -115,7 +114,7 @@ func _strike() -> void:
 			var top_piece := PixelFx.play(get_parent(), Vector2(hit_at.x, ground.y + 4.0 - whole * 200.0), "lightning", 24.0, 1.0, Color(1.0, 1.0, 0.85), true)
 			top_piece.scale = Vector2(1.0, rest / 200.0)  # squashed to end exactly at the cloud
 			top_piece.z_index = 3
-		SpellTargets.hurt(body, DAMAGE, "Storm", team)
+		SpellTargets.hurt(body, DAMAGE, "Storm")
 		Fx.impact(get_parent(), hit_at, Color("#ffe85a"), 36.0)
 		struck = true
 	if struck:

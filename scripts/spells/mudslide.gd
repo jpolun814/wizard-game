@@ -11,7 +11,6 @@ const MIN_WIDTH := 60.0
 const MAX_WIDTH := 240.0
 const DEPTH := 18.0  # how far above the surface feet can be and still be caught
 
-var team := "player"
 var width := 100.0
 var _age := 0.0
 var _tick := 0.0
@@ -66,7 +65,7 @@ func _physics_process(delta: float) -> void:
 	var hurt_tick := _tick <= 0.0
 	if hurt_tick:
 		_tick = TICK
-	for body in SpellTargets.all(get_tree(), team):
+	for body in SpellTargets.all(get_tree()):
 		if not _caught(body):
 			continue
 		if body.is_in_group("mobs"):

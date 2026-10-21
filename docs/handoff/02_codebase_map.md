@@ -90,16 +90,16 @@ never block each other.
 ### Spells (`scripts/spells/`)
 - **One script per effect.** Every spell's effect in the world is its own script; there is no shared script that
   branches on the spell's name.
-  - `spell_effect.gd` (`SpellEffect`) is a small base for the simpler effects: it holds `spell`, `team` and the
+  - `spell_effect.gd` (`SpellEffect`) is a small base for the simpler effects: it holds `spell`, `caster` and the
     life timer, and calls `_begin` (start), `_act` (each physics frame) and `_finish` (end) on its subclasses.
   - Its subclasses: `projectile.gd` (Ignite, Frostbolt), `firewall.gd`, `icicle.gd`, `blizzard.gd`,
     `push_zone.gd`, `force_wall.gd`, `stone_wall.gd`, `spark_strike.gd`. The arena picks one in `_new_effect`.
   - Standalone effects: `fire_breath.gd`, `volcano.gd`, `tornado.gd`, `ice_prison.gd`, `gravity_well.gd`,
     `storm_cloud.gd`, `mudslide.gd`, `boulder.gd` (Stonefall's rock), `lava_ball.gd` (a volcano's shots), `earthquake.gd`.
-- **`spell_targets.gd`:** team logic (`affects`, `hurt`, `all`, `hurt_within`), the ground (`ground_below`,
+- **`spell_targets.gd`:** who can be hurt (`affects`, `hurt`, `all`, `hurt_within`; no sides), the ground (`ground_below`,
   `solid_below`, `surface_over`), fire (`fire_points`, `fire_heat_near`) and `shot_damage`.
 - **Conventions:**
-  - Every spell has `team`, joins the `"danger"` group, and implements `danger_at(point)`, which the dark wizard
+  - Every spell joins the `"danger"` group, and implements `danger_at(point)`, which the dark wizard
     uses to avoid hazards.
   - Spells find each other through groups, never by scanning the arena's children: `"fires"` (anything burning),
     `"clouds"` (storm clouds and blizzards, which a tornado dissipates), `"shots"` (enemy bolts, projectiles and lava balls),

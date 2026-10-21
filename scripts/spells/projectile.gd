@@ -2,17 +2,19 @@ class_name Projectile
 extends SpellEffect
 
 ## A shot that flies straight from the caster: Ignite's fireball or Frostbolt's ice spear. It hits the first foe or
-## wall in its way. A Force Wall, Push or Tornado can turn it; a reflected shot changes sides.
+## wall in its way. It can't hit the one who cast it until it has flown out of their body.
 
 const STATS := {
 	"Ignite": {"speed": 700.0, "damage": 12, "life": 2.0, "color": Color("#ff7a2a")},
 	"Frostbolt": {"speed": 600.0, "damage": 6, "life": 2.0, "color": Color("#b8f0ff")},
 }
 const SLOW_SECONDS := 2.0
+const CLEAR_CHECK_AFTER := 0.05  # the overlaps of a new shot are not known until a few physics frames have passed
 const FIREBALL_KNOCK := 420.0  # how hard a fireball pushes what it hits
 
 var aim := Vector2.RIGHT
 var _spent := false
+var _clear := false  # it has flown out of its caster's body: from then on it can hit the caster too
 var _trail: CPUParticles2D
 
 
@@ -47,7 +49,14 @@ func velocity() -> Vector2:
 	return aim * STATS[spell]["speed"]
 
 
+## Which way it is flying right now.
+func heading() -> Vector2:
+	return aim
+
+
 func _act(delta: float) -> void:
+	if _age >= CLEAR_CHECK_AFTER and not _clear and not get_overlapping_bodies().has(caster):
+		_clear = true
 	position += velocity() * delta
 	rotation = aim.angle()
 
@@ -72,18 +81,16 @@ func _make_trail() -> CPUParticles2D:
 
 
 func _on_hit(body: Node2D) -> void:
-	if _spent:
-		return
+	if _spent or (body == caster and not _clear):
+		return  # the one who cast it is safe from it until it has flown clear of them
 	if body.is_in_group("player"):
-		if team == "player":
-			return  # a shot never hurts the one who cast it
 		_spent = true
 		body.take_damage(damage(), true, true)
 		if spell == "Frostbolt":
 			body.apply_debuff("slow", SLOW_SECONDS)
 	elif body.is_in_group("mobs"):
-		if team == "enemy" or body.is_dead():
-			return  # the dark wizard's shots fly through its allies
+		if body.is_dead():
+			return
 		_spent = true
 		body.take_damage(damage(), _school())
 		if spell == "Ignite":
@@ -107,20 +114,13 @@ func _impact_effect() -> void:
 		Sfx.play("fire_hit", global_position)
 
 
-## A Force Wall, Push or Tornado sent this shot back: it turns around and now belongs to the other side.
+## A Force Wall, Push or Tornado turns this shot: it flies off along the new heading.
 func reflect(direction: Vector2) -> void:
 	aim = direction.normalized()
-	team = "enemy" if team == "player" else "player"
 	_age = 0.2  # it may hit whoever is in front of it straight away
 	_spent = false
 	Fx.burst(get_parent(), global_position, Color("#d9b8ff"), 8, 120.0, 0.3, true)
 	Sfx.play("force", global_position, -4.0)
-
-
-## Wind turns the shot to a new heading. Unlike a reflection, it stays with whoever fired it.
-func deflect(direction: Vector2) -> void:
-	aim = direction.normalized()
-	rotation = aim.angle()
 
 
 ## A spent shot's trail is let go to finish fading rather than vanishing with it.

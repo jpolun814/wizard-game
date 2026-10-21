@@ -163,8 +163,11 @@ GODOT="/c/Users/Jordan Polun/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.
 
 **Targeting types:** `directional`, `positional`, `angled`, `shape` and `cone`. The caster's `cast_resolved`
 signal passes `info` (radius, line, rect, shapes, aim, spread, reach), and `arena.spawn_spell` routes it.
-**Teams:** every spell is `"player"` or `"enemy"` (`scripts/spells/spell_targets.gd`). Player spells hurt
-enemies **and the player**; the dark wizard's spells hurt only the player.
+**No sides:** once a spell is cast it has no team. It hurts whoever it touches: enemies, the player, the dark
+wizard, and the caster and its allies too (friendly fire). The one exception is a shot (Ignite, Frostbolt, an enemy's
+bolt): it can't hit whoever fired it while it is still inside that body. Once it has flown clear, it can hit them, so
+it hits them if it comes back. Blink and Fire Breath start on the caster's body, so the caster is passed by there as
+well. `scripts/spells/spell_targets.gd` decides who can be hurt.
 
 ## 6. Designing a new spell: checklist
 
@@ -246,8 +249,8 @@ clean. It was cleaned up once, without losing any behaviour. Keep it that way:
   script. Simple effects extend `SpellEffect` (`scripts/spells/spell_effect.gd`) and fill in `_begin`, `_act`
   and `_finish`; bigger ones are their own Node. Add the new class to `arena._new_effect` or `spawn_spell`.
   A new `class_name` is only registered after `godot --import`.
-- **Every spell** has a `team`, joins the `"danger"` group, and implements `danger_at(point)` (the dark wizard
-  avoids danger).
+- **Every spell** joins the `"danger"` group, and implements `danger_at(point)` (the dark wizard avoids danger,
+  its own spells included, since they hurt it too).
 - **Find nodes through groups, not by scanning the tree.** `"fires"`, `"clouds"`, `"shots"`, `"rocks"`,
   `"lasting"`, `"earthquakes"`, `"danger"`, `"mobs"` (full list in `02_codebase_map.md`). Anything new that
   burns joins `"fires"` and is then melted, lit and avoided by everything else for free.
@@ -256,7 +259,7 @@ clean. It was cleaned up once, without losing any behaviour. Keep it that way:
   `_method`. Make it public (`facing`, `damage`, `earth_texture`) or add a small method (`is_slowed()`,
   `span()`, `dissipate()`, `velocity()`). No static flags for world state: `Earthquake.is_shaking(tree)` asks
   the group instead.
-- **One helper, not copies.** Shared logic lives in one place: `SpellTargets` (teams, ground, `fire_points`,
+- **One helper, not copies.** Shared logic lives in one place: `SpellTargets` (who can be hurt, ground, `fire_points`,
   `fire_heat_near`, `shot_damage`), `GestureTemplates.bounds()` for a stroke's box, `PixelFx` for art frames. Look
   there before writing a loop.
 - **Keep dependencies pointing one way.** The gesture code (`scripts/gesture/`) knows nothing about spells; it

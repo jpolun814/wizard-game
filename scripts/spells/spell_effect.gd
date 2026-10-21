@@ -3,10 +3,10 @@ extends Area2D
 
 ## A spell's effect in the world. Each kind of effect has its own script that extends this one: Projectile, Firewall,
 ## Icicle, Blizzard, PushZone, ForceWall, StoneWall and SparkStrike. This base holds what they share: who cast it, how
-## long it lasts, and hurting what stands inside it. Who gets hurt depends on the team (see SpellTargets).
+## long it lasts, and hurting what stands inside it (see SpellTargets).
 
 var spell := ""
-var team := "player"  # "player" or "enemy": who cast it, which decides who it hurts
+var caster: Node  # who cast it; a few shots pass their caster by at first (see Projectile)
 var _age := 0.0
 var _life := 1.0
 var _tick := 0.0
@@ -57,7 +57,7 @@ func _add_shape(shape: Shape2D, at := Vector2.ZERO) -> void:
 
 func _damage_overlapping(amount: int) -> void:
 	for body in get_overlapping_bodies():
-		SpellTargets.hurt(body, amount, _school(), team)
+		SpellTargets.hurt(body, amount, _school())
 
 
 ## The school this spell belongs to, which decides what enemies resist or are weak to.

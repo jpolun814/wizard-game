@@ -18,7 +18,6 @@ const PUFF_SPEED := 430.0
 const PUFF_RATE := 40.0    # flame puffs per second
 const DRAG := 1.2          # puffs slow as they spread out
 
-var team := "player"
 var caster_node: Node2D
 var aim := 0.0             # the drawn direction, for the way the caster faced when casting
 var spread := 0.8
@@ -128,13 +127,13 @@ func _radius(puff: Dictionary) -> float:
 
 ## Burns everything a puff of flame is touching. The caster is never burnt by their own breath.
 func _burn() -> void:
-	for body in SpellTargets.all(get_tree(), team):
+	for body in SpellTargets.all(get_tree()):
 		if body == caster_node:
 			continue
 		var middle := SpellTargets.center_of(body)
 		for puff in _puffs:
 			if middle.distance_to(puff["pos"]) <= _radius(puff) + 16.0:
-				SpellTargets.hurt(body, DAMAGE, "Fire", team)
+				SpellTargets.hurt(body, DAMAGE, "Fire")
 				break
 
 

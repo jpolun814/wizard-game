@@ -2,13 +2,12 @@ class_name Hazard
 extends Area2D
 
 ## A patch of burning ground, left where a volcano's lava lands. It burns whoever stands in it for a few seconds.
-## Like a spell, it has a team: patches from your spells burn everyone, patches from enemies burn only you.
+## Whoever stands in it burns, whoever lit it.
 
 const FIRE_TICK := 0.5
 const FIRE_DAMAGE := 5
 
 var width := 24.0
-var team := "enemy"
 var _age := 0.0
 var _life := 3.0
 var _tick := 0.0
@@ -49,7 +48,7 @@ func _physics_process(delta: float) -> void:
 	if _tick <= 0.0:
 		_tick = FIRE_TICK
 		for body in get_overlapping_bodies():
-			SpellTargets.hurt(body, FIRE_DAMAGE, "Fire", team)
+			SpellTargets.hurt(body, FIRE_DAMAGE, "Fire")
 	_flames.modulate.a = clampf((_life - _age) / 0.5, 0.0, 1.0)
 	if _age >= _life:
 		queue_free()

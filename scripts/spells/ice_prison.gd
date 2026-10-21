@@ -9,7 +9,6 @@ const FREEZE_SECONDS := 4.0
 const MIN_SIZE := 24.0
 const MAX_SIZE := 160.0
 
-var team := "player"
 var rect := Rect2()   # the box as drawn, in world space; set before adding to the tree
 var _age := 0.0
 var _life := 0.6
@@ -23,7 +22,7 @@ func _ready() -> void:
 	global_position = rect.get_center()
 	z_index = 3
 	var caught := []
-	for body in SpellTargets.all(get_tree(), team):
+	for body in SpellTargets.all(get_tree()):
 		if rect.grow(6.0).has_point(SpellTargets.center_of(body)):
 			caught.append(body)
 	if caught.is_empty():
