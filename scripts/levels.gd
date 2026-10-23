@@ -16,6 +16,8 @@ const LEVELS := [
 		{"earth_melee": 2},
 		{"fire_flyer": 2},
 		{"storm_flyer": 2},
+		{"giant": 1},
+		{"ninja": 12},
 		{"dark_wizard": 1},
 	]},
 	{"biome": "swamp", "waves": [

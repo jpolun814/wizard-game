@@ -47,7 +47,7 @@ static func fire(parent: Node, origin: Vector2, target: Vector2, color: Color, d
 		# A pixel-art shot in the enemy's school colour: the sprite is recoloured by the mob shader, so a fire shot
 		# is orange, an ice shot blue, whatever art it is drawn with.
 		var shot := PixelFx.sprite(art, 14.0)
-		shot.scale = Vector2.ONE * (1.0 if art == "fireball" else 2.0)
+		shot.scale = Vector2.ONE * (1.0 if art in ["fireball", "ninja_star"] else 2.0)
 		var recolour := ShaderMaterial.new()
 		recolour.shader = load("res://scripts/mob.gdshader")
 		recolour.set_shader_parameter("school_color", color)

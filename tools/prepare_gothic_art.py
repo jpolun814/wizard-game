@@ -16,6 +16,9 @@ The downloads dir holds the unzipped packs, each in its own folder:
     creasta_tornado/            Creasta, Tornado pixel sprite sheet   (the tornado: mytronado.png, 5 x 12 frames)
     pixflame/                   zonked, Pixel Flame VFX (CC0)          (fire-a and fire-b: the breath, trail and wall of fire)
     books/foxel                 Foxel Games, Pixel Art Book           (the spellbook)
+    elthen-cyclops/             Elthen, Cyclops Sprite Sheet          (the giant: 'Cyclops Sprite Sheet.png', 64 px cells)
+    mini-ninja/                 ivoryred, Mini Ninja (CC BY 4.0)      (the ninjas: '( Free) Ninja pack', 16 px)
+    ninja-throw/                Ninja Throwing Items Kit (CC0)        (the star: Ninja_Star_Pixel.png)
 Some effects are recoloured here to their school's colours (a hue turn, or a ramp from dark to light).
 
 Characters are cut out of their sprite sheets into single frames that all share one canvas, with the character's
@@ -53,8 +56,22 @@ CHARACTERS = {
         "hit": "Take Hit.png", "death": "Death.png"}),
     "eye": (LUIZ_MONSTERS + "Flying eye/", 150, 150, True, {
         "idle": "Flight.png", "attack": "Attack.png", "hit": "Take Hit.png", "death": "Death.png"}),
+    # The ninjas' sheets are strips of 16 px frames. Their attack sheet is 24 px, so throwing uses the idle frames.
+    "ninja": ("mini-ninja/", 16, 16, False, {
+        "idle": "mini-ninja/( Free) Ninja pack/idle/ninja idle -Sheet.png",
+        "walk": "mini-ninja/( Free) Ninja pack/walk cycle/ninja walk -Sheet.png",
+        "attack": "mini-ninja/( Free) Ninja pack/idle/ninja idle -Sheet.png",
+        "hit": "mini-ninja/( Free) Ninja pack/hurt/hurt frames-Sheet.png",
+        "death": "mini-ninja/( Free) Ninja pack/Death/death-Sheet.png"}),
+    # The Elthen sheet is a grid of 64 px cells, not a strip. An animation given as (row, first, last) cuts those cells
+    # out of its row. Row 0 stands, row 1 walks, row 3 raises its arms 
+    # row 2 leans forward (the giant's wind-up), row 5 flinches and row 6 falls (its last five cells lie on the ground).
+    "giant": ("elthen-cyclops/", 64, 64, False, {
+        "idle": ("Cyclops Sprite Sheet.png", 0, 0, 14), "walk": ("Cyclops Sprite Sheet.png", 1, 0, 11),
+        "attack": ("Cyclops Sprite Sheet.png", 2, 0, 6), "hit": ("Cyclops Sprite Sheet.png", 5, 0, 4),
+        "death": ("Cyclops Sprite Sheet.png", 6, 4, 8)}),
 }
-MOBS = ["skeleton", "goblin", "eye"]
+MOBS = ["skeleton", "goblin", "eye", "giant", "ninja"]
 HEROES = ["wizard", "dark_wizard"]
 
 CEMETERY = "x_gothicvania-cemetery-files/gothicvania-cemetery-files/Assets/Environment/"
@@ -141,6 +158,7 @@ FX = {
     "lightning": ("x_lightning/Lighting Strike {}.png", 7),
 }
 FX_SHEETS = {
+    "ninja_star": ("ninja-throw/Ninja_Star_Pixel.png", 32),
     "blast_small": ("x_explosions/explosions-pack/spritesheets/explosion-2.png", 64),
     "blast_fire": ("x_explosions/explosions-pack/spritesheets/explosion-3.png", 80),
     "blast_ring": ("x_explosions/explosions-pack/spritesheets/explosion-1.png", 32),
@@ -253,10 +271,19 @@ def body_box(frames, centre_x, anchor_y):
     return (left - centre_x, box[1] - anchor_y, right - left, box[3] - box[1])
 
 
+def cells_of(sheet, fw, fh, row, first, last):
+    return [sheet.crop((c * fw, row * fh, (c + 1) * fw, (row + 1) * fh)) for c in range(first, last + 1)]
+
+
 def prepare_character(name, downloads):
     folder, fw, fh, flyer, anims = CHARACTERS[name]
     sheets = {}
     for anim, file in anims.items():
+        if isinstance(file, tuple):
+            sheet_file, row, first, last = file
+            sheet = Image.open(os.path.join(downloads, folder + sheet_file)).convert("RGBA")
+            sheets[anim] = cells_of(sheet, fw, fh, row, first, last)
+            continue
         path = file if "/" in file else folder + file
         sheets[anim] = frames_of(Image.open(os.path.join(downloads, path)).convert("RGBA"), fw, fh)
     centre_x, anchor_y = body_column(sheets["idle"], flyer)
@@ -507,6 +534,8 @@ def main():
 
     props = os.path.join(ROOT, "art", "props")
     os.makedirs(props, exist_ok=True)
+    # A ninja's katana, copied whole so its hilt (the left end) stays where the game pivots it.
+    shutil.copy(os.path.join(dl, "ninja-throw", "Katana_Pixel.png"), os.path.join(ROOT, "art", "props", "katana.png"))
     for name, src in PROPS.items():
         im = Image.open(os.path.join(dl, src)).convert("RGBA")
         im.crop(alpha_box(im)).save(os.path.join(props, name + ".png"), optimize=True)

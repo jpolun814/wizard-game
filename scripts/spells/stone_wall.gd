@@ -19,6 +19,7 @@ var _max_health := 0.0
 
 func _begin(origin: Vector2, aim_angle: float) -> void:
 	_life = INF
+	add_to_group("walls")
 	rotation = aim_angle
 	_length = clampf(wall_length, MIN_LENGTH, MAX_LENGTH) if wall_length > 0.0 else LENGTH
 	global_position = origin + Vector2.from_angle(aim_angle) * _length * 0.5
@@ -71,6 +72,19 @@ func _on_struck(area: Area2D) -> void:
 	var damage := SpellTargets.shot_damage(area)
 	if damage <= 0:
 		return
+	_take_blow(damage, area.global_position)
+
+
+## A club swung near the wall (within reach of its face) takes its blow. True when the swing reached the wall.
+func take_blow_near(point: Vector2, damage: float) -> bool:
+	var local := to_local(point)
+	if absf(local.x) > _length * 0.5 + 12.0 or absf(local.y) > THICKNESS + 20.0:
+		return false
+	_take_blow(damage, point)
+	return true
+
+
+func _take_blow(damage: float, at: Vector2) -> void:
 	_health -= damage
 	if _health <= 0.0:
 		Fx.debris(get_parent(), global_position, Color("#6b5a48"), 16, 220.0)
@@ -78,7 +92,7 @@ func _on_struck(area: Area2D) -> void:
 		GameCamera.shake_scene(get_tree(), 0.15)
 		queue_free()
 		return
-	Fx.debris(get_parent(), area.global_position, Color("#6b5a48"), 5, 120.0)
+	Fx.debris(get_parent(), at, Color("#6b5a48"), 5, 120.0)
 	Sfx.play("stones", global_position, -6.0)
 
 

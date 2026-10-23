@@ -27,6 +27,8 @@ const KINDS := {
 	"storm_melee": {"name": "Melee Storm", "desc": "Fast. Explodes when it reaches you.", "role": "melee", "art": "skeleton", "hp": 20, "school": "Storm", "weak": "Earth", "resist": "Storm", "damage": 35, "speed": 2.6, "effect": "explode"},
 	"storm_ranged": {"name": "Ranged Storm", "desc": "Fires a fan of zaps.", "role": "ranged", "art": "goblin", "hp": 24, "school": "Storm", "weak": "Earth", "resist": "Storm", "damage": 0, "speed": 1.0, "effect": "", "shot": {"interval": 2.4, "damage": 5, "spread": 3}},
 	"storm_flyer": {"name": "Flying Storm", "desc": "Divebombs you, then flies away.", "role": "flyer", "art": "eye", "hp": 22, "school": "Storm", "weak": "Earth", "resist": "Storm", "damage": 8, "speed": 1.4, "effect": ""},
+	"ninja": {"name": "Ninja", "desc": "Quick and fragile. Throws stars at you from a distance, in a pack.", "role": "ranged", "art": "ninja", "scale": 3.0, "hp": 14, "school": "", "weak": "", "resist": "", "damage": 0, "speed": 2.4, "effect": "acrobatic", "shot": {"interval": 1.6, "damage": 5, "art": "ninja_star", "burst": 5, "charge": 0.06}},
+	"giant": {"name": "Giant", "desc": "A huge brute. Slow and tough, and its stomp smashes stone walls.", "role": "melee", "art": "giant", "scale": 6.0, "hp": 260, "school": "", "weak": "", "resist": "", "damage": 30, "speed": 0.75, "effect": "smash"},
 }
 const SPEED := 80.0
 const TERMINAL_FALL := 900.0  # no enemy falls faster than this
@@ -34,6 +36,25 @@ const FALL_LIMIT := 800.0     # an enemy below this has fallen off the map and i
 const CONTACT_RANGE := 40.0   # how close (middle to middle) a walker must be to hit
 const CONTACT_COOLDOWN := 1.1
 const WINDUP := 0.3           # a walker draws back this long before it hits
+const SMASH_WINDUP := 0.9   # a giant draws its leg back this long before it stomps
+const SMASH_REACH := 130.0  # how far in front of it a smash lands
+const SMASH_HEIGHT := -50.0 # and how high up: about where a giant's stomp lands
+const SMASH_WALL_DAMAGE := 200.0  # a smash breaks a stone wall or a boulder outright
+const SMASH_MOB_DAMAGE := 20  # and hurts any other enemy close to it
+const SMASH_STUCK := 3.0      # the first stomp sticks the player in the ground this long
+const SMASH_SPOTS := 8        # the ground the stomp lands on is marked at this many points, from the giant out
+const FLIP_TIME := 0.45      # a ninja's backflip, from the moment it leaves the ground to landing
+const LEAP_SPEED := 380.0    # how hard a ninja springs away, or hops about, in a flip
+const STUNT_MIN := 0.6       # a ninja hops and flips about on its own, this often
+const STUNT_MAX := 1.5
+const BURST_GAP := 0.09      # the gap between the stars of one burst
+const LEAP_RANGE := 110.0    # a ninja this close to the player leaps away in a flip
+const GIANT_JUMP := -640.0    # a giant leaps higher than a plain walker: onto ledges, and over walls
+const SLASH_RANGE := 70.0    # a ninja this close to the player strikes with its katana
+const SLASH_DAMAGE := 6
+const SLASH_COOLDOWN := 0.8  # and waits this long between strikes
+const SLASH_HAND := Vector2(18.0, -27.0)  # where a ninja holds its katana, at three times its size
+const KATANA := preload("res://art/props/katana.png")  # held here so it stays loaded between frames
 const CHARGE := 0.45          # a shooter's glow builds this long before it fires
 const DIVE_WARNING := 0.4     # a flyer hangs and shakes this long before it dives
 const KNOCK_DECAY := 1500.0
@@ -99,6 +120,13 @@ var _relight := 0.0  # seconds until the flame is lit again after a freeze
 var _base_scale := 1.0
 var _lunge := 0.0        # 1 the moment an enemy attacks, fading to 0: it lunges toward the player
 var _windup := 0.0       # counting down to a melee hit
+var _flip := 0.0         # counting down a ninja's backflip
+var _stuck := 0.0        # how long a giant has been held up by a ledge
+var _last_x := 0.0       # where a giant was last frame, to tell whether it is moving
+var _slash_cd := 0.0     # counting down to a ninja's next katana strike
+var _stunt := 0.5        # counting down to the ninja's next hop and flip
+var _burst_left := 0     # stars still to throw in the burst being thrown
+var _burst_gap := 0.0    # counting down to the next star of the burst
 var _charge := 0.0       # counting down to a shot
 var _flash := 0.0
 var _spawn := SPAWN_TIME
@@ -152,6 +180,10 @@ func _build_creature(data: Dictionary) -> void:
 	var art: String = data["art"]
 	var info: Dictionary = PixelArt.CHARACTERS[art]
 	_visual.sprite_frames = CharFrames.build("res://art/mobs/" + art, CREATURE_ANIMATIONS)
+	if data["effect"] == "smash":
+		# The lean is slowed to fill the giant's wind-up, so one pass of it lasts as long as the wind-up does.
+		_visual.sprite_frames.set_animation_speed("attack", 7.0)
+	_visual.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST  # scaled-up pixel art stays crisp, not blurred
 	_base_scale = data.get("scale", 1.0)
 	var body: Rect2 = info["body"]
 	var frame: Vector2 = info["size"]
@@ -167,7 +199,8 @@ func _build_creature(data: Dictionary) -> void:
 	else:
 		# A walker's frames have its feet on the bottom edge. Its hitbox is its body, not a weapon held out.
 		_visual.offset = Vector2(0, -frame.y * 0.5)
-		_set_walker_body(Vector2(body.size.x * 0.85, body.size.y * 0.95) * _base_scale)
+		var width := 0.85
+		_set_walker_body(Vector2(body.size.x * width, body.size.y * 0.95) * _base_scale)
 	hitbox.position = _body_center
 	_start_animating()
 	_visual.frame = randi() % maxi(1, _visual.sprite_frames.get_frame_count("idle"))
@@ -248,6 +281,8 @@ func _physics_process(delta: float) -> void:
 			velocity.x = _knock_x + _drift.x
 			move_and_slide()
 		return
+	if KINDS[kind]["effect"] == "acrobatic":
+		_acrobatics(delta)
 	match KINDS[kind]["role"]:
 		"wizard":
 			_wizard(delta)
@@ -255,6 +290,18 @@ func _physics_process(delta: float) -> void:
 			_fly(delta)
 		_:
 			_walk(delta)
+	if KINDS[kind]["effect"] == "smash":
+		_climb_ledges(delta)
+## A giant's tall, wide hitbox can catch the lip of a ledge without touching a wall, and stop dead. When it is held up
+## like that on the way to the player, it jumps.
+func _climb_ledges(delta: float) -> void:
+	# Only a giant that is trying to walk and not moving counts: one winding up a smash stands still on purpose.
+	var held: bool = is_on_floor() and _windup <= 0.0 and player != null and absf(player.center().x - center().x) > 60.0 and absf(global_position.x - _last_x) < 0.5
+	_stuck = _stuck + delta if held else 0.0
+	if _stuck > 0.25:
+		velocity.y = GIANT_JUMP
+		_stuck = 0.0
+	_last_x = global_position.x
 
 
 func _fall(delta: float) -> void:
@@ -274,7 +321,7 @@ func _walk(delta: float) -> void:
 	var distance := to_player.length() if player else INF
 	var shooter: bool = data["role"] == "ranged"
 	var sees := player != null and _can_reach_player()
-	var stands_to_shoot := shooter and distance < SPIT_STAND_RANGE and sees
+	var stands_to_shoot: bool = shooter and distance < SPIT_STAND_RANGE and sees and data.get("effect", "") != "acrobatic"
 	var close := absf(to_player.x) < 18.0  # right on top of the player: stop instead of walking through
 	var moving := player != null and not stands_to_shoot and _root_time <= 0.0 and _windup <= 0.0 and _charge <= 0.0 and not close
 	velocity.x = (signf(to_player.x) * speed if moving else 0.0) + _knock_x + _drift.x
@@ -284,7 +331,7 @@ func _walk(delta: float) -> void:
 		if above:
 			velocity.y = MOB_JUMP_HIGH
 		elif is_on_wall():
-			velocity.y = MOB_JUMP
+			velocity.y = GIANT_JUMP if KINDS[kind]["effect"] == "smash" else MOB_JUMP
 	move_and_slide()
 	# Touching a burning walker sets you alight, whether or not it is attacking.
 	if _burns() and _flame_lit() and player and not player.dead:
@@ -306,30 +353,161 @@ func _walk(delta: float) -> void:
 
 ## A walker that is close enough draws back, then lunges. If the player moved away during the wind-up, it misses.
 func _update_melee(delta: float, distance: float) -> void:
+	# A giant that walks into a stone wall or boulder swings at it, even with the player out of reach.
+	if KINDS[kind]["effect"] == "smash" and _windup <= 0.0 and _cooldown <= 0.0 and _wall_ahead():
+		_windup = SMASH_WINDUP
+		_telegraph_smash()
 	if _windup > 0.0:
 		_windup -= delta
 		if _windup <= 0.0:
-			if distance < CONTACT_RANGE + 10.0 and _can_reach_player():
+			if KINDS[kind]["effect"] == "smash":
+				_smash()
+			elif distance < _reach() + 10.0 and _can_reach_player():
 				_attack()
 			_lunge = 1.0
 			_cooldown = CONTACT_COOLDOWN
 		return
-	if _cooldown <= 0.0 and distance < CONTACT_RANGE and _can_reach_player():
-		_windup = WINDUP if KINDS[kind]["effect"] != "explode" else WINDUP * 0.6
+	if _cooldown <= 0.0 and distance < _reach() and _can_reach_player():
+		_windup = _windup_time()
+		if KINDS[kind]["effect"] == "smash":
+			_telegraph_smash()
+
+
+## The giant's stomp: its foot comes down in front of it, breaking any stone wall or boulder there, hurting every other
+## enemy close by, and knocking the player back if they are in reach.
+## The ground the stomp lands on: points along the ground in front of the giant, out to its reach.
+func _smash_spots() -> Array:
+	var spots := []
+	for i in range(1, SMASH_SPOTS + 1):
+		var x := global_position.x + facing * SMASH_REACH * float(i) / SMASH_SPOTS
+		spots.append(SpellTargets.solid_below(get_world_2d(), Vector2(x, global_position.y - 60.0)))
+	return spots
+
+
+## Shows where the stomp will land: dust rising off the ground at each spot, as the giant draws its leg back.
+func _telegraph_smash() -> void:
+	for spot in _smash_spots():
+		Fx.smoke(get_parent(), spot, Color(0.82, 0.74, 0.6, 0.9), 6, 26.0, 40.0)
+
+
+func _smash() -> void:
+	var point := global_position + Vector2(SMASH_REACH * facing, SMASH_HEIGHT)
+	Sfx.play("stones", point, -2.0)
+	Fx.debris(get_parent(), point, Color("#a08060"), 10, 180.0)
+	GameCamera.shake_scene(get_tree(), 0.3)
+	for wall in get_tree().get_nodes_in_group("walls"):
+		wall.take_blow_near(point, SMASH_WALL_DAMAGE)
+	for rock in get_tree().get_nodes_in_group("rocks"):
+		rock.take_blow_near(point, SMASH_WALL_DAMAGE)
+	for other in get_tree().get_nodes_in_group("mobs"):
+		if other != self and not other.is_dead() and other.center().distance_to(point) <= 50.0:
+			other.take_damage(SMASH_MOB_DAMAGE)
+	# The impact shows on every spot the stomp landed on.
+	for spot in _smash_spots():
+		Fx.smoke(get_parent(), spot, Color(0.5, 0.43, 0.34, 0.85), 5, 26.0, 40.0)
+		Fx.debris(get_parent(), spot, Color("#8a7058"), 6, 150.0)
+	# The stomp covers the ground in front of the giant, from its feet up to the height of a standing player. The first
+	# stomp that catches the player sticks them in the ground; a stomp that catches them while they are stuck throws them
+	# far away and frees them.
+	var rel: Vector2 = player.center() - global_position if player else Vector2.ZERO
+	if player and not player.dead and signf(rel.x) == facing and absf(rel.x) < SMASH_REACH + 40.0 and absf(rel.y) < 120.0:
+		player.take_damage(KINDS[kind]["damage"])
+		if player.root_time > 0.0:
+			player.push(Vector2(facing * 900.0, -220.0))
+		else:
+			player.stick_in_ground(SMASH_STUCK)
+	Sfx.play("push", point, -6.0)
+
+
+## True when a stone wall or boulder stands within a smash's reach in front of the giant.
+func _wall_ahead() -> bool:
+	var query := PhysicsRayQueryParameters2D.create(global_position + Vector2(0, SMASH_HEIGHT), global_position + Vector2(SMASH_REACH * facing, SMASH_HEIGHT))
+	query.collision_mask = 1
+	var hit := get_world_2d().direct_space_state.intersect_ray(query)
+	if hit.is_empty():
+		return false
+	var blocker: Object = hit["collider"]
+	return blocker.has_meta("stone_wall") or blocker.is_in_group("rocks")
+
+
+## How far a melee enemy's hit reaches: a giant's stomp reaches much farther than a fist.
+func _reach() -> float:
+	return SMASH_REACH if KINDS[kind]["effect"] == "smash" else CONTACT_RANGE
+
+
+func _windup_time() -> float:
+	match KINDS[kind]["effect"]:
+		"explode":
+			return WINDUP * 0.6
+		"smash":
+			return SMASH_WINDUP
+	return WINDUP
+
+
+## A shooter in range charges its shot (a glow builds in front of it), then fires.
+## A ninja's acrobatics: it hops and somersaults about on its own, and when the player gets close it springs away in a
+## backflip.
+func _acrobatics(delta: float) -> void:
+	_flip = maxf(_flip - delta, 0.0)
+	_stunt -= delta
+	_slash_cd = maxf(_slash_cd - delta, 0.0)
+	if _slash_cd <= 0.0 and player and not _dead and _frozen_time <= 0.0 and player.center().distance_to(center()) < SLASH_RANGE:
+		_slash_cd = SLASH_COOLDOWN
+		_slash()
+	if _flip > 0.0 or not is_on_floor() or player == null or _dead or _frozen_time > 0.0 or _root_time > 0.0:
+		return
+	var close: bool = player.center().distance_to(center()) < LEAP_RANGE
+	if not close and _stunt > 0.0:
+		return
+	_stunt = randf_range(STUNT_MIN, STUNT_MAX)
+	_flip = FLIP_TIME
+	velocity.y = -330.0
+	var way := -signf(player.center().x - center().x) if close else signf(randf() - 0.5)
+	knock_back(Vector2(way * LEAP_SPEED, 0.0))
+
+
+## A ninja strikes with its katana: the blade flicks through an arc in front of it, and hurts the player if they are still
+## in reach. Quick, so there is little to dodge once it is this close.
+func _slash() -> void:
+	var blade := Sprite2D.new()
+	blade.texture = KATANA
+	blade.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	blade.centered = false
+	blade.offset = Vector2(-8.0, -16.0)  # the hilt, at the left of the picture, is the pivot
+	blade.scale = Vector2(2.0 * facing, 2.0)  # two times its size, mirrored when the ninja faces left
+	blade.position = Vector2(SLASH_HAND.x * facing, SLASH_HAND.y)
+	blade.rotation = -1.4 * facing
+	blade.z_index = 1
+	add_child(blade)
+	var swing := create_tween()
+	swing.tween_property(blade, "rotation", 1.0 * facing, 0.12)
+	swing.tween_callback(blade.queue_free)
+	if not player.dead:
+		player.take_damage(SLASH_DAMAGE)
+	Sfx.play("push", center(), -8.0)
 
 
 ## A shooter in range charges its shot (a glow builds in front of it), then fires.
 func _update_shooter(delta: float, distance: float, sees: bool, shot: Dictionary) -> void:
+	# A burst is thrown one star after another, a short gap apart.
+	if _burst_left > 0:
+		_burst_gap -= delta
+		if _burst_gap <= 0.0:
+			_burst_left -= 1
+			_burst_gap = BURST_GAP
+			_shoot(shot)
+		return
 	if _charge > 0.0:
 		_charge -= delta
 		if _charge <= 0.0:
-			_shoot(shot)
+			_burst_left = shot.get("burst", 1)
+			_burst_gap = 0.0
 		return
 	if distance < SPIT_RANGE and (sees or shot.get("above", false)):
 		_shot_timer -= delta
 		if _shot_timer <= 0.0:
 			_shot_timer = shot["interval"]
-			_charge = CHARGE
+			_charge = shot.get("charge", CHARGE)
 
 
 ## Flyers drift over the arena above the player. Every so often they hang still, shaking, then dive at the
@@ -402,6 +580,8 @@ func _start_retreat() -> void:
 ## Fires one of this enemy's shots, in its school colour. Plain shots fly at the player; some arc, some fan out,
 ## some fall straight down from the flyer, and fire casters call one down from above the player.
 func _shoot(shot: Dictionary) -> void:
+	if KINDS[kind]["effect"] == "acrobatic" and _flip <= 0.0:
+		_flip = FLIP_TIME  # a ninja flips as it lets a star go
 	var colour := _school_colour()
 	var origin := center() + Vector2(facing * _body_size.x * 0.5, -4.0)
 	if shot.get("above", false):
@@ -543,6 +723,8 @@ func is_frozen() -> bool:
 func knock_back(impulse: Vector2) -> void:
 	if _frozen_time > 0.0:
 		impulse *= 0.4  # a block of ice is heavy
+	if KINDS[kind]["effect"] == "smash":
+		impulse *= 0.25  # a giant's bulk barely moves for a fireball
 	_knock_x = impulse.x
 	velocity.y = minf(velocity.y, impulse.y)  # a little lift for upward knocks
 
@@ -648,6 +830,12 @@ func _animate(delta: float) -> void:
 	_visual.position = Vector2(lunge, bob) + shake
 	_visual.scale = Vector2(_base_scale, _base_scale)
 	_visual.flip_h = facing < 0.0
+	# A ninja's backflip turns about the middle of its body, away from the way it is moving, not about its feet.
+	var spin := signf(velocity.x) if absf(velocity.x) > 1.0 else facing
+	var turn := -TAU * (1.0 - _flip / FLIP_TIME) * spin if _flip > 0.0 else 0.0
+	var pivot := _visual.offset * _base_scale
+	_visual.rotation = turn
+	_visual.position += pivot - pivot.rotated(turn)
 	if _material:
 		var charging := 0.0
 		if _windup > 0.0:

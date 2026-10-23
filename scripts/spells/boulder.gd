@@ -83,11 +83,23 @@ func _on_struck(area: Area2D) -> void:
 	var damage := SpellTargets.shot_damage(area)
 	if damage <= 0:
 		return
+	_take_blow(damage, area.global_position)
+
+
+## A club swung near the boulder takes its blow. True when the swing reached it.
+func take_blow_near(point: Vector2, damage: float) -> bool:
+	if global_position.distance_to(point) > RADIUS + 22.0:
+		return false
+	_take_blow(damage, point)
+	return true
+
+
+func _take_blow(damage: float, at: Vector2) -> void:
 	_health -= damage
 	if _health <= 0.0:
 		Fx.debris(get_parent(), global_position, Color("#6b5a48"), 16, 220.0)
 		Sfx.play("stones", global_position)
 		queue_free()
 	else:
-		Fx.debris(get_parent(), area.global_position, Color("#6b5a48"), 5, 120.0)
+		Fx.debris(get_parent(), at, Color("#6b5a48"), 5, 120.0)
 		Sfx.play("stones", global_position, -6.0)

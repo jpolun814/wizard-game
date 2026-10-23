@@ -88,3 +88,14 @@ and are no longer drawn by the game.
 ## Volcano
 
 - `art/props/volcano_mound.png`: [2D Platformer Volcano Pack 1.1](https://opengameart.org/content/2d-platformer-volcano-pack-11) by Tio Aimar, CC0 (volcano_pack_68).
+
+## Giant (art/mobs/giant)
+
+- **Giant sprites:** Elthen, Cyclops Sprite Sheet (elthen.itch.io/2d-pixel-art-cyclops-sprites). Free to use in commercial
+  and non-commercial projects, per the author's licensing post. Not for crypto or blockchain projects, or for training LLMs
+  or generative AI. Credit requested, not required. Cut into frames by tools/prepare_gothic_art.py.
+
+## Ninjas (art/mobs/ninja, art/fx/ninja_star.png)
+
+- **Ninja sprites:** Mini Ninja by ivoryred (ivoryred.itch.io/mini-ninja; opengameart.org/content/mini-ninja), CC BY 4.0. Credit ivoryred.
+- **Star:** Ninja Throwing Items Kit (opengameart.org/content/ninja-throwing-items-kit-32x32), CC0.

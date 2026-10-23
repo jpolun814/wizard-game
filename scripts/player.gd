@@ -45,6 +45,8 @@ var air_jump_ready := false  # the air jump is spent by one use, and comes back 
 var _shove := Vector2.ZERO  # a Push on the caster: slides them for a moment, then fades
 var mute_time := 0.0          # no rituals while above zero
 var root_time := 0.0          # no walking or jumping while above zero
+var _stuck_time := 0.0         # how long a giant's stomp has the player stuck in the ground
+var _sink_material: ShaderMaterial  # cuts the body off at the waist while stuck, so it looks sunk into the ground
 var blind_time := 0.0         # the caster's gesture trail is hidden while above zero
 var dead := false
 var _shield_time := 0.0
@@ -371,14 +373,50 @@ func grant_unlimited(seconds: float) -> void:
 
 ## A Push on the caster: they are shoved along the line for a moment.
 func pull(force: Vector2, delta: float) -> void:
+	free_from_ground()
 	_shove += force * delta
 
 
 func push(impulse: Vector2) -> void:
+	free_from_ground()
 	_shove = impulse
 
 
+## Anything that moves the body out of the ground (a push, a pull, a blink, a knock) frees it. It can be stuck again only
+## by the next stomp.
+func free_from_ground() -> void:
+	if _stuck_time > 0.0:
+		root_time = 0.0
+		unstick()
+
+
+## A giant's stomp sticks the player in the ground: their body sinks down out of sight, and they cannot move or jump
+## until it lets go.
+func stick_in_ground(seconds: float) -> void:
+	apply_debuff("root", seconds)
+	_stuck_time = maxf(_stuck_time, seconds)
+	if _sink_material == null:
+		var shader := Shader.new()
+		shader.code = "shader_type canvas_item;\nuniform float keep = 0.7;\nvoid fragment() {\n\tif (UV.y > keep) {\n\t\tdiscard;\n\t}\n\tCOLOR = texture(TEXTURE, UV) * COLOR;\n}\n"
+		_sink_material = ShaderMaterial.new()
+		_sink_material.shader = shader
+	_sprite.material = _sink_material
+	# The cut is 57 px above the frame's bottom, so this drops the cut onto the ground: the body is in the ground from there down.
+	_sprite.position = Vector2(0, 57)
+
+
+## Lets the player out of the ground, as a throw does.
+func unstick() -> void:
+	_stuck_time = 0.0
+	_sprite.material = null
+	_sprite.position = Vector2.ZERO
+
+
 func _process(delta: float) -> void:
+	if _stuck_time > 0.0:
+		_stuck_time -= delta
+		if _stuck_time <= 0.0:
+			unstick()
 	_animate(delta)
 
 

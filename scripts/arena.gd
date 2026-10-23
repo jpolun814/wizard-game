@@ -388,6 +388,8 @@ func _blink(caster_node: Node2D, aim: float, length: float) -> void:
 	var colour: Color = SpellData.SCHOOL_COLORS["Storm"]
 	Fx.pop(self, start + Vector2(0, -24), "twirl_02", colour, 60.0, 0.3, 0.3, 8.0)
 	Fx.burst(self, start + Vector2(0, -24), colour, 12, 120.0, 0.25, true)
+	if caster_node.has_method("free_from_ground"):
+		caster_node.free_from_ground()  # a blink moves you out of the ground too
 	caster_node.global_position = end
 	if caster_node is CharacterBody2D:
 		caster_node.velocity = Vector2.ZERO
