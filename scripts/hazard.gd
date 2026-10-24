@@ -27,7 +27,7 @@ static func place(parent: Node, at: Vector2, patch_width: float, life: float) ->
 	shape.position = Vector2(0, -7)
 	hazard.add_child(shape)
 	hazard.collision_mask = 6  # the player and enemies
-	parent.add_child(hazard)
+	parent.add_child.call_deferred(hazard)  # lava lands inside a physics callback, where a new area cannot be added yet
 	return hazard
 
 

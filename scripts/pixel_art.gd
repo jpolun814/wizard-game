@@ -37,6 +37,6 @@ const FX := {
 	"ice_burst": {"size": Vector2(100, 100), "frames": 61},
 	"freeze": {"size": Vector2(100, 100), "frames": 86},
 	"bubbles": {"size": Vector2(100, 100), "frames": 61},
-	"portal_open": {"size": Vector2(32, 32), "frames": 17},
-	"portal_loop": {"size": Vector2(32, 32), "frames": 5},
+	"portal_purple": {"size": Vector2(64, 64), "frames": 24},
+	"splash": {"size": Vector2(32, 32), "frames": 6},
 }

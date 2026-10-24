@@ -25,8 +25,10 @@ packed into atlases, effects into strips).
 | `art/fx/flame`, `flame_blue` | [Animated Fire](https://opengameart.org/content/animated-fire) by BenHickling | CC0 |
 | `art/fx/enemy_death` | GothicVania Church by ansimuz | CC0 1.0 |
 | `art/fx/vortex`, `ring`, `slash`, `ice_burst`, `freeze`, `wind`, `bubbles` (some recoloured) | [Free Pixel Effects Pack](https://opengameart.org/content/free-pixel-effects-pack) by CodeManu | CC0 |
-| `art/fx/portal_open`, `portal_loop` (recoloured violet) | [Portals](https://opengameart.org/content/portals) by LetargicDev | CC0 |
+| `art/fx/portal_purple` (Purple Portal Sprite Sheet) | Source and licence to confirm (the owner supplied the file) | to confirm |
 | `art/fx/wind_bolt` | Pixel Art Spells by DevWizard | CC0 |
+| `art/fx/splash` (the Geyser's and Tsunami's foam) | [Pixel Art Spells](https://opengameart.org/content/pixel-art-spells) by DevWizard (uncropped copy in `art_source/packs/`) | CC0 |
+| `art/props/great_oak` (cropped from the tree, water strip removed) | [GothicVania Bridge Expansion Pack 1](https://opengameart.org/content/gothicvania-bridge-expansion-pack-1) by ansimuz (original in `art_source/packs/`) | CC0 |
 | `art/fx/tornado` (born and loop, 60 frames cut from one sheet, scaled to 96 px) | [Tornado pixel sprite sheet](https://creasta.itch.io/tornado-pixel-sprite-sheet) by Creasta | **Licence not stated on the page.** The author's comment says it is free with no credit required. Owner approved its use; get written confirmation of the licence before release |
 | `art/props/rock_spike_*` (recoloured to stone) | [Pixel Icicles](https://kamioo.itch.io/pixel-icicles) by Kamioo | CC0 |
 | `art/props/cloud_storm_*`, `cloud_snow_*` (recoloured) | [Pixel Art Clouds](https://opengameart.org/node/159981) by DustDFG | CC0 |

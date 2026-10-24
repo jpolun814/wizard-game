@@ -8,8 +8,8 @@ extends RefCounted
 ##
 ## Three layers, checked in order each frame:
 ##   Reactions: a shot coming at it, standing in something dangerous, or you right on top of it. After a short
-##     reaction time (shorter the more skilled it is) it jumps, reflects the shot with a Force Wall, raises a
-##     Barrier, blinks away, or pushes you off.
+##     reaction time (shorter the more skilled it is) it jumps, reflects the shot with a Gust, raises a
+##     Barrier, steps away, or pushes you off.
 ##   Footwork: it holds a dueling range, strafes, jumps to get a clear line at you, and won't walk into fire.
 ##   Attacks: each spell is scored for the situation (are you moving, behind cover, rooted, close, far?) and one is
 ##     picked by weight. Projectiles are aimed where you are going, not where you are.
@@ -74,7 +74,7 @@ func think(delta: float) -> void:
 		mob.velocity.x = 0.0
 		return
 	var to_player: Vector2 = player.center() - mob.center()
-	var sees := _clear_line(mob.center(), player.center())
+	var sees := _clear_line(mob.center(), player.center()) and not SpellTargets.sight_blocked(mob.get_tree(), mob.center(), player.center())
 
 	# Reactions.
 	if _react > 0.0:
@@ -175,10 +175,9 @@ func _act(reaction: String) -> void:
 				mob.velocity.y = JUMP * 0.8
 			_defend_cooldown = 0.6
 		"reflect":
-			# A Force Wall across the shot's path, just in front of the wizard.
-			var normal := _threat_dir.orthogonal()
-			var middle: Vector2 = mob.center() - _threat_dir * 34.0
-			_begin_cast("Force Wall", _line(middle - normal * 45.0, middle + normal * 45.0), QUICK_DRAW)
+			# A Gust blown toward where the shot came from: it turns the shot round and sends it back.
+			var start: Vector2 = mob.center() - _threat_dir * 20.0
+			_begin_cast("Gust", _line(start, start - _threat_dir * 90.0), QUICK_DRAW)
 			_defend_cooldown = 1.4
 		"shield":
 			_begin_cast("Barrier", _offset(GestureTemplates.preview_points("circle"), mob.center(), 0.8), QUICK_DRAW)
@@ -201,7 +200,7 @@ func _act(reaction: String) -> void:
 			_defend_cooldown = 1.8
 
 
-## Blinks away from the player along the ground, or past them if its back is to a wall.
+## Steps away from the player along the ground, or past them if its back is to a wall.
 func _blink_away(player: Node2D) -> void:
 	var away := -signf(player.global_position.x - mob.global_position.x)
 	if away == 0.0:
@@ -210,7 +209,7 @@ func _blink_away(player: Node2D) -> void:
 	if room < 120.0:
 		away = -away  # cornered: go past the player instead
 	var start: Vector2 = mob.center()
-	_begin_cast("Blink", _line(start, start + Vector2(away * 240.0, -12.0)), QUICK_DRAW)
+	_begin_cast("Shadow Step", _line(start, start + Vector2(away * 240.0, -12.0)), QUICK_DRAW)
 
 
 # --- Footwork ---------------------------------------------------------------------------------------------------
@@ -307,13 +306,12 @@ func _attack(to_player: Vector2, sees: bool) -> bool:
 		"Frostbolt": (0.4 if player.slow_time > 0.0 else 1.6) if sees else 0.0,
 		"Spark": 2.2 if still or stuck else 1.0,
 		"Stonefall": 3.0 if stuck else (1.8 if still else 0.5),
-		"Icicles": 0.9 if grounded and gap < 340.0 else 0.0,
+		"Icicles": 0.0,  # they need a ceiling, and the arenas have none yet
 		"Volcano": 1.2 if gap > 160.0 and grounded else 0.2,
 		"Tornado": (0.6 + _pressure * 0.5) if gap < 260.0 else 0.2,
-		"Storm Cloud": (1.6 if not sees else 1.0) if grounded else 0.4,
 		"Ice Prison": 1.3 if gap < 360.0 and not stuck else 0.0,
 		"Mudslide": 1.1 if grounded and not stuck else 0.0,
-		"Gravity Well": (0.4 + _pressure * 0.4) if gap < 300.0 else 0.0,
+		"Abyss": (0.4 + _pressure * 0.4) if gap < 300.0 else 0.0,
 		"Firewall": 1.6 if closing and gap < 280.0 and gap > 90.0 else 0.0,
 		"Blizzard": 0.4 if grounded else 0.0,
 		"Fire Breath": 1.8 if gap < 240.0 else 0.0,
@@ -322,10 +320,9 @@ func _attack(to_player: Vector2, sees: bool) -> bool:
 	if _sheltered():
 		# Under a platform: lightning from above cannot reach you.
 		scores["Spark"] = 0.0
-		scores["Storm Cloud"] = 0.0
 	if not sees:
 		# Behind cover: only spells that come from above or along the ground reach you.
-		for spell_name in ["Ignite", "Frostbolt", "Ice Prison", "Gravity Well", "Firewall", "Fire Breath"]:
+		for spell_name in ["Ignite", "Frostbolt", "Ice Prison", "Abyss", "Firewall", "Fire Breath"]:
 			scores[spell_name] = 0.0
 	for spell_name in scores.keys():
 		if mob.stamina < SpellData.cost(spell_name):
@@ -378,19 +375,12 @@ func _attack_stroke(spell_name: String) -> PackedVector2Array:
 		"Stonefall":
 			var x := _predict(ATTACK_DRAW + 0.6).x
 			return _offset(GestureTemplates.preview_points("stonefall"), Vector2(x, player.center().y - 130.0), 0.8)
-		"Icicles":
-			# An upside-down V grows a spike up from the ground under you.
-			var x := _predict(ATTACK_DRAW * 0.7).x
-			return _densify(PackedVector2Array([Vector2(x - 26.0, feet.y + 2.0), Vector2(x, feet.y - 58.0), Vector2(x + 26.0, feet.y + 2.0)]))
 		"Volcano":
 			var x := _predict(ATTACK_DRAW).x
 			return _offset(GestureTemplates.preview_points("volcano"), Vector2(x, feet.y - 60.0), 0.8)
 		"Tornado":
 			var x: float = lerpf(mob.global_position.x, player.global_position.x, 0.45)
 			return _offset(GestureTemplates.preview_points("tornado"), Vector2(x, feet.y - 90.0), 0.9)
-		"Storm Cloud":
-			var x := _predict(ATTACK_DRAW).x
-			return _offset(GestureTemplates.preview_points("cloud"), Vector2(x, player.center().y - 160.0), 1.0)
 		"Ice Prison":
 			return _offset(GestureTemplates.preview_points("circle"), _predict(ATTACK_DRAW * 0.6), 0.8)
 		"Earthquake":
@@ -399,13 +389,13 @@ func _attack_stroke(spell_name: String) -> PackedVector2Array:
 		"Mudslide":
 			var x := _predict(ATTACK_DRAW * 0.6).x
 			return _offset(GestureTemplates.preview_points("pit"), Vector2(x, feet.y - 60.0), 1.0)
-		"Gravity Well":
+		"Abyss":
 			# Beyond you if you are close (it drags you away from it), between you if you keep shooting at it.
 			var spot: Vector2 = player.center() + Vector2(facing * 80.0, 0.0)
 			if _pressure > 1.5:
 				spot = mob.center().lerp(player.center(), 0.4)
 			var spiral := GestureTemplates.preview_points("spiral")
-			# The well forms where the spiral ends, so place the spiral's end on the spot.
+			# The abyss forms where the spiral ends, so place the spiral's end on the spot.
 			return _offset(spiral, spot - (spiral[spiral.size() - 1] - _centre_of(spiral)), 1.0)
 		"Firewall":
 			var x: float = lerpf(mob.global_position.x, player.global_position.x, 0.5)

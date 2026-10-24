@@ -12,21 +12,23 @@ extends CharacterBody2D
 const KINDS := {
 	"basic": {"name": "Basic", "desc": "A plain enemy with no weakness and no resistance.", "role": "melee", "art": "skeleton", "hp": 30, "school": "", "weak": "", "resist": "", "damage": 8, "speed": 1.0, "effect": ""},
 	"dark_wizard": {"name": "Dark Wizard", "desc": "Duels you with your own spells. Hit it while it draws to break its cast.", "role": "wizard", "art": "dark_wizard", "scale": 1.0, "hp": 120, "school": "Shadow", "weak": "", "resist": "", "damage": 0, "speed": 1.0, "effect": ""},
-	"force_melee": {"name": "Melee Force", "desc": "A plain walker that hits hard enough to send you flying.", "role": "melee", "art": "skeleton", "hp": 30, "school": "Force", "weak": "", "resist": "", "damage": 8, "speed": 1.0, "effect": "big_knockback"},
-	"force_ranged": {"name": "Ranged Force", "desc": "Fires plain orbs from a distance.", "role": "ranged", "art": "goblin", "hp": 24, "school": "Force", "weak": "", "resist": "", "damage": 0, "speed": 1.0, "effect": "", "shot": {"interval": 2.2, "damage": 6}},
-	"force_flyer": {"name": "Flying Force", "desc": "A plain flier that swoops down at you.", "role": "flyer", "art": "eye", "hp": 22, "school": "Force", "weak": "", "resist": "", "damage": 6, "speed": 1.0, "effect": ""},
-	"fire_melee": {"name": "Melee Fire", "desc": "Burns as it walks. Touching it sets you alight.", "role": "melee", "art": "skeleton", "hp": 30, "school": "Fire", "weak": "Ice", "resist": "Fire", "damage": 8, "speed": 1.0, "effect": "burning"},
-	"fire_ranged": {"name": "Ranged Fire", "desc": "Hurls fireballs at you.", "role": "ranged", "art": "goblin", "hp": 24, "school": "Fire", "weak": "Ice", "resist": "Fire", "damage": 0, "speed": 1.0, "effect": "", "shot": {"interval": 2.4, "damage": 8, "art": "fireball"}},
-	"fire_flyer": {"name": "Flying Fire", "desc": "Drops fireballs while it flies over you.", "role": "flyer", "art": "eye", "hp": 22, "school": "Fire", "weak": "Ice", "resist": "Fire", "damage": 6, "speed": 1.0, "effect": "", "shot": {"interval": 1.4, "damage": 6, "drop": true}},
-	"ice_melee": {"name": "Melee Ice", "desc": "Leaves falling snow that slows you.", "role": "melee", "art": "skeleton", "hp": 34, "school": "Ice", "weak": "Fire", "resist": "Ice", "damage": 6, "speed": 0.9, "effect": "frost_trail"},
-	"ice_ranged": {"name": "Ranged Ice", "desc": "Fires a bolt that slows you.", "role": "ranged", "art": "goblin", "hp": 24, "school": "Ice", "weak": "Fire", "resist": "Ice", "damage": 0, "speed": 1.0, "effect": "", "shot": {"interval": 2.0, "damage": 4, "slow": true}},
-	"ice_flyer": {"name": "Flying Ice", "desc": "Drops icicles from above that slow you.", "role": "flyer", "art": "eye", "hp": 22, "school": "Ice", "weak": "Fire", "resist": "Ice", "damage": 4, "speed": 1.0, "effect": "", "shot": {"interval": 1.8, "damage": 3, "slow": true, "drop": true}},
-	"earth_melee": {"name": "Melee Earth", "desc": "Big and heavy. Hits hard and knocks you back.", "role": "melee", "art": "skeleton", "hp": 48, "school": "Earth", "weak": "Storm", "resist": "Earth", "damage": 14, "speed": 0.6, "effect": "knockback"},
-	"earth_ranged": {"name": "Ranged Earth", "desc": "Hurls boulders in an arc.", "role": "ranged", "art": "goblin", "hp": 28, "school": "Earth", "weak": "Storm", "resist": "Earth", "damage": 0, "speed": 1.0, "effect": "", "shot": {"interval": 2.6, "damage": 10, "gravity": 420.0}},
-	"earth_flyer": {"name": "Flying Earth", "desc": "Drops boulders from the air.", "role": "flyer", "art": "eye", "hp": 26, "school": "Earth", "weak": "Storm", "resist": "Earth", "damage": 8, "speed": 1.0, "effect": "", "shot": {"interval": 2.2, "damage": 8, "gravity": 300.0, "drop": true}},
-	"storm_melee": {"name": "Melee Storm", "desc": "Fast. Explodes when it reaches you.", "role": "melee", "art": "skeleton", "hp": 20, "school": "Storm", "weak": "Earth", "resist": "Storm", "damage": 35, "speed": 2.6, "effect": "explode"},
-	"storm_ranged": {"name": "Ranged Storm", "desc": "Fires a fan of zaps.", "role": "ranged", "art": "goblin", "hp": 24, "school": "Storm", "weak": "Earth", "resist": "Storm", "damage": 0, "speed": 1.0, "effect": "", "shot": {"interval": 2.4, "damage": 5, "spread": 3}},
-	"storm_flyer": {"name": "Flying Storm", "desc": "Divebombs you, then flies away.", "role": "flyer", "art": "eye", "hp": 22, "school": "Storm", "weak": "Earth", "resist": "Storm", "damage": 8, "speed": 1.4, "effect": ""},
+	"force_melee": {"name": "Melee Air", "desc": "A plain walker that hits hard enough to send you flying.", "role": "melee", "art": "skeleton", "hp": 30, "school": "Air", "weak": "", "resist": "", "damage": 8, "speed": 1.0, "effect": "big_knockback"},
+	"force_ranged": {"name": "Ranged Air", "desc": "Fires plain orbs from a distance.", "role": "ranged", "art": "goblin", "hp": 24, "school": "Air", "weak": "", "resist": "", "damage": 0, "speed": 1.0, "effect": "", "shot": {"interval": 2.2, "damage": 6}},
+	"force_flyer": {"name": "Flying Air", "desc": "A plain flier that swoops down at you.", "role": "flyer", "art": "eye", "hp": 22, "school": "Air", "weak": "", "resist": "", "damage": 6, "speed": 1.0, "effect": ""},
+	"fire_melee": {"name": "Melee Fire", "desc": "Burns as it walks. Touching it sets you alight.", "role": "melee", "art": "skeleton", "hp": 30, "school": "Fire", "weak": "Water", "resist": "Fire", "damage": 8, "speed": 1.0, "effect": "burning"},
+	"fire_ranged": {"name": "Ranged Fire", "desc": "Hurls fireballs at you.", "role": "ranged", "art": "goblin", "hp": 24, "school": "Fire", "weak": "Water", "resist": "Fire", "damage": 0, "speed": 1.0, "effect": "", "shot": {"interval": 2.4, "damage": 8, "art": "fireball"}},
+	"fire_flyer": {"name": "Flying Fire", "desc": "Drops fireballs while it flies over you.", "role": "flyer", "art": "eye", "hp": 22, "school": "Fire", "weak": "Water", "resist": "Fire", "damage": 6, "speed": 1.0, "effect": "", "shot": {"interval": 1.4, "damage": 6, "drop": true}},
+	"ice_melee": {"name": "Melee Water", "desc": "Leaves falling snow that slows you.", "role": "melee", "art": "skeleton", "hp": 34, "school": "Water", "weak": "Fire", "resist": "Water", "damage": 6, "speed": 0.9, "effect": "frost_trail"},
+	"ice_ranged": {"name": "Ranged Water", "desc": "Fires a bolt that slows you.", "role": "ranged", "art": "goblin", "hp": 24, "school": "Water", "weak": "Fire", "resist": "Water", "damage": 0, "speed": 1.0, "effect": "", "shot": {"interval": 2.0, "damage": 4, "slow": true}},
+	"ice_flyer": {"name": "Flying Water", "desc": "Drops icicles from above that slow you.", "role": "flyer", "art": "eye", "hp": 22, "school": "Water", "weak": "Fire", "resist": "Water", "damage": 4, "speed": 1.0, "effect": "", "shot": {"interval": 1.8, "damage": 3, "slow": true, "drop": true}},
+	"earth_melee": {"name": "Melee Earth", "desc": "Big and heavy. Hits hard and knocks you back.", "role": "melee", "art": "skeleton", "hp": 48, "school": "Earth", "weak": "Water", "resist": "Earth", "damage": 14, "speed": 0.6, "effect": "knockback"},
+	"earth_ranged": {"name": "Ranged Earth", "desc": "Hurls boulders in an arc.", "role": "ranged", "art": "goblin", "hp": 28, "school": "Earth", "weak": "Water", "resist": "Earth", "damage": 0, "speed": 1.0, "effect": "", "shot": {"interval": 2.6, "damage": 10, "gravity": 420.0}},
+	"earth_flyer": {"name": "Flying Earth", "desc": "Drops boulders from the air.", "role": "flyer", "art": "eye", "hp": 26, "school": "Earth", "weak": "Water", "resist": "Earth", "damage": 8, "speed": 1.0, "effect": "", "shot": {"interval": 2.2, "damage": 8, "gravity": 300.0, "drop": true}},
+	"storm_melee": {"name": "Melee Wind", "desc": "Fast. Explodes when it reaches you.", "role": "melee", "art": "skeleton", "hp": 20, "school": "Air", "weak": "Earth", "resist": "Air", "damage": 35, "speed": 2.6, "effect": "explode"},
+	"storm_ranged": {"name": "Ranged Wind", "desc": "Fires a fan of zaps.", "role": "ranged", "art": "goblin", "hp": 24, "school": "Air", "weak": "Earth", "resist": "Air", "damage": 0, "speed": 1.0, "effect": "", "shot": {"interval": 2.4, "damage": 5, "spread": 3}},
+	"storm_flyer": {"name": "Flying Wind", "desc": "Divebombs you, then flies away.", "role": "flyer", "art": "eye", "hp": 22, "school": "Air", "weak": "Earth", "resist": "Air", "damage": 8, "speed": 1.4, "effect": ""},
+	"dummy": {"name": "Dummy", "desc": "Takes anything and never falls. It stands where it is, and heals as soon as you stop.", "role": "melee", "art": "skeleton", "hp": 300, "school": "", "weak": "", "resist": "", "damage": 0, "speed": 0.0, "effect": "dummy"},
+	"turret": {"name": "Turret", "desc": "Stands still and fires plain bolts at you, for trying defences on. It never falls.", "role": "ranged", "art": "goblin", "hp": 300, "school": "", "weak": "", "resist": "", "damage": 0, "speed": 0.0, "effect": "dummy", "shot": {"interval": 2.0, "damage": 6}},
 	"ninja": {"name": "Ninja", "desc": "Quick and fragile. Throws stars at you from a distance, in a pack.", "role": "ranged", "art": "ninja", "scale": 3.0, "hp": 14, "school": "", "weak": "", "resist": "", "damage": 0, "speed": 2.4, "effect": "acrobatic", "shot": {"interval": 1.6, "damage": 5, "art": "ninja_star", "burst": 5, "charge": 0.06}},
 	"giant": {"name": "Giant", "desc": "A huge brute. Slow and tough, and its stomp smashes stone walls.", "role": "melee", "art": "giant", "scale": 6.0, "hp": 260, "school": "", "weak": "", "resist": "", "damage": 30, "speed": 0.75, "effect": "smash"},
 }
@@ -62,6 +64,7 @@ const MOB_JUMP := -420.0      # enough to clear two blocks
 const MOB_JUMP_HIGH := -560.0 # enough to reach a platform when the player is up on one
 const BURST_DAMAGE := 6       # a Stormrunner's explosion hurts everything close by this much
 const BURST_RADIUS := 60.0
+const DECOY_NOTICE := 520.0    # a decoy this close is noticed, and attacked instead of the player
 const SPIT_RANGE := 480.0       # a ranged enemy fires from this far away
 const SPIT_STAND_RANGE := 300.0 # and stops walking once it is this close
 const FLY_SPEED := 120.0        # how fast a flyer drifts while it patrols
@@ -104,6 +107,7 @@ var _stroke_colour := Color.WHITE
 var _on_drawn: Callable
 var _shield_time := 0.0
 var _cooldown := 0.0
+var _since_hit := 0.0  # seconds since this enemy was last hurt; a dummy heals once it has been left alone
 var _slow_time := 0.0
 var _knock_x := 0.0
 var _drift := Vector2.ZERO  # a pull (Gravity Well) that fades
@@ -129,6 +133,8 @@ var _burst_left := 0     # stars still to throw in the burst being thrown
 var _burst_gap := 0.0    # counting down to the next star of the burst
 var _charge := 0.0       # counting down to a shot
 var _flash := 0.0
+var _liquid := Color.WHITE  # the colour of the water or lava it stands in
+var _liquid_time := 0.0
 var _spawn := SPAWN_TIME
 var _trail_timer := 0.0
 var _touch_timer := 0.0  # between the burns a fire walker gives to whoever touches it
@@ -264,6 +270,9 @@ func _physics_process(delta: float) -> void:
 		return
 	modulate.a = 1.0
 	_cooldown -= delta
+	_since_hit += delta
+	if KINDS[kind]["effect"] == "dummy" and _since_hit > 3.0:
+		hp = max_hp  # a dummy heals as soon as you stop
 	_root_time -= delta
 	_nojump_time -= delta
 	_shield_time -= delta
@@ -317,16 +326,17 @@ func _walk(delta: float) -> void:
 	var speed: float = SPEED * data["speed"]
 	if _slow_time > 0.0:
 		speed *= 0.5
-	var to_player: Vector2 = player.center() - center() if player else Vector2.ZERO
-	var distance := to_player.length() if player else INF
+	var target: Node2D = _target()  # the player, or a decoy it has noticed
+	var to_player: Vector2 = target.center() - center() if target else Vector2.ZERO
+	var distance := to_player.length() if target else INF
 	var shooter: bool = data["role"] == "ranged"
-	var sees := player != null and _can_reach_player()
+	var sees := target != null and _sees(target)
 	var stands_to_shoot: bool = shooter and distance < SPIT_STAND_RANGE and sees and data.get("effect", "") != "acrobatic"
 	var close := absf(to_player.x) < 18.0  # right on top of the player: stop instead of walking through
-	var moving := player != null and not stands_to_shoot and _root_time <= 0.0 and _windup <= 0.0 and _charge <= 0.0 and not close
+	var moving := target != null and speed > 0.0 and not stands_to_shoot and _root_time <= 0.0 and _windup <= 0.0 and _charge <= 0.0 and not close
 	velocity.x = (signf(to_player.x) * speed if moving else 0.0) + _knock_x + _drift.x
 	# Enemies jump when a wall blocks them, and leap up to a platform when the player is standing on it.
-	if is_on_floor() and player and _root_time <= 0.0 and _nojump_time <= 0.0 and moving:
+	if is_on_floor() and target and _root_time <= 0.0 and _nojump_time <= 0.0 and moving:
 		var above := to_player.y < -50.0 and absf(to_player.x) < 140.0
 		if above:
 			velocity.y = MOB_JUMP_HIGH
@@ -345,9 +355,9 @@ func _walk(delta: float) -> void:
 		if _trail_timer <= 0.0 and data["effect"] == "frost_trail":
 			_trail_timer = FROST_TRAIL_INTERVAL
 			_leave_snow()
-	if shooter and player:
+	if shooter and target:
 		_update_shooter(delta, distance, sees, data["shot"])
-	if data["role"] == "melee" and player:
+	if data["role"] == "melee" and target and data["effect"] != "dummy":
 		_update_melee(delta, distance)
 
 
@@ -362,12 +372,12 @@ func _update_melee(delta: float, distance: float) -> void:
 		if _windup <= 0.0:
 			if KINDS[kind]["effect"] == "smash":
 				_smash()
-			elif distance < _reach() + 10.0 and _can_reach_player():
+			elif distance < _reach() + 10.0 and _can_reach(_target()):
 				_attack()
 			_lunge = 1.0
 			_cooldown = CONTACT_COOLDOWN
 		return
-	if _cooldown <= 0.0 and distance < _reach() and _can_reach_player():
+	if _cooldown <= 0.0 and distance < _reach() and _can_reach(_target()):
 		_windup = _windup_time()
 		if KINDS[kind]["effect"] == "smash":
 			_telegraph_smash()
@@ -593,7 +603,7 @@ func _shoot(shot: Dictionary) -> void:
 		EnemyBolt.fire(get_parent(), center() + Vector2(0, 10), center() + Vector2(0, 100), colour, shot["damage"], shot.get("gravity", 300.0), shot.get("slow", false), "magic_bolt", self)
 		Sfx.play("mob_shoot", center())
 		return
-	var aim: Vector2 = player.center()
+	var aim: Vector2 = _target().center()
 	var count: int = shot.get("spread", 1)
 	for i in count:
 		var angle := 0.0 if count == 1 else (i - (count - 1) * 0.5) * 0.14
@@ -607,11 +617,29 @@ func _shoot(shot: Dictionary) -> void:
 	Sfx.play("mob_shoot", origin)
 
 
+## Who this enemy is after: a decoy it has noticed, otherwise the player.
+func _target() -> Node2D:
+	var decoy := Decoy.nearest(get_tree(), center(), DECOY_NOTICE)
+	if decoy != null and _can_reach(decoy):
+		return decoy
+	return player
+
+
 ## True when nothing solid stands between the enemy and the player. Enemies cannot hit through stone.
 func _can_reach_player() -> bool:
-	var query := PhysicsRayQueryParameters2D.create(center(), player.center())
+	return _can_reach(player)
+
+
+## True when nothing solid stands between the enemy and its target.
+func _can_reach(target: Node2D) -> bool:
+	var query := PhysicsRayQueryParameters2D.create(center(), target.center())
 	query.collision_mask = 1  # terrain only; platforms do not block
 	return get_world_2d().direct_space_state.intersect_ray(query).is_empty()
+
+
+## True when the enemy can see its target: no stone in the way, and no smoke or darkness either.
+func _sees(target: Node2D) -> bool:
+	return _can_reach(target) and not SpellTargets.sight_blocked(get_tree(), center(), target.center())
 
 
 ## Damage from a spell of the given school. Weak to a school takes double; resisting it takes nothing.
@@ -628,7 +656,8 @@ func take_damage(amount: int, school := "") -> void:
 		dealt = 0
 	elif school != "" and school == data["weak"]:
 		dealt = amount * 2
-	if _frozen_time > 0.0 and school in ["Force", "Earth"]:
+	dealt = roundi(dealt * Hex.multiplier(get_tree(), self))  # a hexed enemy takes half again as much
+	if _frozen_time > 0.0 and school in ["Air", "Earth"]:
 		dealt = roundi(dealt * 1.5)
 		_frozen_time = 0.0
 		Shatter.spawn(get_parent(), center(), Color("#cdeeff"))
@@ -638,6 +667,9 @@ func take_damage(amount: int, school := "") -> void:
 		FloatText.spawn(get_parent(), text_at, "Resisted", Color(0.75, 0.75, 0.82), 0.8)
 		return
 	hp -= dealt
+	_since_hit = 0.0
+	if data["effect"] == "dummy" and hp <= 0:
+		hp = max_hp  # a dummy is never beaten: it stands up again
 	_flash = 1.0
 	var weak := dealt > amount
 	FloatText.spawn(get_parent(), text_at, "%d%s" % [dealt, "!" if weak else ""], Color("#ff9a3a") if weak else Color("#fff0a0"), 1.25 if weak else 1.0)
@@ -697,20 +729,32 @@ func apply_no_jump(seconds: float) -> void:
 	_nojump_time = maxf(_nojump_time, seconds)
 
 
+## Holds the enemy where it stands, as a Flytrap does: it cannot walk, jump or be carried away by its own speed.
+func apply_root(seconds: float) -> void:
+	_root_time = maxf(_root_time, seconds)
+	_knock_x = 0.0
+
+
 func is_slowed() -> bool:
 	return _slow_time > 0.0
 
 
+## Standing in water or lava: tinted its colour for a moment after each call.
+func soak(tint: Color) -> void:
+	_liquid = tint
+	_liquid_time = 0.15
+
+
 func apply_slow(seconds: float) -> void:
-	if KINDS[kind]["school"] == "Ice":
-		return  # ice enemies cannot be slowed by ice or snow
+	if KINDS[kind]["school"] == "Water":
+		return  # water enemies cannot be slowed by ice or snow
 	_slow_time = maxf(_slow_time, seconds)
 
 
 ## Encases the enemy in ice: it cannot move or attack until it thaws or something shatters it.
 ## Returns false for ice enemies, which shrug it off.
 func freeze(seconds: float) -> bool:
-	if KINDS[kind]["school"] == "Ice" or _dead:
+	if KINDS[kind]["school"] == "Water" or _dead:
 		return false
 	_frozen_time = maxf(_frozen_time, seconds)
 	return true
@@ -758,6 +802,11 @@ func _attack() -> void:
 	if data["effect"] == "explode":
 		_explode()
 		return
+	var target := _target()
+	if target != player:
+		target.take_damage(data["damage"])  # a decoy takes the blow
+		Sfx.play("push", target.center(), -6.0)
+		return
 	player.take_damage(data["damage"])
 	Sfx.play("stones" if data["school"] == "Earth" else "fire_hit" if data["school"] == "Fire" else "push", player.center(), -6.0)
 	match data["effect"]:
@@ -784,6 +833,9 @@ func _explode() -> void:
 func _process(delta: float) -> void:
 	_idle_t += delta
 	_flash = maxf(_flash - delta * 6.0, 0.0)
+	_liquid_time = maxf(_liquid_time - delta, 0.0)
+	var wet := _liquid if _liquid_time > 0.0 else Color.WHITE
+	modulate = Color(wet.r, wet.g, wet.b, modulate.a)
 	_animate(delta)
 	queue_redraw()
 	_overlay.queue_redraw()
@@ -885,7 +937,7 @@ func _draw_overlay() -> void:
 		o.draw_texture_rect(ICE, box, true, Color(1, 1, 1, 0.6))
 	if _bubble:
 		_bubble.visible = _shield_time > 0.0
-		_bubble.modulate = Color(0.8, 0.6, 1.0, 0.75 * clampf(_shield_time / 0.4, 0.0, 1.0))
+		_bubble.modulate = Color(0.85, 0.93, 1.0, 0.3 * clampf(_shield_time / 0.4, 0.0, 1.0))
 	var wizard: bool = KINDS[kind]["role"] == "wizard"
 	if hp < max_hp or wizard:
 		var width := 40.0 if wizard else 28.0

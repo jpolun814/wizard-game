@@ -3,7 +3,7 @@ extends Area2D
 
 ## A ball of molten rock thrown by a volcano. It flies in an arc, and where it lands the ground or platform catches
 ## fire and anything close by is burned. A ball that strikes someone lands on them. It is a shot like any other: a
-## Force Wall, Push or Tornado turns it, a Gravity Well swallows it, a Barrier stops it, and a stone wall takes the
+## Gust, Push or Tornado turns it, an Abyss swallows it, a Barrier stops it, and a stone wall takes the
 ## blow. Lava burns whoever it lands on, the caster included.
 
 const GRAVITY := 900.0
@@ -89,11 +89,11 @@ func _land(ground: Vector2, struck := Vector2.INF) -> void:
 	queue_free()
 
 
-## A Force Wall, Push or Tornado sends the lava off along a new heading, as fast as it was going.
+## A Gust, Push or Tornado sends the lava off along a new heading, as fast as it was going.
 func reflect(direction: Vector2) -> void:
 	velocity = direction.normalized() * velocity.length()
 	rotation = velocity.angle()
-	Sfx.play("force", global_position, -4.0)
+	Sfx.play("push", global_position, -4.0)
 
 
 ## Which way it is flying right now.

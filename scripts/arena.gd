@@ -3,13 +3,16 @@ extends Node2D
 ## Arena: a random map in the level's land, the player, waves of enemies, foci to pick up,
 ## fast spells, rituals and the spellbook.
 
+const PERFECT_CAST := 0.95  # accuracy a cast needs for the flourish
 const MOB_SCENE := preload("res://scenes/mob.tscn")
 const TILE := ArenaGen.TILE
+const ICICLE_REACH := 420.0  # a ceiling this far above a V can hang its icicle
+const ICICLE_MAX := 240.0    # the longest an icicle grows
 const MUZZLE_OFFSET := 26.0  # spawn directional spells just outside the caster's body
 const BARRIER_SECONDS := 6.0
 const MISFIRE_COST := 10.0
 const PICKUP_RANGE := 48.0
-const BLINK_DAMAGE := 8
+const STEP_DAMAGE := 8
 const INSIGHT_REACH := 40.0  # how close the pointer must be to an enemy for Insight to show it
 const FLYER_HEIGHT := 150.0  # flyers arrive this far above the ground
 
@@ -37,9 +40,9 @@ var _ground: Terrain
 func _ready() -> void:
 	# A new random arena each run, in the level's land. Build it before anything that reads the terrain.
 	_rng.randomize()
-	_place = Levels.place_of(Levels.wave_index)
+	_place = _where_are_we()
 	var biome: String = _place["biome"]
-	_cells = ArenaGen.build(_rng)
+	_cells = _build_map()
 	var backdrop := Backdrop.new()
 	add_child(backdrop)
 	move_child(backdrop, 0)
@@ -81,6 +84,21 @@ func _ready() -> void:
 	debug_panel.arena = self
 	add_child(debug_panel)
 
+	_begin_encounter(camera)
+
+
+## Which level and wave this is.
+func _where_are_we() -> Dictionary:
+	return Levels.place_of(Levels.wave_index)
+
+
+## The map's tiles. The waiting room builds its own.
+func _build_map() -> Dictionary:
+	return ArenaGen.build(_rng)
+
+
+## Puts the player on the map and starts the wave. The waiting room does something else here.
+func _begin_encounter(camera: Camera2D) -> void:
 	# The player starts on open ground near the middle. The waves come from the director, one at a time.
 	var open := _clear_columns()
 	var middle := open.filter(func(c: int) -> bool: return absi(c) < 12)
@@ -148,6 +166,7 @@ func _on_wave_cleared() -> void:
 	_portal.position = Vector2(ArenaGen.column_x(col), ArenaGen.surface_y(_cells, col) - Portal.RY - 4.0)
 	_portal.body_entered.connect(_on_portal_entered)
 	add_child(_portal)
+	_portal.open()
 	hud.point_to_portal(_portal)
 	if not Levels.all_waves()[Levels.wave_index].is_empty():
 		hud.banner("Wave cleared")
@@ -272,10 +291,14 @@ func _visible_hud_rects() -> Array[Rect2]:
 
 func _on_cast_resolved(spell: String, targeting: String, origin: Vector2, aim: float, info: Dictionary) -> void:
 	player.play_cast_release()
+	if spell == "Icicles" and _icicle_spots(info).is_empty():
+		FloatText.spawn(self, get_global_mouse_position() + Vector2(0, -22), "Needs a ceiling", Color("#dff6ff"), 0.9)
+		Sfx.play("misfire", player.center(), -6.0)
+		return
 	var cost := SpellData.cost_for(spell, info)
 	if player.focus == "staff":
 		cost *= 0.75  # a staff channels spells better: a quarter off every cast
-	var colour: Color = SpellData.SCHOOL_COLORS[SpellData.SPELLS[spell]["school"]]
+	var colour := SpellData.color_of(spell)
 	var label_at := get_global_mouse_position() + Vector2(0, -22)
 	if not player.spend(cost):
 		_on_feedback("Not enough stamina for %s (needs %d)" % [spell, cost], Color.ORANGE)
@@ -283,7 +306,30 @@ func _on_cast_resolved(spell: String, targeting: String, origin: Vector2, aim: f
 		Sfx.play("misfire", player.center(), -6.0)
 		return
 	FloatText.spawn(self, label_at, spell, colour.lightened(0.25), 0.9)
+	if info.get("accuracy", 0.0) >= PERFECT_CAST:
+		_flourish(colour)
 	spawn_spell(spell, targeting, origin, aim, info, player)
+
+
+## A perfect cast: a ring of the school's light opens round the wizard, sparks fly off it and a gold "Perfect" rises.
+func _flourish(colour: Color) -> void:
+	var at: Vector2 = player.center()
+	# A ring of light in the school's colour, opening round the wizard. It is a white texture, so the tint is the school's.
+	var ring := Sprite2D.new()
+	ring.texture = Fx.tex("circle_03")
+	ring.material = Fx.additive()
+	ring.modulate = colour.lightened(0.35)
+	ring.position = at
+	ring.z_index = 8
+	ring.scale = Vector2.ONE * (30.0 / Fx.TEX_SIZE)
+	add_child(ring)
+	var open := create_tween().set_parallel(true)
+	open.tween_property(ring, "scale", Vector2.ONE * (150.0 / Fx.TEX_SIZE), 0.45).set_ease(Tween.EASE_OUT)
+	open.tween_property(ring, "modulate:a", 0.0, 0.45)
+	open.chain().tween_callback(ring.queue_free)
+	Fx.burst(self, at, colour.lightened(0.6), 14, 170.0, 0.5, true, "star_04")
+	FloatText.spawn(self, at + Vector2(0, -52), "Perfect", Color("#ffe27a"), 1.0)
+	Sfx.play("pickup", at, -6.0)
 
 
 ## The biome's earth, which a stone wall is made of: the same texture the ground is cut from.
@@ -303,9 +349,9 @@ func spawn_spell(spell: String, targeting: String, origin: Vector2, aim: float, 
 			# Barrier wraps the caster rather than appearing somewhere in the world.
 			caster_node.raise_shield(BARRIER_SECONDS)
 			return
-		"Blink":
-			# Blink zips the caster along the stroke, so it starts from the caster, not the stroke.
-			_blink(caster_node, aim, info.get("length", 0.0))
+		"Shadow Step":
+			# A step zips the caster along the stroke, so it starts from the caster, not the stroke.
+			_shadow_step(caster_node, aim, info.get("length", 0.0))
 			return
 		"Fire Breath":
 			# The fire pours out of the caster, toward the cone's open end.
@@ -316,11 +362,57 @@ func spawn_spell(spell: String, targeting: String, origin: Vector2, aim: float, 
 			breath.reach = info.get("reach", 160.0)
 			add_child(breath)
 			return
-		"Gravity Well":
-			var well := GravityWell.new()
-			well.reach = info.get("radius", 60.0) * 2.0
-			well.position = origin
-			add_child(well)
+		"Abyss":
+			var abyss := Abyss.new()
+			abyss.reach = info.get("radius", 60.0) * 2.0
+			abyss.position = origin
+			add_child(abyss)
+			return
+		"Tsunami":
+			var wave := Tsunami.new()
+			wave.direction = 1.0 if cos(aim) >= 0.0 else -1.0
+			add_child(wave)
+			return
+		"Flare":
+			# The flare hovers by the caster and follows them wherever it was drawn.
+			var flare := Flare.new()
+			flare.caster_node = caster_node
+			add_child(flare)
+			return
+		"Spore Puff":
+			# The spores pour out of the caster, toward the cone's open end, like Fire Breath.
+			var spores := SporePuff.new()
+			spores.caster_node = caster_node
+			spores.aim = aim
+			spores.spread = info.get("spread", 0.8)
+			spores.reach = info.get("reach", 160.0)
+			add_child(spores)
+			return
+		"Flytrap":
+			var trap := Flytrap.new()
+			trap.position = origin
+			add_child(trap)
+			return
+		"Eclipse":
+			var eclipse := Eclipse.new()
+			var size: Vector2 = info.get("extent", Vector2(100, 100))
+			eclipse.radius = maxf(size.x, size.y) * 0.6
+			eclipse.position = origin
+			add_child(eclipse)
+			return
+		"Decoy":
+			var decoy := Decoy.new()
+			decoy.position = _ground_below(origin)
+			add_child(decoy)
+			return
+		"Hex":
+			var cursed := Hex.nearest_under(get_tree(), origin)
+			if cursed == null:
+				FloatText.spawn(self, origin + Vector2(0, -20), "No one under the star", Color("#c8a8ff"), 0.9)
+				return
+			var hex := Hex.new()
+			hex.target = cursed
+			add_child(hex)
 			return
 	# Icicles, snowfall, tornados, volcanoes and the rest are placed where they were drawn, not at one point.
 	if targeting == "shape":
@@ -356,8 +448,8 @@ func _new_effect(spell: String) -> SpellEffect:
 			return Firewall.new()
 		"Push":
 			return PushZone.new()
-		"Force Wall":
-			return ForceWall.new()
+		"Gust":
+			return Gust.new()
 		"Stone Wall":
 			return StoneWall.new()
 		"Spark":
@@ -366,11 +458,12 @@ func _new_effect(spell: String) -> SpellEffect:
 	return SpellEffect.new()
 
 
-## Blink: the caster zips along the stroke, stopping short of walls. Whoever is in the way takes damage, the caster aside.
-func _blink(caster_node: Node2D, aim: float, length: float) -> void:
+## Shadow Step: the caster slips along the stroke, stopping short of walls. Whoever is in the way takes damage, the
+## caster aside.
+func _shadow_step(caster_node: Node2D, aim: float, length: float) -> void:
 	var dir := Vector2.from_angle(aim)
 	var start: Vector2 = caster_node.global_position
-	var end := start + dir * minf(length, SpellData.BLINK_MAX)
+	var end := start + dir * minf(length, SpellData.STEP_MAX)
 	var query := PhysicsRayQueryParameters2D.create(start + Vector2(0, -20), end + Vector2(0, -20))
 	query.collision_mask = 1
 	var hit := get_world_2d().direct_space_state.intersect_ray(query)
@@ -384,8 +477,8 @@ func _blink(caster_node: Node2D, aim: float, length: float) -> void:
 		var middle := SpellTargets.center_of(body)
 		var closest := Geometry2D.get_closest_point_to_segment(middle, start + Vector2(0, -20), end + Vector2(0, -20))
 		if closest.distance_to(middle) <= 24.0:
-			SpellTargets.hurt(body, BLINK_DAMAGE, "Storm")
-	var colour: Color = SpellData.SCHOOL_COLORS["Storm"]
+			SpellTargets.hurt(body, STEP_DAMAGE, "Shadow")
+	var colour: Color = SpellData.SCHOOL_COLORS["Shadow"]
 	Fx.pop(self, start + Vector2(0, -24), "twirl_02", colour, 60.0, 0.3, 0.3, 8.0)
 	Fx.burst(self, start + Vector2(0, -24), colour, 12, 120.0, 0.25, true)
 	if caster_node.has_method("free_from_ground"):
@@ -395,7 +488,24 @@ func _blink(caster_node: Node2D, aim: float, length: float) -> void:
 		caster_node.velocity = Vector2.ZERO
 	Fx.pop(self, end + Vector2(0, -24), "twirl_02", colour, 24.0, 0.3, 2.4, -8.0)
 	Fx.burst(self, end + Vector2(0, -24), colour, 12, 120.0, 0.25, true)
-	Sfx.play("blink", end)
+	Sfx.play("gravity", end, -2.0)  # a low whoosh like the other Shadow spells
+
+
+## Where each drawn V can hang an icicle: from the ceiling straight above it. A V with no ceiling over it grows nothing.
+## The icicle reaches down toward the V's tip, no longer than ICICLE_MAX.
+func _icicle_spots(info: Dictionary) -> Array:
+	var spots := []
+	for tri in info.get("shapes", []):
+		var top := Vector2(tri[1].x, minf(tri[0].y, tri[2].y))
+		var query := PhysicsRayQueryParameters2D.create(top, top + Vector2(0.0, -ICICLE_REACH))
+		query.collision_mask = 1
+		var hit := get_world_2d().direct_space_state.intersect_ray(query)
+		if hit.is_empty():
+			continue
+		var length := clampf(tri[1].y - hit["position"].y, 40.0, ICICLE_MAX)
+		var width := clampf(absf(tri[2].x - tri[0].x), 14.0, length * 0.6)
+		spots.append({"base": hit["position"] + Vector2(0.0, 6.0), "width": width, "length": length})
+	return spots
 
 
 ## The spells whose shape says where they go: icicles stand as the triangles they were drawn as, snow falls over
@@ -409,20 +519,12 @@ func _place_shapes(spell: String, info: Dictionary) -> void:
 		centre += p / line.size()
 	match spell:
 		"Icicles":
-			for tri in info["shapes"]:
-				# An icicle hangs from its point, which is the lowest corner. Never under the ground: one that would sink in is
-				# lifted until its point stands on the surface.
-				var by_height: Array = Array(tri)
-				by_height.sort_custom(func(a: Vector2, b: Vector2) -> bool: return a.y > b.y)
-				var base: Vector2 = (by_height[0] + by_height[1]) * 0.5  # the wide base, on the lowest edge
-				var lift := SpellTargets.surface_over(get_world_2d(), base).y + 6.0 - base.y  # the base sits just under the surface, hidden by the ground
-				var local := PackedVector2Array()
-				for p in tri:
-					local.append(p - base)
+			for spot in _icicle_spots(info):
+				var half: float = spot["width"] * 0.5
 				var icicle := Icicle.new()
-				icicle.polygon = local
+				icicle.polygon = PackedVector2Array([Vector2(-half, 0.0), Vector2(half, 0.0), Vector2(0.0, spot["length"])])
 				add_child(icicle)
-				icicle.setup(spell, base + Vector2(0, lift), 0.0)
+				icicle.setup(spell, spot["base"], 0.0)  # the base sits just inside the ceiling, hidden by it
 		"Tornado":
 			var tornado := Tornado.new()
 			tornado.position = centre
@@ -441,11 +543,34 @@ func _place_shapes(spell: String, info: Dictionary) -> void:
 			snow.polygon = PackedVector2Array([Vector2(0, -60), Vector2(right - left, -60), Vector2(right - left, 60), Vector2(0, 60)])
 			add_child(snow)
 			snow.setup(spell, Vector2(left, centre.y), 0.0)
-		"Storm Cloud":
-			var cloud := StormCloud.new()
-			cloud.width = SpellData.width_of(line)
-			cloud.position = centre
-			add_child(cloud)
+		"Smoke Screen":
+			var smoke := SmokeScreen.new()
+			smoke.line = line
+			add_child(smoke)
+		"Frost Bridge":
+			var bridge := FrostBridge.new()
+			bridge.line = line
+			add_child(bridge)
+		"Geyser":
+			var geyser := Geyser.new()
+			geyser.position = SpellTargets.surface_over(get_world_2d(), centre)  # under the middle of the peak, on the surface
+			add_child(geyser)
+		"Bramble":
+			var thorns := Bramble.new()
+			thorns.line = line
+			add_child(thorns)
+		"Liana":
+			var vine := Liana.new()
+			vine.line = line
+			add_child(vine)
+		"Great Oak":
+			var oak := GreatOak.new()
+			oak.position = line[0]  # the trunk's foot
+			add_child(oak)
+		"Lily Pads":
+			var pads := LilyPads.new()
+			pads.line = line
+			add_child(pads)
 		"Mudslide":
 			var sand := Mudslide.new()
 			sand.width = SpellData.width_of(line)

@@ -20,7 +20,7 @@ static func hurt(body: Node, amount: int, school: String, shot := false) -> void
 	if not affects(body):
 		return
 	if body.is_in_group("player"):
-		if school in ["Force", "Earth"] and body.is_frozen():
+		if school in ["Air", "Earth"] and body.is_frozen():
 			amount = roundi(amount * 1.5)  # a frozen player is shattered out of the ice, as a frozen enemy is
 			body.thaw()
 			Shatter.spawn(body.get_parent(), body.center(), Color("#cdeeff"))
@@ -43,6 +43,12 @@ static func all(tree: SceneTree) -> Array:
 ## The surface a point sits on. A point under the ground is moved up to the ground above it, so a drawn spell that
 ## starts underground still lands on top of the earth.
 static func surface_over(world: World2D, point: Vector2) -> Vector2:
+	# A point in the open is over the first ground below it, not a ceiling above it.
+	var inside := PhysicsPointQueryParameters2D.new()
+	inside.position = point
+	inside.collision_mask = 1
+	if world.direct_space_state.intersect_point(inside, 1).is_empty():
+		return solid_below(world, point + Vector2(0, -40))
 	var query := PhysicsRayQueryParameters2D.create(Vector2(point.x, point.y - 800.0), point)
 	query.collision_mask = 1
 	var hit := world.direct_space_state.intersect_ray(query)
@@ -100,7 +106,44 @@ static func fire_points(tree: SceneTree) -> Array:
 		elif node is FireBreath:
 			for point in node.flame_points():
 				fires.append({"at": point, "heat": 1.0, "size": -10.0, "shot": false})
+		elif node is Pond:
+			fires.append({"at": node.global_position + Vector2(node.width * 0.5, 0), "heat": 1.0, "size": node.width * 0.5, "shot": false})
 	return fires
+
+
+## True when any fire, a fireball in flight included, touches a box in the world. Plants burn from it.
+static func fire_touching(tree: SceneTree, box: Rect2) -> bool:
+	for fire in fire_points(tree):
+		var at: Vector2 = fire["at"]
+		if at.distance_to(at.clamp(box.position, box.end)) < maxf(fire["size"], 0.0) + 8.0:
+			return true
+	return false
+
+
+## True when smoke or darkness stops someone at one point from seeing another. A bank of smoke blocks any line of sight
+## through it. Inside an eclipse you only see what is close, unless a flare lights the spot.
+static func sight_blocked(tree: SceneTree, from: Vector2, to: Vector2) -> bool:
+	for smoke in tree.get_nodes_in_group("sight_blockers"):
+		if smoke.blocks(from, to):
+			return true
+	for eclipse in tree.get_nodes_in_group("eclipses"):
+		if eclipse.covers(from) and from.distance_to(to) > Eclipse.SIGHT and not _lit_by_flare(tree, from):
+			return true
+	return false
+
+
+static func _lit_by_flare(tree: SceneTree, point: Vector2) -> bool:
+	for flare in tree.get_nodes_in_group("flares"):
+		if flare.global_position.distance_to(point) < Flare.LIGHT_RADIUS:
+			return true
+	return false
+
+
+## Strikes whatever stone is near a point: stone walls, boulders, trees. Anything that can be broken is in the
+## "breakables" group and takes the blow through take_blow_near(point, damage).
+static func break_stone(tree: SceneTree, point: Vector2, damage: float) -> void:
+	for thing in tree.get_nodes_in_group("breakables"):
+		thing.take_blow_near(point, damage)
 
 
 ## The heat of the hottest steady fire (not a shot in flight) within reach of a box in the world, or 0 if none is.

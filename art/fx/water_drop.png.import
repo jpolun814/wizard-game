@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cl4don5ykeen1"
-path="res://.godot/imported/portal_loop.png-dba75fa3f02ddefc038275c8f691472b.ctex"
+uid="uid://bki5yeditmawe"
+path="res://.godot/imported/water_drop.png-0e78e885a12631243e0b4a7ddbc58345.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/fx/portal_loop.png"
-dest_files=["res://.godot/imported/portal_loop.png-dba75fa3f02ddefc038275c8f691472b.ctex"]
+source_file="res://art/fx/water_drop.png"
+dest_files=["res://.godot/imported/water_drop.png-0e78e885a12631243e0b4a7ddbc58345.ctex"]
 
 [params]
 

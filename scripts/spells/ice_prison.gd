@@ -2,7 +2,7 @@ class_name IcePrison
 extends Node2D
 
 ## Ice Prison: draw a box and it fills with ice. Anyone whose body is inside it is frozen solid: enemies can't move
-## or attack until it thaws, and a Force or Earth spell shatters them out of it for extra damage. Ice enemies shrug
+## or attack until it thaws, and an Air or Earth spell shatters them out of it for extra damage. Ice enemies shrug
 ## it off. Drawn around nobody, it freezes nothing: the cold breaks up in a puff of frost.
 
 const FREEZE_SECONDS := 4.0

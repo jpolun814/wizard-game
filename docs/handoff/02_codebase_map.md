@@ -70,6 +70,12 @@ never block each other.
 - **`focus_item.gd`:** a wand or staff lying on the ground. `FOCI[...]["tolerance"]` is the recognizer
   threshold: 0.70 for the wand, 0.90 for the staff.
 
+### The waiting room
+- **`lab.gd`** (`scenes/lab.tscn`, the project's main scene): extends `arena.gd` and overrides its `_where_are_we`,
+  `_build_map` and `_begin_encounter`. A long map with a lava pit, a gap, a pond, a hill, dummies and a turret; infinite
+  stamina, health that comes back, night on N, reset on R. Its portal starts a real run in `scenes/arena.tscn`.
+  `tests/showcase.gd` with `scenario=spells` casts every spell here and photographs it.
+
 ### Casting
 - **`gesture/caster.gd`:** hold buttons, record points, release, then `_end()`.
   - `_end()` runs the $1 recognizer restricted to the held buttons' templates, then the shape detectors (spiral,
@@ -93,17 +99,24 @@ never block each other.
   - `spell_effect.gd` (`SpellEffect`) is a small base for the simpler effects: it holds `spell`, `caster` and the
     life timer, and calls `_begin` (start), `_act` (each physics frame) and `_finish` (end) on its subclasses.
   - Its subclasses: `projectile.gd` (Ignite, Frostbolt), `firewall.gd`, `icicle.gd`, `blizzard.gd`,
-    `push_zone.gd`, `force_wall.gd`, `stone_wall.gd`, `spark_strike.gd`. The arena picks one in `_new_effect`.
-  - Standalone effects: `fire_breath.gd`, `volcano.gd`, `tornado.gd`, `ice_prison.gd`, `gravity_well.gd`,
-    `storm_cloud.gd`, `mudslide.gd`, `boulder.gd` (Stonefall's rock), `lava_ball.gd` (a volcano's shots), `earthquake.gd`.
+    `push_zone.gd`, `gust.gd`, `stone_wall.gd`, `spark_strike.gd`. The arena picks one in `_new_effect`.
+  - Standalone effects: `fire_breath.gd`, `volcano.gd`, `tornado.gd`, `ice_prison.gd`, `abyss.gd`, `mudslide.gd`,
+    `boulder.gd` (Stonefall's rock), `lava_ball.gd` (a volcano's shots), `earthquake.gd`, `smoke_screen.gd`, `flare.gd`,
+    `frost_bridge.gd`, `geyser.gd`, `tsunami.gd`, `spore_puff.gd`, `eclipse.gd`, `hex.gd`, `decoy.gd`.
+  - **Plants** extend `flora_spell.gd` (`FloraSpell`), which gives them fire damage: `bramble.gd`, `liana.gd`,
+    `great_oak.gd`, `flytrap.gd`, `lily_pads.gd`. Fire touching one (`SpellTargets.fire_touching`) burns it away.
+  - **Ponds** (`scripts/pond.gd`): water or lava sunk in the ground, which Frost Bridge freezes and Lily Pads float on. Drawn behind the ground so only the hollow shows; a water pond puts out fire shots (`shots` + `fires`) that fall in.
 - **`spell_targets.gd`:** who can be hurt (`affects`, `hurt`, `all`, `hurt_within`; no sides), the ground (`ground_below`,
   `solid_below`, `surface_over`), fire (`fire_points`, `fire_heat_near`) and `shot_damage`.
 - **Conventions:**
   - Every spell joins the `"danger"` group, and implements `danger_at(point)`, which the dark wizard
     uses to avoid hazards.
   - Spells find each other through groups, never by scanning the arena's children: `"fires"` (anything burning),
-    `"clouds"` (storm clouds and blizzards, which a tornado dissipates), `"shots"` (enemy bolts, projectiles and lava balls),
-    `"rocks"` (boulders), `"lasting"` (effects cleared when the wave ends), `"earthquakes"`.
+    `"clouds"` (blizzards, smoke and spores, which wind and Tsunami dissipate; each has `dissipate()` and `span()`),
+    `"shots"` (enemy bolts, projectiles and lava balls), `"rocks"` (boulders), `"lasting"` (effects cleared when the wave
+    ends), `"earthquakes"`, `"breakables"` (stone walls, boulders and trees: `take_blow_near(point, damage)`),
+    `"sight_blockers"` and `"eclipses"` (see `SpellTargets.sight_blocked`), `"flora"`, `"climbables"` (Liana),
+    `"ponds"`, `"decoys"`, `"hexes"`, `"flares"`, `"lily_pads"`.
   - Check what a node is with its class (`node is Projectile`), not by comparing spell names.
 
 ### Enemies

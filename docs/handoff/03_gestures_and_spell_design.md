@@ -9,8 +9,11 @@
    - **Recognizer:** the $1 recognizer scores the stroke against **only the templates bound to that button
      combination** (`_templates_for`). This restriction is why a Volcano can't come out as a Tornado.
    - **Shape detectors** then run for shapes $1 handles badly: `_inward_spiral`, `_ring_then_line_split` (Push),
-     `_box`, `_snowfall_line`, `_funnel_stroke`, `_cloud_line`, `_crack_line`, `_pit_stroke`, `_cone`,
-     `_icicle_triangles`. A detector match sets score 1.0 and fills `info`.
+     `_box`, `_snowfall_line`, `_funnel_stroke`, `_cloud_line` (also Frost Bridge's wave), `_pit_stroke`, `_cone`,
+     `_icicle_triangles`, `_rising_wave` (Smoke Screen), `_stem_and_arc` (a stroke that sets off upward and curls: Liana,
+     Geyser, Spore Puff and Great Oak, told apart by proportions in `_stem_gesture`), `_big_wave` (Tsunami), `_coil`
+     (Tornado), `_sawtooth` (Bramble), `_w_shape` (Flytrap) and `_loop_row` (Lily Pads). Flare, Decoy, Eclipse and Hex are
+     $1 templates (a flame, a figure of eight, a crescent, a pentagram, a geyser peak). A detector match sets score 1.0 and fills `info`.
    - **Straight strokes:** a flick that is near-vertical becomes `wall` (Firewall). A flick starting on solid
      ground with Earth held becomes `stone_wall`.
    - **Thresholds:** a score below `tolerance` (the focus: wand 0.70, staff 0.90) is a misfire, which costs
@@ -82,17 +85,20 @@
 
 ## School identities
 
-- **Fire** (Left, orange `#ff6a2a`): burning, heat, spreading flame, eruptions. Leaves fire patches. Strong
-  damage that fades over time.
-- **Ice** (Right, cyan `#7fd8ff`): slowing, freezing, solid ice you can stand on, sharp spikes. Control rather
-  than burst damage.
-- **Force** (Middle, violet `#b07cff`): pure kinetic energy. Pushes, pulls, shields, deflection. Little or no
-  damage; it's the utility school.
-- **Storm** (Left+Right, yellow `#ffe85a`): lightning from the sky, wind, speed (Blink). Burst damage and
-  repositioning. Lightning obeys cover.
-- **Earth** (Left+Middle, brown `#b8864a`): stone, ground, sand. Slow, heavy, terrain-shaping. Things grow from
-  the ground and fall onto it.
-- **Shadow** (the dark wizard's colour): the enemy wizard's identity. Not a player school.
+Six schools, each cast with its own mouse buttons (see `SpellData.SCHOOL_BUTTONS`). A shape may repeat in two schools only
+where it makes sense for both, and two spells on one button combination never share a shape.
+
+- **Fire** (Left, orange `#ff6a2a`): burning, heat, lightning from the sky, light and smoke. Spark is Fire but stays
+  lightning-yellow (`SpellData.SPELL_COLORS`).
+- **Water** (Right, cyan `#7fd8ff`): slowing, freezing, solid ice you can stand on, dousing, floods. Control rather than
+  burst damage. Ice is part of Water.
+- **Air** (Middle, pale silver `#d8e4ee`): pushing, deflecting, shields, wind. Little or no damage. Push is the only spell that
+  lifts the wizard.
+- **Earth** (Left + Right, brown `#b8864a`): stone, ground, sand, weight. Slow, heavy, terrain-shaping.
+- **Flora** (Left + Middle, green `#6fcf6a`): plants. They grow, hold and trap, and every one of them burns. Not called
+  Nature, so lightning is not confusingly "not nature".
+- **Shadow** (Right + Middle, purple `#7a5aa0`): sight, decoys, curses and gravity. The dark wizard has no school of his own:
+  he casts from the same pool as the player.
 
 ## Interactions worth building (owner-approved direction: physical consistency)
 
@@ -102,23 +108,11 @@
 - **Wind and fire:** Tornado carries fire patches, becoming a fire whirl.
 - **Force and ice:** a frozen enemy shatters with Force or Earth. This already exists; keep the pattern.
 
-## Spell ideas that fit the rules (not yet built)
+## The spell pool
 
-| School | Idea | Shape | Real thing | Counter |
-|---|---|---|---|---|
-| Fire | Smoke Screen | a wavy horizontal line, rising | smoke cloud hides you; enemies lose aim | wind (Tornado) clears it |
-| Fire | Fire Trail | a line along the ground | a lit fuse of oil that runs and ignites | jump it |
-| Ice | Frost Floor | a flat line on the ground | icy ground: walkers slide | flyers ignore it |
-| Ice | Hail | short downward dashes in a row | hailstones fall in an area | shelter under a platform |
-| Force | Pull | a line drawn **toward** yourself | a yank | anchor or root |
-| Force | Ram | an arrow (line with a head) | a battering ram of force | Barrier |
-| Storm | Chain Lightning | a zigzag that hops between points | an arc jumping between nearby foes | spread out |
-| Storm | Gust | a curved swoosh | wind that pushes small things and flyers | heavy enemies resist |
-| Earth | Pillar | a vertical line up from the ground | a rock column that lifts what's on it | Push topples it |
-| Earth | Landslide | a diagonal line down a slope | a rockslide rolling one way | jump over |
-
-Design each one with the checklist in `HANDOFF.md` §6, and expect the owner to veto physics they find unfair.
-Propose ideas before building big ones.
+Every spell, its shape, its counter and its gate tags are in `docs/spell_pool.md`. The plan they are part of (random pages
+in a generated world, a boss who holds the spells you did not find) is in `docs/roguelite_exploration_design.md`. Design
+each new spell with the checklist in `HANDOFF.md` §6, and expect the owner to veto physics they find unfair.
 
 ## Rituals (typed)
 

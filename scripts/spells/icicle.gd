@@ -1,10 +1,10 @@
 class_name Icicle
 extends SpellEffect
 
-## Ice drawn as a point-up triangle that stands on the ground, its base hidden behind the ground. It hurts whatever
+## Ice that hangs from a ceiling as a point-down triangle, its base hidden inside the ceiling. It hurts whatever
 ## touches it. Fire melts it a slice at a time from the top while the base stays put, until it is gone: a fireball or a
 ## ball of lava that strikes it takes a slice off at once, and a steady fire touching any part of it (a firewall,
-## burning ground, fire breath) takes slices off as long as it burns there. Otherwise it stands until the wave ends.
+## burning ground, fire breath) takes slices off as long as it burns there. Otherwise it hangs until the wave ends.
 
 const TICK := 0.5
 const DAMAGE := 6
@@ -13,7 +13,7 @@ const MELT_STEP := 0.25  # it melts in slices of this share of its height
 const MELT_REACH := 20.0  # fire this close to the ice melts it
 const ICE := preload("res://art/props/ice_fill.png")
 
-var polygon := PackedVector2Array()  # the triangle, relative to the middle of its base; set by the arena before setup
+var polygon := PackedVector2Array()  # the triangle, relative to the middle of its base, which is at the ceiling; set by the arena before setup
 var _melted := 0.0  # heat taken in from steady fire toward the next slice
 var _struck := {}  # shots that have already melted a slice; shrinking the ice makes a shot inside it touch it again
 
@@ -23,7 +23,7 @@ func _begin(origin: Vector2, _aim_angle: float) -> void:
 	add_to_group("lasting")
 	add_to_group("danger")
 	texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
-	z_index = -1  # behind the ground, which hides its base
+	z_index = -1  # behind the ceiling, which hides its base
 	var shape := ConvexPolygonShape2D.new()
 	shape.points = polygon
 	_add_shape(shape)

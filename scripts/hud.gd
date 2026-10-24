@@ -153,6 +153,11 @@ func show_message(text: String, colour: Color) -> void:
 	_feedback_time = 3.0
 
 
+## Replaces the wave line with any words, for a place that has no waves.
+func set_title(text: String) -> void:
+	_wave_label.text = text
+
+
 func set_wave(level: int, wave: int, waves_in_level: int) -> void:
 	_wave_label.text = "Level %d  ·  Wave %d of %d" % [level, wave, waves_in_level]
 

@@ -82,10 +82,9 @@ func drawing_color() -> Color:
 
 
 func _school_color(mask: int) -> Color:
-	for spell_name in SpellData.SPELLS:
-		var s: Dictionary = SpellData.SPELLS[spell_name]
-		if s["buttons"] == mask:
-			return SpellData.SCHOOL_COLORS[s["school"]]
+	for school in SpellData.SCHOOL_BUTTONS:
+		if SpellData.SCHOOL_BUTTONS[school] == mask:
+			return SpellData.SCHOOL_COLORS[school]
 	return Color.WHITE
 
 
@@ -149,20 +148,33 @@ func _end() -> void:
 	# Some shapes are read from the stroke itself, since the recognizer can't tell them apart reliably. The
 	# info dictionary carries what the arena needs to place each effect.
 	var info := {"radius": 0.0, "pieces": 1, "shapes": [], "line": PackedVector2Array(), "rect": Rect2()}
-	var spiral := _inward_spiral(relative) if options.has("spiral") else {}
+	# A star drawn in one stroke winds inward like a spiral, so it must be ruled out first.
+	var star := gesture == "pentagram" and score >= tolerance
+	var spiral := _inward_spiral(relative) if options.has("spiral") and not star else {}
 	var ring_split := _ring_then_line_split(relative) if options.has("circle_push") and spiral.is_empty() else -1
 	var ring_centre := Vector2.ZERO
 	# Icicles are open V strokes. A closed loop (a circle, a crystal) is never an icicle.
 	var extent := _extent(relative)
 	var closed := relative[0].distance_to(relative[relative.size() - 1]) < 0.3 * maxf(extent.x, extent.y)
-	var icicles: Array = _icicle_triangles(relative) if options.has("icicles") and not closed else []
+	# A volcano-shaped peak drawn with the water button is a Geyser, not a row of icicles.
+	var peak := gesture == "geyser" and score >= tolerance
+	var icicles: Array = _icicle_triangles(relative) if options.has("icicles") and not closed and not peak else []
 	var snow_line := _snowfall_line(relative) if options.has("snowfall") else PackedVector2Array()
-	var funnel := _funnel_stroke(relative) if options.has("tornado") else PackedVector2Array()
 	var cloud := _cloud_line(relative) if options.has("cloud") else PackedVector2Array()
 	var pit := _pit_stroke(relative) if options.has("pit") else PackedVector2Array()
 	var cone := _cone(relative) if options.has("cone") else {}
+	var smoke := _rising_wave(relative) if options.has("smoke") else PackedVector2Array()
+	var wave := _cloud_line(relative) if options.has("wave") else PackedVector2Array()
+	# A leaf with a vine up from it starts like a tree's trunk would end, so a stroke the recognizer reads as one is not a tree.
+	var vine := gesture == "vine" and score >= tolerance
+	var stem := _stem_and_arc(relative) if options.has("tree") and not vine else {}
+	var tsunami := _big_wave(relative) if options.has("tsunami") else {}
+	var coil := _coil(relative) if options.has("tornado") else PackedVector2Array()
+	var bramble := _sawtooth(relative) if options.has("bramble") else PackedVector2Array()
+	var jaws := _w_shape(relative) if options.has("jaws") else PackedVector2Array()
+	var pads := _loop_row(relative) if options.has("pads") else PackedVector2Array()
 	if not spiral.is_empty():
-		# A spiral wound inward is a Gravity Well, centred where it ends up.
+		# A spiral wound inward is an Abyss, centred where it ends up.
 		gesture = "spiral"
 		score = 1.0
 		info["radius"] = spiral["reach"]
@@ -178,10 +190,36 @@ func _end() -> void:
 		gesture = "snowfall"
 		score = 1.0
 		info["line"] = _to_world(snow_line)
-	elif funnel.size() > 0:
+	elif smoke.size() > 0:
+		gesture = "smoke"
+		score = 1.0
+		info["line"] = _to_world(smoke)
+	elif wave.size() > 0:
+		gesture = "wave"
+		score = 1.0
+		info["line"] = _to_world(wave)
+	elif not stem.is_empty() and _stem_gesture(stem, options) != "":
+		gesture = _stem_gesture(stem, options)
+		score = 1.0
+	elif not tsunami.is_empty():
+		gesture = "tsunami"
+		score = 1.0
+		info["aim"] = tsunami["aim"]
+	elif coil.size() > 0:
 		gesture = "tornado"
 		score = 1.0
-		info["line"] = _to_world(funnel)
+		info["line"] = _to_world(coil)
+	elif pads.size() > 0:
+		gesture = "pads"
+		score = 1.0
+		info["line"] = _to_world(pads)
+	elif bramble.size() > 0:
+		gesture = "bramble"
+		score = 1.0
+		info["line"] = _to_world(bramble)
+	elif jaws.size() > 0:
+		gesture = "jaws"
+		score = 1.0
 	elif cloud.size() > 0:
 		gesture = "cloud"
 		score = 1.0
@@ -210,6 +248,8 @@ func _end() -> void:
 	# A straight stroke that begins on the ground raises a stone wall instead of a spike.
 	if gesture == "flick" and options.has("stone_wall") and _starts_on_ground():
 		gesture = "stone_wall"
+	if gesture == "flare" and not _flame_points_up(relative):
+		score = 0.0  # a plain loop, or a drop, is not a flame
 	var entry = options.get(gesture)
 	# A cast that works shows its name where it was drawn (the arena does that), so only failures are reported here.
 	# Earth Fall's circle and drop are hard to draw cleanly, so it is read with a looser eye than the other shapes.
@@ -252,6 +292,8 @@ func _end() -> void:
 			info["rect"] = Rect2(_origin + box.position, box.size)
 		if entry.targeting == "shape" and info["line"].is_empty():
 			info["line"] = _to_world(relative)
+		info["extent"] = _extent(relative)  # how big it was drawn, for spells that grow with it
+		info["accuracy"] = _accuracy(relative, gesture, score)
 		cast_resolved.emit(entry.spell, entry.targeting, spawn, aim, info)
 
 
@@ -396,6 +438,17 @@ func _cone(points: PackedVector2Array) -> Dictionary:
 	return {"aim": ((a + b) * 0.5 - tip).angle(), "spread": spread, "reach": first + second}
 
 
+## How close a stroke is to the spell's own picture, from 0 to 1. Shapes the recognizer matched report its score; shapes
+## read by a detector are judged against the spellbook's drawing of them, the same way. 0.95 and above is a perfect cast.
+func _accuracy(points: PackedVector2Array, gesture: String, score: float) -> float:
+	var picture := GestureTemplates.preview_points(gesture)
+	if picture.size() < 2:
+		return score if score < 1.0 else 0.0
+	var judge := UnistrokeRecognizer.new()
+	judge.add_template("shape", picture)
+	return judge.recognize(points).score
+
+
 ## How far a stroke strays from the straight line between its two ends.
 func _max_deviation(points: PackedVector2Array) -> float:
 	var a := points[0]
@@ -414,19 +467,14 @@ func _mean_distance(points: PackedVector2Array, centre: Vector2) -> float:
 	return sum / points.size()
 
 
-## A V (point down) or an upside-down V (point up) in a stroke. Each tip is one icicle, and its triangle is
-## the space between the tip and the two arm ends. Returns the triangles in stroke space. The kind of tip
-## that occurs most decides the kind, so a row of Vs is a row of icicles hanging down.
+## One or more Vs (point down) in a stroke; upside-down Vs do not count. Each tip is one icicle, and its triangle is
+## the space between the tip and the two arm ends. Returns the triangles in stroke space.
 func _icicle_triangles(points: PackedVector2Array) -> Array:
 	var turns := _turning_points(points)
 	var triangles: Array = []
 	if turns.is_empty():
 		return triangles
-	var bottoms := 0
-	for turn in turns:
-		if turn[1]:
-			bottoms += 1
-	var want_bottoms := bottoms * 2 >= turns.size()
+	var want_bottoms := true  # only Vs: icicles hang down, and an upside-down V is left for other shapes
 	for k in turns.size():
 		var turn: Array = turns[k]
 		if turn[1] != want_bottoms:
@@ -490,7 +538,7 @@ func _snowfall_line(points: PackedVector2Array) -> PackedVector2Array:
 	# The level line is the run at the end of the stroke that stays close to the height it finishes at.
 	var end_y := points[points.size() - 1].y
 	var start := points.size() - 1
-	while start > 0 and absf(points[start - 1].y - end_y) <= 12.0:
+	while start > 0 and absf(points[start - 1].y - end_y) <= 18.0:
 		start -= 1
 	var line := points.slice(start)
 	if line.size() < 2 or absf(line[line.size() - 1].x - line[0].x) < 40.0:
@@ -526,35 +574,6 @@ func _to_world(points: PackedVector2Array) -> PackedVector2Array:
 	return out
 
 
-## A tornado: a zigzag going back and forth that is wide at the top and narrow at the bottom. Spark is a zigzag
-## of the same width, so it is not a tornado. Returns the stroke, or nothing.
-func _funnel_stroke(points: PackedVector2Array) -> PackedVector2Array:
-	if _turning_points(points, 0).size() < 4:
-		return PackedVector2Array()
-	var box := GestureTemplates.bounds(points)
-	var low := box.position
-	var high := box.end
-	var height := box.size.y
-	if height < 60.0:
-		return PackedVector2Array()
-	var top_min := INF
-	var top_max := -INF
-	var bottom_min := INF
-	var bottom_max := -INF
-	for p in points:
-		if p.y < low.y + height * 0.3:
-			top_min = minf(top_min, p.x)
-			top_max = maxf(top_max, p.x)
-		elif p.y > high.y - height * 0.3:
-			bottom_min = minf(bottom_min, p.x)
-			bottom_max = maxf(bottom_max, p.x)
-	var top_width := top_max - top_min
-	var bottom_width := bottom_max - bottom_min
-	if top_width < 50.0 or top_width < bottom_width * 1.5:
-		return PackedVector2Array()
-	return points
-
-
 ## Gravity Well: a spiral wound inward, turning at least one and a half times while it closes in on its middle.
 ## Returns {"center", "reach"} in stroke space, or nothing.
 func _inward_spiral(points: PackedVector2Array) -> Dictionary:
@@ -571,14 +590,15 @@ func _inward_spiral(points: PackedVector2Array) -> Dictionary:
 
 
 ## The total angle a stroke turns through, signed: a full clockwise circle is about TAU.
-func _total_turning(points: PackedVector2Array) -> float:
-	# Directions are measured over spans of a few pixels, so the tiny jitter of a hand-drawn line cancels out.
+func _total_turning(points: PackedVector2Array, span := 6.0) -> float:
+	# Directions are measured over spans of a few pixels, so the tiny jitter of a hand-drawn line cancels out. A longer
+	# span smooths more, for shapes that are judged by how far they turn overall.
 	var total := 0.0
 	var last_dir := Vector2.ZERO
 	var anchor := points[0]
 	for p in points:
 		var step := p - anchor
-		if step.length() < 6.0:
+		if step.length() < span:
 			continue
 		if last_dir != Vector2.ZERO:
 			total += last_dir.angle_to(step)
@@ -622,6 +642,165 @@ func _pit_stroke(points: PackedVector2Array) -> PackedVector2Array:
 ## The width and height of a stroke's bounding box.
 func _extent(points: PackedVector2Array) -> Vector2:
 	return GestureTemplates.bounds(points).size
+
+
+## Smoke Screen: a wavy line going up. It climbs at least 70 px and sways side to side at least three times.
+func _rising_wave(points: PackedVector2Array) -> PackedVector2Array:
+	var rise := points[0].y - points[points.size() - 1].y
+	if rise < 70.0 or _turning_points(points, 0, 8.0).size() < 3:
+		return PackedVector2Array()
+	var climbing := 0
+	for i in range(1, points.size()):
+		if points[i].y <= points[i - 1].y + 0.5:
+			climbing += 1
+	if climbing < 0.6 * (points.size() - 1) or _extent(points).x > rise:
+		return PackedVector2Array()
+	return points
+
+
+## What a stroke that starts by going up and then curls over looks like, whatever its size: which way it set off, how
+## tall and wide it is, how far it turns (in degrees), and whether it ends by touching its own path again (a loop).
+## A tree (a trunk that ends in a crown) is this kind of stroke.
+func _stem_and_arc(points: PackedVector2Array) -> Dictionary:
+	if points.size() < 12:
+		return {}
+	var first := 1
+	while first < points.size() - 1 and points[0].distance_to(points[first]) < 16.0:
+		first += 1
+	var extent := _extent(points)
+	var top := points[0].y
+	for p in points:
+		top = minf(top, p.y)
+	return {
+		"dir": (points[first] - points[0]).normalized(), "extent": extent, "rise": points[0].y - top,
+		"ratio": extent.x / maxf(extent.y, 1.0), "turn": rad_to_deg(absf(_total_turning(points, 16.0))),
+		"looped": _touches_earlier(points),
+	}
+
+
+## True when a stroke ends on a point it passed earlier, so it has drawn a loop that closes.
+func _touches_earlier(points: PackedVector2Array) -> bool:
+	var end := points[points.size() - 1]
+	var walked := 0.0
+	var cut := points.size() - 1
+	while cut > 0 and walked < 40.0:
+		walked += points[cut].distance_to(points[cut - 1])
+		cut -= 1
+	for i in cut:
+		if points[i].distance_to(end) < 14.0:
+			return true
+	return false
+
+
+## Which spell a stroke that sets off upward is, among the ones this button can cast: a trunk that ends in a closed loop
+## is a tree. "" when it is none.
+func _stem_gesture(stem: Dictionary, options: Dictionary) -> String:
+	if stem["dir"].dot(Vector2.UP) < cos(deg_to_rad(35.0)) or stem["rise"] < 40.0:
+		return ""
+	var turn: float = stem["turn"]
+	var extent: Vector2 = stem["extent"]
+	if options.has("tree") and stem["looped"] and turn >= 180.0 and extent.x >= 36.0:
+		return "tree"
+	return ""
+
+
+## Tsunami: a big wave. A long rise to a crest that curls over. Returns {"aim": the way the wave runs, which is the
+## way the crest curls}, or {} when the stroke is not a wave. A sharp corner (a V) is not a curl.
+func _big_wave(points: PackedVector2Array) -> Dictionary:
+	if points.size() < 20:
+		return {}
+	var extent := _extent(points)
+	if extent.x < 110.0 or extent.y < 40.0 or points[0].distance_to(points[points.size() - 1]) < 0.3 * extent.x:
+		return {}
+	var crest := points[0]
+	for p in points:
+		if p.y < crest.y:
+			crest = p
+	var end := points[points.size() - 1]
+	if points[0].y - crest.y < 40.0 or end.y - crest.y < 25.0:
+		return {}
+	if rad_to_deg(absf(_total_turning(points))) < 140.0 or _sharpest_turn(points, 12.0) > deg_to_rad(70.0):
+		return {}
+	return {"aim": 0.0 if crest.x > points[0].x else PI}
+
+
+## The sharpest turn a stroke makes within a short stretch of path, in radians: a corner scores high, a curve low.
+func _sharpest_turn(points: PackedVector2Array, stretch: float) -> float:
+	var worst := 0.0
+	var i := 0
+	while i < points.size() - 2:
+		var j := i + 1
+		while j < points.size() - 1 and points[i].distance_to(points[j]) < stretch:
+			j += 1
+		var k := j + 1
+		while k < points.size() and points[j].distance_to(points[k]) < stretch:
+			k += 1
+		if k >= points.size():
+			break
+		worst = maxf(worst, absf((points[j] - points[i]).angle_to(points[k] - points[j])))
+		i += 1
+	return worst
+
+
+## Tornado: a coil going down like a drill bit, at least a turn and a half, tall and narrow.
+func _coil(points: PackedVector2Array) -> PackedVector2Array:
+	if points.size() < 20 or rad_to_deg(absf(_total_turning(points))) < 500.0:
+		return PackedVector2Array()
+	var extent := _extent(points)
+	var down := points[points.size() - 1].y - points[0].y
+	if down < 40.0 or extent.y < 1.2 * extent.x:
+		return PackedVector2Array()
+	return points
+
+
+## Bramble: a low row of sharp thorns, a sawtooth line that keeps going the same way across.
+func _sawtooth(points: PackedVector2Array) -> PackedVector2Array:
+	var extent := _extent(points)
+	if extent.x < 80.0 or extent.y > 0.5 * extent.x or extent.y < 10.0:
+		return PackedVector2Array()
+	if not _turning_points(points, 0, 14.0).is_empty() or _count_crossings(points) > 0:
+		return PackedVector2Array()  # it doubles back across itself: not a row of teeth
+	if _turning_points(points, 1, 8.0).size() < 5:
+		return PackedVector2Array()
+	return points
+
+
+## Flytrap: open jaws, a W (or an M) about as tall as it is wide, moving the same way across.
+func _w_shape(points: PackedVector2Array) -> PackedVector2Array:
+	var extent := _extent(points)
+	if extent.x < 40.0 or extent.y < 50.0 or extent.y < 0.7 * extent.x or extent.y > 2.5 * extent.x:
+		return PackedVector2Array()
+	if not _turning_points(points, 0, 14.0).is_empty():
+		return PackedVector2Array()
+	var turns := _turning_points(points, 1, 20.0).size()
+	if turns != 3 and turns != 4:
+		return PackedVector2Array()
+	return points
+
+
+## Lily Pads: a row of low loops, drawn as one chain that crosses itself at least twice and runs across.
+func _loop_row(points: PackedVector2Array) -> PackedVector2Array:
+	var extent := _extent(points)
+	if extent.x < 80.0 or extent.y > 0.7 * extent.x or _count_crossings(points) < 2:
+		return PackedVector2Array()
+	if absf(points[points.size() - 1].x - points[0].x) < 0.5 * extent.x:
+		return PackedVector2Array()
+	return points
+
+
+## A flame is a loop that comes to a point, and the point is at the top.
+func _flame_points_up(points: PackedVector2Array) -> bool:
+	var centre := _relative_centroid(points)
+	var tip_distance := 0.0
+	var tip := points[0]
+	var total := 0.0
+	for p in points:
+		var d := p.distance_to(centre)
+		total += d
+		if d > tip_distance:
+			tip_distance = d
+			tip = p
+	return tip_distance >= 1.3 * total / points.size() and tip.y < centre.y - 0.3 * tip_distance
 
 
 ## Casts a stroke that was not drawn with the mouse, such as a dark wizard's. It resolves exactly like a drawn one.

@@ -18,7 +18,7 @@
 - **Whole-number scales only,** and only on purpose:
   - 2x: Spark's lightning, the swamp and church backdrops (far scenery reads bigger), the Barrier bubble, the
     fire vent and the tornado funnel. The dark wizard is 1x, the same size as the player.
-  - 3x: the portal arch.
+  - 2x: the purple portal.
   - 5x: the spellbook (UI).
 - **Filtering:** "Nearest Mipmap" (project setting `default_texture_filter=2`). Pixel fonts need
   `FontFile.antialiasing = TextServer.FONT_ANTIALIASING_NONE`.
@@ -43,7 +43,7 @@
 | Explosions | ansimuz, Animated Explosions | opengameart.org/content/animated-explosions |
 | Flames | BenHickling, Animated Fire | opengameart.org/content/animated-fire |
 | Vortex, ring, slash, ice burst, freeze, wind, bubbles | CodeManu, Free Pixel Effects Pack | opengameart.org/content/free-pixel-effects-pack |
-| Portal | LetargicDev, Portals | opengameart.org/content/portals |
+| Purple portal | Purple Portal Sprite Sheet (source to confirm) | art/fx/portal_purple |
 | Rock spikes | Kamioo, Pixel Icicles | kamioo.itch.io/pixel-icicles |
 | Clouds | DustDFG, Pixel Art Clouds | opengameart.org/node/159981 |
 | Wand and staff pickups | Kenney, Tiny Dungeon | kenney.nl/assets/tiny-dungeon |

@@ -114,13 +114,13 @@ func _impact_effect() -> void:
 		Sfx.play("fire_hit", global_position)
 
 
-## A Force Wall, Push or Tornado turns this shot: it flies off along the new heading.
+## A Gust, Push or Tornado turns this shot: it flies off along the new heading.
 func reflect(direction: Vector2) -> void:
 	aim = direction.normalized()
 	_age = 0.2  # it may hit whoever is in front of it straight away
 	_spent = false
 	Fx.burst(get_parent(), global_position, Color("#d9b8ff"), 8, 120.0, 0.3, true)
-	Sfx.play("force", global_position, -4.0)
+	Sfx.play("push", global_position, -4.0)
 
 
 ## A spent shot's trail is let go to finish fading rather than vanishing with it.

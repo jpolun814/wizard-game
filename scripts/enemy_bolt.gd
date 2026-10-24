@@ -61,7 +61,7 @@ static func fire(parent: Node, origin: Vector2, target: Vector2, color: Color, d
 func reflect(direction: Vector2) -> void:
 	_velocity = direction.normalized() * SPEED
 	rotation = _velocity.angle()
-	Sfx.play("force", global_position, -4.0)
+	Sfx.play("push", global_position, -4.0)
 
 
 ## Which way it is flying right now.

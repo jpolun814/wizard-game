@@ -9,6 +9,9 @@ extends SceneTree
 ## It prints each failure and exits with code 1 if anything failed.
 
 const GROUND_Y := 0.0  # in this test the ground is the line y = 0; everything below it is solid
+## The gestures that mean the same drawn backwards or mirrored.
+const MIRRORED := ["circle", "flick", "pit", "icicles", "spiral", "cone", "smoke", "flare", "wave", "geyser",
+	"vine", "tsunami", "tornado", "bramble", "jaws", "pads", "tree", "eight", "crescent", "pentagram"]
 
 var _caster: Caster
 var _cast := ""
@@ -39,8 +42,18 @@ func _process(_delta: float) -> bool:
 			for shaky in [false, true]:
 				_check(spell_name, s["buttons"], shape, size, shaky, false)
 		# Directions that should not matter: a circle drawn the other way, a flick to the left.
-		if s["gesture"] in ["circle", "flick", "cloud", "pit", "icicles", "spiral", "cone"]:
+		if s["gesture"] in MIRRORED:
 			_check(spell_name, s["buttons"], shape, 1.0, false, true)
+		# Real hands tilt and squash what they draw: every shape must survive a tilt and a stretch, with a shaky hand.
+		for tilt in [-10.0, 10.0]:
+			for stretch in [Vector2(0.88, 1.14), Vector2(1.14, 0.88)]:
+				var warp := Transform2D(deg_to_rad(tilt), Vector2.ONE).scaled_local(stretch)
+				_check(spell_name, s["buttons"], shape, 1.0, true, false, warp)
+	# A single V is an icicle too: the ceiling check is what limits where it can be cast.
+	var single_v := PackedVector2Array([Vector2(-30, -40), Vector2(0, 30), Vector2(30, -40)])
+	for size in [0.7, 1.0, 1.6]:
+		for shaky in [false, true]:
+			_check("Icicles", SpellData.SPELLS["Icicles"]["buttons"], single_v, size, shaky, false)
 	# A Fire Breath cone can point any way, and the fire must go toward its open end.
 	for angle in [0.0, PI * 0.5, PI, -PI * 0.5, PI * 0.25]:
 		_checks += 1
@@ -58,12 +71,12 @@ func _process(_delta: float) -> bool:
 
 
 ## Draws one gesture and checks what it casts. mirror flips it left to right.
-func _check(spell_name: String, buttons: int, shape: PackedVector2Array, size: float, shaky: bool, mirror: bool) -> void:
+func _check(spell_name: String, buttons: int, shape: PackedVector2Array, size: float, shaky: bool, mirror: bool, warp := Transform2D.IDENTITY) -> void:
 	_checks += 1
 	var gesture: String = SpellData.SPELLS[spell_name]["gesture"]
 	var points := PackedVector2Array()
 	for p in shape:
-		points.append(Vector2(-p.x if mirror else p.x, p.y) * size)
+		points.append(warp * (Vector2(-p.x if mirror else p.x, p.y) * size))
 	points = _densify(points)
 	# Strokes that must start on the ground are placed there; everything else is drawn in the air.
 	var offset := Vector2(0, -260)
@@ -84,7 +97,7 @@ func _check(spell_name: String, buttons: int, shape: PackedVector2Array, size: f
 	_caster.cast_stroke(buttons, world)
 	if _cast != spell_name:
 		_failures += 1
-		print("FAIL %s (size %.1f%s%s): cast %s" % [spell_name, size, ", shaky" if shaky else "", ", mirrored" if mirror else "", _cast if _cast != "" else "nothing (" + _last_feedback + ")"])
+		print("FAIL %s (size %.1f%s%s%s): cast %s" % [spell_name, size, ", shaky" if shaky else "", ", mirrored" if mirror else "", ", warped %s" % warp if warp != Transform2D.IDENTITY else "", _cast if _cast != "" else "nothing (" + _last_feedback + ")"])
 
 
 ## The stroke with points every two pixels, as dense as one drawn with the mouse.

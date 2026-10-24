@@ -16,6 +16,7 @@ const GROUND_ROW := 6    # the flat ground line; the terrain moves up and down f
 const GROUND_Y := GROUND_ROW * TILE  # where the ground sits on a flat stretch
 const DEPTH := 6         # rows of ground below the surface
 const WALL_TOP := -14    # the side walls rise this high, well above anything you can reach
+const MAX_DIP := 1.2     # how far, in rows, the ground may drop below the flat line in a valley
 const SPAWN_CLEAR_ROWS := 3  # a character needs this many rows of air above the ground to stand
 
 ## What a cell is made of. GROUND is the biome's earth, STONE is rock, PLATFORM is a ledge you can jump up through.
@@ -42,12 +43,13 @@ const BIOMES := {
 }
 
 
-## Returns the arena's tiles as {Vector2i cell: material}. Pass a seeded rng for a repeatable arena.
-static func build(rng: RandomNumberGenerator) -> Dictionary:
+## Returns the arena's tiles as {Vector2i cell: material}. Pass a seeded rng for a repeatable arena. Pass heights (one per
+## map column, in rows from the flat line) to shape the ground yourself, as the waiting room does.
+static func build(rng: RandomNumberGenerator, heights := PackedFloat32Array()) -> Dictionary:
 	var cells := {}
 	_fill(cells, LEFT_WALL, WALL_TOP, LEFT_WALL, GROUND_ROW + DEPTH, STONE)
 	_fill(cells, RIGHT_WALL, WALL_TOP, RIGHT_WALL, GROUND_ROW + DEPTH, STONE)
-	column_heights = _ground_heights(rng)
+	column_heights = heights if not heights.is_empty() else _ground_heights(rng)
 	for c in range(FIRST_COL, RIGHT_WALL):
 		var top := _top_of(c)
 		_fill(cells, c, top, c, GROUND_ROW + DEPTH, GROUND)
@@ -81,7 +83,8 @@ static func _ground_heights(rng: RandomNumberGenerator) -> PackedFloat32Array:
 		var raw := -2.4 * sin(x * TAU / 34.0 + phase_a) - 0.8 * sin(x * TAU / 12.0 + phase_b) - 0.3 * sin(x * TAU / 6.0 + phase_c)
 		var from_end := float(mini(k, count - 1 - k))
 		var ramp := clampf(from_end / 10.0, 0.0, 1.0)
-		out.append(raw * ramp * ramp * (3.0 - 2.0 * ramp))  # eased, so the flat ends blend into the hills
+		# Hills can rise well above the line, but a valley dips only a little: the ground never drops to the bottom of the window.
+		out.append(minf(raw, MAX_DIP) * ramp * ramp * (3.0 - 2.0 * ramp))  # eased, so the flat ends blend into the hills
 	return out
 
 

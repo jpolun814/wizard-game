@@ -2,7 +2,7 @@ class_name SpellEffect
 extends Area2D
 
 ## A spell's effect in the world. Each kind of effect has its own script that extends this one: Projectile, Firewall,
-## Icicle, Blizzard, PushZone, ForceWall, StoneWall and SparkStrike. This base holds what they share: who cast it, how
+## Icicle, Blizzard, PushZone, Gust, StoneWall and SparkStrike. This base holds what they share: who cast it, how
 ## long it lasts, and hurting what stands inside it (see SpellTargets).
 
 var spell := ""

@@ -8,7 +8,7 @@ extends RefCounted
 
 const LEVELS := [
 	{"biome": "cemetery", "waves": [
-		{},  # wave 1 is blank for now, so the first portal opens straight away
+		{"force_melee": 1, "fire_melee": 1},
 		{"force_melee": 2},
 		{"fire_melee": 2},
 		{"ice_ranged": 2},

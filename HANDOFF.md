@@ -125,10 +125,13 @@ GODOT="/c/Users/Jordan Polun/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.
 | W or Space | Jump |
 | S | Drop through a wooden platform |
 | Left mouse | Fire school |
-| Right mouse | Ice school |
-| Middle mouse | Force school |
-| Left + Right | Storm school |
-| Left + Middle | Earth school |
+| Right mouse | Water school |
+| Middle mouse | Air school |
+| Left + Right | Earth school |
+| Left + Middle | Flora school |
+| Right + Middle | Shadow school |
+| W at a vine | Take hold of a Liana; W and S climb, Space or a sideways key lets go |
+| N / R (waiting room) | Night on and off / reset the room |
 | Tab | Spellbook (arrow keys turn pages) |
 | Enter | Incantation box |
 | E | Swap focus (wand or staff) |
@@ -141,25 +144,43 @@ GODOT="/c/Users/Jordan Polun/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.
 
 | School | Spell | Shape | Real thing | Counterplay |
 |---|---|---|---|---|
-| Fire | Ignite | straight flick | thrown fireball | dodge, Force Wall, walls |
+| Fire | Ignite | straight flick | thrown fireball | dodge, Gust, walls |
 | Fire | Firewall | vertical line | burning brush line | it's passable and only burns; walk out of it |
-| Fire | Volcano | triangle mountain | eruption | stay out of the arc |
 | Fire | Fire Breath | cone `<` | flamethrower from the mouth (follows facing, rises on a jump) | cover, Barrier, distance |
-| Ice | Frostbolt | flick | thrown ice spear | as Ignite |
-| Ice | Icicles | V or upside-down V, chained | stalactites and stalagmites | step around |
-| Ice | Snowfall | star then a level line | snow cloud | leave the area |
-| Ice | Ice Prison | circle | freezing whoever is inside solid; around nobody, it fizzles | Force/Earth shatter; Barrier |
-| Force | Push | circle then a line out | a shove of air | positioning |
-| Force | Barrier | circle | a shield bubble | wait it out |
-| Force | Force Wall | slash | a deflecting plane (projectiles only) | timing |
-| Force | Gravity Well | inward spiral | a vortex; pulls, no damage | walk out |
-| Storm | Tornado | zigzag, wide at the top | a whirlwind | avoid it |
-| Storm | Blink | flick | a lightning-step teleport | |
-| Storm | Spark | tall zigzag | a lightning strike from the sky; stops at the first platform or ground | shelter under a platform |
-| Storm | Storm Cloud | bumpy cloud top | a thundercloud; strikes everyone under it | shelter |
+| Fire | Smoke Screen | wavy line going up | a bank of smoke enemies cannot see through | wind (Tornado, Gust), Tsunami |
+| Fire | Flare | flame: a loop with its point up | a small harmless flame that follows you and lights the dark | it burns out |
+| Fire | Spark | tall zigzag | a lightning strike from the sky; stops at the first platform or ground | shelter under a platform |
+| Water | Frostbolt | flick | thrown ice spear | as Ignite |
+| Water | Icicles | one or more Vs in a row, under a ceiling | icicles hanging from the ceiling | step around |
+| Water | Ice Prison | circle | freezing whoever is inside solid | Push or Earth shatter; Barrier |
+| Water | Blizzard | star then a level line | snow cloud | leave the area |
+| Water | Frost Bridge | wavy line across water | freezing a pond so you can cross | fire melts it |
+| Water | Geyser | mountain: a triangle with a line up its middle (as Volcano) | a jet of water that throws what stands on it | step off while it bubbles |
+| Water | Tsunami | big curling wave | a wall of water that douses fires and shoves everyone | high ground, a wall, flying |
+| Air | Push | circle then a line out | a shove of air; the only spell that lifts you | positioning |
+| Air | Barrier | circle | a shield bubble | wait it out |
+| Air | Tornado | tall narrow coil going down | a whirlwind | avoid it |
+| Air | Gust | straight flick | wind along the stroke: turns shots, sweeps flyers, smoke and you sideways | heavy foes resist |
 | Earth | Stonefall | circle with a line down | a dropped boulder | watch the shadow |
-| Earth | Stone Wall | line starting on the ground, a platform or another stone wall | a raised slab | Push topples it |
-| Earth | Mudslide | U | a pit of mud: no damage, slows, you can't jump; flyers pass over | walk out |
+| Earth | Stone Wall | line starting on the ground, a platform or another stone wall | a raised slab | Earthquake, Stonefall, shots wear it down |
+| Earth | Mudslide | U | a pit of mud: slows, no jumping; flyers pass over | walk out |
+| Earth | Earthquake | three peaks | the ground shakes | flyers unaffected |
+| Earth | Volcano | triangle mountain | eruption | stay out of the arc |
+| Flora | Bramble | low sawtooth | a thicket of thorns: slows and pricks | jump it; fire |
+| Flora | Spore Puff | cone `<` (as Fire Breath) | poison spores poured from your mouth | wind, water |
+| Flora | Liana | leaf and line: an almond on its point, then a line up | a vine to climb | fire |
+| Flora | Great Oak | trunk drawn up into a round crown | a tree: ledges and a wall, and when it falls it crushes | fire, Earthquake, Stonefall; it creaks first |
+| Flora | Flytrap | tall narrow W | a trap that snaps shut on whoever steps in | jump, fire |
+| Flora | Lily Pads | chain of low loops | floating leaves to cross water or a pit | fire, Tsunami; they sink after 8 s |
+| Shadow | Decoy | figure of eight | a shadow that draws enemies' attacks | it wears out |
+| Shadow | Eclipse | crescent | darkness: enemies inside see only what is close | Flare |
+| Shadow | Hex | pentagram (five-point star, one stroke) | a curse: 50% more damage | short time |
+| Shadow | Abyss | inward spiral | a dark knot that pulls everything in | walk out |
+| Shadow | Shadow Step | flick | slipping along the stroke | |
+
+The school and spell plan, and the roguelite loop these are for, is in `docs/roguelite_exploration_design.md` and
+`docs/spell_pool.md`. The waiting room (`scenes/lab.tscn`, `scripts/lab.gd`) is where every spell is tried; the portal there
+starts a run.
 
 **Targeting types:** `directional`, `positional`, `angled`, `shape` and `cone`. The caster's `cast_resolved`
 signal passes `info` (radius, line, rect, shapes, aim, spread, reach), and `arena.spawn_spell` routes it.
@@ -173,11 +194,12 @@ well. `scripts/spells/spell_targets.gd` decides who can be hurt.
 
 1. **Name the real-world thing.** If you can't, stop.
 2. **Pick the school by what it is:**
-   - Fire: heat and burning.
-   - Ice: cold, slowing, freezing, solid ice.
-   - Force: kinetic pushes, shields, deflection.
-   - Storm: air, electricity, wind, speed.
+   - Fire: heat, burning, lightning, light and smoke.
+   - Water: cold, slowing, freezing, solid ice, dousing, floods.
+   - Air: pushing, deflecting, shields and wind.
    - Earth: stone, ground, sand, weight.
+   - Flora: plants: things that grow, hold and trap, and all burn.
+   - Shadow: sight, decoys, curses and gravity.
 3. **Draw what it looks like.** The stroke should be the thing's silhouette or its motion.
 4. **Make sure the shape is distinguishable from every other shape on the same button(s).** The recognizer
    only compares within the held button combination. Add a test case to `tests/test_gestures.gd` and add the

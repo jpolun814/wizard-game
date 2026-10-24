@@ -9,7 +9,7 @@ The downloads dir holds the unzipped packs, each in its own folder:
     x_gothicvania-cemetery-files, x_swamp, x_church, x_town            ansimuz, GothicVania packs (levels)
     x_spells, x_starsteel, x_lightning, x_explosions, x_fire          spell effects
     x_freefx                    CodeManu, Free Pixel Effects Pack     (vortex, rings, ice, wind, bubbles)
-    x_portals                   LetargicDev, Portals                  (the portal)
+    purple-portal/              Purple Portal Sprite Sheet            (the portal: 8 x 3 grid of 64 px cells)
     icicles                     Kamioo, Pixel Icicles                 (rock spikes)
     x_clouds                    DustDFG, Pixel Art Clouds             (storm and snow clouds)
     x_tinydungeon               Kenney, Tiny Dungeon                  (the wand and staff on the ground)
@@ -179,11 +179,10 @@ FX_RECOLOURED = {
     "ice_burst": ("x_freefx/12_nebula_spritesheet.png", 100, 100, None),
     "freeze": ("x_freefx/19_freezing_spritesheet.png", 100, 100, None),
     "bubbles": ("x_freefx/20_magicbubbles_spritesheet.png", 100, 100, ("ramp", (60, 40, 18), (214, 178, 112))),
-    "portal_open": ("x_portals/portalRings1.png", 32, 32, ("hue", 150)),
-    "portal_loop": ("x_portals/portalRings2.png", 32, 32, ("hue", 150)),
 }
 # Effects laid out in a grid, read left to right and top to bottom: name -> (sheet, frame width, frame height).
 FX_GRIDS = {
+    "portal_purple": ("purple-portal/Purple Portal Sprite Sheet.png", 64, 64),
     "flame": ("x_fire/fire5_64_0.png", 64, 64),
 }
 

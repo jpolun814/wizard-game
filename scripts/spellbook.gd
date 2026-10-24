@@ -19,7 +19,8 @@ const FRAME_TIME := 0.06
 const OPEN_MIDDLE := Vector2(90.5, 83.5)  # the middle of the open book in its frame
 
 ## The schools, in the order they appear in the book.
-const SCHOOLS := ["Fire", "Ice", "Force", "Storm", "Earth"]
+const SCHOOLS := ["Fire", "Water", "Air", "Earth", "Flora", "Shadow"]
+const SPELLS_PER_PAGE := 4  # what a page of spells holds
 ## How many incantations fit on one page. The rest run on to the facing page, so the book never grows.
 const INCANTATIONS_PER_PAGE := 3
 
@@ -138,7 +139,7 @@ class PageArrow extends Control:
 
 
 ## A gesture's shape, drawn as a hand would ink it: a smooth stroke with a fine second line beside it, an arrowhead
-## where it ends, a dot where it starts. A spell that must start on the ground has a hatched line of earth under it.
+## on the tip of the ink as it is drawn, a dot where it starts. A spell that must start on the ground has a hatched line of earth under it.
 class Preview extends Control:
 	var points := PackedVector2Array()
 	var ground := NAN
@@ -154,19 +155,6 @@ class Preview extends Control:
 	func _process(delta: float) -> void:
 		_clock += delta
 		queue_redraw()
-
-	## The point halfway along a stroke (by length) and the direction of travel there.
-	func _halfway(path: PackedVector2Array) -> Array:
-		var total := 0.0
-		for i in path.size() - 1:
-			total += path[i].distance_to(path[i + 1])
-		var walked := 0.0
-		for i in path.size() - 1:
-			var step := path[i].distance_to(path[i + 1])
-			if walked + step >= total * 0.5:
-				return [path[i].lerp(path[i + 1], (total * 0.5 - walked) / maxf(step, 0.001)), path[i + 1] - path[i]]
-			walked += step
-		return [path[0], path[1] - path[0]]
 
 	## The first share of a stroke, measured along its length, so the pen moves at an even speed however few or
 	## unevenly spaced its points are.
@@ -213,32 +201,18 @@ class Preview extends Control:
 			offset.append(p + Vector2(0.8, -0.6))
 		draw_polyline(offset, Color(Spellbook.HEADING, 0.55), 1.0, true)
 		draw_circle(drawn[0], 3.0, Spellbook.INK)
-		# An arrowhead only where the stroke really ends somewhere else: a closed ring has no end to point at. It points
-		# along the last stretch of the stroke, so it is never at a wrong angle.
-		var tip := drawn[drawn.size() - 1]
-		# Aim along the last third of the stroke, measured along the ink, so a spiral or a zigzag points the way it is
-		# travelling at its end rather than across its whole span.
-		var total := 0.0
-		for i in drawn.size() - 1:
-			total += drawn[i].distance_to(drawn[i + 1])
-		var run := maxf(18.0, total / 3.0)
-		var back := drawn[0]
+		# The arrowhead rides the pen: it sits on the tip of the ink the whole time and points the way the pen is travelling
+		# there (along the last stretch drawn), so it stays right on loops and spirals too.
+		var tip := traced[traced.size() - 1]
+		var back := traced[0]
 		var walked := 0.0
-		for i in range(drawn.size() - 1, 0, -1):
-			walked += drawn[i].distance_to(drawn[i - 1])
-			back = drawn[i - 1]
-			if walked >= run:
+		for i in range(traced.size() - 1, 0, -1):
+			walked += traced[i].distance_to(traced[i - 1])
+			back = traced[i - 1]
+			if walked >= 14.0:
 				break
 		var heading := (tip - back).normalized()
-		var closed := drawn[0].distance_to(tip) < 0.25 * maxf(extent * scale_to, 1.0)
-		if closed and shown >= 1.0:
-			# A loop has no end to point at, so its arrow sits halfway round, pointing the way the loop is drawn.
-			var half := _halfway(drawn)
-			var along: Vector2 = (half[1] as Vector2).normalized()
-			var mid: Vector2 = half[0]
-			draw_line(mid, mid - along.rotated(0.5) * 7.0, Spellbook.INK, 2.2, true)
-			draw_line(mid, mid - along.rotated(-0.5) * 7.0, Spellbook.INK, 2.2, true)
-		if heading != Vector2.ZERO and not closed and shown >= 1.0:
+		if walked >= 3.0:
 			var base := tip - heading * 7.0
 			draw_line(tip, base + heading.orthogonal() * 3.5, Spellbook.INK, 2.2, true)
 			draw_line(tip, base - heading.orthogonal() * 3.5, Spellbook.INK, 2.2, true)
@@ -250,7 +224,11 @@ func _ready() -> void:
 
 	_pages = [_page_contents]
 	for school in SCHOOLS:
-		_pages.append(_page_school.bind(school))
+		# A school with more spells than a page holds goes over two pages, shared out evenly.
+		var spells := _spells_of(school)
+		var per_page := ceili(spells.size() / float(ceili(spells.size() / float(SPELLS_PER_PAGE))))
+		for first in range(0, spells.size(), per_page):
+			_pages.append(_page_school.bind(school, spells.slice(first, first + per_page)))
 	var ritual_ids := RitualInput.RITUALS.keys()
 	for first in range(0, ritual_ids.size(), INCANTATIONS_PER_PAGE):
 		_pages.append(_page_incantations.bind(ritual_ids.slice(first, first + INCANTATIONS_PER_PAGE), first == 0))
@@ -454,7 +432,16 @@ func _page_contents(column: VBoxContainer) -> void:
 	column.add_child(centre)
 
 
-func _page_school(column: VBoxContainer, school: String) -> void:
+## The names of a school's spells, in the order they are listed.
+func _spells_of(school: String) -> Array:
+	var names := []
+	for spell_name in SpellData.SPELLS:
+		if SpellData.SPELLS[spell_name]["school"] == school:
+			names.append(spell_name)
+	return names
+
+
+func _page_school(column: VBoxContainer, school: String, spells: Array) -> void:
 	# The school's name, with its mouse beside it.
 	var top := HBoxContainer.new()
 	top.add_theme_constant_override("separation", 10)
@@ -463,10 +450,8 @@ func _page_school(column: VBoxContainer, school: String) -> void:
 	top.add_child(heading)
 	top.add_child(MouseIcon.new(_school_mask(school), SpellData.SCHOOL_COLORS[school]))
 	column.add_child(top)
-	for spell_name in SpellData.SPELLS:
-		var s: Dictionary = SpellData.SPELLS[spell_name]
-		if s["school"] == school:
-			column.add_child(_spell_entry(spell_name, s))
+	for spell_name in spells:
+		column.add_child(_spell_entry(spell_name, SpellData.SPELLS[spell_name]))
 
 
 ## A spell is its name and its shape, with a small line of stats underneath.

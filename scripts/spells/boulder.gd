@@ -18,6 +18,7 @@ var _last_bump := {}  # when each body was last bumped, so one push does not hur
 
 func _ready() -> void:
 	add_to_group("rocks")
+	add_to_group("breakables")
 	collision_layer = 1  # solid, like the ground: walkers and shots meet it
 	collision_mask = 1 | 2 | 4  # it rests on the ground, rolls down slopes, and bumps walkers and the player
 	mass = 4.0

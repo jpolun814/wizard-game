@@ -5,7 +5,7 @@ extends Node
 ##     godot --path . tests/showcase.tscn -- scenario=spells out=C:/temp/shots
 ## Scenarios:
 ##   world   - every enemy kind standing around the player, then a wave in progress
-##   spells  - every spell cast in turn among some enemies, with a screenshot of each
+##   spells  - every spell cast in turn in the waiting room, with screenshots of each
 ##   wizard  - the dark wizard dueling a player who stands still and throws bolts at it
 ## Fixed physics steps make it play the same way each time.
 
@@ -18,6 +18,7 @@ var _t := 0.0
 var _steps: Array = []  # [time, Callable]
 var _next := 0
 var _shot := 0
+var _exit_code := 0  # what the run exits with: the checks scenario sets it to 1 when one fails
 
 
 func _ready() -> void:
@@ -36,7 +37,9 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS  # keeps running while the game is paused
 	DirAccess.make_dir_recursive_absolute(out_dir)
 	Levels.wave_index = wave
-	_arena = load("res://scenes/arena.tscn").instantiate()
+	# The spells are tried in the waiting room, where there is a pond, a gap and dummies for each of them.
+	var scene := "lab" if scenario in ["spells", "lab", "climb", "checks"] else "arena"
+	_arena = load("res://scenes/%s.tscn" % scene).instantiate()
 	add_child(_arena)
 	_plan()
 
@@ -49,7 +52,7 @@ func _process(delta: float) -> void:
 		_steps[_next][1].call()
 		_next += 1
 	if _next >= _steps.size():
-		get_tree().quit()
+		get_tree().quit(_exit_code)
 
 
 func _at(time: float, action: Callable) -> void:
@@ -139,6 +142,16 @@ func _plan() -> void:
 			_at(1.2, func() -> void: _snap("walkers"))
 		"spells":
 			_plan_spells()
+		"climb":
+			_plan_climb()
+		"checks":
+			_plan_checks()
+		"book":
+			# Every spread of the spellbook, one after another.
+			_at(0.3, func() -> void: _arena.spellbook.visible = true)
+			for k in 8:
+				_at(0.6 + k * 0.5, func() -> void: _snap("spread_%d" % k))
+				_at(0.9 + k * 0.5, func() -> void: _arena.spellbook._turn(1))
 		"ui":
 			_at(0.5, func() -> void: _arena._on_wave_cleared())
 			_at(1.0, func() -> void: _snap("portal_arrow"))
@@ -148,11 +161,7 @@ func _plan() -> void:
 			_at(1.9, func() -> void: _snap("book_contents"))
 			_at(2.0, func() -> void: _arena.spellbook._turn(1))
 			_at(2.08, func() -> void: _snap("book_turning"))
-			_at(2.4, func() -> void: _snap("book_ice_force"))
-			_at(2.45, func() -> void: _arena.spellbook._turn(1))
-			_at(2.85, func() -> void: _snap("book_storm_earth"))
-			_at(2.9, func() -> void: _arena.spellbook._turn(1))
-			_at(3.3, func() -> void: _snap("book_incantations"))
+			_at(2.4, func() -> void: _snap("book_second_spread"))
 			_at(3.5, func() -> void:
 				_arena.spellbook.visible = false
 				_arena.hud.toggle_pause())
@@ -194,84 +203,254 @@ func _plan() -> void:
 				_at(1.2 + i * 0.6, func() -> void: _snap())
 
 
+## A stroke that starts exactly at a point, rather than being centred on it: for spells placed where the stroke begins.
+func _stroke_from(gesture: String, start: Vector2, size := 1.0) -> PackedVector2Array:
+	var shape := GestureTemplates.preview_points(gesture)
+	var out := PackedVector2Array()
+	for p in shape:
+		out.append(start + (p - shape[0]) * size)
+	return _densify(out)
+
+
+## Where the feet of someone standing in a column of the room are.
+func _feet(col: int) -> Vector2:
+	return Vector2(ArenaGen.column_x(col), ArenaGen.surface_y(_arena.map_cells(), col))
+
+
+## Every spell in the waiting room, one after another. Each is cast from a place that suits it (beside the pond, over the gap,
+## in front of the dummies) and photographed as it happens; some get further pictures as they play out.
 func _plan_spells() -> void:
-	var t := 0.3
-	var p := func() -> Vector2: return _player().global_position
-	var ahead := func(dx: float, dy: float) -> Vector2: return _player().global_position + Vector2(dx, dy)
-	var spells := [
-		["Ignite", func() -> PackedVector2Array: return _densify(PackedVector2Array([ahead.call(0, -40), ahead.call(100, -40)]))],
-		["Frostbolt", func() -> PackedVector2Array: return _densify(PackedVector2Array([ahead.call(0, -30), ahead.call(100, -20)]))],
-		["Firewall", func() -> PackedVector2Array: return _stroke("wall", ahead.call(120, -60), 1.0)],
-		["Volcano", func() -> PackedVector2Array: return _stroke("volcano", ahead.call(200, -60), 0.9)],
-		["Fire Breath", func() -> PackedVector2Array: return _stroke("cone", ahead.call(60, -26), 1.0)],
-		["Icicles", func() -> PackedVector2Array: return _stroke("icicles", ahead.call(160, -40), 1.0)],
-		["Blizzard", func() -> PackedVector2Array: return _stroke("snowfall", ahead.call(150, -90), 1.0)],
-		["Ice Prison", func() -> PackedVector2Array: return _stroke("circle", ahead.call(170, -26), 0.8)],
-		["Push", func() -> PackedVector2Array:
-			var pts := PackedVector2Array()
-			var c: Vector2 = ahead.call(150, -26)
-			for i in 33:
-				pts.append(c + Vector2.from_angle(PI + TAU * i / 32.0) * 40.0)
-			pts.append(c + Vector2(-40, 0) + Vector2(140, 0))
-			return _densify(pts)],
-		["Barrier", func() -> PackedVector2Array: return _stroke("circle", ahead.call(0, -26), 0.8)],
-		["Force Wall", func() -> PackedVector2Array: return _densify(PackedVector2Array([ahead.call(70, -90), ahead.call(70, 10)]))],
-		["Gravity Well", func() -> PackedVector2Array: return _stroke("spiral", ahead.call(170, -40), 1.2)],
-		["Tornado", func() -> PackedVector2Array: return _stroke("tornado", ahead.call(160, -80), 1.0)],
-		["Spark", func() -> PackedVector2Array: return _stroke("zigzag", ahead.call(170, -100), 1.0)],
-		["Storm Cloud", func() -> PackedVector2Array: return _stroke("cloud", ahead.call(170, -170), 1.0)],
-		["Blink", func() -> PackedVector2Array: return _densify(PackedVector2Array([ahead.call(0, -20), ahead.call(160, -20)]))],
-		["Stonefall", func() -> PackedVector2Array: return _stroke("stonefall", ahead.call(160, -150), 0.9)],
-		["Stone Wall", func() -> PackedVector2Array:
-			# One wall from the ground, then a second one grown sideways out of the top of the first.
-			var start: Vector2 = ahead.call(90, -2)
-			var first := _densify(PackedVector2Array([start, ahead.call(160, -100)]))
-			_cast("Stone Wall", first)
-			var top: Vector2 = start + (first[first.size() - 1] - start).normalized() * (StoneWall.LENGTH - 6.0)
-			return _densify(PackedVector2Array([top, top + Vector2(110, 0)]))],
-		["Mudslide", func() -> PackedVector2Array: return _stroke("pit", ahead.call(170, -50), 1.2)],
+	var line := func(a: Vector2, b: Vector2) -> PackedVector2Array: return _densify(PackedVector2Array([a, b]))
+	# Each entry: spell, the column the wizard stands in, how to draw it from the wizard's feet, and when to photograph.
+	var entries := [
+		["Ignite", 14, func(f: Vector2) -> PackedVector2Array: return line.call(f + Vector2(0, -40), f + Vector2(100, -40)), [0.3]],
+		["Firewall", 14, func(f: Vector2) -> PackedVector2Array: return _stroke("wall", f + Vector2(90, -60)), [0.5]],
+		["Fire Breath", 14, func(f: Vector2) -> PackedVector2Array: return _stroke("cone", f + Vector2(60, -26)), [0.5]],
+		["Smoke Screen", 14, func(f: Vector2) -> PackedVector2Array: return _stroke("smoke", f + Vector2(80, -60)), [0.8, 2.0]],
+		["Flare", 14, func(f: Vector2) -> PackedVector2Array: return _stroke("flare", f + Vector2(80, -90)), [0.8]],
+		["Spark", 14, func(f: Vector2) -> PackedVector2Array: return _stroke("zigzag", f + Vector2(90, -100)), [0.1]],
+		["Frostbolt", 14, func(f: Vector2) -> PackedVector2Array: return line.call(f + Vector2(0, -40), f + Vector2(100, -30)), [0.3]],
+		["Icicles", 14, func(f: Vector2) -> PackedVector2Array: return _stroke("icicles", f + Vector2(110, -40)), [0.5]],
+		["Ice Prison", 14, func(f: Vector2) -> PackedVector2Array: return _stroke("circle", f + Vector2(66, -34), 0.9), [0.6]],
+		["Blizzard", 14, func(f: Vector2) -> PackedVector2Array: return _stroke("snowfall", f + Vector2(110, -90)), [0.9]],
+		["Frost Bridge", 1, func(f: Vector2) -> PackedVector2Array: return _stroke("wave", Vector2(ArenaGen.column_x(8), f.y - 20.0), 1.5), [0.6, 1.5]],
+		["Geyser", 14, func(f: Vector2) -> PackedVector2Array: return _stroke("geyser", f + Vector2(0, -50), 0.8), [0.4, 0.95, 1.2]],
+		["Tsunami", 14, func(f: Vector2) -> PackedVector2Array: return _stroke("tsunami", f + Vector2(0, -130), 1.2), [1.0, 1.6, 2.2, 3.4]],
+		["Push", 14, func(f: Vector2) -> PackedVector2Array: return _push_stroke(f + Vector2(60, -30)), [0.35]],
+		["Barrier", 14, func(f: Vector2) -> PackedVector2Array: return _stroke("circle", f + Vector2(0, -30), 0.8), [0.4]],
+		["Tornado", 14, func(f: Vector2) -> PackedVector2Array: return _stroke("tornado", f + Vector2(130, -80)), [1.0]],
+		["Gust", 14, func(f: Vector2) -> PackedVector2Array: return line.call(f + Vector2(0, -45), f + Vector2(120, -45)), [0.25, 0.5]],
+		["Stonefall", 14, func(f: Vector2) -> PackedVector2Array: return _stroke("stonefall", f + Vector2(110, -150), 0.9), [0.9]],
+		["Stone Wall", 14, func(f: Vector2) -> PackedVector2Array: return line.call(f + Vector2(80, -2), f + Vector2(150, -90)), [0.4]],
+		["Mudslide", 14, func(f: Vector2) -> PackedVector2Array: return _stroke("pit", f + Vector2(110, -50), 1.2), [0.5]],
+		["Earthquake", 14, func(f: Vector2) -> PackedVector2Array: return _stroke("earthquake", f + Vector2(0, -120)), [0.8]],
+		["Volcano", 14, func(f: Vector2) -> PackedVector2Array: return _stroke("volcano", f + Vector2(150, -60), 0.9), [1.4]],
+		["Bramble", 14, func(f: Vector2) -> PackedVector2Array: return _stroke("bramble", f + Vector2(110, -10), 1.2), [0.8]],
+		["Spore Puff", 14, func(f: Vector2) -> PackedVector2Array: return _stroke("cone", f + Vector2(60, -26)), [1.0]],
+		["Liana", 14, func(f: Vector2) -> PackedVector2Array: return _stroke("vine", f + Vector2(60, -110)), [0.9]],
+		["Great Oak", 14, func(f: Vector2) -> PackedVector2Array: return _stroke_from("tree", f + Vector2(90, -2)), [1.2]],
+		["Flytrap", 14, func(f: Vector2) -> PackedVector2Array: return _stroke("jaws", Vector2(ArenaGen.column_x(16), f.y - 40.0)), [1.0, 1.9]],
+		["Lily Pads", -13, func(f: Vector2) -> PackedVector2Array: return _stroke("pads", Vector2(ArenaGen.column_x(-7), ArenaGen.GROUND_Y - 30.0), 1.6), [0.6]],
+		["Decoy", 14, func(f: Vector2) -> PackedVector2Array: return _stroke("eight", f + Vector2(90, -50), 0.8), [0.6]],
+		["Eclipse", 14, func(f: Vector2) -> PackedVector2Array: return _stroke("crescent", f + Vector2(110, -60), 1.2), [1.0]],
+		["Hex", 14, func(f: Vector2) -> PackedVector2Array: return _stroke("pentagram", Vector2(ArenaGen.column_x(16), f.y - 40.0), 0.8), [0.7]],
+		["Abyss", 14, func(f: Vector2) -> PackedVector2Array: return _stroke("spiral", f + Vector2(110, -40), 1.2), [0.9]],
+		["Shadow Step", 14, func(f: Vector2) -> PackedVector2Array: return line.call(f + Vector2(0, -20), f + Vector2(140, -20)), [0.1, 0.3]],
 	]
 	if only != "":
-		spells = spells.filter(func(entry: Array) -> bool: return entry[0] == only)
-	for entry in spells:
+		entries = entries.filter(func(entry: Array) -> bool: return entry[0] == only)
+	var t := 0.3
+	for entry in entries:
 		var spell_name: String = entry[0]
-		var stroke_for: Callable = entry[1]
-		_at(t, func() -> void:
-			for mob in _arena.get_tree().get_nodes_in_group("mobs"):
-				mob.queue_free()
-			for node in _arena.get_children():
-				if node is SpellEffect or node is Tornado or node is Volcano or node is Hazard or node is StormCloud or node is Mudslide or node is IcePrison or node is GravityWell or node is FireBreath:
-					node.queue_free())
-		_at(t + 0.1, func() -> void:
-			var x: float = _player().global_position.x
-			for dx in [130.0, 180.0, 230.0]:
-				var mob := _summon_at("basic" if dx != 180.0 else "fire_flyer", x + dx)
-				mob._spawn = 0.0
-				mob.modulate.a = 1.0)
-		_at(t + 0.4, func() -> void: _cast(spell_name, stroke_for.call()))
-		var delay := 0.5
-		match spell_name:
-			"Stonefall":
-				delay = 0.65
-			"Volcano", "Storm Cloud":
-				delay = 1.4
-			"Fire Breath":
-				delay = 0.5
-			"Spark", "Blink":
-				delay = 0.08
-			"Gravity Well", "Tornado":
-				delay = 0.9
-		_at(t + 0.4 + delay, func() -> void: _snap(spell_name.replace(" ", "_")))
+		var col: int = entry[1]
+		var stroke_for: Callable = entry[2]
+		var photos: Array = entry[3]
+		_at(t, func() -> void: _reset_room(col, spell_name))
+		_at(t + 0.4, func() -> void:
+			_cast(spell_name, stroke_for.call(_feet(col))))
+		if spell_name == "Great Oak":
+			# A fireball into the tree sets it alight; it burns, creaks, leans and falls.
+			_at(t + 1.6, func() -> void: _cast("Ignite", _stroke("flick", _feet(col) + Vector2(60, -45))))
+			for k in 6:
+				_at(t + 2.2 + k * 1.2, func() -> void: _snap("Great_Oak_burning_%d" % k))
+		for k in photos.size():
+			_at(t + 0.4 + photos[k], func() -> void: _snap(spell_name.replace(" ", "_") + ("_%d" % k if photos.size() > 1 else "")))
 		if only != "":
 			for k in 16:
 				_at(t + 0.45 + k * 0.1, func() -> void: _snap("%s_%.1f" % [spell_name.replace(" ", "_"), k * 0.1]))
-		if spell_name == "Fire Breath":
-			# The breath follows the mouth: it rises when you jump and turns when you turn.
-			_at(t + 0.4 + delay + 0.02, func() -> void: _player().velocity.y = -520.0)
-			_at(t + 0.4 + delay + 0.2, func() -> void: _snap("Fire_Breath_jump"))
-			_at(t + 0.4 + delay + 0.22, func() -> void: _player().facing = -1.0)
-			_at(t + 0.4 + delay + 0.45, func() -> void: _snap("Fire_Breath_turn"))
-		t += 2.2
+		t += 10.0 if spell_name == "Great Oak" else (5.0 if spell_name == "Tsunami" else 2.4)
+
+
+## Checks that the spells that work through other things do: smoke cuts sight, a decoy draws attacks, a hex adds damage,
+## a Gust turns a shot, a Tsunami puts out fire, lily pads burn over lava, ice bears weight. Each prints PASS or FAIL.
+func _plan_checks() -> void:
+	var failures := [0]
+	var check := func(label: String, ok: bool) -> void:
+		print("%s  %s" % ["PASS" if ok else "FAIL", label])
+		if not ok:
+			failures[0] += 1
+	var turret := func() -> Node2D:
+		for mob in _arena.get_tree().get_nodes_in_group("mobs"):
+			if mob.kind == "turret":
+				return mob
+		return null
+	var dummy := func() -> Node2D:
+		for mob in _arena.get_tree().get_nodes_in_group("mobs"):
+			if mob.kind == "dummy":
+				return mob
+		return null
+	var tree := _arena.get_tree()
+	# Smoke between the turret and the wizard cuts the turret's sight.
+	_at(0.3, func() -> void: _reset_room(15, "Smoke Screen"))
+	_at(0.5, func() -> void: check.call("the turret sees the wizard with nothing between", not SpellTargets.sight_blocked(tree, turret.call().center(), _player().center())))
+	_at(0.7, func() -> void: _cast("Smoke Screen", _stroke("smoke", _feet(18) + Vector2(0, -60))))
+	_at(1.5, func() -> void: check.call("smoke between them cuts the turret's sight", SpellTargets.sight_blocked(tree, turret.call().center(), _player().center())))
+	_at(1.6, func() -> void: _cast("Gust", _densify(PackedVector2Array([_feet(15) + Vector2(0, -45), _feet(15) + Vector2(160, -45)]))))
+	_at(2.2, func() -> void: check.call("a Gust blows the smoke clear", not SpellTargets.sight_blocked(tree, turret.call().center(), _player().center())))
+	# A decoy draws a walker's attention.
+	_at(3.0, func() -> void: _reset_room(10, "Decoy"))
+	_at(3.1, func() -> void:
+		var walker: Node2D = _arena._add_mob("fire_melee", _feet(16))
+		walker._spawn = 0.0)
+	_at(3.2, func() -> void: _cast("Decoy", _stroke("eight", _feet(10) + Vector2(150, -50), 0.8)))
+	_at(3.8, func() -> void:
+		var walker: Node2D = null
+		for mob in tree.get_nodes_in_group("mobs"):
+			if mob.kind == "fire_melee":
+				walker = mob
+		check.call("a walker goes for the decoy instead of the wizard", walker != null and walker._target() is Decoy))
+	# A hex adds half again to the damage.
+	_at(4.5, func() -> void: _reset_room(14, "Hex"))
+	_at(4.7, func() -> void: _cast("Hex", _stroke("pentagram", Vector2(_feet(16).x, _feet(16).y - 40.0), 0.8)))
+	_at(5.2, func() -> void:
+		var target: Node2D = dummy.call()
+		check.call("a hexed dummy takes 1.5 times the damage", Hex.multiplier(tree, target) == 1.5 and Hex.multiplier(tree, _player()) == 1.0))
+	# A Gust turns a shot round.
+	_at(6.0, func() -> void: _reset_room(14, "Gust"))
+	_at(6.2, func() -> void:
+		var bolt := EnemyBolt.fire(_arena, _feet(14) + Vector2(160, -45), _feet(14) + Vector2(0, -45), Color.WHITE, 5)
+		bolt.add_to_group("test_bolt"))
+	_at(6.3, func() -> void: _cast("Gust", _densify(PackedVector2Array([_feet(14) + Vector2(0, -45), _feet(14) + Vector2(120, -45)]))))
+	_at(6.7, func() -> void:
+		var bolt: Node = tree.get_first_node_in_group("test_bolt")
+		check.call("a Gust turns an incoming shot back", bolt == null or bolt.heading().x > 0.0))
+	# A Tsunami puts out a firewall.
+	_at(7.5, func() -> void: _reset_room(14, "Tsunami"))
+	_at(7.7, func() -> void: _cast("Firewall", _stroke("wall", _feet(14) + Vector2(150, -60))))
+	_at(8.0, func() -> void: check.call("the firewall is burning", tree.get_nodes_in_group("fires").any(func(n: Node) -> bool: return n is Firewall)))
+	_at(8.1, func() -> void: _cast("Tsunami", _stroke("tsunami", _feet(14) + Vector2(0, -130), 1.2)))
+	_at(11.0, func() -> void: check.call("a Tsunami puts the firewall out", not tree.get_nodes_in_group("fires").any(func(n: Node) -> bool: return n is Firewall)))
+	# Lily pads burn over lava, and hold over the gap.
+	_at(12.5, func() -> void: _reset_room(-27, "Lily Pads"))
+	_at(12.7, func() -> void: _cast("Lily Pads", _stroke("pads", Vector2(ArenaGen.column_x(-20), ArenaGen.GROUND_Y - 30.0), 1.6)))
+	_at(12.9, func() -> void: check.call("lily pads appear over the lava", tree.get_first_node_in_group("lily_pads") != null))
+	_at(14.2, func() -> void: check.call("lily pads over lava burn away", tree.get_first_node_in_group("lily_pads") == null))
+	_at(14.5, func() -> void: _reset_room(-13, "Lily Pads"))
+	_at(14.7, func() -> void: _cast("Lily Pads", _stroke("pads", Vector2(ArenaGen.column_x(-7), ArenaGen.GROUND_Y - 30.0), 1.6)))
+	_at(15.4, func() -> void:
+		var pad := tree.get_first_node_in_group("lily_pads")
+		check.call("lily pads over the gap are still there", pad != null)
+		# Stand the wizard just above one of the pads: it must land on it, not fall into the gap.
+		var spot: Vector2 = pad._pads[1].global_position
+		_player().global_position = spot + Vector2(0, -40))
+	_at(16.2, func() -> void:
+		var pad := tree.get_first_node_in_group("lily_pads")
+		check.call("the wizard stands on a lily pad", pad != null and _player().is_on_floor() and _player().global_position.y < ArenaGen.GROUND_Y))
+	# Ice bears weight over the pond.
+	_at(17.5, func() -> void: _reset_room(1, "Frost Bridge"))
+	_at(17.7, func() -> void: _cast("Frost Bridge", _stroke("wave", Vector2(ArenaGen.column_x(8), ArenaGen.GROUND_Y - 20.0), 1.5)))
+	_at(18.3, func() -> void: _player().global_position = Vector2(ArenaGen.column_x(8), ArenaGen.GROUND_Y - 60.0))
+	_at(19.2, func() -> void: check.call("the wizard stands on the ice over the pond", _player().is_on_floor() and _player().global_position.y < ArenaGen.GROUND_Y + 4.0))
+	# A bramble pricks and slows whoever stands in it, and the spores hurt too.
+	_at(19.6, func() -> void: _reset_room(10, "Bramble"))
+	_at(19.8, func() -> void: _cast("Bramble", _stroke("bramble", Vector2(_feet(16).x, _feet(16).y - 12.0), 1.4)))
+	_at(20.1, func() -> void: dummy.call().global_position = _feet(16))
+	_at(21.0, func() -> void:
+		var target: Node2D = dummy.call()
+		check.call("a bramble pricks the dummy standing in it", target.hp < target.max_hp)
+		check.call("a bramble slows the dummy standing in it", target._slow_time > 0.0))
+	_at(21.5, func() -> void: _reset_room(15, "Spore Puff"))
+	_at(21.7, func() -> void: _cast("Spore Puff", _stroke("cone", _feet(15) + Vector2(60, -40))))
+	_at(23.0, func() -> void:
+		var spores := tree.get_first_node_in_group("clouds")
+		check.call("spores pour out of the mouth and hang in the air", spores is SporePuff and not spores._puffs.is_empty())
+		check.call("spores hurt the dummy they drift over", tree.get_nodes_in_group("mobs").any(func(m: Node) -> bool: return m.kind == "dummy" and m.hp < m.max_hp)))
+	# A fire shot dropped into water goes out.
+	_at(23.5, func() -> void: _reset_room(2, "Ignite"))
+	_at(23.7, func() -> void:
+		var ball := LavaBall.throw(_arena, Vector2(ArenaGen.column_x(8), ArenaGen.GROUND_Y - 80.0), Vector2.ZERO)
+		ball.add_to_group("test_ball"))
+	_at(24.5, func() -> void: check.call("water puts out a falling lava ball", tree.get_first_node_in_group("test_ball") == null))
+	# Smoke only cuts sight when it is between the two.
+	_at(25.0, func() -> void: _reset_room(15, "Smoke Screen"))
+	_at(25.2, func() -> void: _cast("Smoke Screen", _stroke("smoke", _feet(8) + Vector2(0, -60))))
+	_at(26.0, func() -> void: check.call("smoke off to one side does not cut the turret's sight", not SpellTargets.sight_blocked(tree, turret.call().center(), _player().center())))
+	_at(26.5, func() -> void:
+		print("%d checks failed" % failures[0])
+		_exit_code = 1 if failures[0] > 0 else 0)
+
+
+## Grows a vine, stands the wizard at it and holds W: the wizard should climb it. The heights are printed, since a
+## climb is something to measure rather than to look at.
+func _plan_climb() -> void:
+	_at(0.3, func() -> void: _reset_room(14, "Liana"))
+	_at(0.7, func() -> void: _cast("Liana", _stroke("vine", _feet(14) + Vector2(60, -110))))
+	_at(1.6, func() -> void:
+		var vine: Node2D = _arena.get_tree().get_first_node_in_group("climbables")
+		print("vine from y=%.0f to y=%.0f at x=%.0f" % [vine.top_y(), vine.bottom_y(), vine.vine_x()])
+		_player().global_position = Vector2(vine.vine_x(), vine.bottom_y()))
+	_at(1.8, func() -> void: _hold_key(KEY_W, true))
+	for k in 8:
+		_at(2.0 + k * 0.25, func() -> void: print("climbing: wizard at y=%.0f" % _player().global_position.y))
+	_at(3.4, func() -> void: _snap("climbing"))
+	_at(3.6, func() -> void:
+		_hold_key(KEY_W, false)
+		_hold_key(KEY_S, true))
+	_at(4.6, func() -> void: print("after S: wizard at y=%.0f" % _player().global_position.y))
+	_at(4.7, func() -> void: _hold_key(KEY_S, false))
+
+
+## Presses or releases a key as if the player had.
+func _hold_key(keycode: Key, down: bool) -> void:
+	var event := InputEventKey.new()
+	event.keycode = keycode
+	event.physical_keycode = keycode
+	event.pressed = down
+	Input.parse_input_event(event)
+
+
+## Puts the room back as it was and the wizard in a column, ready for the next spell.
+func _reset_room(col: int, spell_name: String) -> void:
+	for group in ["lasting", "walls", "rocks", "fires", "flora", "clouds", "decoys", "hexes", "shots", "flares", "eclipses", "mobs"]:
+		for node in _arena.get_tree().get_nodes_in_group(group):
+			if not node is Pond:
+				node.queue_free()
+	for node in _arena.get_children():
+		if node is SpellEffect or node is Tornado or node is Volcano or node is Hazard or node is Mudslide or node is IcePrison or node is Abyss or node is FireBreath or node is Earthquake:
+			node.queue_free()
+	for pond in _arena.get_tree().get_nodes_in_group("ponds"):
+		for slab in pond._slabs:
+			slab["age"] = 999.0
+	_arena._add_targets()
+	for mob in _arena.get_tree().get_nodes_in_group("mobs"):
+		mob._spawn = 0.0
+		mob.modulate.a = 1.0
+	var player: Node2D = _player()
+	player.global_position = _feet(col)
+	player.velocity = Vector2.ZERO
+	player.facing = 1.0
+	player.get_node("Camera2D").reset_smoothing()
+	_arena._night.visible = spell_name in ["Flare", "Eclipse"]
+	_arena._player_light.enabled = _arena._night.visible
+
+
+## A Push drawn round a point, then out to the right.
+func _push_stroke(around: Vector2) -> PackedVector2Array:
+	var pts := PackedVector2Array()
+	for i in 33:
+		pts.append(around + Vector2.from_angle(PI + TAU * i / 32.0) * 40.0)
+	pts.append(around + Vector2(-40, 0) + Vector2(140, 0))
+	return _densify(pts)
 
 
 func _plan_wizard() -> void:

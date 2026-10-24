@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://80m3l5coxypm"
-path="res://.godot/imported/portal_open.png-3705c9545f279c0b16d2f0dcccedfbe2.ctex"
+uid="uid://cb3lylxt0oemd"
+path="res://.godot/imported/great_oak.png-6556db3aa1613c15110e6451b8c8666e.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/fx/portal_open.png"
-dest_files=["res://.godot/imported/portal_open.png-3705c9545f279c0b16d2f0dcccedfbe2.ctex"]
+source_file="res://art/props/great_oak.png"
+dest_files=["res://.godot/imported/great_oak.png-6556db3aa1613c15110e6451b8c8666e.ctex"]
 
 [params]
 

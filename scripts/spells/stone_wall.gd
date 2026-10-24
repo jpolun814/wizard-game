@@ -20,6 +20,7 @@ var _max_health := 0.0
 func _begin(origin: Vector2, aim_angle: float) -> void:
 	_life = INF
 	add_to_group("walls")
+	add_to_group("breakables")
 	rotation = aim_angle
 	_length = clampf(wall_length, MIN_LENGTH, MAX_LENGTH) if wall_length > 0.0 else LENGTH
 	global_position = origin + Vector2.from_angle(aim_angle) * _length * 0.5
