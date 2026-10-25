@@ -3,7 +3,7 @@ extends Node2D
 ## Arena: the map, the player, foci to pick up,
 ## fast spells, rituals and the spellbook.
 
-const RIFT_WEAR := 20.0  # what a Rift takes off the most stamina you can have
+const RIFT_WEAR := 50.0  # what a Rift takes off the most stamina you can have
 const RIFT_LEAST := 20.0  # the least stamina a Rift can be cast with, and the least it leaves as the most
 const PERFECT_CAST := 0.95  # accuracy a cast needs for the flourish
 const MOB_SCENE := preload("res://scenes/mob.tscn")
@@ -93,6 +93,11 @@ func _ready() -> void:
 
 
 ## The land the map is in.
+## The ground a point sits over. A world with rock a physics query cannot see inside overrides this.
+func _surface_under(point: Vector2) -> Vector2:
+	return SpellTargets.surface_over(get_world_2d(), point)
+
+
 func _biome() -> String:
 	return "cemetery"
 
@@ -476,7 +481,7 @@ func _place_shapes(spell: String, info: Dictionary) -> void:
 			add_child(tornado)
 		"Volcano":
 			var volcano := Volcano.new()
-			volcano.position = SpellTargets.surface_over(get_world_2d(), centre)  # always on the surface, never under it
+			volcano.position = _surface_under(centre)  # always on the surface, never under it
 			add_child(volcano)
 		"Blizzard":
 			var left := line[0].x
@@ -498,7 +503,7 @@ func _place_shapes(spell: String, info: Dictionary) -> void:
 			add_child(bridge)
 		"Geyser":
 			var geyser := Geyser.new()
-			geyser.position = SpellTargets.surface_over(get_world_2d(), centre)  # under the middle of the peak, on the surface
+			geyser.position = _surface_under(centre)  # under the middle of the peak, on the surface
 			add_child(geyser)
 		"Bramble":
 			var thorns := Bramble.new()
@@ -510,7 +515,7 @@ func _place_shapes(spell: String, info: Dictionary) -> void:
 			add_child(vine)
 		"Great Oak":
 			var oak := GreatOak.new()
-			oak.position = line[0]  # the trunk's foot
+			oak.position = _surface_under(line[0])  # the trunk's foot
 			add_child(oak)
 		"Lily Pads":
 			var pads := LilyPads.new()

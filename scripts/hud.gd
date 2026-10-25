@@ -30,6 +30,7 @@ var _banner_sub: Label
 var _boss: Bar
 var _boss_name: Label
 var _portal_arrow: PortalArrow
+var _hex_arrows: HexArrows
 var _game_over: Control
 var _pause: Control
 var _pause_note: Label  # at the bottom of the pause screen: the world's seed words
@@ -95,6 +96,12 @@ func _ready() -> void:
 	_portal_arrow.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_portal_arrow.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_portal_arrow)
+
+	_hex_arrows = HexArrows.new()
+	_hex_arrows.font = _font
+	_hex_arrows.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_hex_arrows.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_hex_arrows)
 
 	_build_game_over(view)
 	_build_pause(view)
@@ -316,6 +323,37 @@ class Bar extends Control:
 			var at := Vector2(10, size.y * 0.5 + font_size * 0.32)
 			draw_string_outline(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, 4, Color(0.03, 0.01, 0.04, 0.95))
 			draw_string(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, Color("#f3e6d2"))
+
+
+## While anything but the wizard is hexed, an arrow at the edge of the screen points to it whenever it is off screen.
+class HexArrows extends Control:
+	var font: Font
+	var _t := 0.0
+
+	func _process(delta: float) -> void:
+		_t += delta
+		queue_redraw()
+
+	func _draw() -> void:
+		var view := get_viewport_rect().size
+		var transform := get_viewport().get_canvas_transform()
+		var red := Color("#ff6b8a")
+		for hex in get_tree().get_nodes_in_group("hexes"):
+			var target: Node2D = hex.target
+			if not is_instance_valid(target) or target.is_in_group("player"):
+				continue
+			var screen: Vector2 = transform * SpellTargets.center_of(target)
+			if Rect2(Vector2.ZERO, view).grow(-30.0).has_point(screen):
+				continue
+			var dir := (screen - view * 0.5).normalized()
+			var edge := Vector2(clampf(screen.x, 50.0, view.x - 50.0), clampf(screen.y, 90.0, view.y - 50.0))
+			var tip := edge + dir * sin(_t * 5.0) * 4.0
+			var arrow := PackedVector2Array([tip + dir * 16.0, tip + dir.rotated(2.4) * 14.0, tip + dir.rotated(-2.4) * 14.0])
+			draw_colored_polygon(arrow, red)
+			draw_polyline(PackedVector2Array([arrow[0], arrow[1], arrow[2], arrow[0]]), Color(0.15, 0.03, 0.06), 2.0)
+			if font:
+				draw_string_outline(font, tip - dir * 30.0 + Vector2(-24, 6), "Hexed", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, 4, Color(0.08, 0.02, 0.04))
+				draw_string(font, tip - dir * 30.0 + Vector2(-24, 6), "Hexed", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, red)
 
 
 ## When the portal is off screen, an arrow at the edge of the screen points the way to it.

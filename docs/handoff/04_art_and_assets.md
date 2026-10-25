@@ -48,7 +48,8 @@
 | Purple portal | Purple Portal Sprite Sheet (source to confirm) | art/fx/portal_purple |
 | Rock spikes | Kamioo, Pixel Icicles | kamioo.itch.io/pixel-icicles |
 | Clouds | DustDFG, Pixel Art Clouds | opengameart.org/node/159981 |
-| Wand and staff pickups | Kenney, Tiny Dungeon | kenney.nl/assets/tiny-dungeon |
+| Wand and staff pickups | Asgaard42, Pixel Magic Staves Pack | asgaard42.itch.io/pixel-magic-staves-pack |
+| Giant | ansimuz, Gothicvania Legacy Collection (Ogre) | ansimuz.itch.io/gothicvania-patreon-collection |
 | Spellbook | Foxel Games, Pixel Art Book | foxeldev.itch.io/pixelbooks |
 | Fonts | Jersey 15 and Jacquard 24 (OFL) | fonts.google.com, via github.com/google/fonts raw files |
 | Soft glows, sparks, smoke under the pixel FX | Kenney, Particle Pack | kenney.nl/assets/particle-pack |
@@ -63,8 +64,7 @@
 ## Choosing an asset
 
 1. **Licence:**
-   - CC0 is best.
-   - CC-BY means you need the owner's okay and a credit.
+   - CC0 is best, and CC-BY is fine too (the owner approved it for everything, 2026-10-25). CC-BY needs a credit line in `art/CREDITS.md`.
    - Skip CC-BY-SA, GPL, "personal use only" and paid packs unless told otherwise.
    - On itch.io, read the page's "License" line; descriptions and metadata sometimes disagree.
 2. **Style:** dark, gothic, pixel, at a density near the characters (roughly 50–90 px tall people).

@@ -457,7 +457,7 @@ func _ritual_effect(ritual_id: String) -> String:
 		"double_jump":
 			return "Lets you jump once more in mid-air for 20 seconds."
 		"rift":
-			return "Teleports you to a random place on the map. Costs all your stamina and lowers your maximum by 20."
+			return "Teleports you to a random place on the map. Costs all your stamina and lowers your maximum by 50."
 	return ""
 
 

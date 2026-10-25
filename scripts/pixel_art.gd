@@ -8,7 +8,7 @@ const CHARACTERS := {
 	"skeleton": {"size": Vector2(146, 59), "body": Rect2(-14.9, -51.0, 27.0, 51.0), "flyer": false},
 	"goblin": {"size": Vector2(72, 41), "body": Rect2(-10.4, -36.0, 21.0, 36.0), "flyer": false},
 	"eye": {"size": Vector2(60, 52), "body": Rect2(-18.7, -15.5, 27.0, 31.0), "flyer": true},
-	"giant": {"size": Vector2(48, 42), "body": Rect2(-8.3, -38.0, 18.0, 38.0), "flyer": false},
+	"giant": {"size": Vector2(132, 78), "body": Rect2(-12.7, -58.0, 38.0, 58.0), "flyer": false},
 	"ninja": {"size": Vector2(168, 67), "body": Rect2(-5.4, -56.0, 13.0, 56.0), "flyer": false},
 	"wizard": {"size": Vector2(254, 138), "body": Rect2(-20.9, -86.0, 37.0, 86.0), "flyer": false},
 	"dark_wizard": {"size": Vector2(238, 143), "body": Rect2(-13.7, -95.0, 42.0, 95.0), "flyer": false},

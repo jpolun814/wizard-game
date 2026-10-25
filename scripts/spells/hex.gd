@@ -4,7 +4,7 @@ extends Node2D
 ## Hex: a pentagram drawn over someone. They are cursed for a while, and take half again as much damage from everything.
 ## It marks whoever is under the star, friend or foe: no spell has a side.
 
-const SECONDS := 8.0
+const SECONDS := 30.0
 const BONUS := 1.5
 const REACH := 70.0  # how close to the star's middle someone must be to be marked
 

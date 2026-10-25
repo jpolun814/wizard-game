@@ -208,7 +208,7 @@ const SPELLS := {
 	"Hex": {
 		"buttons": RIGHT | MIDDLE, "gesture": "pentagram", "targeting": "positional", "cost": 20.0,
 		"school": "Shadow", "draw": "A five-pointed star in one stroke, never lifting: point to point, straight lines, until it closes. Draw it over your target.",
-		"effect": "Curse anyone inside to take 50% more damage for 8 seconds.",
+		"effect": "Curse anyone inside to take 50% more damage for 30 seconds.",
 	},
 	"Abyss": {
 		"buttons": RIGHT | MIDDLE, "gesture": "spiral", "targeting": "positional", "cost": 22.0,

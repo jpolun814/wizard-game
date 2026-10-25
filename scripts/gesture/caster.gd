@@ -792,19 +792,29 @@ func _loop_row(points: PackedVector2Array) -> PackedVector2Array:
 	return points
 
 
-## A flame is a loop that comes to a point, and the point is at the top.
+## A flame is a loop that comes to a point, and the point is at the top: the top of the stroke is narrower than the
+## bottom, however fat or thin the flame is.
 func _flame_points_up(points: PackedVector2Array) -> bool:
-	var centre := _relative_centroid(points)
-	var tip_distance := 0.0
-	var tip := points[0]
-	var total := 0.0
+	var top := INF
+	var bottom := -INF
 	for p in points:
-		var d := p.distance_to(centre)
-		total += d
-		if d > tip_distance:
-			tip_distance = d
-			tip = p
-	return tip_distance >= 1.05 * total / points.size() and tip.y < centre.y - 0.05 * tip_distance
+		top = minf(top, p.y)
+		bottom = maxf(bottom, p.y)
+	var band := (bottom - top) * 0.25
+	if band <= 0.0:
+		return false
+	var top_low := INF
+	var top_high := -INF
+	var bottom_low := INF
+	var bottom_high := -INF
+	for p in points:
+		if p.y <= top + band:
+			top_low = minf(top_low, p.x)
+			top_high = maxf(top_high, p.x)
+		if p.y >= bottom - band:
+			bottom_low = minf(bottom_low, p.x)
+			bottom_high = maxf(bottom_high, p.x)
+	return (top_high - top_low) < 0.75 * (bottom_high - bottom_low)
 
 
 ## Casts a stroke that was not drawn with the mouse, such as a dark wizard's. It resolves exactly like a drawn one.

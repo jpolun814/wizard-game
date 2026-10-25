@@ -233,10 +233,12 @@ well. `scripts/spells/spell_targets.gd` decides who can be hurt.
 - **Folder names** the script expects are listed in its docstring.
 - **Downloads are not kept in the repo.** Re-download them into a scratch folder.
 - **Credits:** every source and licence is in `art/CREDITS.md`. Add a line for anything new.
-- **Good sources (filter for CC0):**
+- **Licences (owner decision, 2026-10-25):** CC0 and CC-BY are both fine, for everything. CC-BY needs a credit line in
+  `art/CREDITS.md` (name the author and link the pack). Prefer CC0 when two assets fit equally. Still skip CC-BY-SA,
+  GPL, "personal use only" and paid packs unless told otherwise.
+- **Good sources:**
   - kenney.nl: everything is CC0. Its "Tiny Dungeon" and "1-Bit" packs suit the style.
-  - opengameart.org: check the licence badge on each page. CC-BY or CC-BY-SA requires attribution; avoid it
-    unless the owner agrees.
+  - opengameart.org: check the licence badge on each page.
   - itch.io: LuizMelo, Ansimuz and CodeManu have CC0 packs. Check the page's licence field.
     `tools/itch_download.py` fetches free pages.
 - **Judging an asset:**

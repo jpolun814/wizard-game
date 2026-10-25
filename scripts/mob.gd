@@ -32,7 +32,7 @@ const KINDS := {
 	"dummy": {"name": "Dummy", "desc": "Never falls. Test your spells on it.", "role": "melee", "art": "skeleton", "hp": 300, "school": "", "weak": "", "resist": "", "damage": 0, "speed": 0.0, "effect": "dummy"},
 	"turret": {"name": "Turret", "desc": "Never falls. Fires plain bolts.", "role": "ranged", "art": "goblin", "hp": 300, "school": "", "weak": "", "resist": "", "damage": 0, "speed": 0.0, "effect": "dummy", "shot": {"interval": 2.0, "damage": 6}},
 	"ninja": {"name": "Ninja", "desc": "Fragile and quick. Throws stars in a pack.", "role": "ranged", "art": "ninja", "scale": 1.0, "hp": 14, "school": "", "weak": "", "resist": "", "damage": 0, "speed": 2.4, "effect": "acrobatic", "shot": {"interval": 1.6, "damage": 5, "art": "ninja_star", "burst": 5, "charge": 0.06}},
-	"giant": {"name": "Giant", "desc": "Slow and tough. Smashes stone walls.", "role": "melee", "art": "giant", "scale": 6.0, "hp": 260, "school": "", "weak": "", "resist": "", "damage": 30, "speed": 0.75, "effect": "smash"},
+	"giant": {"name": "Giant", "desc": "Slow and tough. Smashes stone walls.", "role": "melee", "art": "giant", "scale": 4.0, "hp": 260, "school": "", "weak": "", "resist": "", "damage": 30, "speed": 0.75, "effect": "smash"},
 }
 const SPEED := 80.0
 const TERMINAL_FALL := 900.0  # no enemy falls faster than this
@@ -1050,10 +1050,10 @@ func _burns() -> bool:
 
 ## A burning walker: one flame, tall enough to cover its whole body, stands on it and moves with it.
 func _set_alight() -> void:
-	var flame := PixelFx.sprite("fire_wall", 14.0)
-	flame.scale = Vector2.ONE * 3.0  # three times the size, so the fire rises round the whole body
+	var flame := PixelFx.sprite("fire_puff", 14.0)
+	flame.scale = Vector2.ONE * 3.7  # so the fire rises round the whole body
 	# The flame's bottom sits on the walker's feet (its origin), and it is drawn behind the walker.
-	flame.position = Vector2(0, -PixelArt.FX["fire_wall"]["size"].y * 0.5 * flame.scale.y + 55.0)  # 55: the feet sit this far below the origin
+	flame.position = Vector2(0, -PixelArt.FX["fire_puff"]["size"].y * 0.5 * flame.scale.y + 55.0)  # 55: the feet sit this far below the origin
 	flame.z_index = -1
 	add_child(flame)
 	_flame = flame

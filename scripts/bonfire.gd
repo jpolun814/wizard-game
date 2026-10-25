@@ -19,12 +19,13 @@ func _ready() -> void:
 	_flames.material = Fx.additive()
 	add_child(_flames)
 	_flames.draw.connect(_draw_flames)
-	for i in 2:
-		var fire := PixelFx.sprite("flame", 28.0 + i * 4.0)
-		fire.offset = Vector2(0, -PixelArt.FX["flame"]["size"].y * 0.5)
-		fire.position = Vector2(-7 + i * 14, 4)
+	for i in 3:
+		var fire := PixelFx.sprite("fire_puff", 12.0 + i * 2.0)  # the same flame as the fire breath and the volcano
+		fire.scale = Vector2.ONE * (1.4 if i == 1 else 1.1)
+		fire.offset = Vector2(0, -PixelArt.FX["fire_puff"]["size"].y * 0.5)
+		fire.position = Vector2(-11 + i * 11, 4)
 		fire.flip_h = i == 1
-		fire.frame = i * 23
+		fire.frame = i * 2
 		add_child(fire)
 
 

@@ -11,7 +11,7 @@ var width := 24.0
 var _age := 0.0
 var _life := 3.0
 var _tick := 0.0
-var _flames: AnimatedSprite2D
+var _flames: Node2D
 
 
 ## Places a patch centred on the point it is given, standing on the ground there.
@@ -34,11 +34,18 @@ static func place(parent: Node, at: Vector2, patch_width: float, life: float) ->
 func _ready() -> void:
 	add_to_group("danger")
 	add_to_group("fires")
-	# One band of flame along the patch.
-	_flames = PixelFx.sprite("fire_band", 12.0)
-	_flames.offset = Vector2(0, -PixelArt.FX["fire_band"]["size"].y * 0.5)
+	# A row of the pixel fire along the patch.
+	_flames = Node2D.new()
 	_flames.position = Vector2(0, 4.0)
 	add_child(_flames)
+	var count := maxi(1, ceili(width / 22.0))
+	for i in count:
+		var flame := PixelFx.sprite("fire_puff", 12.0 + i % 3 * 2.0)
+		flame.offset = Vector2(0, -PixelArt.FX["fire_puff"]["size"].y * 0.5)
+		flame.position = Vector2((i + 0.5) * width / count - width * 0.5, 0.0)
+		flame.frame = (i * 2) % 7
+		flame.flip_h = i % 2 == 1
+		_flames.add_child(flame)
 
 
 func _physics_process(delta: float) -> void:

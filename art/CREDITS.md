@@ -28,11 +28,11 @@ packed into atlases, effects into strips).
 | `art/fx/portal_purple` (Purple Portal Sprite Sheet) | Source and licence to confirm (the owner supplied the file) | to confirm |
 | `art/fx/wind_bolt` | Pixel Art Spells by DevWizard | CC0 |
 | `art/fx/splash` (the Geyser's and Tsunami's foam) | [Pixel Art Spells](https://opengameart.org/content/pixel-art-spells) by DevWizard (uncropped copy in `art_source/packs/`) | CC0 |
-| `art/props/great_oak` (cropped from the tree, water strip removed) | [GothicVania Bridge Expansion Pack 1](https://opengameart.org/content/gothicvania-bridge-expansion-pack-1) by ansimuz (original in `art_source/packs/`) | CC0 |
+| `art/props/great_oak` (cropped from the tree, water strip removed, then darkened and shifted to teal to fit the dark world) | [GothicVania Bridge Expansion Pack 1](https://opengameart.org/content/gothicvania-bridge-expansion-pack-1) by ansimuz (original in `art_source/packs/`) | CC0 |
 | `art/fx/tornado` (born and loop, 60 frames cut from one sheet, scaled to 96 px) | [Tornado pixel sprite sheet](https://creasta.itch.io/tornado-pixel-sprite-sheet) by Creasta | **Licence not stated on the page.** The author's comment says it is free with no credit required. Owner approved its use; get written confirmation of the licence before release |
 | `art/props/rock_spike_*` (recoloured to stone) | [Pixel Icicles](https://kamioo.itch.io/pixel-icicles) by Kamioo | CC0 |
 | `art/props/cloud_storm_*`, `cloud_snow_*` (recoloured) | [Pixel Art Clouds](https://opengameart.org/node/159981) by DustDFG | CC0 |
-| `art/props/wand`, `staff` | [Kenney – Tiny Dungeon](https://kenney.nl/assets/tiny-dungeon) | CC0 1.0 |
+| `art/props/wand`, `staff` | [Pixel Magic Staves Pack](https://asgaard42.itch.io/pixel-magic-staves-pack) by Asgaard42 (the trident and mage staves) | CC0 1.0 |
 | `art/ui/book.png` (the spellbook) | [Pixel Art Book](https://foxeldev.itch.io/pixelbooks) by Foxel Games | CC0 1.0 |
 | `art/chars/wizard_wand/` | the Wizard Pack frames above, with the staff cut down to a wand by `prepare_gothic_art.py` | CC0 1.0 |
 | `art/tiles/ice`, `art/props/ice_fill` (church stone, recoloured), `art/props/quicksand` (swamp water, recoloured) | GothicVania Church and Swamp by ansimuz | CC0 1.0 |
@@ -93,9 +93,7 @@ and are no longer drawn by the game.
 
 ## Giant (art/mobs/giant)
 
-- **Giant sprites:** Elthen, Cyclops Sprite Sheet (elthen.itch.io/2d-pixel-art-cyclops-sprites). Free to use in commercial
-  and non-commercial projects, per the author's licensing post. Not for crypto or blockchain projects, or for training LLMs
-  or generative AI. Credit requested, not required. Cut into frames by tools/prepare_gothic_art.py.
+- **Giant sprites:** the Ogre from the Gothicvania Legacy Collection by ansimuz (ansimuz.itch.io/gothicvania-patreon-collection), "free for commercial projects"; its licence PDF has not been read yet. It has no hit or death frames. Cut into frames by tools/prepare_gothic_art.py. The old Elthen Cyclops is no longer used.
 
 ## Ninjas (art/mobs/ninja, art/fx/ninja_star.png)
 

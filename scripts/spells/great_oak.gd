@@ -5,18 +5,19 @@ extends FloraSpell
 ## wall to walkers and shots, until it is broken. Fire, Earthquake and Stonefall bring it down. It creaks and
 ## leans first, then falls, and everything under it when it lands is crushed: you, and anyone else.
 
+const SIZE := 2.0  # the oak is this many times the size of its picture
 const TREE := preload("res://art/props/great_oak.png")  # 208 x 234; its trunk's base is a little left of the middle
 const HEALTH := 220.0
 const BURN_DAMAGE := 75.0  # per second, while it burns
-const TRUNK := Rect2(-12, -200, 24, 200)  # the trunk's solid part, from its base
+const TRUNK := Rect2(-26 * SIZE, -110 * SIZE, 44 * SIZE, 110 * SIZE)  # the trunk's solid part, from its base up to where it forks
 ## The ledges, as [height above the base, left edge, right edge], each one under a branch of the drawing.
-const LEDGES := [[30.0, -36.0, -10.0], [112.0, -44.0, -12.0], [156.0, 30.0, 90.0], [212.0, -26.0, 44.0]]
+const LEDGES := [[30.0, -36.0, -10.0], [112.0, -44.0, -12.0], [156.0, 30.0, 90.0], [212.0, -26.0, 44.0]]  # at the picture's own size; scaled by SIZE
 const GROW_SECONDS := 0.8
 const CREAK_SECONDS := 1.3
 const FALL_SECONDS := 0.9
 const CRUSH_DAMAGE := 35
-const HEIGHT := 234.0
-const WIDTH := 44.0  # how wide the falling trunk crushes
+const HEIGHT := 234.0 * SIZE
+const WIDTH := 44.0 * SIZE  # how wide the falling trunk crushes
 
 var _health := HEALTH
 var _state := "growing"  # growing, standing, creaking, falling, fallen
@@ -37,7 +38,8 @@ func _ready() -> void:
 	add_child(_picture)
 	var trunk := Sprite2D.new()
 	trunk.texture = TREE
-	trunk.position = Vector2(12.0, -HEIGHT * 0.5)
+	trunk.scale = Vector2.ONE * SIZE
+	trunk.position = Vector2(12.0 * SIZE, -HEIGHT * 0.5)
 	_picture.add_child(trunk)
 	scale = Vector2(1.0, 0.05)
 	var grow := create_tween()
@@ -69,9 +71,9 @@ func _stand() -> void:
 	for ledge in LEDGES:
 		var plank := CollisionShape2D.new()
 		var rect := RectangleShape2D.new()
-		rect.size = Vector2(ledge[2] - ledge[1], 10.0)
+		rect.size = Vector2(ledge[2] - ledge[1], 10.0) * Vector2(SIZE, 1.0)
 		plank.shape = rect
-		plank.position = Vector2((ledge[1] + ledge[2]) * 0.5, -ledge[0] + 5.0)
+		plank.position = Vector2((ledge[1] + ledge[2]) * 0.5 * SIZE, -ledge[0] * SIZE + 5.0)
 		plank.one_way_collision = true
 		plank.one_way_collision_margin = 6.0
 		ledges.add_child(plank)
@@ -87,7 +89,7 @@ func _physics_process(delta: float) -> void:
 				_health -= BURN_DAMAGE * delta
 				if _health <= 0.0:
 					_topple(1.0 if randf() < 0.5 else -1.0)
-			_burn(delta, Rect2(global_position + Vector2(-60, -HEIGHT), Vector2(150, HEIGHT)))
+			_burn(delta, Rect2(global_position + Vector2(-60.0 * SIZE, -HEIGHT), Vector2(150.0 * SIZE, HEIGHT)))
 		"creaking":
 			var sway := sin(_t * 18.0) * 0.015 + _lean * 0.07 * (_t / CREAK_SECONDS)
 			rotation = sway
@@ -111,7 +113,7 @@ func _physics_process(delta: float) -> void:
 
 ## A blow near the tree (a quake, a falling boulder) wears it down. True when the blow reached it.
 func take_blow_near(point: Vector2, damage: float) -> bool:
-	if _state != "standing" or absf(point.x - global_position.x) > 48.0 or point.y < global_position.y - HEIGHT or point.y > global_position.y + 24.0:
+	if _state != "standing" or absf(point.x - global_position.x) > 48.0 * SIZE or point.y < global_position.y - HEIGHT or point.y > global_position.y + 24.0:
 		return false
 	_health -= damage
 	Fx.debris(get_parent(), point, Color("#7a6a3a"), 6, 140.0)

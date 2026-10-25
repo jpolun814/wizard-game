@@ -380,7 +380,23 @@ func _plan_checks() -> void:
 	_at(25.0, func() -> void: _reset_room(15, "Smoke Screen"))
 	_at(25.2, func() -> void: _cast("Smoke Screen", _stroke("smoke", _feet(8) + Vector2(0, -60))))
 	_at(26.0, func() -> void: check.call("smoke off to one side does not cut the turret's sight", not SpellTargets.sight_blocked(tree, turret.call().center(), _player().center())))
-	_at(26.5, func() -> void:
+	# A Great Oak drawn on top of the hill, starting a little above, on, and a little under its surface, takes root on it.
+	var oaks := [[-30.0, 27.0], [0.0, 27.5], [14.0, 28.0]]
+	for k in oaks.size():
+		_at(26.1 + k * 2.0, func() -> void:
+			_arena.get_tree().call_group("breakables", "queue_free"))
+		_at(26.2 + k * 2.0, func() -> void:
+			var col: int = int(oaks[k][1])
+			var foot := _feet(col)
+			_cast("Great Oak", _stroke_from("tree", foot + Vector2(0, oaks[k][0]))))
+		_at(27.4 + k * 2.0, func() -> void:
+			var oak: Node = null
+			for node in tree.get_nodes_in_group("breakables"):
+				if node is GreatOak:
+					oak = node
+			var foot := _feet(int(oaks[k][1]))
+			check.call("a Great Oak drawn at %d px takes root on the hill" % int(oaks[k][0]), oak != null and absf(oak.global_position.y - foot.y) < 40.0))
+	_at(33.0, func() -> void:
 		print("%d checks failed" % failures[0])
 		_exit_code = 1 if failures[0] > 0 else 0)
 
@@ -469,14 +485,26 @@ func _plan_wizard() -> void:
 func _plan_cave() -> void:
 	_at(0.8, func() -> void: _snap("start"))
 	var graph: WorldGraph = _arena.graph
+	# A Great Oak drawn on the surface hills, from above, on and under the ground, takes root on the ground there.
+	for k in 4:
+		var offset: float = [-60.0, -10.0, 20.0, 80.0][k]
+		_at(0.9 + k * 0.1, func() -> void:
+			var x: float = ArenaGen.column_x(ArenaGen.world_size.x / 2 - 40 + k * 7)
+			var ground := SpellTargets.solid_below(_arena.get_world_2d(), Vector2(x, (WorldGraph.SURFACE_ROW - 12) * ArenaGen.TILE))
+			_cast("Great Oak", _stroke_from("tree", Vector2(x, ground.y + offset)))
+			var oak: Node = null
+			for node in _arena.get_tree().get_nodes_in_group("breakables"):
+				if node is GreatOak and absf(node.global_position.x - x) < 4.0:
+					oak = node
+			print("%s  a Great Oak drawn %d px from the ground takes root on the ground (oak %s, ground y %d)" % ["PASS" if oak != null and absf(oak.global_position.y - ground.y) < 40.0 else "FAIL", int(offset), str(oak.global_position.y) if oak else "none", int(ground.y)]))
 	_at(0.85, func() -> void:
 		var before: Vector2 = _player().global_position
 		_player().max_stamina = 200.0
 		_player().stamina = 80.0
 		_arena._on_ritual_finished("rift", 1.0, false)
 		var moved: bool = _player().global_position.distance_to(before) > 400.0
-		var ok: bool = moved and _player().max_stamina == 180.0 and _player().stamina == 0.0 and not _arena._body_in_rock(_player().global_position)
-		print("%s  a Rift moves the wizard far, empties stamina and takes 20 off the most (max %d, stamina %d)" % ["PASS" if ok else "FAIL", _player().max_stamina, _player().stamina])
+		var ok: bool = moved and _player().max_stamina == 150.0 and _player().stamina == 0.0 and not _arena._body_in_rock(_player().global_position)
+		print("%s  a Rift moves the wizard far, empties stamina and takes 50 off the most (max %d, stamina %d)" % ["PASS" if ok else "FAIL", _player().max_stamina, _player().stamina])
 		_player().global_position = before
 		_player().max_stamina = 100.0)
 	_at(0.87, func() -> void:

@@ -42,11 +42,11 @@ func _ignite(box: Rect2) -> void:
 	var up := clampi(int(box.size.y / 60.0) + 1, 1, 3)
 	for row in up:
 		for i in across:
-			var flame := PixelFx.sprite("fire_wall", 13.0 + (i + row) % 3 * 2.0)
-			flame.offset = Vector2(0, -PixelArt.FX["fire_wall"]["size"].y * 0.5)
+			var flame := PixelFx.sprite("fire_puff", 13.0 + (i + row) % 3 * 2.0)
+			flame.offset = Vector2(0, -PixelArt.FX["fire_puff"]["size"].y * 0.5)
 			flame.frame = (i * 2 + row * 3) % 7
 			flame.flip_h = (i + row) % 2 == 1
-			flame.scale = Vector2.ONE * (1.0 if row > 0 else 1.2)
+			flame.scale = Vector2.ONE * (1.4 if row > 0 else 1.7)
 			var along := box.position.x + box.size.x * (i + 0.5) / across
 			flame.position = to_local(Vector2(along, box.end.y - row * box.size.y / up * 0.8))
 			flame.z_index = 4

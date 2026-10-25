@@ -86,6 +86,18 @@ func _in_rock(point: Vector2) -> bool:
 	return material == ArenaGen.GROUND or material == ArenaGen.STONE
 
 
+## A point inside the rock is lifted out of it first, so a spell drawn into a hill lands on top of it.
+func _surface_under(point: Vector2) -> Vector2:
+	if not _in_rock(point):
+		return super._surface_under(point)
+	var clear := point
+	for step in 400:
+		if not _in_rock(clear):
+			break
+		clear.y -= 8.0
+	return SpellTargets.solid_below(get_world_2d(), clear + Vector2(0.0, -8.0))
+
+
 func _body_in_rock(at: Vector2) -> bool:
 	for lift in [-24.0, -48.0]:  # not lower: on a slope the tiles stand a little above the smooth ground
 		if _in_rock(at + Vector2(0.0, lift)):

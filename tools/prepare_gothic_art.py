@@ -16,7 +16,7 @@ The downloads dir holds the unzipped packs, each in its own folder:
     creasta_tornado/            Creasta, Tornado pixel sprite sheet   (the tornado: mytronado.png, 5 x 12 frames)
     pixflame/                   zonked, Pixel Flame VFX (CC0)          (fire-a and fire-b: the breath, trail and wall of fire)
     books/foxel                 Foxel Games, Pixel Art Book           (the spellbook)
-    elthen-cyclops/             Elthen, Cyclops Sprite Sheet          (the giant: 'Cyclops Sprite Sheet.png', 64 px cells)
+    ogre/                       ansimuz, Gothicvania Legacy Collection, Ogre (the giant: ogre-idle, ogre-walk, ogre-attack, 144 px cells)
     martial-hero-2/             LuizMelo, Martial Hero 2               (the ninjas)
     evil_wizard_1/ evil_wizard_3/  LuizMelo, Evil Wizard and Evil Wizard 3 (the pyre and bone wizards)
     ninja-throw/                Ninja Throwing Items Kit (CC0)        (the star: Ninja_Star_Pixel.png)
@@ -67,13 +67,9 @@ CHARACTERS = {
     # The ninja is LuizMelo's Martial Hero 2. Its throw uses the sword swing.
     "ninja": ("martial-hero-2/Martial Hero 2_x/Martial Hero 2/Sprites/", 200, 200, False, {
         "idle": "Idle.png", "walk": "Run.png", "attack": "Attack1.png", "hit": "Take hit.png", "death": "Death.png"}),
-    # The Elthen sheet is a grid of 64 px cells, not a strip. An animation given as (row, first, last) cuts those cells
-    # out of its row. Row 0 stands, row 1 walks, row 3 raises its arms 
-    # row 2 leans forward (the giant's wind-up), row 5 flinches and row 6 falls (its last five cells lie on the ground).
-    "giant": ("elthen-cyclops/", 64, 64, False, {
-        "idle": ("Cyclops Sprite Sheet.png", 0, 0, 14), "walk": ("Cyclops Sprite Sheet.png", 1, 0, 11),
-        "attack": ("Cyclops Sprite Sheet.png", 2, 0, 6), "hit": ("Cyclops Sprite Sheet.png", 5, 0, 4),
-        "death": ("Cyclops Sprite Sheet.png", 6, 4, 8)}),
+    # The giant is the Ogre from the Gothicvania Legacy Collection (ansimuz). It has no hit or death frames.
+    "giant": ("ogre/", 144, 80, False, {
+        "idle": "ogre-idle.png", "walk": "ogre-walk.png", "attack": "ogre-attack.png"}),
 }
 MOBS = ["skeleton", "goblin", "eye", "giant", "ninja"]
 HEROES = ["wizard", "dark_wizard", "pyre_wizard", "bone_wizard"]
