@@ -5,7 +5,7 @@ extends Node2D
 ## or attack until it thaws, and an Air or Earth spell shatters them out of it for extra damage. Ice enemies shrug
 ## it off. Drawn around nobody, it freezes nothing: the cold breaks up in a puff of frost.
 
-const FREEZE_SECONDS := 4.0
+const FREEZE_SECONDS := 6.0
 const MIN_SIZE := 24.0
 const MAX_SIZE := 160.0
 

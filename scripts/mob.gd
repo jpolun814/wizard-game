@@ -10,27 +10,29 @@ extends CharacterBody2D
 ## Every attack is telegraphed: walkers wind up, shooters charge a glow, flyers hover before they dive.
 
 const KINDS := {
-	"basic": {"name": "Basic", "desc": "A plain enemy with no weakness and no resistance.", "role": "melee", "art": "skeleton", "hp": 30, "school": "", "weak": "", "resist": "", "damage": 8, "speed": 1.0, "effect": ""},
-	"dark_wizard": {"name": "Dark Wizard", "desc": "Duels you with your own spells. Hit it while it draws to break its cast.", "role": "wizard", "art": "dark_wizard", "scale": 1.0, "hp": 120, "school": "Shadow", "weak": "", "resist": "", "damage": 0, "speed": 1.0, "effect": ""},
-	"force_melee": {"name": "Melee Air", "desc": "A plain walker that hits hard enough to send you flying.", "role": "melee", "art": "skeleton", "hp": 30, "school": "Air", "weak": "", "resist": "", "damage": 8, "speed": 1.0, "effect": "big_knockback"},
-	"force_ranged": {"name": "Ranged Air", "desc": "Fires plain orbs from a distance.", "role": "ranged", "art": "goblin", "hp": 24, "school": "Air", "weak": "", "resist": "", "damage": 0, "speed": 1.0, "effect": "", "shot": {"interval": 2.2, "damage": 6}},
-	"force_flyer": {"name": "Flying Air", "desc": "A plain flier that swoops down at you.", "role": "flyer", "art": "eye", "hp": 22, "school": "Air", "weak": "", "resist": "", "damage": 6, "speed": 1.0, "effect": ""},
-	"fire_melee": {"name": "Melee Fire", "desc": "Burns as it walks. Touching it sets you alight.", "role": "melee", "art": "skeleton", "hp": 30, "school": "Fire", "weak": "Water", "resist": "Fire", "damage": 8, "speed": 1.0, "effect": "burning"},
-	"fire_ranged": {"name": "Ranged Fire", "desc": "Hurls fireballs at you.", "role": "ranged", "art": "goblin", "hp": 24, "school": "Fire", "weak": "Water", "resist": "Fire", "damage": 0, "speed": 1.0, "effect": "", "shot": {"interval": 2.4, "damage": 8, "art": "fireball"}},
-	"fire_flyer": {"name": "Flying Fire", "desc": "Drops fireballs while it flies over you.", "role": "flyer", "art": "eye", "hp": 22, "school": "Fire", "weak": "Water", "resist": "Fire", "damage": 6, "speed": 1.0, "effect": "", "shot": {"interval": 1.4, "damage": 6, "drop": true}},
-	"ice_melee": {"name": "Melee Water", "desc": "Leaves falling snow that slows you.", "role": "melee", "art": "skeleton", "hp": 34, "school": "Water", "weak": "Fire", "resist": "Water", "damage": 6, "speed": 0.9, "effect": "frost_trail"},
-	"ice_ranged": {"name": "Ranged Water", "desc": "Fires a bolt that slows you.", "role": "ranged", "art": "goblin", "hp": 24, "school": "Water", "weak": "Fire", "resist": "Water", "damage": 0, "speed": 1.0, "effect": "", "shot": {"interval": 2.0, "damage": 4, "slow": true}},
-	"ice_flyer": {"name": "Flying Water", "desc": "Drops icicles from above that slow you.", "role": "flyer", "art": "eye", "hp": 22, "school": "Water", "weak": "Fire", "resist": "Water", "damage": 4, "speed": 1.0, "effect": "", "shot": {"interval": 1.8, "damage": 3, "slow": true, "drop": true}},
-	"earth_melee": {"name": "Melee Earth", "desc": "Big and heavy. Hits hard and knocks you back.", "role": "melee", "art": "skeleton", "hp": 48, "school": "Earth", "weak": "Water", "resist": "Earth", "damage": 14, "speed": 0.6, "effect": "knockback"},
+	"basic": {"name": "Basic", "desc": "Has no weakness and no resistance.", "role": "melee", "art": "skeleton", "hp": 30, "school": "", "weak": "", "resist": "", "damage": 8, "speed": 1.0, "effect": ""},
+	"dark_wizard": {"name": "Dark Wizard", "desc": "Casts your own spells. Hit it while it draws to break its cast.", "role": "wizard", "art": "dark_wizard", "scale": 1.0, "hp": 120, "school": "Shadow", "weak": "", "resist": "", "damage": 0, "speed": 1.0, "effect": ""},
+	"pyre_wizard": {"name": "Pyre Wizard", "desc": "Casts your own spells. Hit it while it draws to break its cast.", "role": "wizard", "art": "pyre_wizard", "scale": 1.5, "hp": 120, "school": "Shadow", "weak": "", "resist": "", "damage": 0, "speed": 1.0, "effect": ""},
+	"bone_wizard": {"name": "Bone Wizard", "desc": "Casts your own spells. Hit it while it draws to break its cast.", "role": "wizard", "art": "bone_wizard", "scale": 1.5, "hp": 120, "school": "Shadow", "weak": "", "resist": "", "damage": 0, "speed": 1.0, "effect": ""},
+	"force_melee": {"name": "Melee Air", "desc": "Hits hard enough to send people flying.", "role": "melee", "art": "skeleton", "hp": 30, "school": "Air", "weak": "", "resist": "", "damage": 8, "speed": 1.0, "effect": "big_knockback"},
+	"force_ranged": {"name": "Ranged Air", "desc": "Fires orbs from a distance.", "role": "ranged", "art": "goblin", "hp": 24, "school": "Air", "weak": "", "resist": "", "damage": 0, "speed": 1.0, "effect": "", "shot": {"interval": 2.2, "damage": 6}},
+	"force_flyer": {"name": "Flying Air", "desc": "Swoops down.", "role": "flyer", "art": "eye", "hp": 22, "school": "Air", "weak": "", "resist": "", "damage": 6, "speed": 1.0, "effect": ""},
+	"fire_melee": {"name": "Melee Fire", "desc": "Sets alight whatever it touches.", "role": "melee", "art": "skeleton", "hp": 30, "school": "Fire", "weak": "Water", "resist": "Fire", "damage": 8, "speed": 1.0, "effect": "burning"},
+	"fire_ranged": {"name": "Ranged Fire", "desc": "Hurls fireballs.", "role": "ranged", "art": "goblin", "hp": 24, "school": "Fire", "weak": "Water", "resist": "Fire", "damage": 0, "speed": 1.0, "effect": "", "shot": {"interval": 2.4, "damage": 8, "art": "fireball"}},
+	"fire_flyer": {"name": "Flying Fire", "desc": "Drops fireballs as it flies.", "role": "flyer", "art": "eye", "hp": 22, "school": "Fire", "weak": "Water", "resist": "Fire", "damage": 6, "speed": 1.0, "effect": "", "shot": {"interval": 1.4, "damage": 6, "drop": true}},
+	"ice_melee": {"name": "Melee Water", "desc": "Leaves falling snow that slows.", "role": "melee", "art": "skeleton", "hp": 34, "school": "Water", "weak": "Fire", "resist": "Water", "damage": 6, "speed": 0.9, "effect": "frost_trail"},
+	"ice_ranged": {"name": "Ranged Water", "desc": "Fires bolts that slow.", "role": "ranged", "art": "goblin", "hp": 24, "school": "Water", "weak": "Fire", "resist": "Water", "damage": 0, "speed": 1.0, "effect": "", "shot": {"interval": 2.0, "damage": 4, "slow": true}},
+	"ice_flyer": {"name": "Flying Water", "desc": "Drops icicles that slow.", "role": "flyer", "art": "eye", "hp": 22, "school": "Water", "weak": "Fire", "resist": "Water", "damage": 4, "speed": 1.0, "effect": "", "shot": {"interval": 1.8, "damage": 3, "slow": true, "drop": true}},
+	"earth_melee": {"name": "Melee Earth", "desc": "Hits hard and knocks back.", "role": "melee", "art": "skeleton", "hp": 48, "school": "Earth", "weak": "Water", "resist": "Earth", "damage": 14, "speed": 0.6, "effect": "knockback"},
 	"earth_ranged": {"name": "Ranged Earth", "desc": "Hurls boulders in an arc.", "role": "ranged", "art": "goblin", "hp": 28, "school": "Earth", "weak": "Water", "resist": "Earth", "damage": 0, "speed": 1.0, "effect": "", "shot": {"interval": 2.6, "damage": 10, "gravity": 420.0}},
-	"earth_flyer": {"name": "Flying Earth", "desc": "Drops boulders from the air.", "role": "flyer", "art": "eye", "hp": 26, "school": "Earth", "weak": "Water", "resist": "Earth", "damage": 8, "speed": 1.0, "effect": "", "shot": {"interval": 2.2, "damage": 8, "gravity": 300.0, "drop": true}},
-	"storm_melee": {"name": "Melee Wind", "desc": "Fast. Explodes when it reaches you.", "role": "melee", "art": "skeleton", "hp": 20, "school": "Air", "weak": "Earth", "resist": "Air", "damage": 35, "speed": 2.6, "effect": "explode"},
+	"earth_flyer": {"name": "Flying Earth", "desc": "Drops boulders as it flies.", "role": "flyer", "art": "eye", "hp": 26, "school": "Earth", "weak": "Water", "resist": "Earth", "damage": 8, "speed": 1.0, "effect": "", "shot": {"interval": 2.2, "damage": 8, "gravity": 300.0, "drop": true}},
+	"storm_melee": {"name": "Melee Wind", "desc": "Fast. Explodes on contact.", "role": "melee", "art": "skeleton", "hp": 20, "school": "Air", "weak": "Earth", "resist": "Air", "damage": 35, "speed": 2.6, "effect": "explode"},
 	"storm_ranged": {"name": "Ranged Wind", "desc": "Fires a fan of zaps.", "role": "ranged", "art": "goblin", "hp": 24, "school": "Air", "weak": "Earth", "resist": "Air", "damage": 0, "speed": 1.0, "effect": "", "shot": {"interval": 2.4, "damage": 5, "spread": 3}},
-	"storm_flyer": {"name": "Flying Wind", "desc": "Divebombs you, then flies away.", "role": "flyer", "art": "eye", "hp": 22, "school": "Air", "weak": "Earth", "resist": "Air", "damage": 8, "speed": 1.4, "effect": ""},
-	"dummy": {"name": "Dummy", "desc": "Takes anything and never falls. It stands where it is, and heals as soon as you stop.", "role": "melee", "art": "skeleton", "hp": 300, "school": "", "weak": "", "resist": "", "damage": 0, "speed": 0.0, "effect": "dummy"},
-	"turret": {"name": "Turret", "desc": "Stands still and fires plain bolts at you, for trying defences on. It never falls.", "role": "ranged", "art": "goblin", "hp": 300, "school": "", "weak": "", "resist": "", "damage": 0, "speed": 0.0, "effect": "dummy", "shot": {"interval": 2.0, "damage": 6}},
-	"ninja": {"name": "Ninja", "desc": "Quick and fragile. Throws stars at you from a distance, in a pack.", "role": "ranged", "art": "ninja", "scale": 3.0, "hp": 14, "school": "", "weak": "", "resist": "", "damage": 0, "speed": 2.4, "effect": "acrobatic", "shot": {"interval": 1.6, "damage": 5, "art": "ninja_star", "burst": 5, "charge": 0.06}},
-	"giant": {"name": "Giant", "desc": "A huge brute. Slow and tough, and its stomp smashes stone walls.", "role": "melee", "art": "giant", "scale": 6.0, "hp": 260, "school": "", "weak": "", "resist": "", "damage": 30, "speed": 0.75, "effect": "smash"},
+	"storm_flyer": {"name": "Flying Wind", "desc": "Dives, then flies away.", "role": "flyer", "art": "eye", "hp": 22, "school": "Air", "weak": "Earth", "resist": "Air", "damage": 8, "speed": 1.4, "effect": ""},
+	"dummy": {"name": "Dummy", "desc": "Never falls. Test your spells on it.", "role": "melee", "art": "skeleton", "hp": 300, "school": "", "weak": "", "resist": "", "damage": 0, "speed": 0.0, "effect": "dummy"},
+	"turret": {"name": "Turret", "desc": "Never falls. Fires plain bolts.", "role": "ranged", "art": "goblin", "hp": 300, "school": "", "weak": "", "resist": "", "damage": 0, "speed": 0.0, "effect": "dummy", "shot": {"interval": 2.0, "damage": 6}},
+	"ninja": {"name": "Ninja", "desc": "Fragile and quick. Throws stars in a pack.", "role": "ranged", "art": "ninja", "scale": 1.0, "hp": 14, "school": "", "weak": "", "resist": "", "damage": 0, "speed": 2.4, "effect": "acrobatic", "shot": {"interval": 1.6, "damage": 5, "art": "ninja_star", "burst": 5, "charge": 0.06}},
+	"giant": {"name": "Giant", "desc": "Slow and tough. Smashes stone walls.", "role": "melee", "art": "giant", "scale": 6.0, "hp": 260, "school": "", "weak": "", "resist": "", "damage": 30, "speed": 0.75, "effect": "smash"},
 }
 const SPEED := 80.0
 const TERMINAL_FALL := 900.0  # no enemy falls faster than this
@@ -52,11 +54,9 @@ const STUNT_MAX := 1.5
 const BURST_GAP := 0.09      # the gap between the stars of one burst
 const LEAP_RANGE := 110.0    # a ninja this close to the player leaps away in a flip
 const GIANT_JUMP := -640.0    # a giant leaps higher than a plain walker: onto ledges, and over walls
-const SLASH_RANGE := 70.0    # a ninja this close to the player strikes with its katana
+const SLASH_RANGE := 70.0    # a ninja this close to the player strikes with its sword
 const SLASH_DAMAGE := 6
 const SLASH_COOLDOWN := 0.8  # and waits this long between strikes
-const SLASH_HAND := Vector2(18.0, -27.0)  # where a ninja holds its katana, at three times its size
-const KATANA := preload("res://art/props/katana.png")  # held here so it stays loaded between frames
 const CHARGE := 0.45          # a shooter's glow builds this long before it fires
 const DIVE_WARNING := 0.4     # a flyer hangs and shakes this long before it dives
 const KNOCK_DECAY := 1500.0
@@ -477,22 +477,10 @@ func _acrobatics(delta: float) -> void:
 	knock_back(Vector2(way * LEAP_SPEED, 0.0))
 
 
-## A ninja strikes with its katana: the blade flicks through an arc in front of it, and hurts the player if they are still
-## in reach. Quick, so there is little to dodge once it is this close.
+## A ninja strikes with its sword: it swings through its attack frames, and hurts the player if they are still in
+## reach. Quick, so there is little to dodge once it is this close.
 func _slash() -> void:
-	var blade := Sprite2D.new()
-	blade.texture = KATANA
-	blade.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	blade.centered = false
-	blade.offset = Vector2(-8.0, -16.0)  # the hilt, at the left of the picture, is the pivot
-	blade.scale = Vector2(2.0 * facing, 2.0)  # two times its size, mirrored when the ninja faces left
-	blade.position = Vector2(SLASH_HAND.x * facing, SLASH_HAND.y)
-	blade.rotation = -1.4 * facing
-	blade.z_index = 1
-	add_child(blade)
-	var swing := create_tween()
-	swing.tween_property(blade, "rotation", 1.0 * facing, 0.12)
-	swing.tween_callback(blade.queue_free)
+	_visual.play("attack")
 	if not player.dead:
 		player.take_damage(SLASH_DAMAGE)
 	Sfx.play("push", center(), -8.0)
@@ -981,10 +969,11 @@ func _hits_terrain(from: Vector2, to: Vector2) -> bool:
 ## The dark wizard: a hooded figure with a staff wreathed in shadow, the same size as the player. Its hitbox is the
 ## hooded body, not the staff.
 func _build_wizard() -> void:
-	_visual.sprite_frames = CharFrames.build("res://art/chars/dark_wizard", WIZARD_ANIMATIONS)
+	_visual.sprite_frames = CharFrames.build("res://art/chars/" + str(KINDS[kind]["art"]), WIZARD_ANIMATIONS)
 	_base_scale = KINDS[kind].get("scale", 1.0)
-	_visual.offset = Vector2(0, -PixelArt.CHARACTERS["dark_wizard"]["size"].y * 0.5)
-	_set_walker_body(WIZARD_BODY.size * _base_scale * Vector2(0.9, 0.95))
+	_visual.offset = Vector2(0, -PixelArt.CHARACTERS[KINDS[kind]["art"]]["size"].y * 0.5)
+	var body: Rect2 = WIZARD_BODY if kind == "dark_wizard" else PixelArt.CHARACTERS[KINDS[kind]["art"]]["body"]
+	_set_walker_body(body.size * _base_scale * Vector2(0.9, 0.95))
 	_start_animating()
 	# Dark wisps rising off the robes.
 	var wisps := Fx.trail(Color(0.45, 0.2, 0.6, 0.55), 18, 0.9, 30.0, Vector2(0, -40), "smoke_04", 14.0)
@@ -1004,7 +993,7 @@ func _build_wizard() -> void:
 
 ## Where the dark wizard's mouth would be under its hood, for Fire Breath.
 func mouth() -> Vector2:
-	return global_position + Vector2(6.0 * facing, -44.0) * _base_scale
+	return global_position + Vector2(6.0 * facing * _base_scale, -_body_size.y * 0.85)
 
 
 ## The dark wizard's turn: its brain moves it and decides when to cast.

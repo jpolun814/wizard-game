@@ -2,7 +2,7 @@ class_name FloraSpell
 extends Node2D
 
 ## What every plant spell shares: it is flammable. Fire that touches it sets it alight, and after a moment of burning
-## it is gone. Plants are in the "flora" group, and in "lasting", so they end with the wave like every other lasting spell.
+## it is gone. Plants are in the "flora" group, and in "lasting".
 
 const BURN_SECONDS := 1.4
 

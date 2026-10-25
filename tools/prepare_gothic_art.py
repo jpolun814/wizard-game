@@ -17,7 +17,8 @@ The downloads dir holds the unzipped packs, each in its own folder:
     pixflame/                   zonked, Pixel Flame VFX (CC0)          (fire-a and fire-b: the breath, trail and wall of fire)
     books/foxel                 Foxel Games, Pixel Art Book           (the spellbook)
     elthen-cyclops/             Elthen, Cyclops Sprite Sheet          (the giant: 'Cyclops Sprite Sheet.png', 64 px cells)
-    mini-ninja/                 ivoryred, Mini Ninja (CC BY 4.0)      (the ninjas: '( Free) Ninja pack', 16 px)
+    martial-hero-2/             LuizMelo, Martial Hero 2               (the ninjas)
+    evil_wizard_1/ evil_wizard_3/  LuizMelo, Evil Wizard and Evil Wizard 3 (the pyre and bone wizards)
     ninja-throw/                Ninja Throwing Items Kit (CC0)        (the star: Ninja_Star_Pixel.png)
 Some effects are recoloured here to their school's colours (a hue turn, or a ramp from dark to light).
 
@@ -49,6 +50,13 @@ CHARACTERS = {
     "dark_wizard": ("evil_wizard_2/EVil Wizard 2_x/EVil Wizard 2/Sprites/", 250, 250, False, {
         "idle": "Idle.png", "run": "Run.png", "jump": "Jump.png", "fall": "Fall.png",
         "cast": "Attack1.png", "release": "Attack2.png", "hit": "Take hit.png", "death": "Death.png"}),
+    # The two other wizards that fight like the dark wizard. The fire mage has no jump or fall, so it uses its idle.
+    "pyre_wizard": ("evil_wizard_1/Evil Wizard_x/Evil Wizard/Sprites/", 150, 150, False, {
+        "idle": "Idle.png", "run": "Move.png", "jump": "Idle.png", "fall": "Idle.png",
+        "cast": "Attack.png", "release": "Attack.png", "hit": "Take Hit.png", "death": "Death.png"}),
+    "bone_wizard": ("evil_wizard_3/Evil Wizard 3_x/Evil Wizard 3/Sprites/", 140, 140, False, {
+        "idle": "Idle.png", "run": "Run.png", "jump": "Jump.png", "fall": "Fall.png",
+        "cast": "Attack.png", "release": "Attack.png", "hit": "Get hit.png", "death": "Death.png"}),
     "skeleton": (LUIZ_MONSTERS + "Skeleton/", 150, 150, False, {
         "idle": "Idle.png", "walk": "Walk.png", "attack": "Attack.png", "hit": "Take Hit.png", "death": "Death.png"}),
     "goblin": (LUIZ_MONSTERS + "Goblin/", 150, 150, False, {
@@ -56,13 +64,9 @@ CHARACTERS = {
         "hit": "Take Hit.png", "death": "Death.png"}),
     "eye": (LUIZ_MONSTERS + "Flying eye/", 150, 150, True, {
         "idle": "Flight.png", "attack": "Attack.png", "hit": "Take Hit.png", "death": "Death.png"}),
-    # The ninjas' sheets are strips of 16 px frames. Their attack sheet is 24 px, so throwing uses the idle frames.
-    "ninja": ("mini-ninja/", 16, 16, False, {
-        "idle": "mini-ninja/( Free) Ninja pack/idle/ninja idle -Sheet.png",
-        "walk": "mini-ninja/( Free) Ninja pack/walk cycle/ninja walk -Sheet.png",
-        "attack": "mini-ninja/( Free) Ninja pack/idle/ninja idle -Sheet.png",
-        "hit": "mini-ninja/( Free) Ninja pack/hurt/hurt frames-Sheet.png",
-        "death": "mini-ninja/( Free) Ninja pack/Death/death-Sheet.png"}),
+    # The ninja is LuizMelo's Martial Hero 2. Its throw uses the sword swing.
+    "ninja": ("martial-hero-2/Martial Hero 2_x/Martial Hero 2/Sprites/", 200, 200, False, {
+        "idle": "Idle.png", "walk": "Run.png", "attack": "Attack1.png", "hit": "Take hit.png", "death": "Death.png"}),
     # The Elthen sheet is a grid of 64 px cells, not a strip. An animation given as (row, first, last) cuts those cells
     # out of its row. Row 0 stands, row 1 walks, row 3 raises its arms 
     # row 2 leans forward (the giant's wind-up), row 5 flinches and row 6 falls (its last five cells lie on the ground).
@@ -72,7 +76,7 @@ CHARACTERS = {
         "death": ("Cyclops Sprite Sheet.png", 6, 4, 8)}),
 }
 MOBS = ["skeleton", "goblin", "eye", "giant", "ninja"]
-HEROES = ["wizard", "dark_wizard"]
+HEROES = ["wizard", "dark_wizard", "pyre_wizard", "bone_wizard"]
 
 CEMETERY = "x_gothicvania-cemetery-files/gothicvania-cemetery-files/Assets/Environment/"
 SWAMP = "x_swamp/Gothicvania Swamp files/Evironment/"

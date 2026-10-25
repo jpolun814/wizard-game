@@ -1,8 +1,7 @@
 class_name Hud
 extends CanvasLayer
 
-## Everything drawn over the game: health and stamina, the wave and how many enemies are left, a banner when a
-## wave starts, the dark wizard's health, messages, an arrow to the portal, the pause screen with the controls,
+## Everything drawn over the game: the stamina bar, a banner, the dark wizard's health, messages, an arrow to the portal, the pause screen with the controls,
 ## and the screen you see when you fall.
 
 signal restart_requested
@@ -12,22 +11,20 @@ const STAMINA := Color("#c08a2c")
 const UNLIMITED := Color("#7fe0ff")
 const INK := Color(0.07, 0.04, 0.1)
 const CONTROLS := [
-	["A / D", "Move"], ["W or Space", "Jump (tap for a small hop)"], ["S", "Drop through a wooden platform"],
-	["Hold mouse buttons + draw", "Cast a spell (the buttons choose the school)"], ["Tab", "Spellbook: every spell and how to draw it"],
-	["Enter", "Speak an incantation"], ["E", "Swap your focus for one on the ground"], ["M", "Mute sound"],
-	["F1", "Summon menu, for testing"], ["Esc", "Pause and this list"],
+	["A / D", "Move"], ["W or Space", "Jump (tap to hop)"],
+	["Hold mouse buttons + draw", "Cast a spell (the buttons pick the school)"], ["Tab", "Open your spellbook"],
+	["Enter", "Speak an incantation"], ["E", "Swap focus with the one on the ground"], ["M", "Mute sound"],
+	["F1", "Open the summon menu (testing)"], ["Esc", "Pause"],
 ]
 
 var player: Node2D
-var health_bar: Bar
 var stamina_bar: Bar
 var _font: Font
 var _title_font: Font
 var _status: Label
 var _feedback: Label
 var _feedback_time := 0.0
-var _wave_label: Label
-var _foes_label: Label
+var _title_label: Label
 var _banner: Label
 var _banner_sub: Label
 var _boss: Bar
@@ -36,7 +33,6 @@ var _portal_arrow: PortalArrow
 var _game_over: Control
 var _pause: Control
 var _pause_note: Label  # at the bottom of the pause screen: the world's seed words
-var _over_text: Label
 
 
 func _ready() -> void:
@@ -49,28 +45,19 @@ func _ready() -> void:
 	_title_font = blackletter
 	var view := get_viewport().get_visible_rect().size
 
-	health_bar = Bar.new(HEALTH, "Health", _font)
-	health_bar.position = Vector2(20, 18)
-	health_bar.size = Vector2(250, 26)
-	add_child(health_bar)
 	stamina_bar = Bar.new(STAMINA, "Stamina", _font)
-	stamina_bar.position = Vector2(20, 50)
-	stamina_bar.size = Vector2(210, 18)
+	stamina_bar.position = Vector2(20, 18)
+	stamina_bar.size = Vector2(300, 26)
 	add_child(stamina_bar)
 	_status = _label(15, Color("#ffb86b"))
 	_status.position = Vector2(22, 74)
 	add_child(_status)
 
-	_wave_label = _label(22, Color.WHITE)
-	_wave_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_wave_label.size = Vector2(400, 30)
-	_wave_label.position = Vector2(view.x * 0.5 - 200, 12)
-	add_child(_wave_label)
-	_foes_label = _label(15, Color(0.85, 0.82, 0.95))
-	_foes_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_foes_label.size = Vector2(400, 20)
-	_foes_label.position = Vector2(view.x * 0.5 - 200, 40)
-	add_child(_foes_label)
+	_title_label = _label(22, Color.WHITE)
+	_title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_title_label.size = Vector2(400, 30)
+	_title_label.position = Vector2(view.x * 0.5 - 200, 12)
+	add_child(_title_label)
 
 	_boss = Bar.new(Color("#7b2fb8"), "", _font)
 	_boss.size = Vector2(420, 16)
@@ -126,10 +113,9 @@ func _label(font_size: int, colour: Color, font: Font = null) -> Label:
 
 func _process(delta: float) -> void:
 	if player:
-		health_bar.set_value(player.hp, player.MAX_HP)
 		var unlimited: bool = player.infinite_time > 0.0
 		stamina_bar.fill = UNLIMITED if unlimited else STAMINA
-		stamina_bar.set_value(player.stamina, player.MAX_STAMINA)
+		stamina_bar.set_value(player.stamina, player.max_stamina, player.MAX_STAMINA)
 		_status.text = player.status_text()
 	_feedback_time -= delta
 	_feedback.modulate.a = clampf(_feedback_time / 0.6, 0.0, 1.0)
@@ -138,11 +124,12 @@ func _process(delta: float) -> void:
 	_boss_name.visible = wizard != null
 	if wizard:
 		_boss.set_value(wizard.hp, wizard.max_hp)
+		_boss_name.text = "The " + wizard.KINDS[wizard.kind]["name"]
 
 
 func _find_wizard() -> Node:
 	for mob in get_tree().get_nodes_in_group("mobs"):
-		if mob.kind == "dark_wizard":
+		if mob.KINDS[mob.kind]["role"] == "wizard":
 			return mob
 	return null
 
@@ -154,17 +141,9 @@ func show_message(text: String, colour: Color) -> void:
 	_feedback_time = 3.0
 
 
-## Replaces the wave line with any words, for a place that has no waves.
+## Writes any words at the top of the screen.
 func set_title(text: String) -> void:
-	_wave_label.text = text
-
-
-func set_wave(level: int, wave: int, waves_in_level: int) -> void:
-	_wave_label.text = "Level %d  ·  Wave %d of %d" % [level, wave, waves_in_level]
-
-
-func set_foes(count: int, cleared: bool) -> void:
-	_foes_label.text = "The portal is open — walk into it" if cleared else ("%d %s left" % [count, "enemy" if count == 1 else "enemies"] if count > 0 else "")
+	_title_label.text = text
 
 
 ## A large title that fades in, holds, and fades out.
@@ -183,8 +162,7 @@ func point_to_portal(portal: Node2D) -> void:
 	_portal_arrow.portal = portal
 
 
-func show_game_over(level: int, wave: int) -> void:
-	_over_text.text = "You reached level %d, wave %d." % [level, wave]
+func show_game_over() -> void:
 	_game_over.visible = true
 	_game_over.modulate.a = 0.0
 	var tween := _game_over.create_tween()
@@ -239,11 +217,6 @@ func _build_game_over(view: Vector2) -> void:
 	title.size = Vector2(view.x, 80)
 	title.position = Vector2(0, view.y * 0.32)
 	_game_over.add_child(title)
-	_over_text = _label(22, Color(0.92, 0.88, 1.0))
-	_over_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_over_text.size = Vector2(view.x, 30)
-	_over_text.position = Vector2(0, view.y * 0.32 + 90)
-	_game_over.add_child(_over_text)
 	var hint := _label(18, Color(0.8, 0.75, 0.9))
 	hint.text = "Press R or click to begin a new run"
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -299,6 +272,7 @@ class Bar extends Control:
 	var font: Font
 	var _value := 1.0
 	var _max := 1.0
+	var _cap := 1.0  # the most the bar could ever show: what a hit takes off the most is drawn as a dark gap at its end
 	var _chip := 1.0  # the share shown by the draining chunk
 
 	func _init(colour: Color, bar_title: String, bar_font: Font) -> void:
@@ -307,23 +281,28 @@ class Bar extends Control:
 		font = bar_font
 		mouse_filter = Control.MOUSE_FILTER_STOP
 
-	func set_value(value: float, maximum: float) -> void:
+	func set_value(value: float, maximum: float, cap := -1.0) -> void:
 		_value = value
 		_max = maximum
+		_cap = cap if cap > 0.0 else maximum
 
 	func _process(delta: float) -> void:
-		var share := clampf(_value / _max, 0.0, 1.0)
+		var share := clampf(_value / _cap, 0.0, 1.0)
 		_chip = share if share > _chip else move_toward(_chip, share, delta * 0.6)
 		queue_redraw()
 
 	## A square bar in a dark iron frame, so it sits with the pixel art: the fill, a lighter line along its top, and
 	## the chunk just lost draining away behind it.
 	func _draw() -> void:
-		var share := clampf(_value / _max, 0.0, 1.0)
+		var share := clampf(_value / _cap, 0.0, 1.0)
 		draw_rect(Rect2(Vector2.ZERO, size), Color("#0b0710"))
 		draw_rect(Rect2(Vector2.ZERO, size), Color("#5c4a3c"), false, 2.0)
 		draw_rect(Rect2(Vector2(2, 2), size - Vector2(4, 4)), Color("#1b1220"), false, 1.0)
 		var inner := Rect2(Vector2(4, 4), size - Vector2(8, 8))
+		var most := clampf(_max / _cap, 0.0, 1.0)
+		if most < 1.0:  # what hits have taken off the most: a dull red gap at the end
+			var from := roundf(inner.size.x * most)
+			draw_rect(Rect2(inner.position + Vector2(from, 0), Vector2(inner.size.x - from, inner.size.y)), Color(0.45, 0.06, 0.1, 0.6))
 		if _chip > share:
 			draw_rect(Rect2(inner.position, Vector2(roundf(inner.size.x * _chip), inner.size.y)), Color(0.95, 0.85, 0.75, 0.7))
 		if share > 0.0:

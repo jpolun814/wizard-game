@@ -1,7 +1,7 @@
 class_name Portal
 extends Area2D
 
-## The way on after a wave: a purple ring that swirls, for the player to walk into. Pixel art from the Purple Portal
+## The way into a run: a purple ring that swirls, for the player to walk into. Pixel art from the Purple Portal
 ## sprite sheet, drawn at two times its size.
 
 const RY := 28.0  # half the height of the way through; the arena stands the portal this far (and a bit) off the ground
@@ -30,7 +30,7 @@ func _ready() -> void:
 	_ring.play("closed")
 
 
-## The portal stays closed until the wave is cleared; then it opens, and stays open until the player walks through.
+## The portal opens, and stays open until the player walks through.
 func open() -> void:
 	_ring.play("opening")
 

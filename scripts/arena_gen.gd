@@ -38,6 +38,7 @@ static var world_size := Vector2i.ZERO
 ## A world's sky: the first column of the surface and the row where its ground starts in each column, so the sky is drawn
 ## over the air above the ground only.
 static var sky_xl := 0
+static var castle_hall: Array = []  # the rooms inside the castle, as rectangles of tiles
 static var sky_floor := PackedInt32Array()
 
 ## Each level has its own look: the biome's ground tiles, the backdrop behind it and the things standing about on
@@ -55,6 +56,7 @@ static func build(rng: RandomNumberGenerator, heights := PackedFloat32Array()) -
 	var cells := {}
 	world_size = Vector2i.ZERO
 	sky_floor = PackedInt32Array()
+	castle_hall = []
 	_fill(cells, LEFT_WALL, WALL_TOP, LEFT_WALL, GROUND_ROW + DEPTH, STONE)
 	_fill(cells, RIGHT_WALL, WALL_TOP, RIGHT_WALL, GROUND_ROW + DEPTH, STONE)
 	column_heights = heights if not heights.is_empty() else _ground_heights(rng)

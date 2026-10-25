@@ -10,23 +10,22 @@ claimed and not checked.
    must print nothing (ignore "leaked" and "still in use" at exit).
 3. **Gestures:** `godot --headless -s tests/test_gestures.gd` must report every check passed.
 4. **Look at it:** run the showcase scenario that covers your change, and open the screenshots.
-5. **Soak:** `scenario=soak` on a few waves from each level (for example 3, 8, 11, 14, 17), headless. Grep for
+5. **Soak:** `scenario=soak`, headless. Grep for
    `SCRIPT ERROR`.
 
 ## Showcase scenarios (`tests/showcase.tscn`)
 
-Run with `godot --path . tests/showcase.tscn -- scenario=NAME out=DIR [wave=N] [only=Spell_Name]`.
+Run with `godot --path . tests/showcase.tscn -- scenario=NAME out=DIR [only=Spell_Name]`.
 
 | Scenario | What it shows |
 |---|---|
-| `world` | every enemy kind standing about, then a wave in progress, then the debug view |
+| `world` | every enemy kind standing about, then the debug view |
 | `kinds` | enemy art and colours |
 | `spells` | every spell cast in turn among enemies, one screenshot each; `only=Fire_Breath` casts one spell with frames every 0.1 s |
 | `ui` | portal arrow, portal, spellbook spreads (with a page turn), pause, game over |
 | `wizard` | a dark-wizard duel |
 | `brawl` | a mixed fight |
-| `biome` | one screenshot of the level the given `wave` belongs to: 1 is the cemetery, 10 the swamp, 17 the church |
-| `soak` | random casting through a whole wave, no screenshots; works headless |
+| `soak` | random casting among a few enemies, no screenshots; works headless |
 
 **Notes:**
 - Steps are sorted by time before they run, so you can add them in any order.

@@ -51,11 +51,9 @@ It's the owner's favourite part. It plays like a skilled human:
 - no Spark or Storm Cloud while you're sheltered;
 - no line-of-sight spells when it can't see you.
 
-## Wave and level structure (`levels.gd`)
+## Where enemies come from
 
-- Each level introduces the schools one at a time, then mixes them, then ends with the dark wizard.
-- Each wave is a fresh random map, and a portal appears when the wave is cleared.
-- Dying resets the run; R or a click starts a new one.
+There are no waves. Enemies will be placed on the world map and attack once they notice the player. Dying ends the run; R or a click starts a new one.
 
 ## Improvement ideas the owner may like
 

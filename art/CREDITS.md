@@ -99,5 +99,8 @@ and are no longer drawn by the game.
 
 ## Ninjas (art/mobs/ninja, art/fx/ninja_star.png)
 
-- **Ninja sprites:** Mini Ninja by ivoryred (ivoryred.itch.io/mini-ninja; opengameart.org/content/mini-ninja), CC BY 4.0. Credit ivoryred.
+- **Ninja sprites:** Martial Hero 2 by LuizMelo (luizmelo.itch.io/martial-hero-2), CC0. The old Mini Ninja (ivoryred, CC BY 4.0) is no longer used.
 - **Star:** Ninja Throwing Items Kit (opengameart.org/content/ninja-throwing-items-kit-32x32), CC0.
+
+## The pyre and bone wizards (art/chars/pyre_wizard, art/chars/bone_wizard)
+- **Evil Wizard** and **Evil Wizard 3:** LuizMelo (luizmelo.itch.io/evil-wizard, luizmelo.itch.io/evil-wizard-3), CC0. Cut by tools/prepare_gothic_art.py.

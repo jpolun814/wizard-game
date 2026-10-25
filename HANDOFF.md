@@ -30,8 +30,8 @@ A 2D side-view arena roguelite built in Godot 4.7.2 and GDScript. You are a wiza
   plus hand-written shape detectors.
 - **Rituals:** press Enter and type a pseudo-Latin chant. Typing accuracy sets the ritual's power.
 
-Waves of enemies fight you in random maps. Each level ends in a duel with a **dark wizard** who casts the same
-spells you do, drawing them visibly.
+A roguelite: you explore a big generated world for spellbook pages, then duel the **dark wizard** at the end, who casts the same
+spells you do, drawing them visibly. There are no waves.
 
 **The owner's taste, in their words:**
 - "sick as hell"
@@ -45,7 +45,7 @@ spells you do, drawing them visibly.
   - Level 3: a gothic cathedral interior.
 - **Characters and art:** LuizMelo characters, Ansimuz GothicVania environments, and CC0 pixel effects.
 
-## 2. The ten rules that matter most
+## 2. The eleven rules that matter most
 
 1. **Spells must reflect something real, and must be counterable.** Fire Nova (a magic ring blast) was removed
    because it "doesn't seem to reflect anything in real life and is impossible to block."
@@ -87,7 +87,20 @@ spells you do, drawing them visibly.
    - Tell the owner what you could not verify (you cannot hear sounds or feel the controls).
 9. **Keep text short in game.** The owner disliked wordy spellbook entries, repeated "costs no stamina",
    explaining edge cases, and filler headings like "Incantations, continued."
-10. **Don't change what they didn't ask about.** When feedback names five things, fix those five, check
+10. **Talk to the player, not about the game.** On-screen text is imperative and addressed to the player ("Press Tab to
+	open the spellbook", "Gives you endless stamina"), not a statement about the system ("Tab opens the spellbook"). A key
+	and action table may use short verb-first labels. No ALL-CAPS result lines ("The ritual backfired", not "RITUAL BACKFIRED").
+    **Spellbook entries** follow nine more rules (owner-confirmed):
+	1. Start with a verb addressed to the player ("Hurl a bolt of fire").
+    2. Say only what the spell does. Never name what counters it, what it combines with, or how to avoid it: the player learns those.
+	3. Never mention self-harm ("you too"); it is implied.
+	4. Never mention cost scaling or size ("a longer cone costs more").
+	5. Write as a wizard inside the universe. No game-loop or meta words: wave, level, run, walkers, "to draw attacks", "as long as your stroke".
+    6. Never mention interface actions such as double-clicking.
+	7. Be accurate, and say "anyone" or "everything" where a spell has no teams.
+    8. Keep it short; numbers only for damage and duration.
+    9. Never describe the stroke: the animation shows it.
+11. **Don't change what they didn't ask about.** When feedback names five things, fix those five, check
     nothing else broke, and report briefly.
 
 ## 3. Run, test and look
@@ -99,8 +112,7 @@ GODOT="/c/Users/Jordan Polun/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.
 "$GODOT" --headless -s tests/test_gestures.gd                  # must print "136 of 136" (or more, if you add checks)
 "$GODOT" --path . tests/showcase.tscn -- scenario=spells out=C:/some/dir          # a screenshot of every spell
 "$GODOT" --path . tests/showcase.tscn -- scenario=spells only=Fire_Breath out=DIR # one spell, frame by frame
-"$GODOT" --path . tests/showcase.tscn -- scenario=biome wave=10 out=DIR           # a level's look (wave 10 = swamp, 17 = church)
-"$GODOT" --headless --path . tests/showcase.tscn -- scenario=soak wave=8 out=DIR  # a wave of random play; look for errors
+"$GODOT" --headless --path . tests/showcase.tscn -- scenario=soak out=DIR  # random play; look for errors
 ```
 
 - **Other scenarios:** `world`, `kinds`, `ui` (portal, spellbook pages, pause, game over), `wizard` (a dark-wizard
@@ -156,7 +168,6 @@ GODOT="/c/Users/Jordan Polun/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.
 | Water | Blizzard | star then a level line | snow cloud | leave the area |
 | Water | Frost Bridge | wavy line across water | freezing a pond so you can cross | fire melts it |
 | Water | Geyser | mountain: a triangle with a line up its middle (as Volcano) | a jet of water that throws what stands on it | step off while it bubbles |
-| Water | Tsunami | big curling wave | a wall of water that douses fires and shoves everyone | high ground, a wall, flying |
 | Air | Push | circle then a line out | a shove of air; the only spell that lifts you | positioning |
 | Air | Barrier | circle | a shield bubble | wait it out |
 | Air | Tornado | tall narrow coil going down | a whirlwind | avoid it |
@@ -171,7 +182,7 @@ GODOT="/c/Users/Jordan Polun/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.
 | Flora | Liana | leaf and line: an almond on its point, then a line up | a vine to climb | fire |
 | Flora | Great Oak | trunk drawn up into a round crown | a tree: ledges and a wall, and when it falls it crushes | fire, Earthquake, Stonefall; it creaks first |
 | Flora | Flytrap | tall narrow W | a trap that snaps shut on whoever steps in | jump, fire |
-| Flora | Lily Pads | chain of low loops | floating leaves to cross water or a pit | fire, Tsunami; they sink after 8 s |
+| Flora | Lily Pads | chain of low loops | floating leaves to cross water or a pit | fire; they sink after 8 s |
 | Shadow | Decoy | figure of eight | a shadow that draws enemies' attacks | it wears out |
 | Shadow | Eclipse | crescent | darkness: enemies inside see only what is close | Flare |
 | Shadow | Hex | pentagram (five-point star, one stroke) | a curse: 50% more damage | short time |
@@ -302,8 +313,6 @@ clean. It was cleaned up once, without losing any behaviour. Keep it that way:
 - Sounds are untested by ear.
 
 **Ideas the owner may like:**
-- Carry HP between waves.
-- Choose a reward between waves.
 - Spells that combine: fire melts ice, storm plus water.
 - Give the dark wizard a personality per level.
 - A gesture tutorial room.

@@ -138,7 +138,11 @@ func _end() -> void:
 		relative.append(p - _origin)
 
 	if UnistrokeRecognizer.path_length(relative) < min_stroke_length:
-		_report("Stroke too short", Color.GRAY)
+		var over_flare := false
+		for flare: Node2D in get_tree().get_nodes_in_group("flares"):
+			over_flare = over_flare or flare.global_position.distance_to(get_global_mouse_position()) < 60.0
+		if not over_flare:  # a click on a flare is only meant to snuff it
+			_report("Stroke too short", Color.GRAY)
 		return
 
 	var options: Dictionary = _bindings.get(mask, {})
@@ -253,12 +257,12 @@ func _end() -> void:
 	var entry = options.get(gesture)
 	# A cast that works shows its name where it was drawn (the arena does that), so only failures are reported here.
 	# Earth Fall's circle and drop are hard to draw cleanly, so it is read with a looser eye than the other shapes.
-	var needed := tolerance - 0.12 if gesture == "stonefall" else tolerance
+	var needed := tolerance - 0.12 if gesture == "stonefall" or gesture == "flare" else tolerance
 	if score < needed:
-		_report("Misfire: that shape was too rough to read (%d%% match). A steadier stroke, or a wand, helps." % roundi(score * 100.0), Color("#ff7a7a"))
+		_report("Misfire (%d%% match). Draw steadier, or use a wand." % roundi(score * 100.0), Color("#ff7a7a"))
 		misfired.emit()
 	elif entry == null:
-		_report("Misfire: %s has no spell drawn like that. Tab opens the spellbook." % SpellData.button_name(mask), Color("#ff7a7a"))
+		_report("Misfire: no %s spell looks like that. Press Tab to open the spellbook." % SpellData.button_name(mask), Color("#ff7a7a"))
 		misfired.emit()
 	else:
 		var aim := 0.0
@@ -800,7 +804,7 @@ func _flame_points_up(points: PackedVector2Array) -> bool:
 		if d > tip_distance:
 			tip_distance = d
 			tip = p
-	return tip_distance >= 1.3 * total / points.size() and tip.y < centre.y - 0.3 * tip_distance
+	return tip_distance >= 1.05 * total / points.size() and tip.y < centre.y - 0.05 * tip_distance
 
 
 ## Casts a stroke that was not drawn with the mouse, such as a dark wizard's. It resolves exactly like a drawn one.

@@ -264,6 +264,10 @@ const SMOOTHING := 14      # passes that round an outline's corners
 const SMALL_LOOP := 700.0  # an outline shorter than this (a stepping stone) is barely smoothed, so it stays itself
 const RIM := Color("#0d0916")
 const WALL := Color("#3a2e50")
+const STONE_FILL := Color(0.25, 0.16, 0.36)
+const HALL := Color(0.12, 0.11, 0.18)
+const HALL_TILES := 9  # rows the hall's picture is stretched over: the hall's full height
+const WALL_TINT := Color(1.0, 0.9, 1.0, 0.3)
 
 
 func _solid_at(c: int, r: int, stone_only := false) -> bool:
@@ -314,8 +318,13 @@ func _build_contour() -> void:
 	cave.loops = airs
 	cave.sky = _sky_polygon()
 	add_child(cave)
+	if not ArenaGen.castle_hall.is_empty():
+		var inside := CaveDraw.new()  # the dark inside of the castle, over the sky and under the brick
+		inside.z_index = -10
+		inside.kind = "hall"
+		inside.earth = earth_texture
+		add_child(inside)
 	var stone_loops := _trace(true)
-	stone_loops.sort_custom(func(a: PackedVector2Array, b: PackedVector2Array) -> bool: return absf(_area(a)) > absf(_area(b)))
 	if not stone_loops.is_empty():
 		var bricks := CaveDraw.new()  # the castle: brick, with dark windows
 		bricks.z_index = -9
@@ -408,9 +417,21 @@ static func _area(points: PackedVector2Array) -> float:
 	return sum * 0.5
 
 
+## True when a point of an outline is beside castle stone.
+func _near_stone(point: Vector2) -> bool:
+	var t := float(ArenaGen.TILE)
+	var column := int(floor(point.x / t))
+	var row := int(floor(point.y / t))
+	for dx in range(-1, 2):
+		for dy in range(-1, 2):
+			if _solid_at(column + dx, row + dy, true):
+				return true
+	return false
+
+
 ## An outline spread evenly along its length, then rounded off by averaging each point with its neighbours, then thinned
 ## where it runs straight.
-static func _smooth(points: PackedVector2Array) -> PackedVector2Array:
+func _smooth(points: PackedVector2Array) -> PackedVector2Array:
 	var length := 0.0
 	for k in points.size():
 		length += points[k].distance_to(points[(k + 1) % points.size()])
@@ -426,10 +447,17 @@ static func _smooth(points: PackedVector2Array) -> PackedVector2Array:
 		var seg := points[k].distance_to(points[(k + 1) % points.size()])
 		even.append(points[k].lerp(points[(k + 1) % points.size()], clampf((wanted - run) / maxf(seg, 0.001), 0.0, 1.0)))
 	var passes := 2 if length < SMALL_LOOP else SMOOTHING
+	# Castle stone keeps the edges it was built with: straight walls, flat tops and square towers, not rounded hills.
+	var firm := PackedByteArray()
+	for point in even:
+		firm.append(1 if _near_stone(point) else 0)
 	for pass_index in passes:
 		var next := PackedVector2Array()
 		for n in even.size():
-			next.append(even[(n - 1 + even.size()) % even.size()] * 0.25 + even[n] * 0.5 + even[(n + 1) % even.size()] * 0.25)
+			if firm[n] == 1:
+				next.append(even[n])
+			else:
+				next.append(even[(n - 1 + even.size()) % even.size()] * 0.25 + even[n] * 0.5 + even[(n + 1) % even.size()] * 0.25)
 		even = next
 	var thin := PackedVector2Array()
 	thin.append(even[0])
@@ -444,6 +472,7 @@ static func _smooth(points: PackedVector2Array) -> PackedVector2Array:
 ## One layer of the cave: the rock under everything, the open air drawn over it, or solid things standing in it, each with
 ## a rim and grass.
 class CaveDraw extends Node2D:
+	const HALL_PICTURE := preload("res://art/backgrounds/church/hall.png")
 	const SKY_TOP := Color("#1d2a5c")
 	const SKY_HORIZON := Color("#c98c86")
 	const SKY_BANDS := 24
@@ -462,18 +491,40 @@ class CaveDraw extends Node2D:
 		if kind == "rock":
 			draw_texture_rect(earth, Rect2(Vector2.ZERO, world), true)
 			return
+		if kind == "hall":
+			# The inside of a cathedral, from the church backdrop: columns, windows and candles, as tall as the hall's tallest part,
+			# standing on the floor, so a low stretch of hall shows only the bottom of the picture.
+			var picture: Texture2D = HALL_PICTURE
+			var zoom := t * float(Terrain.HALL_TILES) / picture.get_height()
+			for tiles: Rect2i in ArenaGen.castle_hall:
+				var rect := Rect2(Vector2(tiles.position) * t, Vector2(tiles.size) * t + Vector2(0.0, 1.0))
+				draw_rect(rect, Terrain.HALL)
+				var width := t / zoom
+				var height := minf(rect.size.y / zoom, float(picture.get_height()))
+				var across := fposmod(rect.position.x / zoom, picture.get_width() - width)
+				var size := Vector2(picture.get_size())
+				var u0 := across / size.x
+				var u1 := (across + width) / size.x
+				var v0 := (size.y - height) / size.y
+				var corners := PackedVector2Array([rect.position, rect.position + Vector2(rect.size.x, 0.0), rect.end, rect.position + Vector2(0.0, rect.size.y)])
+				draw_polygon(corners, PackedColorArray([Color.WHITE]), PackedVector2Array([Vector2(u0, v0), Vector2(u1, v0), Vector2(u1, 1.0), Vector2(u0, 1.0)]), picture)
+			return
 		for points: PackedVector2Array in loops:
 			if kind == "air":
+				var wall_uvs := PackedVector2Array()
+				for p in points:
+					wall_uvs.append(p / (t * 2.0))  # the cave's back wall: the same rock, bigger and dimmer, so it sits behind the near rock
 				draw_colored_polygon(points, Terrain.WALL)
+				draw_polygon(points, PackedColorArray([Terrain.WALL_TINT]), wall_uvs, earth)
 				if not sky.is_empty():
 					_paint_sky(points)
 			elif Terrain._area(points) < 0.0:
 				draw_colored_polygon(points, Terrain.WALL)  # a window: air inside the stone
 			else:
-				var uvs := PackedVector2Array()
-				for p in points:
-					uvs.append(p / t)
-				draw_polygon(points, PackedColorArray([Color.WHITE]), uvs, earth)
+				# Stone is filled flat: a textured fill of these outlines does not show (cause not found), a plain one does.
+				for piece: PackedVector2Array in Geometry2D.offset_polygon(points, 0.0):
+					if Terrain._area(piece) > 0.0:
+						draw_colored_polygon(piece, Terrain.STONE_FILL)
 			var closed := PackedVector2Array(points)
 			closed.append(points[0])
 			draw_polyline(closed, Terrain.RIM, 3.0)

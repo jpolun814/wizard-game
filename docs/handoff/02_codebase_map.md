@@ -1,12 +1,12 @@
 # Codebase map
 
-Godot 4.7.2 and GDScript. The main scene is `scenes/arena.tscn`. One autoload: `Sfx` (`scripts/sfx.gd`).
+Godot 4.7.2 and GDScript. The main scene is `scenes/lab.tscn`, the waiting room. Its portal opens `scenes/world.tscn`, a generated world. One autoload: `Sfx` (`scripts/sfx.gd`).
 The viewport is 1280x720, with stretch mode `canvas_items`.
 
 ## How a frame of the game fits together
 
 ```
-Arena (scripts/arena.gd)            builds one wave's map and runs it
+Arena (scripts/arena.gd)            the base of the waiting room and the world: the player, spells, rituals, HUD
  ├─ Backdrop                         parallax scenery (CanvasLayer -20 sky + Parallax2D layers)
  ├─ Terrain                          tiles, collision strips, props
  ├─ Player (scenes/player.tscn)      CharacterBody2D, origin at the feet; Camera2D (zoom 1.5) inside
@@ -14,11 +14,10 @@ Arena (scripts/arena.gd)            builds one wave's map and runs it
  ├─ Mobs (scenes/mob.tscn)           enemies, including dark wizards (each with its own Caster + WizardBrain)
  ├─ spell nodes                      SpellEffect, FireBreath, Volcano, StormCloud... added as children of Arena
  ├─ Hud (CanvasLayer 3), Spellbook (5), RitualInput (10), DebugPanel (20), Minimap
- └─ WaveDirector                     summons the wave's enemies, reports when cleared
 ```
 
-Each wave gets a **fresh map**: the portal reloads the arena scene with `Levels.wave_index` advanced.
-`Levels.held_focus` carries the wand or staff between maps.
+There are no waves. The waiting room's portal loads a world from a seed (`World.next_seed`).
+`FocusItem.held_focus` carries the wand or staff between maps.
 
 ## World coordinates
 
@@ -50,15 +49,12 @@ never block each other.
 ## Scripts
 
 ### Core flow
-- **`arena.gd`:** builds the level (biome from `Levels.place_of`), spawns the player and the other focus, wires
+- **`arena.gd`:** builds the map (the waiting room and the world override `_build_map` and `_begin_encounter`), wires
   every signal, and routes spells: `spawn_spell` and `_place_shapes`. It also handles the wizard's casts
-  (`_on_wizard_cast`), rituals (`_on_ritual_finished`), the portal, death and restart, pause, debug summons and
+  (`_on_wizard_cast`), rituals (`_on_ritual_finished`), death and restart, pause, debug summons and
   the Insight tooltip. `_is_ground_at` decides where a Stone Wall may start: the ground, a platform, or another
   stone wall.
 - **`arena_gen.gd`:** chunk-based map generation and the `BIOMES` table (tiles, backdrop, props per level).
-- **`levels.gd`:** `LEVELS`, each a biome and a list of waves (enemy kind to count). Level 1 is the cemetery
-  (9 waves), level 2 the swamp (6), level 3 the church (4). A dark wizard ends each level.
-- **`wave_director.gd`:** staggered spawns, `remaining()`, `is_cleared()`.
 
 ### Player
 - **`player.gd`:** movement (coyote time, jump buffer, variable jump height, S drop-through), stamina, HP,
@@ -112,9 +108,8 @@ never block each other.
   - Every spell joins the `"danger"` group, and implements `danger_at(point)`, which the dark wizard
     uses to avoid hazards.
   - Spells find each other through groups, never by scanning the arena's children: `"fires"` (anything burning),
-    `"clouds"` (blizzards, smoke and spores, which wind and Tsunami dissipate; each has `dissipate()` and `span()`),
-    `"shots"` (enemy bolts, projectiles and lava balls), `"rocks"` (boulders), `"lasting"` (effects cleared when the wave
-    ends), `"earthquakes"`, `"breakables"` (stone walls, boulders and trees: `take_blow_near(point, damage)`),
+    `"clouds"` (blizzards, smoke and spores, which wind dissipates; each has `dissipate()` and `span()`),
+    `"shots"` (enemy bolts, projectiles and lava balls), `"rocks"` (boulders), `"lasting"` (lasting effects), `"earthquakes"`, `"breakables"` (stone walls, boulders and trees: `take_blow_near(point, damage)`),
     `"sight_blockers"` and `"eclipses"` (see `SpellTargets.sight_blocked`), `"flora"`, `"climbables"` (Liana),
     `"ponds"`, `"decoys"`, `"hexes"`, `"flares"`, `"lily_pads"`.
   - Check what a node is with its class (`node is Projectile`), not by comparing spell names.
@@ -142,7 +137,7 @@ never block each other.
 - **`fx.gd`:** Kenney soft particles (sparks, smoke, glows). Allowed as accents on top of pixel art.
 - **Small helpers:** `shatter.gd` (pixel shards), `float_text.gd` (damage numbers), `game_camera.gd` (screen
   shake), `bonfire.gd`, `portal.gd`.
-- **`hud.gd`:** bars, wave labels, banner, boss bar, portal arrow, pause and game-over screens. Uses the pixel
+- **`hud.gd`:** the stamina bar, title, banner, boss bar, portal arrow, pause and game-over screens. Uses the pixel
   fonts Jersey 15 and Jacquard 24.
 - **`spellbook.gd`:** the pixel book (`art/ui/book.png`, 7 frames), `MouseIcon` and `Preview` drawn on the book's
   pixel grid, and the pages.

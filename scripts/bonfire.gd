@@ -4,7 +4,7 @@ extends Node2D
 ## A bonfire that burns for a while on the ground. Standing near it slowly restores health.
 ## Its flames are the pixel-art fire column; a warm halo glows round them.
 
-const LIFE := 15.0
+const LIFE := 30.0
 const REACH := 90.0          # how close the player must stand to be warmed
 const HEAL_PER_SECOND := 4.0
 
@@ -31,7 +31,7 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	_age += delta
 	var player := get_tree().get_first_node_in_group("player") as Node2D
-	if player and player.global_position.distance_to(global_position) <= REACH and player.hp < player.MAX_HP:
+	if player and player.global_position.distance_to(global_position) <= REACH and player.max_stamina < player.MAX_STAMINA:
 		_heal_carry += HEAL_PER_SECOND * power * delta
 		var whole := int(_heal_carry)
 		if whole > 0:

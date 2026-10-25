@@ -19,14 +19,12 @@ const NIGHT := Color(0.22, 0.2, 0.34)
 const HEAL_PER_SECOND := 40.0
 const HEAL_AFTER := 4.0  # seconds without a hit before health starts coming back, so damage can be seen
 
+var _portal: Portal
+var _leaving := false
 var _heal := 0.0
 var _since_hurt := HEAL_AFTER
 var _night: CanvasModulate
 var _player_light: PointLight2D
-
-
-func _where_are_we() -> Dictionary:
-	return {"level": 0, "wave": 0, "count": 0, "biome": "cemetery"}
 
 
 ## The ground: flat, with a pit for lava, a gap, a pond's bed and a hill, each with gentle sides so it can be walked out of.
@@ -56,13 +54,8 @@ func _begin_encounter(camera: Camera2D) -> void:
 	player.position = Vector2(ArenaGen.column_x(START_COL), ArenaGen.surface_y(_cells, START_COL))
 	camera.reset_smoothing()
 	player.focus = "wand"
-	Levels.wave_index = 0  # so the portal's banner and the run it starts begin at the first wave
 	player.grant_unlimited(1.0e7)  # nothing here costs stamina
 	player.damaged.connect(func(_amount: int) -> void: _since_hurt = 0.0)
-	_director = WaveDirector.new()  # there are no waves; the director only has to exist
-	_director.arena = self
-	_director.set_process(false)
-	add_child(_director)
 	ritual.seed_spoken.connect(_on_seed_spoken)
 	_add_ponds()
 	_add_targets()
@@ -79,8 +72,8 @@ func _begin_encounter(camera: Camera2D) -> void:
 	_player_light.enabled = false
 	player.add_child(_player_light)
 	hud.set_title("Waiting room")
-	hud.banner("The waiting room", "Try every spell. N is night, R resets, Tab is the spellbook, the portal on the right starts a run")
-	_on_wave_cleared()  # the portal is open from the start
+	hud.banner("The waiting room", "Try every spell. Press Tab for your spellbook, N for night, R to reset. Enter the portal to start a run.")
+	_open_portal()  # the portal is open from the start
 
 
 ## The pond and the pit of lava, each filling the hollow dug for it.
@@ -106,11 +99,11 @@ func _add_targets() -> void:
 ## Words on the ground, to say what each part of the room is for.
 func _add_signs() -> void:
 	var notes := [
-		[START_COL, "Draw anything. Tab shows how."],
+		[START_COL, "Draw anything. Press Tab to see how."],
 		[(LAVA.x + LAVA.y) / 2, "Lava"],
 		[(GAP.x + GAP.y) / 2, "A gap"],
 		[(POND.x + POND.y) / 2, "A pond"],
-		[19, "Dummies, a turret, a ceiling"],
+		[19, "Practise on dummies, a turret, a ceiling"],
 		[(HILL.x + HILL.y) / 2, "High ground"],
 	]
 	for note in notes:
@@ -153,14 +146,26 @@ func _input(event: InputEvent) -> void:
 	super(event)
 
 
+## The portal stands at the far end of the room, open from the start.
+func _open_portal() -> void:
+	_portal = Portal.new()
+	var far_right: bool = player.global_position.x < 0.0
+	var col := ArenaGen.RIGHT_WALL - 3 if far_right else ArenaGen.LEFT_WALL + 3
+	_portal.position = Vector2(ArenaGen.column_x(col), ArenaGen.surface_y(_cells, col) - Portal.RY - 4.0)
+	_portal.body_entered.connect(_on_portal_entered)
+	add_child(_portal)
+	_portal.open()
+	hud.point_to_portal(_portal)
+	Sfx.play("portal_open", _portal.global_position)
+
+
 ## The portal opens a world at once: a random one, or the one named by four words spoken earlier (Enter opens the box).
 func _on_portal_entered(body: Node2D) -> void:
 	if body != player or _leaving or ritual.visible:
 		return
 	_leaving = true
 	Sfx.play("portal_enter")
-	Levels.wave_index = 0
-	Levels.held_focus = "wand"
+	FocusItem.held_focus = "wand"
 	var fade := create_tween()
 	fade.tween_property(player, "modulate:a", 0.0, 0.25)
 	fade.tween_callback(get_tree().change_scene_to_file.bind("res://scenes/world.tscn"))
@@ -169,5 +174,5 @@ func _on_portal_entered(body: Node2D) -> void:
 ## Four words of a world's name, typed into the ritual box, tune the portal to that world.
 func _on_seed_spoken(text: String) -> void:
 	World.next_seed = Incantation.seed_of(text)
-	_on_feedback("The portal hums: %s" % Incantation.words_for(World.next_seed), Color("#c8a8ff"))
+	_on_feedback("Enter the portal for: %s" % Incantation.words_for(World.next_seed), Color("#c8a8ff"))
 	Sfx.play("ritual_ok", player.center(), -6.0)

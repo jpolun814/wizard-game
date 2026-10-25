@@ -2,7 +2,7 @@ class_name Blizzard
 extends SpellEffect
 
 ## Snow falling from clouds along the drawn line down to the ground under it, under a faint white wash. Anything in it
-## is slowed, and stays slowed for a moment after leaving. A lasting blizzard (the spell) snows until the wave ends:
+## is slowed, and stays slowed for a moment after leaving. A lasting blizzard (the spell) snows until it is put out:
 ## what lands builds up into a pile that settles like real snow, can be walked on, and is melted by fire. A passing
 ## fall (an ice enemy's trail) lasts a few seconds and leaves no pile.
 

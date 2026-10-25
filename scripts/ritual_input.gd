@@ -13,17 +13,18 @@ signal seed_spoken(text: String)
 
 ## "kind" is "ritual" (has an effect) or "toggle" (shows or hides a HUD module). Neither costs stamina.
 const RITUALS := {
-	"second_wind": {"kind": "ritual", "name": "Chant of the Second Wind", "text": "sanguis redit"},
 	"minimap": {"kind": "toggle", "module": "minimap", "name": "Chant of the Land",
-		"text": "terram ostende", "shows": "A minimap of the area around you, with mobs and yourself."},
+		"text": "terram ostende", "shows": "Show a minimap of the area around you."},
 	"insight": {"kind": "toggle", "module": "insight", "name": "Chant of Insight",
-		"text": "hostes vide", "shows": "Hover an enemy to see its health, weaknesses, resistances and what it does."},
+		"text": "hostes vide", "shows": "Hover over a foe to see information about it."},
 	"bonfire": {"kind": "ritual", "name": "Incantation of the Bonfire",
-		"text": "ignis ardeat"},
+		"text": "ignis ardeat in tenebris et calorem det mihi dum noctem semper expello"},
 	"boundless": {"kind": "ritual", "name": "Chant of Boundless Vigour",
 		"text": "vires fluant"},
 	"double_jump": {"kind": "ritual", "name": "Chant of the Second Leap",
 		"text": "volo iterum"},
+	"rift": {"kind": "ritual", "name": "Incantation of the Rift",
+		"text": "locum muta"},
 }
 const BACKFIRE_BELOW := 0.6  # accuracy under this misfires
 const FULL_POWER_AT := 0.9   # accuracy at or above this is full power

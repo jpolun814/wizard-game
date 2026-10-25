@@ -4,7 +4,7 @@ extends Node
 ## playing it by hand. Run from the project folder with a window (not headless), for example:
 ##     godot --path . tests/showcase.tscn -- scenario=spells out=C:/temp/shots
 ## Scenarios:
-##   world   - every enemy kind standing around the player, then a wave in progress
+##   world   - every enemy kind standing around the player, with their health bars
 ##   cave    - a generated world: the start hall, then the wizard climbing a shaft by jumping from platform to platform
 ##   spells  - every spell cast in turn in the waiting room, with screenshots of each
 ##   wizard  - the dark wizard dueling a player who stands still and throws bolts at it
@@ -12,7 +12,6 @@ extends Node
 
 var scenario := "world"
 var out_dir := "user://shots"
-var wave := 2
 var only := ""  # spells scenario: cast just this spell, with a screenshot every tenth of a second
 var _arena: Node
 var _t := 0.0
@@ -31,15 +30,12 @@ func _ready() -> void:
 					scenario = parts[1]
 				"out":
 					out_dir = parts[1]
-				"wave":
-					wave = int(parts[1])
 				"only":
 					only = parts[1].replace("_", " ")
 	process_mode = Node.PROCESS_MODE_ALWAYS  # keeps running while the game is paused
 	DirAccess.make_dir_recursive_absolute(out_dir)
-	Levels.wave_index = wave
 	# The spells are tried in the waiting room, where there is a pond, a gap and dummies for each of them.
-	var scene := "lab" if scenario in ["spells", "lab", "climb", "checks"] else ("world" if scenario == "cave" else "arena")
+	var scene := "world" if scenario == "cave" else "lab"
 	if scenario == "cave":
 		World.next_seed = 11  # the same world each time
 	_arena = load("res://scenes/%s.tscn" % scene).instantiate()
@@ -109,15 +105,14 @@ func _summon_at(kind: String, x: float) -> Node2D:
 
 
 func _plan() -> void:
-	_arena._director.set_process(false)  # the showcase chooses its own enemies
-	_player().hp = 9999  # nothing ends the showcase early
+	_player().max_stamina = 9999.0  # nothing ends the showcase early
 	match scenario:
 		"world":
 			_at(0.4, func() -> void:
 				var x: float = _player().global_position.x
-				var kinds := ["fire_melee", "ice_ranged", "earth_melee", "storm_flyer", "force_ranged", "dark_wizard"]
+				var kinds := ["fire_melee", "ice_ranged", "earth_melee", "storm_flyer", "force_ranged", "dark_wizard", "pyre_wizard", "bone_wizard", "ninja"]
 				for i in kinds.size():
-					var mob := _summon_at(kinds[i], x + (i - 2.5) * 70.0)
+					var mob := _summon_at(kinds[i], x + (i - 4.5) * 90.0)
 					mob.set_physics_process(false)
 					mob._spawn = 0.0
 					mob.modulate.a = 1.0)
@@ -154,11 +149,14 @@ func _plan() -> void:
 		"book":
 			# Every spread of the spellbook, one after another.
 			_at(0.3, func() -> void: _arena.spellbook.visible = true)
-			for k in 8:
-				_at(0.6 + k * 0.5, func() -> void: _snap("spread_%d" % k))
-				_at(0.9 + k * 0.5, func() -> void: _arena.spellbook._turn(1))
+			var shown := [0, 1, 2, 8, 17, 19]
+			for n in shown.size():
+				var k: int = shown[n]
+				_at(0.6 + n * 0.5, func() -> void:
+					_arena.spellbook._spread = k
+					_arena.spellbook._show_spread())
+				_at(0.9 + n * 0.5, func() -> void: _snap("spread_%d" % k))
 		"ui":
-			_at(0.5, func() -> void: _arena._on_wave_cleared())
 			_at(1.0, func() -> void: _snap("portal_arrow"))
 			_at(1.1, func() -> void: _player().global_position = _arena._portal.global_position + Vector2(-90, Portal.RY + 4.0))
 			_at(1.6, func() -> void: _snap("portal"))
@@ -173,18 +171,19 @@ func _plan() -> void:
 			_at(3.7, func() -> void: _snap("pause"))
 			_at(3.8, func() -> void:
 				_arena.hud.toggle_pause()
-				_player().hp = 5
+				_player().max_stamina = 5.0
 				_player()._grace = 0.0
 				_player().take_damage(10))
 			_at(5.8, func() -> void: _snap("game_over"))
 		"wizard":
 			_plan_wizard()
 		"soak":
-			# The real wave plays while the player, who cannot die, casts random spells at random spots. Only
+			# A few enemies stand about while the player, who cannot die, casts random spells at random spots. Only
 			# errors in the output matter; run it headless.
-			_arena._director.set_process(true)
+			for kind in ["fire_melee", "ice_ranged", "earth_melee", "storm_flyer", "ninja", "dark_wizard"]:
+				_summon_at(kind, _player().global_position.x + randf_range(-300.0, 300.0))
 			var rng := RandomNumberGenerator.new()
-			rng.seed = wave
+			rng.seed = 2
 			var names := SpellData.SPELLS.keys()
 			for i in 40:
 				_at(0.5 + i * 0.3, func() -> void:
@@ -194,10 +193,8 @@ func _plan() -> void:
 					if gesture == "stone_wall":
 						spot.y = ArenaGen.GROUND_Y - 40.0
 					_cast(spell_name, _stroke(gesture, spot, rng.randf_range(0.8, 1.3)))
-					_player().hp = 9999)
-			_at(13.0, func() -> void: print("soak wave %d done, %d enemies left" % [wave, _arena.get_tree().get_nodes_in_group("mobs").size()]))
-		"biome":
-			_at(2.6, func() -> void: _snap("level"))
+					_player().max_stamina = 9999.0)
+			_at(13.0, func() -> void: print("soak done, %d enemies left" % [_arena.get_tree().get_nodes_in_group("mobs").size()]))
 		"brawl":
 			# A mixed group comes for a player who stands still, to watch them chase, wind up, shoot and dive.
 			_at(0.3, func() -> void:
@@ -240,7 +237,6 @@ func _plan_spells() -> void:
 		["Blizzard", 14, func(f: Vector2) -> PackedVector2Array: return _stroke("snowfall", f + Vector2(110, -90)), [0.9]],
 		["Frost Bridge", 1, func(f: Vector2) -> PackedVector2Array: return _stroke("wave", Vector2(ArenaGen.column_x(8), f.y - 20.0), 1.5), [0.6, 1.5]],
 		["Geyser", 14, func(f: Vector2) -> PackedVector2Array: return _stroke("geyser", f + Vector2(0, -50), 0.8), [0.4, 0.95, 1.2]],
-		["Tsunami", 14, func(f: Vector2) -> PackedVector2Array: return _stroke("tsunami", f + Vector2(0, -130), 1.2), [1.0, 1.6, 2.2, 3.4]],
 		["Push", 14, func(f: Vector2) -> PackedVector2Array: return _push_stroke(f + Vector2(60, -30)), [0.35]],
 		["Barrier", 14, func(f: Vector2) -> PackedVector2Array: return _stroke("circle", f + Vector2(0, -30), 0.8), [0.4]],
 		["Tornado", 14, func(f: Vector2) -> PackedVector2Array: return _stroke("tornado", f + Vector2(130, -80)), [1.0]],
@@ -283,11 +279,11 @@ func _plan_spells() -> void:
 		if only != "":
 			for k in 16:
 				_at(t + 0.45 + k * 0.1, func() -> void: _snap("%s_%.1f" % [spell_name.replace(" ", "_"), k * 0.1]))
-		t += 10.0 if spell_name == "Great Oak" else (5.0 if spell_name == "Tsunami" else 2.4)
+		t += 10.0 if spell_name == "Great Oak" else 2.4
 
 
 ## Checks that the spells that work through other things do: smoke cuts sight, a decoy draws attacks, a hex adds damage,
-## a Gust turns a shot, a Tsunami puts out fire, lily pads burn over lava, ice bears weight. Each prints PASS or FAIL.
+## a Gust turns a shot, lily pads burn over lava, ice bears weight. Each prints PASS or FAIL.
 func _plan_checks() -> void:
 	var failures := [0]
 	var check := func(label: String, ok: bool) -> void:
@@ -339,12 +335,6 @@ func _plan_checks() -> void:
 	_at(6.7, func() -> void:
 		var bolt: Node = tree.get_first_node_in_group("test_bolt")
 		check.call("a Gust turns an incoming shot back", bolt == null or bolt.heading().x > 0.0))
-	# A Tsunami puts out a firewall.
-	_at(7.5, func() -> void: _reset_room(14, "Tsunami"))
-	_at(7.7, func() -> void: _cast("Firewall", _stroke("wall", _feet(14) + Vector2(150, -60))))
-	_at(8.0, func() -> void: check.call("the firewall is burning", tree.get_nodes_in_group("fires").any(func(n: Node) -> bool: return n is Firewall)))
-	_at(8.1, func() -> void: _cast("Tsunami", _stroke("tsunami", _feet(14) + Vector2(0, -130), 1.2)))
-	_at(11.0, func() -> void: check.call("a Tsunami puts the firewall out", not tree.get_nodes_in_group("fires").any(func(n: Node) -> bool: return n is Firewall)))
 	# Lily pads burn over lava, and hold over the gap.
 	_at(12.5, func() -> void: _reset_room(-27, "Lily Pads"))
 	_at(12.7, func() -> void: _cast("Lily Pads", _stroke("pads", Vector2(ArenaGen.column_x(-20), ArenaGen.GROUND_Y - 30.0), 1.6)))
@@ -479,6 +469,28 @@ func _plan_wizard() -> void:
 func _plan_cave() -> void:
 	_at(0.8, func() -> void: _snap("start"))
 	var graph: WorldGraph = _arena.graph
+	_at(0.85, func() -> void:
+		var before: Vector2 = _player().global_position
+		_player().max_stamina = 200.0
+		_player().stamina = 80.0
+		_arena._on_ritual_finished("rift", 1.0, false)
+		var moved: bool = _player().global_position.distance_to(before) > 400.0
+		var ok: bool = moved and _player().max_stamina == 180.0 and _player().stamina == 0.0 and not _arena._body_in_rock(_player().global_position)
+		print("%s  a Rift moves the wizard far, empties stamina and takes 20 off the most (max %d, stamina %d)" % ["PASS" if ok else "FAIL", _player().max_stamina, _player().stamina])
+		_player().global_position = before
+		_player().max_stamina = 100.0)
+	_at(0.87, func() -> void:
+		var flare := Flare.new()
+		flare.caster_node = _player()
+		_arena.add_child(flare)
+		var held: bool = not flare.is_queued_for_deletion()
+		_arena.spawn_spell("Frostbolt", "directional", flare.global_position + Vector2(-40, 0), 0.0, {"length": 300.0}, _player())
+		print("%s  a Frostbolt cast through a flare puts it out" % ["PASS" if held and flare.is_queued_for_deletion() else "FAIL"])
+		var second := Flare.new()
+		second.caster_node = _player()
+		_arena.add_child(second)
+		Flare.snuff_near(_arena.get_tree(), second.global_position, 0.0)
+		print("%s  a click on a flare puts it out" % ["PASS" if second.is_queued_for_deletion() else "FAIL"]))
 	var seen_kinds := {}
 	var look := 0.9
 	for pond in _arena._ponds:
@@ -494,12 +506,23 @@ func _plan_cave() -> void:
 		look += 0.1
 	var t := 2.0
 	if _arena.castle_x >= 0:
-		var castle_at := Vector2((_arena.castle_x + 38) * float(ArenaGen.TILE), (WorldGraph.SURFACE_ROW - 11) * float(ArenaGen.TILE))  # on the wall
+		var ground_y := WorldGraph.SURFACE_ROW * float(ArenaGen.TILE)
+		for view in [["gate", -6.0], ["castle", 30.0], ["tower", 60.0]]:  # outside the gate, in the hall, and on the east tower
+			var at := Vector2((_arena.castle_x + view[1]) * float(ArenaGen.TILE), ground_y - (26.0 * float(ArenaGen.TILE) if view[0] == "tower" else 0.0))
+			var name: String = view[0]
+			_at(t, func() -> void:
+				_player().global_position = at
+				_player().velocity = Vector2.ZERO
+				_arena.get_node("Player/Camera2D").reset_smoothing())
+			_at(t + 1.0, func() -> void: _snap(name))
+			t += 1.6
 		_at(t, func() -> void:
-			_player().global_position = castle_at
-			_player().velocity = Vector2.ZERO
-			_arena.get_node("Player/Camera2D").reset_smoothing())
-		_at(t + 1.0, func() -> void: _snap("castle"))
+			_player().global_position = Vector2((_arena.castle_x + 50) * float(ArenaGen.TILE), ground_y - 12.0 * float(ArenaGen.TILE))
+			var camera: Camera2D = _arena.get_node("Player/Camera2D")
+			camera.zoom = Vector2(0.4, 0.4)
+			camera.reset_smoothing())
+		_at(t + 1.0, func() -> void: _snap("castle_whole"))
+		_at(t + 1.2, func() -> void: _arena.get_node("Player/Camera2D").zoom = Vector2(1.5, 1.5))
 		t += 1.6
 	# A tunnel's slope, on foot: from the low mouth to the high one, holding only the walk key.
 	var steepest := {}

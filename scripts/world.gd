@@ -12,6 +12,12 @@ var seed_value := 0
 var graph: WorldGraph
 var _markers := {}
 var _ponds := []
+const DEEP := Color(0.3, 0.27, 0.42)  # the colour of everything unlit, just under the ground
+const BLACK := Color(0.015, 0.015, 0.03)  # and far down: nothing shows without a light
+const DARKEN_ROWS := 16.0  # how far under the surface it takes for the light of the day to fade
+const BLACKEN_ROWS := 110.0  # and for the dark to become total
+
+var _dark: CanvasModulate
 var castle_x := -1  # the first column of the castle on the surface, or -1 when there is none
 
 
@@ -29,6 +35,7 @@ func _build_map() -> Dictionary:
 	ArenaGen.world_size = built["size"]
 	ArenaGen.sky_xl = built["sky"]["xl"]
 	ArenaGen.sky_floor = built["sky"]["floor"]
+	ArenaGen.castle_hall = built["hall"]
 	tiled_ground = true
 	_start_tile = built["start"]
 	return built["cells"]
@@ -37,19 +44,11 @@ func _build_map() -> Dictionary:
 var _start_tile := Vector2i.ZERO
 
 
-func _where_are_we() -> Dictionary:
-	return {"level": 0, "wave": 0, "count": 0, "biome": "cemetery"}
-
-
 func _begin_encounter(camera: Camera2D) -> void:
 	player.position = _stand_at(_start_tile)
 	_safe_spot = player.position
 	camera.reset_smoothing()
 	player.focus = "wand"
-	_director = WaveDirector.new()  # there are no waves yet; the director only has to exist
-	_director.arena = self
-	_director.set_process(false)
-	add_child(_director)
 	hud.set_title("")
 	hud.set_pause_note("World: " + Incantation.words_for(seed_value))
 	for entry in _ponds:
@@ -60,6 +59,10 @@ func _begin_encounter(camera: Camera2D) -> void:
 		pond.position = Vector2(entry["a"] * float(TILE), entry["surface"] * float(TILE))
 		pond.clip = _ground.air_loops
 		add_child(pond)
+	_dark = CanvasModulate.new()  # under the ground it is dark; only fire and the flare light the way
+	_dark.add_to_group("darkness")
+	add_child(_dark)
+	get_tree().node_added.connect(_on_node_added)
 	hud.banner("A new world", Incantation.words_for(seed_value))
 
 
@@ -103,6 +106,9 @@ func _out_of_rock(start: Vector2, end: Vector2) -> Vector2:
 ## If the wizard ever ends up inside rock, or falls out of the world, they are put back on the last firm ground.
 func _process(delta: float) -> void:
 	super(delta)
+	var depth := clampf((player.global_position.y - (WorldGraph.SURFACE_ROW + 2) * TILE) / (DARKEN_ROWS * TILE), 0.0, 1.0)
+	var far := clampf((player.global_position.y - (WorldGraph.SURFACE_ROW + 2) * TILE - DARKEN_ROWS * TILE) / ((BLACKEN_ROWS - DARKEN_ROWS) * TILE), 0.0, 1.0)
+	_dark.color = Color.WHITE.lerp(DEEP, depth).lerp(BLACK, far)
 	if player.dead:
 		return
 	if _body_in_rock(player.global_position) or player.global_position.y > ArenaGen.world_size.y * TILE:
@@ -116,3 +122,43 @@ func _process(delta: float) -> void:
 		_buried = 0.0
 		if player.is_on_floor():
 			_safe_spot = player.global_position
+
+
+func _make_light(radius: float, color: Color, energy: float) -> PointLight2D:
+	var light := PointLight2D.new()
+	light.texture = Fx.tex("light_01")
+	light.texture_scale = radius * 2.0 / Fx.TEX_SIZE
+	light.color = color
+	light.energy = energy
+	light.shadow_enabled = false
+	return light
+
+
+## Every fire lights the dark round it while it lasts, and lava glows.
+func _on_node_added(node: Node) -> void:
+	if node is Pond or node is Hazard or node is Projectile or node is Firewall or node is FireBreath or node is LavaBall:
+		_light_when_ready.call_deferred(node)
+
+
+func _light_when_ready(node: Node) -> void:
+	if not is_instance_valid(node) or not node.is_in_group("fires"):
+		return
+	if node is Pond:
+		var pond: Pond = node
+		var glow := _make_light(maxf(pond.width, 160.0), Color(1.0, 0.5, 0.2), 0.9)
+		glow.position = Vector2(pond.width * 0.5, 0.0)
+		node.add_child(glow)
+	else:
+		node.add_child(_make_light(260.0, Color(1.0, 0.6, 0.25), 1.1))
+
+
+## A Rift sets the wizard down in another hall, picked by chance: not the boss's, and none behind a gate (there are no gates yet).
+func _rift_spot(from: Vector2) -> Vector2:
+	var spots: Array[Vector2] = []
+	for room in graph.rooms:
+		if room["id"] == graph.boss:
+			continue
+		var spot := _stand_at(_markers[room["id"]])
+		if spot.distance_to(from) > 400.0:
+			spots.append(spot)
+	return spots[randi() % spots.size()] if not spots.is_empty() else from

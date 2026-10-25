@@ -14,15 +14,12 @@ const PAPER_DARK := Color("#b88f72")
 const SCALE := 5.0             # one pixel of the book is this many screen pixels
 const FRAME := Vector2(190, 160)
 const OPEN := 3                # the book's frames: 0 closed, 1-2 opening, 3 open, 4-6 a page turning over
-const PAGES := [Rect2(24, 28, 62, 104), Rect2(94, 28, 62, 104)]  # where the writing goes, in book pixels
+const PAGES := [Rect2(25, 30, 57, 100), Rect2(98, 30, 58, 100)]  # where the writing goes, in book pixels
 const FRAME_TIME := 0.06
 const OPEN_MIDDLE := Vector2(90.5, 83.5)  # the middle of the open book in its frame
 
 ## The schools, in the order they appear in the book.
 const SCHOOLS := ["Fire", "Water", "Air", "Earth", "Flora", "Shadow"]
-const SPELLS_PER_PAGE := 4  # what a page of spells holds
-## How many incantations fit on one page. The rest run on to the facing page, so the book never grows.
-const INCANTATIONS_PER_PAGE := 3
 
 var _spread := 0
 var _pages: Array[Callable] = []
@@ -34,7 +31,8 @@ var _title_font: Font
 var _faces: Array[Font] = []
 var _title_faces: Array[Font] = []
 const FACE_FILES := ["res://fonts/PirataOne-Regular.ttf"]  # the face the book is written in
-var _arrows: Array = []  # the page-turn arrows currently on the book
+var _left_number: Label  # the page numbers, at the foot of each page
+var _right_number: Label
 
 
 ## The book itself, one frame of its sheet at a time. play() runs a list of frames, then calls back.
@@ -118,36 +116,16 @@ class MouseIcon extends Control:
 					draw_rect(Rect2(Vector2(x, y) * px, Vector2(px, px)), colour)
 
 
-## An arrow pointing the way the book turns: 1 to the right, -1 to the left.
-class PageArrow extends Control:
-	var direction := 1
-	var scale_up := 1.0
-
-	func _init(turn: int, size_up: float) -> void:
-		direction = turn
-		scale_up = size_up
-		custom_minimum_size = Vector2(24, 16) * scale_up
-
-	func _draw() -> void:
-		var flip := 1.0 if direction > 0 else -1.0
-		var centre := custom_minimum_size * 0.5
-		var tip := centre + Vector2(9.0 * flip, 0) * scale_up
-		var tail := centre + Vector2(-9.0 * flip, 0) * scale_up
-		draw_line(tail, tip, Spellbook.INK, 2.0, true)
-		draw_line(tip, tip + Vector2(-5.5 * flip, -4.5) * scale_up, Spellbook.INK, 2.0, true)
-		draw_line(tip, tip + Vector2(-5.5 * flip, 4.5) * scale_up, Spellbook.INK, 2.0, true)
-
-
 ## A gesture's shape, drawn as a hand would ink it: a smooth stroke with a fine second line beside it, an arrowhead
 ## on the tip of the ink as it is drawn, a dot where it starts. A spell that must start on the ground has a hatched line of earth under it.
 class Preview extends Control:
 	var points := PackedVector2Array()
 	var ground := NAN
 
-	func _init(pts: PackedVector2Array, ground_y := NAN) -> void:
+	func _init(pts: PackedVector2Array, ground_y := NAN, side := 48.0) -> void:
 		points = pts
 		ground = ground_y
-		custom_minimum_size = Vector2.ONE * 72.0
+		custom_minimum_size = Vector2.ONE * side
 
 	# The stroke is drawn out again and again, as if the wizard were casting it: it traces itself, then rests with its arrow.
 	var _clock := 0.0
@@ -192,7 +170,11 @@ class Preview extends Control:
 			for x in range(10, int(box) - 6, 6):
 				draw_line(Vector2(x, gy), Vector2(x - 4.0, gy + 5.0), Spellbook.PAPER_DARK, 1.0, true)
 		# The ink: a soft wash underneath, then the line itself and a fainter second pass for a hand-drawn edge.
-		var shown := clampf(fmod(_clock, 2.6) / 1.4, 0.0, 1.0)  # the stroke traces itself over 1.4 s, then rests
+		var length := 0.0
+		for i in drawn.size() - 1:
+			length += drawn[i].distance_to(drawn[i + 1])
+		var duration := clampf(length / 260.0, 0.3, 1.5)  # a short, simple stroke is drawn quickly, a long one slowly
+		var shown := clampf(fmod(_clock, duration + 0.8) / duration, 0.0, 1.0)  # it traces itself, then rests
 		var traced := _traced(drawn, shown)
 		draw_polyline(traced, Color(Spellbook.INK, 0.18), 5.0, true)
 		draw_polyline(traced, Spellbook.INK, 2.2, true)
@@ -224,14 +206,11 @@ func _ready() -> void:
 
 	_pages = [_page_contents]
 	for school in SCHOOLS:
-		# A school with more spells than a page holds goes over two pages, shared out evenly.
-		var spells := _spells_of(school)
-		var per_page := ceili(spells.size() / float(ceili(spells.size() / float(SPELLS_PER_PAGE))))
-		for first in range(0, spells.size(), per_page):
-			_pages.append(_page_school.bind(school, spells.slice(first, first + per_page)))
+		for spell_name in _spells_of(school):
+			_pages.append(_page_spell.bind(spell_name))  # every spell has a page to itself
 	var ritual_ids := RitualInput.RITUALS.keys()
-	for first in range(0, ritual_ids.size(), INCANTATIONS_PER_PAGE):
-		_pages.append(_page_incantations.bind(ritual_ids.slice(first, first + INCANTATIONS_PER_PAGE), first == 0))
+	for ritual_id in ritual_ids:
+		_pages.append(_page_incantation.bind(ritual_id))
 
 	# Each page is set in one of the candidate hands, in turn, so the pages can be compared as the book is turned.
 	for path in FACE_FILES:
@@ -250,6 +229,9 @@ func _ready() -> void:
 	add_child(_book)
 	_left = _page_column(PAGES[0])
 	_right = _page_column(PAGES[1])
+	_use_face(0)
+	_left_number = _page_number(_left)
+	_right_number = _page_number(_right)
 
 	_show_spread()
 
@@ -315,6 +297,16 @@ func _page_column(page: Rect2) -> VBoxContainer:
 	return column
 
 
+## A number at the foot of a page, in the middle.
+func _page_number(column: VBoxContainer) -> Label:
+	var label := _ink("", 20, SUBTLE)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.size = Vector2(column.size.x, 30)
+	label.position = Vector2(0, column.size.y - 56)
+	column.get_parent().add_child(label)
+	return label
+
+
 func _show_spread() -> void:
 	_use_face(_spread * 2)
 	_fill(_left, _pages[_spread * 2])
@@ -323,7 +315,8 @@ func _show_spread() -> void:
 		_fill(_right, _pages[_spread * 2 + 1])
 	else:
 		_fill(_right, _page_blank)
-	_show_arrows()
+	_left_number.text = str(_spread * 2 + 1)
+	_right_number.text = str(_spread * 2 + 2) if _spread * 2 + 1 < _pages.size() else ""
 
 
 ## Sets the text and title faces for the page at this index.
@@ -331,26 +324,6 @@ func _use_face(page: int) -> void:
 	var i := page % _faces.size()
 	_text_font = _faces[i]
 	_title_font = _title_faces[i]
-
-
-## Arrows show where the book turns. The first page is blank apart from one large arrow; every other page has a small
-## arrow in its outer bottom corner for each way the book can turn from it.
-func _show_arrows() -> void:
-	for arrow in _arrows:
-		arrow.queue_free()
-	_arrows.clear()
-	var last_spread := ceili(_pages.size() / 2.0) - 1
-	if _spread > 0:
-		_add_arrow(Vector2(PAGES[0].position.x, PAGES[0].end.y) * SCALE + Vector2(8, -30), -1, 1.0)
-	if _spread < last_spread:
-		_add_arrow(Vector2(PAGES[1].end.x, PAGES[1].end.y) * SCALE + Vector2(-34, -30), 1, 1.0)
-
-
-func _add_arrow(at: Vector2, direction: int, size: float) -> void:
-	var arrow := PageArrow.new(direction, size)
-	arrow.position = at.floor()
-	_book.add_child(arrow)
-	_arrows.append(arrow)
 
 
 func _fill(column: VBoxContainer, builder: Callable) -> void:
@@ -419,7 +392,7 @@ func _page_contents(column: VBoxContainer) -> void:
 	# The cheat sheet: each school's mouse with the buttons that cast it lit, and the school's name. The rows share one
 	# column, so the mice line up, and the whole sheet sits in the middle of the page, up and down and across.
 	var sheet := VBoxContainer.new()
-	sheet.add_theme_constant_override("separation", 22)
+	sheet.add_theme_constant_override("separation", 12)
 	sheet.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	for school in SCHOOLS:
 		var row := _school_row(school, 1.5)
@@ -441,63 +414,50 @@ func _spells_of(school: String) -> Array:
 	return names
 
 
-func _page_school(column: VBoxContainer, school: String, spells: Array) -> void:
-	# The school's name, with its mouse beside it.
+## A spell's own page: its name with its school's mouse, the shape drawn out large, what it costs, what it does, how to draw it.
+func _page_spell(column: VBoxContainer, spell_name: String) -> void:
+	var s: Dictionary = SpellData.SPELLS[spell_name]
+	var school: String = s["school"]
 	var top := HBoxContainer.new()
 	top.add_theme_constant_override("separation", 10)
-	var heading := _heading(school, 46)
+	var heading := _heading(spell_name, 42)
 	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	top.add_child(heading)
 	top.add_child(MouseIcon.new(_school_mask(school), SpellData.SCHOOL_COLORS[school]))
 	column.add_child(top)
-	for spell_name in spells:
-		column.add_child(_spell_entry(spell_name, SpellData.SPELLS[spell_name]))
-
-
-## A spell is its name and its shape, with a small line of stats underneath.
-func _spell_entry(spell_name: String, s: Dictionary) -> HBoxContainer:
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 12)
 	var gesture: String = s.get("preview", s["gesture"])
-	var preview := Preview.new(GestureTemplates.preview_points(gesture), GestureTemplates.preview_ground(gesture))
-	preview.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	row.add_child(preview)
-	var text := VBoxContainer.new()
-	text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	text.add_theme_constant_override("separation", -4)
-	text.add_child(_title_label(spell_name, 36, TEXT_INK))
-	text.add_child(_ink("%d stamina · %s" % [roundi(s["cost"]), SpellData.DAMAGE[spell_name]], 18, SUBTLE))
-	row.add_child(text)
-	return row
+	var preview := Preview.new(GestureTemplates.preview_points(gesture), GestureTemplates.preview_ground(gesture), 150.0)
+	preview.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	column.add_child(preview)
+	column.add_child(_ink("%d stamina" % roundi(s["cost"]), 20, SUBTLE))
+	column.add_child(_ink(s["effect"], 22, TEXT_INK))
 
 
-## A page of incantations: each one's name, its words, and what it does. Every one is spoken by typing it and
-## pressing Enter, which the first page says once.
-func _page_incantations(column: VBoxContainer, ritual_ids: Array, first: bool) -> void:
-	if first:
-		column.add_child(_heading("Incantations", 46))
+## An incantation's own page: its name, its words and what it does. Every one is spoken by typing it and pressing Enter,
+## which the first page says once.
+func _page_incantation(column: VBoxContainer, ritual_id: String) -> void:
+	var r: Dictionary = RitualInput.RITUALS[ritual_id]
+	column.add_child(_heading(r["name"], 40))
+	if ritual_id == RitualInput.RITUALS.keys()[0]:
 		column.add_child(_ink("Press Enter, type the words, press Enter.", 18, SUBTLE))
-	for ritual_id in ritual_ids:
-		var r: Dictionary = RitualInput.RITUALS[ritual_id]
-		column.add_child(_title_label(r["name"], 34, TEXT_INK))
-		column.add_child(_ink("“%s”" % r["text"], 20, TEXT_INK))
-		column.add_child(_ink(_ritual_effect(ritual_id), 18, SUBTLE))
+	column.add_child(_ink("“%s”" % r["text"], 26, TEXT_INK))
+	column.add_child(_ink(_ritual_effect(ritual_id), 20, SUBTLE))
 
 
 func _ritual_effect(ritual_id: String) -> String:
 	match ritual_id:
-		"second_wind":
-			return "Heals you."
 		"minimap":
 			return "Shows or hides the minimap."
 		"insight":
-			return "Hover a foe to see its health and weaknesses."
+			return "Hover over a foe to see information about it."
 		"bonfire":
-			return "A healing bonfire for 15 seconds."
+			return "Lights a bonfire for 30 seconds that restores your lost maximum stamina."
 		"boundless":
-			return "Endless stamina for 20 seconds."
+			return "Gives you endless stamina for 20 seconds."
 		"double_jump":
-			return "One extra jump in the air for 20 seconds."
+			return "Lets you jump once more in mid-air for 20 seconds."
+		"rift":
+			return "Teleports you to a random place on the map. Costs all your stamina and lowers your maximum by 20."
 	return ""
 
 

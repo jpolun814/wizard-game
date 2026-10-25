@@ -12,7 +12,13 @@ extends RefCounted
 ## `reachable`) confirms every hall can be reached on foot. Nothing here uses randomness except the rng it is given.
 
 const FORMATION_STEP := 2   # rows between the steps of a rock formation, so a jump from a slope still reaches
-const CASTLE_WIDTH := 82  # columns the ruined castle takes on the surface
+const CASTLE_HEIGHT := 26  # rows the towers stand above the ground
+const CASTLE_WALL := 14  # rows the wall over the hall stands above the ground
+const CASTLE_GATE := 16  # columns the gatehouse takes, with the gate through its foot
+const CASTLE_GATE_HEIGHT := 7  # rows of air in the gate
+const CASTLE_STAIR := 47  # the column where the stair inside the east tower starts, and the east tower with it
+const CASTLE_HALL_HEIGHT := 9  # rows of air in the hall
+const CASTLE_WIDTH := 100  # columns the ruined castle takes on the surface
 const EXIT_FLAT := 10       # columns of flat floor inside a hall at a tunnel mouth
 const PASSAGE_HEIGHT := 6   # rows of air in a tunnel, at the least
 const BASIN_CHANCE := 0.5
@@ -76,10 +82,11 @@ static func build(graph: WorldGraph, rng: RandomNumberGenerator) -> Dictionary:
 		if not room.has("surface"):
 			plans[room["id"]]["pins"].append(Vector2i(markers[room["id"]].x - 3, markers[room["id"]].x + 3))  # keep the marker clear
 			_formations(cells, profiles[room["id"]], plans[room["id"]], rng)
+	var hall: Array = []
 	if castle_x >= 0:
-		_castle(cells, graph.rooms[0]["cy"], castle_x)
+		hall = _castle(cells, graph.rooms[0]["cy"], castle_x)
 	return {"cells": cells, "size": size, "markers": markers, "start": markers[graph.start], "ponds": ponds,
-			"hazards": hazards, "castle": castle_x, "profiles": profiles, "sky": {"xl": profiles[0]["xl"], "floor": profiles[0]["floor"]}}
+			"hazards": hazards, "castle": castle_x, "hall": hall, "profiles": profiles, "sky": {"xl": profiles[0]["xl"], "floor": profiles[0]["floor"]}}
 
 
 ## A hall's floor and ceiling: a first solid row for each column from its left end to its right, and the basins in it.
@@ -352,32 +359,46 @@ static func _castle_site(surface: Dictionary, pins: Array, rng: RandomNumberGene
 	return options[rng.randi() % options.size()] if not options.is_empty() else -1
 
 
-## A ruined castle on level ground, in stone, that you climb over: a stair up the side of a tall tower, its roof, a stair down onto
-## a long wall, a stair up to a second tower, and a stair down the far side. Every stair goes both ways. Every part is walkable and nothing floats.
-## Dark windows are cut into the towers and the wall.
-static func _castle(cells: Dictionary, ground: int, x: int) -> void:
-	var heights := PackedInt32Array()
-	for k in 16:
-		heights.append(k + 1)  # the stair up to the first tower
-	for k in 8:
-		heights.append(17)  # its roof
-	for k in 7:
-		heights.append(17 - k - 1)  # the stair down to the wall
-	for k in 16:
-		heights.append(10)  # the wall
-	for k in 8:
-		heights.append(10 + k + 1)  # the stair up to the second tower
-	for k in 8:
-		heights.append(19)  # its roof
-	for k in 19:
-		heights.append(19 - k - 1)  # the stair down
-	for i in heights.size():
-		for r in range(ground - heights[i], ground):
+## A castle on level ground, in stone, with battlements. A tall gatehouse stands at the west end with an arched gate at ground level,
+## leading into a long hall under a lower wall. At the far end of the hall a stair climbs inside the east tower and comes out into the open at the
+## top of it, and a stair down its far side leads to the ground. The gatehouse, the wall and the west half of the tower top cannot be reached;
+## they are only there to be seen. Nothing floats: the east tower stands on the ground and holds up the rest.
+## Returns the rooms inside it, as one rectangle of tiles per column, so they can be painted as the inside of a building.
+static func _castle(cells: Dictionary, ground: int, x: int) -> Array:
+	var inside: Array = []
+	var tower := CASTLE_STAIR  # the first column of the east tower
+	var reach := CASTLE_HEIGHT
+	for i in CASTLE_WIDTH:
+		var top := 0
+		var battlements := true
+		if i < CASTLE_GATE:
+			top = reach  # the gatehouse
+		elif i < tower:
+			top = CASTLE_WALL  # the wall over the hall
+		elif i <= tower + reach:
+			top = reach  # the east tower
+		else:
+			top = maxi(0, reach - (i - tower - reach))  # the stair down the far side
+			battlements = false
+		if battlements and (i / 2) % 2 == 0 and i < tower + reach - 8:
+			top += 2  # a merlon
+		for r in range(ground - top, ground):
 			cells[Vector2i(x + i, r)] = ArenaGen.STONE
-	for window in [Vector2i(17, 7), Vector2i(20, 7), Vector2i(34, 5), Vector2i(41, 5), Vector2i(57, 11)]:
-		for c in 2:
-			for r in 3:
-				cells.erase(Vector2i(x + window.x + c, ground - window.y - r))
+	# The gate and the hall: a passage through the gatehouse at ground level, its mouth stepped like an arch, then the hall.
+	for i in tower:
+		var room := CASTLE_HALL_HEIGHT if i >= CASTLE_GATE else (CASTLE_GATE_HEIGHT - 2 if i < 1 else (CASTLE_GATE_HEIGHT - 1 if i < 2 else CASTLE_GATE_HEIGHT))
+		for r in range(ground - room, ground):
+			cells.erase(Vector2i(x + i, r))
+		inside.append(Rect2i(x + i, ground - room, 1, room))
+	# The stair up inside the east tower. Where the stone over it would be thinner than three rows, it is open to the sky.
+	for k in reach + 1:
+		var room := mini(CASTLE_HALL_HEIGHT, reach - k - 3)
+		var ceiling := ground - reach - 2 if room < 5 else ground - k - room
+		for r in range(ceiling, ground - k):
+			cells.erase(Vector2i(x + tower + k, r))
+		if room >= 5:
+			inside.append(Rect2i(x + tower + k, ceiling, 1, ground - k - ceiling))
+	return inside
 
 
 ## The tile a hall's marker stands on: the flat floor column nearest the middle that has headroom, clear of holes and basins.

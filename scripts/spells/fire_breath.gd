@@ -5,7 +5,7 @@ extends Node2D
 ## pours out of the caster's mouth for about a second, like a flamethrower. The breath comes from wherever the mouth
 ## is: jump and it rises with you, turn round and it turns with you. Each puff of flame flies on its own once it has
 ## left the mouth, so the stream trails and bends as you move. It is ordinary fire, so the ground, stone walls and
-## ice stop it, and a Barrier keeps it off you.
+## stop it (ice does not: it melts), and a Barrier keeps it off you.
 
 const LIFE := 1.1          # how long the fire pours out
 const TICK := 0.2          # how often it burns what it touches
@@ -108,8 +108,10 @@ func _move_puffs(delta: float) -> void:
 			continue
 		var step: Vector2 = puff["vel"] * delta
 		var query := PhysicsRayQueryParameters2D.create(puff["pos"], puff["pos"] + step)
-		query.collision_mask = 1  # the ground, stone walls and ice
+		query.collision_mask = 1  # the ground and stone walls
 		var hit := space.intersect_ray(query)
+		if not hit.is_empty() and hit["collider"].is_in_group("ice"):
+			hit = {}  # flame passes through ice and melts it
 		if hit.is_empty():
 			puff["pos"] += step
 			puff["vel"] *= 1.0 - DRAG * delta

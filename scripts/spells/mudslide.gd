@@ -5,7 +5,7 @@ extends Node2D
 ## walks into it is dragged down: slowed to a crawl and hurt a little at a time. Flyers pass over it untouched.
 ## A wider U makes a wider pit.
 
-const LIFE := 99999.0  # the mud stays until the wave ends
+const LIFE := 99999.0  # the mud stays
 const TICK := 0.5
 const MIN_WIDTH := 60.0
 const MAX_WIDTH := 240.0

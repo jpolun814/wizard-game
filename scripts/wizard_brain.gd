@@ -48,8 +48,7 @@ var _rng := RandomNumberGenerator.new()
 func _init(wizard: Node2D) -> void:
 	mob = wizard
 	_rng.randomize()
-	var level: int = Levels.place_of(Levels.wave_index)["level"]
-	skill = clampf(0.5 + 0.15 * (level - 1), 0.4, 0.95)
+	skill = 0.65
 
 
 ## Called when the wizard takes damage. A real hit while it draws breaks its spell, and being badly hurt makes it
@@ -510,7 +509,7 @@ func _own_walkers_near(reach: float) -> int:
 	var count := 0
 	var target: Node2D = mob.player
 	for other in mob.get_tree().get_nodes_in_group("mobs"):
-		if other == mob or other.is_dead() or other.kind == "dark_wizard" or other.KINDS[other.kind]["role"] == "flyer":
+		if other == mob or other.is_dead() or other.KINDS[other.kind]["role"] == "wizard" or other.KINDS[other.kind]["role"] == "flyer":
 			continue
 		if other.center().distance_to(target.center()) < reach:
 			count += 1

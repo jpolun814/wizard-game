@@ -1,8 +1,10 @@
 extends Node2D
 
-## Arena: a random map in the level's land, the player, waves of enemies, foci to pick up,
+## Arena: the map, the player, foci to pick up,
 ## fast spells, rituals and the spellbook.
 
+const RIFT_WEAR := 20.0  # what a Rift takes off the most stamina you can have
+const RIFT_LEAST := 20.0  # the least stamina a Rift can be cast with, and the least it leaves as the most
 const PERFECT_CAST := 0.95  # accuracy a cast needs for the flourish
 const MOB_SCENE := preload("res://scenes/mob.tscn")
 const TILE := ArenaGen.TILE
@@ -30,10 +32,6 @@ var _revealed := {"minimap": false, "insight": false}
 var _rng := RandomNumberGenerator.new()
 var debug_panel: DebugPanel  # F1 opens it: buttons that summon enemies for testing
 var _cells := {}  # the generated arena's tiles, see ArenaGen
-var _director: WaveDirector
-var _place := {}  # which level and wave this is, see Levels.place_of
-var _portal: Portal
-var _leaving := false
 var _ground: Terrain
 var tiled_ground := false  # true when the ground is tiles all the way, as in a generated world; set by _build_map
 
@@ -41,8 +39,7 @@ var tiled_ground := false  # true when the ground is tiles all the way, as in a 
 func _ready() -> void:
 	# A new random arena each run, in the level's land. Build it before anything that reads the terrain.
 	_rng.randomize()
-	_place = _where_are_we()
-	var biome: String = _place["biome"]
+	var biome := _biome()
 	_cells = _build_map()
 	var backdrop := Backdrop.new()
 	add_child(backdrop)
@@ -95,9 +92,9 @@ func _ready() -> void:
 	_begin_encounter(camera)
 
 
-## Which level and wave this is.
-func _where_are_we() -> Dictionary:
-	return Levels.place_of(Levels.wave_index)
+## The land the map is in.
+func _biome() -> String:
+	return "cemetery"
 
 
 ## The map's tiles. The waiting room builds its own.
@@ -105,55 +102,9 @@ func _build_map() -> Dictionary:
 	return ArenaGen.build(_rng)
 
 
-## Puts the player on the map and starts the wave. The waiting room does something else here.
-func _begin_encounter(camera: Camera2D) -> void:
-	# The player starts on open ground near the middle. The waves come from the director, one at a time.
-	var open := _clear_columns()
-	var middle := open.filter(func(c: int) -> bool: return absi(c) < 12)
-	var pool: Array = middle if not middle.is_empty() else open
-	var start: int = pool[_rng.randi() % pool.size()]
-	player.position = Vector2(ArenaGen.column_x(start), ArenaGen.surface_y(_cells, start))
-	camera.reset_smoothing()
-	# You keep your focus from map to map. The other one lies somewhere in each map, to swap for with E.
-	player.focus = Levels.held_focus
-	var other := "staff" if player.focus == "wand" else "wand"
-	var spots := open.filter(func(c: int) -> bool: return absi(c - start) > 8)
-	if not spots.is_empty():
-		var spot: int = spots[_rng.randi() % spots.size()]
-		_spawn_focus(other, Vector2(ArenaGen.column_x(spot), ArenaGen.surface_y(_cells, spot)))
-	_director = WaveDirector.new()
-	_director.arena = self
-	add_child(_director)
-	_director.wave_cleared.connect(_on_wave_cleared)
-	var wave: Dictionary = Levels.all_waves()[Levels.wave_index]
-	_director.start(wave)
-	hud.set_wave(_place["level"], _place["wave"], _place["count"])
-	if not wave.is_empty():
-		var subtitle := "The Dark Wizard has come for you" if wave.has("dark_wizard") else ""
-		hud.banner("Wave %d" % _place["wave"] if _place["wave"] > 1 else "Level %d" % _place["level"], subtitle)
-		Sfx.play("wave_start")
-	elif _place["wave"] == 1:
-		hud.banner("Level %d" % _place["level"], "Press Esc for the controls, Tab for your spellbook")
-
-
-## Adds one enemy of a kind on open ground, away from the player and from the other enemies.
-## Returns false if no spot was found.
-func spawn_mob(kind: String) -> bool:
-	var open := _clear_columns()
-	var player_col := ArenaGen.column_of(player.global_position.x)
-	var taken: Array[int] = []
-	for mob in get_tree().get_nodes_in_group("mobs"):
-		taken.append(ArenaGen.column_of(mob.global_position.x))
-	var near_view: float = get_viewport_rect().size.x * 0.5 / player.get_node("Camera2D").zoom.x
-	for attempt in 60:
-		var c: int = open[_rng.randi() % open.size()]
-		var gap := absi(c - player_col) * TILE
-		# Enemies arrive within sight, so you can see them come, but not on top of you.
-		var ok := gap >= 200 and (gap <= near_view * 1.3 or attempt > 40)
-		if ok and not _too_close(c, taken):
-			_add_mob(kind, Vector2(ArenaGen.column_x(c), ArenaGen.surface_y(_cells, c)))
-			return true
-	return false
+## Puts the player on the map. The waiting room and the world each do this in their own way.
+func _begin_encounter(_camera: Camera2D) -> void:
+	pass
 
 
 func _add_mob(kind: String, feet: Vector2) -> Node2D:
@@ -165,49 +116,23 @@ func _add_mob(kind: String, feet: Vector2) -> Node2D:
 	return mob
 
 
-## Once a wave is cleared, a portal opens at the far end of the map. Walking through it brings the next wave, in a new map.
-func _on_wave_cleared() -> void:
-	get_tree().call_group("lasting", "queue_free")  # clouds, mud, ice, snow and volcanoes end with the wave
-	_portal = Portal.new()
-	var far_right: bool = player.global_position.x < 0.0
-	var col := ArenaGen.RIGHT_WALL - 3 if far_right else ArenaGen.LEFT_WALL + 3
-	_portal.position = Vector2(ArenaGen.column_x(col), ArenaGen.surface_y(_cells, col) - Portal.RY - 4.0)
-	_portal.body_entered.connect(_on_portal_entered)
-	add_child(_portal)
-	_portal.open()
-	hud.point_to_portal(_portal)
-	if not Levels.all_waves()[Levels.wave_index].is_empty():
-		hud.banner("Wave cleared")
-	Sfx.play("portal_open", _portal.global_position)
-
-
-func _on_portal_entered(body: Node2D) -> void:
-	if body != player or _leaving:
-		return
-	_leaving = true
-	Sfx.play("portal_enter")
-	# The map ends with the last wave; going through the portal after it starts the run again from the first.
-	Levels.wave_index = (Levels.wave_index + 1) % Levels.all_waves().size()
-	var fade := create_tween()
-	fade.tween_property(player, "modulate:a", 0.0, 0.25)
-	fade.tween_callback(get_tree().reload_current_scene)
-
-
 func _on_player_died() -> void:
 	caster.set_casting_enabled(false)
 	ritual.cancel()
 	Sfx.play("game_over")
-	hud.show_game_over(_place["level"], _place["wave"])
+	hud.show_game_over()
 
 
-## A death ends the run; the next one starts from the first wave.
+## A death ends the run; the next one starts again with the wand.
 func _restart_run() -> void:
-	Levels.wave_index = 0
-	Levels.held_focus = "wand"
+	FocusItem.held_focus = "wand"
 	get_tree().reload_current_scene()
 
 
 func _input(event: InputEvent) -> void:
+	var click := event as InputEventMouseButton
+	if click != null and click.pressed and click.double_click and click.button_index == MOUSE_BUTTON_LEFT and not ritual.visible and not hud.is_paused() and not player.dead:
+		Flare.snuff_near(get_tree(), get_global_mouse_position(), 0.0)  # a double click on a flare puts it out
 	var key := event as InputEventKey
 	if key == null or not key.pressed or key.echo:
 		return
@@ -241,7 +166,6 @@ func _process(_delta: float) -> void:
 	caster.tolerance = FocusItem.FOCI[player.focus]["tolerance"]
 	_minimap.visible = _revealed["minimap"]
 	_update_insight()
-	hud.set_foes(_director.remaining(), _director.is_cleared())
 
 
 ## The minimap and the Insight tooltip, which their chants reveal.
@@ -268,28 +192,19 @@ func map_cells() -> Dictionary:
 	return _cells
 
 
-## Floor columns with room to stand, away from the map's ends.
-func _clear_columns() -> Array[int]:
-	var cols: Array[int] = []
-	for c in ArenaGen.open_columns(_cells):
-		if c > ArenaGen.LEFT_WALL + 1 and c < ArenaGen.RIGHT_WALL - 1:
-			cols.append(c)
-	return cols
-
-
 ## Clicking a HUD module hides it again.
 func _on_hud_clicked(event: InputEvent, module: String) -> void:
 	var click := event as InputEventMouseButton
 	if click == null or not click.pressed:
 		return
 	_revealed[module] = false
-	_on_feedback("Minimap hidden. Say its chant again to bring it back.", Color.WHITE)
+	_on_feedback("Say the chant again to show the minimap.", Color.WHITE)
 
 
 ## The visible HUD modules on screen. The caster ignores presses that start over them.
 func _visible_hud_rects() -> Array[Rect2]:
 	var rects: Array[Rect2] = []
-	for control in [hud.health_bar, hud.stamina_bar, _minimap]:
+	for control in [hud.stamina_bar, _minimap]:
 		if control.visible:
 			rects.append(control.get_global_rect())
 	if debug_panel.visible:
@@ -300,7 +215,7 @@ func _visible_hud_rects() -> Array[Rect2]:
 func _on_cast_resolved(spell: String, targeting: String, origin: Vector2, aim: float, info: Dictionary) -> void:
 	player.play_cast_release()
 	if spell == "Icicles" and _icicle_spots(info).is_empty():
-		FloatText.spawn(self, get_global_mouse_position() + Vector2(0, -22), "Needs a ceiling", Color("#dff6ff"), 0.9)
+		FloatText.spawn(self, get_global_mouse_position() + Vector2(0, -22), "Aim under a ceiling", Color("#dff6ff"), 0.9)
 		Sfx.play("misfire", player.center(), -6.0)
 		return
 	var cost := SpellData.cost_for(spell, info)
@@ -309,7 +224,7 @@ func _on_cast_resolved(spell: String, targeting: String, origin: Vector2, aim: f
 	var colour := SpellData.color_of(spell)
 	var label_at := get_global_mouse_position() + Vector2(0, -22)
 	if not player.spend(cost):
-		_on_feedback("Not enough stamina for %s (needs %d)" % [spell, cost], Color.ORANGE)
+		_on_feedback("Wait for stamina: %s costs %d" % [spell, cost], Color.ORANGE)
 		FloatText.spawn(self, label_at, "Too tired", Color("#ffb86b"), 0.9)
 		Sfx.play("misfire", player.center(), -6.0)
 		return
@@ -349,6 +264,13 @@ func _earth_texture() -> Texture2D:
 ## caster is whoever cast it: the player or a dark wizard.
 func spawn_spell(spell: String, targeting: String, origin: Vector2, aim: float, info: Dictionary, caster_node: Node2D) -> void:
 	var from: Vector2 = caster_node.center()
+	var school: String = SpellData.SPELLS[spell]["school"] if SpellData.SPELLS.has(spell) else ""
+	if (school == "Water" or school == "Air") and spell != "Barrier":
+		# Water and wind put a flare out, wherever the spell reaches it.
+		if targeting == "directional":
+			Flare.snuff_along(get_tree(), origin, origin + Vector2.from_angle(aim) * maxf(info.get("length", 0.0), 300.0))
+		else:
+			Flare.snuff_near(get_tree(), origin, 130.0)
 	match spell:
 		"Earthquake":
 			add_child(Earthquake.new())
@@ -375,11 +297,6 @@ func spawn_spell(spell: String, targeting: String, origin: Vector2, aim: float, 
 			abyss.reach = info.get("radius", 60.0) * 2.0
 			abyss.position = origin
 			add_child(abyss)
-			return
-		"Tsunami":
-			var wave := Tsunami.new()
-			wave.direction = 1.0 if cos(aim) >= 0.0 else -1.0
-			add_child(wave)
 			return
 		"Flare":
 			# The flare hovers by the caster and follows them wherever it was drawn.
@@ -416,7 +333,7 @@ func spawn_spell(spell: String, targeting: String, origin: Vector2, aim: float, 
 		"Hex":
 			var cursed := Hex.nearest_under(get_tree(), origin)
 			if cursed == null:
-				FloatText.spawn(self, origin + Vector2(0, -20), "No one under the star", Color("#c8a8ff"), 0.9)
+				FloatText.spawn(self, origin + Vector2(0, -20), "Aim at a foe", Color("#c8a8ff"), 0.9)
 				return
 			var hex := Hex.new()
 			hex.target = cursed
@@ -628,7 +545,7 @@ func _on_misfire() -> void:
 
 func _start_ritual() -> void:
 	if player.is_muted():
-		_on_feedback("Muted: no rituals for %.0f more seconds" % player.mute_time, Color.ORANGE)
+		_on_feedback("You are muted. Wait %.0f seconds to chant" % player.mute_time, Color.ORANGE)
 		return
 	ritual.open()
 	# Stop this key press from also reaching the text box it just opened.
@@ -639,19 +556,23 @@ func _on_ritual_finished(id: String, acc: float, unfinished: bool) -> void:
 	var data: Dictionary = RitualInput.RITUALS[id]
 	if unfinished:
 		# Stopping a chant partway lets the words fade harmlessly; only a garbled chant backfires.
-		_on_feedback("The chant trails off unfinished. Nothing happens.", Color.GRAY)
+		_on_feedback("Finish the chant to cast it.", Color.GRAY)
 		return
 	if data["kind"] == "toggle":
 		_on_toggle_chant(data, acc)
 		return
 
+	if id == "rift" and (player.max_stamina - RIFT_WEAR < RIFT_LEAST or player.stamina < RIFT_LEAST):
+		_on_feedback("Too frail." if player.stamina >= RIFT_LEAST else "Too tired.", Color("#ffb86b"))
+		Sfx.play("misfire", player.center(), -6.0)
+		return
 	var power := RitualInput.power_for(acc)
 	var acc_text := "accuracy %d%%" % roundi(acc * 100.0)
 	if power <= 0.0:
 		player.take_damage(15)
 		Sfx.play("explosion", player.center())
 		Fx.impact(self, player.center(), Color("#ff4a4a"), 50.0)
-		_on_feedback("RITUAL BACKFIRED (%s)" % acc_text, Color.RED)
+		_on_feedback("Backfired (%s). Say it again, more carefully" % acc_text, Color.RED)
 		return
 
 	var ritual_name: String = RitualInput.RITUALS[id]["name"]
@@ -659,26 +580,46 @@ func _on_ritual_finished(id: String, acc: float, unfinished: bool) -> void:
 	Sfx.play("ritual_ok", player.center())
 	Fx.pop(self, player.global_position + Vector2(0, -2), "magic_02", Color(1.0, 0.9, 0.6), 80.0, 0.8, 1.3, 2.0)
 	match id:
-		"second_wind":
-			player.heal(roundi(45.0 * power))
-			Sfx.play("heal", player.center())
-			Fx.burst(self, player.center(), Color("#7dff9a"), 20, 90.0, 0.8, true, "star_04")
 		"boundless":
 			player.grant_unlimited(20.0)
 		"double_jump":
 			player.grant_air_jump(20.0)
+		"rift":
+			_rift()
 		"bonfire":
 			var fire := Bonfire.new()
 			add_child(fire)
 			fire.power = power
 			fire.global_position = _ground_below(player.center())
-	_on_feedback("RITUAL %s (%s)" % [ritual_name, power_text], Color.GREEN)
+	_on_feedback("%s worked (%s)" % [ritual_name, acc_text], Color.GREEN)
+
+
+## The Rift: the wizard is torn away and set down somewhere else, with no stamina left and 20 less to ever have.
+func _rift() -> void:
+	var colour: Color = SpellData.SCHOOL_COLORS["Shadow"]
+	var start: Vector2 = player.global_position
+	player.max_stamina -= RIFT_WEAR
+	player.drain(player.stamina)
+	player.stamina = minf(player.stamina, player.max_stamina)
+	player.global_position = _rift_spot(start)
+	player.reset_physics_interpolation()
+	player.velocity = Vector2.ZERO
+	Fx.pop(self, start + Vector2(0, -24), "twirl_02", colour, 60.0, 0.3, 0.3, 8.0)
+	Fx.burst(self, start + Vector2(0, -24), colour, 16, 140.0, 0.3, true)
+	Fx.pop(self, player.global_position + Vector2(0, -24), "twirl_02", colour, 24.0, 0.3, 2.4, -8.0)
+	Fx.burst(self, player.global_position + Vector2(0, -24), colour, 16, 140.0, 0.3, true)
+	Sfx.play("gravity", player.global_position, -2.0)
+
+
+## Where a Rift sets the wizard down: somewhere along the floor of this room. A world picks one of its halls instead.
+func _rift_spot(from: Vector2) -> Vector2:
+	return Vector2(randf_range(ArenaGen.left_edge() + 80.0, ArenaGen.right_edge() - 80.0), from.y)
 
 
 ## A toggle chant shows or hides a HUD module. Incantations cost no stamina.
 func _on_toggle_chant(data: Dictionary, acc: float) -> void:
 	if acc < RitualInput.BACKFIRE_BELOW:
-		_on_feedback("The words don't take hold.", Color.GRAY)
+		_on_feedback("Check the words and try again.", Color.GRAY)
 		return
 	var module: String = data["module"]
 	_revealed[module] = not _revealed[module]
@@ -688,7 +629,7 @@ func _on_toggle_chant(data: Dictionary, acc: float) -> void:
 
 
 func _on_ritual_cancelled() -> void:
-	_on_feedback("Ritual interrupted.", Color.ORANGE)
+	_on_feedback("Interrupted. Chant again.", Color.ORANGE)
 
 
 func _on_player_damaged(_amount: int) -> void:
@@ -699,11 +640,11 @@ func _on_debuff_applied(kind: String) -> void:
 	match kind:
 		"mute":
 			ritual.cancel()
-			_on_feedback("Muted! No rituals for %.0f seconds." % player.mute_time, Color.ORANGE)
+			_on_feedback("Muted! Wait %.0f seconds before chanting." % player.mute_time, Color.ORANGE)
 		"root":
-			_on_feedback("Rooted! You can't move for a moment.", Color.ORANGE)
+			_on_feedback("Rooted! Wait a moment to move.", Color.ORANGE)
 		"blind":
-			_on_feedback("Blinded! Your gesture trail is hidden.", Color.ORANGE)
+			_on_feedback("Blinded! Draw by feel.", Color.ORANGE)
 
 
 ## Swap the held focus for the nearest one on the floor; the held one is dropped where you stand.
@@ -714,11 +655,11 @@ func _try_pickup() -> void:
 			nearest = item
 			break
 	if nearest == null:
-		_on_feedback("Nothing to pick up here.", Color.GRAY)
+		_on_feedback("Walk up to a focus to pick it up.", Color.GRAY)
 		return
 	var held: String = player.focus
 	player.focus = nearest.focus_id
-	Levels.held_focus = player.focus
+	FocusItem.held_focus = player.focus
 	nearest.queue_free()
 	_spawn_focus(held, _ground_below(player.center()))
 	Sfx.play("pickup", player.center())
@@ -751,14 +692,6 @@ func _is_ground_at(point: Vector2) -> bool:
 	query.collision_mask = 1
 	for hit in get_world_2d().direct_space_state.intersect_shape(query, 8):
 		if hit["collider"].has_meta("stone_wall"):
-			return true
-	return false
-
-
-## True when a column is within two columns of one already taken.
-func _too_close(col: int, taken: Array[int]) -> bool:
-	for other in taken:
-		if absi(col - other) < 2:
 			return true
 	return false
 

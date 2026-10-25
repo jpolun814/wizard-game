@@ -4,7 +4,7 @@ extends SpellEffect
 ## Ice that hangs from a ceiling as a point-down triangle, its base hidden inside the ceiling. It hurts whatever
 ## touches it. Fire melts it a slice at a time from the top while the base stays put, until it is gone: a fireball or a
 ## ball of lava that strikes it takes a slice off at once, and a steady fire touching any part of it (a firewall,
-## burning ground, fire breath) takes slices off as long as it burns there. Otherwise it hangs until the wave ends.
+## burning ground, fire breath) takes slices off as long as it burns there. Otherwise it hangs there.
 
 const TICK := 0.5
 const DAMAGE := 6

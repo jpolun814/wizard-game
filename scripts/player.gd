@@ -11,8 +11,7 @@ const SPEED := 300.0
 const JUMP_VELOCITY := -520.0
 const JUMP_COST := 5.0  # stamina a jump takes; with less than this, you can't jump
 const RUN_COST := 0.12   # stamina per second of walking or running on the ground
-const MAX_HP := 100
-const MAX_STAMINA := 100.0
+const MAX_STAMINA := 200.0  # what you start with, and the most you can ever have: a hit lowers the most you have, and healing raises it again, but not past this
 const STAMINA_REGEN := 20.0   # per second
 const REGEN_DELAY := 1.0      # seconds without spending before regen starts
 const SHIELD_RADIUS := 50.0
@@ -32,8 +31,8 @@ const STAFF_HEAD := Vector2(-55, -115)  # where the staff's crystal is in the ca
 const WAND_HEAD := Vector2(-24, -95)     # and the wand's
 
 var gravity: float = ProjectSettings.get_setting("physics/2d/default_gravity")
-var hp := MAX_HP
 var stamina := MAX_STAMINA
+var max_stamina := MAX_STAMINA  # what stamina can reach for now. Hits and the Rift wear it down; you die when it is gone
 var focus := "wand"          # the held focus item, see FocusItem.FOCI
 var movement_enabled := true  # the arena turns this off while a typing box or the spellbook is open
 var infinite_time := 0.0  # Chant of Boundless Vigour: stamina does not run out while this lasts
@@ -189,20 +188,22 @@ func drain(amount: float) -> void:
 
 
 func restore_stamina(amount: float) -> void:
-	stamina = minf(stamina + amount, MAX_STAMINA)
+	stamina = minf(stamina + amount, max_stamina)
 
 
 func heal(amount: int) -> void:
-	hp = mini(hp + amount, MAX_HP)
+	max_stamina = minf(max_stamina + amount, MAX_STAMINA)
+	stamina = minf(stamina + amount, max_stamina)
 
 
-## A hit takes health and then gives a short grace, in which no other hit lands. A burn (grace_hit false) takes
-## health without starting that grace, so a burn and a blow can both land.
+## A hit lowers your most stamina and then gives a short grace, in which no other hit lands. A burn (grace_hit false) takes
+## it without starting that grace, so a burn and a blow can both land.
 func take_damage(amount: int, grace_hit := true, projectile := false) -> void:
 	if (projectile and _shield_time > 0.0) or dead or (grace_hit and _grace > 0.0) or amount <= 0:
 		return
 	amount = roundi(amount * Hex.multiplier(get_tree(), self))  # a hexed wizard takes half again as much
-	hp -= amount
+	max_stamina -= amount
+	stamina = minf(stamina, maxf(max_stamina, 0.0))
 	_flash = 0.3
 	_hurt_anim = 0.25
 	if grace_hit:
@@ -211,8 +212,8 @@ func take_damage(amount: int, grace_hit := true, projectile := false) -> void:
 	GameCamera.shake_scene(get_tree(), 0.35 + amount * 0.02)
 	FloatText.spawn(get_parent(), center() + Vector2(0, -24), "-%d" % amount, Color("#ff5a5a"), 1.1)
 	damaged.emit(amount)
-	if hp <= 0:
-		hp = 0
+	if max_stamina <= 0.0:
+		max_stamina = 0.0
 		dead = true
 		movement_enabled = false
 		died.emit()
@@ -313,7 +314,7 @@ func _physics_process(delta: float) -> void:
 		air_jump_ready = true
 	infinite_time -= delta
 	if infinite_time > 0.0:
-		stamina = MAX_STAMINA
+		stamina = max_stamina
 	_since_spend += delta
 	if _since_spend >= REGEN_DELAY:
 		restore_stamina(STAMINA_REGEN * delta)
@@ -413,7 +414,7 @@ func grant_air_jump(seconds: float) -> void:
 
 func grant_unlimited(seconds: float) -> void:
 	infinite_time = maxf(infinite_time, seconds)
-	stamina = MAX_STAMINA
+	stamina = max_stamina
 
 
 ## A Push on the caster: they are shoved along the line for a moment.

@@ -2,9 +2,8 @@ class_name Liana
 extends FloraSpell
 
 ## Liana: a vine grows up out of the ground where the line began, as high as the line you drew. Stand at it and press W to take
-## hold, then W and S to climb. It holds for 30 seconds. Fire burns it.
+## hold, then W and S to climb. It stays until fire burns it.
 
-const LIFE := 30.0
 const MAX_RISE := 420.0   # the highest the vine climbs above the ground
 const MIN_RISE := 90.0    # even a short line grows a vine you can climb
 const GRAB_WIDTH := 18.0  # how close to the vine you must be to take hold
@@ -50,10 +49,7 @@ func _ready() -> void:
 
 func _physics_process(delta: float) -> void:
 	_age += delta
-	modulate.a = clampf((LIFE - _age) / 1.5, 0.0, 1.0)
 	_burn(delta, Rect2(_top.x - 10.0, _top.y, 20.0, _bottom.y - _top.y))
-	if _age >= LIFE:
-		queue_free()
 
 
 ## True when a body's feet (or hands) are on the vine: close enough across, and between where it holds and the ground.

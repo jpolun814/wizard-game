@@ -13,7 +13,7 @@ const GROUND_SAMPLES := 9  # the ground is measured at this many points across t
 const CRATER_Y := -70.0  # the top of the mountain's crater, in its own picture: where the fire comes out
 
 var _age := 0.0
-var _erupting := true  # it erupts for a while, then sleeps for a while, until the wave ends
+var _erupting := true  # it erupts for a while, then sleeps for a while, for good
 var _phase := ERUPT_SECONDS  # time left in the current eruption or sleep
 var _vent: AnimatedSprite2D
 var _erupt := 0.0

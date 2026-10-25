@@ -32,6 +32,8 @@
 |---|---|---|
 | Player wizard | LuizMelo, Wizard Pack | luizmelo.itch.io/wizard-pack |
 | Dark wizard | LuizMelo, Evil Wizard 2 | luizmelo.itch.io/evil-wizard-2 |
+| Pyre wizard, bone wizard | LuizMelo, Evil Wizard and Evil Wizard 3 | luizmelo.itch.io/evil-wizard, luizmelo.itch.io/evil-wizard-3 |
+| Ninja | LuizMelo, Martial Hero 2 | luizmelo.itch.io/martial-hero-2 |
 | Skeleton, goblin, flying eye | LuizMelo, Monsters Creatures Fantasy (plus v1.2 and v1.3 attack add-ons in the same zip set) | luizmelo.itch.io/monsters-creatures-fantasy |
 | Cemetery | ansimuz, GothicVania Cemetery | ansimuz.itch.io/gothicvania-cemetery |
 | Swamp | ansimuz, GothicVania Swamp | opengameart.org/content/gotthicvania-swamp |
@@ -120,4 +122,3 @@
 - **Colour bands:** the bottom colour carries on downward. The top colour carries on upward only when
   `extend_top` is set. The swamp's trees have flat canopy bands that look bad stretched, so those layers draw
   at 2x instead.
-- **Screenshots:** check every biome with `scenario=biome wave=1/10/17`.

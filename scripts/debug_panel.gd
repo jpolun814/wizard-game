@@ -2,7 +2,7 @@ class_name DebugPanel
 extends CanvasLayer
 
 ## A testing panel, opened and closed with F1. Each button summons one enemy kind on the far side of the screen;
-## the last row clears the enemies, skips to the next wave, or fills you back up.
+## the last row clears the enemies or fills you back up.
 
 var arena: Node
 var panel: PanelContainer
@@ -37,7 +37,6 @@ func _ready() -> void:
 	var tools := HBoxContainer.new()
 	column.add_child(tools)
 	tools.add_child(_button("Clear enemies", func() -> void: arena.clear_enemies()))
-	tools.add_child(_button("Next wave", _next_wave))
 	tools.add_child(_button("Refill", _refill))
 
 
@@ -55,11 +54,6 @@ func _summon(kind: String) -> void:
 	arena.summon_far_side(kind)
 
 
-func _next_wave() -> void:
-	Levels.wave_index = (Levels.wave_index + 1) % Levels.all_waves().size()
-	get_tree().reload_current_scene()
-
-
 func _refill() -> void:
-	arena.player.hp = arena.player.MAX_HP
-	arena.player.stamina = arena.player.MAX_STAMINA
+	arena.player.max_stamina = arena.player.MAX_STAMINA
+	arena.player.stamina = arena.player.max_stamina
