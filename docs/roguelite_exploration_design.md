@@ -1,7 +1,7 @@
 # Roguelite exploration: design
 
 Status: planning, with the spells built. Agreed in conversation with the owner on 2026-10-24. Built so far: the 33-spell pool
-(`spell_pool.md`) and the waiting room where it is tried. Not built: the stamina window, per-run books and pages, noticing
+(`spell_pool.md`) and the waiting room where it is tried. The first world generator slice is built too (`world_generation.md`). Not built: the stamina window, per-run books and pages, noticing
 enemies, the world generator and seeds, and the boss's stash.
 
 ## The loop

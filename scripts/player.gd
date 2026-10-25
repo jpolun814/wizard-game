@@ -20,8 +20,6 @@ const BODY_HEIGHT := 78.0     # from the feet to the top of the hood
 const COYOTE_TIME := 0.1      # a jump still works this long after walking off a ledge
 const JUMP_BUFFER := 0.12     # a jump pressed this long before landing happens on landing
 const HURT_GRACE := 0.5       # after a hit, further hits are ignored this long
-const DROP_TIME := 0.25       # how long platforms let you fall through after S + jump
-const PLATFORM_LAYER := 16
 const STEP_EVERY := 0.32      # seconds between footstep sounds while running
 const CLIMB_SPEED := 170.0    # how fast the wizard climbs a vine
 const ANIMATIONS := {
@@ -60,7 +58,6 @@ var _liquid_time := 0.0
 var _grace := 0.0        # time left of the safety after a hit
 var _coyote := 0.0
 var _jump_buffer := 0.0
-var _drop := 0.0
 var _step := 0.0
 var casting := false      # true while the caster has a stroke in progress (set by the arena)
 var _releasing := 0.0     # time left of the thrust that plays when a spell goes off
@@ -78,6 +75,7 @@ var _vine_cooldown := 0.0  # after letting go, a vine cannot be grabbed again fo
 
 
 func _ready() -> void:
+	floor_max_angle = deg_to_rad(50.0)  # a 45 degree slope, the steepest a tunnel climbs, still counts as floor
 	add_to_group("player")
 	_dress_for_focus()
 	_sprite.offset = Vector2(0, -PixelArt.CHARACTERS["wizard"]["size"].y * 0.5)  # the frames' bottom edge is the feet
@@ -278,7 +276,7 @@ func _draw() -> void:
 ## How far below the feet the ground is, or -1 if there is none within reach.
 func _ground_distance() -> float:
 	var query := PhysicsRayQueryParameters2D.create(global_position + Vector2(0, -2), global_position + Vector2(0, 200))
-	query.collision_mask = 1 | PLATFORM_LAYER
+	query.collision_mask = 1
 	var hit := get_world_2d().direct_space_state.intersect_ray(query)
 	return hit["position"].y - global_position.y if not hit.is_empty() else -1.0
 
@@ -326,9 +324,6 @@ func _physics_process(delta: float) -> void:
 		velocity.y += gravity * delta
 	_coyote = COYOTE_TIME if is_on_floor() else _coyote - delta
 	_jump_buffer -= delta
-	_drop -= delta
-	# Platforms let you fall through while dropping; they become solid again once you are below them.
-	set_collision_mask_value(5, _drop <= 0.0)
 
 	var can_move := movement_enabled and root_time <= 0.0 and not dead
 	_vine_cooldown -= delta
@@ -337,10 +332,7 @@ func _physics_process(delta: float) -> void:
 	if can_move:
 		if Input.is_action_just_pressed("jump"):
 			_jump_buffer = JUMP_BUFFER
-		if Input.is_action_pressed("move_down") and _on_platform():
-			# S while standing on a wooden platform drops through it.
-			_drop = DROP_TIME
-		elif _jump_buffer > 0.0 and _coyote > 0.0 and sink_time <= 0.0 and spend(JUMP_COST):
+		if _jump_buffer > 0.0 and _coyote > 0.0 and sink_time <= 0.0 and spend(JUMP_COST):
 			velocity.y = JUMP_VELOCITY
 			_jump_buffer = 0.0
 			_coyote = 0.0
@@ -411,16 +403,6 @@ func _climb() -> bool:
 	velocity = Vector2(0.0, (1.0 if down else 0.0) * CLIMB_SPEED - (1.0 if up else 0.0) * CLIMB_SPEED)
 	move_and_slide()
 	return true
-
-
-## True when the wizard stands on a one-way platform rather than solid ground.
-func _on_platform() -> bool:
-	if not is_on_floor():
-		return false
-	var query := PhysicsRayQueryParameters2D.create(global_position + Vector2(0, -2), global_position + Vector2(0, 8))
-	query.collision_mask = 1 | PLATFORM_LAYER
-	var hit := get_world_2d().direct_space_state.intersect_ray(query)
-	return not hit.is_empty() and hit["collider"] is StaticBody2D and hit["collider"].collision_layer == PLATFORM_LAYER
 
 
 ## Chant of the Second Leap: one extra jump in the air, for a while.

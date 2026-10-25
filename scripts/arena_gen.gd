@@ -19,12 +19,11 @@ const WALL_TOP := -14    # the side walls rise this high, well above anything yo
 const MAX_DIP := 1.2     # how far, in rows, the ground may drop below the flat line in a valley
 const SPAWN_CLEAR_ROWS := 3  # a character needs this many rows of air above the ground to stand
 
-## What a cell is made of. GROUND is the biome's earth, STONE is rock, PLATFORM is a ledge you can jump up through.
+## What a cell is made of. GROUND is the biome's earth, STONE is rock.
 const GROUND := 0
 const STONE := 1
-const PLATFORM := 2
 
-## The six rows above the ground, top row first, in each chunk. S is stone, P a platform, . air. Everything here sits
+## The six rows above the ground, top row first, in each chunk. S is stone, . air. Everything here sits
 ## on the chunk's own ground, so a hill lifts its pillars and platforms with it.
 const CHUNKS := [
 	# Open ground. There are no platforms: a player who wants a ledge draws a Stone Wall.
@@ -33,6 +32,13 @@ const CHUNKS := [
 ## The ground is a few long, smooth waves: big hills several tiles high, and slopes gentle enough to walk. Heights are
 ## in rows relative to the flat line (negative is higher). Their steepest slope is well under 45 degrees.
 static var column_heights := PackedFloat32Array()  # the ground's height in each map column, set by build()
+## The size in tiles of a generated world, or zero for the arena and the waiting room. A world has no flat ground line:
+## its tiles start at (0, 0) and its edges are its own.
+static var world_size := Vector2i.ZERO
+## A world's sky: the first column of the surface and the row where its ground starts in each column, so the sky is drawn
+## over the air above the ground only.
+static var sky_xl := 0
+static var sky_floor := PackedInt32Array()
 
 ## Each level has its own look: the biome's ground tiles, the backdrop behind it and the things standing about on
 ## the ground (art/props, drawn at their own pixel size).
@@ -47,6 +53,8 @@ const BIOMES := {
 ## map column, in rows from the flat line) to shape the ground yourself, as the waiting room does.
 static func build(rng: RandomNumberGenerator, heights := PackedFloat32Array()) -> Dictionary:
 	var cells := {}
+	world_size = Vector2i.ZERO
+	sky_floor = PackedInt32Array()
 	_fill(cells, LEFT_WALL, WALL_TOP, LEFT_WALL, GROUND_ROW + DEPTH, STONE)
 	_fill(cells, RIGHT_WALL, WALL_TOP, RIGHT_WALL, GROUND_ROW + DEPTH, STONE)
 	column_heights = heights if not heights.is_empty() else _ground_heights(rng)
@@ -131,10 +139,14 @@ static func column_of(x: float) -> int:
 
 ## The left and right edges of the walkable map, in world pixels.
 static func left_edge() -> float:
+	if world_size.x > 0:
+		return 2 * TILE
 	return (LEFT_WALL + 1) * TILE
 
 
 static func right_edge() -> float:
+	if world_size.x > 0:
+		return (world_size.x - 2) * TILE
 	return RIGHT_WALL * TILE
 
 
@@ -142,8 +154,6 @@ static func _material_for(ch: String) -> int:
 	match ch:
 		"S":
 			return STONE
-		"P":
-			return PLATFORM
 	return -1
 
 

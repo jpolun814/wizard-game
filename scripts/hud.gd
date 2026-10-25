@@ -35,6 +35,7 @@ var _boss_name: Label
 var _portal_arrow: PortalArrow
 var _game_over: Control
 var _pause: Control
+var _pause_note: Label  # at the bottom of the pause screen: the world's seed words
 var _over_text: Label
 
 
@@ -200,6 +201,11 @@ func toggle_pause() -> void:
 	get_tree().paused = _pause.visible
 
 
+## Words shown at the bottom of the pause screen, such as the incantation that names this world. Empty hides them.
+func set_pause_note(text: String) -> void:
+	_pause_note.text = text
+
+
 func is_paused() -> bool:
 	return _pause.visible
 
@@ -278,6 +284,11 @@ func _build_pause(view: Vector2) -> void:
 	hint.size = Vector2(view.x, 24)
 	hint.position = Vector2(0, y + 16)
 	_pause.add_child(hint)
+	_pause_note = _label(20, Color("#c8a8ff"))
+	_pause_note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_pause_note.size = Vector2(view.x, 28)
+	_pause_note.position = Vector2(0, view.y - 56.0)
+	_pause.add_child(_pause_note)
 
 
 ## A rounded bar with its name and value written inside it. When the value drops, a pale chunk shows how much

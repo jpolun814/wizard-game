@@ -35,6 +35,7 @@ var _place := {}  # which level and wave this is, see Levels.place_of
 var _portal: Portal
 var _leaving := false
 var _ground: Terrain
+var tiled_ground := false  # true when the ground is tiles all the way, as in a generated world; set by _build_map
 
 
 func _ready() -> void:
@@ -48,14 +49,21 @@ func _ready() -> void:
 	move_child(backdrop, 0)
 	backdrop.build(ArenaGen.BIOMES[biome]["backdrop"])
 	_ground = Terrain.new()
+	_ground.tiled = tiled_ground
 	add_child(_ground)
 	move_child(_ground, 1)
 	_ground.build(_cells, biome, _rng)
 	# The camera follows the player but never shows past the walls at either end of the map.
 	var camera: Camera2D = player.get_node("Camera2D")
-	camera.limit_left = ArenaGen.LEFT_WALL * TILE + TILE / 2
-	camera.limit_right = (ArenaGen.RIGHT_WALL + 1) * TILE - TILE / 2
-	camera.limit_bottom = ArenaGen.GROUND_Y + TILE * 4
+	if ArenaGen.world_size.x > 0:
+		camera.limit_left = 0
+		camera.limit_top = 0
+		camera.limit_right = ArenaGen.world_size.x * TILE
+		camera.limit_bottom = ArenaGen.world_size.y * TILE
+	else:
+		camera.limit_left = ArenaGen.LEFT_WALL * TILE + TILE / 2
+		camera.limit_right = (ArenaGen.RIGHT_WALL + 1) * TILE - TILE / 2
+		camera.limit_bottom = ArenaGen.GROUND_Y + TILE * 4
 
 	hud = Hud.new()
 	hud.player = player
@@ -458,6 +466,25 @@ func _new_effect(spell: String) -> SpellEffect:
 	return SpellEffect.new()
 
 
+## The last spot on the way from start to end where a body fits: feet, middle and head all clear of the ground. A step
+## never ends inside rock, so it never leaves anyone stuck.
+func _out_of_rock(start: Vector2, end: Vector2) -> Vector2:
+	var steps := maxi(1, int(start.distance_to(end) / 8.0))
+	for i in range(steps, -1, -1):
+		var at := start.lerp(end, float(i) / steps)
+		var free := true
+		for lift in [-4.0, -36.0, -70.0]:
+			var probe := PhysicsPointQueryParameters2D.new()
+			probe.position = at + Vector2(0.0, lift)
+			probe.collision_mask = 1
+			if not get_world_2d().direct_space_state.intersect_point(probe, 1).is_empty():
+				free = false
+				break
+		if free:
+			return at
+	return start
+
+
 ## Shadow Step: the caster slips along the stroke, stopping short of walls. Whoever is in the way takes damage, the
 ## caster aside.
 func _shadow_step(caster_node: Node2D, aim: float, length: float) -> void:
@@ -470,7 +497,7 @@ func _shadow_step(caster_node: Node2D, aim: float, length: float) -> void:
 	if not hit.is_empty():
 		end = hit["position"] + Vector2(0, 20) - dir * 16.0
 	end.x = clampf(end.x, ArenaGen.left_edge() + 14.0, ArenaGen.right_edge() - 14.0)
-	end.y = minf(end.y, ArenaGen.GROUND_Y)
+	end = _out_of_rock(start, end)
 	for body in SpellTargets.all(get_tree()):
 		if body == caster_node:
 			continue
@@ -484,6 +511,7 @@ func _shadow_step(caster_node: Node2D, aim: float, length: float) -> void:
 	if caster_node.has_method("free_from_ground"):
 		caster_node.free_from_ground()  # a blink moves you out of the ground too
 	caster_node.global_position = end
+	caster_node.reset_physics_interpolation()
 	if caster_node is CharacterBody2D:
 		caster_node.velocity = Vector2.ZERO
 	Fx.pop(self, end + Vector2(0, -24), "twirl_02", colour, 24.0, 0.3, 2.4, -8.0)

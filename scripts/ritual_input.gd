@@ -8,6 +8,8 @@ extends CanvasLayer
 ## unfinished is true when the words typed are the start of a chant, stopped short.
 signal finished(ritual_id: String, accuracy: float, unfinished: bool)
 signal cancelled
+## Four words of a world's name were typed (see Incantation); the waiting room tunes its portal to them.
+signal seed_spoken(text: String)
 
 ## "kind" is "ritual" (has an effect) or "toggle" (shows or hides a HUD module). Neither costs stamina.
 const RITUALS := {
@@ -81,6 +83,11 @@ func _input(event: InputEvent) -> void:
 
 
 func _on_submit(typed: String) -> void:
+	if Incantation.is_world_name(typed):
+		visible = false
+		_line.release_focus()
+		seed_spoken.emit(typed)
+		return
 	if typed.strip_edges().is_empty():
 		cancel()  # Enter on an empty box just closes it
 		return

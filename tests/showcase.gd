@@ -5,6 +5,7 @@ extends Node
 ##     godot --path . tests/showcase.tscn -- scenario=spells out=C:/temp/shots
 ## Scenarios:
 ##   world   - every enemy kind standing around the player, then a wave in progress
+##   cave    - a generated world: the start hall, then the wizard climbing a shaft by jumping from platform to platform
 ##   spells  - every spell cast in turn in the waiting room, with screenshots of each
 ##   wizard  - the dark wizard dueling a player who stands still and throws bolts at it
 ## Fixed physics steps make it play the same way each time.
@@ -38,7 +39,9 @@ func _ready() -> void:
 	DirAccess.make_dir_recursive_absolute(out_dir)
 	Levels.wave_index = wave
 	# The spells are tried in the waiting room, where there is a pond, a gap and dummies for each of them.
-	var scene := "lab" if scenario in ["spells", "lab", "climb", "checks"] else "arena"
+	var scene := "lab" if scenario in ["spells", "lab", "climb", "checks"] else ("world" if scenario == "cave" else "arena")
+	if scenario == "cave":
+		World.next_seed = 11  # the same world each time
 	_arena = load("res://scenes/%s.tscn" % scene).instantiate()
 	add_child(_arena)
 	_plan()
@@ -125,6 +128,8 @@ func _plan() -> void:
 			_at(4.0, func() -> void: _snap("moving"))
 			_at(4.2, func() -> void: _arena.debug_panel.visible = true)
 			_at(4.4, func() -> void: _snap("debug"))
+		"cave":
+			_plan_cave()
 		"kinds":
 			# Every enemy kind in a row, frozen in place, to check colours and sizes.
 			_at(0.3, func() -> void:
@@ -467,3 +472,70 @@ func _plan_wizard() -> void:
 					var dir: Vector2 = (wizard[0].center() - from).normalized()
 					_cast("Ignite", _densify(PackedVector2Array([from, from + dir * 100.0]))))
 		_at(at + 0.35, func() -> void: _snap())
+
+
+## The generated world: a look at the start, the castle, a lake and a lava pool, then a real walk: the steepest tunnel, on foot,
+## holding only the walk key.
+func _plan_cave() -> void:
+	_at(0.8, func() -> void: _snap("start"))
+	var graph: WorldGraph = _arena.graph
+	var seen_kinds := {}
+	var look := 0.9
+	for pond in _arena._ponds:
+		if seen_kinds.has(pond["lava"]):
+			continue
+		seen_kinds[pond["lava"]] = true
+		var at := Vector2((pond["a"] - 5) * float(ArenaGen.TILE), pond["surface"] * float(ArenaGen.TILE))
+		_at(look, func() -> void:
+			_player().global_position = at
+			_player().velocity = Vector2.ZERO
+			_arena.get_node("Player/Camera2D").reset_smoothing())
+		_at(look + 0.4, func() -> void: _snap("lava" if pond["lava"] else "lake"))
+		look += 0.1
+	var t := 2.0
+	if _arena.castle_x >= 0:
+		var castle_at := Vector2((_arena.castle_x + 38) * float(ArenaGen.TILE), (WorldGraph.SURFACE_ROW - 11) * float(ArenaGen.TILE))  # on the wall
+		_at(t, func() -> void:
+			_player().global_position = castle_at
+			_player().velocity = Vector2.ZERO
+			_arena.get_node("Player/Camera2D").reset_smoothing())
+		_at(t + 1.0, func() -> void: _snap("castle"))
+		t += 1.6
+	# A tunnel's slope, on foot: from the low mouth to the high one, holding only the walk key.
+	var steepest := {}
+	var rise := -1
+	for link in graph.links:
+		var drop: int = absi(link["pa"].y - link["pb"].y)
+		if drop > rise:
+			rise = drop
+			steepest = {"low": link["pa"] if link["pa"].y > link["pb"].y else link["pb"], "high": link["pb"] if link["pa"].y > link["pb"].y else link["pa"]}
+	if not steepest.is_empty():
+		var low: Vector2i = steepest["low"]
+		var high: Vector2i = steepest["high"]
+		var going := 1.0 if high.x > low.x else -1.0
+		var from_x: float = (low.x - going * 3.0) * float(ArenaGen.TILE)  # on the hall floor, just outside the mouth
+		var to_x: float = high.x * float(ArenaGen.TILE)
+		var key := "move_right" if going > 0.0 else "move_left"
+		_at(t, func() -> void:
+			_player().global_position = Vector2(from_x, low.y * float(ArenaGen.TILE))
+			_player().velocity = Vector2.ZERO
+			_arena.get_node("Player/Camera2D").reset_smoothing()
+			Input.action_press(key))
+		var walk: float = absf(to_x - from_x) / _player().SPEED * 1.8 + 2.0
+		var arrived := {"ok": false}
+		for i in int(walk / 0.25):
+			_at(t + i * 0.25, func() -> void:
+				var at: Vector2 = _player().global_position
+				var climbed: float = low.y * float(ArenaGen.TILE) - at.y
+				if (at.x - to_x) * going >= 0.0 and climbed > (rise - 4) * float(ArenaGen.TILE):
+					arrived["ok"] = true)
+		_at(t + walk * 0.5, func() -> void: _snap("slope"))
+		_at(t + walk, func() -> void:
+			Input.action_release(key)
+			var at: Vector2 = _player().global_position
+			print("%s  the wizard walks up a %d row tunnel with no jumping (ended x %.0f, y %.0f)" % ["PASS" if arrived["ok"] else "FAIL", rise, at.x, at.y])
+			if not arrived["ok"]:
+				_exit_code = 1)
+		t += walk + 1.0
+	_at(t, func() -> void: _snap("top"))
+

@@ -155,6 +155,7 @@ const ICE := preload("res://art/props/ice_fill.png")
 
 
 func _ready() -> void:
+	floor_max_angle = deg_to_rad(50.0)
 	add_to_group("mobs")
 	var data: Dictionary = KINDS[kind]
 	if _burns():

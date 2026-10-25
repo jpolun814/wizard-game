@@ -10,7 +10,6 @@ const MARGIN := 16.0
 const TILE_COLORS := {
 	ArenaGen.GROUND: Color("#7a5a8a"),
 	ArenaGen.STONE: Color("#8d8f96"),
-	ArenaGen.PLATFORM: Color("#b08a5a"),
 }
 
 var arena: Node2D

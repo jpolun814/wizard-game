@@ -63,6 +63,7 @@ func _begin_encounter(camera: Camera2D) -> void:
 	_director.arena = self
 	_director.set_process(false)
 	add_child(_director)
+	ritual.seed_spoken.connect(_on_seed_spoken)
 	_add_ponds()
 	_add_targets()
 	_add_signs()
@@ -152,9 +153,9 @@ func _input(event: InputEvent) -> void:
 	super(event)
 
 
-## The portal here starts a real run from the first wave.
+## The portal opens a world at once: a random one, or the one named by four words spoken earlier (Enter opens the box).
 func _on_portal_entered(body: Node2D) -> void:
-	if body != player or _leaving:
+	if body != player or _leaving or ritual.visible:
 		return
 	_leaving = true
 	Sfx.play("portal_enter")
@@ -162,4 +163,11 @@ func _on_portal_entered(body: Node2D) -> void:
 	Levels.held_focus = "wand"
 	var fade := create_tween()
 	fade.tween_property(player, "modulate:a", 0.0, 0.25)
-	fade.tween_callback(get_tree().change_scene_to_file.bind("res://scenes/arena.tscn"))
+	fade.tween_callback(get_tree().change_scene_to_file.bind("res://scenes/world.tscn"))
+
+
+## Four words of a world's name, typed into the ritual box, tune the portal to that world.
+func _on_seed_spoken(text: String) -> void:
+	World.next_seed = Incantation.seed_of(text)
+	_on_feedback("The portal hums: %s" % Incantation.words_for(World.next_seed), Color("#c8a8ff"))
+	Sfx.play("ritual_ok", player.center(), -6.0)

@@ -15,6 +15,7 @@ const ICE_TEXTURE := preload("res://art/props/ice_fill.png")
 var width := 200.0
 var depth := 90.0
 var lava := false
+var clip: Array = []  # outlines of the open air, in world pixels: when given, the pool fills only the hollow
 var _slabs: Array[Dictionary] = []  # each {"body": StaticBody2D, "x0": float, "x1": float, "age": float}
 var _tick := 0.0
 var _t := 0.0
@@ -131,7 +132,20 @@ func _draw() -> void:
 	var bottom := Color(0.55, 0.1, 0.05) if lava else Color(0.07, 0.18, 0.38)
 	var rim := Color(1.0, 0.8, 0.3) if lava else Color(0.75, 0.92, 1.0)
 	var fill := PackedVector2Array([Vector2(0, 2), Vector2(width, 2), Vector2(width, depth), Vector2(0, depth)])
-	draw_polygon(fill, PackedColorArray([top, top, bottom, bottom]))
+	var pieces: Array = [fill]
+	if not clip.is_empty():
+		pieces = []
+		for outline: PackedVector2Array in clip:
+			var local := PackedVector2Array()
+			for point in outline:
+				local.append(point - global_position)
+			for part: PackedVector2Array in Geometry2D.intersect_polygons(fill, local):
+				pieces.append(part)
+	for part: PackedVector2Array in pieces:
+		var colors := PackedColorArray()
+		for point in part:
+			colors.append(top.lerp(bottom, clampf(point.y / depth, 0.0, 1.0)))
+		draw_polygon(part, colors)
 	var surface := PackedVector2Array()
 	for i in int(width / 8.0) + 1:
 		var x := minf(i * 8.0, width)
