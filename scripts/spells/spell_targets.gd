@@ -27,7 +27,7 @@ static func hurt(body: Node, amount: int, school: String, shot := false) -> void
 			Sfx.play("ice_shatter", body.center())
 		body.take_damage(amount, true, shot)
 	else:
-		body.take_damage(amount, school)
+		body.take_damage(amount, school, shot)
 
 
 ## Every body a spell can reach: every enemy, and the player while alive.

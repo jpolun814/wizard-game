@@ -95,10 +95,10 @@ func _on_body_entered(body: Node2D) -> void:
 		return  # a ninja's star flies through its own kind
 	if body.is_in_group("player"):
 		body.take_damage(damage, true, true)
-		if _slows:
+		if _slows and not body.has_shield():  # a Barrier negates the whole shot
 			body.apply_debuff("slow", 2.0)
 	elif body.is_in_group("mobs"):
-		body.take_damage(damage)
+		body.take_damage(damage, "", true)
 	_burst()  # whatever it hits, it stops there
 
 

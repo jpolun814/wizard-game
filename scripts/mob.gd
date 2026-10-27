@@ -612,10 +612,11 @@ func _sees(target: Node2D) -> bool:
 
 ## Damage from a spell of the given school. Weak to a school takes double; resisting it takes nothing.
 ## A frozen enemy hit by force or earth shatters out of the ice and takes extra.
-func take_damage(amount: int, school := "") -> void:
+## A Barrier negates only a projectile (shot true); anything else gets through it.
+func take_damage(amount: int, school := "", shot := false) -> void:
 	if _dead or _spawn > 0.0:
 		return
-	if _shield_time > 0.0:
+	if shot and _shield_time > 0.0:
 		FloatText.spawn(get_parent(), center() + Vector2(0, -_body_size.y * 0.5), "Blocked", Color(0.8, 0.7, 1.0), 0.8)
 		return
 	var data: Dictionary = KINDS[kind]

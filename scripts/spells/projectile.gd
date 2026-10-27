@@ -92,7 +92,7 @@ func _on_hit(body: Node2D) -> void:
 		if body.is_dead():
 			return
 		_spent = true
-		body.take_damage(damage(), _school())
+		body.take_damage(damage(), _school(), true)
 		if spell == "Ignite":
 			body.knock_back(aim * FIREBALL_KNOCK)  # a fireball shoves the enemy a little along its path
 		if spell == "Frostbolt":

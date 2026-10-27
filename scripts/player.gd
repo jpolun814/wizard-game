@@ -165,10 +165,8 @@ func has_shield() -> bool:
 	return _shield_time > 0.0
 
 
-## Encases the player in ice: rooted for the same time an enemy stays frozen. A Barrier stops it.
+## Encases the player in ice: rooted for the same time an enemy stays frozen.
 func freeze(seconds: float) -> bool:
-	if has_shield():
-		return false
 	_frozen_time = maxf(_frozen_time, seconds)
 	root_time = maxf(root_time, seconds)
 	return true
@@ -262,8 +260,7 @@ func grant_deep_breath(seconds: float) -> void:
 
 
 func apply_debuff(kind: String, seconds: float) -> void:
-	# The Barrier stops debuffs as well as damage.
-	if _shield_time > 0.0 or dead:
+	if dead:
 		return
 	match kind:
 		"mute":
