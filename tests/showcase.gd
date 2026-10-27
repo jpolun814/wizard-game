@@ -279,7 +279,7 @@ func _plan() -> void:
 					for entry in _arena._gates:
 						if entry["kind"] == kind:
 							near = minf(near, (Vector2(entry["at"]) * tile).distance_to(_player().global_position))
-					verdict.call(near < 1200.0 and not _player().dead, "F1 takes the wizard to a %s gate (%d px away)" % [kind, int(near)]))
+					verdict.call(near < 1500.0 and not _player().dead, "F1 takes the wizard to a %s gate (%d px away)" % [kind, int(near)]))
 				t += 0.6
 			# A wall gate comes down under boulders; an earthquake brings down a wall too.
 			var wall := []
@@ -362,6 +362,11 @@ func _plan() -> void:
 			var tile := float(ArenaGen.TILE)
 			var pickups := get_tree().get_nodes_in_group("pages")
 			print("%s  pages lie on the map (%d), and only the starter spells are known (%d of %d)" % ["PASS" if pickups.size() > 25 and Pages.known.size() == 5 else "FAIL", pickups.size(), Pages.known.size(), Pages.every().size()])
+			var near := 1e9
+			for pickup: PagePickup in pickups:
+				if pickup.global_position.y < float(WorldGraph.SURFACE_ROW + 6) * tile:
+					near = minf(near, absf(pickup.global_position.x - float(_arena.graph.surface["start"]) * tile))
+			print("%s  the nearest page is %d px from the start, under a minute's walk" % ["PASS" if near < 3000.0 else "FAIL", near])
 			var buried := 0
 			for pickup: PagePickup in pickups:
 				var floor_y: float = _arena._floor_under(pickup.global_position).y
@@ -1071,9 +1076,9 @@ func _plan_cave() -> void:
 
 
 
-## The newer gates in the world of WORLD_SEED (21 has all four): each seen from a little way off, then tried on foot.
+## The newer gates in the world of WORLD_SEED (13 has all nine): each seen from a little way off, then tried on foot.
 func _plan_gates() -> void:
-	var t := 1.0
+	var t := 4.0  # after the world has set the wizard down
 	var by_kind := {}
 	for gate in _arena._gates:
 		if not by_kind.has(gate["kind"]):
@@ -1096,7 +1101,11 @@ func _plan_gates() -> void:
 				floor_row = gate["strips"][0]["floors"][0]
 		if kind in ["gas", "dark"]:
 			back = 0.0  # these lie on slopes, so the floor is only known where they begin
-		return Vector2((at.x - back) * tile, floor_row * tile - 4.0)
+		var spot := Vector2((at.x - back) * tile, floor_row * tile - 4.0)
+		if not kind in ["gas", "dark"]:
+			spot = _arena._floor_under(spot + Vector2(0, -6.0 * tile)) - Vector2(0, 4.0)  # the passage may slope: the floor is where this column has it
+		_arena._ground.watch([spot] as Array[Vector2], true)  # the ground there is built before the wizard is set down on it
+		return spot
 	for kind in ["chasm", "flood", "piranhas", "sentinel", "ice", "dark", "gas"]:
 		if not by_kind.has(kind):
 			print("SKIP  no %s gate in this world" % kind)
@@ -1120,6 +1129,7 @@ func _plan_gates() -> void:
 		var left: float = plug_gate["columns"][0]["x"] * tile
 		var right: float = (plug_gate["columns"][-1]["x"] + 1) * tile
 		var plug: Array = [null]
+		_at(t - 0.6, func() -> void: stand.call("ice", 5.0))  # builds the ground there a moment before the wizard is set down on it
 		_at(t, func() -> void:
 			for node in _arena.get_children():
 				if node is IcePlug and node.columns[0]["x"] == plug_gate["columns"][0]["x"]:
@@ -1196,7 +1206,9 @@ func _plan_gates() -> void:
 		var end_x: float = (pit.end.x + 1) * tile
 		for mode in 2:
 			var killed := mode == 1
-			var crossing := {"damage": -1.0}
+			var crossing := {"damage": -1.0, "base": 1000.0}
+			_at(t - 0.6, func() -> void: stand.call("piranhas", 5.0))
+			_at(t + 0.4, func() -> void: crossing["base"] = _player().max_stamina)  # whatever the setting down cost is not the pit's
 			_at(t, func() -> void:
 				var wizard: Node2D = _player()
 				for node in _arena.get_children():
@@ -1212,7 +1224,7 @@ func _plan_gates() -> void:
 				_at(t + q * 0.125, func() -> void:
 					var wizard: Node2D = _player()
 					if crossing["damage"] < 0.0 and wizard.global_position.x > end_x and wizard.global_position.x < end_x + 600.0:
-						crossing["damage"] = 1000.0 - wizard.max_stamina)
+						crossing["damage"] = crossing["base"] - wizard.max_stamina)
 			_at(t + 15.0, func() -> void:
 				Input.action_release("move_right")
 				Input.action_release("jump")

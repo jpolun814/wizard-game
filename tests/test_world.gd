@@ -175,14 +175,14 @@ func _make(seed_value: int) -> Dictionary:
 ## places far apart, each with halls of its own around it and a way to every hall.
 func _sprawl(s: int, world: Dictionary, graph: WorldGraph, seen: Dictionary) -> void:
 	var mouths: Array = graph.rooms[0]["mouths"]
-	if mouths.size() < 10:
+	if mouths.size() < 8:
 		_fail("seed %d: only %d ways down from the surface" % [s, mouths.size()])
 	for biome in world["surface"]["biomes"]:
 		var inside := 0
 		for x: int in mouths:
 			inside += 1 if x >= biome["a"] and x <= biome["b"] else 0
 		if inside < (0 if biome["name"] == "graveyard" else 1):
-			_fail("seed %d: only %d ways down in the %s" % [s, inside, biome["name"]])
+			_fail("seed %d: only %d ways down in the %s (%d-%d; mouths %s; castle %d)" % [s, inside, biome["name"], biome["a"], biome["b"], str(mouths), world["surface"]["castle"]])
 	var loops := graph.links.size() - (graph.rooms.size() - 1)
 	if loops < 1:
 		_fail("seed %d: only %d loops between halls" % [s, loops])
@@ -194,7 +194,7 @@ func _sprawl(s: int, world: Dictionary, graph: WorldGraph, seen: Dictionary) -> 
 		if not WorldBuilder.standing(world["cells"], spawn.x, spawn.y):
 			_fail("seed %d: starting place %d is not on firm ground" % [s, k])
 		for j in range(k + 1, world["spawns"].size()):
-			if absi(world["spawns"][j].x - spawn.x) < 200:
+			if absi(world["spawns"][j].x - spawn.x) < 140:
 				_fail("seed %d: starting places %d and %d are only %d columns apart" % [s, k, j, absi(world["spawns"][j].x - spawn.x)])
 		var halls := 0
 		for room in graph.rooms:

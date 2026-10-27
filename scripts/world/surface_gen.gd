@@ -106,7 +106,7 @@ static func build(width: int, rng: RandomNumberGenerator) -> Dictionary:
 static func _pools_for(biome: String, rng: RandomNumberGenerator) -> Array:
 	match biome:
 		"swamp":
-			return [rng.randi_range(5, 7), false]
+			return [rng.randi_range(3, 4), false]
 		"tundra":
 			return [rng.randi_range(1, 2), false]
 		"ashlands":

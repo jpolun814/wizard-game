@@ -10,15 +10,15 @@ extends RefCounted
 ## Some passages are gated: the halls beyond a gate are a locked area, with an elite or the boss in its widest hall and
 ## the key in a vault outside it. Everything here comes from the rng it is given, so one seed always gives one graph.
 
-const SIZE := Vector2i(1800, 380)  # the world, in tiles: room for four players to spread out and find pages alone
-const MIN_ROOMS := 90
-const MAX_ROOMS := 130
-const ENTRANCE_SPACING := 80   # one way down for about this many columns of surface, at the least, in every biome
-const SURFACE_APART := 64       # columns between two ways down from the surface
-const CLUSTER_ROOMS := 10       # a way down is the start of a system of about this many halls
+const SIZE := Vector2i(1200, 380)  # the world, in tiles
+const MIN_ROOMS := 60
+const MAX_ROOMS := 90
+const ENTRANCE_SPACING := 40   # one way down for about this many columns of surface, at the least, in every biome
+const SURFACE_APART := 34       # columns between two ways down from the surface
+const CLUSTER_ROOMS := 8       # a way down is the start of a system of about this many halls
 const PLAYERS := 4
-const MIN_RUN := 26         # the least a tunnel runs between two halls, in columns
-const MAX_RUN := 66
+const MIN_RUN := 22         # the least a tunnel runs between two halls, in columns
+const MAX_RUN := 54
 const SLOPE := 2.0          # columns a gentle tunnel needs for each row it climbs
 const STEEP := 1.0          # and a steep one: 45 degrees, the most a walker can climb
 const STEEP_CHANCE := 0.4
@@ -62,23 +62,23 @@ var _reserved: Array[Dictionary] = []  # {"rect": Rect2i, "owners": [room ids]}:
 static func build(rng: RandomNumberGenerator) -> WorldGraph:
 	var best: WorldGraph = null
 	var best_score := -1
-	for attempt in 10:
+	for attempt in 25:
 		var graph := _grow(rng)
 		var mouths: int = graph.rooms[0]["mouths"].size()
 		var score := graph.rooms.size() + mouths * 3 + mini(graph.links.size() - graph.rooms.size(), 4) * 4 + (6 if graph.locks.size() >= 2 else 0) + (4 if graph.rooms[graph.boss]["depth"] >= 3 else 0) + (0 if graph._spawns_apart() else -40)
 		if score > best_score:
 			best = graph
 			best_score = score
-		if graph.rooms.size() >= MIN_ROOMS and mouths >= 10 and graph.locks.size() >= 2 and graph.rooms[graph.boss]["depth"] >= 3 and graph.spawns.size() == PLAYERS and graph._spawns_apart() and graph.links.size() - graph.rooms.size() >= 2:
+		if graph.rooms.size() >= MIN_ROOMS and mouths >= 8 and graph.locks.size() >= 2 and graph.rooms[graph.boss]["depth"] >= 3 and graph.spawns.size() == PLAYERS and graph._spawns_apart() and graph.links.size() - graph.rooms.size() >= 2:
 			return graph
 	return best
 
 
-## True when every two starting places are at least 200 columns apart.
+## True when every two starting places are at least 140 columns apart.
 func _spawns_apart() -> bool:
 	for i in spawns.size():
 		for j in range(i + 1, spawns.size()):
-			if absi(spawns[i]["x"] - spawns[j]["x"]) < 200:
+			if absi(spawns[i]["x"] - spawns[j]["x"]) < 140:
 				return false
 	return true
 

@@ -361,11 +361,16 @@ func _lay_pages() -> void:
 	var count := {}
 	for entry: Dictionary in layout["placed"]:
 		var room: int = entry["room"]
+		var pickup := PagePickup.new()
+		pickup.page = entry["page"]
+		if entry.has("x"):  # out on the surface, near the start
+			var column: int = entry["x"]
+			pickup.position = _floor_under(Vector2((column + 0.5) * TILE, graph.surface["floor"][column] * TILE - 40.0))
+			add_child(pickup)
+			continue
 		var spot := _stand_at(_markers[room])
 		var k: int = count.get(room, 0)
 		count[room] = k + 1
-		var pickup := PagePickup.new()
-		pickup.page = entry["page"]
 		var lie := spot + Vector2((k - 0.5) * 70.0 if k > 0 else 0.0, 0.0)
 		pickup.position = _floor_under(lie)  # on the floor, wherever the marker's tile ends
 		add_child(pickup)

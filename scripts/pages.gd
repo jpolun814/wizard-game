@@ -5,7 +5,7 @@ extends RefCounted
 ## or chant can only be cast once its page has been found. In the waiting room every page is known. A page is a spell's name, or
 ## "chant:" and a chant's id (the Mark and the Return share one page, the Mark's).
 ##
-## Where they lie: every page that opens a gate is in a hall outside the locked areas, so the way on is never shut behind itself. Pages
+## Where they lie: three lie in the open near the start. Every page that opens a gate is in a hall outside the locked areas, so the way on is never shut behind itself. Pages
 ## that open no gate may also lie in the locked areas, as the reward for getting in. The dark wizard keeps a few of those: they are
 ## left out of the map (the stash).
 
@@ -18,6 +18,7 @@ const CHANTS := ["chant:bonfire", "chant:rift"]
 ## Spells that open no gate, and chants that do not: the ones that may lie in a locked area or in the dark wizard's stash.
 const LOCKABLE := ["Frostbolt", "Icicles", "Ice Prison", "Blizzard", "Stonefall", "Mudslide", "Earthquake", "Bramble", "Spore Puff",
 		"Flytrap", "Hex", "Abyss", "chant:boundless", "chant:double_jump", "chant:haste"]
+const ON_SURFACE := 3  # pages that lie out in the open near the start, so the first one is found within a minute
 const STASH := 0  # how many pages the dark wizard keeps back; none for now
 
 static var active := false          # true in a world: only the pages found are known
@@ -117,9 +118,28 @@ static func plan(graph: WorldGraph, rng: RandomNumberGenerator) -> Dictionary:
 	_shuffle(free, rng)
 	var rest: Array[String] = open + lockable
 	_shuffle(rest, rng)
+	for column in _surface_columns(graph, ON_SURFACE):
+		placed.append({"page": rest.pop_back(), "room": 0, "x": column})  # room 0 is the surface
 	for k in rest.size():
 		placed.append({"page": rest[k], "room": free[k % free.size()]})
 	return {"placed": placed, "stash": kept}
+
+
+## Columns of open ground close to the start, away from the castle and the pools, a stretch apart, nearest first.
+static func _surface_columns(graph: WorldGraph, count: int) -> Array[int]:
+	var out: Array[int] = []
+	var start: int = graph.surface["start"]
+	var castle: int = graph.surface["castle"]
+	for step in 40:
+		var column := start + (step / 2 + 1) * 28 * (1 if step % 2 == 0 else -1)
+		var clear: bool = column < castle - 6 or column > castle + SurfaceGen.CASTLE_WIDTH + 6
+		for pond: Dictionary in graph.surface["ponds"]:
+			clear = clear and (column < pond["a"] - 4 or column > pond["b"] + 4)
+		if clear:
+			out.append(column)
+			if out.size() == count:
+				break
+	return out
 
 
 static func _shuffle(list: Array, rng: RandomNumberGenerator) -> void:
