@@ -14,6 +14,7 @@ var _markers := {}
 var _ponds := []
 var _gates := []
 var _castle_doors := []  # [{"x", "floor"}]: where the castle's wooden doors stand
+var _castle_ladders := []  # [{"x", "bottom", "top"}]: its rope ladders, by the first column of the hatch and the rows of the floors
 var _weather: Array[Weather] = []
 var _gates_open := false
 const DEEP := Color(0.3, 0.27, 0.42)  # the colour of everything unlit, just under the ground
@@ -49,6 +50,7 @@ func _build_map() -> Variant:
 		ArenaGen.biome_spans.append(span)
 	ArenaGen.castle_hall = built["hall"]
 	_castle_doors = built["doors"]
+	_castle_ladders = built["ladders"]
 	tiled_ground = true
 	_start_tile = built["start"]
 	if random_start:
@@ -153,6 +155,11 @@ func _begin_encounter(camera: Camera2D) -> void:
 		var door := CastleDoor.new()
 		door.position = Vector2(entry["x"] * float(TILE), entry["floor"] * float(TILE))
 		add_child(door)
+	for entry: Dictionary in _castle_ladders:
+		var ladder := RopeLadder.new()
+		ladder.height = float(entry["bottom"] - entry["top"]) * float(TILE)
+		ladder.position = Vector2((entry["x"] + 1) * float(TILE), entry["bottom"] * float(TILE))
+		add_child(ladder)
 	for entry in _gates:
 		match entry["kind"]:
 			"brambles":

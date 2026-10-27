@@ -1,8 +1,8 @@
 class_name GasBank
 extends Area2D
 
-## A bank of poison gas lying in a passage from the floor to the roof. Whoever is in it is poisoned every moment, and
-## holding your breath keeps it off (the Chant of the Deep Breath). Wind thins it away (a Gust, a Tornado), and fire burns it off.
+## A bank of poison gas lying in a passage from the floor to the roof. Whoever is in it is poisoned every moment, and a
+## Barrier keeps it off, as does holding your breath (the Chant of the Deep Breath). Wind thins it away (a Gust, a Tornado), and fire burns it off.
 
 const TICK := 0.25
 const DAMAGE := 15
@@ -94,7 +94,7 @@ func _physics_process(delta: float) -> void:
 			if body.KINDS[body.kind]["role"] != "flyer":
 				body.take_damage(DAMAGE, "Flora")
 		elif not body.holding_breath():  # whoever holds their breath is not poisoned
-			body.take_damage(DAMAGE, false)  # no grace between breaths; gas is no projectile, so a Barrier does nothing
+			body.take_damage(DAMAGE, false, true)  # no grace between breaths, but a Barrier keeps it off
 
 
 ## True when a fire touches the gas.

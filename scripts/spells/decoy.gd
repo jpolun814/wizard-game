@@ -5,7 +5,7 @@ extends Node2D
 ## wizard. It takes the hits meant for you until it is worn through or its time runs out. The left and right arrow keys walk it
 ## about, so it can be made to look alive, or lead whatever watches it away.
 
-const SECONDS := 12.0
+const SECONDS := 24.0
 const WALK := 170.0
 const FALL := 600.0
 const STEP := 18.0  # the highest step it walks up

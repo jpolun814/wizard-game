@@ -110,6 +110,19 @@ func _initialize() -> void:
 				_fail("seed %d: the castle cannot be walked through from the east" % s)
 		Pages.begin(s)
 		var layout := Pages.plan(graph, RandomNumberGenerator.new())
+		var page_rooms := {}
+		for entry: Dictionary in layout["placed"]:
+			page_rooms[entry["room"]] = true
+		var first_hops := 99.0
+		var mean := 0.0
+		for spawn in graph.spawns:
+			var from_here: Dictionary = graph._hops_from(spawn)
+			var nearest_page := 99.0
+			for room in page_rooms:
+				nearest_page = minf(nearest_page, from_here.get(room, 99.0))
+			first_hops = minf(first_hops, nearest_page)
+			mean += nearest_page
+		print("seed %d: %d rooms, %d with a page; nearest page from a spawn: %.0f passages (average %.1f); world %s tiles" % [s, graph.rooms.size(), page_rooms.size(), first_hops, mean / maxf(graph.spawns.size(), 1), str(world["size"])])
 		var seen := {}
 		for entry: Dictionary in layout["placed"]:
 			var page: String = entry["page"]

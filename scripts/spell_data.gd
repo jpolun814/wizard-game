@@ -14,7 +14,7 @@ const DAMAGE := {
 	"Smoke Screen": "hides what is behind it", "Flare": "a following light, harmless", "Spark": "20 damage",
 	"Frostbolt": "6 damage, slows", "Icicles": "6 damage every half second", "Ice Prison": "freezes foes solid",
 	"Blizzard": "slows what is inside", "Frost Bridge": "freezes water into ice", "Geyser": "launches what stands on it",
-	"Push": "moves foes", "Barrier": "negates projectiles", "Tornado": "flings foes", "Gust": "blows light things along",
+	"Push": "moves foes", "Barrier": "redirects projectiles, keeps gas off", "Tornado": "flings foes", "Gust": "blows light things along",
 	"Stonefall": "30 damage", "Stone Wall": "solid · must start on solid ground", "Mudslide": "slows, stops jumping",
 	"Earthquake": "shakes the ground", "Volcano": "lava damage, sets ground on fire",
 	"Bramble": "slows, 3 damage per half second", "Spore Puff": "poison, 2 damage per half second",
@@ -125,7 +125,7 @@ const SPELLS := {
 	"Barrier": {
 		"buttons": MIDDLE, "gesture": "circle", "targeting": "positional", "cost": 35.0,
 		"school": "Air", "draw": "A circle, either way round. The shield wraps around you.",
-		"effect": "Negate every projectile that hits you for 6 seconds.",
+		"effect": "Redirect incoming projectiles in random directions and keep gas off for 6 seconds.",
 	},
 	"Tornado": {
 		"buttons": MIDDLE, "gesture": "tornado", "targeting": "shape", "cost": 30.0,
@@ -198,7 +198,7 @@ const SPELLS := {
 	"Decoy": {
 		"buttons": RIGHT | MIDDLE, "gesture": "eight", "targeting": "positional", "cost": 20.0,
 		"school": "Shadow", "draw": "A figure of eight.",
-		"effect": "Cast a shadow of yourself that walks where you send it, for 12 seconds.",
+		"effect": "Cast a shadow of yourself that walks where you send it, for 24 seconds.",
 	},
 	"Eclipse": {
 		"buttons": RIGHT | MIDDLE, "gesture": "crescent", "targeting": "positional", "cost": 22.0,

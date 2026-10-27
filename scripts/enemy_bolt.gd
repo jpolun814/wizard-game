@@ -93,6 +93,9 @@ func _on_body_entered(body: Node2D) -> void:
 		return
 	if _kin != "" and body.is_in_group("mobs") and body.kind == _kin:
 		return  # a ninja's star flies through its own kind
+	if (body.is_in_group("player") or body.is_in_group("mobs")) and body.has_shield():
+		reflect(Vector2.from_angle(randf() * TAU))  # a Barrier sends it off in a random direction
+		return
 	if body.is_in_group("player"):
 		body.take_damage(damage, true, true)
 		if _slows and not body.has_shield():  # a Barrier negates the whole shot

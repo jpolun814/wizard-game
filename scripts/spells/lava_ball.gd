@@ -68,9 +68,7 @@ func _on_body(body: Node2D) -> void:
 	if _spent or not SpellTargets.affects(body):
 		return
 	if body.has_shield():
-		_spent = true
-		PixelFx.play(get_parent(), global_position, "blast_small", 20.0, 1.0, Color.WHITE, true)
-		queue_free()
+		reflect(Vector2.from_angle(randf() * TAU))  # a Barrier sends it off in a random direction
 		return
 	_land(SpellTargets.ground_below(get_world_2d(), global_position), global_position)
 

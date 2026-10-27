@@ -126,8 +126,8 @@ func _plan() -> void:
 		"castle":
 			var tile := float(ArenaGen.TILE)
 			var ground_y := WorldGraph.SURFACE_ROW * tile
-			var views := [["gate", -8.0, 0.0, 1.0], ["entry", 8.0, 0.0, 1.0], ["stair", 21.0, 6.0, 1.0], ["first", 31.0, 11.0, 1.0], ["stair2", 42.0, 17.0, 1.0],
-					["great", 58.0, 22.0, 1.0], ["east", 88.0, 22.0, 1.0], ["back", 126.0, 0.0, 1.0], ["steps", 22.0, 6.0, 3.0], ["whole", 68.0, 20.0, 0.2], ["roofwest", 22.0, 24.0, 0.6]]
+			var views := [["gate", -8.0, 0.0, 1.0], ["entry", 8.0, 0.0, 1.0], ["hall", 26.0, 0.0, 1.0], ["first", 26.0, 11.0, 1.0], ["first2", 66.0, 11.0, 1.0],
+					["great", 50.0, 22.0, 1.0], ["great2", 90.0, 22.0, 1.0], ["back", 126.0, 0.0, 1.0], ["whole", 68.0, 20.0, 0.2], ["roofwest", 22.0, 24.0, 0.6]]
 			var t := 0.6
 			for view: Array in views:
 				var at := Vector2((_arena.castle_x + view[1]) * tile, ground_y - (view[2] + 1.0) * tile)
@@ -137,10 +137,49 @@ func _plan() -> void:
 					_player().global_position = at
 					_player().velocity = Vector2.ZERO
 					_arena._dark.hide()
+					_arena._ground.watch([at] as Array[Vector2], true)
 					_arena.get_node("Player/Camera2D").zoom = Vector2(zoom, zoom)
 					_arena.get_node("Player/Camera2D").reset_smoothing())
 				_at(t + 1.2, func() -> void: _snap(name))
 				t += 1.8
+			# The rope ladders: climb the first (ground to first floor) and the last (first to second floor).
+			var ladders: Array = _arena._castle_ladders
+			var press := func(code: Key, down: bool) -> void:
+				var event := InputEventKey.new()
+				event.keycode = code
+				event.physical_keycode = code
+				event.pressed = down
+				Input.parse_input_event(event)
+			for pick in [0, ladders.size() - 1]:
+				var entry: Dictionary = ladders[pick]
+				_at(t, func() -> void:
+					var at := Vector2((entry["x"] + 1) * tile, entry["bottom"] * tile - 4.0)
+					_player().global_position = at
+					_player().velocity = Vector2.ZERO
+					_arena._ground.watch([at] as Array[Vector2], true)
+					_arena._dark.hide()
+					_arena.get_node("Player/Camera2D").reset_smoothing()
+					press.call(KEY_W, true))
+				_at(t + 4.0, func() -> void:
+					var feet: float = _player().global_position.y
+					var top_y: float = entry["top"] * tile
+					var ok: bool = feet < top_y + 6.0
+					print("%s  the rope ladder lifts the wizard to the floor above (feet %d, floor %d)" % ["PASS" if ok else "FAIL", int(feet), int(top_y)])
+					if not ok:
+						_exit_code = 1
+					_snap("ladder")
+					press.call(KEY_W, false)
+					Input.action_press("move_right"))
+				_at(t + 4.6, func() -> void:
+					Input.action_release("move_right"))
+				_at(t + 6.0, func() -> void:
+					var feet: float = _player().global_position.y
+					var top_y: float = entry["top"] * tile
+					var ok: bool = absf(feet - top_y) < 6.0 and _player().is_on_floor()
+					print("%s  and steps off onto it (feet %d, floor %d)" % ["PASS" if ok else "FAIL", int(feet), int(top_y)])
+					if not ok:
+						_exit_code = 1)
+				t += 7.0
 		"tornado":
 			var flung := {"up": 0.0, "side": []}
 			for k in 4:

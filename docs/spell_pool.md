@@ -58,7 +58,7 @@ lowers the whole window (see the main design doc). All numbers are provisional.
 | Spell | Shape | Pictures | Counter | Tags | Stamina |
 |---|---|---|---|---|---|
 | Push | circle, then a line out of it | a blast moving everything inside, heavy foes included; the only spell that lifts you | anchor, Stone Wall | push, reach height | 6-14 |
-| Barrier | circle round yourself | a shell of air that negates projectiles (nothing else) | it ends after 6 seconds | | 20-40 |
+| Barrier | circle round yourself | a shell of air that sends projectiles off in random directions and keeps gas off (nothing else) | it ends after 6 seconds | | 20-40 |
 | Tornado | tall narrow coil going down, like a drill bit | a funnel that swirls foes | step away | | 18-34 |
 | Gust | any swoosh or flick; the stroke is the wind's direction | wind that blows light things along the stroke: shots (this replaces Wind Wall), flyers, smoke, spores, and you sideways. It cannot lift you; only Push does | heavy foes resist | cross gap | 8-18 |
 
