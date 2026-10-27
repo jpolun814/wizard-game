@@ -7,6 +7,7 @@ extends SpellEffect
 const STATS := {
 	"Ignite": {"speed": 700.0, "damage": 12, "life": 2.0, "color": Color("#ff7a2a")},
 	"Frostbolt": {"speed": 600.0, "damage": 6, "life": 2.0, "color": Color("#b8f0ff")},
+	"Blood Bolt": {"speed": 800.0, "damage": 30, "life": 2.0, "color": Color("#c4162f")},
 }
 const SLOW_SECONDS := 2.0
 const CLEAR_CHECK_AFTER := 0.05  # the overlaps of a new shot are not known until a few physics frames have passed
@@ -35,10 +36,12 @@ func _begin(origin: Vector2, aim_angle: float) -> void:
 	_trail = _make_trail()
 	add_child(_trail)
 	# The shot itself: a pixel-art fireball or ice spear, its head on the node and its tail streaming behind.
-	var shot := PixelFx.sprite("fireball" if spell == "Ignite" else "icespear", 18.0)
+	var shot := PixelFx.sprite("icespear" if spell == "Frostbolt" else "fireball", 18.0)
 	shot.offset = Vector2(-18, 0)
+	if spell == "Blood Bolt":
+		shot.modulate = Color(0.85, 0.08, 0.16)  # the fireball, dyed dark red
 	add_child(shot)
-	Sfx.play("cast_fire" if spell == "Ignite" else "cast_ice", origin)
+	Sfx.play("cast_ice" if spell == "Frostbolt" else "cast_fire", origin)
 
 
 func damage() -> int:
@@ -73,7 +76,8 @@ func _make_trail() -> CPUParticles2D:
 		var snow := Fx.trail(Color("#a9dcff"), 36, 0.55, 30.0, Vector2(0, 60), "star_04", 12.0)
 		snow.material = null
 		return snow
-	var embers := Fx.trail(Color("#ff9a40"), 60, 0.35, 25.0, Vector2(0, -60), "flame_05", 12.0)
+	var blood := spell == "Blood Bolt"
+	var embers := Fx.trail(Color("#c4162f") if blood else Color("#ff9a40"), 60, 0.35, 25.0, Vector2(0, 60) if blood else Vector2(0, -60), "flame_05", 12.0)
 	embers.texture = PixelFx.ember()
 	embers.angle_min = -180.0
 	embers.angle_max = 180.0
@@ -112,9 +116,9 @@ func _impact_effect() -> void:
 		Shatter.spawn(get_parent(), global_position, STATS[spell]["color"])
 		Sfx.play("ice_shatter", global_position)
 	else:
-		PixelFx.play(get_parent(), global_position, "blast_small", 22.0, 1.0)
+		PixelFx.play(get_parent(), global_position, "blast_small", 22.0, 1.0, Color(0.9, 0.15, 0.2) if spell == "Blood Bolt" else Color.WHITE)
 		Fx.smoke(get_parent(), global_position, Color(0.3, 0.25, 0.25, 0.4), 3, 18.0, 30.0)
-		Sfx.play("fire_hit", global_position)
+		Sfx.play("mob_hurt" if spell == "Blood Bolt" else "fire_hit", global_position)
 
 
 ## A Gust, Push or Tornado turns this shot: it flies off along the new heading.

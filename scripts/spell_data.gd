@@ -22,6 +22,10 @@ const DAMAGE := {
 	"Lily Pads": "floating leaves to walk on",
 	"Decoy": "enemies attack it instead of you", "Eclipse": "enemies inside see very little", "Hex": "the marked take 50% more damage",
 	"Abyss": "pulls everything in", "Shadow Step": "8 damage to foes in the way",
+	"Moonbeam": "a dim light, harmless", "Glowcap": "a green light, harmless", "Tide Surf": "carries you, shoves anyone",
+	"Obsidian Armor": "half damage from shots, lava is harmless, slower",
+	"Blood Bolt": "30 damage", "Transfusion": "20 damage, refills your stamina", "Adrenaline": "faster, quicker recovery",
+	"Hemorrhage": "bleeds stamina, 8 seconds", "Clot": "stops bleeding", "Faint": "drops anyone until their stamina returns",
 }
 
 ## Colour of each school: used to tint the enemies of that school and to glow the spells.
@@ -32,6 +36,7 @@ const SCHOOL_COLORS := {
 	"Earth": Color("#b8864a"),
 	"Flora": Color("#6fcf6a"),
 	"Shadow": Color("#7a5aa0"),
+	"Blood": Color("#c4162f"),
 }
 
 ## A spell that is not the colour of its school (Spark is lightning, though it is a Fire spell).
@@ -47,6 +52,7 @@ const SCHOOL_BUTTONS := {
 	"Earth": LEFT | RIGHT,
 	"Flora": LEFT | MIDDLE,
 	"Shadow": RIGHT | MIDDLE,
+	"Blood": LEFT | RIGHT | MIDDLE,  # the school that is paid for in maximum stamina
 }
 
 ## Single source of truth for fast spells: which mouse button and gesture cast them, what they cost,
@@ -220,6 +226,58 @@ const SPELLS := {
 		"school": "Shadow", "draw": "A straight stroke. You slip along it, through anything in your way.",
 		"effect": "Vanish and reappear along your stroke.",
 	},
+	"Moonbeam": {
+		"buttons": RIGHT | MIDDLE, "gesture": "wall", "targeting": "positional", "cost": 16.0,
+		"school": "Shadow", "draw": "A straight vertical line. A pale light falls along it.",
+		"effect": "Call down a dim, pale light for 30 seconds.",
+	},
+	# Water, Flora and Earth, the newer spells
+	"Tide Surf": {
+		"buttons": RIGHT, "gesture": "tsunami", "targeting": "directional", "cost": 30.0,
+		"school": "Water", "draw": "A wave: a line that rises and curls over at its crest. The wave runs the way the crest leans.",
+		"effect": "Ride a wave along the ground for 4 seconds, shoving anyone aside.",
+	},
+	"Glowcap": {
+		"buttons": LEFT | MIDDLE, "gesture": "circle", "targeting": "positional", "cost": 14.0,
+		"school": "Flora", "draw": "A circle, either way round: the cap of a mushroom.",
+		"effect": "Grow a glowing mushroom on your hat, or your staff, to light your way for 60 seconds.",
+	},
+	"Obsidian Armor": {
+		"buttons": LEFT | RIGHT, "gesture": "circle", "targeting": "positional", "cost": 40.0,
+		"school": "Earth", "draw": "A circle, either way round. The glass grows over you.",
+		"effect": "Turn to black glass for 20 seconds: take half damage from shots, wade through lava unharmed, and walk slower.",
+	},
+	# Blood: all three buttons, and paid for in maximum stamina
+	"Blood Bolt": {
+		"buttons": LEFT | RIGHT | MIDDLE, "gesture": "flick", "targeting": "directional", "cost": 12.0,
+		"school": "Blood", "draw": "Straight stroke, not vertical. Draw it in the direction you want to throw.",
+		"effect": "Hurl a bolt of blood for 30 damage.",
+	},
+	"Transfusion": {
+		"buttons": LEFT | RIGHT | MIDDLE, "gesture": "circle", "targeting": "positional", "cost": 10.0,
+		"school": "Blood", "draw": "A circle, drawn round the one you take from.",
+		"effect": "Take life from anyone you circle for 20 damage, and recover stamina.",
+	},
+	"Adrenaline": {
+		"buttons": LEFT | RIGHT | MIDDLE, "gesture": "zigzag", "targeting": "positional", "cost": 15.0,
+		"school": "Blood", "draw": "A tall zigzag going down, like a pulse.",
+		"effect": "Run faster and recover stamina quicker for 10 seconds.",
+	},
+	"Hemorrhage": {
+		"buttons": LEFT | RIGHT | MIDDLE, "gesture": "cross", "targeting": "positional", "cost": 10.0,
+		"school": "Blood", "draw": "A cross, drawn in one stroke.",
+		"effect": "Cut anyone you draw it over: they bleed stamina for 8 seconds.",
+	},
+	"Clot": {
+		"buttons": LEFT | RIGHT | MIDDLE, "gesture": "wall", "targeting": "positional", "cost": 5.0,
+		"school": "Blood", "draw": "A straight vertical line, drawn over the wound.",
+		"effect": "Close the wounds of everyone near the line.",
+	},
+	"Faint": {
+		"buttons": LEFT | RIGHT | MIDDLE, "gesture": "spiral", "targeting": "positional", "cost": 30.0,
+		"school": "Blood", "draw": "A spiral that starts wide and winds in to its middle, drawn over the one who will fall.",
+		"effect": "Drain all the stamina of anyone you draw it over, and drop them until it returns.",
+	},
 }
 
 
@@ -243,6 +301,11 @@ static func color_of(spell_name: String) -> Color:
 	if SPELL_COLORS.has(spell_name):
 		return SPELL_COLORS[spell_name]
 	return SCHOOL_COLORS[SPELLS[spell_name]["school"]]
+
+
+## True when a spell is paid for in maximum stamina, which only healing brings back, and not in the stamina that recovers.
+static func pays_max(spell_name: String) -> bool:
+	return SPELLS.has(spell_name) and SPELLS[spell_name]["school"] == "Blood"
 
 
 ## What a spell costs. Spells whose size you draw cost more when drawn bigger: a circle's base cost is for one

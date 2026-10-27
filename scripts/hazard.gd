@@ -55,7 +55,7 @@ func _physics_process(delta: float) -> void:
 	if _tick <= 0.0:
 		_tick = FIRE_TICK
 		for body in get_overlapping_bodies():
-			SpellTargets.hurt(body, FIRE_DAMAGE, "Fire")
+			SpellTargets.hurt(body, FIRE_DAMAGE, "Fire", false, true)
 	_flames.modulate.a = clampf((_life - _age) / 0.5, 0.0, 1.0)
 	if _age >= _life:
 		queue_free()

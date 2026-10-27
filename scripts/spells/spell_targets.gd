@@ -16,9 +16,11 @@ static func affects(body: Node) -> bool:
 
 ## Hurts the body. Enemies take school damage (weak, resisted); the player takes it plain. A shot's hurt (shot true)
 ## is stopped by the player's Barrier, as every shot is.
-static func hurt(body: Node, amount: int, school: String, shot := false) -> void:
+static func hurt(body: Node, amount: int, school: String, shot := false, lava := false) -> void:
 	if not affects(body):
 		return
+	if lava and body.has_method("lava_proof") and body.lava_proof():
+		return  # black glass: the lava runs off it
 	if body.is_in_group("player"):
 		if school in ["Air", "Earth"] and body.is_frozen():
 			amount = roundi(amount * 1.5)  # a frozen player is shattered out of the ice, as a frozen enemy is
@@ -64,11 +66,11 @@ static func center_of(body: Node2D) -> Vector2:
 
 
 ## Hurts every affected body within a radius of a point, and returns how many it hit.
-static func hurt_within(tree: SceneTree, point: Vector2, radius: float, amount: int, school: String, shot := false) -> int:
+static func hurt_within(tree: SceneTree, point: Vector2, radius: float, amount: int, school: String, shot := false, lava := false) -> int:
 	var hit := 0
 	for body in all(tree):
 		if center_of(body).distance_to(point) <= radius:
-			hurt(body, amount, school, shot)
+			hurt(body, amount, school, shot, lava)
 			hit += 1
 	return hit
 
@@ -137,6 +139,9 @@ static func lit_near(tree: SceneTree, point: Vector2, reach: float) -> bool:
 	for flare in tree.get_nodes_in_group("flares"):
 		if flare.global_position.distance_to(point) < Flare.LIGHT_RADIUS * 0.6 + reach:
 			return true
+	for light in tree.get_nodes_in_group("lights"):  # a Glowcap or a Moonbeam: dimmer, so they show less
+		if light.global_position.distance_to(point) < light.light_radius * 0.6 + reach:
+			return true
 	for fire in fire_points(tree):
 		if fire["at"].distance_to(point) < 160.0 + reach + maxf(fire["size"], 0.0):
 			return true
@@ -146,6 +151,9 @@ static func lit_near(tree: SceneTree, point: Vector2, reach: float) -> bool:
 static func _lit_by_flare(tree: SceneTree, point: Vector2) -> bool:
 	for flare in tree.get_nodes_in_group("flares"):
 		if flare.global_position.distance_to(point) < Flare.LIGHT_RADIUS:
+			return true
+	for light in tree.get_nodes_in_group("lights"):
+		if light.global_position.distance_to(point) < light.light_radius:
 			return true
 	return false
 

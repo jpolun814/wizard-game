@@ -61,7 +61,7 @@ func _physics_process(delta: float) -> void:
 		body.soak(Color(1.0, 0.55, 0.3) if lava else Color(0.55, 0.75, 1.0), global_position.y, lava)
 		if lava:
 			if tick:
-				SpellTargets.hurt(body, LAVA_DAMAGE, "Fire")
+				SpellTargets.hurt(body, LAVA_DAMAGE, "Fire", false, true)
 		elif body.is_in_group("mobs"):
 			body.apply_slow(0.3)
 		else:

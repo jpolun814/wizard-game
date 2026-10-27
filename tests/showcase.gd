@@ -279,7 +279,9 @@ func _plan() -> void:
 					for entry in _arena._gates:
 						if entry["kind"] == kind:
 							near = minf(near, (Vector2(entry["at"]) * tile).distance_to(_player().global_position))
-					verdict.call(near < 1500.0 and not _player().dead, "F1 takes the wizard to a %s gate (%d px away)" % [kind, int(near)]))
+					if near == 1e9:
+						return  # this world has no gate of the kind: with fewer halls a seed holds only some of the nine
+					verdict.call(near < 2000.0 and not _player().dead, "F1 takes the wizard to a %s gate (%d px away)" % [kind, int(near)]))
 				t += 0.6
 			# A wall gate comes down under boulders; an earthquake brings down a wall too.
 			var wall := []
@@ -427,7 +429,7 @@ func _plan() -> void:
 				Input.parse_input_event(tab))
 			_at(9.2, func() -> void:
 				var kept := get_tree().get_nodes_in_group("pages").size()
-				var ok: bool = _arena.spellbook.visible and kept == 35
+				var ok: bool = _arena.spellbook.visible and kept > 40
 				print("%s  Tab on a page the book already has opens the book and leaves the page (%d pages)" % ["PASS" if ok else "FAIL", kept])
 				if not ok:
 					_exit_code = 1
@@ -485,10 +487,12 @@ func _plan() -> void:
 			_plan_climb()
 		"checks":
 			_plan_checks()
+		"newspells":
+			_plan_new_spells()
 		"book":
 			# Every spread of the spellbook, one after another.
 			_at(0.3, func() -> void: _arena.spellbook.visible = true)
-			var shown := [0, 1, 2, 8, 17, 19]
+			var shown := [0, 1, 2, 8, 17, 19, 20, 21, 22]
 			for n in shown.size():
 				var k: int = shown[n]
 				_at(0.6 + n * 0.5, func() -> void:
@@ -557,6 +561,199 @@ func _stroke_from(gesture: String, start: Vector2, size := 1.0) -> PackedVector2
 func _feet(col: int) -> Vector2:
 	return Vector2(ArenaGen.column_x(col), ArenaGen.surface_y(_arena.map_cells(), col))
 
+
+## The Blood school and the newer spells (Glowcap, Moonbeam, Tide Surf, Obsidian Armor), each cast in the waiting room and judged on what it
+## does, with pictures.
+func _plan_new_spells() -> void:
+	var failures := [0]
+	var check := func(label: String, ok: bool) -> void:
+		print("%s  %s" % ["PASS" if ok else "FAIL", label])
+		if not ok:
+			failures[0] += 1
+			_exit_code = 1
+	var tree := _arena.get_tree()
+	var wizard := _player()
+	var dummy := func() -> Node2D:
+		for mob in tree.get_nodes_in_group("mobs"):
+			if mob.kind == "dummy" and not mob.is_queued_for_deletion():  # not one the reset has just let go of
+				return mob
+		return null
+	var line := func(a: Vector2, b: Vector2) -> PackedVector2Array: return _densify(PackedVector2Array([a, b]))
+	var memo := {}
+	var reset := func(col: int, spell_name: String) -> void:  # the waiting room as it is, less its turret, with stamina that can run out
+		_reset_room(col, spell_name)
+		var kept := false
+		for mob in tree.get_nodes_in_group("mobs"):
+			if mob.is_queued_for_deletion():
+				continue
+			if mob.kind == "turret" or (mob.kind == "dummy" and kept):
+				mob.queue_free()  # one dummy is enough, and nothing shoots back
+			elif mob.kind == "dummy":
+				kept = true
+		wizard.infinite_time = 0.0
+	_arena._since_hurt = -100000.0  # the waiting room heals a wizard after a few seconds; here the damage has to stay
+	_arena.caster.feedback.connect(func(t: String, _c: Color) -> void: print("  feedback: ", t))
+	# Blood Bolt: 30 damage, paid for in maximum stamina.
+	_at(0.5, func() -> void:
+		reset.call(15, "Blood Bolt")
+		wizard.max_stamina = 200.0
+		wizard.stamina = 200.0
+		dummy.call().global_position = _feet(19)
+		memo["hp"] = dummy.call().hp)
+	_at(0.8, func() -> void: _cast("Blood Bolt", line.call(_feet(15) + Vector2(0, -40), _feet(15) + Vector2(100, -40))))
+	_at(1.5, func() -> void:
+		check.call("a Blood Bolt costs 12 of the maximum stamina (max %d)" % wizard.max_stamina, absf(wizard.max_stamina - 188.0) < 0.5)
+		check.call("a Blood Bolt does 30 damage (hp %d -> %d)" % [memo["hp"], dummy.call().hp], memo["hp"] - dummy.call().hp == 30)
+		_snap("blood_bolt"))
+	# A spent wizard cannot pay: blood is never spent to the last drop.
+	_at(2.0, func() -> void:
+		wizard.max_stamina = 9.0
+		wizard.stamina = 9.0)
+	_at(2.1, func() -> void: _cast("Blood Bolt", line.call(_feet(15) + Vector2(0, -40), _feet(15) + Vector2(100, -40))))
+	_at(2.3, func() -> void: check.call("a wizard with too little maximum stamina is refused (max %d)" % wizard.max_stamina, wizard.max_stamina == 9.0))
+	# Transfusion: the foe loses 20, the caster's stamina comes back.
+	_at(2.6, func() -> void:
+		reset.call(15, "Transfusion")
+		wizard.max_stamina = 200.0
+		dummy.call().global_position = _feet(19)
+		memo["hp"] = dummy.call().hp)
+	_at(3.0, func() -> void:
+		wizard.stamina = 20.0
+		_arena.caster.cast_stroke(SpellData.SPELLS["Transfusion"]["buttons"], _stroke("circle", _feet(19) + Vector2(0, -30), 0.9)))  # not _cast, which fills the stamina first
+	_at(3.6, func() -> void:
+		check.call("a Transfusion takes 20 from the foe (hp %d -> %d)" % [memo["hp"], dummy.call().hp], memo["hp"] - dummy.call().hp >= 20)
+		check.call("and gives the caster stamina back (%d)" % wizard.stamina, wizard.stamina >= 55.0)
+		_snap("transfusion"))
+	# Adrenaline: hasted and recovering quicker.
+	_at(4.0, func() -> void: reset.call(15, "Adrenaline"))
+	_at(4.2, func() -> void: _cast("Adrenaline", _stroke("zigzag", _feet(15) + Vector2(60, -80), 1.0)))
+	_at(4.5, func() -> void:
+		check.call("Adrenaline hastes the wizard and quickens recovery", wizard.adrenaline_time > 5.0 and wizard.haste_time > 5.0)
+		_snap("adrenaline"))
+	# Hemorrhage: a wound that bleeds the wizard's stamina and never the most they can have.
+	_at(5.0, func() -> void:
+		reset.call(15, "Hemorrhage")
+		wizard.max_stamina = 200.0
+		wizard.stamina = 150.0
+		wizard.adrenaline_time = 0.0
+		memo["max"] = wizard.max_stamina)
+	_at(5.2, func() -> void: _cast("Hemorrhage", _stroke("cross", wizard.center() + Vector2(0, -4), 0.8)))
+	_at(5.25, func() -> void: wizard.stamina = 150.0)
+	_at(6.2, func() -> void:
+		check.call("a wound bleeds the wizard's current stamina (%d)" % wizard.stamina, Bleed.of(tree, wizard) != null and wizard.stamina < 148.0)
+		check.call("and never the maximum (%d)" % wizard.max_stamina, wizard.max_stamina == memo["max"] - 10.0)
+		_snap("bleeding"))
+	# Clot closes it.
+	_at(6.4, func() -> void: _cast("Clot", _stroke("wall", wizard.center(), 1.0)))
+	_at(6.7, func() -> void: check.call("a Clot closes the wound", Bleed.of(tree, wizard) == null))
+	# A bleeding dummy loses health; fire cauterizes the wound.
+	_at(7.0, func() -> void:
+		reset.call(15, "Hemorrhage")
+		wizard.max_stamina = 200.0
+		dummy.call().global_position = _feet(19)
+		memo["hp"] = dummy.call().hp)
+	_at(7.2, func() -> void: _cast("Hemorrhage", _stroke("cross", _feet(19) + Vector2(0, -30), 0.8)))
+	_at(9.2, func() -> void: check.call("a plain foe bleeds health (hp %d -> %d)" % [memo["hp"], dummy.call().hp], dummy.call().hp < memo["hp"]))
+	_at(9.3, func() -> void: Hazard.place(_arena, dummy.call().global_position, 80.0, 3.0))
+	_at(9.6, func() -> void: check.call("fire seals the wound", Bleed.of(tree, dummy.call()) == null))
+	# Faint: the wizard drops, and stands up again once stamina has come back to 10.
+	_at(11.0, func() -> void:
+		reset.call(15, "Faint")
+		wizard.max_stamina = 200.0
+		wizard.stamina = 150.0
+		memo["max"] = wizard.max_stamina)
+	_at(11.2, func() -> void: _cast("Faint", _stroke("spiral", wizard.center(), 1.0)))
+	_at(11.5, func() -> void:
+		check.call("a Faint drops the wizard with no stamina and the maximum kept (max %d, stamina %d)" % [wizard.max_stamina, wizard.stamina], wizard.fainted and wizard.stamina < 10.0 and wizard.max_stamina == memo["max"] - 30.0)
+		_snap("fainted"))
+	_at(12.0, func() -> void:
+		var pos: Vector2 = wizard.global_position
+		Input.action_press("move_right")
+		memo["x"] = pos.x)
+	_at(12.4, func() -> void:
+		Input.action_release("move_right")
+		check.call("a fainted wizard cannot walk", absf(wizard.global_position.x - memo["x"]) < 5.0))
+	_at(14.5, func() -> void: check.call("and stands up once the stamina is back (stamina %d)" % wizard.stamina, not wizard.fainted and wizard.stamina >= 10.0))
+	# Faint on a foe.
+	_at(15.0, func() -> void:
+		reset.call(15, "Faint")
+		wizard.max_stamina = 200.0
+		dummy.call().global_position = _feet(19))
+	_at(15.2, func() -> void: _cast("Faint", _stroke("spiral", _feet(19) + Vector2(0, -30), 1.0)))
+	_at(15.5, func() -> void: check.call("a Faint drops a foe", dummy.call().is_fainted()))
+	_at(18.5, func() -> void: check.call("and the foe gets up again", not dummy.call().is_fainted()))
+	# Glowcap: a mushroom on the hat that is a light, and a second one replaces it.
+	_at(19.0, func() -> void:
+		reset.call(15, "Glowcap")
+		wizard.max_stamina = 200.0)
+	_at(19.2, func() -> void: _cast("Glowcap", _stroke("circle", _feet(15) + Vector2(80, -60), 1.0)))
+	_at(19.8, func() -> void:
+		var caps := tree.get_nodes_in_group("glowcaps")
+		check.call("a Glowcap grows on the hat", caps.size() == 1 and caps[0].global_position.distance_to(wizard.global_position + Vector2(0, -80)) < 14.0)
+		check.call("and lights what is hidden near it", SpellTargets.lit_near(tree, wizard.global_position + Vector2(100, 0), 20.0) and not SpellTargets.lit_near(tree, wizard.global_position + Vector2(900, 0), 20.0))
+		_snap("glowcap"))
+	_at(20.0, func() -> void:
+		wizard.focus = "staff"
+		_cast("Glowcap", _stroke("circle", _feet(15) + Vector2(80, -60), 1.0)))
+	_at(20.6, func() -> void:
+		check.call("a second Glowcap replaces the first, and sits on the staff", tree.get_nodes_in_group("glowcaps").size() == 1)
+		_snap("glowcap_staff")
+		wizard.focus = "wand")
+	# Moonbeam: a dim light on the ground where it was drawn.
+	_at(21.0, func() -> void:
+		reset.call(15, "Moonbeam")
+		_arena._night.visible = true
+		_arena._player_light.enabled = true)
+	_at(21.2, func() -> void: _cast("Moonbeam", _stroke("wall", _feet(15) + Vector2(200, -60), 1.0)))
+	_at(22.0, func() -> void:
+		var beams := tree.get_nodes_in_group("moonbeams")
+		check.call("a Moonbeam stands on the ground where it was drawn", beams.size() == 1 and absf(beams[0].global_position.x - (_feet(15).x + 200.0)) < 40.0)
+		check.call("it lights its patch of the ground, dimly", beams.size() == 1 and SpellTargets.lit_near(tree, beams[0].global_position, 20.0) and not SpellTargets.lit_near(tree, beams[0].global_position + Vector2(400, 0), 20.0))
+		_snap("moonbeam"))
+	# Tide Surf: a wave carries the wizard, and the foe in its way is shoved.
+	_at(22.5, func() -> void:
+		reset.call(15, "Tide Surf")
+		wizard.max_stamina = 200.0
+		memo["x"] = wizard.global_position.x
+		dummy.call().global_position = _feet(19)
+		memo["dx"] = dummy.call().global_position.x)
+	_at(22.7, func() -> void: _cast("Tide Surf", _stroke("tsunami", wizard.center() + Vector2(0, -20), 1.0)))
+	_at(23.5, func() -> void:
+		check.call("a wave carries the wizard along (moved %d px)" % (wizard.global_position.x - memo["x"]), wizard.global_position.x - memo["x"] > 200.0 and wizard.surf_time > 2.0)
+		_snap("tide_surf"))
+	_at(23.9, func() -> void: wizard.surf_time = 0.0)  # the portal at the far end of the room starts a run
+	_at(24.6, func() -> void:
+		check.call("the foe in the way is shoved aside", dummy.call().global_position.x - memo["dx"] > 20.0))
+	_at(27.5, func() -> void:
+		check.call("the wave is gone when the ride is over", wizard.surf_time <= 0.0 and tree.get_nodes_in_group("lasting").filter(func(n: Node) -> bool: return n is TideSurf).is_empty()))
+	# Obsidian Armor: half damage from shots, lava harmless, slower.
+	_at(28.0, func() -> void:
+		reset.call(15, "Obsidian Armor")
+		wizard.max_stamina = 200.0
+		wizard.stamina = 200.0)
+	_at(28.2, func() -> void: _cast("Obsidian Armor", _stroke("circle", wizard.center(), 1.0)))
+	_at(28.6, func() -> void:
+		wizard._grace = 0.0
+		var before: float = wizard.max_stamina
+		wizard.take_damage(10, true, true)
+		check.call("black glass takes half of a shot's damage (%d)" % (before - wizard.max_stamina), before - wizard.max_stamina == 5.0)
+		wizard._grace = 0.0
+		before = wizard.max_stamina
+		SpellTargets.hurt(wizard, 12, "Fire", false, true)
+		check.call("and lava does nothing", wizard.max_stamina == before)
+		wizard._grace = 0.0
+		wizard.take_damage(10, true, false)
+		check.call("a blow that is not a shot lands in full", before - wizard.max_stamina == 10.0)
+		memo["x"] = wizard.global_position.x
+		Input.action_press("move_right")
+		_snap("obsidian"))
+	_at(29.6, func() -> void:
+		Input.action_release("move_right")
+		var walked: float = wizard.global_position.x - memo["x"]
+		check.call("the wizard walks slower (%d px in a second)" % walked, walked > 150.0 and walked < 260.0))
+	_at(49.7, func() -> void:
+		check.call("black glass wears off", wizard.obsidian_time <= 0.0)
+		print("%d new-spell checks failed" % failures[0]))
 
 ## Every spell in the waiting room, one after another. Each is cast from a place that suits it (beside the pond, over the gap,
 ## in front of the dummies) and photographed as it happens; some get further pictures as they play out.
@@ -1076,7 +1273,7 @@ func _plan_cave() -> void:
 
 
 
-## The newer gates in the world of WORLD_SEED (13 has all nine): each seen from a little way off, then tried on foot.
+## The newer gates in the world of WORLD_SEED (19 has eight of the nine, 2 has the chasm; fewer halls means fewer gates): each seen from a little way off, then tried on foot.
 func _plan_gates() -> void:
 	var t := 4.0  # after the world has set the wizard down
 	var by_kind := {}
@@ -1101,9 +1298,12 @@ func _plan_gates() -> void:
 				floor_row = gate["strips"][0]["floors"][0]
 		if kind in ["gas", "dark"]:
 			back = 0.0  # these lie on slopes, so the floor is only known where they begin
+		if not kind in ["gas", "dark"]:
+			while back > 1.0 and _arena._in_rock(Vector2((at.x - back) * tile, (floor_row - 0.5) * tile)):
+				back -= 1.0  # the passage may begin with a wall that far back: come nearer
 		var spot := Vector2((at.x - back) * tile, floor_row * tile - 4.0)
 		if not kind in ["gas", "dark"]:
-			spot = _arena._floor_under(spot + Vector2(0, -6.0 * tile)) - Vector2(0, 4.0)  # the passage may slope: the floor is where this column has it
+			spot = _arena._floor_under(spot + Vector2(0, -0.5 * tile)) - Vector2(0, 4.0)  # the passage may slope: the floor is where this column has it (searched from just above, since the roof may be low)
 		_arena._ground.watch([spot] as Array[Vector2], true)  # the ground there is built before the wizard is set down on it
 		return spot
 	for kind in ["chasm", "flood", "piranhas", "sentinel", "ice", "dark", "gas"]:

@@ -1,6 +1,6 @@
 # Spell pool (draft)
 
-Status: **all 33 spells are built** and can be tried in the waiting room (`scenes/lab.tscn`). Not built yet: stamina
+Status: **all 43 spells are built** (the 33 below, plus Tide Surf, Obsidian Armor, Glowcap, Moonbeam and the six Blood spells) and can be tried in the waiting room (`scenes/lab.tscn`). Not built yet: stamina
 ranges (every spell still costs one number, the midpoint of the range below), mastery, gate tags, the dark wizard casting
 from the pool, and real art for several spells (see "Placeholders"). Part of `roguelite_exploration_design.md`.
 
@@ -15,9 +15,9 @@ shape only has to be distinct within its own school.
 | Right | Water | cyan `#7fd8ff` | ice, slowing, dousing, floods |
 | Middle | Air | pale silver | pushing, deflecting, shields, wind |
 | Left + Right | Earth | brown `#b8864a` | stone, ground, weight, terrain |
-| Left + Middle | Flora | green | growing, trapping, climbing (all flammable) |
+| Left + Middle | Flora | green | growing, trapping, climbing, living light (all flammable) |
 | Right + Middle | Shadow | purple `#7a5aa0` | sight, decoys, curses, gravity |
-| Left + Right + Middle | (open) | | |
+| Left + Right + Middle | Blood | crimson `#c4162f` | spells paid for in **maximum** stamina, so they hit harder than the rest; only healing brings the maximum back |
 
 Spark stays lightning-yellow even though it is a Fire spell. Healing is a ritual, never a spell.
 
@@ -62,6 +62,11 @@ lowers the whole window (see the main design doc). All numbers are provisional.
 | Tornado | tall narrow coil going down, like a drill bit | a funnel that swirls foes | step away | | 18-34 |
 | Gust | any swoosh or flick; the stroke is the wind's direction | wind that blows light things along the stroke: shots (this replaces Wind Wall), flyers, smoke, spores, and you sideways. It cannot lift you; only Push does | heavy foes resist | cross gap | 8-18 |
 
+### Water, newer
+| Spell | Shape | Pictures | Counter | Tags | Stamina |
+|---|---|---|---|---|---|
+| Tide Surf | a wave: a line rising and curling over at its crest; it runs the way the crest leans | a wave carries you along the ground for 4 seconds, shoving anyone in front aside and washing out flares and burning ground; you cannot stop or turn | jump off; it ends | cross gap (ground only) | 30 |
+
 ### Earth (Left + Right)
 
 | Spell | Shape | Pictures | Counter | Tags | Stamina |
@@ -71,6 +76,11 @@ lowers the whole window (see the main design doc). All numbers are provisional.
 | Mudslide | U | ground turned to mud; slows, stops jumping | flyers pass over | | 20-44 |
 | Earthquake | three peaks | the ground shakes | flyers unaffected | break stone | 45-85 |
 | Volcano | upward triangle (a mountain) | lava erupts and sets ground on fire | (nothing yet) | burn, damage | 30-58 |
+
+### Earth, newer
+| Spell | Shape | Pictures | Counter | Tags | Stamina |
+|---|---|---|---|---|---|
+| Obsidian Armor | circle round yourself | black glass for 20 seconds: shots do half, lava does nothing, you walk a quarter slower | it ends; blows that are not shots still land in full | wade lava | 40 |
 
 ### Flora (Left + Middle)
 
@@ -83,6 +93,11 @@ lowers the whole window (see the main design doc). All numbers are provisional.
 | Flytrap | open jaws, a tall narrow W | a trap: waits up to a minute, snaps on whatever steps in | jump or fly over, burn it | trap | 18-34 |
 | Lily Pads | a row of flat ovals | floating leaves that carry you across water or a pit, then sink | lava burns them | cross gap | 12-24 |
 
+### Flora, newer
+| Spell | Shape | Pictures | Counter | Tags | Stamina |
+|---|---|---|---|---|---|
+| Glowcap | circle (a mushroom's cap) | a glowing mushroom on your hat, or the top of your staff, for 60 seconds: a green light, dimmer than a flare, that water and wind do not put out | none needed: it is only a light | light darkness | 14 |
+
 ### Shadow (Right + Middle)
 
 | Spell | Shape | Pictures | Counter | Tags | Stamina |
@@ -93,6 +108,25 @@ lowers the whole window (see the main design doc). All numbers are provisional.
 | Abyss | inward spiral, wide to narrow (the old Gravity Well) | a dark knot that pulls everything in and swallows shots | step away | | 18-34 |
 | Shadow Step | straight flick (the old Blink) | you vanish and surface along the stroke, up to 300 px | stops short of walls | cross gap | 4-12 |
 
+### Shadow, newer
+| Spell | Shape | Pictures | Counter | Tags | Stamina |
+|---|---|---|---|---|---|
+| Moonbeam | vertical line | a pale light falls onto the ground where the line was drawn for 30 seconds: dimmer than a flare, with a shorter reach | none needed | light darkness | 16 |
+
+### Blood (Left + Right + Middle)
+
+Paid for in maximum stamina, not the stamina that recovers. A cast is refused when it would take the last of the maximum, and
+nothing is paid for a cut that finds no one. Blood is more powerful than the other schools for the same reason.
+
+| Spell | Shape | Pictures | Counter | Max cost |
+|---|---|---|---|---|
+| Blood Bolt | straight flick | a dark red bolt for 30 damage (Ignite does 12) | dodge, Barrier | 12 |
+| Transfusion | circle round the one you take from | 20 damage to them and 40 stamina back to you, never maximum | dodge out of the circle | 10 |
+| Adrenaline | tall zigzag | faster on foot and stamina three times as quick for 10 seconds | it ends | 15 |
+| Hemorrhage | a cross in one stroke | a wound that bleeds the **current** stamina of anyone cut (8 per second for 8 seconds) and never the maximum; plain enemies with no stamina lose 2 health a second | a Clot, fire (cauterizes), cold (halves it) | 10 |
+| Clot | vertical line | closes every wound near the line | | 5 |
+| Faint | spiral | all the target's current stamina goes and they drop (the death animation) until their stamina has recovered to 10; the maximum is kept | the target gets up by itself; it cannot walk, cast or chant meanwhile | 30 |
+
 ## Gate tags and who can answer them
 
 - **cross gap:** Frost Bridge, Gust, Liana, Lily Pads, Shadow Step
@@ -100,7 +134,7 @@ lowers the whole window (see the main design doc). All numbers are provisional.
 - **break stone:** Stonefall, Earthquake
 - **burn growth:** Ignite, Firewall, Fire Breath (and Volcano's fire)
 - **freeze water:** Frost Bridge
-- **light darkness:** Flare
+- **light darkness:** Flare, Glowcap, Moonbeam (dimmer)
 - **bypass guards:** Decoy, Eclipse, Smoke Screen (conceal)
 - **block path:** Stone Wall, Icicles, Bramble, Great Oak
 

@@ -19,6 +19,11 @@ const MAX_STAMINA := 200.0  # what you start with, and the most you can ever hav
 const STAMINA_REGEN := 20.0   # per second
 const REGEN_DELAY := 1.0      # seconds without spending before regen starts
 const SHIELD_RADIUS := 50.0
+const ADRENALINE_REGEN := 3.0   # how many times faster stamina comes back under Adrenaline
+const OBSIDIAN_SPEED := 0.75    # how fast the wizard walks in black glass
+const OBSIDIAN_SHOTS := 0.5     # and how much of a shot's damage gets through
+const SURF_SPEED := 470.0       # how fast a wave carries the wizard
+const GET_UP := 10.0            # a wizard who has fainted stands up again once this much stamina has come back
 const BODY_HEIGHT := 78.0     # from the feet to the top of the hood
 const COYOTE_TIME := 0.1      # a jump still works this long after walking off a ledge
 const JUMP_BUFFER := 0.12     # a jump pressed this long before landing happens on landing
@@ -47,6 +52,11 @@ var deep_breath_time := 0.0  # the Chant of the Deep Breath: the breath is held 
 var breath := BREATH  # seconds of air left under water
 var haste_time := 0.0  # the Chant of Swift Feet: faster on foot while this lasts
 var air_jump_time := 0.0  # the Chant of the Second Leap: a jump in the air is allowed while this lasts
+var adrenaline_time := 0.0  # Adrenaline: stamina comes back quicker and the wizard is hasted while this lasts
+var obsidian_time := 0.0  # Obsidian Armor: shots do half, lava does nothing, and the wizard is slower while this lasts
+var surf_time := 0.0  # Tide Surf: a wave carries the wizard along surf_dir while this lasts
+var surf_dir := 1.0
+var fainted := false  # knocked out by a Faint: down on the ground until the stamina comes back
 var air_jump_ready := false  # the air jump is spent by one use, and comes back when the wizard lands
 var _shove := Vector2.ZERO  # a Push on the caster: slides them for a moment, then fades
 var mute_time := 0.0          # no rituals while above zero
@@ -212,6 +222,8 @@ func heal(amount: int) -> void:
 func take_damage(amount: int, grace_hit := true, projectile := false) -> void:
 	if (projectile and _shield_time > 0.0) or dead or (grace_hit and _grace > 0.0) or amount <= 0:
 		return
+	if projectile and obsidian_time > 0.0:
+		amount = maxi(1, roundi(amount * OBSIDIAN_SHOTS))  # black glass takes half of what a shot would
 	amount = roundi(amount * Hex.multiplier(get_tree(), self))  # a hexed wizard takes half again as much
 	max_stamina -= amount
 	stamina = minf(stamina, maxf(max_stamina, 0.0))
@@ -279,7 +291,52 @@ func apply_debuff(kind: String, seconds: float) -> void:
 
 
 func is_muted() -> bool:
-	return mute_time > 0.0
+	return mute_time > 0.0 or fainted
+
+
+## Pays for a spell in maximum stamina, which only healing brings back. Never takes the last of it: false, and nothing paid, if the
+## wizard could not live through it.
+func pay_max(amount: float) -> bool:
+	if dead or max_stamina <= amount:
+		return false
+	max_stamina -= amount
+	stamina = minf(stamina, max_stamina)
+	_flash = 0.3
+	_since_spend = 0.0
+	FloatText.spawn(get_parent(), center() + Vector2(0, -24), "-%d max" % roundi(amount), Color("#ff6b7a"), 1.0)
+	return true
+
+
+## A Faint: all the stamina goes, and the wizard drops. They stand up when the stamina has come back to GET_UP.
+func faint() -> void:
+	if dead or fainted:
+		return
+	fainted = true
+	stamina = 0.0
+	_since_spend = 0.0
+	casting = false
+	Sfx.play("player_hurt", center())
+
+
+func grant_adrenaline(seconds: float) -> void:
+	adrenaline_time = maxf(adrenaline_time, seconds)
+	haste_time = maxf(haste_time, seconds)
+
+
+func raise_obsidian(seconds: float) -> void:
+	obsidian_time = maxf(obsidian_time, seconds)
+	Sfx.play("barrier", center())
+
+
+## A wave takes hold of the wizard and carries them, whichever way it runs.
+func start_surf(direction: float, seconds: float) -> void:
+	surf_dir = signf(direction) if direction != 0.0 else facing
+	surf_time = seconds
+
+
+## True while black glass keeps lava from hurting.
+func lava_proof() -> bool:
+	return obsidian_time > 0.0
 
 
 func is_blind() -> bool:
@@ -384,6 +441,11 @@ func _physics_process(delta: float) -> void:
 	tangle_time -= delta
 	air_jump_time -= delta
 	haste_time -= delta
+	adrenaline_time -= delta
+	obsidian_time -= delta
+	surf_time -= delta
+	if fainted and stamina >= GET_UP:
+		fainted = false  # the stamina is back: up again
 	deep_breath_time -= delta
 	_breathe(delta)
 	if is_on_floor():
@@ -393,7 +455,7 @@ func _physics_process(delta: float) -> void:
 		stamina = max_stamina
 	_since_spend += delta
 	if _since_spend >= REGEN_DELAY:
-		restore_stamina(STAMINA_REGEN * delta)
+		restore_stamina(STAMINA_REGEN * (ADRENALINE_REGEN if adrenaline_time > 0.0 else 1.0) * delta)
 	queue_redraw()
 	_shield.queue_redraw()
 
@@ -402,7 +464,7 @@ func _physics_process(delta: float) -> void:
 	_coyote = COYOTE_TIME if is_on_floor() else _coyote - delta
 	_jump_buffer -= delta
 
-	var can_move := movement_enabled and root_time <= 0.0 and not dead
+	var can_move := movement_enabled and root_time <= 0.0 and not dead and not fainted
 	_vine_cooldown -= delta
 	if can_move and _climb():
 		return
@@ -424,12 +486,14 @@ func _physics_process(delta: float) -> void:
 		if Input.is_action_just_released("jump") and velocity.y < JUMP_VELOCITY * 0.4:
 			velocity.y = JUMP_VELOCITY * 0.4
 		# Walking is free; running drains stamina. With none left you still walk, at half speed.
-		var speed := (SPEED if stamina > 0.0 else SPEED * 0.5) * (0.5 if slow_time > 0.0 else 1.0) * (0.4 if sink_time > 0.0 else 1.0) * (0.3 if tangle_time > 0.0 else 1.0) * (HASTE if haste_time > 0.0 else 1.0)
+		var speed := (SPEED if stamina > 0.0 else SPEED * 0.5) * (0.5 if slow_time > 0.0 else 1.0) * (0.4 if sink_time > 0.0 else 1.0) * (0.3 if tangle_time > 0.0 else 1.0) * (HASTE if haste_time > 0.0 else 1.0) * (OBSIDIAN_SPEED if obsidian_time > 0.0 else 1.0)
 		velocity.x = Input.get_axis("move_left", "move_right") * speed
 		if is_on_floor() and absf(velocity.x) > 10.0 and stamina > 0.0:
 			drain(RUN_COST * delta)
 	else:
 		velocity.x = 0.0
+	if surf_time > 0.0 and not dead and not fainted:
+		velocity.x = surf_dir * SURF_SPEED  # a wave does not wait for the wizard
 	velocity.x += _shove.x
 	if _shove.y < 0.0:
 		velocity.y = minf(velocity.y, _shove.y)
@@ -558,7 +622,7 @@ func _animate(delta: float) -> void:
 	_releasing = maxf(_releasing - delta, 0.0)
 	_hurt_anim = maxf(_hurt_anim - delta, 0.0)
 	var wanted := "idle"
-	if dead:
+	if dead or fainted:
 		wanted = "death"
 	elif _hurt_anim > 0.0:
 		wanted = "hit"
@@ -586,6 +650,9 @@ func _animate(delta: float) -> void:
 	_wet_material.set_shader_parameter("water_y", _liquid_y if wet else 1000000.0)
 	_wet_material.set_shader_parameter("water_tint", _liquid)
 	_sprite.modulate = Color(1.0, 0.45, 0.45) if _flash > 0.0 else Color(1.0, 1.0, 1.0, 0.55 if blink else 1.0)
+	if obsidian_time > 0.0 and _flash <= 0.0:
+		var glint := 0.5 + 0.08 * sin(Time.get_ticks_msec() * 0.006)
+		_sprite.modulate = Color(glint, glint * 0.92, glint * 1.2, _sprite.modulate.a)  # black glass, with a violet shine
 
 
 ## Called when a spell goes off: the wizard thrusts its staff forward once.

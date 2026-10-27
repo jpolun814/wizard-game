@@ -19,7 +19,7 @@ const FRAME_TIME := 0.06
 const OPEN_MIDDLE := Vector2(90.5, 83.5)  # the middle of the open book in its frame
 
 ## The schools, in the order they appear in the book.
-const SCHOOLS := ["Fire", "Water", "Air", "Earth", "Flora", "Shadow"]
+const SCHOOLS := ["Fire", "Water", "Air", "Earth", "Flora", "Shadow", "Blood"]
 
 var _spread := 0
 var _pages: Array[Callable] = []
@@ -462,7 +462,7 @@ func _page_spell(column: VBoxContainer, spell_name: String) -> void:
 	var preview := Preview.new(GestureTemplates.preview_points(gesture), GestureTemplates.preview_ground(gesture), 150.0)
 	preview.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	column.add_child(preview)
-	column.add_child(_ink("%d stamina" % roundi(s["cost"]), 20, SUBTLE))
+	column.add_child(_ink("%d maximum stamina" % roundi(s["cost"]) if SpellData.pays_max(spell_name) else "%d stamina" % roundi(s["cost"]), 20, SUBTLE))
 	column.add_child(_ink(s["effect"], 22, TEXT_INK))
 
 

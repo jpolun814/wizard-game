@@ -66,6 +66,7 @@ const FLY_SPEED := 120.0        # how fast a flyer drifts while it patrols
 const DIVE_SPEED := 340.0       # how fast a flyer dives at you
 const RETREAT_SPEED := 240.0    # how fast it flies away after a dive
 const FROST_TRAIL_INTERVAL := 0.8
+const GET_UP := 10.0           # a fainted enemy stands up when its stamina is this high again
 const SPAWN_TIME := 0.7         # enemies fade in over a summoning circle and cannot act until it is done
 const PATROL := 0
 const DIVE := 1
@@ -107,6 +108,8 @@ var _slow_time := 0.0
 var _knock_x := 0.0
 var _drift := Vector2.ZERO  # a pull (Gravity Well) that fades
 var _dead := false
+var _fainted := false  # knocked out by a Faint: down until its stamina has come back to GET_UP
+var _since_stamina := 0.0  # seconds since a fainted enemy lost its stamina; it does not come back at once
 var _gravity: float = ProjectSettings.get_setting("physics/2d/default_gravity")
 var _idle_t := 0.0
 var facing := 1.0
@@ -285,6 +288,22 @@ func _physics_process(delta: float) -> void:
 			velocity.x = _knock_x + _drift.x
 			move_and_slide()
 		return
+	if _fainted:
+		_windup = 0.0
+		_charge = 0.0
+		_since_stamina += delta
+		if _since_stamina >= 1.0:
+			stamina = minf(100.0, stamina + WizardBrain.STAMINA_REGEN * delta)
+		if stamina >= GET_UP:
+			_fainted = false
+			if _visual.sprite_frames.has_animation("idle"):
+				_visual.play("idle")
+		else:
+			if not _flies():
+				_fall(delta)
+				velocity.x = _knock_x + _drift.x
+				move_and_slide()
+			return
 	if KINDS[kind]["effect"] == "ninja":
 		_ninja_strike(delta)
 	match KINDS[kind]["role"]:
@@ -694,6 +713,25 @@ func is_dead() -> bool:
 	return _dead
 
 
+## A Faint: all the stamina goes and the enemy drops to the ground, until its stamina is back to GET_UP.
+func faint() -> void:
+	if _dead or _fainted:
+		return
+	_fainted = true
+	stamina = 0.0
+	_since_stamina = 0.0
+	_windup = 0.0
+	_charge = 0.0
+	_draw_time = 0.0
+	_stroke = PackedVector2Array()
+	FloatText.spawn(get_parent(), center() + Vector2(0, -_body_size.y * 0.5 - 6.0), "Fainted", Color("#c4162f"), 1.0)
+	Sfx.play("mob_hurt", center())
+
+
+func is_fainted() -> bool:
+	return _fainted
+
+
 func apply_no_jump(seconds: float) -> void:
 	_nojump_time = maxf(_nojump_time, seconds)
 
@@ -830,9 +868,11 @@ func _animate(delta: float) -> void:
 	var shake := Vector2.ZERO
 	if flying and _fly_state == HOVER:
 		shake = Vector2(randi_range(-1, 1), randi_range(-1, 1))
-	var moving := not _dead and _frozen_time <= 0.0 and absf(velocity.x) > 5.0 and (is_on_floor() or flying)
+	var moving := not _dead and not _fainted and _frozen_time <= 0.0 and absf(velocity.x) > 5.0 and (is_on_floor() or flying)
 	var wanted := "idle"
-	if wizard:
+	if _fainted and _visual.sprite_frames.has_animation("death"):
+		wanted = "death"
+	elif wizard:
 		if _bursting > 0.0:
 			wanted = "burst"
 		elif is_drawing():

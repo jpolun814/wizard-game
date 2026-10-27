@@ -363,6 +363,11 @@ func _lay_pages() -> void:
 		var room: int = entry["room"]
 		var pickup := PagePickup.new()
 		pickup.page = entry["page"]
+		if entry.has("castle"):  # up in the castle: a column from its west end, and the floor's height in rows
+			var spot: Vector2i = entry["castle"]
+			pickup.position = Vector2((castle_x + spot.x + 0.5) * TILE, (WorldGraph.SURFACE_ROW - spot.y) * TILE)
+			add_child(pickup)
+			continue
 		if entry.has("x"):  # out on the surface, near the start
 			var column: int = entry["x"]
 			pickup.position = _floor_under(Vector2((column + 0.5) * TILE, graph.surface["floor"][column] * TILE - 40.0))

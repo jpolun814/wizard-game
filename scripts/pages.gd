@@ -17,8 +17,10 @@ const DEFENCES := ["Barrier", "Decoy", "Stone Wall", "Smoke Screen"]
 const CHANTS := ["chant:bonfire", "chant:rift"]
 ## Spells that open no gate, and chants that do not: the ones that may lie in a locked area or in the dark wizard's stash.
 const LOCKABLE := ["Frostbolt", "Icicles", "Ice Prison", "Blizzard", "Stonefall", "Mudslide", "Earthquake", "Bramble", "Spore Puff",
-		"Flytrap", "Hex", "Abyss", "chant:boundless", "chant:double_jump", "chant:haste"]
+		"Flytrap", "Hex", "Abyss", "Tide Surf", "Blood Bolt", "Transfusion", "Adrenaline", "Hemorrhage", "Clot", "Faint", "chant:boundless", "chant:double_jump", "chant:haste"]
 const ON_SURFACE := 3  # pages that lie out in the open near the start, so the first one is found within a minute
+const IN_CASTLE := 2   # and pages in the castle, up on its second floor: not one to a room, only a reward for the climb
+const CASTLE_SPOTS := [Vector2i(52, 22), Vector2i(90, 22)]  # where: a column from the castle's west end, and the height of the floor in rows
 const STASH := 0  # how many pages the dark wizard keeps back; none for now
 
 static var active := false          # true in a world: only the pages found are known
@@ -103,13 +105,15 @@ static func plan(graph: WorldGraph, rng: RandomNumberGenerator) -> Dictionary:
 	for k in mini(STASH, lockable.size()):
 		kept.append(lockable.pop_back())
 	var placed := []
-	# The locked areas, but not the boss's own: one page in each, in the room farthest from the way in.
-	var inner_locks := graph.locks.filter(func(lock: Dictionary) -> bool: return not lock["boss"])
-	for lock: Dictionary in inner_locks:
+	# The locked areas, but not the boss's own: only pages that open no gate lie in them, one to a room, as the reward for getting in.
+	var inner_rooms := []
+	for lock: Dictionary in graph.locks:
+		if not lock["boss"]:
+			inner_rooms.append_array(lock["rooms"])
+	_shuffle(inner_rooms, rng)
+	for room: int in inner_rooms:
 		if lockable.is_empty():
 			break
-		var rooms: Array = lock["rooms"]
-		var room: int = rooms[rng.randi() % rooms.size()]
 		placed.append({"page": lockable.pop_back(), "room": room})
 	var free := []  # the halls outside every locked area, off the surface
 	for room in graph.rooms:
@@ -120,8 +124,11 @@ static func plan(graph: WorldGraph, rng: RandomNumberGenerator) -> Dictionary:
 	_shuffle(rest, rng)
 	for column in _surface_columns(graph, ON_SURFACE):
 		placed.append({"page": rest.pop_back(), "room": 0, "x": column})  # room 0 is the surface
+	if graph.surface["castle"] >= 0:
+		for spot in CASTLE_SPOTS.slice(0, IN_CASTLE):
+			placed.append({"page": rest.pop_back(), "room": 0, "castle": spot})
 	for k in rest.size():
-		placed.append({"page": rest[k], "room": free[k % free.size()]})
+		placed.append({"page": rest[k], "room": free[k % free.size()]})  # one to a hall until every hall has one
 	return {"placed": placed, "stash": kept}
 
 

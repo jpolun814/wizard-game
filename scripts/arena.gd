@@ -14,6 +14,9 @@ const ICICLE_MAX := 240.0    # the longest an icicle grows
 const MUZZLE_OFFSET := 26.0  # spawn directional spells just outside the caster's body
 const BARRIER_SECONDS := 6.0
 const MISFIRE_COST := 10.0
+const CLOT_REACH := 110.0  # how near a line a wound must be for a Clot to close it
+const TRANSFUSION_DAMAGE := 20
+const TRANSFUSION_GAIN := 40.0  # the stamina a Transfusion gives back
 const PICKUP_RANGE := 48.0
 const STEP_DAMAGE := 8
 const INSIGHT_REACH := 40.0  # how close the pointer must be to an enemy for Insight to show it
@@ -194,7 +197,7 @@ func _input(event: InputEvent) -> void:
 func _process(_delta: float) -> void:
 	# Casting and movement pause while the ritual box is open, so typing doesn't move or cast.
 	# The spellbook doesn't pause anything, so it can stay open while you play.
-	var busy: bool = ritual.visible or player.dead
+	var busy: bool = ritual.visible or player.dead or player.fainted
 	caster.set_casting_enabled(not busy)
 	player.movement_enabled = not busy
 	caster.anchor = player.center()
@@ -260,12 +263,22 @@ func _on_cast_resolved(spell: String, targeting: String, origin: Vector2, aim: f
 		FloatText.spawn(self, get_global_mouse_position() + Vector2(0, -22), "Aim under a ceiling", Color("#dff6ff"), 0.9)
 		Sfx.play("misfire", player.center(), -6.0)
 		return
+	if player.fainted:
+		return
+	var label_at := get_global_mouse_position() + Vector2(0, -22)
+	if spell in ["Transfusion", "Hemorrhage", "Faint"] and _blood_target(spell, origin) == null:
+		FloatText.spawn(self, label_at, "Aim at a foe", Color("#ff9a9a"), 0.9)  # nothing is paid for a cut that finds no one
+		return
 	var cost := SpellData.cost_for(spell, info)
 	if player.focus == "staff":
 		cost *= 0.75  # a staff channels spells better: a quarter off every cast
 	var colour := SpellData.color_of(spell)
-	var label_at := get_global_mouse_position() + Vector2(0, -22)
-	if not player.spend(cost):
+	if SpellData.pays_max(spell):
+		if not player.pay_max(cost):
+			FloatText.spawn(self, label_at, "Too weak", Color("#ff9a9a"), 0.9)  # blood is never spent to the last drop
+			Sfx.play("misfire", player.center(), -6.0)
+			return
+	elif not player.spend(cost):
 		_on_feedback("Wait for stamina: %s costs %d" % [spell, cost], Color.ORANGE)
 		FloatText.spawn(self, label_at, "Too tired", Color("#ffb86b"), 0.9)
 		Sfx.play("misfire", player.center(), -6.0)
@@ -372,6 +385,58 @@ func spawn_spell(spell: String, targeting: String, origin: Vector2, aim: float, 
 			decoy.position = _ground_below(origin)
 			add_child(decoy)
 			return
+		"Glowcap":
+			var cap := Glowcap.new()
+			cap.caster_node = caster_node
+			add_child(cap)
+			return
+		"Moonbeam":
+			var beam := Moonbeam.new()
+			beam.position = _ground_below(origin)
+			add_child(beam)
+			return
+		"Tide Surf":
+			if caster_node.is_in_group("player"):
+				var surf := TideSurf.new()
+				surf.caster_node = caster_node
+				surf.direction = 1.0 if cos(aim) >= 0.0 else -1.0
+				add_child(surf)
+			return
+		"Obsidian Armor":
+			if caster_node.has_method("raise_obsidian"):
+				caster_node.raise_obsidian(20.0)
+				Fx.burst(self, caster_node.center(), Color(0.45, 0.4, 0.6), 16, 120.0, 0.5, true)
+			return
+		"Adrenaline":
+			if caster_node.has_method("grant_adrenaline"):
+				caster_node.grant_adrenaline(10.0)
+				Fx.burst(self, caster_node.center(), SpellData.SCHOOL_COLORS["Blood"], 14, 150.0, 0.5, true)
+				Sfx.play("pickup", caster_node.center(), -4.0)
+			return
+		"Clot":
+			var closed := Bleed.close_near(get_tree(), origin, CLOT_REACH)
+			Fx.pop(self, origin, "circle_03", Color("#f2c7c7"), CLOT_REACH * 2.0, 0.5, 1.2)
+			if closed > 0:
+				Sfx.play("pickup", origin, -6.0)
+			return
+		"Transfusion":
+			var donor := _blood_target(spell, origin)
+			if donor != null:
+				_transfuse(donor, caster_node)
+			return
+		"Hemorrhage":
+			var cut := _blood_target(spell, origin)
+			if cut != null:
+				Bleed.open(self, cut)
+				Fx.burst(self, SpellTargets.center_of(cut), SpellData.SCHOOL_COLORS["Blood"], 12, 130.0, 0.4, true)
+				Sfx.play("mob_hurt", SpellTargets.center_of(cut), -4.0)
+			return
+		"Faint":
+			var down := _blood_target(spell, origin)
+			if down != null:
+				down.faint()
+				Fx.burst(self, SpellTargets.center_of(down), Color(0.55, 0.1, 0.2), 14, 100.0, 0.6, true)
+			return
 		"Hex":
 			var cursed := Hex.nearest_under(get_tree(), origin)
 			if cursed == null:
@@ -406,10 +471,47 @@ func spawn_spell(spell: String, targeting: String, origin: Vector2, aim: float, 
 	effect.setup(spell, origin, aim)
 
 
+## Whoever a blood spell is aimed at: the one nearest the stroke, but never the caster for a Transfusion.
+func _blood_target(spell: String, origin: Vector2) -> Node2D:
+	var best: Node2D = null
+	var best_distance := Hex.REACH
+	for body in SpellTargets.all(get_tree()):
+		if spell == "Transfusion" and body == player:
+			continue
+		var distance := SpellTargets.center_of(body).distance_to(origin)
+		if distance < best_distance:
+			best_distance = distance
+			best = body
+	return best
+
+
+## A Transfusion: the donor takes damage, a stream of blood runs to the caster and their stamina comes back.
+func _transfuse(donor: Node2D, taker: Node2D) -> void:
+	SpellTargets.hurt(donor, TRANSFUSION_DAMAGE, "Blood")
+	if taker.has_method("restore_stamina"):
+		taker.restore_stamina(TRANSFUSION_GAIN)
+	var from := SpellTargets.center_of(donor)
+	var to := SpellTargets.center_of(taker)
+	for k in 9:
+		var drop := Sprite2D.new()
+		drop.texture = Fx.tex("circle_05")
+		drop.material = Fx.additive()
+		drop.modulate = SpellData.SCHOOL_COLORS["Blood"].lightened(0.2)
+		drop.scale = Vector2.ONE * (10.0 / Fx.TEX_SIZE)
+		drop.position = from
+		drop.z_index = 8
+		add_child(drop)
+		var flight := create_tween()
+		flight.tween_interval(k * 0.05)
+		flight.tween_property(drop, "position", to + Vector2(0, -20), 0.45).set_ease(Tween.EASE_IN)
+		flight.tween_callback(drop.queue_free)
+	Sfx.play("pickup", to, -4.0)
+
+
 ## A new effect of the kind a spell needs.
 func _new_effect(spell: String) -> SpellEffect:
 	match spell:
-		"Ignite", "Frostbolt":
+		"Ignite", "Frostbolt", "Blood Bolt":
 			return Projectile.new()
 		"Firewall":
 			return Firewall.new()

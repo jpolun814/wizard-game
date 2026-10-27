@@ -122,7 +122,7 @@ func _initialize() -> void:
 				nearest_page = minf(nearest_page, from_here.get(room, 99.0))
 			first_hops = minf(first_hops, nearest_page)
 			mean += nearest_page
-		print("seed %d: %d rooms, %d with a page; nearest page from a spawn: %.0f passages (average %.1f); world %s tiles" % [s, graph.rooms.size(), page_rooms.size(), first_hops, mean / maxf(graph.spawns.size(), 1), str(world["size"])])
+		print("seed %d: %d rooms, %d of %d halls hold a page; nearest page from a spawn: %.0f passages (average %.1f); world %s tiles" % [s, graph.rooms.size(), page_rooms.size() - 1, graph.rooms.size() - 1, first_hops, mean / maxf(graph.spawns.size(), 1), str(world["size"])])
 		var seen := {}
 		for entry: Dictionary in layout["placed"]:
 			var page: String = entry["page"]

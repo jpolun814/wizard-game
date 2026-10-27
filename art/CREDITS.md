@@ -124,3 +124,4 @@ and are no longer drawn by the game.
 - Piranhas (`art/mobs/piranha/`): "Cute Fish Sprites" by chips8688, https://opengameart.org/content/cute-fish-sprites, OGA-BY 3.0 (credit required). The red fish, swim row, darkened (`tools/prepare_piranha.py`).
 
 - Castle rope ladders (`art/props/rope_ladder.png`): "Rope Ladder" by AntumDeluge (Jordan Irwin), https://opengameart.org/content/rope-ladder, CC-BY 3.0 / OGA-BY 3.0 (credit required). Darkened (`tools/prepare_ladder.py`).
+- Glowcap mushroom (`art/props/glowcap.png`): "Mushroom Sprite Pack" by Peter Field, https://opengameart.org/content/mushroom-pixel-art-pack-32x32 (also listed as node 178614), free to use, credit appreciated, CC0 on its page. The purple mushroom, recoloured to green (`tools/prepare_glowcap.py`).

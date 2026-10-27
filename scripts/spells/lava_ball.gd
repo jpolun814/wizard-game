@@ -81,7 +81,7 @@ func _land(ground: Vector2, struck := Vector2.INF) -> void:
 	if struck == Vector2.INF:
 		struck = ground
 	var hazard := Hazard.place(get_parent(), ground, FIRE_WIDTH, FIRE_SECONDS)
-	SpellTargets.hurt_within(get_tree(), struck + Vector2(0, -12), REACH, DAMAGE, "Fire", true)
+	SpellTargets.hurt_within(get_tree(), struck + Vector2(0, -12), REACH, DAMAGE, "Fire", true, true)
 	PixelFx.play(get_parent(), struck, "blast_small", 20.0, 1.0, Color.WHITE, true)
 	Sfx.play("fire_hit", struck, -6.0)
 	queue_free()

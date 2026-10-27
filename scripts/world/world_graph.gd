@@ -11,8 +11,8 @@ extends RefCounted
 ## the key in a vault outside it. Everything here comes from the rng it is given, so one seed always gives one graph.
 
 const SIZE := Vector2i(1200, 380)  # the world, in tiles
-const MIN_ROOMS := 60
-const MAX_ROOMS := 90
+const MIN_ROOMS := 36
+const MAX_ROOMS := 42
 const ENTRANCE_SPACING := 40   # one way down for about this many columns of surface, at the least, in every biome
 const SURFACE_APART := 34       # columns between two ways down from the surface
 const CLUSTER_ROOMS := 8       # a way down is the start of a system of about this many halls
@@ -62,16 +62,30 @@ var _reserved: Array[Dictionary] = []  # {"rect": Rect2i, "owners": [room ids]}:
 static func build(rng: RandomNumberGenerator) -> WorldGraph:
 	var best: WorldGraph = null
 	var best_score := -1
-	for attempt in 25:
+	for attempt in 60:
 		var graph := _grow(rng)
 		var mouths: int = graph.rooms[0]["mouths"].size()
 		var score := graph.rooms.size() + mouths * 3 + mini(graph.links.size() - graph.rooms.size(), 4) * 4 + (6 if graph.locks.size() >= 2 else 0) + (4 if graph.rooms[graph.boss]["depth"] >= 3 else 0) + (0 if graph._spawns_apart() else -40)
 		if score > best_score:
 			best = graph
 			best_score = score
-		if graph.rooms.size() >= MIN_ROOMS and mouths >= 8 and graph.locks.size() >= 2 and graph.rooms[graph.boss]["depth"] >= 3 and graph.spawns.size() == PLAYERS and graph._spawns_apart() and graph.links.size() - graph.rooms.size() >= 2:
+		if graph.rooms.size() >= MIN_ROOMS and mouths >= 8 and graph._every_biome_has_a_way_down() and graph.locks.size() >= 2 and graph.rooms[graph.boss]["depth"] >= 3 and graph.spawns.size() == PLAYERS and graph._spawns_apart() and graph.links.size() - graph.rooms.size() >= 2:
 			return graph
 	return best
+
+
+## True when each biome of the surface has at least one way down.
+func _every_biome_has_a_way_down() -> bool:
+	for biome in surface["biomes"]:
+		if biome["name"] == "graveyard":
+			continue  # the castle stands there
+		var inside := 0
+		for column in rooms[0]["mouths"]:
+			if column >= biome["a"] and column <= biome["b"]:
+				inside += 1
+		if inside == 0:
+			return false
+	return true
 
 
 ## True when every two starting places are at least 140 columns apart.
