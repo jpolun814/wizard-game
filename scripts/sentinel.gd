@@ -3,12 +3,14 @@ extends Node2D
 
 ## A hooded statue that stands in a passage and shoots whoever it sees. It sees what stands in the open air within its
 ## range: not through rock, not through smoke or an eclipse. It goes for a decoy it sees before it goes for the wizard,
-## and wears the decoy down. Its bolts are like any other shot: a Barrier stops them, and they hurt anyone they cross.
+## and wears the decoy down. Its shots are lasers, far too fast to outrun or dodge, and aimed ahead of whoever is moving; but they are like
+## any other shot: rock and a Barrier stop them, and they hurt anyone they cross.
 
 const RANGE := 700.0
 const FIRST_SHOT := 0.3   # seconds from first seeing someone to the first shot
 const INTERVAL := 0.7
 const DAMAGE := 40        # what a bolt does to the wizard
+const LASER_SPEED := 2400.0
 const DECOY_DAMAGE := 8   # what it does to a decoy, so a decoy buys several seconds
 const ART := preload("res://art/props/statue.png")
 const HEIGHT := 120.0
@@ -48,7 +50,10 @@ func _physics_process(delta: float) -> void:
 		target.take_damage(DECOY_DAMAGE)
 		Fx.burst(get_parent(), at, Color("#ff5a40"), 8, 120.0, 0.3)
 	else:
-		EnemyBolt.fire(get_parent(), center(), at, Color("#ff5a40"), DAMAGE, 0.0, false, "magic_bolt", null)
+		var moving: Vector2 = target.velocity if "velocity" in target else Vector2.ZERO
+		var ahead := at + moving * (center().distance_to(at) / LASER_SPEED)  # aimed where a runner will be
+		var laser := EnemyBolt.fire(get_parent(), center(), ahead, Color("#ff3a30"), DAMAGE, 0.0, false, "magic_bolt", null, LASER_SPEED)
+		laser.scale = Vector2(3.0, 0.8)  # long and thin, and too long to slip through a body between two frames
 
 
 ## Who it shoots at: a decoy it can see, otherwise the wizard if it can see them, otherwise no one.

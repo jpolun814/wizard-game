@@ -5,7 +5,7 @@ extends Node2D
 ## glow lies on it and a hint shows while the wizard stands on it. Its origin is the floor beneath it.
 
 const REACH_X := 36.0
-const REACH_Y := 70.0
+const REACH_Y := 140.0
 const PAGE := preload("res://art/props/page.png")  # a page of the spellbook, lying flat
 
 var page := ""

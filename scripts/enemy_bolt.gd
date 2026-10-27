@@ -12,6 +12,7 @@ const ROCK := preload("res://art/fx/rock.png")  # held here so it stays loaded b
 var _clear := false  # it has flown out of its shooter's body: from then on it can hit the shooter too
 var _shooter: Node
 var _kin := ""  # the kind of enemy this shot passes through, when its shooter spares its own
+var _speed := SPEED
 var _velocity := Vector2.RIGHT * SPEED
 var _gravity := 0.0
 var _slows := false
@@ -22,11 +23,12 @@ var _age := 0.0
 
 ## Creates a shot from an enemy toward a target point, and returns it. A gravity above zero makes it arc down.
 ## A slowing shot slows the player for a moment when it hits.
-static func fire(parent: Node, origin: Vector2, target: Vector2, color: Color, damage: int, gravity := 0.0, slows := false, art := "magic_bolt", shooter: Node = null) -> EnemyBolt:
+static func fire(parent: Node, origin: Vector2, target: Vector2, color: Color, damage: int, gravity := 0.0, slows := false, art := "magic_bolt", shooter: Node = null, speed := SPEED) -> EnemyBolt:
 	var bolt := EnemyBolt.new()
 	bolt.global_position = origin
 	var direction := (target - origin).normalized()
-	bolt._velocity = direction * SPEED
+	bolt._speed = speed
+	bolt._velocity = direction * speed
 	bolt._gravity = gravity
 	bolt._slows = slows
 	bolt._color = color
@@ -62,7 +64,7 @@ static func fire(parent: Node, origin: Vector2, target: Vector2, color: Color, d
 
 ## A force wall, push or tornado turns this shot: it flies off along the new heading.
 func reflect(direction: Vector2) -> void:
-	_velocity = direction.normalized() * SPEED
+	_velocity = direction.normalized() * _speed
 	rotation = _velocity.angle()
 	Sfx.play("push", global_position, -4.0)
 

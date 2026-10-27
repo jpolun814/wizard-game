@@ -287,19 +287,33 @@ func _plan() -> void:
 			var tile := float(ArenaGen.TILE)
 			var pickups := get_tree().get_nodes_in_group("pages")
 			print("%s  pages lie on the map (%d), and only the starter spells are known (%d of %d)" % ["PASS" if pickups.size() > 25 and Pages.known.size() == 5 else "FAIL", pickups.size(), Pages.known.size(), Pages.every().size()])
+			var buried := 0
+			for pickup: PagePickup in pickups:
+				var floor_y: float = _arena._floor_under(pickup.global_position).y
+				if absf(floor_y - pickup.global_position.y) > 2.0 or _arena._in_rock(pickup.global_position + Vector2(0, -16.0)):
+					buried += 1
+			print("%s  every page lies on the floor, out of the rock (%d off)" % ["PASS" if buried == 0 else "FAIL", buried])
+			if buried > 0:
+				_exit_code = 1
 			var first: PagePickup = pickups[0]
 			var page := first.page
 			var holder := [first]
 			_at(0.6, func() -> void:
 				_player().global_position = first.global_position + Vector2(-120, -10)
+				_arena._ground.watch([first.global_position] as Array[Vector2], true)
 				_arena._dark.hide()
 				_arena.get_node("Player/Camera2D").reset_smoothing())
 			_at(2.0, func() -> void: _snap("page"))
-			_at(2.2, func() -> void: _player().global_position = first.global_position + Vector2(0, -10))
+			_at(2.2, func() -> void:
+				_player().global_position = first.global_position + Vector2(-60, -4)
+				Input.action_press("move_right"))
+			_at(2.4, func() -> void: Input.action_release("move_right"))
 			_at(2.8, func() -> void:
 				var before_tab: bool = Pages.knows(page)
-				print("%s  standing on a page does not read it" % ["PASS" if not before_tab else "FAIL"])
-				if before_tab:
+				print("  wizard walked to %s, the page lies at %s" % [str(_player().global_position), str(first.global_position)])
+				var under: bool = first.is_underfoot()
+				print("%s  a wizard who has walked onto a page stands on it, and it is not read yet" % ["PASS" if under and not before_tab else "FAIL"])
+				if before_tab or not under:
 					_exit_code = 1
 				_snap("hint")
 				var tab := InputEventKey.new()

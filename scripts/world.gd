@@ -355,8 +355,20 @@ func _lay_pages() -> void:
 		count[room] = k + 1
 		var pickup := PagePickup.new()
 		pickup.page = entry["page"]
-		pickup.position = spot + Vector2((k - 0.5) * 70.0 if k > 0 else 0.0, 0.0)
+		var lie := spot + Vector2((k - 0.5) * 70.0 if k > 0 else 0.0, 0.0)
+		pickup.position = _floor_under(lie)  # on the floor, wherever the marker's tile ends
 		add_child(pickup)
+
+
+## The top of the floor under a point (out of the rock first when it is in it), asked of the tiles, which are there before the ground is built.
+func _floor_under(point: Vector2) -> Vector2:
+	var x := point.x
+	var row := floori((point.y - 1.0) / TILE)
+	while row > 0 and _in_rock(Vector2(x, (row + 0.5) * TILE)):
+		row -= 1
+	while row < ArenaGen.world_size.y - 1 and not _in_rock(Vector2(x, (row + 1.5) * TILE)):
+		row += 1
+	return Vector2(x, (row + 1) * TILE)
 
 
 ## The kinds of gate this world has, for the F1 panel.
