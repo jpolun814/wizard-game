@@ -242,6 +242,42 @@ func _plan() -> void:
 							near = minf(near, (Vector2(entry["at"]) * tile).distance_to(_player().global_position))
 					verdict.call(near < 1200.0 and not _player().dead, "F1 takes the wizard to a %s gate (%d px away)" % [kind, int(near)]))
 				t += 0.6
+			# A wall gate comes down under boulders; an earthquake brings down a wall too.
+			var wall := []
+			_at(t, func() -> void:
+				_arena.go_to_gate("wall")
+				_arena._dark.hide()
+				var nearest := 1e9
+				for node in _arena.get_children():
+					if node is RockWall and node._box.get_center().distance_to(_player().global_position) < nearest:
+						nearest = node._box.get_center().distance_to(_player().global_position)
+						wall.assign([node]))
+			_at(t + 0.5, func() -> void: verdict.call(not wall.is_empty(), "the wall gate stands in the passage as a wall that can be broken"))
+			for k in 4:
+				_at(t + 1.0 + k * 2.5, func() -> void:
+					if wall.is_empty() or not is_instance_valid(wall[0]):
+						return
+					for old in get_tree().get_nodes_in_group("rocks"):
+						old.queue_free()  # the last one has done its work; a new one lands on the wall, not on it
+					var rock := Boulder.new()
+					rock.global_position = Vector2(wall[0]._box.get_center().x, wall[0]._box.position.y - 90.0)
+					_arena.add_child(rock))
+			_at(t + 12.0, func() -> void:
+				verdict.call(not wall.is_empty() and not is_instance_valid(wall[0]), "boulders break the wall down")
+				_snap("wall_down"))
+			t += 13.0
+			var quake_wall := []
+			_at(t, func() -> void:
+				var made := RockWall.new()
+				var x := int(_player().global_position.x / 32.0) + 4
+				var row := int(_player().global_position.y / 32.0)
+				made.columns = [{"x": x, "top": row - 6, "bottom": row + 1}]
+				_arena.add_child(made)
+				quake_wall.append(made)
+				var shake := Earthquake.new()
+				_arena.add_child(shake))
+			_at(t + 7.5, func() -> void: verdict.call(not is_instance_valid(quake_wall[0]), "an earthquake brings a wall down"))
+			t += 8.0
 			# A flare goes out in water.
 			var pond: Pond = null
 			for candidate in get_tree().get_nodes_in_group("ponds"):
@@ -334,6 +370,24 @@ func _plan() -> void:
 				print("%s  the F1 button gives every spell and leaves the pages on the map (%d, then %d)" % ["PASS" if all and before == after else "FAIL", before, after])
 				if not (all and before == after):
 					_exit_code = 1)
+			_at(5.4, func() -> void: _arena.spellbook._toggle())  # shuts the book
+			_at(6.8, func() -> void:
+				var other: PagePickup = get_tree().get_nodes_in_group("pages")[0]
+				_player().global_position = other.global_position + Vector2(0, -4)
+				_arena._ground.watch([other.global_position] as Array[Vector2], true))
+			_at(7.8, func() -> void:
+				var tab := InputEventKey.new()
+				tab.keycode = KEY_TAB
+				tab.physical_keycode = KEY_TAB
+				tab.pressed = true
+				Input.parse_input_event(tab))
+			_at(9.2, func() -> void:
+				var kept := get_tree().get_nodes_in_group("pages").size()
+				var ok: bool = _arena.spellbook.visible and kept == 35
+				print("%s  Tab on a page the book already has opens the book and leaves the page (%d pages)" % ["PASS" if ok else "FAIL", kept])
+				if not ok:
+					_exit_code = 1
+				_snap("known"))
 		"water":
 			# Wading, then diving, in the pond and the lava pit: only the part under the surface takes the colour.
 			var spots := [[8, 0.0], [8, 30.0], [8, 90.0], [-20, 30.0]]

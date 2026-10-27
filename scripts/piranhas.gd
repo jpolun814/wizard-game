@@ -5,7 +5,7 @@ extends Node2D
 ## to bite. Whoever crosses above it, on ice or lily pads or a bridge, is out of their reach. Lightning kills them: a spark
 ## that strikes the water shocks every fish near it.
 
-const FRAMES := [0, 2]  # the two frames of the strip that keep the body still while the tail and fins move
+const FRAMES := [0, 1, 2, 3]
 const BITE := 15
 const BITE_GAP := 0.6
 const SWIM := 55.0
@@ -23,7 +23,7 @@ func _ready() -> void:
 	z_index = 0
 	var frames := SpriteFrames.new()
 	frames.add_animation("swim")
-	frames.set_animation_speed("swim", 4.0)
+	frames.set_animation_speed("swim", 6.0)
 	for i in FRAMES:
 		frames.add_frame("swim", load("res://art/mobs/piranha/frame_%d.png" % i))
 	var rng := RandomNumberGenerator.new()
@@ -31,7 +31,7 @@ func _ready() -> void:
 	for k in count:
 		var sprite := AnimatedSprite2D.new()
 		sprite.sprite_frames = frames
-		sprite.scale = Vector2.ONE * 2.0  # a whole-number scale, so the pixels stay put
+		sprite.scale = Vector2.ONE  # drawn as it is, so the pixels stay put
 		sprite.modulate = Color(1, 1, 1, 0.9)
 		sprite.position = Vector2(water.position.x + water.size.x * (k + 0.5) / count, water.position.y + water.size.y * rng.randf_range(0.5, 0.85))
 		sprite.play("swim")

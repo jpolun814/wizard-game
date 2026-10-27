@@ -73,8 +73,8 @@ func _initialize() -> void:
 			for cell: Vector2i in gate["thorns"]:
 				barred[cell] = true
 			for cell: Vector2i in gate["blocks"]:
-				if gate["kind"] == "ice":
-					shut.put(cell, ArenaGen.GROUND)  # ice is as solid as rock, so no one jumps over it
+				if gate["kind"] == "ice" or gate["kind"] == "wall":
+					shut.put(cell, ArenaGen.GROUND)  # ice and a wall are as solid as rock, so no one jumps over it
 				else:
 					barred[cell] = true
 			for step: Dictionary in gate["solve"]:

@@ -7,6 +7,7 @@ extends RigidBody2D
 const RADIUS := 18.0
 const LANDING_RADIUS := 36.0
 const LANDING_DAMAGE := 30
+const BREAKING_BLOW := 60.0  # what it takes off a wall or a plug of ice where it lands
 const HEALTH := 63.0  # the same as a default stone wall (45% of its length)
 const ROCK := preload("res://art/fx/rock.png")
 
@@ -72,6 +73,9 @@ func _on_contact(body: Node) -> void:
 	Fx.smoke(get_parent(), global_position, Color(0.45, 0.38, 0.3, 0.5), 5, 30.0, 30.0)
 	Sfx.play("quake", global_position)
 	GameCamera.shake_scene(get_tree(), 0.5)
+	for thing in get_tree().get_nodes_in_group("breakables"):
+		if thing is IcePlug or thing is RockWall:  # it breaks a plug of ice, or brings a wall down, where it lands
+			thing.take_blow_near(global_position + Vector2(0, RADIUS), BREAKING_BLOW)
 
 
 ## A Push shoves it like anything else that is loose.

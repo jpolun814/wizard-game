@@ -289,11 +289,14 @@ static func _make_gate(cells: TileGrid, tunnel: Dictionary, carved: Dictionary, 
 			var top := mini(floors[k0 - 1], floors[k0 + WALL_WIDTH]) - WALL_HEIGHT
 			span = Vector2i(k0, k0 + WALL_WIDTH)
 			out["at"] = Vector2i(first + k0, top)
+			out["columns"] = []
 			for c in range(k0, k0 + WALL_WIDTH):
 				for r in range(top - 5, top):
 					cells.erase(Vector2i(first + c, r))
 				for r in range(top, floors[c]):
-					cells.put(Vector2i(first + c, r), ArenaGen.GROUND)
+					cells.erase(Vector2i(first + c, r))  # the wall is not part of the ground: it stands in the passage as a RockWall and can be broken down
+					out["blocks"].append(Vector2i(first + c, r))
+				out["columns"].append({"x": first + c, "top": top, "bottom": floors[c]})
 				out["solve"].append({"rect": Rect2i(first + c, top, 1, floors[c] - top), "with": -1})  # the passage without the wall
 		"brambles":
 			var stretch := _trap_stretch(floors, WorldGraph.THORN_BUDGET, tunnel["inward"])  # longer downhill, shorter uphill

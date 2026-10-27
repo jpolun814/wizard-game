@@ -15,9 +15,10 @@ var _flames: Node2D
 
 
 func _ready() -> void:
-	var logs := Sprite2D.new()  # the fire is built on a pile of logs ringed with stones
+	var logs := Sprite2D.new()  # the fire burns on a stone hearth, seen from the side
 	logs.texture = load("res://art/props/bonfire_logs.png")
 	logs.scale = Vector2.ONE * 3.0
+	logs.modulate = Color(0.62, 0.52, 0.48)  # weathered, not bright
 	logs.offset = Vector2(0, -logs.texture.get_height() * 0.5 + 1.0)
 	add_child(logs)
 	_flames = Node2D.new()
@@ -28,7 +29,7 @@ func _ready() -> void:
 		var fire := PixelFx.sprite("fire_puff", 12.0 + i * 2.0, true, 1)  # the same flame as the fire breath and the volcano
 		fire.scale = Vector2.ONE * (1.4 if i == 1 else 1.1)
 		fire.offset = Vector2(0, -PixelArt.FX["fire_puff"]["size"].y * 0.5)
-		fire.position = Vector2(-11 + i * 11, -12)
+		fire.position = Vector2(-11 + i * 11, -10)
 		fire.flip_h = i == 1
 		fire.frame = i * 2
 		add_child(fire)

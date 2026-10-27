@@ -75,6 +75,12 @@ func _gone(melted: bool) -> void:
 	queue_free()
 
 
+## An earthquake shakes it, when it is within reach of a point.
+func shake(point: Vector2, reach: float, damage: float) -> void:
+	if _box.grow(reach).has_point(point):
+		take_blow_near(_box.get_center(), damage)
+
+
 ## Is the point in the plug.
 func covers(point: Vector2) -> bool:
 	return _box.has_point(point)

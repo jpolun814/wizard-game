@@ -274,9 +274,10 @@ func _input(event: InputEvent) -> void:
 
 ## Reads a page lying on the ground into the book, and opens the book at it.
 func _read(lying: PagePickup) -> void:
+	var fresh := not Pages.knows(lying.page)
 	var page := lying.take()
 	var arena := get_parent()
-	if arena.has_method("on_page_found"):
+	if fresh and arena.has_method("on_page_found"):
 		arena.on_page_found(page)  # takes the page into the book
 	_spread = int(_page_of.get(page, 0)) / 2
 	_show_spread()

@@ -161,6 +161,10 @@ func _begin_encounter(camera: Camera2D) -> void:
 				var plug := IcePlug.new()
 				plug.columns = entry["columns"]
 				add_child(plug)
+			"wall":
+				var wall := RockWall.new()
+				wall.columns = entry["columns"]
+				add_child(wall)
 			"dark":
 				var bed := SpikeBed.new()
 				bed.strips = entry["strips"]

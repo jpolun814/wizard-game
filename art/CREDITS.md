@@ -111,9 +111,7 @@ and are no longer drawn by the game.
 
 - Made by tools/prepare_castle_brick.py in the colours of the stonework of the Gothicvania Church hall by ansimuz, CC0.
 
-## Piranhas (art/mobs/piranha)
 
-- Recoloured from the red fish of "Swimming Fish" by Mepavi @ You're Perfect Studio (opengameart.org/content/swimming-fish), CC0 / CC-BY 4.0, by tools/prepare_piranha.py.
 
 ## Castle doors (art/props/door.png)
 
@@ -121,4 +119,6 @@ and are no longer drawn by the game.
 
 ## Bonfire logs (art/props/bonfire_logs.png)
 
-- The unlit campfire (logs ringed with stones) from "Idylwild's Chromatic Campfires" by Idylwild (opengameart.org/content/idylwilds-chromatic-campfires), CC0.
+- The stone hearth (seen from the side) cut from "Campfire pixel art animated" by ArlanTR (opengameart.org/content/campfire-pixel-art-animated), CC0 (`tools/prepare_bonfire.py`).
+
+- Piranhas (`art/mobs/piranha/`): "Cute Fish Sprites" by chips8688, https://opengameart.org/content/cute-fish-sprites, OGA-BY 3.0 (credit required). The red fish, swim row, darkened (`tools/prepare_piranha.py`).

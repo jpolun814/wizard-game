@@ -1,6 +1,6 @@
 """Makes art/props/page.png: a loose page of the spellbook lying flat on the ground. The parchment, its ragged cream edge and its shading are
 cut from the open book (art/ui/book.png, frame 3, top-left corner of the left page, mirrored to make a whole sheet); a few lines of ink are
-added, and the sheet is laid down, seen from a little above and slightly turned. Run with: python -I tools/prepare_page.py"""
+added, and the sheet is made small, stood upright and given a dark line and a margin. Run with: python -I tools/prepare_page.py"""
 import os
 import random
 
@@ -34,19 +34,18 @@ for row in range(7):
 for dx, dy in [(0, 0), (1, 0), (2, 0), (0, 1), (2, 1), (1, 2), (0, 3), (2, 3), (1, 4), (0, 5), (2, 5), (0, 6), (1, 6), (2, 6)]:
     page.putpixel((30 + dx, 8 + dy), (120, 40, 40, 255))
 
-# Laid down: squashed to a third of its height, and the far edge pushed a little to one side.
-flat = page.resize((44, 28), Image.NEAREST)
-out = Image.new("RGBA", (52, 28))
-for y in range(28):
-    shift = int(round((27 - y) * 8 / 27))
-    out.paste(flat.crop((0, y, 44, y + 1)), (shift, y))
-edge = Image.new("RGBA", (out.width + 2, out.height + 2))
-edge.paste(out, (1, 1))
-for x in range(edge.width):  # a dark line round the sheet, so it reads against the stone
+# Stood upright, small, with a dark line round it and a clear margin for the glow the game draws round it.
+flat = page.resize((40, 58), Image.NEAREST)
+edge = Image.new("RGBA", (flat.width + 6, flat.height + 6))
+edge.paste(flat, (3, 3))
+dark = Image.new("RGBA", edge.size)
+for x in range(edge.width):
     for y in range(edge.height):
         if edge.getpixel((x, y))[3] == 0 and any(0 <= x + dx < edge.width and 0 <= y + dy < edge.height and edge.getpixel((x + dx, y + dy))[3] > 0
                                                   for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))):
-            edge.putpixel((x, y), (36, 22, 30, 255))
-out = edge.crop(edge.getbbox())
+            dark.putpixel((x, y), (36, 22, 30, 255))
+edge.alpha_composite(dark)
+out = Image.new("RGBA", (edge.width + 4, edge.height + 4))
+out.paste(edge, (2, 2))
 out.save(os.path.join(ROOT, "art", "props", "page.png"))
 print("wrote page", out.size)
