@@ -23,6 +23,7 @@ const SCHOOLS := ["Fire", "Water", "Air", "Earth", "Flora", "Shadow"]
 
 var _spread := 0
 var _pages: Array[Callable] = []
+var _page_of := {}  # a spell's name, or "chant:" and a chant's id -> the index of its page
 var _book: BookArt
 var _left: VBoxContainer
 var _right: VBoxContainer
@@ -233,12 +234,15 @@ func _ready() -> void:
 ## The pages of the book: the cheat sheet, then a page to each spell and chant that is known.
 func _build_pages() -> void:
 	_pages = [_page_contents]
+	_page_of = {}
 	for school in SCHOOLS:
 		for spell_name in _spells_of(school):
 			if Pages.knows(spell_name):
+				_page_of[spell_name] = _pages.size()
 				_pages.append(_page_spell.bind(spell_name))  # every spell has a page to itself
 	for ritual_id in RitualInput.RITUALS:
 		if ritual_id != "recall" and Pages.knows_chant(ritual_id):  # the Return shares the Mark's page: the two work as a pair
+			_page_of["chant:" + ritual_id] = _pages.size()
 			_pages.append(_page_incantation.bind(ritual_id))
 
 
@@ -254,7 +258,11 @@ func _input(event: InputEvent) -> void:
 	if key == null or not key.pressed or key.echo:
 		return
 	if key.keycode == KEY_TAB:
-		_toggle()
+		var lying := PagePickup.underfoot(get_tree()) if not visible else null
+		if lying != null:
+			_read(lying)
+		else:
+			_toggle()
 		get_viewport().set_input_as_handled()
 	elif visible and key.keycode == KEY_RIGHT:
 		_turn(1)
@@ -262,6 +270,17 @@ func _input(event: InputEvent) -> void:
 	elif visible and key.keycode == KEY_LEFT:
 		_turn(-1)
 		get_viewport().set_input_as_handled()
+
+
+## Reads a page lying on the ground into the book, and opens the book at it.
+func _read(lying: PagePickup) -> void:
+	var page := lying.take()
+	var arena := get_parent()
+	if arena.has_method("on_page_found"):
+		arena.on_page_found(page)  # takes the page into the book
+	_spread = int(_page_of.get(page, 0)) / 2
+	_show_spread()
+	_toggle()
 
 
 ## Opens the book, which falls open before its writing shows, or shuts it.

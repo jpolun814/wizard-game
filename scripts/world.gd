@@ -341,7 +341,7 @@ func _rift_spot(from: Vector2) -> Vector2:
 
 ## The spellbook of the run: only the starter spells are known, and a page for each of the others lies in a hall of the map.
 func _lay_pages() -> void:
-	Pages.begin()
+	Pages.begin(seed_value + 31)  # what the wizard starts with comes from the seed too
 	spellbook.refresh()
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed_value + 7919  # the pages come from the seed, apart from the rest of the map

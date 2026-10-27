@@ -35,8 +35,8 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS  # keeps running while the game is paused
 	DirAccess.make_dir_recursive_absolute(out_dir)
 	# The spells are tried in the waiting room, where there is a pond, a gap and dummies for each of them.
-	var scene := "world" if scenario in ["cave", "gates", "castle", "pages", "tornado"] else "lab"
-	if scenario in ["cave", "gates", "castle", "pages", "tornado"]:
+	var scene := "world" if scenario in ["cave", "gates", "castle", "pages", "tornado", "extras"] else "lab"
+	if scenario in ["cave", "gates", "castle", "pages", "tornado", "extras"]:
 		World.random_start = false
 		World.next_seed = int(OS.get_environment("WORLD_SEED")) if OS.get_environment("WORLD_SEED") != "" else 11  # the same world each time
 	_arena = load("res://scenes/%s.tscn" % scene).instantiate()
@@ -161,10 +161,132 @@ func _plan() -> void:
 				print("%s  a tornado throws whoever is in it upward (best %d), sideways by chance (%s)" % ["PASS" if ok else "FAIL", int(flung["up"]), str(sides)])
 				if not ok:
 					_exit_code = 1)
+		"extras":
+			# The castle door, a steered decoy, the F1 gate teleports, a flare in water, the bonfire and the Insight list.
+			var tile := float(ArenaGen.TILE)
+			var box := []  # the westmost door, once the world is built
+			var key := func(code: Key, down: bool) -> void:
+				var event := InputEventKey.new()
+				event.keycode = code
+				event.physical_keycode = code
+				event.pressed = down
+				Input.parse_input_event(event)
+			var put := func(at: Vector2) -> void:
+				_player().global_position = at
+				_player().velocity = Vector2.ZERO
+				_arena._ground.watch([at] as Array[Vector2], true)  # the ground there is built before the wizard stands on it
+				_arena._safe_spot = at
+				_arena._dark.hide()
+				_arena.get_node("Player/Camera2D").zoom = Vector2(1.0, 1.0)
+				_arena.get_node("Player/Camera2D").reset_smoothing()
+			var west := func() -> Vector2:  # on the ground west of the castle gate
+				var x: float = box[0].global_position.x - 330.0
+				return SpellTargets.solid_below(_arena.get_world_2d(), Vector2(x, box[0].global_position.y - 700.0), 1400.0) + Vector2(0, -4)
+			var verdict := func(ok: bool, text: String) -> void:
+				print("%s  %s" % ["PASS" if ok else "FAIL", text])
+				if not ok:
+					_exit_code = 1
+			_at(0.3, func() -> void:
+				var doors: Array = []
+				for node in _arena.get_children():
+					if node is CastleDoor:
+						doors.append(node)
+				doors.sort_custom(func(a: Node2D, b: Node2D) -> bool: return a.global_position.x < b.global_position.x)
+				box.append(doors[0]))
+			_at(0.5, func() -> void: put.call(west.call()))
+			_at(1.5, func() -> void:
+				verdict.call(box[0]._swing < 0.05, "the door is shut with no one near it (%.2f)" % box[0]._swing)
+				verdict.call(not box[0]._shape.disabled, "and it is solid")
+				_snap("door_shut")
+				put.call(box[0].global_position + Vector2(-90, -10)))
+			_at(1.85, func() -> void: _snap("door_swinging"))
+			_at(3.0, func() -> void:
+				verdict.call(box[0]._swing > 0.95, "the door is wide open with someone at it (%.2f)" % box[0]._swing)
+				verdict.call(box[0]._shape.disabled, "and it lets them through")
+				_snap("door_open")
+				put.call(west.call()))
+			_at(6.5, func() -> void:
+				verdict.call(box[0]._swing < 0.05 and not box[0]._shape.disabled, "the door shuts again when they have gone (%.2f)" % box[0]._swing))
+			# The decoy walks with the arrow keys.
+			var decoy := []
+			_at(7.0, func() -> void:
+				var made := Decoy.new()
+				_arena.add_child(made)
+				made.global_position = _player().global_position + Vector2(60, 0)
+				decoy.append(made)
+				decoy.append(made.global_position.x))
+			_at(7.4, func() -> void: key.call(KEY_RIGHT, true))
+			_at(8.4, func() -> void:
+				var moved: float = decoy[0].global_position.x - decoy[1]
+				verdict.call(moved > 120.0, "the right arrow walks the decoy (%d px)" % int(moved))
+				_snap("decoy")
+				key.call(KEY_RIGHT, false)
+				decoy.append(decoy[0].global_position.x))
+			_at(9.2, func() -> void:
+				var drift: float = absf(decoy[0].global_position.x - decoy[2])
+				verdict.call(drift < 6.0, "and it stops when the key is let go (%d px)" % int(drift))
+				key.call(KEY_LEFT, true))
+			_at(10.0, func() -> void:
+				verdict.call(decoy[0].global_position.x < decoy[2] - 80.0, "the left arrow walks it back")
+				key.call(KEY_LEFT, false))
+			# The F1 teleports.
+			var t := 11.0
+			for kind in WorldGraph.GATES:
+				_at(t, func() -> void:
+					_arena.go_to_gate(kind)
+					_arena._dark.hide())
+				_at(t + 0.4, func() -> void:
+					var near := 1e9
+					for entry in _arena._gates:
+						if entry["kind"] == kind:
+							near = minf(near, (Vector2(entry["at"]) * tile).distance_to(_player().global_position))
+					verdict.call(near < 1200.0 and not _player().dead, "F1 takes the wizard to a %s gate (%d px away)" % [kind, int(near)]))
+				t += 0.6
+			# A flare goes out in water.
+			var pond: Pond = null
+			for candidate in get_tree().get_nodes_in_group("ponds"):
+				if not candidate.lava and candidate.width > 150.0:
+					pond = candidate
+					break
+			var flare := []
+			_at(t, func() -> void:
+				put.call(pond.global_position + Vector2(pond.width * 0.5, pond.depth * 0.5)))
+			_at(t + 0.3, func() -> void:
+				var made := Flare.new()
+				made.caster_node = _player()
+				_arena.add_child(made)
+				made.global_position = _player().global_position + Vector2(0, -20)
+				flare.append(made))
+			_at(t + 1.5, func() -> void:
+				verdict.call(not is_instance_valid(flare[0]) or flare[0].is_queued_for_deletion(), "a flare goes out in water"))
+			t += 2.5
+			# The bonfire stands beside the wizard, on logs, not under them.
+			_at(t, func() -> void:
+				put.call(west.call()))
+			_at(t + 1.0, func() -> void: _arena._on_ritual_finished("bonfire", 1.0, false))
+			_at(t + 2.2, func() -> void:
+				var fire: Node2D = null
+				for node in _arena.get_children():
+					if node is Bonfire:
+						fire = node
+				var gap := 0.0 if fire == null else absf(fire.global_position.x - _player().global_position.x)
+				verdict.call(fire != null and gap > 40.0, "the bonfire stands beside the wizard (%d px)" % int(gap))
+				_snap("bonfire"))
+			t += 3.0
+			# Insight lists a dark wizard's spells.
+			_at(t, func() -> void:
+				_arena._revealed["insight"] = true
+				var wizard := _summon_at("dark_wizard", _player().global_position.x + 200.0)
+				wizard.set_physics_process(false)
+				wizard.global_position = _arena.get_global_mouse_position() - (wizard.center() - wizard.global_position))
+			_at(t + 0.5, func() -> void:
+				_arena._update_insight()
+				verdict.call(_arena._insight_tip.visible and "Knows" in _arena._insight_text.text, "Insight lists what a dark wizard knows")
+				_snap("insight"))
 		"pages":
 			var tile := float(ArenaGen.TILE)
 			var pickups := get_tree().get_nodes_in_group("pages")
-			print("%s  pages lie on the map (%d), and only the starter spells are known (%d of %d)" % ["PASS" if pickups.size() > 25 and Pages.known.size() == Pages.STARTER.size() else "FAIL", pickups.size(), Pages.known.size(), Pages.every().size()])
+			print("%s  pages lie on the map (%d), and only the starter spells are known (%d of %d)" % ["PASS" if pickups.size() > 25 and Pages.known.size() == 5 else "FAIL", pickups.size(), Pages.known.size(), Pages.every().size()])
 			var first: PagePickup = pickups[0]
 			var page := first.page
 			var holder := [first]
@@ -174,9 +296,21 @@ func _plan() -> void:
 				_arena.get_node("Player/Camera2D").reset_smoothing())
 			_at(2.0, func() -> void: _snap("page"))
 			_at(2.2, func() -> void: _player().global_position = first.global_position + Vector2(0, -10))
-			_at(3.5, func() -> void:
-				var ok: bool = Pages.knows(page) and not is_instance_valid(holder[0])
-				print("%s  walking over a page learns it (%s) and takes it off the map" % ["PASS" if ok else "FAIL", page])
+			_at(2.8, func() -> void:
+				var before_tab: bool = Pages.knows(page)
+				print("%s  standing on a page does not read it" % ["PASS" if not before_tab else "FAIL"])
+				if before_tab:
+					_exit_code = 1
+				_snap("hint")
+				var tab := InputEventKey.new()
+				tab.keycode = KEY_TAB
+				tab.physical_keycode = KEY_TAB
+				tab.pressed = true
+				Input.parse_input_event(tab))
+			_at(4.5, func() -> void: _snap("read"))
+			_at(5.0, func() -> void:
+				var ok: bool = Pages.knows(page) and not is_instance_valid(holder[0]) and _arena.spellbook.visible
+				print("%s  pressing Tab on a page reads it (%s), takes it off the map and opens the book" % ["PASS" if ok else "FAIL", page])
 				if not ok:
 					_exit_code = 1
 				var before := get_tree().get_nodes_in_group("pages").size()

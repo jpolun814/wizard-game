@@ -12,7 +12,7 @@ const UNLIMITED := Color("#7fe0ff")
 const INK := Color(0.07, 0.04, 0.1)
 const CONTROLS := [
 	["A / D", "Move"], ["W or Space", "Jump (tap to hop)"],
-	["Hold mouse buttons + draw", "Cast a spell (the buttons pick the school)"], ["Tab", "Open your spellbook"],
+	["Hold mouse buttons + draw", "Cast a spell (the buttons pick the school)"], ["Tab", "Open your spellbook, or read the page you stand on"], ["Left / Right arrows", "Walk your Decoy"],
 	["Enter", "Speak an incantation"], ["E", "Swap focus with the one on the ground"], ["M", "Mute sound"],
 	["F1", "Open the summon menu (testing)"], ["Esc", "Pause"],
 ]

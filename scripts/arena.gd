@@ -655,8 +655,18 @@ func _on_ritual_finished(id: String, acc: float, unfinished: bool) -> void:
 			var fire := Bonfire.new()
 			add_child(fire)
 			fire.power = power
-			fire.global_position = _ground_below(player.center() + Vector2(player.facing * 80.0, 0.0))  # beside the wizard, not under them
+			fire.global_position = _bonfire_spot()  # beside the wizard, not under them
 	_on_feedback("%s worked (%s)" % [ritual_name, acc_text], Color.GREEN)
+
+
+## Where a bonfire is made: on the ground 80 px in front of the wizard, or behind them when there is a drop or a wall there.
+func _bonfire_spot() -> Vector2:
+	for side: float in [float(player.facing), -float(player.facing)]:
+		var from: Vector2 = player.global_position + Vector2(side * 80.0, -48.0)  # above the ground there, even where it rises
+		var hit := _ground_below(from)
+		if hit.y < from.y + 200.0 and absf(hit.y - player.global_position.y) < 120.0:
+			return hit
+	return player.global_position
 
 
 ## The Incantation of the Mark: the place you stand on is remembered, until the Return is spoken.
@@ -814,7 +824,9 @@ func _update_insight() -> void:
 			var colour: Color = SpellData.SCHOOL_COLORS[SpellData.SPELLS[spell_name]["school"]]
 			lines += "\n[color=#%s]%s[/color]" % [colour.lightened(0.15).to_html(false), spell_name]
 		_insight_text.text += "\n\nKnows:" + lines
-	_insight_tip.position = get_viewport().get_mouse_position() + Vector2(18, 18)
+	var screen := get_viewport().get_visible_rect().size
+	var tip_size := _insight_tip.get_combined_minimum_size()
+	_insight_tip.position = (get_viewport().get_mouse_position() + Vector2(18, 18)).min(screen - tip_size - Vector2(8, 8)).max(Vector2(8, 8))  # kept on the screen, even with a long list
 
 
 ## The enemy closest to the pointer, if it is within reach.

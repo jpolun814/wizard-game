@@ -108,6 +108,7 @@ func _initialize() -> void:
 				_fail("seed %d: the castle cannot be walked through from the west" % s)
 			if not WorldBuilder.reachable(world["cells"], east, world["size"].y, world["hazards"]).has(west):
 				_fail("seed %d: the castle cannot be walked through from the east" % s)
+		Pages.begin(s)
 		var layout := Pages.plan(graph, RandomNumberGenerator.new())
 		var seen := {}
 		for entry: Dictionary in layout["placed"]:
@@ -123,7 +124,7 @@ func _initialize() -> void:
 		for page in layout["stash"]:
 			seen[page] = true
 		for page in Pages.every():
-			if not seen.has(page) and not Pages.STARTER.has(page):
+			if not seen.has(page) and not Pages.known.has(page):
 				_fail("seed %d: the page %s is nowhere" % [s, page])
 		if boss["lock"] < 0:
 			_fail("seed %d: the boss is not in a locked area" % s)

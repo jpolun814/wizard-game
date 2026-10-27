@@ -198,7 +198,7 @@ const SPELLS := {
 	"Decoy": {
 		"buttons": RIGHT | MIDDLE, "gesture": "eight", "targeting": "positional", "cost": 20.0,
 		"school": "Shadow", "draw": "A figure of eight.",
-		"effect": "Cast a shadow of yourself for 8 seconds.",
+		"effect": "Cast a shadow of yourself that walks where you send it, for 12 seconds.",
 	},
 	"Eclipse": {
 		"buttons": RIGHT | MIDDLE, "gesture": "crescent", "targeting": "positional", "cost": 22.0,

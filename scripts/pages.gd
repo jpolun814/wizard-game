@@ -9,9 +9,12 @@ extends RefCounted
 ## that open no gate may also lie in the locked areas, as the reward for getting in. The dark wizard keeps a few of those: they are
 ## left out of the map (the stash).
 
-## What every wizard starts with: spells for an attack, a light, a shove, a defence and a way to move, and the chants of the land, of
-## insight and of the bonfire.
-const STARTER := ["Ignite", "Flare", "Push", "Barrier", "Shadow Step", "chant:minimap", "chant:insight", "chant:bonfire"]
+## What every wizard starts with: one spell to attack, one to move and one to defend, each drawn by chance from its own list, and the
+## incantations of the bonfire and of the rift. Every spell in these lists works alone.
+const ATTACKS := ["Ignite", "Fire Breath", "Spark", "Frostbolt", "Stonefall"]
+const MOVES := ["Shadow Step", "Push", "Liana"]
+const DEFENCES := ["Barrier", "Decoy", "Stone Wall", "Smoke Screen"]
+const CHANTS := ["chant:bonfire", "chant:rift"]
 ## Spells that open no gate, and chants that do not: the ones that may lie in a locked area or in the dark wizard's stash.
 const LOCKABLE := ["Frostbolt", "Icicles", "Ice Prison", "Blizzard", "Stonefall", "Mudslide", "Earthquake", "Bramble", "Spore Puff",
 		"Flytrap", "Hex", "Abyss", "chant:boundless", "chant:double_jump", "chant:haste"]
@@ -22,13 +25,17 @@ static var known := {}              # page -> true
 static var stash: Array[String] = []  # what the dark wizard keeps
 
 
-## A new run: only the starter spells are known.
-static func begin() -> void:
+## A new run: only the starter pages are known, which the seed picks.
+static func begin(seed_value := 0) -> void:
 	active = true
 	known = {}
 	stash = []
-	for spell in STARTER:
-		known[spell] = true
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed_value
+	for list: Array in [ATTACKS, MOVES, DEFENCES]:
+		known[list[rng.randi() % list.size()]] = true
+	for chant in CHANTS:
+		known[chant] = true
 
 
 ## The waiting room: everything is known.
@@ -80,7 +87,7 @@ static func title_of(page: String) -> String:
 static func plan(graph: WorldGraph, rng: RandomNumberGenerator) -> Dictionary:
 	var items: Array[String] = []
 	for page in every():
-		if not STARTER.has(page):
+		if not known.has(page):
 			items.append(page)
 	var lockable: Array[String] = []
 	var open: Array[String] = []
