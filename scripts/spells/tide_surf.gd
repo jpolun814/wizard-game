@@ -10,14 +10,20 @@ const LENGTH := 150.0        # how far the wave reaches behind its crest
 const FRONT := 80.0          # how far ahead of the caster it shoves
 const SHOVE := Vector2(620.0, -260.0)
 const SHOVE_GAP := 0.8       # seconds before it shoves the same one again
-const WATER := Color(0.28, 0.6, 0.9, 0.7)
+const CREST := preload("res://art/fx/surf_crest.png")  # a wave rising and curling over; CC0, see art/CREDITS.md
+const BODY := preload("res://art/fx/surf_body.png")    # and the rolling swell behind it
+const CREST_SCALE := 2.2
+const BODY_SCALE := 1.6
+const BODY_TILE := 48.0 * BODY_SCALE
 const FOAM := Color(0.92, 0.98, 1.0, 0.9)
 
 var caster_node: Node2D  # set by the arena before it enters the tree
 var direction := 1.0
 var _age := 0.0
+var _frame_time := 0.0
 var _shoved := {}  # who it has shoved lately -> seconds until it can again
-var _crest: Array[AnimatedSprite2D] = []
+var _crest: Sprite2D
+var _body: Array[Sprite2D] = []
 var _spray: CPUParticles2D
 
 
@@ -25,14 +31,11 @@ func _ready() -> void:
 	add_to_group("lasting")
 	z_index = 6
 	caster_node.start_surf(direction, SECONDS)
-	for i in 3:
-		var splash := PixelFx.sprite("splash", 10.0 + i)
-		splash.scale = Vector2(1.5, 1.5)
-		splash.offset = Vector2(0, -PixelArt.FX["splash"]["size"].y * 0.5)
-		splash.position = Vector2(direction * (FRONT * 0.45 - i * 40.0), -6.0 + i * 3.0)
-		splash.flip_h = direction < 0.0
-		add_child(splash)
-		_crest.append(splash)
+	_crest = _strip(CREST, 4, CREST_SCALE, Vector2(direction * (FRONT * 0.5 + 10.0), 4.0))
+	for k in 3:  # the swell the wizard rides: tiles of rolling water behind the crest, each a step out of time with the next
+		var tile := _strip(BODY, 9, BODY_SCALE, Vector2(direction * (FRONT * 0.5 - 40.0 - k * BODY_TILE), 4.0))
+		tile.frame = k * 3
+		_body.append(tile)
 	_spray = CPUParticles2D.new()
 	_spray.amount = 40
 	_spray.lifetime = 0.5
@@ -50,8 +53,7 @@ func _ready() -> void:
 	add_child(_spray)
 	_spray.emitting = true
 	global_position = caster_node.global_position
-	Sfx.play("snow", global_position, 2.0)
-	Sfx.play("push", global_position, -4.0)
+	Sfx.play("surf", global_position)
 
 
 func _physics_process(delta: float) -> void:
@@ -60,7 +62,11 @@ func _physics_process(delta: float) -> void:
 		_end()
 		return
 	global_position = caster_node.global_position
-	queue_redraw()
+	_frame_time += delta
+	_crest.frame = mini(3, int(_frame_time / 0.12))  # it rises and curls over, then holds
+	_crest.position.y = 4.0 + 2.0 * sin(_age * 8.0)
+	for tile in _body:
+		tile.frame = (int(_frame_time * 10.0) + tile.get_index() * 3) % 9
 	for body in _shoved.keys():
 		_shoved[body] -= delta
 		if _shoved[body] <= 0.0 or not is_instance_valid(body):
@@ -93,20 +99,15 @@ func _end() -> void:
 	fade.tween_callback(queue_free)
 
 
-## The water: a low swell behind the crest, lapping at the caster's legs.
-func _draw() -> void:
-	var back := -direction
-	var swell := PackedVector2Array()
-	var colours := PackedColorArray()
-	var steps := 8
-	for i in steps + 1:
-		var t := float(i) / steps
-		var x := direction * FRONT * 0.7 + back * LENGTH * t
-		var height := 20.0 * (1.0 - t * 0.5) + 2.5 * sin(_age * 9.0 + t * 7.0)
-		swell.append(Vector2(x, -height))
-		colours.append(Color(WATER.r + 0.25 * (1.0 - t), WATER.g + 0.2 * (1.0 - t), WATER.b, WATER.a))
-	swell.append(Vector2(direction * FRONT * 0.7 + back * LENGTH, 4.0))
-	colours.append(Color(WATER.r * 0.6, WATER.g * 0.7, WATER.b * 0.9, WATER.a))
-	swell.append(Vector2(direction * FRONT * 0.7, 4.0))
-	colours.append(Color(WATER.r * 0.6, WATER.g * 0.7, WATER.b * 0.9, WATER.a))
-	draw_polygon(swell, colours)
+## A strip of animation frames laid out side by side, standing on the caster's feet and facing the way the wave runs.
+func _strip(texture: Texture2D, frames: int, factor: float, at: Vector2) -> Sprite2D:
+	var sprite := Sprite2D.new()
+	sprite.texture = texture
+	sprite.hframes = frames
+	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	sprite.scale = Vector2(factor, factor)
+	sprite.flip_h = direction < 0.0
+	sprite.offset = Vector2(0, -16)  # the frame's bottom edge sits on the feet
+	sprite.position = at
+	add_child(sprite)
+	return sprite

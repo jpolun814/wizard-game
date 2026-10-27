@@ -41,7 +41,7 @@ func _begin(origin: Vector2, aim_angle: float) -> void:
 	if spell == "Blood Bolt":
 		shot.modulate = Color(0.85, 0.08, 0.16)  # the fireball, dyed dark red
 	add_child(shot)
-	Sfx.play("cast_ice" if spell == "Frostbolt" else "cast_fire", origin)
+	Sfx.play("cast_ice" if spell == "Frostbolt" else ("blood_cast" if spell == "Blood Bolt" else "cast_fire"), origin)
 
 
 func damage() -> int:

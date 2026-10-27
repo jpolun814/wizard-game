@@ -406,12 +406,13 @@ func spawn_spell(spell: String, targeting: String, origin: Vector2, aim: float, 
 			if caster_node.has_method("raise_obsidian"):
 				caster_node.raise_obsidian(20.0)
 				Fx.burst(self, caster_node.center(), Color(0.45, 0.4, 0.6), 16, 120.0, 0.5, true)
+				Sfx.play("glass", caster_node.center())
 			return
 		"Adrenaline":
 			if caster_node.has_method("grant_adrenaline"):
 				caster_node.grant_adrenaline(10.0)
 				Fx.burst(self, caster_node.center(), SpellData.SCHOOL_COLORS["Blood"], 14, 150.0, 0.5, true)
-				Sfx.play("pickup", caster_node.center(), -4.0)
+				Sfx.play("heartbeat", caster_node.center())
 			return
 		"Clot":
 			var closed := Bleed.close_near(get_tree(), origin, CLOT_REACH)
@@ -429,13 +430,14 @@ func spawn_spell(spell: String, targeting: String, origin: Vector2, aim: float, 
 			if cut != null:
 				Bleed.open(self, cut)
 				Fx.burst(self, SpellTargets.center_of(cut), SpellData.SCHOOL_COLORS["Blood"], 12, 130.0, 0.4, true)
-				Sfx.play("mob_hurt", SpellTargets.center_of(cut), -4.0)
+				Sfx.play("blood_cast", SpellTargets.center_of(cut), -6.0)
 			return
 		"Faint":
 			var down := _blood_target(spell, origin)
 			if down != null:
 				down.faint()
 				Fx.burst(self, SpellTargets.center_of(down), Color(0.55, 0.1, 0.2), 14, 100.0, 0.6, true)
+				Sfx.play("faint", SpellTargets.center_of(down))
 			return
 		"Hex":
 			var cursed := Hex.nearest_under(get_tree(), origin)
@@ -505,6 +507,7 @@ func _transfuse(donor: Node2D, taker: Node2D) -> void:
 		flight.tween_interval(k * 0.05)
 		flight.tween_property(drop, "position", to + Vector2(0, -20), 0.45).set_ease(Tween.EASE_IN)
 		flight.tween_callback(drop.queue_free)
+	Sfx.play("blood_cast", from, -4.0)
 	Sfx.play("pickup", to, -4.0)
 
 

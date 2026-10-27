@@ -16,7 +16,7 @@ const VOLUME := {
 	"player_hurt": -4.0, "jump": -14.0, "step": -26.0, "type": -22.0,
 	"portal_open": -6.0, "portal_enter": -4.0, "ritual_ok": -4.0, "heal": -8.0,
 	"book_open": -8.0, "book_close": -8.0, "page": -8.0, "pickup": -8.0,
-	"wizard_cast": -8.0, "game_over": -6.0, "summon": -12.0, "ui_click": -10.0,
+	"blood_cast": -6.0, "heartbeat": -4.0, "surf": -4.0, "glass": -8.0, "faint": -4.0, "wizard_cast": -8.0, "game_over": -6.0, "summon": -12.0, "ui_click": -10.0,
 }
 const MAX_DISTANCE := 1400.0  # world sounds farther than this from the camera are not heard
 const POOL := 24              # how many sounds can play at once

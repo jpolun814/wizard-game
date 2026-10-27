@@ -55,6 +55,7 @@ and are no longer drawn by the game.
 | `player_hurt`, `mob_shoot` | [Kenney – New Platformer Pack](https://kenney.nl/assets/new-platformer-pack) | CC0 1.0 |
 | `jump` | [Jumping man sounds](https://opengameart.org/content/jumping-man-sounds) by IgnasD | CC0 |
 | `pickup` | [Kenney – RPG Audio](https://kenney.nl/assets/rpg-audio) (cloth rustle) | CC0 1.0 |
+| `blood_cast`, `heartbeat`, `surf`, `glass`, `faint` | Synthesised for this game (`tools/make_spell_sounds.py`) | own work |
 | `force`, `barrier`, `quake`, `tornado` (a jet roar) | [Kenney – Sci-fi Sounds](https://kenney.nl/assets/sci-fi-sounds) | CC0 1.0 |
 | `type`, `ui_click` | [Kenney – Interface Sounds](https://kenney.nl/assets/interface-sounds) | CC0 1.0 |
 | `book_open`, `book_close`, `page_*` | [Kenney – RPG Audio](https://kenney.nl/assets/rpg-audio) | CC0 1.0 |
@@ -124,4 +125,5 @@ and are no longer drawn by the game.
 - Piranhas (`art/mobs/piranha/`): "Cute Fish Sprites" by chips8688, https://opengameart.org/content/cute-fish-sprites, OGA-BY 3.0 (credit required). The red fish, swim row, darkened (`tools/prepare_piranha.py`).
 
 - Castle rope ladders (`art/props/rope_ladder.png`): "Rope Ladder" by AntumDeluge (Jordan Irwin), https://opengameart.org/content/rope-ladder, CC-BY 3.0 / OGA-BY 3.0 (credit required). Darkened (`tools/prepare_ladder.py`).
+- Tide Surf wave (`art/fx/surf_crest.png`, `art/fx/surf_body.png`): "Tsunami animation" by mkwong98, https://opengameart.org/content/tsunami-animation, CC0. Recoloured from blue to dark teal (`tools/prepare_wave.py`).
 - Glowcap mushroom (`art/props/glowcap.png`): "Mushroom Sprite Pack" by Peter Field, https://opengameart.org/content/mushroom-pixel-art-pack-32x32 (also listed as node 178614), free to use, credit appreciated, CC0 on its page. The purple mushroom, recoloured to green (`tools/prepare_glowcap.py`).

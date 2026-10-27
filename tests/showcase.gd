@@ -1514,6 +1514,8 @@ func _plan_gates() -> void:
 				if node is SpikeBed and node.strips[0]["x"] == field["strips"][0]["x"]:
 					bed[0] = node
 			var wizard: Node2D = _player()
+			wizard.dead = false  # the gas test before this one may have killed the wizard on purpose
+			wizard.movement_enabled = true
 			wizard.max_stamina = 1000.0
 			wizard.stamina = 1000.0
 			wizard.global_position = stand.call("dark", 0.0)
