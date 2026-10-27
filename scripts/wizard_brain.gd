@@ -14,6 +14,9 @@ extends RefCounted
 ##   Attacks: each spell is scored for the situation (are you moving, behind cover, rooted, close, far?) and one is
 ##     picked by weight. Projectiles are aimed where you are going, not where you are.
 
+## Every spell a wizard casts, for Insight to list.
+const KNOWN := ["Ignite", "Fire Breath", "Firewall", "Spark", "Frostbolt", "Ice Prison", "Blizzard", "Gust", "Push", "Barrier", "Tornado",
+		"Stonefall", "Mudslide", "Earthquake", "Volcano", "Abyss", "Shadow Step"]
 const STAMINA_REGEN := 16.0
 const WALK_SPEED := 170.0
 const JUMP := -560.0

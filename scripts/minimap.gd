@@ -1,11 +1,12 @@
 class_name Minimap
 extends Control
 
-## A small map of the whole arena, with mobs and the player marked. Shown when revealed.
+## A small map of the whole arena, with only the player marked: it shows the map, not who is on it. Shown when revealed.
 ## It sizes itself to the map: long maps get smaller tiles so the minimap never grows past MAX_WIDTH.
+## The terrain is painted once into a picture, a pixel to a tile, and only the marks are drawn each frame.
 
 const MAX_CELL := 3.0      # pixels per tile, for small maps
-const MAX_WIDTH := 240.0   # the minimap never gets wider than this
+const MAX_WIDTH := 320.0   # the minimap never gets wider than this
 const MARGIN := 16.0
 const TILE_COLORS := {
 	ArenaGen.GROUND: Color("#7a5a8a"),
@@ -13,21 +14,47 @@ const TILE_COLORS := {
 }
 
 var arena: Node2D
-var _terrain := {}
+var _picture: ImageTexture
 var _origin := Vector2i.ZERO  # the top-left tile of the map
 var _cell := MAX_CELL
 
 
 func _ready() -> void:
-	_terrain = arena.map_cells()
+	var terrain: Variant = arena.map_cells()
 	var lo := Vector2i(1 << 20, 1 << 20)
 	var hi := Vector2i(-(1 << 20), -(1 << 20))
-	for cell in _terrain:
-		lo = Vector2i(mini(lo.x, cell.x), mini(lo.y, cell.y))
-		hi = Vector2i(maxi(hi.x, cell.x), maxi(hi.y, cell.y))
+	var image: Image
+	if terrain is TileGrid:
+		lo = Vector2i.ZERO
+		hi = terrain.size - Vector2i.ONE
+	else:
+		for cell in terrain:
+			lo = Vector2i(mini(lo.x, cell.x), mini(lo.y, cell.y))
+			hi = Vector2i(maxi(hi.x, cell.x), maxi(hi.y, cell.y))
 	_origin = lo
 	var cols := hi.x - lo.x + 1
 	var rows := hi.y - lo.y + 1
+	image = Image.create(cols, rows, false, Image.FORMAT_RGBA8)
+	if terrain is TileGrid:
+		var bytes := PackedByteArray()
+		bytes.resize(cols * rows * 4)
+		var ground: Color = TILE_COLORS[ArenaGen.GROUND]
+		var stone: Color = TILE_COLORS[ArenaGen.STONE]
+		for k in terrain.data.size():
+			var value: int = terrain.data[k]
+			if value != 0:
+				var colour := ground if value == ArenaGen.GROUND + 1 else stone
+				bytes[k * 4] = colour.r8
+				bytes[k * 4 + 1] = colour.g8
+				bytes[k * 4 + 2] = colour.b8
+				bytes[k * 4 + 3] = 255
+		image = Image.create_from_data(cols, rows, false, Image.FORMAT_RGBA8, bytes)
+	else:
+		for cell in terrain:
+			image.set_pixel(cell.x - lo.x, cell.y - lo.y, TILE_COLORS[terrain[cell]])
+	image.generate_mipmaps()
+	_picture = ImageTexture.create_from_image(image)
+	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 	_cell = minf(MAX_CELL, MAX_WIDTH / cols)
 	custom_minimum_size = Vector2(cols * _cell, rows * _cell)
 	size = custom_minimum_size
@@ -35,16 +62,13 @@ func _ready() -> void:
 
 
 func _process(_delta: float) -> void:
-	queue_redraw()
+	if visible:
+		queue_redraw()  # only the marks move
 
 
 func _draw() -> void:
 	draw_rect(Rect2(Vector2.ZERO, size), Color(0, 0, 0, 0.55))
-	for cell in _terrain:
-		var pos := Vector2(cell.x - _origin.x, cell.y - _origin.y) * _cell
-		draw_rect(Rect2(pos, Vector2(_cell, _cell)), TILE_COLORS[_terrain[cell]])
-	for mob in get_tree().get_nodes_in_group("mobs"):
-		draw_circle(_to_map(mob.center()), 2.0, Color("#ff5050"))
+	draw_texture_rect(_picture, Rect2(Vector2.ZERO, size), false)
 	draw_circle(_to_map(arena.player.center()), 2.5, Color("#7fe0ff"))
 
 

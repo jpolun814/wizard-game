@@ -45,7 +45,7 @@ func _ready() -> void:
 	add_child(_mound)
 	create_tween().tween_property(_mound, "scale:y", 1.0, 0.25).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	# Fire roars out of its top for as long as it erupts.
-	var vent := PixelFx.sprite("fire_puff", 14.0)
+	var vent := PixelFx.sprite("fire_puff", 14.0, true, 1)
 	vent.scale = Vector2.ONE * 2.0
 	vent.offset = Vector2(0, -PixelArt.FX["fire_puff"]["size"].y * 0.5)
 	vent.position = _crater(8.0)

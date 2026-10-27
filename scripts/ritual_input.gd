@@ -25,6 +25,14 @@ const RITUALS := {
 		"text": "volo iterum"},
 	"rift": {"kind": "ritual", "name": "Incantation of the Rift",
 		"text": "locum muta"},
+	"haste": {"kind": "ritual", "name": "Chant of Swift Feet",
+		"text": "celeriter curre"},
+	"deep_breath": {"kind": "ritual", "name": "Chant of the Deep Breath",
+		"text": "sub aqua spiro"},
+	"mark": {"kind": "ritual", "name": "Incantation of the Mark",
+		"text": "hunc locum signo mihi"},
+	"recall": {"kind": "ritual", "name": "Incantation of the Return",
+		"text": "illum locum peto mihi"},
 }
 const BACKFIRE_BELOW := 0.6  # accuracy under this misfires
 const FULL_POWER_AT := 0.9   # accuracy at or above this is full power

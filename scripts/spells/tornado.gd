@@ -2,18 +2,19 @@ class_name Tornado
 extends Area2D
 
 ## A funnel of wind that touches down on the ground under where it was drawn. It bats shots back the way they
-## came, and it swirls the foes inside it around until it dissipates. The funnel is a pixel-art tornado from the
+## came, and it throws anyone who walks into it up and away. The funnel is a pixel-art tornado from the
 ## Creasta sheet: it is born, then turns on its tip for as long as it lasts.
 
-const FUNNEL_BANDS := [Rect2(-66, -78, 116, 24), Rect2(-64, -54, 114, 24), Rect2(-56, -30, 86, 24), Rect2(-58, -6, 56, 24), Rect2(-58, 18, 42, 24), Rect2(-42, 42, 32, 24), Rect2(-64, 66, 102, 24)]  # the funnel's solid core, in bands, in its own coordinates (its tip on the ground at TIP)
+const FUNNEL_BANDS := [Rect2(-99, -117, 174, 36), Rect2(-96, -81, 171, 36), Rect2(-84, -45, 129, 36), Rect2(-87, -9, 84, 36), Rect2(-87, 27, 63, 36), Rect2(-63, 63, 48, 36), Rect2(-96, 99, 153, 36)]  # the funnel's solid core, in bands, in its own coordinates (its tip on the ground at TIP)
 const LIFE := 6.0
-const SWIRL_INTERVAL := 0.3
-const SWIRL_SPEED := 420.0
-const TIP := 90.0  # the funnel's narrow end is this far below its middle
+const FLING_UP := 800.0   # how hard anyone who walks into it is thrown up
+const FLING_SIDE := 560.0 # and to one side or the other, by chance
+const FLING_GAP := 1.2    # seconds before it can throw the same one again
+const TIP := 135.0  # the funnel's narrow end is this far below its middle
 const DIE_TIME := 1.1  # the last moments: the birth played backwards, the funnel sinks back into the ground
 
 var _age := 0.0
-var _swirl := 0.0
+var _flung := {}  # who it has thrown lately -> seconds until it can again
 var _funnel: AnimatedSprite2D
 var _dying := false
 var _shots := {}  # a shot that entered the funnel -> where it came in, or null once it has been turned
@@ -39,6 +40,7 @@ func _ready() -> void:
 	dust.amount = 24
 	dust.lifetime = 0.8
 	dust.position = Vector2(0, TIP - 4.0)
+	dust.scale = Vector2.ONE * 1.5
 	dust.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
 	dust.emission_rect_extents = Vector2(22, 2)
 	dust.direction = Vector2.UP
@@ -60,7 +62,7 @@ func _ready() -> void:
 		if not _dying:
 			_funnel.sprite_frames = PixelFx.frames("tornado", 14.0, true, 16)
 			_funnel.play())
-	_funnel.scale = Vector2.ONE * 2.0  # a whole-number scale keeps the pixels crisp
+	_funnel.scale = Vector2.ONE * 3.0  # a whole-number scale keeps the pixels crisp
 	_funnel.offset = Vector2(0, -PixelArt.FX["tornado"]["size"].y * 0.5)
 	_funnel.position = Vector2(0, TIP)
 	_funnel.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
@@ -69,23 +71,24 @@ func _ready() -> void:
 
 func _physics_process(delta: float) -> void:
 	_age += delta
-	_swirl -= delta
 	modulate.a = clampf(_age / 0.3, 0.0, 1.0)  # the funnel fades in as it touches down
 	if not _dying and _age >= LIFE - DIE_TIME:
 		_dying = true
 		_funnel.sprite_frames = PixelFx.frames("tornado", 14.0, false, 0, 15)
 		_funnel.play_backwards("default")
-	if _swirl <= 0.0:
-		_swirl = SWIRL_INTERVAL
-		for body in get_overlapping_bodies():
-			if not SpellTargets.affects(body):
-				continue
-			var around: Vector2 = body.global_position - global_position
-			var tangent := around.rotated(PI * 0.5).normalized()
+	for body in _flung.keys():
+		_flung[body] -= delta
+		if _flung[body] <= 0.0 or not is_instance_valid(body):
+			_flung.erase(body)
+	for body in get_overlapping_bodies():
+		if SpellTargets.affects(body) and not _flung.has(body):
+			_flung[body] = FLING_GAP
+			var impulse := Vector2(randf_range(-1.0, 1.0) * FLING_SIDE, -randf_range(0.8, 1.0) * FLING_UP)  # upward, to either side by chance
 			if body.is_in_group("mobs"):
-				body.knock_back(Vector2(tangent.x * SWIRL_SPEED, -180.0))
+				body.knock_back(impulse)
 			else:
-				body.push(Vector2(tangent.x * SWIRL_SPEED * 0.6, -160.0))
+				body.push(impulse)
+			Fx.burst(get_parent(), SpellTargets.center_of(body), Color(0.85, 0.9, 0.95), 8, 140.0, 0.4)
 	_turn_far_side_shots()
 	_blow_clouds(delta)
 	if _age >= LIFE:

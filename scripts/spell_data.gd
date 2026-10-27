@@ -14,7 +14,7 @@ const DAMAGE := {
 	"Smoke Screen": "hides what is behind it", "Flare": "a following light, harmless", "Spark": "20 damage",
 	"Frostbolt": "6 damage, slows", "Icicles": "6 damage every half second", "Ice Prison": "freezes foes solid",
 	"Blizzard": "slows what is inside", "Frost Bridge": "freezes water into ice", "Geyser": "launches what stands on it",
-	"Push": "moves foes", "Barrier": "deflects projectiles", "Tornado": "swirls foes", "Gust": "blows light things along",
+	"Push": "moves foes", "Barrier": "deflects projectiles", "Tornado": "flings foes", "Gust": "blows light things along",
 	"Stonefall": "30 damage", "Stone Wall": "solid · must start on solid ground", "Mudslide": "slows, stops jumping",
 	"Earthquake": "shakes the ground", "Volcano": "lava damage, sets ground on fire",
 	"Bramble": "slows, 3 damage per half second", "Spore Puff": "poison, 2 damage per half second",
@@ -130,7 +130,7 @@ const SPELLS := {
 	"Tornado": {
 		"buttons": MIDDLE, "gesture": "tornado", "targeting": "shape", "cost": 30.0,
 		"school": "Air", "draw": "A coil going down: a tall, narrow spiral, like a drill bit. A spinning wind touches down under it.",
-		"effect": "Swirl anyone caught in it and bat projectiles back for 6 seconds.",
+		"effect": "Fling anyone who walks into it up and away, and bat projectiles back for 6 seconds.",
 	},
 	"Gust": {
 		"buttons": MIDDLE, "gesture": "flick", "targeting": "directional", "cost": 14.0,
@@ -167,7 +167,7 @@ const SPELLS := {
 	"Bramble": {
 		"buttons": LEFT | MIDDLE, "gesture": "bramble", "targeting": "shape", "cost": 22.0,
 		"school": "Flora", "draw": "A low row of sharp thorns: a sawtooth line, drawn along the ground.",
-		"effect": "Grow thorns that slow and hurt whoever walks through.",
+		"effect": "Grow thorns that slow anyone who walks through them to a crawl and hurt them with every step.",
 	},
 	"Spore Puff": {
 		"buttons": LEFT | MIDDLE, "gesture": "cone", "targeting": "cone", "cost": 20.0,

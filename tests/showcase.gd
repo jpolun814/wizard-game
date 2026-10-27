@@ -35,9 +35,10 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS  # keeps running while the game is paused
 	DirAccess.make_dir_recursive_absolute(out_dir)
 	# The spells are tried in the waiting room, where there is a pond, a gap and dummies for each of them.
-	var scene := "world" if scenario == "cave" else "lab"
-	if scenario == "cave":
-		World.next_seed = 11  # the same world each time
+	var scene := "world" if scenario in ["cave", "gates", "castle", "pages", "tornado"] else "lab"
+	if scenario in ["cave", "gates", "castle", "pages", "tornado"]:
+		World.random_start = false
+		World.next_seed = int(OS.get_environment("WORLD_SEED")) if OS.get_environment("WORLD_SEED") != "" else 11  # the same world each time
 	_arena = load("res://scenes/%s.tscn" % scene).instantiate()
 	add_child(_arena)
 	_plan()
@@ -106,7 +107,99 @@ func _summon_at(kind: String, x: float) -> Node2D:
 
 func _plan() -> void:
 	_player().max_stamina = 9999.0  # nothing ends the showcase early
+	_player().died.connect(func() -> void:
+		for gate in _arena._gates:
+			if absf(gate["at"].x * 32.0 - _player().global_position.x) < 1500.0 and absf(gate["at"].y * 32.0 - _player().global_position.y) < 1000.0:
+				print("  DEBUG near gate ", gate["kind"], gate["at"]))
+	_player().died.connect(func() -> void: print("  DEBUG the wizard died at %s, max %s, underwater %s, t=%.1f" % [str(_player().global_position), str(_player().max_stamina), str(_player().underwater()), _t]))
+	if scenario == "cave":
+		for q in range(1, 400):  # the checks walk through gates; a wizard nearly spent is filled up again, so none ends the run
+			_at(q * 1.0, func() -> void:
+				if _player().max_stamina < 100.0 and not _player().dead:
+					_player().max_stamina = 9999.0
+					_player().stamina = 9999.0)
+	if scenario != "pages" and _arena.has_method("learn_every_page"):
+		_arena.learn_every_page()  # the checks cast whatever they need
 	match scenario:
+		"gates":
+			_plan_gates()
+		"castle":
+			var tile := float(ArenaGen.TILE)
+			var ground_y := WorldGraph.SURFACE_ROW * tile
+			var views := [["gate", -8.0, 0.0, 1.0], ["entry", 8.0, 0.0, 1.0], ["stair", 21.0, 6.0, 1.0], ["first", 31.0, 11.0, 1.0], ["stair2", 42.0, 17.0, 1.0],
+					["great", 58.0, 22.0, 1.0], ["east", 88.0, 22.0, 1.0], ["back", 126.0, 0.0, 1.0], ["steps", 22.0, 6.0, 3.0], ["whole", 68.0, 20.0, 0.2], ["roofwest", 22.0, 24.0, 0.6]]
+			var t := 0.6
+			for view: Array in views:
+				var at := Vector2((_arena.castle_x + view[1]) * tile, ground_y - (view[2] + 1.0) * tile)
+				var name: String = view[0]
+				var zoom: float = view[3]
+				_at(t, func() -> void:
+					_player().global_position = at
+					_player().velocity = Vector2.ZERO
+					_arena._dark.hide()
+					_arena.get_node("Player/Camera2D").zoom = Vector2(zoom, zoom)
+					_arena.get_node("Player/Camera2D").reset_smoothing())
+				_at(t + 1.2, func() -> void: _snap(name))
+				t += 1.8
+		"tornado":
+			var flung := {"up": 0.0, "side": []}
+			for k in 4:
+				_at(1.0 + k * 3.0, func() -> void:
+					var wizard: Node2D = _player()
+					wizard.velocity = Vector2.ZERO
+					var storm := Tornado.new()
+					_arena.add_child(storm)
+					storm.global_position = wizard.global_position + Vector2(0, -60)
+					storm.set_physics_process(true))
+				_at(1.0 + k * 3.0 + 0.5, func() -> void:
+					var wizard: Node2D = _player()
+					flung["up"] = minf(flung["up"], wizard.velocity.y)
+					flung["side"].append(wizard.velocity.x))
+			_at(14.0, func() -> void:
+				var sides: Array = flung["side"]
+				var ok: bool = flung["up"] < -300.0
+				print("%s  a tornado throws whoever is in it upward (best %d), sideways by chance (%s)" % ["PASS" if ok else "FAIL", int(flung["up"]), str(sides)])
+				if not ok:
+					_exit_code = 1)
+		"pages":
+			var tile := float(ArenaGen.TILE)
+			var pickups := get_tree().get_nodes_in_group("pages")
+			print("%s  pages lie on the map (%d), and only the starter spells are known (%d of %d)" % ["PASS" if pickups.size() > 25 and Pages.known.size() == Pages.STARTER.size() else "FAIL", pickups.size(), Pages.known.size(), Pages.every().size()])
+			var first: PagePickup = pickups[0]
+			var page := first.page
+			var holder := [first]
+			_at(0.6, func() -> void:
+				_player().global_position = first.global_position + Vector2(-120, -10)
+				_arena._dark.hide()
+				_arena.get_node("Player/Camera2D").reset_smoothing())
+			_at(2.0, func() -> void: _snap("page"))
+			_at(2.2, func() -> void: _player().global_position = first.global_position + Vector2(0, -10))
+			_at(3.5, func() -> void:
+				var ok: bool = Pages.knows(page) and not is_instance_valid(holder[0])
+				print("%s  walking over a page learns it (%s) and takes it off the map" % ["PASS" if ok else "FAIL", page])
+				if not ok:
+					_exit_code = 1
+				var before := get_tree().get_nodes_in_group("pages").size()
+				_arena.learn_every_page()
+				var after := get_tree().get_nodes_in_group("pages").size()
+				var all: bool = Pages.known.size() == Pages.every().size() and Pages.knows_chant("recall")
+				print("%s  the F1 button gives every spell and leaves the pages on the map (%d, then %d)" % ["PASS" if all and before == after else "FAIL", before, after])
+				if not (all and before == after):
+					_exit_code = 1)
+		"water":
+			# Wading, then diving, in the pond and the lava pit: only the part under the surface takes the colour.
+			var spots := [[8, 0.0], [8, 30.0], [8, 90.0], [-20, 30.0]]
+			for i in spots.size():
+				_at(0.5 + i * 0.8, func() -> void:
+					var x: float = ArenaGen.column_x(spots[i][0])
+					_player().global_position = Vector2(x, ArenaGen.GROUND_Y + spots[i][1] + 30.0)
+					_player().velocity = Vector2.ZERO)
+				_at(0.9 + i * 0.8, func() -> void: _snap("dip"))
+			_at(5.0, func() -> void:
+				_player().global_position = Vector2(ArenaGen.column_x(8), ArenaGen.GROUND_Y + 90.0))
+			_at(11.5, func() -> void:
+				print("breath ", _player().breath, " max ", _player().max_stamina)
+				_snap("drowning"))
 		"world":
 			_at(0.4, func() -> void:
 				var x: float = _player().global_position.x
@@ -199,7 +292,7 @@ func _plan() -> void:
 			# A mixed group comes for a player who stands still, to watch them chase, wind up, shoot and dive.
 			_at(0.3, func() -> void:
 				var x: float = _player().global_position.x
-				for entry in [["fire_melee", -220.0], ["storm_melee", 260.0], ["earth_melee", 320.0], ["fire_ranged", -330.0], ["ice_ranged", 380.0], ["fire_flyer", -120.0], ["storm_flyer", 150.0]]:
+				for entry in [["ninja", -180.0], ["giant", 260.0], ["pyre_wizard", -330.0], ["bone_wizard", 420.0], ["fire_melee", 120.0]]:
 					_summon_at(entry[0], x + entry[1]))
 			for i in 12:
 				_at(1.2 + i * 0.6, func() -> void: _snap())
@@ -395,8 +488,32 @@ func _plan_checks() -> void:
 				if node is GreatOak:
 					oak = node
 			var foot := _feet(int(oaks[k][1]))
-			check.call("a Great Oak drawn at %d px takes root on the hill" % int(oaks[k][0]), oak != null and absf(oak.global_position.y - foot.y) < 40.0))
-	_at(33.0, func() -> void:
+			check.call("a Great Oak drawn at %d px takes root on the hill" % int(oaks[k][0]), oak != null and absf(oak.global_position.y - foot.y) < 40.0)
+			if k == 1:
+				_player().global_position = foot + Vector2(-300.0, -30.0))
+		if k == 1:
+			_at(28.4, func() -> void: _snap("oak_on_hill"))
+	_at(31.6, func() -> void:
+		_arena.get_tree().call_group("breakables", "queue_free")
+		_player().global_position = _feet(20) + Vector2(0.0, -30.0)
+		_arena._on_ritual_finished("bonfire", 1.0, false))
+	_at(33.2, func() -> void: _snap("bonfire"))
+	_at(33.6, func() -> void:
+		_arena.get_tree().call_group("mobs", "queue_free"))
+	_at(33.7, func() -> void:
+		var x: float = _player().global_position.x + 200.0
+		var thrower := _summon_at("ninja", x)
+		var friend := _summon_at("ninja", x + 120.0)
+		for mob in [thrower, friend]:
+			mob._spawn = 0.0
+			mob.set_physics_process(false)
+		EnemyBolt.fire(_arena, thrower.center(), friend.center(), Color.WHITE, 5, 0.0, false, "ninja_star", thrower))
+	_at(34.4, func() -> void:
+		var friend: Node2D = null
+		for mob in _arena.get_tree().get_nodes_in_group("mobs"):
+			friend = mob if friend == null or mob.global_position.x > friend.global_position.x else friend
+		check.call("a ninja's star flies through another ninja", friend != null and friend.hp == friend.max_hp))
+	_at(35.0, func() -> void:
 		print("%d checks failed" % failures[0])
 		_exit_code = 1 if failures[0] > 0 else 0)
 
@@ -519,13 +636,40 @@ func _plan_cave() -> void:
 		_arena.add_child(second)
 		Flare.snuff_near(_arena.get_tree(), second.global_position, 0.0)
 		print("%s  a click on a flare puts it out" % ["PASS" if second.is_queued_for_deletion() else "FAIL"]))
+	_at(0.88, func() -> void:
+		var wizard: Node2D = _player()
+		var home: Vector2 = wizard.global_position
+		_arena._on_ritual_finished("haste", 1.0, false)
+		print("%s  the Chant of Swift Feet makes the wizard faster for a while" % ["PASS" if wizard.haste_time > 15.0 else "FAIL"])
+		_arena._on_ritual_finished("recall", 1.0, false)
+		var nothing: bool = _arena.get_tree().get_nodes_in_group("gateways").is_empty()
+		_arena._on_ritual_finished("mark", 1.0, false)
+		wizard.global_position = home + Vector2(700.0, -40.0)
+		_arena._on_ritual_finished("recall", 1.0, false)
+		var pair := _arena.get_tree().get_nodes_in_group("gateways")
+		var linked: bool = pair.size() == 2 and pair[0].partner == pair[1] and pair[1].partner == pair[0] and pair[0].tint == pair[1].tint
+		print("%s  the Return opens a linked pair of portals only after a mark (none before: %s, pair: %d)" % ["PASS" if nothing and linked else "FAIL", str(nothing), pair.size()])
+		if linked:
+			pair[0]._on_body_entered(wizard)
+			print("%s  stepping into one portal comes out of the other" % ["PASS" if wizard.global_position.distance_to(pair[1].global_position) < 80.0 else "FAIL"])
+		wizard.global_position = home
+		wizard.haste_time = 0.0
+		for gateway in pair:
+			gateway.queue_free())
+	_at(0.89, func() -> void:
+		var empty := 0
+		var total := 0
+		for pond: Pond in _arena.get_tree().get_nodes_in_group("ponds"):
+			total += 1
+			empty += 1 if pond._pieces.is_empty() else 0
+		print("%s  every pond has a hollow to be drawn in (%d of %d have none)" % ["PASS" if empty == 0 else "FAIL", empty, total]))
 	var seen_kinds := {}
 	var look := 0.9
 	for pond in _arena._ponds:
 		if seen_kinds.has(pond["lava"]):
 			continue
 		seen_kinds[pond["lava"]] = true
-		var at := Vector2((pond["a"] - 5) * float(ArenaGen.TILE), pond["surface"] * float(ArenaGen.TILE))
+		var at := Vector2((pond["a"] - 2) * float(ArenaGen.TILE), pond["surface"] * float(ArenaGen.TILE) - 4.0)
 		_at(look, func() -> void:
 			_player().global_position = at
 			_player().velocity = Vector2.ZERO
@@ -533,10 +677,27 @@ func _plan_cave() -> void:
 		_at(look + 0.4, func() -> void: _snap("lava" if pond["lava"] else "lake"))
 		look += 0.1
 	var t := 2.0
+	# Each biome of the surface, with its backdrop faded in: standing in the middle of it, and for the mountains on the highest peak.
+	for biome in graph.surface["biomes"]:
+		var name: String = biome["name"]
+		var column: int = (biome["a"] + biome["b"]) / 2
+		if name == "mountains":
+			var best := 99999
+			for c in range(biome["a"], biome["b"] + 1):
+				if graph.surface["floor"][c] < best:
+					best = graph.surface["floor"][c]
+					column = c
+		var row: int = graph.surface["floor"][column]
+		_at(t, func() -> void:
+			_player().global_position = Vector2((column + 0.5) * float(ArenaGen.TILE), (row - 3) * float(ArenaGen.TILE))
+			_player().velocity = Vector2.ZERO
+			_arena.get_node("Player/Camera2D").reset_smoothing())
+		_at(t + 3.6, func() -> void: _snap("biome_" + name))
+		t += 4.2
 	if _arena.castle_x >= 0:
 		var ground_y := WorldGraph.SURFACE_ROW * float(ArenaGen.TILE)
-		for view in [["gate", -6.0], ["castle", 30.0], ["tower", 60.0]]:  # outside the gate, in the hall, and on the east tower
-			var at := Vector2((_arena.castle_x + view[1]) * float(ArenaGen.TILE), ground_y - (26.0 * float(ArenaGen.TILE) if view[0] == "tower" else 0.0))
+		for view in [["gate", -6.0, 0.0], ["entry", 8.0, 0.0], ["stair", 21.0, 6.0], ["gallery", 31.0, 11.0], ["hall", 70.0, 0.0], ["back", 134.0, 0.0]]:
+			var at := Vector2((_arena.castle_x + view[1]) * float(ArenaGen.TILE), ground_y - (view[2] + 1.0) * float(ArenaGen.TILE))
 			var name: String = view[0]
 			_at(t, func() -> void:
 				_player().global_position = at
@@ -545,19 +706,79 @@ func _plan_cave() -> void:
 			_at(t + 1.0, func() -> void: _snap(name))
 			t += 1.6
 		_at(t, func() -> void:
-			_player().global_position = Vector2((_arena.castle_x + 50) * float(ArenaGen.TILE), ground_y - 12.0 * float(ArenaGen.TILE))
+			_player().global_position = Vector2((_arena.castle_x + 65) * float(ArenaGen.TILE), ground_y - 15.0 * float(ArenaGen.TILE))
 			var camera: Camera2D = _arena.get_node("Player/Camera2D")
-			camera.zoom = Vector2(0.4, 0.4)
+			camera.zoom = Vector2(0.27, 0.27)
 			camera.reset_smoothing())
 		_at(t + 1.0, func() -> void: _snap("castle_whole"))
 		_at(t + 1.2, func() -> void: _arena.get_node("Player/Camera2D").zoom = Vector2(1.5, 1.5))
 		t += 1.6
+	# The three gates, each from a little way off. Then the thorns on foot, without and with the Chant of Swift Feet: the damage a walk
+	# through all of them costs, from a wizard who cannot die, against the 200 of a whole stamina bar.
+	var shown := {}
+	for gate in _arena._gates:
+		if shown.has(gate["kind"]):
+			continue
+		shown[gate["kind"]] = true
+		var kind: String = gate["kind"]
+		var spot: Vector2i = gate["at"]
+		_at(t, func() -> void:
+			var camera: Camera2D = _arena.get_node("Player/Camera2D")
+			_player().global_position = Vector2((spot.x + (14 if kind == "brambles" else (-3 if kind == "chasm" else 1))) * float(ArenaGen.TILE), (gate["floors"][14] if kind == "brambles" else spot.y) * float(ArenaGen.TILE) - 4.0)
+			_arena._dark.hide()  # the caves are dark; a look at them is not
+			_player().velocity = Vector2.ZERO
+			camera.zoom = Vector2(0.6, 0.6)
+			camera.reset_smoothing())
+		_at(t + 1.2, func() -> void:
+			_snap("gate_" + kind)
+			_arena.get_node("Player/Camera2D").zoom = Vector2.ONE)
+		t += 1.6
+	for hasted in [false, true]:
+		var field: Dictionary = {}
+		for gate in _arena._gates:
+			if gate["kind"] == "brambles":
+				field = gate
+				break
+		if field.is_empty():
+			break
+		var inward: int = field["inward"]  # walked the way into the locked area
+		var near_end: int = 0 if inward > 0 else field["floors"].size() - 1
+		var start := Vector2((field["first"] + near_end + 0.5) * float(ArenaGen.TILE), field["floors"][near_end] * float(ArenaGen.TILE) - 4.0)
+		var end_x: float = (field["first"] + field["floors"].size() + 1) * float(ArenaGen.TILE) if inward > 0 else (field["first"] - 1) * float(ArenaGen.TILE)
+		var thorn_key := "move_right" if inward > 0 else "move_left"
+		var crossing := {"damage": 0.0, "time": 0.0}
+		_at(t, func() -> void:
+			var wizard: Node2D = _player()
+			wizard.max_stamina = 1000.0
+			wizard.stamina = 1000.0
+			wizard.global_position = start
+			wizard.velocity = Vector2.ZERO
+			wizard.haste_time = 20.0 if hasted else 0.0
+			_arena.get_node("Player/Camera2D").reset_smoothing()
+			Input.action_press(thorn_key))
+		for i in 80:
+			_at(t + 1.0 + i * 0.5, func() -> void:
+				var wizard: Node2D = _player()
+				if crossing["time"] == 0.0 and (wizard.global_position.x >= end_x if inward > 0 else wizard.global_position.x <= end_x):
+					crossing["time"] = (i + 1) * 0.5
+					crossing["damage"] = 1000.0 - wizard.max_stamina)
+		_at(t + 41.0, func() -> void:
+			Input.action_release(thorn_key)
+			var hurt: float = crossing["damage"] if crossing["time"] > 0.0 else 1000.0 - _player().max_stamina
+			var ok: bool = crossing["time"] > 0.0 and (hurt < 190.0 if hasted else hurt >= 200.0)
+			print("%s  walking across the thorns %s costs %d of the 200 (%s)" % ["PASS" if ok else "FAIL", "with the Chant of Swift Feet" if hasted else "at a walk", int(hurt), "across in %.1f s" % crossing["time"] if crossing["time"] > 0.0 else "did not get across"])
+			if not ok:
+				_exit_code = 1
+			_player().max_stamina = 200.0
+			_player().stamina = 200.0
+			_player().haste_time = 0.0)
+		t += 42.0
 	# A tunnel's slope, on foot: from the low mouth to the high one, holding only the walk key.
 	var steepest := {}
 	var rise := -1
 	for link in graph.links:
 		var drop: int = absi(link["pa"].y - link["pb"].y)
-		if drop > rise:
+		if drop > rise and link["lock"] < 0:  # a gated passage is not meant to be walked
 			rise = drop
 			steepest = {"low": link["pa"] if link["pa"].y > link["pb"].y else link["pb"], "high": link["pb"] if link["pa"].y > link["pb"].y else link["pa"]}
 	if not steepest.is_empty():
@@ -568,6 +789,9 @@ func _plan_cave() -> void:
 		var to_x: float = high.x * float(ArenaGen.TILE)
 		var key := "move_right" if going > 0.0 else "move_left"
 		_at(t, func() -> void:
+			_player().max_stamina = 9999.0  # the steepest tunnel may have a gate in it: walk it unhurt
+			_player().stamina = 9999.0
+			_player().deep_breath_time = 100.0
 			_player().global_position = Vector2(from_x, low.y * float(ArenaGen.TILE))
 			_player().velocity = Vector2.ZERO
 			_arena.get_node("Player/Camera2D").reset_smoothing()
@@ -589,4 +813,278 @@ func _plan_cave() -> void:
 				_exit_code = 1)
 		t += walk + 1.0
 	_at(t, func() -> void: _snap("top"))
+	_at(t + 0.5, func() -> void:
+		_arena.get_node("Player/Camera2D").zoom = Vector2.ONE
+		_player().global_position = _arena._stand_at(_arena._markers[graph.boss]) + Vector2(-380.0, 0.0))
+	_at(t + 1.5, func() -> void: _snap("boss_hall"))
+	# An Earth Fall cast in a cave starts under its roof and lands on the floor, never inside rock.
+	_at(t + 1.8, func() -> void:
+		var spot: Vector2 = _arena._stand_at(_arena._markers[graph.boss]) + Vector2(-380.0, -60.0)
+		_cast("Stonefall", _stroke("stonefall", spot)))
+	_at(t + 3.8, func() -> void:
+		var rock: Node2D = null
+		for node in _arena.get_tree().get_nodes_in_group("rocks"):
+			rock = node
+		var floor_y: float = _arena._stand_at(_arena._markers[graph.boss]).y
+		print("%s  an Earth Fall cast in a cave lands on the floor (rock at %s)" % ["PASS" if rock != null and not _arena._in_rock(rock.global_position) and absf(rock.global_position.y - floor_y) < 200.0 else "FAIL", str(rock.global_position) if rock else "none"]))
 
+
+
+## The newer gates in the world of WORLD_SEED (21 has all four): each seen from a little way off, then tried on foot.
+func _plan_gates() -> void:
+	var t := 1.0
+	var by_kind := {}
+	for gate in _arena._gates:
+		if not by_kind.has(gate["kind"]):
+			by_kind[gate["kind"]] = gate
+	if OS.get_environment("GATE_ONLY") != "":
+		for kind in by_kind.keys():
+			if kind != OS.get_environment("GATE_ONLY"):
+				by_kind.erase(kind)
+	var tile := float(ArenaGen.TILE)
+	var stand := func(kind: String, back: float) -> Vector2:  # a place on the floor some columns before the gate
+		var gate: Dictionary = by_kind[kind]
+		var at: Vector2i = gate["at"]
+		var floor_row: int = at.y
+		match kind:
+			"ice":
+				floor_row = gate["columns"][0]["bottom"]
+			"gas":
+				floor_row = gate["banks"][0]["floors"][0]
+			"dark":
+				floor_row = gate["strips"][0]["floors"][0]
+		if kind in ["gas", "dark"]:
+			back = 0.0  # these lie on slopes, so the floor is only known where they begin
+		return Vector2((at.x - back) * tile, floor_row * tile - 4.0)
+	for kind in ["chasm", "flood", "piranhas", "sentinel", "ice", "dark", "gas"]:
+		if not by_kind.has(kind):
+			print("SKIP  no %s gate in this world" % kind)
+			continue
+		var k: String = kind
+		_at(t, func() -> void:
+			_player().global_position = stand.call(k, 6.0)
+			_arena._dark.hide()
+			_player().velocity = Vector2.ZERO
+			_arena.get_node("Player/Camera2D").zoom = Vector2(0.6, 0.6)
+			_arena.get_node("Player/Camera2D").reset_smoothing())
+		_at(t + 1.2, func() -> void:
+			_snap("gate_" + k)
+			_arena._dark.show())
+		_at(t + 1.8, func() -> void:
+			_snap("gate_%s_dark" % k)
+			_arena.get_node("Player/Camera2D").zoom = Vector2.ONE)
+		t += 2.2
+	if by_kind.has("ice"):
+		var plug_gate: Dictionary = by_kind["ice"]
+		var left: float = plug_gate["columns"][0]["x"] * tile
+		var right: float = (plug_gate["columns"][-1]["x"] + 1) * tile
+		var plug: Array = [null]
+		_at(t, func() -> void:
+			for node in _arena.get_children():
+				if node is IcePlug and node.columns[0]["x"] == plug_gate["columns"][0]["x"]:
+					plug[0] = node
+			_player().global_position = stand.call("ice", 5.0)
+			_player().velocity = Vector2.ZERO
+			Input.action_press("move_right"))
+		_at(t + 3.0, func() -> void:
+			Input.action_release("move_right")
+			var ok: bool = _player().global_position.x < left
+			print("%s  the ice is as solid as rock (the wizard stopped at x %d, ice from %d)" % ["PASS" if ok else "FAIL", int(_player().global_position.x), int(left)])
+			if not ok:
+				_exit_code = 1
+			Hazard.place(_arena, Vector2((left + right) * 0.5, plug_gate["columns"][0]["bottom"] * tile), 120.0, 12.0))
+		_at(t + 12.0, func() -> void:
+			var gone: bool = not is_instance_valid(plug[0])
+			print("%s  fire melts the ice" % ["PASS" if gone else "FAIL"])
+			if not gone:
+				_exit_code = 1
+			_player().global_position = stand.call("ice", 5.0)
+			Input.action_press("move_right"))
+		_at(t + 16.0, func() -> void:
+			Input.action_release("move_right")
+			var ok: bool = _player().global_position.x > right
+			print("%s  and then the way is open (x %d, ice ended at %d)" % ["PASS" if ok else "FAIL", int(_player().global_position.x), int(right)])
+			if not ok:
+				_exit_code = 1)
+		t += 17.0
+	if by_kind.has("sentinel"):
+		var post: Dictionary = by_kind["sentinel"]
+		var post_x: float = (post["stands"].x + 0.5) * tile
+		var inward: int = post["inward"]
+		var move_key := "move_right" if inward > 0 else "move_left"
+		var floor_at := {}  # the passage's floor row in each column
+		for cell: Vector2i in post["blocks"]:
+			floor_at[cell.x] = cell.y + 1
+		var column_back := func(back: int) -> int:  # the column this far back from the statue, kept inside the passage
+			return clampi(post["stands"].x - inward * back, floor_at.keys().min(), floor_at.keys().max())
+		for mode in 2:
+			var lured := mode == 1
+			var crossing := {"damage": -1.0}
+			_at(t, func() -> void:
+				var wizard: Node2D = _player()
+				wizard.max_stamina = 1000.0
+				wizard.stamina = 1000.0
+				wizard.global_position = Vector2((column_back.call(11) + 0.5) * tile, floor_at[column_back.call(11)] * tile - 4.0)
+				wizard.velocity = Vector2.ZERO
+				if lured:
+					var decoy := Decoy.new()
+					_arena.add_child(decoy)
+					decoy.position = Vector2((column_back.call(5) + 0.5) * tile, floor_at[column_back.call(5)] * tile)
+				Input.action_press(move_key))
+			for q in range(1, 64):
+				_at(t + q * 0.125, func() -> void:
+					var wizard: Node2D = _player()
+					if crossing["damage"] < 0.0 and ((wizard.global_position.x - post_x) * inward > 11.0 * tile):
+						crossing["damage"] = 1000.0 - wizard.max_stamina)
+			_at(t + 8.0, func() -> void:
+				Input.action_release(move_key)
+				var statues := get_tree().get_nodes_in_group("sentinels")
+				print("  statues %d at %s, wizard at %s" % [statues.size(), str(statues[0].global_position) if statues.size() > 0 else "-", str(_player().global_position)])
+				var hurt: float = crossing["damage"]
+				var ok: bool = hurt >= 0.0 and (hurt < 40.0 if lured else hurt >= 40.0)
+				print("%s  walking past the statue %s costs %d" % ["PASS" if ok else "FAIL", "with a decoy standing in view" if lured else "in plain view", int(hurt)])
+				if not ok:
+					_exit_code = 1
+				_player().max_stamina = 200.0
+				_player().stamina = 200.0)
+			t += 9.0
+	if by_kind.has("piranhas"):
+		var pit_gate: Dictionary = by_kind["piranhas"]
+		var pit: Rect2i = pit_gate["pit"]
+		var shoal: Array = [null]
+		var end_x: float = (pit.end.x + 1) * tile
+		for mode in 2:
+			var killed := mode == 1
+			var crossing := {"damage": -1.0}
+			_at(t, func() -> void:
+				var wizard: Node2D = _player()
+				for node in _arena.get_children():
+					if node is Piranhas and node.water.position.x == pit.position.x * tile:
+						shoal[0] = node
+				wizard.max_stamina = 1000.0
+				wizard.stamina = 1000.0
+				wizard.global_position = stand.call("piranhas", 5.0)
+				wizard.velocity = Vector2.ZERO
+				Input.action_press("move_right")
+				Input.action_press("jump"))  # jumping out of the far side of the pit
+			for q in range(1, 120):
+				_at(t + q * 0.125, func() -> void:
+					var wizard: Node2D = _player()
+					if crossing["damage"] < 0.0 and wizard.global_position.x > end_x and wizard.global_position.x < end_x + 600.0:
+						crossing["damage"] = 1000.0 - wizard.max_stamina)
+			_at(t + 15.0, func() -> void:
+				Input.action_release("move_right")
+				Input.action_release("jump")
+				print("  wizard at %s, pit x %d..%d y %d" % [str(_player().global_position), pit.position.x * 32, pit.end.x * 32, pit.position.y * 32])
+				var hurt: float = crossing["damage"]
+				var ok: bool = hurt == 0.0 if killed else hurt >= 20.0
+				print("%s  wading the pit %s costs %d (%d fish left)" % ["PASS" if ok else "FAIL", "with the fish dead" if killed else "full of fish", int(hurt), shoal[0]._fish.size()])
+				if not ok:
+					_exit_code = 1
+				_player().max_stamina = 200.0
+				_player().stamina = 200.0)
+			if not killed:
+				for strike in 4:
+					var x: float = (pit.position.x + 3 + strike * 6) * tile
+					_at(t + 16.0 + strike * 0.6, func() -> void:
+						var spell := SparkStrike.new()
+						_arena.add_child(spell)
+						spell.setup("Spark", Vector2(x, (pit.position.y - 2) * tile), 0.0))
+				_at(t + 19.5, func() -> void:
+					var dead: bool = not shoal[0].alive()
+					print("%s  lightning in the water kills the fish" % ["PASS" if dead else "FAIL"])
+					if not dead:
+						_exit_code = 1)
+				t += 20.0
+			else:
+				t += 16.0
+	if by_kind.has("gas"):
+		var field: Dictionary = by_kind["gas"]
+		var banks: Array = field["banks"]
+		var inward: int = field["inward"]  # the way in to the locked area: that is the way it is walked
+		var last_col: int = banks[-1]["x"] + banks[-1]["floors"].size()
+		var rows := []
+		for bank in banks:
+			rows.append_array(bank["floors"])
+		var end_x: float = (last_col + 1) * tile if inward > 0 else (banks[0]["x"] - 1) * tile
+		var move_key := "move_right" if inward > 0 else "move_left"
+		for mode in 3:
+			var hasted := mode == 1
+			var held := mode == 2
+			var start := t
+			_at(t, func() -> void:
+				var wizard: Node2D = _player()
+				wizard.max_stamina = 1000.0
+				wizard.stamina = 1000.0
+				wizard.haste_time = 20.0 if hasted else 0.0
+				wizard.deep_breath_time = 45.0 if held else 0.0
+				wizard.global_position = stand.call("gas", 0.0) if inward > 0 else Vector2(last_col * tile, banks[-1]["floors"][-1] * tile - 4.0)
+				wizard.velocity = Vector2.ZERO
+				Input.action_press(move_key))
+			var crossing := {"damage": -1.0}
+			for q in range(1, 64):
+				_at(t + q * 0.125, func() -> void:
+					var wizard: Node2D = _player()
+					if crossing["damage"] < 0.0 and ((wizard.global_position.x > end_x) == (inward > 0)) and wizard.global_position.y > 0.0 and absf(wizard.global_position.x - end_x) < 600.0:
+						crossing["damage"] = 1000.0 - wizard.max_stamina)
+			_at(t + 8.0, func() -> void:
+				Input.action_release(move_key)
+				var wizard: Node2D = _player()
+				var hurt: float = crossing["damage"] if crossing["damage"] >= 0.0 else 1000.0 - wizard.max_stamina
+				var across: bool = crossing["damage"] >= 0.0
+				var ok: bool = hurt < 1.0 if held else (hurt < 190.0 if hasted else hurt >= 150.0)
+				print("%s  walking through the gas %s costs %d of the 200 (%s)" % ["PASS" if ok else "FAIL", "holding the breath" if held else ("hasted" if hasted else "at a walk"), int(hurt), "across" if across else "not across"])
+				if not ok:
+					_exit_code = 1
+				wizard.deep_breath_time = 0.0
+				wizard.haste_time = 0.0
+				wizard.max_stamina = 200.0
+				wizard.stamina = 200.0)
+			t += 9.0
+		_at(t, func() -> void:
+			Hazard.place(_arena, Vector2((banks[0]["x"] + 3.0) * tile, banks[0]["floors"][3] * tile), 120.0, 5.0))
+		_at(t + 3.0, func() -> void:
+			var left_over := 0
+			for node in _arena.get_children():
+				if node is GasBank and node._thinning < 0.0 and node.column >= banks[0]["x"] and node.column <= banks[-1]["x"]:
+					left_over += 1
+			print("%s  fire burns the gas off a bank (%d of %d banks still hang)" % ["PASS" if left_over < banks.size() else "FAIL", left_over, banks.size()])
+			if left_over >= banks.size():
+				_exit_code = 1)
+		t += 4.0
+	if by_kind.has("dark"):
+		var field: Dictionary = by_kind["dark"]
+		var bed: Array = [null]
+		var shown_before := {"value": true}
+		_at(t, func() -> void:
+			for node in _arena.get_children():
+				if node is SpikeBed and node.strips[0]["x"] == field["strips"][0]["x"]:
+					bed[0] = node
+			var wizard: Node2D = _player()
+			wizard.max_stamina = 1000.0
+			wizard.stamina = 1000.0
+			wizard.global_position = stand.call("dark", 0.0)
+			wizard.velocity = Vector2.ZERO
+			shown_before["value"] = bed[0].shown()
+			Input.action_press("move_right"))
+		_at(t + 9.0, func() -> void:
+			Input.action_release("move_right")
+			var hurt: float = 1000.0 - _player().max_stamina
+			var ok: bool = not shown_before["value"] and hurt >= 60.0
+			print("%s  the spikes are unseen in the dark (%s) and cost %d walking through" % ["PASS" if ok else "FAIL", "hidden" if not shown_before["value"] else "SHOWN", int(hurt)])
+			if not ok:
+				_exit_code = 1
+			_player().max_stamina = 200.0
+			_player().stamina = 200.0
+			var first: Dictionary = field["strips"][0]
+			Hazard.place(_arena, Vector2((first["x"] + 2.5) * tile, first["floors"][2] * tile), 60.0, 5.0))
+		_at(t + 10.2, func() -> void:
+			print("%s  a fire shows them (shown %s)" % ["PASS" if bed[0].shown() else "FAIL", bed[0].shown()])
+			if not bed[0].shown():
+				_exit_code = 1
+			_player().global_position = stand.call("dark", 0.0)
+			_player().velocity = Vector2.ZERO
+			_arena._dark.hide()
+			_arena.get_node("Player/Camera2D").reset_smoothing())
+		_at(t + 11.4, func() -> void: _snap("spikes_lit"))
+		t += 12.0

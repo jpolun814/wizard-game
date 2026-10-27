@@ -21,7 +21,7 @@ func _ready() -> void:
 	add_to_group("lasting")
 	z_index = 4
 	global_position = _rest_spot()
-	_flame = PixelFx.sprite("fire_puff", 12.0)
+	_flame = PixelFx.sprite("fire_puff", 12.0, true, 1)
 	_flame.offset = Vector2(0, -PixelArt.FX["fire_puff"]["size"].y * 0.5)
 	_flame.scale = Vector2.ONE * 0.8
 	add_child(_flame)
@@ -53,6 +53,10 @@ func _physics_process(delta: float) -> void:
 	queue_redraw()
 	if (is_instance_valid(caster_node) and "dead" in caster_node and caster_node.dead):
 		queue_free()
+	for pond: Pond in get_tree().get_nodes_in_group("ponds"):
+		if not pond.lava and Rect2(pond.global_position, Vector2(pond.width, pond.depth)).has_point(global_position):
+			snuff()  # water puts a flame out
+			return
 
 
 ## The light it throws, a soft glow in the air round the flame.

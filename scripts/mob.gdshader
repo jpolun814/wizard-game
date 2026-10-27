@@ -10,13 +10,17 @@ uniform float outline = 0.0;       // 0 to 1: how strong the school-coloured out
 uniform float flash = 0.0;         // 0 to 1: how far the sprite is washed to flash_color
 uniform vec4 flash_color : source_color = vec4(1.0);
 uniform float frozen = 0.0;        // 0 to 1: how icy it looks
+uniform float water_y = 1000000.0; // the surface of the water or lava it stands in: below it, the body takes the liquid's colour
+uniform vec4 water_tint : source_color = vec4(1.0);
 
 // The sprite's modulate. In fragment(), COLOR already has the texture multiplied in, so the plain modulate is
 // carried over from the vertex stage instead.
 varying vec4 modulate_color;
+varying float world_y;
 
 void vertex() {
 	modulate_color = COLOR;
+	world_y = (MODEL_MATRIX * vec4(VERTEX, 0.0, 1.0)).y;
 }
 
 void fragment() {
@@ -36,5 +40,8 @@ void fragment() {
 		c.rgb = mix(c.rgb, vec3(0.62, 0.86, 1.0) * (0.55 + 0.6 * shade), frozen * 0.75);
 	}
 	c.rgb = mix(c.rgb, flash_color.rgb, flash * step(0.1, c.a));
+	if (world_y > water_y) {
+		c.rgb *= water_tint.rgb;
+	}
 	COLOR = c * modulate_color;
 }

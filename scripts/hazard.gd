@@ -40,7 +40,7 @@ func _ready() -> void:
 	add_child(_flames)
 	var count := maxi(1, ceili(width / 22.0))
 	for i in count:
-		var flame := PixelFx.sprite("fire_puff", 12.0 + i % 3 * 2.0)
+		var flame := PixelFx.sprite("fire_puff", 12.0 + i % 3 * 2.0, true, 1)
 		flame.offset = Vector2(0, -PixelArt.FX["fire_puff"]["size"].y * 0.5)
 		flame.position = Vector2((i + 0.5) * width / count - width * 0.5, 0.0)
 		flame.frame = (i * 2) % 7

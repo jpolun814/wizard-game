@@ -15,15 +15,20 @@ var _flames: Node2D
 
 
 func _ready() -> void:
+	var logs := Sprite2D.new()  # the fire is built on a pile of logs ringed with stones
+	logs.texture = load("res://art/props/bonfire_logs.png")
+	logs.scale = Vector2.ONE * 3.0
+	logs.offset = Vector2(0, -logs.texture.get_height() * 0.5 + 1.0)
+	add_child(logs)
 	_flames = Node2D.new()
 	_flames.material = Fx.additive()
 	add_child(_flames)
 	_flames.draw.connect(_draw_flames)
 	for i in 3:
-		var fire := PixelFx.sprite("fire_puff", 12.0 + i * 2.0)  # the same flame as the fire breath and the volcano
+		var fire := PixelFx.sprite("fire_puff", 12.0 + i * 2.0, true, 1)  # the same flame as the fire breath and the volcano
 		fire.scale = Vector2.ONE * (1.4 if i == 1 else 1.1)
 		fire.offset = Vector2(0, -PixelArt.FX["fire_puff"]["size"].y * 0.5)
-		fire.position = Vector2(-11 + i * 11, 4)
+		fire.position = Vector2(-11 + i * 11, -12)
 		fire.flip_h = i == 1
 		fire.frame = i * 2
 		add_child(fire)
@@ -52,11 +57,11 @@ func _draw_flames() -> void:
 	var fade := _fade()
 	var warm := 1.0 + 0.08 * sin(_age * 5.0)
 	# A warm halo that breathes, behind the flames.
-	_flames.draw_circle(Vector2(0, -14), 64.0 * warm, Color(1.0, 0.45, 0.12, 0.05 * fade))
-	_flames.draw_circle(Vector2(0, -14), 40.0 * warm, Color(1.0, 0.55, 0.18, 0.08 * fade))
+	_flames.draw_circle(Vector2(0, -28), 64.0 * warm, Color(1.0, 0.45, 0.12, 0.05 * fade))
+	_flames.draw_circle(Vector2(0, -28), 40.0 * warm, Color(1.0, 0.55, 0.18, 0.08 * fade))
 	# Embers rising off the fire and fading as they climb.
 	for i in 9:
 		var k := fmod(_age * 0.55 + i / 9.0, 1.0)
 		var drift := sin(i * 2.3 + _age * 2.0) * 12.0 * k
-		_flames.draw_circle(Vector2(drift, -20.0 - k * 50.0), 1.5 * (1.0 - k) + 0.5, Color(1.0, 0.7, 0.3, 0.9 * (1.0 - k) * fade))
+		_flames.draw_circle(Vector2(drift, -34.0 - k * 50.0), 1.5 * (1.0 - k) + 0.5, Color(1.0, 0.7, 0.3, 0.9 * (1.0 - k) * fade))
 

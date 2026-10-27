@@ -12,44 +12,67 @@ extends RefCounted
 ## `reachable`) confirms every hall can be reached on foot. Nothing here uses randomness except the rng it is given.
 
 const FORMATION_STEP := 2   # rows between the steps of a rock formation, so a jump from a slope still reaches
-const CASTLE_HEIGHT := 26  # rows the towers stand above the ground
-const CASTLE_WALL := 14  # rows the wall over the hall stands above the ground
-const CASTLE_GATE := 16  # columns the gatehouse takes, with the gate through its foot
-const CASTLE_GATE_HEIGHT := 7  # rows of air in the gate
-const CASTLE_STAIR := 47  # the column where the stair inside the east tower starts, and the east tower with it
-const CASTLE_HALL_HEIGHT := 9  # rows of air in the hall
-const CASTLE_WIDTH := 100  # columns the ruined castle takes on the surface
+const CASTLE_AIR := 9  # rows of air in a hall or a room
+const CASTLE_SLAB := 2  # rows of stone between the storeys
+const CASTLE_DOOR := 4  # rows tall a doorway is
+const CASTLE_TOWER := 30  # rows the gate tower and the back tower stand above the ground
+const CASTLE_KEEP := 38  # rows the keep stands above the ground
+const CASTLE_WIDTH := 136  # columns the castle takes on the surface (SurfaceGen keeps the same)
 const EXIT_FLAT := 10       # columns of flat floor inside a hall at a tunnel mouth
+const LID_SPAN := 16        # columns of flat floor past a ramp that starts in the middle of a floor
+const LID_GAP := 7          # columns of that ramp that are open pit: the floor above carries on past it, a jump across
+const LID_ROWS := 3         # how thick the lid of rock over the ramp is
 const PASSAGE_HEIGHT := 6   # rows of air in a tunnel, at the least
 const BASIN_CHANCE := 0.5
+const CHASM_WIDTH := 20     # columns of a lava chasm: further than a hasted jump reaches
+const CHASM_DEPTH := 8      # rows from the floor to the bottom of it, which is too deep to climb out of
+const PIT_WIDTH := 36         # columns of the piranha pit: far further than any jump
+const PIT_DEPTH := 2         # rows of the piranha pit: shallow, a wizard can wade it and climb out
+const CHASM_LAVA_TOP := 2   # rows under the floor where the lava's surface lies, so the lava fills the deep part of the pit
+const WALL_HEIGHT := 8      # rows of a sheer wall in a passage: more than two jumps
+const WALL_WIDTH := 3       # columns thick
+const GAS_BANK := 8          # columns in each bank of it
+const SPIKE_WIDTH := 5       # columns in each strip of spikes
+const SPIKE_APART := 9       # columns from the start of one strip to the next
+const ICE_WIDTH := 3         # columns thick a plug of ice is
 const MIN_AIR := 9          # rows of air kept above the floor in the body of a hall
 
 ## Standing needs this many clear rows (the wizard is about 2.4 tiles tall).
 const HEADROOM := 3
 const JUMP_ROWS := 3
 const JUMP_COLS := 4
+const JUMP_FAR := 9     # how far a jump at (nearly) the same height reaches: a ramp's pit is jumped across
 
 
-## Returns {"cells": {Vector2i: material}, "size": Vector2i in tiles, "markers": {room id: Vector2i tile to stand on},
+## Returns {"cells": a TileGrid, "size": Vector2i in tiles, "markers": {room id: Vector2i tile to stand on},
 ## "start": Vector2i, "ponds": [{"a", "b": first and last column, "surface": row, "depth": rows, "lava": bool}],
 ## "hazards": {Vector2i: true} for tiles inside lava, "shafts": [{"upper", "lower", "x", "width", "style", "platforms"}]}.
 static func build(graph: WorldGraph, rng: RandomNumberGenerator) -> Dictionary:
 	var size := WorldGraph.SIZE
-	var cells := {}
-	for c in size.x:
-		for r in size.y:
-			cells[Vector2i(c, r)] = ArenaGen.GROUND
+	var cells := TileGrid.new(size, ArenaGen.GROUND)
 	var plans := {}
 	for room in graph.rooms:
-		plans[room["id"]] = {"room": room, "pins": [], "shafts": [], "left": false, "right": false}
+		plans[room["id"]] = {"room": room, "pins": [], "pits": [], "shafts": [], "left": false, "right": false}
 	var tunnels := []
 	for link in graph.links:
-		tunnels.append({"from": link["pa"], "to": link["pb"], "slope": link["slope"], "surface_x": link["pa"].x if graph.rooms[link["a"]].has("surface") else (link["pb"].x if graph.rooms[link["b"]].has("surface") else -1)})
-		for end in [[link["a"], link["pa"]], [link["b"], link["pb"]]]:
+		var inside_x := -1  # the column of a mouth in the middle of a floor, where the ramp drops at once
+		if link.get("inside_a", false):
+			inside_x = link["pa"].x
+		elif link.get("inside_b", false):
+			inside_x = link["pb"].x
+		tunnels.append({"from": link["pa"], "to": link["pb"], "slope": link["slope"], "surface_x": inside_x, "lock": link["lock"], "inward": link.get("inward", 1),
+				"lid": inside_x >= 0, "row": link["pa"].y if link.get("inside_a", false) else link["pb"].y,
+				"gate": graph.locks[link["lock"]]["gate"] if link["lock"] >= 0 else ""})
+		for end in [[link["a"], link["pa"], link.get("inside_a", false)], [link["b"], link["pb"], link.get("inside_b", false)]]:
 			var room: Dictionary = graph.rooms[end[0]]
 			var mouth: Vector2i = end[1]
-			if room.has("surface"):
-				plans[room["id"]]["pins"].append(Vector2i(mouth.x - EXIT_FLAT, mouth.x + EXIT_FLAT))  # a trench into the ground
+			if end[2]:
+				# A mouth in the middle of a floor: level ground behind it and under the lid that carries the floor over the ramp.
+				var way: int = signi(link["pb"].x - link["pa"].x) * (1 if end[0] == link["a"] else -1)
+				plans[room["id"]]["pins"].append(Vector3i(mouth.x - EXIT_FLAT, mouth.x + LID_SPAN, mouth.x) if way > 0 else Vector3i(mouth.x - LID_SPAN, mouth.x + EXIT_FLAT, mouth.x))
+				plans[room["id"]]["pits"].append(Vector2i(mouth.x, mouth.x + LID_GAP * way) if way > 0 else Vector2i(mouth.x + LID_GAP * way, mouth.x))
+			elif room.has("surface"):
+				plans[room["id"]]["pins"].append(Vector3i(mouth.x - EXIT_FLAT, mouth.x + EXIT_FLAT, mouth.x))
 			elif mouth.x > room["cx"]:
 				plans[room["id"]]["right"] = true
 				plans[room["id"]]["pins"].append(Vector2i(mouth.x - EXIT_FLAT, mouth.x))
@@ -59,12 +82,10 @@ static func build(graph: WorldGraph, rng: RandomNumberGenerator) -> Dictionary:
 	var ponds := []
 	var hazards := {}
 	var profiles := {}
-	var castle_x := _castle_site(graph.rooms[0], plans[0]["pins"], rng)
-	if castle_x >= 0:
-		plans[0]["pins"].append(Vector2i(castle_x - 3, castle_x + CASTLE_WIDTH + 3))
-	plans[0]["pins"].append(Vector2i(graph.rooms[0]["cx"] - 8, graph.rooms[0]["cx"] + 8))  # level ground to start on
+	var castle_x: int = graph.surface["castle"]
+	plans[0]["pins"].append(Vector3i(graph.rooms[0]["cx"] - SurfaceGen.START_FLAT, graph.rooms[0]["cx"] + SurfaceGen.START_FLAT, graph.rooms[0]["cx"]))  # level ground to start on
 	for room in graph.rooms:
-		profiles[room["id"]] = _profile(plans[room["id"]], rng)
+		profiles[room["id"]] = _surface_profile(graph, plans[0]) if room.has("surface") else _profile(plans[room["id"]], rng)
 	for room in graph.rooms:
 		_carve_hall(cells, profiles[room["id"]])
 		for pond in profiles[room["id"]]["ponds"]:
@@ -74,19 +95,265 @@ static func build(graph: WorldGraph, rng: RandomNumberGenerator) -> Dictionary:
 				for c in range(pond["a"], pond["b"] + 1):
 					for r in range(pond["surface"], pond["surface"] + pond["depth"] + 1):
 						hazards[Vector2i(c, r)] = true
+	var carved := []
 	for tunnel in tunnels:
-		_carve_tunnel(cells, tunnel["from"], tunnel["to"], tunnel["slope"], tunnel["surface_x"], rng)
+		carved.append(_carve_tunnel(cells, tunnel["from"], tunnel["to"], tunnel["slope"], tunnel["surface_x"], rng, tunnel["gate"] in ["chasm", "flood", "brambles", "dark", "gas", "piranhas"]))
 	var markers := {}
 	for room in graph.rooms:
 		markers[room["id"]] = _marker(profiles[room["id"]], plans[room["id"]])
 		if not room.has("surface"):
 			plans[room["id"]]["pins"].append(Vector2i(markers[room["id"]].x - 3, markers[room["id"]].x + 3))  # keep the marker clear
 			_formations(cells, profiles[room["id"]], plans[room["id"]], rng)
+	for k in tunnels.size():
+		if tunnels[k]["lid"]:
+			_lid(cells, tunnels[k], carved[k])
+	var spawns: Array[Vector2i] = []
+	var sky_floor: PackedInt32Array = profiles[0]["floor"]
+	for spawn in graph.spawns:
+		var x: int = spawn["x"] - spawn["side"] * 5  # on the flat ground behind the way down, not in its trench
+		spawns.append(Vector2i(x, sky_floor[x - profiles[0]["xl"]] - 1))
 	var hall: Array = []
+	var doors: Array = []
 	if castle_x >= 0:
-		hall = _castle(cells, graph.rooms[0]["cy"], castle_x)
+		var castle := _castle(cells, graph.rooms[0]["cy"], castle_x)
+		hall = castle["hall"]
+		doors = castle["doors"]
+	# What bars each gated tunnel is made in it: a lava chasm, a stretch of thorns or a sheer wall.
+	var gates := []
+	for k in tunnels.size():
+		if tunnels[k]["lock"] >= 0:
+			var gate := _make_gate(cells, tunnels[k], carved[k], ponds, hazards, profiles[0])
+			gate["lock"] = tunnels[k]["lock"]
+			gates.append(gate)
 	return {"cells": cells, "size": size, "markers": markers, "start": markers[graph.start], "ponds": ponds,
-			"hazards": hazards, "castle": castle_x, "hall": hall, "profiles": profiles, "sky": {"xl": profiles[0]["xl"], "floor": profiles[0]["floor"]}}
+			"hazards": hazards, "castle": castle_x, "hall": hall, "doors": doors, "profiles": profiles, "sky": {"xl": profiles[0]["xl"], "floor": profiles[0]["floor"]},
+			"surface": graph.surface, "gates": gates, "spawns": spawns}
+
+
+## The ground of the surface: the biomes' heights, made level round every mouth, with the pools dug into it.
+static func _surface_profile(graph: WorldGraph, plan: Dictionary) -> Dictionary:
+	var room: Dictionary = plan["room"]
+	var xl: int = room["cx"] - room["hw"]
+	var n: int = room["hw"] * 2 + 1
+	var floor_row := PackedInt32Array()
+	floor_row.resize(n)
+	var pinned := PackedByteArray()
+	pinned.resize(n)
+	for i in n:
+		floor_row[i] = graph.surface["floor"][xl + i]
+	for pond in graph.surface["ponds"]:
+		for c in range(pond["a"] - SurfaceGen.POOL_PAD, pond["b"] + SurfaceGen.POOL_PAD + 1):
+			pinned[c - xl] = 1
+	for c in range(graph.surface["castle"] - 3, graph.surface["castle"] + CASTLE_WIDTH + 4):
+		pinned[c - xl] = 1
+	for pin: Vector3i in plan["pins"]:
+		var level := floor_row[pin.z - xl]  # a mouth is level for a stretch, at the height of the mouth itself
+		for c in range(pin.x, pin.y + 1):
+			floor_row[c - xl] = level
+			pinned[c - xl] = 1
+	SurfaceGen._relax(floor_row, pinned, graph.surface["limits"], xl)
+	var ceiling := PackedInt32Array()
+	ceiling.resize(n)
+	ceiling.fill(0)
+	return {"xl": xl, "floor": floor_row, "ceiling": ceiling, "ponds": graph.surface["ponds"], "cy": room["cy"]}
+
+
+## The floor over the start of a ramp that begins in the middle of a floor: after the open pit at its mouth, a lid of rock
+## holds the floor up across, so the floor carries on over the ramp and a walker just jumps the pit.
+static func _lid(cells: TileGrid, tunnel: Dictionary, carved: Dictionary) -> void:
+	var mouth_x: int = tunnel["surface_x"]
+	var way: int = 1 if tunnel["to"].x > tunnel["from"].x else -1
+	if mouth_x != tunnel["from"].x:
+		way = -way  # the interior mouth is the `to` end, so the ramp runs the other way
+	var row: int = tunnel["row"]
+	for k in range(LID_GAP, LID_SPAN):
+		for r in range(row, row + LID_ROWS):
+			cells.put(Vector2i(mouth_x + way * k, r), ArenaGen.GROUND)
+
+
+## Makes what bars a gated tunnel, in the tunnel. Returns {"kind", "solve": the tiles to fill to take the gate away as a spell would
+## (a tile's worth of floor the passage lacks), "thorns": the standing tiles a thorn stretch covers, "floors", "first": the floor row
+## and first column of a thorn stretch}. Only the thorns are more than rock: a chasm is lava (a pond) and a wall is a drop and a cliff.
+static func _make_gate(cells: TileGrid, tunnel: Dictionary, carved: Dictionary, ponds: Array, hazards: Dictionary, sky: Dictionary) -> Dictionary:
+	var floors: PackedInt32Array = carved["floors"]
+	var first: int = carved["a"].x
+	var out := {"kind": tunnel["gate"], "solve": [], "thorns": [], "blocks": [], "at": Vector2i.ZERO}
+	out["inward"] = tunnel.get("inward", 1)  # which way along the passage goes into the locked area: 1 to the right
+	var span := Vector2i.ZERO  # the columns of the passage the gate takes up, counted from its left end
+	match tunnel["gate"]:
+		"chasm":
+			# In the middle of the longest level stretch, a pit as wide as it needs and lava at the bottom of it.
+			var k0 := _level_stretch(floors, CHASM_WIDTH)
+			var level := floors[k0]
+			span = Vector2i(k0, k0 + CHASM_WIDTH)
+			_dig_pit(cells, first + k0, CHASM_WIDTH, level, out["inward"])
+			var pond := {"a": first + k0, "b": first + k0 + CHASM_WIDTH - 1, "surface": level + CHASM_LAVA_TOP, "depth": CHASM_DEPTH - CHASM_LAVA_TOP, "lava": true}
+			ponds.append(pond)
+			for c in range(pond["a"], pond["b"] + 1):
+				for r in range(pond["surface"], pond["surface"] + pond["depth"] + 1):
+					hazards[Vector2i(c, r)] = true
+			out["solve"].append({"rect": Rect2i(first + k0, level, CHASM_WIDTH, 1), "with": ArenaGen.GROUND})  # a bridge across
+			out["at"] = Vector2i(first + k0, level)
+		"flood":
+			# The same pit, full of water to the brim: whoever falls in cannot climb out, and spells that cross water cross it.
+			var k0 := _level_stretch(floors, CHASM_WIDTH)
+			var level := floors[k0]
+			span = Vector2i(k0, k0 + CHASM_WIDTH)
+			_dig_pit(cells, first + k0, CHASM_WIDTH, level, out["inward"])
+			ponds.append({"a": first + k0, "b": first + k0 + CHASM_WIDTH - 1, "surface": level, "depth": CHASM_DEPTH, "lava": false})
+			out["solve"].append({"rect": Rect2i(first + k0, level, CHASM_WIDTH, 1), "with": ArenaGen.GROUND})  # a bridge across
+			out["at"] = Vector2i(first + k0, level)
+		"piranhas":
+			# A long pit, no deeper than a wade, full of water and of piranhas: they have to be killed or crossed above.
+			var k0 := _level_stretch(floors, PIT_WIDTH)
+			var level := floors[k0]
+			span = Vector2i(k0, k0 + PIT_WIDTH)
+			for k in range(k0, k0 + PIT_WIDTH):
+				for r in range(level, level + PIT_DEPTH):
+					cells.erase(Vector2i(first + k, r))
+					out["blocks"].append(Vector2i(first + k, r))  # for the test, to wade it is to be eaten
+			ponds.append({"a": first + k0, "b": first + k0 + PIT_WIDTH - 1, "surface": level, "depth": PIT_DEPTH, "lava": false})
+			out["solve"].append({"rect": Rect2i(first + k0, level, PIT_WIDTH, 1), "with": ArenaGen.GROUND})  # a bridge across
+			out["at"] = Vector2i(first + k0, level)
+			out["pit"] = Rect2i(first + k0, level, PIT_WIDTH, PIT_DEPTH)
+		"sentinel":
+			# A statue in the middle of the passage, on its floor. For the test the passage is barred: it shoots whoever walks it.
+			var k0 := floors.size() / 2
+			span = Vector2i(k0 - 1, k0 + 2)
+			out["at"] = Vector2i(first + k0, floors[k0])
+			out["stands"] = Vector2i(first + k0, floors[k0])
+			for c in range(WorldGraph.TRAP_MARGIN, floors.size() - WorldGraph.TRAP_MARGIN):
+				out["blocks"].append(Vector2i(first + c, floors[c] - 1))
+		"ice":
+			# The whole of the passage, floor to roof, for a few columns: ice that melts, or breaks.
+			var k0 := _level_stretch(floors, ICE_WIDTH)
+			span = Vector2i(k0, k0 + ICE_WIDTH)
+			out["columns"] = []
+			for k in range(k0, k0 + ICE_WIDTH):
+				var top := floors[k]
+				while top > 1 and not cells.has(Vector2i(first + k, top - 1)):
+					top -= 1
+				out["columns"].append({"x": first + k, "top": top, "bottom": floors[k]})
+				for r in range(top, floors[k]):
+					out["blocks"].append(Vector2i(first + k, r))
+			out["at"] = Vector2i(first + k0, floors[k0])
+		"dark":
+			# Strips of spikes along a level floor, which no one sees until a light falls on them.
+			var stretch := _trap_stretch(floors, WorldGraph.DARK_BUDGET, tunnel["inward"])
+			var from := stretch.x
+			var length := stretch.y - stretch.x
+			span = stretch
+			out["first"] = first + from
+			out["at"] = Vector2i(first + from, floors[from])
+			out["strips"] = []
+			var k := 3
+			while k + SPIKE_WIDTH <= length:
+				out["strips"].append({"x": first + from + k, "width": SPIKE_WIDTH, "floors": floors.slice(from + k, from + k + SPIKE_WIDTH)})
+				k += SPIKE_APART
+			for c in range(from, stretch.y):  # for the test, the whole of the stretch bars the way: walking it unseen costs more than it can
+				out["blocks"].append(Vector2i(first + c, floors[c] - 1))
+		"gas":
+			# Banks of poison gas lying along a level floor, from the floor to the roof.
+			var stretch := _trap_stretch(floors, WorldGraph.GAS_BUDGET, tunnel["inward"])
+			var from := stretch.x
+			span = stretch
+			out["first"] = first + from
+			out["at"] = Vector2i(first + from, floors[from])
+			out["banks"] = []
+			for k in range(from, stretch.y, GAS_BANK):
+				var last := mini(k + GAS_BANK, stretch.y)
+				var tops := PackedInt32Array()
+				for c in range(k, last):
+					var top := floors[c]
+					while top > 1 and not cells.has(Vector2i(first + c, top - 1)):
+						top -= 1
+					tops.append(top)
+				out["banks"].append({"x": first + k, "floors": floors.slice(k, last), "tops": tops})
+			for k in range(from, stretch.y):
+				out["blocks"].append(Vector2i(first + k, floors[k] - 1))
+		"wall":
+			# A block of rock standing up from the floor, with room cut over the top of it: a sheer face on each side to get over.
+			var run := floors.size() - 1
+			var k0 := run / 2
+			for step in range(0, run):  # the place nearest the middle where the rock over the top of it is deep enough
+				var k := run / 2 + (step + 1) / 2 * (1 if step % 2 == 0 else -1)
+				if k < 6 or k > run - 6 - WALL_WIDTH:
+					continue
+				var shallow := false
+				for c in range(k, k + WALL_WIDTH):
+					var i: int = first + c - sky["xl"]
+					shallow = shallow or floors[c] - WALL_HEIGHT - 5 < sky["floor"][clampi(i, 0, sky["floor"].size() - 1)] + 4
+				if not shallow:
+					k0 = k
+					break
+			var top := mini(floors[k0 - 1], floors[k0 + WALL_WIDTH]) - WALL_HEIGHT
+			span = Vector2i(k0, k0 + WALL_WIDTH)
+			out["at"] = Vector2i(first + k0, top)
+			for c in range(k0, k0 + WALL_WIDTH):
+				for r in range(top - 5, top):
+					cells.erase(Vector2i(first + c, r))
+				for r in range(top, floors[c]):
+					cells.put(Vector2i(first + c, r), ArenaGen.GROUND)
+				out["solve"].append({"rect": Rect2i(first + c, top, 1, floors[c] - top), "with": -1})  # the passage without the wall
+		"brambles":
+			var stretch := _trap_stretch(floors, WorldGraph.THORN_BUDGET, tunnel["inward"])  # longer downhill, shorter uphill
+			var from := stretch.x
+			span = stretch
+			out["first"] = first + from
+			out["at"] = Vector2i(first + from, floors[from])
+			out["floors"] = floors.slice(from, stretch.y)
+			for k in range(from, stretch.y):
+				out["thorns"].append(Vector2i(first + k, floors[k] - 1))
+	var edge := clampi(span.x - 4 if out["inward"] > 0 else span.y + 3, 0, floors.size() - 1)
+	out["outside"] = Vector2i(first + edge, floors[edge])  # a place on the floor just short of the gate, on the way in from outside
+	return out
+
+
+## Digs a pit CHASM_DEPTH deep and `width` columns wide into a level floor. The side a walker comes from, on the way in, slopes gently down
+## (a row for every two columns), so anyone who falls in can walk back out; the far side is sheer, too high to climb.
+static func _dig_pit(cells: TileGrid, first: int, width: int, level: int, inward: int) -> void:
+	for k in width:
+		var from_near := k if inward > 0 else width - 1 - k
+		for r in range(level, level + mini(CHASM_DEPTH, 1 + from_near / 2)):
+			cells.erase(Vector2i(first + k, r))
+
+
+## The columns [from, to) a trap covers in a passage, in the middle of it: as many as it takes to cost a walker going inward the
+## budget's worth of level walking. A column going downhill (or level) counts one; uphill, where they are slower, it counts
+## the slope's own length, so a trap is longer downhill and shorter uphill.
+static func _trap_stretch(floors: PackedInt32Array, budget: float, inward: int) -> Vector2i:
+	var count := floors.size()
+	var lo := WorldGraph.TRAP_MARGIN
+	var hi := count - WorldGraph.TRAP_MARGIN
+	var from := count / 2
+	var to := from
+	var spent := 0.0
+	var grow_left := true
+	while spent < budget and (from > lo or to < hi):
+		if (grow_left and from > lo) or to >= hi:
+			from -= 1
+			var step := (floors[from + 1] - floors[from]) * inward  # rows down, going inward, from this column to the next
+			spent += 1.0 if step >= 0 else sqrt(1.0 + float(step * step))
+		else:
+			var step := (floors[mini(to + 1, count - 1)] - floors[to]) * inward
+			spent += 1.0 if step >= 0 else sqrt(1.0 + float(step * step))
+			to += 1
+		grow_left = not grow_left
+	return Vector2i(from, to)
+
+
+## The first column of a level stretch of the given length, in the middle of the longest level stretch of a tunnel's floor.
+static func _level_stretch(floors: PackedInt32Array, length: int) -> int:
+	var best_at := 0
+	var best_len := 0
+	var at := 0
+	for k in range(1, floors.size() + 1):
+		if k == floors.size() or floors[k] != floors[at]:
+			if k - at > best_len:
+				best_len = k - at
+				best_at = at
+			at = k
+	return best_at + (best_len - length) / 2
 
 
 ## A hall's floor and ceiling: a first solid row for each column from its left end to its right, and the basins in it.
@@ -233,7 +500,7 @@ static func _clear_of(pinned: PackedByteArray, xl: int, from: int, to: int) -> b
 	return true
 
 
-static func _carve_hall(cells: Dictionary, profile: Dictionary) -> void:
+static func _carve_hall(cells: TileGrid, profile: Dictionary) -> void:
 	var xl: int = profile["xl"]
 	for i in profile["floor"].size():
 		for r in range(profile["ceiling"][i], profile["floor"][i]):
@@ -242,7 +509,7 @@ static func _carve_hall(cells: Dictionary, profile: Dictionary) -> void:
 
 ## A tunnel between two mouths, a floor that climbs at no more than a row for every SLOPE columns, a ceiling a little over
 ## the wizard's head that rises and falls, and a few wider chambers on the way.
-static func _carve_tunnel(cells: Dictionary, from: Vector2i, to: Vector2i, slope: float, surface_x: int, rng: RandomNumberGenerator) -> void:
+static func _carve_tunnel(cells: TileGrid, from: Vector2i, to: Vector2i, slope: float, surface_x: int, rng: RandomNumberGenerator, flat_gate := false) -> Dictionary:
 	var a := from if from.x < to.x else to
 	var b := to if from.x < to.x else from
 	var run := b.x - a.x
@@ -251,11 +518,13 @@ static func _carve_tunnel(cells: Dictionary, from: Vector2i, to: Vector2i, slope
 	var need := int(ceil(absf(dy) * slope))
 	var ramp := maxi(need, mini(run - flat * 2, need + rng.randi_range(0, 10)))
 	var ramp_start := flat + rng.randi_range(0, maxi(0, run - flat * 2 - ramp))
-	if surface_x == a.x:
-		ramp_start = flat  # a tunnel from the surface drops at once, so its trench stays near the end
-	elif surface_x == b.x:
-		ramp_start = run - flat - ramp
-	var wiggle_amp := rng.randf_range(0.0, 1.4)
+	if flat_gate:
+		ramp = need  # a chasm needs a long level floor: the climb is done at one end and the rest lies flat
+		ramp_start = 0 if rng.randf() < 0.5 else run - ramp
+	if surface_x >= 0:
+		ramp = need  # a ramp from the middle of a floor drops at once, as steep as a walker can climb, so its pit stays short
+		ramp_start = 0 if surface_x == a.x else run - ramp
+	var wiggle_amp := rng.randf_range(0.0, 1.4) if surface_x < 0 and not flat_gate else 0.0  # a ramp under a lid is straight, so the lid and the floor keep their distance
 	var wiggle_period := rng.randf_range(9.0, 16.0)
 	var wiggle_phase := rng.randf() * TAU
 	var height := float(PASSAGE_HEIGHT) + 1.0
@@ -285,28 +554,32 @@ static func _carve_tunnel(cells: Dictionary, from: Vector2i, to: Vector2i, slope
 			for r in range(-ry * 2, 0):
 				if pow(float(c) / rx, 2.0) + pow(float(r + ry) / ry, 2.0) <= 1.0:
 					cells.erase(Vector2i(a.x + k + c, floors[clampi(k + c, 0, run)] + r))
+	return {"a": a, "floors": floors}
 
 
 ## Pillars of rock standing in a pool of lava, three wide with two-tile gaps, one tile above the floor at its edges.
-static func _stepping_stones(cells: Dictionary, pond: Dictionary) -> void:
+static func _stepping_stones(cells: TileGrid, pond: Dictionary) -> void:
 	var c: int = pond["a"]
 	while c <= pond["b"]:
 		for k in 3:
 			if c + k <= pond["b"]:
 				for r in range(pond["surface"] - 1, pond["surface"] + pond["depth"] + 1):
-					cells[Vector2i(c + k, r)] = ArenaGen.GROUND
+					cells.put(Vector2i(c + k, r), ArenaGen.GROUND)
 		c += 5
 
 
 ## Stepped rock formations, a ziggurat standing on a hall's floor: steps of four columns, each FORMATION_STEP rows above the
 ## last up to a flat top and down again the same way, so a walker can climb over from either side. Kept off the mouths.
-static func _formations(cells: Dictionary, profile: Dictionary, plan: Dictionary, rng: RandomNumberGenerator) -> void:
+static func _formations(cells: TileGrid, profile: Dictionary, plan: Dictionary, rng: RandomNumberGenerator) -> void:
 	var room: Dictionary = plan["room"]
 	var tall: bool = room["air"] > 24
 	var xl: int = profile["xl"]
 	for i in rng.randi_range(1, 2) + (1 if tall else 0):
 		var steps := rng.randi_range(2, 4 if tall else 3)  # how many steps up to the top
-		var col := rng.randi_range(xl + 8, xl + room["hw"] * 2 - 10 - steps * 8)
+		var last_col: int = xl + room["hw"] * 2 - 10 - steps * 8
+		if last_col < xl + 8:
+			continue  # too small a hall for steps this long
+		var col := rng.randi_range(xl + 8, last_col)
 		var base: int = profile["floor"][col - xl]
 		var placed: Array[Vector2i] = []
 		var fits := true
@@ -321,12 +594,12 @@ static func _formations(cells: Dictionary, profile: Dictionary, plan: Dictionary
 			for at in placed:
 				for c in 4:
 					for r in range(at.y, profile["floor"][at.x + c - xl]):
-						cells[Vector2i(at.x + c, r)] = ArenaGen.GROUND
+						cells.put(Vector2i(at.x + c, r), ArenaGen.GROUND)
 
 
 ## True when a pillar top of a width fits at a tile: the air above it and down to the floor beside it is clear, clear of the
 ## shafts and mouths, and the pillar stands on the floor.
-static func _open_above(cells: Dictionary, profile: Dictionary, plan: Dictionary, at: Vector2i, width: int, base: int) -> bool:
+static func _open_above(cells: TileGrid, profile: Dictionary, plan: Dictionary, at: Vector2i, width: int, base: int) -> bool:
 	var xl: int = profile["xl"]
 	for pin in plan["pins"]:
 		if at.x + width > pin.x - 2 and at.x < pin.y + 2:
@@ -342,63 +615,94 @@ static func _open_above(cells: Dictionary, profile: Dictionary, plan: Dictionary
 	return true
 
 
-## Where the castle can stand on the surface: a stretch of ground clear of the tunnel mouths, or -1 when there is none.
-static func _castle_site(surface: Dictionary, pins: Array, rng: RandomNumberGenerator) -> int:
-	var options: Array[int] = []
-	var left: int = surface["cx"] - surface["hw"] + 12
-	var right: int = surface["cx"] + surface["hw"] - 12 - CASTLE_WIDTH
-	for x in range(left, right, 6):
-		if absi(x + CASTLE_WIDTH / 2 - surface["cx"]) < CASTLE_WIDTH / 2 + 20:
-			continue  # the middle is where you start
-		var free := true
-		for pin: Vector2i in pins:
-			if pin.y > x - 8 and pin.x < x + CASTLE_WIDTH + 8:
-				free = false
-		if free:
-			options.append(x)
-	return options[rng.randi() % options.size()] if not options.is_empty() else -1
-
-
-## A castle on level ground, in stone, with battlements. A tall gatehouse stands at the west end with an arched gate at ground level,
-## leading into a long hall under a lower wall. At the far end of the hall a stair climbs inside the east tower and comes out into the open at the
-## top of it, and a stair down its far side leads to the ground. The gatehouse, the wall and the west half of the tower top cannot be reached;
-## they are only there to be seen. Nothing floats: the east tower stands on the ground and holds up the rest.
-## Returns the rooms inside it, as one rectangle of tiles per column, so they can be painted as the inside of a building.
-static func _castle(cells: Dictionary, ground: int, x: int) -> Array:
-	var inside: Array = []
-	var tower := CASTLE_STAIR  # the first column of the east tower
-	var reach := CASTLE_HEIGHT
+## A castle on level ground, in stone, with battlements, and rooms on three floors inside it. Everything is carved out of solid stone, so
+## nothing floats: floors and ceilings are stone, and walls stand between rooms with a wooden door in each (see CastleDoor).
+## From the west: a gate and an entry hall, a stair up to a room on the first floor, a stair up to the great hall and two more rooms on
+## the second floor, under the keep, a stair down to a room on the first floor, a stair down and a back door onto the plain. Each stair
+## climbs at 45 degrees in a hall open up to the roof of the floor it reaches, and under the floors the castle is solid, so a way
+## through the castle goes up and over. The towers and the keep are stone with small windows, and only there to be seen.
+## Returns {"hall": the rooms inside, as one rectangle of tiles per column, so they can be painted as the inside of a building,
+## "doors": [{"x": the column the door stands on the edge of, "floor": the row its floor starts on}]}.
+static func _castle(cells: TileGrid, ground: int, x: int) -> Dictionary:
+	var hall: Array = []
+	var doors: Array = []
+	var floor_1 := CASTLE_AIR + CASTLE_SLAB  # height of the first floor's floor
+	var top_1 := floor_1 + CASTLE_AIR - 1  # the highest row of air on the first floor
+	var floor_2 := top_1 + 1 + CASTLE_SLAB  # and of the second floor's
+	var top_2 := floor_2 + CASTLE_AIR  # the highest row of air on the second floor (a row higher: the great hall)
+	# The whole of it, solid: the towers at each end, the wings, the keep, with merlons on top.
 	for i in CASTLE_WIDTH:
-		var top := 0
-		var battlements := true
-		if i < CASTLE_GATE:
-			top = reach  # the gatehouse
-		elif i < tower:
-			top = CASTLE_WALL  # the wall over the hall
-		elif i <= tower + reach:
-			top = reach  # the east tower
-		else:
-			top = maxi(0, reach - (i - tower - reach))  # the stair down the far side
-			battlements = false
-		if battlements and (i / 2) % 2 == 0 and i < tower + reach - 8:
+		var top := top_1 + 1 + CASTLE_SLAB
+		if i < 16 or i >= CASTLE_WIDTH - 10:
+			top = CASTLE_TOWER
+		elif i >= 37 and i <= 104:
+			top = CASTLE_KEEP
+		if (i / 2) % 2 == 0:
 			top += 2  # a merlon
-		for r in range(ground - top, ground):
-			cells[Vector2i(x + i, r)] = ArenaGen.STONE
-	# The gate and the hall: a passage through the gatehouse at ground level, its mouth stepped like an arch, then the hall.
-	for i in tower:
-		var room := CASTLE_HALL_HEIGHT if i >= CASTLE_GATE else (CASTLE_GATE_HEIGHT - 2 if i < 1 else (CASTLE_GATE_HEIGHT - 1 if i < 2 else CASTLE_GATE_HEIGHT))
-		for r in range(ground - room, ground):
-			cells.erase(Vector2i(x + i, r))
-		inside.append(Rect2i(x + i, ground - room, 1, room))
-	# The stair up inside the east tower. Where the stone over it would be thinner than three rows, it is open to the sky.
-	for k in reach + 1:
-		var room := mini(CASTLE_HALL_HEIGHT, reach - k - 3)
-		var ceiling := ground - reach - 2 if room < 5 else ground - k - room
-		for r in range(ceiling, ground - k):
-			cells.erase(Vector2i(x + tower + k, r))
-		if room >= 5:
-			inside.append(Rect2i(x + tower + k, ceiling, 1, ground - k - ceiling))
-	return inside
+		for h in top:
+			cells.put(Vector2i(x + i, ground - 1 - h), ArenaGen.STONE)
+	# Air, from height low to height high inclusive in one column, painted as a room.
+	var carve := func(i: int, low: int, high: int) -> void:
+		for h in range(low, high + 1):
+			cells.erase(Vector2i(x + i, ground - 1 - h))
+		hall.append(Rect2i(x + i, ground - 1 - high, 1, high - low + 1))
+	# A room: columns from first to last inclusive, from the floor to the top of its air.
+	var room := func(first: int, last: int, floor_h: int, high: int) -> void:
+		for i in range(first, last + 1):
+			carve.call(i, floor_h, high)
+	# A wall between two rooms, two columns thick, with a doorway in it and a wooden door in the doorway.
+	var door := func(i: int, floor_h: int) -> void:
+		for k in 2:
+			carve.call(i + k, floor_h, floor_h + CASTLE_DOOR - 1)
+		doors.append({"x": x + i + 1, "floor": ground - floor_h})
+	# A stair is a run of eleven columns that climb a row each, from the floor `base` to the floor eleven rows above it (rising to the east
+	# when up is true, falling to the east when not), in a hall open from its steps to the top of the air `high`.
+	var stair := func(first: int, base: int, up: bool, high: int) -> void:
+		for k in floor_1:
+			var step: int = k if up else floor_1 - 1 - k
+			carve.call(first + k, base + step + 1, high)
+	# The gate: a porch with a stepped arch, a door in the wall, the entry hall and a door out of it.
+	carve.call(0, 0, 4)
+	carve.call(1, 0, 5)
+	door.call(2, 0)
+	room.call(4, 13, 0, CASTLE_AIR - 1)
+	door.call(14, 0)
+	stair.call(16, 0, true, top_1)                 # up to the first floor
+	room.call(27, 36, floor_1, top_1)              # a room on the first floor
+	stair.call(37, floor_1, true, top_2)           # up to the second
+	room.call(48, 69, floor_2, top_2)              # the great hall
+	door.call(70, floor_2)
+	room.call(72, 81, floor_2, top_2)
+	door.call(82, floor_2)
+	room.call(84, 93, floor_2, top_2)
+	stair.call(94, floor_1, false, top_2)          # down to the first floor
+	room.call(105, 114, floor_1, top_1)
+	stair.call(115, 0, false, top_1)               # and down to the ground
+	door.call(126, 0)
+	room.call(128, 131, 0, CASTLE_AIR - 1)
+	carve.call(132, 0, 6)
+	carve.call(133, 0, 5)
+	carve.call(134, 0, 5)
+	carve.call(135, 0, 4)
+	# Windows: pockets of air in the solid stone of the towers, the keep and the walls under the floors, seen from outside as dark slits.
+	var windows: Array[Vector3i] = []
+	for i in [3, 8, 12]:
+		windows.append(Vector3i(i, 14, 3))
+		windows.append(Vector3i(i + 1 if i < 12 else i - 5, 22, 3))
+	for i in [CASTLE_WIDTH - 8, CASTLE_WIDTH - 5, CASTLE_WIDTH - 3]:
+		windows.append(Vector3i(i, 14, 3))
+		windows.append(Vector3i(i - 1, 22, 3))
+	for i in [50, 56, 62, 68, 74, 80, 86, 92]:  # the walls under the great hall and its neighbours
+		windows.append(Vector3i(i, 5, 3))
+		windows.append(Vector3i(i + 1, 13, 3))
+	for i in [40, 46, 98, 102]:
+		windows.append(Vector3i(i, 5, 3))
+	for i in [29, 34, 108, 112]:
+		windows.append(Vector3i(i, 4, 3))
+	for spot in windows:
+		for h in range(spot.y, spot.y + spot.z):
+			cells.erase(Vector2i(x + spot.x, ground - 1 - h))
+	return {"hall": hall, "doors": doors}
 
 
 ## The tile a hall's marker stands on: the flat floor column nearest the middle that has headroom, clear of holes and basins.
@@ -414,6 +718,8 @@ static func _marker(profile: Dictionary, plan: Dictionary) -> Vector2i:
 		for shaft in plan["shafts"]:
 			if c >= shaft["x"] - 2 and c < shaft["x"] + shaft["width"] + 2:
 				in_hole = true
+		for pit: Vector2i in plan["pits"]:
+			in_hole = in_hole or (c >= pit.x - 2 and c <= pit.y + 2)  # not in the pit at a ramp's mouth
 		if in_hole:
 			continue
 		if best < 0 or absi(c - room["cx"]) < absi(best - room["cx"]):
@@ -422,29 +728,48 @@ static func _marker(profile: Dictionary, plan: Dictionary) -> Vector2i:
 
 
 ## True when a cell does not stop a body: it is air.
-static func passable(cells: Dictionary, cell: Vector2i) -> bool:
+static func passable(cells: TileGrid, cell: Vector2i) -> bool:
 	return not cells.has(cell)
 
 
-static func clear(cells: Dictionary, c: int, r: int) -> bool:
+static func clear(cells: TileGrid, c: int, r: int) -> bool:
 	for k in HEADROOM:
 		if not passable(cells, Vector2i(c, r - k)):
 			return false
 	return true
 
 
-static func supported(cells: Dictionary, c: int, r: int) -> bool:
+static func supported(cells: TileGrid, c: int, r: int) -> bool:
 	return cells.has(Vector2i(c, r + 1))
 
 
-static func standing(cells: Dictionary, c: int, r: int, hazards := {}) -> bool:
+static func standing(cells: TileGrid, c: int, r: int, hazards := {}) -> bool:
 	return clear(cells, c, r) and supported(cells, c, r) and not hazards.has(Vector2i(c, r))
 
 
 ## Every tile the wizard can stand on that can be reached from a starting tile by walking, stepping up one tile, falling
 ## and jumping up to JUMP_ROWS rows. Standing in lava does not count. This is a little stricter than the real jump, so a
-## world that passes is walkable.
-static func reachable(cells: Dictionary, start: Vector2i, bottom: int, hazards := {}) -> Dictionary:
+## world that passes is walkable. The tiles worth standing on are worked out once, in packed arrays, and the search then only reads
+## them: a world is hundreds of thousands of tiles.
+static func reachable(cells: TileGrid, start: Vector2i, bottom: int, hazards := {}) -> Dictionary:
+	var w := cells.size.x
+	var h := cells.size.y
+	var solid := cells.data
+	var clear_at := PackedByteArray()  # HEADROOM clear tiles from here up
+	var stand := PackedByteArray()     # clear, supported from below, and not in lava
+	clear_at.resize(w * h)
+	stand.resize(w * h)
+	for r in range(HEADROOM - 1, h):
+		var row := r * w
+		for c in w:
+			var at := row + c
+			if solid[at] == 0 and solid[at - w] == 0 and solid[at - w - w] == 0:
+				clear_at[at] = 1
+				if r + 1 < h and solid[at + w] != 0:
+					stand[at] = 1
+	for cell: Vector2i in hazards:
+		if cells.inside(cell):
+			stand[cell.y * w + cell.x] = 0
 	var seen := {start: true}
 	var queue: Array[Vector2i] = [start]
 	while not queue.is_empty():
@@ -452,33 +777,43 @@ static func reachable(cells: Dictionary, start: Vector2i, bottom: int, hazards :
 		var found: Array[Vector2i] = []
 		for dc in [-1, 1]:
 			var c: int = at.x + dc
+			if c < 0 or c >= w:
+				continue
 			for dr in [0, -1]:
-				if standing(cells, c, at.y + dr, hazards) and clear(cells, at.x, at.y + dr):
-					found.append(Vector2i(c, at.y + dr))
+				var r: int = at.y + dr
+				if r >= 0 and stand[r * w + c] == 1 and clear_at[r * w + at.x] == 1:
+					found.append(Vector2i(c, r))
 			# Walking off an edge: fall to the first thing below.
-			if clear(cells, c, at.y) and not supported(cells, c, at.y):
+			if clear_at[at.y * w + c] == 1 and stand[at.y * w + c] == 0:
 				var r := at.y
-				while r < bottom and clear(cells, c, r) and not supported(cells, c, r):
+				while r < bottom and clear_at[r * w + c] == 1 and stand[r * w + c] == 0:
 					r += 1
-				if r < bottom and standing(cells, c, r, hazards):
+				if r < bottom and stand[r * w + c] == 1:
 					found.append(Vector2i(c, r))
 		# Jumps: up to JUMP_ROWS higher, across at the same height, or down to a lower landing.
-		for h in range(-JUMP_ROWS, JUMP_ROWS + 1):
-			for dc in range(-JUMP_COLS, JUMP_COLS + 1):
-				if dc == 0 and h <= 0:
+		for height in range(-JUMP_ROWS, JUMP_ROWS + 1):
+			var target_row: int = at.y - height
+			if target_row < 0 or target_row >= h:
+				continue
+			var span := JUMP_FAR if absi(height) <= 1 else JUMP_COLS
+			for dc in range(-span, span + 1):
+				if dc == 0 and height <= 0:
 					continue
-				var target := Vector2i(at.x + dc, at.y - h)
-				if not standing(cells, target.x, target.y, hazards):
+				var column: int = at.x + dc
+				if column < 0 or column >= w or stand[target_row * w + column] == 0:
 					continue
 				var open := true
-				for c in range(mini(at.x, target.x), maxi(at.x, target.x) + 1):
-					var top := mini(at.y, target.y) - HEADROOM + 1
-					var last := at.y - 1 if c != target.x else target.y
-					for r in range(top, last + 1):
-						if not passable(cells, Vector2i(c, r)):
+				var top := mini(at.y, target_row) - HEADROOM + 1
+				for c in range(mini(at.x, column), maxi(at.x, column) + 1):
+					var last := at.y - 1 if c != column else target_row
+					for r in range(maxi(top, 0), last + 1):
+						if solid[r * w + c] != 0:
 							open = false
+							break
+					if not open:
+						break
 				if open:
-					found.append(target)
+					found.append(Vector2i(column, target_row))
 		for next in found:
 			if not seen.has(next):
 				seen[next] = true

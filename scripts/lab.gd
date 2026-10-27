@@ -28,7 +28,7 @@ var _player_light: PointLight2D
 
 
 ## The ground: flat, with a pit for lava, a gap, a pond's bed and a hill, each with gentle sides so it can be walked out of.
-func _build_map() -> Dictionary:
+func _build_map() -> Variant:
 	var heights := PackedFloat32Array()
 	heights.resize(ArenaGen.RIGHT_WALL - ArenaGen.FIRST_COL)
 	_dig(heights, LAVA, PIT_ROWS)
@@ -59,7 +59,6 @@ func _begin_encounter(camera: Camera2D) -> void:
 	ritual.seed_spoken.connect(_on_seed_spoken)
 	_add_ponds()
 	_add_targets()
-	_add_signs()
 	_night = CanvasModulate.new()
 	_night.color = NIGHT
 	_night.visible = false
@@ -72,7 +71,6 @@ func _begin_encounter(camera: Camera2D) -> void:
 	_player_light.enabled = false
 	player.add_child(_player_light)
 	hud.set_title("Waiting room")
-	hud.banner("The waiting room", "Try every spell. Press Tab for your spellbook, N for night, R to reset. Enter the portal to start a run.")
 	_open_portal()  # the portal is open from the start
 
 
@@ -94,33 +92,6 @@ func _add_targets() -> void:
 		var col: int = entry[1]
 		var mob := _add_mob(entry[0], Vector2(ArenaGen.column_x(col), ArenaGen.surface_y(_cells, col)))
 		mob.facing = -1.0
-
-
-## Words on the ground, to say what each part of the room is for.
-func _add_signs() -> void:
-	var notes := [
-		[START_COL, "Draw anything. Press Tab to see how."],
-		[(LAVA.x + LAVA.y) / 2, "Lava"],
-		[(GAP.x + GAP.y) / 2, "A gap"],
-		[(POND.x + POND.y) / 2, "A pond"],
-		[19, "Practise on dummies, a turret, a ceiling"],
-		[(HILL.x + HILL.y) / 2, "High ground"],
-	]
-	for note in notes:
-		var label := Label.new()
-		label.text = note[1]
-		label.add_theme_font_override("font", FloatText.font())
-		label.add_theme_font_size_override("font_size", 22)
-		label.add_theme_color_override("font_color", Color(0.85, 0.8, 0.95, 0.8))
-		label.add_theme_color_override("font_outline_color", Color(0.08, 0.04, 0.12))
-		label.add_theme_constant_override("outline_size", 6)
-		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		label.size = Vector2(320, 30)
-		label.scale = Vector2.ONE * 0.5
-		var col: int = note[0]
-		label.position = Vector2(ArenaGen.column_x(col) - 80.0, ArenaGen.GROUND_Y - 150.0)
-		label.z_index = -1
-		add_child(label)
 
 
 func _process(delta: float) -> void:
@@ -168,6 +139,16 @@ func _on_portal_entered(body: Node2D) -> void:
 	FocusItem.held_focus = "wand"
 	var fade := create_tween()
 	fade.tween_property(player, "modulate:a", 0.0, 0.25)
+	# The world takes a few seconds to build, and the window cannot draw while it does: go dark first, so it reads as a wait and not a hang.
+	var cover := CanvasLayer.new()
+	cover.layer = 100
+	var black := ColorRect.new()
+	black.color = Color(0, 0, 0, 0)
+	black.set_anchors_preset(Control.PRESET_FULL_RECT)
+	cover.add_child(black)
+	add_child(cover)
+	fade.tween_property(black, "color:a", 1.0, 0.4)
+	fade.tween_interval(0.15)
 	fade.tween_callback(get_tree().change_scene_to_file.bind("res://scenes/world.tscn"))
 
 

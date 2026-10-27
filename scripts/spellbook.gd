@@ -204,13 +204,7 @@ func _ready() -> void:
 	visible = false
 	layer = 5  # under the ritual typing box (layer 10), so the book never covers what you type
 
-	_pages = [_page_contents]
-	for school in SCHOOLS:
-		for spell_name in _spells_of(school):
-			_pages.append(_page_spell.bind(spell_name))  # every spell has a page to itself
-	var ritual_ids := RitualInput.RITUALS.keys()
-	for ritual_id in ritual_ids:
-		_pages.append(_page_incantation.bind(ritual_id))
+	_build_pages()
 
 	# Each page is set in one of the candidate hands, in turn, so the pages can be compared as the book is turned.
 	for path in FACE_FILES:
@@ -233,6 +227,25 @@ func _ready() -> void:
 	_left_number = _page_number(_left)
 	_right_number = _page_number(_right)
 
+	_show_spread()
+
+
+## The pages of the book: the cheat sheet, then a page to each spell and chant that is known.
+func _build_pages() -> void:
+	_pages = [_page_contents]
+	for school in SCHOOLS:
+		for spell_name in _spells_of(school):
+			if Pages.knows(spell_name):
+				_pages.append(_page_spell.bind(spell_name))  # every spell has a page to itself
+	for ritual_id in RitualInput.RITUALS:
+		if ritual_id != "recall" and Pages.knows_chant(ritual_id):  # the Return shares the Mark's page: the two work as a pair
+			_pages.append(_page_incantation.bind(ritual_id))
+
+
+## Takes in the pages that have been found since the book was last made.
+func refresh() -> void:
+	_build_pages()
+	_spread = mini(_spread, ceili(_pages.size() / 2.0) - 1)
 	_show_spread()
 
 
@@ -442,6 +455,11 @@ func _page_incantation(column: VBoxContainer, ritual_id: String) -> void:
 		column.add_child(_ink("Press Enter, type the words, press Enter.", 18, SUBTLE))
 	column.add_child(_ink("“%s”" % r["text"], 26, TEXT_INK))
 	column.add_child(_ink(_ritual_effect(ritual_id), 20, SUBTLE))
+	if ritual_id == "mark":
+		var back: Dictionary = RitualInput.RITUALS["recall"]
+		column.add_child(_heading(back["name"], 32))
+		column.add_child(_ink("“%s”" % back["text"], 26, TEXT_INK))
+		column.add_child(_ink(_ritual_effect("recall"), 20, SUBTLE))
 
 
 func _ritual_effect(ritual_id: String) -> String:
@@ -458,6 +476,14 @@ func _ritual_effect(ritual_id: String) -> String:
 			return "Lets you jump once more in mid-air for 20 seconds."
 		"rift":
 			return "Teleports you to a random place on the map. Costs all your stamina and lowers your maximum by 50."
+		"haste":
+			return "Move faster for 20 seconds."
+		"deep_breath":
+			return "Hold your breath for 45 seconds."
+		"mark":
+			return "Mark the place you stand."
+		"recall":
+			return "Open a portal at your mark and another where you stand. Anyone can use them."
 	return ""
 
 

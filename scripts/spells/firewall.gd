@@ -25,8 +25,8 @@ func _begin(origin: Vector2, _aim_angle: float) -> void:
 ## Four tall flames of the pixel fire, overlapping up the wall so they read as one wall of fire, with embers rising.
 func _add_flames() -> void:
 	for i in 4:
-		var flame := PixelFx.sprite("fire_puff", 14.0 + i * 2.0)
-		flame.scale = Vector2.ONE * 2.5
+		var flame := PixelFx.sprite("fire_puff", 14.0 + i * 2.0, true, 1)
+		flame.scale = Vector2.ONE * 1.8
 		flame.offset = Vector2(0, -PixelArt.FX["fire_puff"]["size"].y * 0.5)
 		flame.position = Vector2(0, HEIGHT * 0.5 - i * HEIGHT / 3.0)
 		flame.flip_h = i % 2 == 1

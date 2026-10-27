@@ -3,6 +3,7 @@ extends Node2D
 ## Arena: the map, the player, foci to pick up,
 ## fast spells, rituals and the spellbook.
 
+const GATEWAY_APART := 300.0  # the least distance between the two ends of a pair of portals
 const RIFT_WEAR := 50.0  # what a Rift takes off the most stamina you can have
 const RIFT_LEAST := 20.0  # the least stamina a Rift can be cast with, and the least it leaves as the most
 const PERFECT_CAST := 0.95  # accuracy a cast needs for the flourish
@@ -31,7 +32,9 @@ var _insight_text: RichTextLabel
 var _revealed := {"minimap": false, "insight": false}
 var _rng := RandomNumberGenerator.new()
 var debug_panel: DebugPanel  # F1 opens it: buttons that summon enemies for testing
-var _cells := {}  # the generated arena's tiles, see ArenaGen
+var _gateway_hue := randf()
+var _marked := Vector2.INF  # where the Incantation of the Mark was spoken, until the Return is
+var _cells: Variant = {}  # the generated arena's tiles: a Dictionary (see ArenaGen) or a TileGrid
 var _ground: Terrain
 var tiled_ground := false  # true when the ground is tiles all the way, as in a generated world; set by _build_map
 
@@ -83,6 +86,7 @@ func _ready() -> void:
 	player.debuff_applied.connect(_on_debuff_applied)
 	player.died.connect(_on_player_died)
 
+	Pages.end()  # the waiting room knows every page; a world begins its own book
 	spellbook = Spellbook.new()
 	add_child(spellbook)
 	debug_panel = DebugPanel.new()
@@ -92,7 +96,37 @@ func _ready() -> void:
 	_begin_encounter(camera)
 
 
+## A page has been found: the book takes it in.
+func on_page_found(page: String) -> void:
+	spellbook.refresh()
+	Sfx.play("pickup", player.center())
+	FloatText.spawn(self, player.center() + Vector2(0, -70), "Page: %s" % Pages.title_of(page), Color("#ffe9a0"), 1.1)
+
+
+## Every page is known at once, those on the map left where they lie.
+func learn_every_page() -> void:
+	Pages.learn_all()
+	spellbook.refresh()
+
+
 ## The land the map is in.
+## Where a boulder starts its fall over a point: 260 px up, or just under the ceiling when the roof is nearer, so a
+## boulder cast underground never begins inside rock.
+func _drop_point(point: Vector2) -> Vector2:
+	var from := _lifted_out_of_rock(point)
+	var query := PhysicsRayQueryParameters2D.create(from, from + Vector2(0, -260.0))
+	query.collision_mask = 1
+	var hit := get_world_2d().direct_space_state.intersect_ray(query)
+	if hit.is_empty():
+		return from + Vector2(0, -260.0)
+	return (hit["position"] as Vector2) + Vector2(0, Boulder.RADIUS + 6.0)
+
+
+## A point lifted out of any rock it is in. The waiting room has no rock to be in; a world overrides this.
+func _lifted_out_of_rock(point: Vector2) -> Vector2:
+	return point
+
+
 ## The ground a point sits over. A world with rock a physics query cannot see inside overrides this.
 func _surface_under(point: Vector2) -> Vector2:
 	return SpellTargets.surface_over(get_world_2d(), point)
@@ -103,7 +137,7 @@ func _biome() -> String:
 
 
 ## The map's tiles. The waiting room builds its own.
-func _build_map() -> Dictionary:
+func _build_map() -> Variant:
 	return ArenaGen.build(_rng)
 
 
@@ -193,7 +227,7 @@ func _build_overlays() -> void:
 
 
 ## The map as tile blocks. Cell (0, 0) is the top-left corner of the arena, and y grows downward.
-func map_cells() -> Dictionary:
+func map_cells() -> Variant:
 	return _cells
 
 
@@ -219,6 +253,9 @@ func _visible_hud_rects() -> Array[Rect2]:
 
 func _on_cast_resolved(spell: String, targeting: String, origin: Vector2, aim: float, info: Dictionary) -> void:
 	player.play_cast_release()
+	if not Pages.knows_spell(spell):
+		_misfire_text()  # a spell whose page has not been found is a shape that matches nothing
+		return
 	if spell == "Icicles" and _icicle_spots(info).is_empty():
 		FloatText.spawn(self, get_global_mouse_position() + Vector2(0, -22), "Aim under a ceiling", Color("#dff6ff"), 0.9)
 		Sfx.play("misfire", player.center(), -6.0)
@@ -271,11 +308,11 @@ func spawn_spell(spell: String, targeting: String, origin: Vector2, aim: float, 
 	var from: Vector2 = caster_node.center()
 	var school: String = SpellData.SPELLS[spell]["school"] if SpellData.SPELLS.has(spell) else ""
 	if (school == "Water" or school == "Air") and spell != "Barrier":
-		# Water and wind put a flare out, wherever the spell reaches it.
+		# Water and wind put a flare out, but only one the spell actually reaches.
 		if targeting == "directional":
-			Flare.snuff_along(get_tree(), origin, origin + Vector2.from_angle(aim) * maxf(info.get("length", 0.0), 300.0))
+			Flare.snuff_along(get_tree(), origin, origin + Vector2.from_angle(aim) * maxf(info.get("length", 0.0), 60.0))  # only along the stroke itself
 		else:
-			Flare.snuff_near(get_tree(), origin, 130.0)
+			Flare.snuff_near(get_tree(), origin, 30.0)  # only where the spell lands
 	match spell:
 		"Earthquake":
 			add_child(Earthquake.new())
@@ -355,7 +392,7 @@ func spawn_spell(spell: String, targeting: String, origin: Vector2, aim: float, 
 	if spell == "Stonefall":
 		# A boulder falls onto the ground under the stroke and stays where it lands, as a loose rock.
 		var boulder := Boulder.new()
-		boulder.global_position = origin + Vector2(0, -260)
+		boulder.global_position = _drop_point(origin)
 		add_child(boulder)
 		return
 	var effect := _new_effect(spell)
@@ -543,6 +580,11 @@ func _on_wizard_cast(spell: String, targeting: String, origin: Vector2, aim: flo
 
 func _on_misfire() -> void:
 	player.drain(MISFIRE_COST)
+	_misfire_text()
+
+
+## What a shape or a chant that means nothing does: a puff, a sound and the word.
+func _misfire_text() -> void:
 	Sfx.play("misfire", player.center())
 	FloatText.spawn(self, get_global_mouse_position() + Vector2(0, -22), "Misfire", Color("#ff6b6b"), 0.9)
 	Fx.burst(self, get_global_mouse_position(), Color(0.6, 0.6, 0.65), 8, 80.0, 0.3)
@@ -552,6 +594,9 @@ func _start_ritual() -> void:
 	if player.is_muted():
 		_on_feedback("You are muted. Wait %.0f seconds to chant" % player.mute_time, Color.ORANGE)
 		return
+	if player.underwater():
+		_on_feedback("You can't chant under water.", Color.ORANGE)
+		return
 	ritual.open()
 	# Stop this key press from also reaching the text box it just opened.
 	get_viewport().set_input_as_handled()
@@ -559,6 +604,12 @@ func _start_ritual() -> void:
 
 func _on_ritual_finished(id: String, acc: float, unfinished: bool) -> void:
 	var data: Dictionary = RitualInput.RITUALS[id]
+	if not Pages.knows_chant(id):
+		_misfire_text()
+		return
+	if player.underwater():
+		_on_feedback("You can't chant under water.", Color.ORANGE)
+		return
 	if unfinished:
 		# Stopping a chant partway lets the words fade harmlessly; only a garbled chant backfires.
 		_on_feedback("Finish the chant to cast it.", Color.GRAY)
@@ -589,14 +640,57 @@ func _on_ritual_finished(id: String, acc: float, unfinished: bool) -> void:
 			player.grant_unlimited(20.0)
 		"double_jump":
 			player.grant_air_jump(20.0)
+		"haste":
+			player.grant_haste(20.0)
+		"deep_breath":
+			player.grant_deep_breath(player.DEEP_BREATH)
+		"mark":
+			_mark_here()
+		"recall":
+			if not _open_gateways():
+				return
 		"rift":
 			_rift()
 		"bonfire":
 			var fire := Bonfire.new()
 			add_child(fire)
 			fire.power = power
-			fire.global_position = _ground_below(player.center())
+			fire.global_position = _ground_below(player.center() + Vector2(player.facing * 80.0, 0.0))  # beside the wizard, not under them
 	_on_feedback("%s worked (%s)" % [ritual_name, acc_text], Color.GREEN)
+
+
+## The Incantation of the Mark: the place you stand on is remembered, until the Return is spoken.
+func _mark_here() -> void:
+	_marked = _ground_below(player.center())
+	var colour: Color = SpellData.SCHOOL_COLORS["Shadow"]
+	Fx.pop(self, _marked + Vector2(0, -20), "twirl_02", colour, 40.0, 0.4, 0.5, 4.0)
+
+
+## The Incantation of the Return: a portal opens at the mark and another where you stand. They are a pair, in a colour of
+## their own, and stay open for anyone to use. False when there is no mark, or it is too close to be worth a portal.
+func _open_gateways() -> bool:
+	if _marked == Vector2.INF:
+		_on_feedback("Nothing is marked.", Color.GRAY)
+		return false
+	var here := _ground_below(player.center())
+	if here.distance_to(_marked) < GATEWAY_APART:
+		_on_feedback("Too close to the mark.", Color.GRAY)
+		return false
+	# Each pair's hue is a golden-ratio step from the last, so any two pairs, however many, are as far apart in colour as can be.
+	_gateway_hue = fposmod(_gateway_hue + 0.618034, 1.0)
+	var tint := Color.from_hsv(_gateway_hue, 0.7, 1.0)
+	var pair: Array[Gateway] = []
+	for spot in [_marked, here]:
+		var gateway := Gateway.new()
+		gateway.tint = tint
+		gateway.position = spot - Vector2(0.0, Portal.RY + 4.0)
+		add_child(gateway)
+		gateway.open()
+		pair.append(gateway)
+	pair[0].partner = pair[1]
+	pair[1].partner = pair[0]
+	_marked = Vector2.INF
+	return true
 
 
 ## The Rift: the wizard is torn away and set down somewhere else, with no stamina left and 20 less to ever have.
@@ -714,6 +808,12 @@ func _update_insight() -> void:
 		data["name"], mob.hp, mob.max_hp,
 		weak, resist, data["desc"],
 	]
+	if data["role"] == "wizard":  # a wizard's spells, each in the colour of its school
+		var lines := ""
+		for spell_name: String in WizardBrain.KNOWN:
+			var colour: Color = SpellData.SCHOOL_COLORS[SpellData.SPELLS[spell_name]["school"]]
+			lines += "\n[color=#%s]%s[/color]" % [colour.lightened(0.15).to_html(false), spell_name]
+		_insight_text.text += "\n\nKnows:" + lines
 	_insight_tip.position = get_viewport().get_mouse_position() + Vector2(18, 18)
 
 

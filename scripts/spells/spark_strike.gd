@@ -14,11 +14,19 @@ var _struck := false
 func _begin(origin: Vector2, _aim_angle: float) -> void:
 	material = Fx.additive()  # lightning adds light to what is behind it
 	_life = LIFE
-	var ground := SpellTargets.ground_below(get_world_2d(), Vector2(origin.x, ArenaGen.WALL_TOP * ArenaGen.TILE), 2000.0)
-	global_position = Vector2(origin.x, ground.y - SKY)
+	# Under a roof the strike comes down from the roof, not from the sky above it.
+	var start := Vector2(origin.x, ArenaGen.WALL_TOP * ArenaGen.TILE)
+	var roof_query := PhysicsRayQueryParameters2D.create(origin, origin + Vector2(0, -SKY))
+	roof_query.collision_mask = 1
+	var roof := get_world_2d().direct_space_state.intersect_ray(roof_query)
+	if not roof.is_empty():
+		start = Vector2(origin.x, roof["position"].y + 4.0)
+	var ground := SpellTargets.ground_below(get_world_2d(), start, 2000.0)
+	var height := clampf(ground.y - start.y, 40.0, SKY)
+	global_position = Vector2(origin.x, ground.y - height)
 	var rect := RectangleShape2D.new()
-	rect.size = Vector2(16, SKY)
-	_add_shape(rect, Vector2(0, SKY * 0.5))
+	rect.size = Vector2(16, height)
+	_add_shape(rect, Vector2(0, height * 0.5))
 	# The bolt is a pixel-art strike drawn twice its size, standing on the ground where it lands.
 	var strike := PixelFx.play(get_parent(), ground + Vector2(0, 6), "lightning", 24.0, 2.0, Color(1.0, 1.0, 0.85), true)
 	strike.z_index = 7
@@ -26,6 +34,8 @@ func _begin(origin: Vector2, _aim_angle: float) -> void:
 	Fx.impact(get_parent(), ground, Color("#ffe85a"), 50.0)
 	Fx.burst(get_parent(), ground, Color("#ffe85a"), 20, 240.0, 0.4, true, "spark_04")
 	Sfx.play("spark", ground)
+	for shoal: Piranhas in get_tree().get_nodes_in_group("shoals"):
+		shoal.shock(ground - Vector2(0, 20))  # lightning in the water kills the fish
 	GameCamera.shake_scene(get_tree(), 0.25)
 
 

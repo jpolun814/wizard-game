@@ -102,3 +102,23 @@ and are no longer drawn by the game.
 
 ## The pyre and bone wizards (art/chars/pyre_wizard, art/chars/bone_wizard)
 - **Evil Wizard** and **Evil Wizard 3:** LuizMelo (luizmelo.itch.io/evil-wizard, luizmelo.itch.io/evil-wizard-3), CC0. Cut by tools/prepare_gothic_art.py.
+
+## Biome backdrops and snow (art/backgrounds/mountains, tundra, ashlands; art/tiles/snow.png)
+
+- Derived from the Gothicvania Cemetery backdrop and the ice tiles by ansimuz, CC0, recoloured by tools/prepare_biome_backdrops.py.
+
+## Castle brick (art/tiles/castle_brick.png)
+
+- Made by tools/prepare_castle_brick.py in the colours of the stonework of the Gothicvania Church hall by ansimuz, CC0.
+
+## Piranhas (art/mobs/piranha)
+
+- Recoloured from the red fish of "Swimming Fish" by Mepavi @ You're Perfect Studio (opengameart.org/content/swimming-fish), CC0 / CC-BY 4.0, by tools/prepare_piranha.py.
+
+## Castle doors (art/props/door.png)
+
+- The front-on wooden door of "LPC Animated Doors" by Lanea Zimmerman (Sharm) (opengameart.org/content/lpc-animated-doors), CC-BY 3.0, cut by tools/prepare_doors.py.
+
+## Bonfire logs (art/props/bonfire_logs.png)
+
+- The unlit campfire (logs ringed with stones) from "Idylwild's Chromatic Campfires" by Idylwild (opengameart.org/content/idylwilds-chromatic-campfires), CC0.

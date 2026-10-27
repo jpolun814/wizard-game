@@ -8,6 +8,10 @@ signal debuff_applied(kind: String)
 signal died
 
 const SPEED := 300.0
+const BREATH := 8.0  # seconds under water before the wizard starts to drown
+const DEEP_BREATH := 45.0  # seconds the Chant of the Deep Breath holds the wizard's breath: it counts down from the chant
+const DROWN_RATE := 3.0  # most stamina lost per second while out of breath, and it does not come back by itself
+const HASTE := 1.6  # how much faster the Chant of Swift Feet makes the wizard
 const JUMP_VELOCITY := -520.0
 const JUMP_COST := 5.0  # stamina a jump takes; with less than this, you can't jump
 const RUN_COST := 0.12   # stamina per second of walking or running on the ground
@@ -38,13 +42,17 @@ var movement_enabled := true  # the arena turns this off while a typing box or t
 var infinite_time := 0.0  # Chant of Boundless Vigour: stamina does not run out while this lasts
 var slow_time := 0.0  # frost slows the caster while this lasts
 var sink_time := 0.0  # quicksand: slowed, and unable to jump while this lasts
+var tangle_time := 0.0  # caught in thorns: nearly stopped, and unable to jump while this lasts
+var deep_breath_time := 0.0  # the Chant of the Deep Breath: the breath is held while this lasts, under water or not
+var breath := BREATH  # seconds of air left under water
+var haste_time := 0.0  # the Chant of Swift Feet: faster on foot while this lasts
 var air_jump_time := 0.0  # the Chant of the Second Leap: a jump in the air is allowed while this lasts
 var air_jump_ready := false  # the air jump is spent by one use, and comes back when the wizard lands
 var _shove := Vector2.ZERO  # a Push on the caster: slides them for a moment, then fades
 var mute_time := 0.0          # no rituals while above zero
 var root_time := 0.0          # no walking or jumping while above zero
 var _stuck_time := 0.0         # how long a giant's stomp has the player stuck in the ground
-var _sink_material: ShaderMaterial  # cuts the body off at the waist while stuck, so it looks sunk into the ground
+var _wet_material: ShaderMaterial  # cuts the body off at the waist while stuck, and colours the part under water or lava
 var blind_time := 0.0         # the caster's gesture trail is hidden while above zero
 var dead := false
 var _shield_time := 0.0
@@ -54,6 +62,8 @@ var facing := 1.0
 var _flash := 0.0        # red flash after being hit
 var _liquid := Color.WHITE  # the colour of the water or lava the wizard stands in
 var _liquid_time := 0.0
+var _liquid_y := INF  # the height of the surface of that liquid
+var _in_lava := false
 var _grace := 0.0        # time left of the safety after a hit
 var _coyote := 0.0
 var _jump_buffer := 0.0
@@ -79,6 +89,9 @@ func _ready() -> void:
 	_dress_for_focus()
 	_sprite.offset = Vector2(0, -PixelArt.CHARACTERS["wizard"]["size"].y * 0.5)  # the frames' bottom edge is the feet
 	_sprite.play("idle")
+	_wet_material = ShaderMaterial.new()
+	_wet_material.shader = load("res://scripts/wet.gdshader")
+	_sprite.material = _wet_material
 	# The staff's head glows in the school's colour while a stroke is being drawn.
 	_glow = Sprite2D.new()
 	_glow.texture = Fx.tex("circle_05")
@@ -212,17 +225,40 @@ func take_damage(amount: int, grace_hit := true, projectile := false) -> void:
 	GameCamera.shake_scene(get_tree(), 0.35 + amount * 0.02)
 	FloatText.spawn(get_parent(), center() + Vector2(0, -24), "-%d" % amount, Color("#ff5a5a"), 1.1)
 	damaged.emit(amount)
-	if max_stamina <= 0.0:
+	_check_death()
+
+
+func _check_death() -> void:
+	if max_stamina <= 0.0 and not dead:
 		max_stamina = 0.0
 		dead = true
 		movement_enabled = false
 		died.emit()
 
 
-## Standing in water or lava: the wizard is tinted its colour for a moment after each call, so leaving it fades back at once.
-func soak(tint: Color) -> void:
+## Standing in water or lava: the part of the wizard below the surface takes its colour for a moment after each call, so
+## leaving it fades back at once.
+func soak(tint: Color, surface_y := INF, lava := false) -> void:
 	_liquid = tint
+	_liquid_y = surface_y
+	_in_lava = lava
 	_liquid_time = 0.15
+
+
+## True when the wizard's head is under the surface of water.
+func underwater() -> bool:
+	return _liquid_time > 0.0 and not _in_lava and global_position.y - BODY_HEIGHT + 10.0 > _liquid_y
+
+
+## True while the wizard holds their breath: no air is used up under water, and gas does no harm.
+func holding_breath() -> bool:
+	return deep_breath_time > 0.0
+
+
+## The chant cannot be said under water, so the lungs are full when it takes hold, and breathing starts again, full, when it ends.
+func grant_deep_breath(seconds: float) -> void:
+	deep_breath_time = seconds
+	breath = BREATH
 
 
 func apply_debuff(kind: String, seconds: float) -> void:
@@ -240,6 +276,8 @@ func apply_debuff(kind: String, seconds: float) -> void:
 			slow_time = maxf(slow_time, seconds)
 		"sink":
 			sink_time = maxf(sink_time, seconds)
+		"tangle":
+			tangle_time = maxf(tangle_time, seconds)
 	debuff_applied.emit(kind)
 
 
@@ -266,12 +304,49 @@ func status_text() -> String:
 
 ## A soft shadow on the ground under the wizard. It shrinks and fades the higher the wizard is above the ground.
 func _draw() -> void:
+	_draw_breath()
 	var below := _ground_distance()
 	if below < 0.0:
 		return
 	var fade := clampf(1.0 - below / 160.0, 0.0, 1.0)
 	var width := 15.0 * (0.6 + 0.4 * fade)
 	_draw_ellipse(Vector2(0, below), width, width * 0.28, Color(0, 0, 0, 0.32 * fade))
+
+
+## Air under water: a row of bubbles over the head, one for each second left.
+func _draw_breath() -> void:
+	if dead:
+		return
+	var bubble := Fx.tex("circle_05")
+	if not holding_breath() and not underwater() and breath >= BREATH:
+		return  # the bar shows while the breath is held, under water, and while the lungs fill again
+	var left := deep_breath_time if holding_breath() else breath  # the held breath, when there is one, in place of the air
+	var count := ceili(maxf(left, 0.0))
+	var width := minf(14.0, 160.0 / maxf(count, 1.0))
+	var size := minf(10.0, width - 1.0)
+	for i in count:
+		var at := Vector2((i - (count - 1) * 0.5) * width, -BODY_HEIGHT - 20.0)
+		draw_texture_rect(bubble, Rect2(at - Vector2(size, size) * 0.5, Vector2(size, size)), false, Color(0.75, 0.92, 1.0, 0.9))
+	if left <= 0.0:
+		draw_texture_rect(bubble, Rect2(Vector2(-6, -BODY_HEIGHT - 26.0), Vector2(12, 12)), false, Color(1.0, 0.4, 0.4, 0.9))
+
+
+## Under water the air runs down, and once it is gone the most stamina does too, until the wizard surfaces. That loss is
+## only made good the usual ways.
+func _breathe(delta: float) -> void:
+	if dead:
+		return
+	if holding_breath():
+		breath = BREATH
+	elif underwater():
+		if breath > 0.0:
+			breath = maxf(breath - delta, 0.0)
+		else:
+			max_stamina -= DROWN_RATE * delta
+			stamina = minf(stamina, maxf(max_stamina, 0.0))
+			_check_death()
+	else:
+		breath = minf(breath + delta * BREATH * 2.0, BREATH)
 
 
 ## How far below the feet the ground is, or -1 if there is none within reach.
@@ -309,7 +384,11 @@ func _physics_process(delta: float) -> void:
 	blind_time -= delta
 	slow_time -= delta
 	sink_time -= delta
+	tangle_time -= delta
 	air_jump_time -= delta
+	haste_time -= delta
+	deep_breath_time -= delta
+	_breathe(delta)
 	if is_on_floor():
 		air_jump_ready = true
 	infinite_time -= delta
@@ -333,12 +412,12 @@ func _physics_process(delta: float) -> void:
 	if can_move:
 		if Input.is_action_just_pressed("jump"):
 			_jump_buffer = JUMP_BUFFER
-		if _jump_buffer > 0.0 and _coyote > 0.0 and sink_time <= 0.0 and spend(JUMP_COST):
+		if _jump_buffer > 0.0 and _coyote > 0.0 and sink_time <= 0.0 and tangle_time <= 0.0 and spend(JUMP_COST):
 			velocity.y = JUMP_VELOCITY
 			_jump_buffer = 0.0
 			_coyote = 0.0
 			Sfx.play("jump", global_position)
-		elif _jump_buffer > 0.0 and air_jump_time > 0.0 and air_jump_ready and sink_time <= 0.0 and not is_on_floor():
+		elif _jump_buffer > 0.0 and air_jump_time > 0.0 and air_jump_ready and sink_time <= 0.0 and tangle_time <= 0.0 and not is_on_floor():
 			# The second leap: a jump in the air, free of stamina, once per landing.
 			velocity.y = JUMP_VELOCITY * 0.9
 			_jump_buffer = 0.0
@@ -348,7 +427,7 @@ func _physics_process(delta: float) -> void:
 		if Input.is_action_just_released("jump") and velocity.y < JUMP_VELOCITY * 0.4:
 			velocity.y = JUMP_VELOCITY * 0.4
 		# Walking is free; running drains stamina. With none left you still walk, at half speed.
-		var speed := (SPEED if stamina > 0.0 else SPEED * 0.5) * (0.5 if slow_time > 0.0 else 1.0) * (0.4 if sink_time > 0.0 else 1.0)
+		var speed := (SPEED if stamina > 0.0 else SPEED * 0.5) * (0.5 if slow_time > 0.0 else 1.0) * (0.4 if sink_time > 0.0 else 1.0) * (0.3 if tangle_time > 0.0 else 1.0) * (HASTE if haste_time > 0.0 else 1.0)
 		velocity.x = Input.get_axis("move_left", "move_right") * speed
 		if is_on_floor() and absf(velocity.x) > 10.0 and stamina > 0.0:
 			drain(RUN_COST * delta)
@@ -360,7 +439,7 @@ func _physics_process(delta: float) -> void:
 	_shove = _shove.move_toward(Vector2.ZERO, 1500.0 * delta)
 
 	# Walking into a ledge one tile high: a small hop lifts the wizard up it, so slopes and steps are walkable.
-	if is_on_floor() and is_on_wall() and absf(velocity.x) > 10.0 and not dead and sink_time <= 0.0:
+	if is_on_floor() and is_on_wall() and absf(velocity.x) > 10.0 and not dead and sink_time <= 0.0 and tangle_time <= 0.0:
 		velocity.y = minf(velocity.y, -330.0)
 	move_and_slide()
 	# A character pushed out of the map's sides is put back inside.
@@ -407,6 +486,10 @@ func _climb() -> bool:
 
 
 ## Chant of the Second Leap: one extra jump in the air, for a while.
+func grant_haste(seconds: float) -> void:
+	haste_time = maxf(haste_time, seconds)
+
+
 func grant_air_jump(seconds: float) -> void:
 	air_jump_time = maxf(air_jump_time, seconds)
 	air_jump_ready = true
@@ -441,12 +524,7 @@ func free_from_ground() -> void:
 func stick_in_ground(seconds: float) -> void:
 	apply_debuff("root", seconds)
 	_stuck_time = maxf(_stuck_time, seconds)
-	if _sink_material == null:
-		var shader := Shader.new()
-		shader.code = "shader_type canvas_item;\nuniform float keep = 0.7;\nvoid fragment() {\n\tif (UV.y > keep) {\n\t\tdiscard;\n\t}\n\tCOLOR = texture(TEXTURE, UV) * COLOR;\n}\n"
-		_sink_material = ShaderMaterial.new()
-		_sink_material.shader = shader
-	_sprite.material = _sink_material
+	_wet_material.set_shader_parameter("keep", 0.7)
 	# The cut is 57 px above the frame's bottom, so this drops the cut onto the ground: the body is in the ground from there down.
 	_sprite.position = Vector2(0, 57)
 
@@ -454,7 +532,7 @@ func stick_in_ground(seconds: float) -> void:
 ## Lets the player out of the ground, as a throw does.
 func unstick() -> void:
 	_stuck_time = 0.0
-	_sprite.material = null
+	_wet_material.set_shader_parameter("keep", 2.0)
 	_sprite.position = Vector2.ZERO
 
 
@@ -507,8 +585,10 @@ func _animate(delta: float) -> void:
 	# After a hit the wizard blinks while it can't be hurt again.
 	var blink := _grace > 0.0 and int(_grace * 20.0) % 2 == 0
 	_liquid_time = maxf(_liquid_time - delta, 0.0)
-	var wet := _liquid if _liquid_time > 0.0 else Color.WHITE
-	_sprite.modulate = Color(1.0, 0.45, 0.45) if _flash > 0.0 else Color(wet.r, wet.g, wet.b, 0.55 if blink else 1.0)
+	var wet := _liquid_time > 0.0
+	_wet_material.set_shader_parameter("water_y", _liquid_y if wet else 1000000.0)
+	_wet_material.set_shader_parameter("water_tint", _liquid)
+	_sprite.modulate = Color(1.0, 0.45, 0.45) if _flash > 0.0 else Color(1.0, 1.0, 1.0, 0.55 if blink else 1.0)
 
 
 ## Called when a spell goes off: the wizard thrusts its staff forward once.

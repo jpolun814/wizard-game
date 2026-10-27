@@ -22,6 +22,7 @@ shape = SubResource("3")
 [node name="Camera2D" type="Camera2D" parent="."]
 offset = Vector2(0, -60)
 zoom = Vector2(1.5, 1.5)
+process_callback = 0
 position_smoothing_enabled = true
 position_smoothing_speed = 7.0
 limit_left = -1184

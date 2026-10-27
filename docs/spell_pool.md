@@ -76,7 +76,7 @@ lowers the whole window (see the main design doc). All numbers are provisional.
 
 | Spell | Shape | Pictures | Counter | Tags | Stamina |
 |---|---|---|---|---|---|
-| Bramble | low sawtooth row of thorns | a thicket that slows and pricks | fire | block path | 14-28 |
+| Bramble | low sawtooth row of thorns | a thicket that slows to a crawl and pricks with every step | fire | block path | 14-28 |
 | Spore Puff | cone, `<` (as Fire Breath, on the Flora buttons) | poison spores poured from your mouth that drift and linger | Gust clears it | | 14-26 |
 | Liana | leaf and line: an almond on its point, then a line up from it | a vine that grows to a ledge or ceiling; climb it, or ride it across a gap | fire burns it | reach height, cross gap | 12-24 |
 | Great Oak | tall trunk drawn up, ending in a big round crown | branches you can stand on; a wall until broken; then it falls ("Timber!") and crushes everything beneath it, you included | fire, Earthquake, Stonefall; it creaks and leans before it falls | reach height, block path | 45-60 |

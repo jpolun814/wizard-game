@@ -9,8 +9,8 @@
   - **ranged:** goblin. Stops in range, charges a glowing orb for 0.45 s, then throws.
   - **flyer:** flying eye. Patrols above, hovers and shakes for 0.4 s (the warning), dives, then retreats.
   - **wizard:** the dark wizard (below).
-  - **ninja:** a ranged walker at 3x scale (`effect` "acrobatic"). Throws a star (a shot) every 1.5 s from up to 300 px away, flipping as it throws. When you come within 110 px it springs away in a backflip. Hops and flips about on its own. Throws bursts of five stars with a short wind-up. Comes in packs of 12.
-  - **giant:** a melee walker (`effect` "smash") at 6x scale. It draws its leg back for 0.9 s, then stomps the ground in front of it. The first stomp that catches the player sticks them in the ground for 3 s (their body sinks out of sight); a stomp that catches them while stuck throws them far away. The stomp breaks any stone wall or boulder there, hurts other enemies close by, and knocks the player back. It also smashes a wall that blocks its path, even with you out of reach.
+  - **ninja:** a fast ranged walker (`effect` "ninja"). Runs at you and throws bursts of five stars with a short wind-up; within 70 px it cuts with its sword. Its stars fly through other ninjas (`spare_kin`). It is meant to be an elite: a pack of 12. It does not flip or hop about.
+  - **giant:** a melee walker (`effect` "smash") at 4x scale. It draws its leg back for 0.9 s, then stomps the ground in front of it. The first stomp that catches the player sticks them in the ground for 3 s (their body sinks out of sight); a stomp that catches them while stuck throws them far away. The stomp breaks any stone wall or boulder there, hurts other enemies close by, and knocks the player back. It also smashes a wall that blocks its path, even with you out of reach.
 
 ## Design rules for enemies
 
@@ -53,7 +53,7 @@ It's the owner's favourite part. It plays like a skilled human:
 
 ## Where enemies come from
 
-There are no waves. Enemies will be placed on the world map and attack once they notice the player. Dying ends the run; R or a click starts a new one.
+There are no waves. Enemies are not placed in the world yet; the map comes first. Dying ends the run; R or a click starts a new one.
 
 ## Improvement ideas the owner may like
 

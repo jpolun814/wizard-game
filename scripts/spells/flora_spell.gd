@@ -42,7 +42,7 @@ func _ignite(box: Rect2) -> void:
 	var up := clampi(int(box.size.y / 60.0) + 1, 1, 3)
 	for row in up:
 		for i in across:
-			var flame := PixelFx.sprite("fire_puff", 13.0 + (i + row) % 3 * 2.0)
+			var flame := PixelFx.sprite("fire_puff", 13.0 + (i + row) % 3 * 2.0, true, 1)
 			flame.offset = Vector2(0, -PixelArt.FX["fire_puff"]["size"].y * 0.5)
 			flame.frame = (i * 2 + row * 3) % 7
 			flame.flip_h = (i + row) % 2 == 1

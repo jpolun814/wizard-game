@@ -132,6 +132,17 @@ static func sight_blocked(tree: SceneTree, from: Vector2, to: Vector2) -> bool:
 	return false
 
 
+## True when a light shines on a place: a flare close enough to light it, or a fire burning near it.
+static func lit_near(tree: SceneTree, point: Vector2, reach: float) -> bool:
+	for flare in tree.get_nodes_in_group("flares"):
+		if flare.global_position.distance_to(point) < Flare.LIGHT_RADIUS * 0.6 + reach:
+			return true
+	for fire in fire_points(tree):
+		if fire["at"].distance_to(point) < 160.0 + reach + maxf(fire["size"], 0.0):
+			return true
+	return false
+
+
 static func _lit_by_flare(tree: SceneTree, point: Vector2) -> bool:
 	for flare in tree.get_nodes_in_group("flares"):
 		if flare.global_position.distance_to(point) < Flare.LIGHT_RADIUS:

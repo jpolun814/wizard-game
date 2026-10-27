@@ -8,6 +8,7 @@ extends Area2D
 
 const ICE_THICKNESS := 14.0
 const ICE_SECONDS := 30.0
+const EDGE := 28.0  # how far past its columns the fill reaches, to meet the smoothed edges of the hollow
 const TICK := 0.5
 const LAVA_DAMAGE := 8
 const ICE_TEXTURE := preload("res://art/props/ice_fill.png")
@@ -19,6 +20,8 @@ var clip: Array = []  # outlines of the open air, in world pixels: when given, t
 var _slabs: Array[Dictionary] = []  # each {"body": StaticBody2D, "x0": float, "x1": float, "age": float}
 var _tick := 0.0
 var _t := 0.0
+var _pieces: Array = []  # the pool's fill, cut to the hollow it sits in: worked out once, since the cave never changes
+var _seen := true        # false while the pool is off screen: nothing about it is drawn or animated then
 
 
 func _ready() -> void:
@@ -35,19 +38,27 @@ func _ready() -> void:
 		add_to_group("fires")
 		add_to_group("danger")
 	add_to_group("ponds")
+	_pieces = _hollow()
+	var notifier := VisibleOnScreenNotifier2D.new()
+	notifier.rect = Rect2(-EDGE - 16.0, -32.0, width + EDGE * 2.0 + 32.0, depth + 48.0)
+	notifier.screen_entered.connect(func() -> void: _seen = true; queue_redraw())
+	notifier.screen_exited.connect(func() -> void: _seen = false)
+	add_child(notifier)
+	_seen = false  # the notifier tells when it is on screen
 
 
 func _physics_process(delta: float) -> void:
 	_t += delta
 	_tick -= delta
-	queue_redraw()
+	if _seen:
+		queue_redraw()
 	var tick := _tick <= 0.0
 	if tick:
 		_tick = TICK
 	for body in get_overlapping_bodies():
 		if not SpellTargets.affects(body) or _flies(body) or _on_ice(body):
 			continue
-		body.soak(Color(1.0, 0.55, 0.3) if lava else Color(0.55, 0.75, 1.0))
+		body.soak(Color(1.0, 0.55, 0.3) if lava else Color(0.55, 0.75, 1.0), global_position.y, lava)
 		if lava:
 			if tick:
 				SpellTargets.hurt(body, LAVA_DAMAGE, "Fire")
@@ -119,11 +130,34 @@ func _age_ice(delta: float) -> void:
 			slab["body"].queue_free()
 			Fx.smoke(get_parent(), box.get_center(), Color(0.85, 0.95, 1.0, 0.5), 5, 24.0, 30.0)
 			_slabs.remove_at(i)
-	queue_redraw()
+	if _seen:
+		queue_redraw()
 
 
 func danger_at(point: Vector2) -> bool:
 	return lava and point.x >= global_position.x and point.x <= global_position.x + width and point.y > global_position.y - 20.0
+
+
+## The pool's fill, cut to the open air round it when there are cave outlines to cut it to.
+func _hollow() -> Array:
+	# A little wider than the pool: the smoothed edges of the hollow bulge past the columns it is dug in, and the fill is cut to the hollow anyway.
+	var fill := PackedVector2Array([Vector2(-EDGE, 2), Vector2(width + EDGE, 2), Vector2(width + EDGE, depth), Vector2(-EDGE, depth)])
+	if clip.is_empty():
+		return [fill]
+	var window := Rect2(global_position - Vector2(16.0, 16.0), Vector2(width + 32.0, depth + 32.0))
+	var pieces := []
+	for outline: PackedVector2Array in clip:
+		var bounds := Rect2(outline[0], Vector2.ZERO)
+		for point in outline:
+			bounds = bounds.expand(point)
+		if not bounds.intersects(window):
+			continue  # an outline whose box misses this pool cannot cut it (its points are far apart, so its box is what counts)
+		var local := PackedVector2Array()
+		for point in outline:
+			local.append(point - global_position)
+		for part: PackedVector2Array in Geometry2D.intersect_polygons(fill, local):
+			pieces.append(part)
+	return pieces
 
 
 ## The pool: a solid fill, lighter at the surface, with a moving bright edge, and ice where it is frozen.
@@ -131,26 +165,18 @@ func _draw() -> void:
 	var top := Color(1.0, 0.5, 0.12) if lava else Color(0.2, 0.46, 0.72)
 	var bottom := Color(0.55, 0.1, 0.05) if lava else Color(0.07, 0.18, 0.38)
 	var rim := Color(1.0, 0.8, 0.3) if lava else Color(0.75, 0.92, 1.0)
-	var fill := PackedVector2Array([Vector2(0, 2), Vector2(width, 2), Vector2(width, depth), Vector2(0, depth)])
-	var pieces: Array = [fill]
-	if not clip.is_empty():
-		pieces = []
-		for outline: PackedVector2Array in clip:
-			var local := PackedVector2Array()
-			for point in outline:
-				local.append(point - global_position)
-			for part: PackedVector2Array in Geometry2D.intersect_polygons(fill, local):
-				pieces.append(part)
-	for part: PackedVector2Array in pieces:
+	for part: PackedVector2Array in _pieces:
 		var colors := PackedColorArray()
 		for point in part:
 			colors.append(top.lerp(bottom, clampf(point.y / depth, 0.0, 1.0)))
 		draw_polygon(part, colors)
 	var surface := PackedVector2Array()
-	for i in int(width / 8.0) + 1:
-		var x := minf(i * 8.0, width)
+	for i in int((width + EDGE * 2.0) / 8.0) + 1:
+		var x := minf(i * 8.0, width + EDGE * 2.0) - EDGE
 		surface.append(Vector2(x, 1.0 + sin(_t * 2.0 + x * 0.08) * 1.5))
-	draw_polyline(surface, rim, 2.0)
+	for part: PackedVector2Array in _pieces:  # the bright edge only where there is hollow for it, never over the ground
+		for line: PackedVector2Array in Geometry2D.intersect_polyline_with_polygon(surface, part):
+			draw_polyline(line, rim, 2.0)
 	for slab in _slabs:
 		var rect := Rect2(slab["x0"] - global_position.x, 0, slab["x1"] - slab["x0"], ICE_THICKNESS)
 		draw_texture_rect(ICE_TEXTURE, rect, true, Color(0.85, 0.95, 1.0))

@@ -21,16 +21,35 @@ const PLACES := {
 		["res://art/backgrounds/swamp/woods.png", Vector2(0.22, 1.0), 290.0, 0.0, false, 2.0],
 		["res://art/backgrounds/swamp/near.png", Vector2(0.45, 1.0), 260.0, 0.0, false, 2.0],
 	]},
+	# The surface biomes of the generated world, each with a sky and two ranges of scenery of its own. The far range is drawn big, so it
+	# reads as mountains; the near one is the ground's own horizon.
+	"mountains": {"sky": "res://art/backgrounds/mountains/sky.png", "fill": Color("#101828"), "layers": [
+		["res://art/backgrounds/mountains/far.png", Vector2(0.10, 1.0), 214.0, 0.0, false, 2.6],
+		["res://art/backgrounds/mountains/far.png", Vector2(0.22, 1.0), 218.0, 0.0, false, 1.7],
+		["res://art/backgrounds/mountains/near.png", Vector2(0.4, 1.0), 222.0, 0.0, false, 1.2],
+	]},
+	"tundra": {"sky": "res://art/backgrounds/tundra/sky.png", "fill": Color("#123a4a"), "layers": [
+		["res://art/backgrounds/tundra/far.png", Vector2(0.10, 1.0), 214.0, 0.0, false, 1.9],
+		["res://art/backgrounds/tundra/near.png", Vector2(0.35, 1.0), 222.0, 0.0, false, 1.2],
+	]},
+	"ashlands": {"sky": "res://art/backgrounds/ashlands/sky.png", "fill": Color("#1a0606"), "layers": [
+		["res://art/backgrounds/ashlands/far.png", Vector2(0.10, 1.0), 214.0, 0.0, false, 2.1],
+		["res://art/backgrounds/ashlands/near.png", Vector2(0.35, 1.0), 222.0, 0.0, false, 1.2],
+	]},
 	"church": {"sky": "", "fill": Color("#272638"), "layers": [
 		["res://art/backgrounds/church/hall.png", Vector2(0.3, 1.0), 212.0, 0.0, true, 2.0],
 	]},
 }
 
+const FLOOR := 222.0  # where the cemetery's ground line sits in the pictures' own numbers
+
 var place := "cemetery"
+var _sky_parts: Array[Control] = []
 
 
-## Builds the sky and the layers for one place. Call after adding it to the tree.
-func build(backdrop: String) -> void:
+## Builds the sky and the layers for one place. Call after adding it to the tree. In a world with ground of its own, ground_y is the
+## height of the plains: the scenery is set on it.
+func build(backdrop: String, ground_y := -1.0) -> void:
 	place = backdrop
 	var spec: Dictionary = PLACES[place]
 	z_index = -50
@@ -40,12 +59,15 @@ func build(backdrop: String) -> void:
 		var zoom: float = layer[5]
 		var size := texture.get_size() * zoom
 		var parallax := Parallax2D.new()
+		var bottom: float = layer[2]
 		parallax.scroll_scale = layer[1]
+		if ground_y >= 0.0:
+			bottom += ground_y - FLOOR  # set on the plains: from a high peak only the sky shows, as a peak should
 		parallax.repeat_size = Vector2(size.x, 0)
 		parallax.repeat_times = ceili(2400.0 / size.x)
 		parallax.autoscroll = Vector2(layer[3], 0)
 		add_child(parallax)
-		var top: float = layer[2] - size.y
+		var top: float = bottom - size.y
 		var sprite := Sprite2D.new()
 		sprite.texture = texture
 		sprite.centered = false
@@ -61,7 +83,16 @@ func build(backdrop: String) -> void:
 		if layer[4] and above.a > 0.9:
 			_band(parallax, Rect2(0.0, top - 600.0, size.x, 600.0), above)
 		if below.a > 0.9:
-			_band(parallax, Rect2(0.0, layer[2] - 1.0, size.x, 600.0), below)
+			_band(parallax, Rect2(0.0, bottom - 1.0, size.x, 6000.0), below)
+
+
+## How much of the place shows: 0 hides it, 1 is all of it. A world fades one place into the next as the wizard walks between biomes.
+func set_opacity(amount: float) -> void:
+	visible = amount > 0.01
+	modulate.a = amount
+	for part in _sky_parts:
+		part.visible = amount > 0.01
+		part.modulate.a = amount
 
 
 func _band(parent: Node, rect: Rect2, colour: Color) -> void:
@@ -78,6 +109,7 @@ func _build_sky(spec: Dictionary) -> void:
 	sky_layer.layer = -20
 	add_child(sky_layer)
 	var fill := ColorRect.new()
+	_sky_parts.append(fill)
 	fill.color = spec["fill"]
 	fill.set_anchors_preset(Control.PRESET_FULL_RECT)
 	fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -91,3 +123,4 @@ func _build_sky(spec: Dictionary) -> void:
 	sky.set_anchors_preset(Control.PRESET_FULL_RECT)
 	sky.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	sky_layer.add_child(sky)
+	_sky_parts.append(sky)

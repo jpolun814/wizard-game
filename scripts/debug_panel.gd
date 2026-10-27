@@ -38,6 +38,21 @@ func _ready() -> void:
 	column.add_child(tools)
 	tools.add_child(_button("Clear enemies", func() -> void: arena.clear_enemies()))
 	tools.add_child(_button("Refill", _refill))
+	tools.add_child(_button("All spells", func() -> void: arena.learn_every_page()))
+	if arena.has_method("open_gates"):
+		tools.add_child(_button("Rift into locked areas", func() -> void: arena.open_gates()))
+	if arena.has_method("gate_kinds"):
+		var heading := Label.new()
+		heading.text = "Go to a gate (each press, the next one)"
+		heading.add_theme_font_size_override("font_size", 13)
+		column.add_child(heading)
+		var gates := GridContainer.new()
+		gates.columns = 3
+		gates.add_theme_constant_override("h_separation", 4)
+		gates.add_theme_constant_override("v_separation", 4)
+		column.add_child(gates)
+		for kind: String in arena.gate_kinds():
+			gates.add_child(_button(kind.capitalize(), arena.go_to_gate.bind(kind)))
 
 
 func _button(text: String, action: Callable) -> Button:

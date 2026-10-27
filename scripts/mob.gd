@@ -31,7 +31,7 @@ const KINDS := {
 	"storm_flyer": {"name": "Flying Wind", "desc": "Dives, then flies away.", "role": "flyer", "art": "eye", "hp": 22, "school": "Air", "weak": "Earth", "resist": "Air", "damage": 8, "speed": 1.4, "effect": ""},
 	"dummy": {"name": "Dummy", "desc": "Never falls. Test your spells on it.", "role": "melee", "art": "skeleton", "hp": 300, "school": "", "weak": "", "resist": "", "damage": 0, "speed": 0.0, "effect": "dummy"},
 	"turret": {"name": "Turret", "desc": "Never falls. Fires plain bolts.", "role": "ranged", "art": "goblin", "hp": 300, "school": "", "weak": "", "resist": "", "damage": 0, "speed": 0.0, "effect": "dummy", "shot": {"interval": 2.0, "damage": 6}},
-	"ninja": {"name": "Ninja", "desc": "Fragile and quick. Throws stars in a pack.", "role": "ranged", "art": "ninja", "scale": 1.0, "hp": 14, "school": "", "weak": "", "resist": "", "damage": 0, "speed": 2.4, "effect": "acrobatic", "shot": {"interval": 1.6, "damage": 5, "art": "ninja_star", "burst": 5, "charge": 0.06}},
+	"ninja": {"name": "Ninja", "desc": "Fragile and quick. Throws stars.", "role": "ranged", "art": "ninja", "scale": 1.0, "hp": 14, "school": "", "weak": "", "resist": "", "damage": 0, "speed": 2.4, "effect": "ninja", "shot": {"interval": 1.6, "damage": 5, "art": "ninja_star", "burst": 5, "charge": 0.06, "spare_kin": true}},
 	"giant": {"name": "Giant", "desc": "Slow and tough. Smashes stone walls.", "role": "melee", "art": "giant", "scale": 4.0, "hp": 260, "school": "", "weak": "", "resist": "", "damage": 30, "speed": 0.75, "effect": "smash"},
 }
 const SPEED := 80.0
@@ -47,12 +47,7 @@ const SMASH_WALL_DAMAGE := 200.0  # a smash breaks a stone wall or a boulder out
 const SMASH_MOB_DAMAGE := 20  # and hurts any other enemy close to it
 const SMASH_STUCK := 3.0      # the first stomp sticks the player in the ground this long
 const SMASH_SPOTS := 8        # the ground the stomp lands on is marked at this many points, from the giant out
-const FLIP_TIME := 0.45      # a ninja's backflip, from the moment it leaves the ground to landing
-const LEAP_SPEED := 380.0    # how hard a ninja springs away, or hops about, in a flip
-const STUNT_MIN := 0.6       # a ninja hops and flips about on its own, this often
-const STUNT_MAX := 1.5
 const BURST_GAP := 0.09      # the gap between the stars of one burst
-const LEAP_RANGE := 110.0    # a ninja this close to the player leaps away in a flip
 const GIANT_JUMP := -640.0    # a giant leaps higher than a plain walker: onto ledges, and over walls
 const SLASH_RANGE := 70.0    # a ninja this close to the player strikes with its sword
 const SLASH_DAMAGE := 6
@@ -124,17 +119,16 @@ var _relight := 0.0  # seconds until the flame is lit again after a freeze
 var _base_scale := 1.0
 var _lunge := 0.0        # 1 the moment an enemy attacks, fading to 0: it lunges toward the player
 var _windup := 0.0       # counting down to a melee hit
-var _flip := 0.0         # counting down a ninja's backflip
 var _stuck := 0.0        # how long a giant has been held up by a ledge
 var _last_x := 0.0       # where a giant was last frame, to tell whether it is moving
 var _slash_cd := 0.0     # counting down to a ninja's next katana strike
-var _stunt := 0.5        # counting down to the ninja's next hop and flip
 var _burst_left := 0     # stars still to throw in the burst being thrown
 var _burst_gap := 0.0    # counting down to the next star of the burst
 var _charge := 0.0       # counting down to a shot
 var _flash := 0.0
 var _liquid := Color.WHITE  # the colour of the water or lava it stands in
 var _liquid_time := 0.0
+var _liquid_y := INF  # the height of the surface of that liquid
 var _spawn := SPAWN_TIME
 var _trail_timer := 0.0
 var _touch_timer := 0.0  # between the burns a fire walker gives to whoever touches it
@@ -291,8 +285,8 @@ func _physics_process(delta: float) -> void:
 			velocity.x = _knock_x + _drift.x
 			move_and_slide()
 		return
-	if KINDS[kind]["effect"] == "acrobatic":
-		_acrobatics(delta)
+	if KINDS[kind]["effect"] == "ninja":
+		_ninja_strike(delta)
 	match KINDS[kind]["role"]:
 		"wizard":
 			_wizard(delta)
@@ -332,7 +326,7 @@ func _walk(delta: float) -> void:
 	var distance := to_player.length() if target else INF
 	var shooter: bool = data["role"] == "ranged"
 	var sees := target != null and _sees(target)
-	var stands_to_shoot: bool = shooter and distance < SPIT_STAND_RANGE and sees and data.get("effect", "") != "acrobatic"
+	var stands_to_shoot: bool = shooter and distance < SPIT_STAND_RANGE and sees and data.get("effect", "") != "ninja"
 	var close := absf(to_player.x) < 18.0  # right on top of the player: stop instead of walking through
 	var moving := target != null and speed > 0.0 and not stands_to_shoot and _root_time <= 0.0 and _windup <= 0.0 and _charge <= 0.0 and not close
 	velocity.x = (signf(to_player.x) * speed if moving else 0.0) + _knock_x + _drift.x
@@ -456,25 +450,12 @@ func _windup_time() -> float:
 
 
 ## A shooter in range charges its shot (a glow builds in front of it), then fires.
-## A ninja's acrobatics: it hops and somersaults about on its own, and when the player gets close it springs away in a
-## backflip.
-func _acrobatics(delta: float) -> void:
-	_flip = maxf(_flip - delta, 0.0)
-	_stunt -= delta
+## A ninja cuts at the player when they get close.
+func _ninja_strike(delta: float) -> void:
 	_slash_cd = maxf(_slash_cd - delta, 0.0)
 	if _slash_cd <= 0.0 and player and not _dead and _frozen_time <= 0.0 and player.center().distance_to(center()) < SLASH_RANGE:
 		_slash_cd = SLASH_COOLDOWN
 		_slash()
-	if _flip > 0.0 or not is_on_floor() or player == null or _dead or _frozen_time > 0.0 or _root_time > 0.0:
-		return
-	var close: bool = player.center().distance_to(center()) < LEAP_RANGE
-	if not close and _stunt > 0.0:
-		return
-	_stunt = randf_range(STUNT_MIN, STUNT_MAX)
-	_flip = FLIP_TIME
-	velocity.y = -330.0
-	var way := -signf(player.center().x - center().x) if close else signf(randf() - 0.5)
-	knock_back(Vector2(way * LEAP_SPEED, 0.0))
 
 
 ## A ninja strikes with its sword: it swings through its attack frames, and hurts the player if they are still in
@@ -579,8 +560,6 @@ func _start_retreat() -> void:
 ## Fires one of this enemy's shots, in its school colour. Plain shots fly at the player; some arc, some fan out,
 ## some fall straight down from the flyer, and fire casters call one down from above the player.
 func _shoot(shot: Dictionary) -> void:
-	if KINDS[kind]["effect"] == "acrobatic" and _flip <= 0.0:
-		_flip = FLIP_TIME  # a ninja flips as it lets a star go
 	var colour := _school_colour()
 	var origin := center() + Vector2(facing * _body_size.x * 0.5, -4.0)
 	if shot.get("above", false):
@@ -728,9 +707,10 @@ func is_slowed() -> bool:
 	return _slow_time > 0.0
 
 
-## Standing in water or lava: tinted its colour for a moment after each call.
-func soak(tint: Color) -> void:
+## Standing in water or lava: the part of it below the surface takes the liquid's colour for a moment after each call.
+func soak(tint: Color, surface_y := INF, _lava := false) -> void:
 	_liquid = tint
+	_liquid_y = surface_y
 	_liquid_time = 0.15
 
 
@@ -823,8 +803,9 @@ func _process(delta: float) -> void:
 	_idle_t += delta
 	_flash = maxf(_flash - delta * 6.0, 0.0)
 	_liquid_time = maxf(_liquid_time - delta, 0.0)
-	var wet := _liquid if _liquid_time > 0.0 else Color.WHITE
-	modulate = Color(wet.r, wet.g, wet.b, modulate.a)
+	var wet := _liquid_time > 0.0
+	_material.set_shader_parameter("water_y", _liquid_y if wet else 1000000.0)
+	_material.set_shader_parameter("water_tint", _liquid)
 	_animate(delta)
 	queue_redraw()
 	_overlay.queue_redraw()
@@ -871,12 +852,6 @@ func _animate(delta: float) -> void:
 	_visual.position = Vector2(lunge, bob) + shake
 	_visual.scale = Vector2(_base_scale, _base_scale)
 	_visual.flip_h = facing < 0.0
-	# A ninja's backflip turns about the middle of its body, away from the way it is moving, not about its feet.
-	var spin := signf(velocity.x) if absf(velocity.x) > 1.0 else facing
-	var turn := -TAU * (1.0 - _flip / FLIP_TIME) * spin if _flip > 0.0 else 0.0
-	var pivot := _visual.offset * _base_scale
-	_visual.rotation = turn
-	_visual.position += pivot - pivot.rotated(turn)
 	if _material:
 		var charging := 0.0
 		if _windup > 0.0:
@@ -1050,7 +1025,7 @@ func _burns() -> bool:
 
 ## A burning walker: one flame, tall enough to cover its whole body, stands on it and moves with it.
 func _set_alight() -> void:
-	var flame := PixelFx.sprite("fire_puff", 14.0)
+	var flame := PixelFx.sprite("fire_puff", 14.0, true, 1)
 	flame.scale = Vector2.ONE * 3.7  # so the fire rises round the whole body
 	# The flame's bottom sits on the walker's feet (its origin), and it is drawn behind the walker.
 	flame.position = Vector2(0, -PixelArt.FX["fire_puff"]["size"].y * 0.5 * flame.scale.y + 55.0)  # 55: the feet sit this far below the origin

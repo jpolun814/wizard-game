@@ -11,6 +11,7 @@ const ROCK := preload("res://art/fx/rock.png")  # held here so it stays loaded b
 
 var _clear := false  # it has flown out of its shooter's body: from then on it can hit the shooter too
 var _shooter: Node
+var _kin := ""  # the kind of enemy this shot passes through, when its shooter spares its own
 var _velocity := Vector2.RIGHT * SPEED
 var _gravity := 0.0
 var _slows := false
@@ -30,6 +31,8 @@ static func fire(parent: Node, origin: Vector2, target: Vector2, color: Color, d
 	bolt._slows = slows
 	bolt._color = color
 	bolt._shooter = shooter
+	if shooter != null and shooter.KINDS[shooter.kind].get("shot", {}).get("spare_kin", false):
+		bolt._kin = shooter.kind
 	bolt.damage = damage
 	bolt.rotation = direction.angle()
 	var shape := CollisionShape2D.new()
@@ -86,6 +89,8 @@ func _on_body_entered(body: Node2D) -> void:
 		return
 	if body.is_in_group("mobs") and body.is_dead():
 		return
+	if _kin != "" and body.is_in_group("mobs") and body.kind == _kin:
+		return  # a ninja's star flies through its own kind
 	if body.is_in_group("player"):
 		body.take_damage(damage, true, true)
 		if _slows:
