@@ -363,7 +363,7 @@ func _plan() -> void:
 		"pages":
 			var tile := float(ArenaGen.TILE)
 			var pickups := get_tree().get_nodes_in_group("pages")
-			print("%s  pages lie on the map (%d), and only the starter spells are known (%d of %d)" % ["PASS" if pickups.size() > 25 and Pages.known.size() == 5 else "FAIL", pickups.size(), Pages.known.size(), Pages.every().size()])
+			print("%s  pages lie on the map (%d), and only the starter spells are known (%d of %d)" % ["PASS" if pickups.size() > 25 and _player().ledger.count() == 5 else "FAIL", pickups.size(), _player().ledger.count(), Pages.every().size()])
 			var near := 1e9
 			for pickup: PagePickup in pickups:
 				if pickup.global_position.y < float(WorldGraph.SURFACE_ROW + 6) * tile:
@@ -391,7 +391,7 @@ func _plan() -> void:
 				Input.action_press("move_right"))
 			_at(2.4, func() -> void: Input.action_release("move_right"))
 			_at(2.8, func() -> void:
-				var before_tab: bool = Pages.knows(page)
+				var before_tab: bool = _player().ledger.knows(page)
 				print("  wizard walked to %s, the page lies at %s" % [str(_player().global_position), str(first.global_position)])
 				var under: bool = first.is_underfoot()
 				print("%s  a wizard who has walked onto a page stands on it, and it is not read yet" % ["PASS" if under and not before_tab else "FAIL"])
@@ -405,14 +405,14 @@ func _plan() -> void:
 				Input.parse_input_event(tab))
 			_at(4.5, func() -> void: _snap("read"))
 			_at(5.0, func() -> void:
-				var ok: bool = Pages.knows(page) and not is_instance_valid(holder[0]) and _arena.spellbook.visible
+				var ok: bool = _player().ledger.knows(page) and not is_instance_valid(holder[0]) and _arena.spellbook.visible
 				print("%s  pressing Tab on a page reads it (%s), takes it off the map and opens the book" % ["PASS" if ok else "FAIL", page])
 				if not ok:
 					_exit_code = 1
 				var before := get_tree().get_nodes_in_group("pages").size()
 				_arena.learn_every_page()
 				var after := get_tree().get_nodes_in_group("pages").size()
-				var all: bool = Pages.known.size() == Pages.every().size() and Pages.knows_chant("recall")
+				var all: bool = _player().ledger.count() == Pages.every().size() and _player().ledger.knows_chant("recall")
 				print("%s  the F1 button gives every spell and leaves the pages on the map (%d, then %d)" % ["PASS" if all and before == after else "FAIL", before, after])
 				if not (all and before == after):
 					_exit_code = 1)
@@ -429,7 +429,7 @@ func _plan() -> void:
 				Input.parse_input_event(tab))
 			_at(9.2, func() -> void:
 				var kept := get_tree().get_nodes_in_group("pages").size()
-				var ok: bool = _arena.spellbook.visible and kept > 40
+				var ok: bool = _arena.spellbook.visible and kept > 30
 				print("%s  Tab on a page the book already has opens the book and leaves the page (%d pages)" % ["PASS" if ok else "FAIL", kept])
 				if not ok:
 					_exit_code = 1

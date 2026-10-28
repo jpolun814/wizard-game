@@ -108,10 +108,10 @@ func _initialize() -> void:
 				_fail("seed %d: the castle cannot be walked through from the west" % s)
 			if not WorldBuilder.reachable(world["cells"], east, world["size"].y, world["hazards"]).has(west):
 				_fail("seed %d: the castle cannot be walked through from the east" % s)
-		Pages.begin(s)
-		var layout := Pages.plan(graph, RandomNumberGenerator.new())
+		var dealt := Pages.deal(s, 4)
+		var layout := Pages.plan(graph, RandomNumberGenerator.new(), dealt)
 		var page_rooms := {}
-		for entry: Dictionary in layout["placed"]:
+		for entry: Dictionary in layout:
 			page_rooms[entry["room"]] = true
 		var first_hops := 99.0
 		var mean := 0.0
@@ -134,7 +134,7 @@ func _initialize() -> void:
 		if closest < 20.0:
 			_fail("seed %d: two pages lie only %.0f tiles apart" % [s, closest])
 		var seen := {}
-		for entry: Dictionary in layout["placed"]:
+		for entry: Dictionary in layout:
 			var page: String = entry["page"]
 			var room: Dictionary = graph.rooms[entry["room"]]
 			if seen.has(page):
@@ -144,10 +144,8 @@ func _initialize() -> void:
 				_fail("seed %d: the page %s, which may open a gate, lies in a locked area" % [s, page])
 			if room["lock"] != -1 and graph.locks[room["lock"]]["boss"]:
 				_fail("seed %d: the page %s lies in the dark wizard's area" % [s, page])
-		for page in layout["stash"]:
-			seen[page] = true
 		for page in Pages.every():
-			if not seen.has(page) and not Pages.known.has(page):
+			if not seen.has(page) and not dealt.any(func(ledger: Ledger) -> bool: return ledger.knows(page)):
 				_fail("seed %d: the page %s is nowhere" % [s, page])
 		if boss["lock"] < 0:
 			_fail("seed %d: the boss is not in a locked area" % s)

@@ -43,6 +43,7 @@ var gravity: float = ProjectSettings.get_setting("physics/2d/default_gravity")
 var stamina := MAX_STAMINA
 var max_stamina := MAX_STAMINA  # what stamina can reach for now. Hits and the Rift wear it down; you die when it is gone
 var focus := "wand"          # the held focus item, see FocusItem.FOCI
+var ledger := Ledger.complete()  # the pages in the wizard's book: all of them in the waiting room, the ones found in a world
 var movement_enabled := true  # the arena turns this off while a typing box or the spellbook is open
 var infinite_time: float: # Chant of Boundless Vigour: stamina does not run out while this lasts
 	get: return _status.left(&"infinite")

@@ -87,7 +87,6 @@ func _ready() -> void:
 	player.debuff_applied.connect(_on_debuff_applied)
 	player.died.connect(_on_player_died)
 
-	Pages.end()  # the waiting room knows every page; a world begins its own book
 	spellbook = Spellbook.new()
 	add_child(spellbook)
 	debug_panel = DebugPanel.new()
@@ -106,7 +105,7 @@ func on_page_found(page: String) -> void:
 
 ## Every page is known at once, those on the map left where they lie.
 func learn_every_page() -> void:
-	Pages.learn_all()
+	player.ledger.learn_all()
 	spellbook.refresh()
 
 
@@ -250,7 +249,7 @@ func _visible_hud_rects() -> Array[Rect2]:
 
 func _on_cast_resolved(spell: String, targeting: String, origin: Vector2, aim: float, info: Dictionary) -> void:
 	player.play_cast_release()
-	if not Pages.knows_spell(spell):
+	if not player.ledger.knows_spell(spell):
 		_misfire_text()  # a spell whose page has not been found is a shape that matches nothing
 		return
 	if spell == "Icicles" and _icicle_spots(info).is_empty():
@@ -680,7 +679,7 @@ func _start_ritual() -> void:
 
 func _on_ritual_finished(id: String, acc: float, unfinished: bool) -> void:
 	var data: Dictionary = RitualInput.RITUALS[id]
-	if not Pages.knows_chant(id):
+	if not player.ledger.knows_chant(id):
 		_misfire_text()
 		return
 	if player.underwater():

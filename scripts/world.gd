@@ -8,7 +8,10 @@ extends "res://scripts/arena.gd"
 ## The seed to build from. The waiting room's portal sets it before the world loads; a world opened directly gets a random one.
 static var next_seed := -1
 
+const WIZARDS := 4  # the wizards in a world: the player and three more
+
 var seed_value := 0
+var ledgers: Array[Ledger] = []  # the pages each wizard holds, the player's first
 var graph: WorldGraph
 var _markers := {}
 var _ponds := []
@@ -352,14 +355,14 @@ func _rift_spot(from: Vector2) -> Vector2:
 
 ## The spellbook of the run: only the starter spells are known, and a page for each of the others lies in a hall of the map.
 func _lay_pages() -> void:
-	Pages.begin(seed_value + 31)  # what the wizard starts with comes from the seed too
+	ledgers = Pages.deal(seed_value + 31, WIZARDS)  # what each wizard starts with comes from the seed too
+	player.ledger = ledgers[0]
 	spellbook.refresh()
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed_value + 7919  # the pages come from the seed, apart from the rest of the map
-	var layout := Pages.plan(graph, rng)
-	Pages.stash.assign(layout["stash"])
+	var layout := Pages.plan(graph, rng, ledgers)
 	var count := {}
-	for entry: Dictionary in layout["placed"]:
+	for entry: Dictionary in layout:
 		var room: int = entry["room"]
 		var pickup := PagePickup.new()
 		pickup.page = entry["page"]

@@ -189,8 +189,8 @@ GODOT="/c/Users/Jordan Polun/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.
 | Shadow | Abyss | inward spiral | a dark knot that pulls everything in | walk out |
 | Shadow | Shadow Step | flick | slipping along the stroke | |
 
-The school and spell plan, and the roguelite loop these are for, is in `docs/roguelite_exploration_design.md` and
-`docs/spell_pool.md`. The waiting room (`scenes/lab.tscn`, `scripts/lab.gd`) is where every spell is tried; the portal there
+The school and spell plan is in `docs/spell_pool.md`; the direction of the game (a last-wizard-standing page race, which replaced the
+boss and the solo roguelite loop of `docs/roguelite_exploration_design.md`) is in `docs/pvp_arena_design.md`. The waiting room (`scenes/lab.tscn`, `scripts/lab.gd`) is where every spell is tried; the portal there
 starts a run.
 
 **Targeting types:** `directional`, `positional`, `angled`, `shape` and `cone`. The caster's `cast_resolved`

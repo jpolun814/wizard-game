@@ -71,16 +71,16 @@ func _physics_process(delta: float) -> void:
 	_sprite.rotation = sin(_t * 1.3) * 0.06
 	(_sprite.material as ShaderMaterial).set_shader_parameter("strength", 0.75 + 0.25 * sin(_t * 3.0))
 	_chime()
-	var under := is_underfoot()
-	_hint.visible = under
-	_hint.text = "Press Tab to read" if not Pages.knows(page) else "Press Tab: already in your book"
+	var wizard := get_tree().get_first_node_in_group("player") as Node2D
+	_hint.visible = is_underfoot()
+	_hint.text = "Press Tab to read" if wizard == null or not wizard.ledger.knows(page) else "Press Tab: already in your book"
 	queue_redraw()
 
 
 ## A soft chime as the wizard comes near, so a page is not walked past unheard.
 func _chime() -> void:
 	var wizard := get_tree().get_first_node_in_group("player") as Node2D
-	if wizard == null or Pages.knows(page):
+	if wizard == null or wizard.ledger.knows(page):
 		return
 	var far := SpellTargets.center_of(wizard).distance_to(global_position + Vector2(0, -FLOAT))
 	if not _chimed and far < CHIME_NEAR:
@@ -99,10 +99,10 @@ func is_underfoot() -> bool:
 	return absf(at.x - global_position.x) < REACH_X and at.y > global_position.y - REACH_Y and at.y < global_position.y + 30.0
 
 
-## Reads the page: it is learnt and taken off the ground, unless the book had it already. Returns its name.
-func take() -> String:
-	if not Pages.knows(page):
-		Pages.learn(page)
+## Reads the page into a wizard's ledger and takes it off the ground, unless the book had it already. Returns its name.
+func take(ledger: Ledger) -> String:
+	if not ledger.knows(page):
+		ledger.learn(page)
 		Fx.burst(get_parent(), global_position + Vector2(0, -FLOAT), _color, 14, 130.0, 0.5, true)
 		queue_free()
 	return page

@@ -1,13 +1,12 @@
 class_name Pages
 extends RefCounted
 
-## The wizard's spellbook in a world: a few spells to start with, and a page for each of the rest lying somewhere on the map. A spell
-## or chant can only be cast once its page has been found. In the waiting room every page is known. A page is a spell's name, or
-## "chant:" and a chant's id (the Mark and the Return share one page, the Mark's).
+## The pages of the game: a few spells to start each wizard with (see deal), and a page for each of the rest lying somewhere on the map.
+## What a wizard holds is their Ledger. A page is a spell's name, or "chant:" and a chant's id (the Mark and the Return share one page,
+## the Mark's).
 ##
 ## Where they lie: three lie in the open near the start. Every page that opens a gate is in a hall outside the locked areas, so the way on is never shut behind itself. Pages
-## that open no gate may also lie in the locked areas, as the reward for getting in. The dark wizard keeps a few of those: they are
-## left out of the map (the stash).
+## that open no gate may also lie in the locked areas, as the reward for getting in.
 
 ## What every wizard starts with: one spell to attack, one to move and one to defend, each drawn by chance from its own list, and the
 ## incantations of the bonfire and of the rift. Every spell in these lists works alone.
@@ -15,57 +14,31 @@ const ATTACKS := ["Ignite", "Fire Breath", "Spark", "Frostbolt", "Stonefall"]
 const MOVES := ["Shadow Step", "Push", "Liana"]
 const DEFENCES := ["Barrier", "Decoy", "Stone Wall", "Smoke Screen"]
 const CHANTS := ["chant:bonfire", "chant:rift"]
-## Spells that open no gate, and chants that do not: the ones that may lie in a locked area or in the dark wizard's stash.
+## Spells that open no gate, and chants that do not: the ones that may lie in a locked area.
 const LOCKABLE := ["Frostbolt", "Icicles", "Ice Prison", "Blizzard", "Stonefall", "Mudslide", "Earthquake", "Bramble", "Spore Puff",
 		"Flytrap", "Hex", "Abyss", "Tide Surf", "Blood Bolt", "Offering", "Burst", "Crimson Veil", "Adrenaline", "Faint", "chant:boundless", "chant:double_jump", "chant:haste"]
 const ON_SURFACE := 3  # pages that lie out in the open near the start, so the first one is found within a minute
 const IN_CASTLE := 2   # and pages in the castle, up on its second floor: not one to a room, only a reward for the climb
 const CASTLE_SPOTS := [Vector2i(52, 22), Vector2i(90, 22)]  # where: a column from the castle's west end, and the height of the floor in rows
-const STASH := 0  # how many pages the dark wizard keeps back; none for now
 
-static var active := false          # true in a world: only the pages found are known
-static var known := {}              # page -> true
-static var stash: Array[String] = []  # what the dark wizard keeps
-
-
-## A new run: only the starter pages are known, which the seed picks.
-static func begin(seed_value := 0) -> void:
-	active = true
-	known = {}
-	stash = []
+## Deals each wizard their starting pages, the same way for the same seed. Wizards are given different spells where the lists are long enough
+## (a list shorter than the wizards repeats), so a wizard's starter spell is theirs alone, with no page of it on the map for another to find.
+static func deal(seed_value: int, wizards: int) -> Array[Ledger]:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed_value
+	var shuffled := []
 	for list: Array in [ATTACKS, MOVES, DEFENCES]:
-		known[list[rng.randi() % list.size()]] = true
-	for chant in CHANTS:
-		known[chant] = true
-
-
-## The waiting room: everything is known.
-static func end() -> void:
-	active = false
-
-
-static func knows(page: String) -> bool:
-	return not active or known.has(page)
-
-
-## A spell, by its name, or a chant by its id.
-static func knows_spell(spell: String) -> bool:
-	return knows(spell)
-
-
-static func knows_chant(ritual_id: String) -> bool:
-	return knows("chant:" + ("mark" if ritual_id == "recall" else ritual_id))
-
-
-static func learn(page: String) -> void:
-	known[page] = true
-
-
-static func learn_all() -> void:
-	for page in every():
-		known[page] = true
+		var copy := list.duplicate()
+		_shuffle(copy, rng)
+		shuffled.append(copy)
+	var out: Array[Ledger] = []
+	for k in wizards:
+		var starters := []
+		for copy: Array in shuffled:
+			starters.append(copy[k % copy.size()])
+		starters.append_array(CHANTS)
+		out.append(Ledger.of(starters))
+	return out
 
 
 ## Every page there is.
@@ -86,11 +59,11 @@ static func title_of(page: String) -> String:
 	return page
 
 
-## Where each page lies: {"placed": [{"page", "room": a room's id}], "stash": [pages]}, from the graph and a rng.
-static func plan(graph: WorldGraph, rng: RandomNumberGenerator) -> Dictionary:
+## Where each page lies: [{"page", "room": a room's id}], from the graph and a rng. The pages the wizards start with are left off the map.
+static func plan(graph: WorldGraph, rng: RandomNumberGenerator, dealt: Array[Ledger]) -> Array:
 	var items: Array[String] = []
 	for page in every():
-		if not known.has(page):
+		if not dealt.any(func(ledger: Ledger) -> bool: return ledger.knows(page)):
 			items.append(page)
 	var lockable: Array[String] = []
 	var open: Array[String] = []
@@ -101,9 +74,6 @@ static func plan(graph: WorldGraph, rng: RandomNumberGenerator) -> Dictionary:
 			open.append(page)
 	_shuffle(lockable, rng)
 	_shuffle(open, rng)
-	var kept: Array[String] = []
-	for k in mini(STASH, lockable.size()):
-		kept.append(lockable.pop_back())
 	var placed := []
 	var spots: Array[Vector2] = []  # where pages already lie, in tiles, so the next one goes as far from them as it can
 	var rest: Array[String] = open + lockable
@@ -144,7 +114,7 @@ static func plan(graph: WorldGraph, rng: RandomNumberGenerator) -> Dictionary:
 		open_halls.erase(room)
 		placed.append({"page": rest.pop_back(), "room": room})
 		spots.append(Vector2(graph.rooms[room]["cx"], graph.rooms[room]["cy"]))
-	return {"placed": placed, "stash": kept}
+	return placed
 
 
 ## The room, of those given, whose middle is farthest from every spot already taken (the first when nothing is).
