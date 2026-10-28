@@ -168,7 +168,6 @@ These work, but their pictures are stand-ins for pixel art from a free pack, whi
 - The starter kit: one attack, one defence, one way to reposition. Suggestion: Ignite or Frostbolt, Barrier,
   Push.
 - Whether Air needs more spells (it has 5 and no damage).
-- The boss's choice of spells from his stash.
 - How loud each spell is, if noise is used.
 - Whether Growth (a cheap vine ladder) comes back, if Liana and Great Oak are not enough.
 

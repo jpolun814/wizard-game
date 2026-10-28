@@ -78,18 +78,17 @@ static func plan(graph: WorldGraph, rng: RandomNumberGenerator, dealt: Array[Led
 	var spots: Array[Vector2] = []  # where pages already lie, in tiles, so the next one goes as far from them as it can
 	var rest: Array[String] = open + lockable
 	_shuffle(rest, rng)
-	for column in _surface_columns(graph, ON_SURFACE):
+	for column in _surface_columns(graph, mini(ON_SURFACE, rest.size())):  # late in a match few pages are left
 		placed.append({"page": rest.pop_back(), "room": 0, "x": column})  # room 0 is the surface
 		spots.append(Vector2(column, 0))
 	if graph.surface["castle"] >= 0:
-		for spot in CASTLE_SPOTS.slice(0, IN_CASTLE):
+		for spot in CASTLE_SPOTS.slice(0, mini(IN_CASTLE, rest.size())):
 			placed.append({"page": rest.pop_back(), "room": 0, "castle": spot})
 			spots.append(Vector2(graph.surface["castle"] + spot.x, 0))
-	# The locked areas, but not the boss's own: only pages that open no gate lie in them, one to a room, as the reward for getting in.
+	# The locked areas: only pages that open no gate lie in them, one to a room, as the reward for getting in.
 	var inner_rooms := []
 	for lock: Dictionary in graph.locks:
-		if not lock["boss"]:
-			inner_rooms.append_array(lock["rooms"])
+		inner_rooms.append_array(lock["rooms"])
 	_shuffle(inner_rooms, rng)
 	for page in lockable.duplicate():
 		if not rest.has(page):
@@ -104,7 +103,7 @@ static func plan(graph: WorldGraph, rng: RandomNumberGenerator, dealt: Array[Led
 		spots.append(Vector2(graph.rooms[room]["cx"], graph.rooms[room]["cy"]))
 	var free := []  # the halls outside every locked area, off the surface
 	for room in graph.rooms:
-		if room["lock"] == -1 and not room.has("surface") and room["id"] != graph.boss:
+		if room["lock"] == -1 and not room.has("surface"):
 			free.append(room["id"])
 	if free.is_empty():  # a world with no caves: the rest lie out in the open, spread along it
 		for column in _spread_columns(graph, rest.size()):

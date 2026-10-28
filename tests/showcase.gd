@@ -1283,17 +1283,17 @@ func _plan_cave() -> void:
 	_at(t, func() -> void: _snap("top"))
 	_at(t + 0.5, func() -> void:
 		_arena.get_node("Player/Camera2D").zoom = Vector2.ONE
-		_player().global_position = _arena._stand_at(_arena._markers[graph.boss]) + Vector2(-380.0, 0.0))
-	_at(t + 1.5, func() -> void: _snap("boss_hall"))
+		_player().global_position = _arena._stand_at(_arena._markers[graph.deepest]) + Vector2(-380.0, 0.0))
+	_at(t + 1.5, func() -> void: _snap("deep_hall"))
 	# An Earth Fall cast in a cave starts under its roof and lands on the floor, never inside rock.
 	_at(t + 1.8, func() -> void:
-		var spot: Vector2 = _arena._stand_at(_arena._markers[graph.boss]) + Vector2(-380.0, -60.0)
+		var spot: Vector2 = _arena._stand_at(_arena._markers[graph.deepest]) + Vector2(-380.0, -60.0)
 		_cast("Stonefall", _stroke("stonefall", spot)))
 	_at(t + 3.8, func() -> void:
 		var rock: Node2D = null
 		for node in _arena.get_tree().get_nodes_in_group("rocks"):
 			rock = node
-		var floor_y: float = _arena._stand_at(_arena._markers[graph.boss]).y
+		var floor_y: float = _arena._stand_at(_arena._markers[graph.deepest]).y
 		print("%s  an Earth Fall cast in a cave lands on the floor (rock at %s)" % ["PASS" if rock != null and not _arena._in_rock(rock.global_position) and absf(rock.global_position.y - floor_y) < 200.0 else "FAIL", str(rock.global_position) if rock else "none"]))
 
 

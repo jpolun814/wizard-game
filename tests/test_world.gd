@@ -37,11 +37,10 @@ func _initialize() -> void:
 	for s in range(first, first + seeds):
 		var world := _make(s)
 		var again := _make(s)
-		if hash(world["cells"].data) != hash(again["cells"].data) or world["graph"].boss != again["graph"].boss:
+		if hash(world["cells"].data) != hash(again["cells"].data) or world["graph"].deepest != again["graph"].deepest:
 			_fail("seed %d did not build the same world twice" % s)
 		var graph: WorldGraph = world["graph"]
 		rooms_seen += graph.rooms.size()
-		var boss: Dictionary = graph.rooms[graph.boss]
 		for pond in world["ponds"]:
 			ponds_seen += 1
 			lava_seen += 1 if pond["lava"] else 0
@@ -142,13 +141,9 @@ func _initialize() -> void:
 			seen[page] = true
 			if room["lock"] != -1 and not Pages.LOCKABLE.has(page):
 				_fail("seed %d: the page %s, which may open a gate, lies in a locked area" % [s, page])
-			if room["lock"] != -1 and graph.locks[room["lock"]]["boss"]:
-				_fail("seed %d: the page %s lies in the dark wizard's area" % [s, page])
 		for page in Pages.every():
 			if not seen.has(page) and not dealt.any(func(ledger: Ledger) -> bool: return ledger.knows(page)):
 				_fail("seed %d: the page %s is nowhere" % [s, page])
-		if boss["lock"] < 0:
-			_fail("seed %d: the boss is not in a locked area" % s)
 	# The check must be able to fail: with walls across the surface on both sides of the start, some room has to become unreachable.
 	var broken := _make(1)
 	broken["hazards"] = {}
@@ -236,7 +231,7 @@ func _picture(world: Dictionary, dir: String) -> void:
 	for pond in world["ponds"]:
 		image.fill_rect(Rect2i(Vector2i(pond["a"], pond["surface"]) * scale, Vector2i(pond["b"] - pond["a"] + 1, pond["depth"]) * scale), Color.ORANGE_RED if pond["lava"] else Color.DODGER_BLUE)
 	var graph: WorldGraph = world["graph"]
-	var kinds := {"start": Color.LIME, "boss": Color.RED, "branch": Color.YELLOW, "area": Color.CYAN}
+	var kinds := {"start": Color.LIME, "branch": Color.YELLOW, "area": Color.CYAN}
 	for room in graph.rooms:
 		var at: Vector2i = world["markers"][room["id"]]
 		image.fill_rect(Rect2i((at - Vector2i(1, 6)) * scale, Vector2i(scale * 3, scale * 7)), kinds[room["kind"]])

@@ -112,7 +112,7 @@ where it makes sense for both, and two spells on one button combination never sh
 ## The spell pool
 
 Every spell, its shape, its counter and its gate tags are in `docs/spell_pool.md`. The plan they are part of (random pages
-in a generated world, a boss who holds the spells you did not find) is in `docs/roguelite_exploration_design.md`. Design
+in a generated world, raced for by four wizards) is in `docs/pvp_arena_design.md`; the older roguelite plan is in `docs/roguelite_exploration_design.md`. Design
 each new spell with the checklist in `HANDOFF.md` §6, and expect the owner to veto physics they find unfair.
 
 ## Rituals (typed)

@@ -7,8 +7,8 @@ extends RefCounted
 ## sinks a little to the hall beside it. A descent leaves the middle of a floor, or a ledge on the surface, on a steep
 ## ramp to a hall below it, or above it. So a hall can have many ways in and out, and the surface has a way down in
 ## every biome. Halls lie anywhere under the ground, mountains included.
-## Some passages are gated: the halls beyond a gate are a locked area, with an elite or the boss in its widest hall and
-## the key in a vault outside it. Everything here comes from the rng it is given, so one seed always gives one graph.
+## Some passages are gated: the halls beyond a gate are a locked area, and
+## the key lies in a vault outside it. Everything here comes from the rng it is given, so one seed always gives one graph.
 
 const FULL := Vector2i(1200, 380)  # the first world, in tiles
 const MIN_ROOMS := 36
@@ -41,25 +41,25 @@ const WALL_DEPTH := 22      # rows of rock a wall needs over the floor of a pass
 const GATES := ["chasm", "flood", "brambles", "wall", "ice", "dark", "gas", "piranhas", "sentinel"]  # what can bar a passage; each is beaten by any of several spells
 
 ## Each room: {"id", "cx": middle column, "cy": the row where its floor starts (first solid row at the middle), "hw": half its
-## width, "air": its height at the middle, "role": cavern / great / vault, "kind": start / area / branch / boss,
+## width, "air": its height at the middle, "role": cavern / great / vault, "kind": start / area / branch,
 ## "depth": passages from the start, "zone": 0 to 2, how far along the run it is, "lock": the locked area it is in, or -1,
-## "guard": "elite" or "boss" in the arena of a locked area, "key": the lock it holds the key to, or -1}. Each link:
+## "key": the lock it holds the key to, or -1}. Each link:
 ## {"a", "b": room ids, "kind": "tunnel", "lock": the lock it is gated by, or -1, "slope": columns per row, "pa", "pb": the
 ## two mouths, as tiles, pa in room a and pb in room b, "inside_a" or "inside_b": true when that mouth is in the middle of
 ## a floor rather than at a hall's end}.
 static var size := FULL  # the world to build, in tiles: the portal collapses into smaller ones
 var rooms: Array[Dictionary] = []
 var links: Array[Dictionary] = []
-var locks: Array[Dictionary] = []  # {"id", "link", "rooms": [ids], "guard": room id, "key": room id, "boss": bool, "gate": what bars the passage}
+var locks: Array[Dictionary] = []  # {"id", "link", "rooms": [ids], "key": room id, "gate": what bars the passage}
 var surface := {}
 var start := 0
-var boss := 0
+var deepest := 0  # the hall farthest, by passages, from the start
 var spawns: Array[Dictionary] = []  # where up to PLAYERS players are set down: {"x": the column on the surface, "room": the hall below it}
 var _adjacent: Array = []  # per room: the rooms beside it, as Vector2i(room, passage)
 var _reserved: Array[Dictionary] = []  # {"rect": Rect2i, "owners": [room ids]}: space that halls and tunnels have taken
 
 
-## Tries again from scratch until a world has enough halls, a gate and a far boss; the best of a few tries if none does.
+## Tries again from scratch until a world has enough halls, a gate and a deep hall; the best of a few tries if none does.
 static func build(rng: RandomNumberGenerator) -> WorldGraph:
 	var wanted_mouths := _scaled(8, 3)
 	var wanted_locks := 2 if size.x >= 800 else 1
@@ -69,11 +69,11 @@ static func build(rng: RandomNumberGenerator) -> WorldGraph:
 	for attempt in 60:
 		var graph := _grow(rng)
 		var mouths: int = graph.rooms[0]["mouths"].size()
-		var score := graph.rooms.size() + mouths * 3 + mini(graph.links.size() - graph.rooms.size(), 4) * 4 + (6 if graph.locks.size() >= wanted_locks else 0) + (4 if graph.rooms[graph.boss]["depth"] >= wanted_depth else 0) + (0 if graph._spawns_apart() else -40)
+		var score := graph.rooms.size() + mouths * 3 + mini(graph.links.size() - graph.rooms.size(), 4) * 4 + (6 if graph.locks.size() >= wanted_locks else 0) + (4 if graph.rooms[graph.deepest]["depth"] >= wanted_depth else 0) + (0 if graph._spawns_apart() else -40)
 		if score > best_score:
 			best = graph
 			best_score = score
-		if graph.rooms.size() >= _scaled(MIN_ROOMS, 8) and mouths >= wanted_mouths and graph._every_biome_has_a_way_down() and graph.locks.size() >= wanted_locks and graph.rooms[graph.boss]["depth"] >= wanted_depth and graph.spawns.size() == PLAYERS and graph._spawns_apart() and graph.links.size() - graph.rooms.size() >= 2:
+		if graph.rooms.size() >= _scaled(MIN_ROOMS, 8) and mouths >= wanted_mouths and graph._every_biome_has_a_way_down() and graph.locks.size() >= wanted_locks and graph.rooms[graph.deepest]["depth"] >= wanted_depth and graph.spawns.size() == PLAYERS and graph._spawns_apart() and graph.links.size() - graph.rooms.size() >= 2:
 			return graph
 	return best
 
@@ -328,7 +328,7 @@ func _blocked(rect: Rect2i, joining: Array) -> bool:
 func _add_room(spec: Dictionary) -> int:
 	var id := rooms.size()
 	var room := spec.duplicate()
-	room.merge({"id": id, "kind": "area", "depth": 0, "zone": 0, "lock": -1, "guard": "", "key": -1, "role": "cavern", "mouths": [], "cluster": -1}, false)
+	room.merge({"id": id, "kind": "area", "depth": 0, "zone": 0, "lock": -1, "key": -1, "role": "cavern", "mouths": [], "cluster": -1}, false)
 	rooms.append(room)
 	if not room.has("surface"):
 		_reserved.append({"rect": _hall_box(room), "owners": [id]})
@@ -468,7 +468,7 @@ func _open_ground_far_from_spawns() -> int:
 
 
 ## Works out how many passages each room is from the start, and marks the start, the dead ends (branches) and the farthest
-## room, which is the boss's until a locked area claims it.
+## room.
 func _classify(rng: RandomNumberGenerator) -> void:
 	start = 0
 	var depth := {0: 0}
@@ -486,14 +486,13 @@ func _classify(rng: RandomNumberGenerator) -> void:
 	for id in depth:
 		if depth[id] == farthest:
 			far.append(id)
-	boss = far[rng.randi() % far.size()]
+	deepest = far[rng.randi() % far.size()]
 	for room in rooms:
 		room["depth"] = depth.get(room["id"], 0)
 		room["zone"] = mini(2, room["depth"] * 3 / (farthest + 1))
 		if neighbours(room["id"]).size() == 1:
 			room["kind"] = "branch"
 	rooms[start]["kind"] = "start"
-	rooms[boss]["kind"] = "boss"
 
 
 ## The rooms a passage cuts off from the start: those that cannot be reached without it.
@@ -593,8 +592,7 @@ func _hops_from(spawn: Dictionary) -> Dictionary:
 	return cost
 
 
-## Gates a few passages that have halls only behind them. The widest hall of each locked area holds its guard (an elite, or
-## the boss for the biggest one), and a key lies in a vault or a dead end outside every locked area.
+## Gates a few passages that have halls only behind them. A key lies in a vault or a dead end outside every locked area.
 func _lock(rng: RandomNumberGenerator) -> void:
 	_adjacent = []
 	for room in rooms:
@@ -638,7 +636,7 @@ func _lock(rng: RandomNumberGenerator) -> void:
 			chosen.append(best)
 	chosen.sort_custom(func(x: Dictionary, y: Dictionary) -> bool: return x["rooms"].size() > y["rooms"].size())
 	for bridge in chosen:
-		locks.append({"id": locks.size(), "link": bridge["link"], "rooms": bridge["rooms"], "guard": -1, "key": -1, "boss": locks.is_empty()})
+		locks.append({"id": locks.size(), "link": bridge["link"], "rooms": bridge["rooms"], "key": -1})
 	var used := {}
 	for lock in locks:
 		links[lock["link"]]["lock"] = lock["id"]
@@ -661,22 +659,6 @@ func _lock(rng: RandomNumberGenerator) -> void:
 	for lock in locks:
 		for id in lock["rooms"]:
 			rooms[id]["lock"] = lock["id"]
-	for lock in locks:
-		var widest := -1
-		for own_only in [true, false]:  # the widest hall of the area itself, or of the whole of it when an inner area takes every hall
-			for id in lock["rooms"]:
-				if own_only and rooms[id]["lock"] != lock["id"]:
-					continue
-				if widest < 0 or rooms[id]["hw"] > rooms[widest]["hw"] or (rooms[id]["hw"] == rooms[widest]["hw"] and rooms[id]["depth"] > rooms[widest]["depth"]):
-					widest = id
-			if widest >= 0:
-				break
-		lock["guard"] = widest
-		rooms[widest]["guard"] = "boss" if lock["boss"] else "elite"
-		if lock["boss"]:
-			rooms[boss]["kind"] = "branch" if neighbours(boss).size() == 1 else "area"
-			boss = widest
-			rooms[boss]["kind"] = "boss"
 	# Keys: dead ends and vaults outside every locked area, each a long way from its gate.
 	var taken_keys := {}
 	for lock in locks:

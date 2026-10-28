@@ -48,8 +48,9 @@ single-run loop in `docs/roguelite_exploration_design.md`; the spells, the world
   wizard (`World._follow_watched`), a click picks the next, and the player stays out in later worlds (`World._stay_out`). The game-over screen
   comes only when no rival is left. Test: `tests/spectate_check.tscn` (add `-- collapse` to follow it into the next world).
 
+- **No boss left in the code.** `WorldGraph` has no boss hall, guard or boss lock (`deepest` is just the farthest hall); every locked area may hold a page and a Rift may land anywhere open.
+
 ## Planned
 
 1. Balance the AI wizards by running AI-only matches headless (see `tests/arena_sim.gd`). They share one set of stats; only skill differs.
    Teach them to get past gates with the spells they hold.
-2. Delete what the boss loop left: the boss room and its lock in `WorldGraph`, the boss stash text in the old docs, the solo flow.

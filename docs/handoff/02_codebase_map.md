@@ -140,7 +140,7 @@ never block each other.
 - **`fx.gd`:** Kenney soft particles (sparks, smoke, glows). Allowed as accents on top of pixel art.
 - **Small helpers:** `shatter.gd` (pixel shards), `float_text.gd` (damage numbers), `game_camera.gd` (screen
   shake), `bonfire.gd`, `portal.gd`.
-- **`hud.gd`:** the stamina bar, title, banner, boss bar, portal arrow, pause and game-over screens. Uses the pixel
+- **`hud.gd`:** the stamina bar, title, banner, portal arrow, pause and game-over screens. Uses the pixel
   fonts Jersey 15 and Jacquard 24.
 - **`spellbook.gd`:** the pixel book (`art/ui/book.png`, 7 frames), `MouseIcon` and `Preview` drawn on the book's
   pixel grid, and the pages.

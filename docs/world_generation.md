@@ -7,7 +7,7 @@ A world is 360 by 170 tiles, made from a seed (four incantation words, or random
 - **The castle** (136 columns, `WorldBuilder._castle`) is solid stone with rooms carved out of it on three floors, so nothing floats. The ground floor is seven rooms in a row from the gate to the back door, the first floor is the same seven over them, and under the keep the second floor has three more. Between the rooms of a floor stand walls with a doorway four rows tall and a wooden `CastleDoor` in it (it swings away from whoever comes near: a front-on door that is drawn narrower toward a hinge on the far side, shuts again 1.2 s after they go, and shut is as solid as the wall, so it stops shots and spells). A `RopeLadder` (CC-BY, `tools/prepare_ladder.py`) hangs through a two-column hatch in the ceiling of every room to the room above, so the castle can be crossed along any floor or up and down between them; a ladder is climbed like a vine and the hatch can be jumped or dropped through. The towers and keep carry arrow-slit windows. The rooms are painted with the church backdrop (`art/backgrounds/church/hall.png`), a little under the stone round them. `test_world.gd` walks the ground floor both ways; `showcase.gd scenario=castle` climbs a ladder from the ground floor and one to the second floor.
 - **The caves** are 9 to 12 halls (in practice 5 to 8) placed anywhere under the surface. Each has its own width, height and floor: rolling hills and valleys, now and then a mesa, a lake, a pool of lava with rock pillars standing in it, a dry pit, and ziggurats of rock to climb over. Nothing floats.
 - **Tunnels** join halls. A gentle tunnel climbs a row in two columns, a steep one a row in one (45 degrees, the most a walker can climb). A hall has one tunnel on each side. Three extra loop tunnels are added between halls that sit near each other.
-- The boss hall is the farthest by tunnels (at least 3). Every tunnel has an empty gate slot.
+- The deepest hall is at least 3 tunnels from the start. Every tunnel has an empty gate slot.
 - There are no one-way platforms and no shafts: vertical travel is by slope.
 
 ## Code
@@ -17,7 +17,7 @@ A world is 360 by 170 tiles, made from a seed (four incantation words, or random
 - Collision is one concave outline per cave. A concave outline has no inside, so a body that gets into rock is not found by a physics query: `World` asks the tiles instead, stops teleports short of rock, and puts the wizard back on the last firm ground if they end up in rock or fall out of the world.
 
 ## Tests
-- `tests/test_world.gd -- seeds=N pic=S out=DIR`: determinism, every hall reachable, boss depth, and a negative check (walls across the surface must cut halls off).
+- `tests/test_world.gd -- seeds=N pic=S out=DIR`: determinism, every hall reachable, depth, and a negative check (walls across the surface must cut halls off).
 - `tests/showcase.tscn -- scenario=cave`: snapshots of the start, the castle, a lake and lava, and the steepest tunnel walked with only the walk key.
 
 ## Update: a sprawling, chunked world

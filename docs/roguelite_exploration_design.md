@@ -2,7 +2,9 @@
 
 Status: planning, with the spells built. Agreed in conversation with the owner on 2026-10-24. Built so far: the 33-spell pool
 (`spell_pool.md`) and the waiting room where it is tried. The first world generator slice is built too (`world_generation.md`). Not built: the stamina window, per-run books and pages, noticing
-enemies, the world generator and seeds, and the boss's stash.
+enemies, the world generator and seeds.
+
+The solo boss loop here has since been dropped for a last-wizard-standing race: see `pvp_arena_design.md`.
 
 ## The loop
 
@@ -23,7 +25,7 @@ what he missed.
 - The incantation is a few Latin-sounding words that map to the seed one-to-one. The end-of-run screen shows it
   so players can share or replay a world.
 - Everything the generator decides must come from the seed: layout, biomes, gates, page placement, the starter
-  kit and the boss's stash. Combat is not seeded.
+  kit. Combat is not seeded.
 
 ## Spells and pages
 
@@ -60,12 +62,12 @@ Spells are rolled first. Then the generator picks gates.
 - The generator only uses tags the player is guaranteed to hold before that gate, and puts the solving page
   somewhere reachable earlier.
 - A gate looks like what it needs, so players can work out the answer from the picture.
-- Since every page is collectable, solvability is checked as an ordering: every page, gate and the boss must be
+- Since every page is collectable, solvability is checked as an ordering: every page and gate must be
   reachable in some order.
 
 ## The world
 
-- Generate a **graph first** (biomes, attractions, gates, pages, boss), then build terrain to match.
+- Generate a **graph first** (biomes, attractions, gates, pages), then build terrain to match.
 - Much larger than today's arena, with biomes (each leaning to a school), caves, buildings, high places and low
   places. About 4 or 5 biomes and 8 to 10 pages for a 10 minute run.
 - The art direction stays dark gothic CC0 pixel art.
@@ -77,16 +79,6 @@ Spells are rolled first. Then the generator picks gates.
 - Candidate idea: spells have a noise level (lightning and Earthquake are loud, ice and Force are quiet), so a
   player chooses between sneaking and fighting.
 - Needs a "!" over the head when an enemy notices.
-
-## The dark wizard
-
-- At the end of the map only, for now.
-- **His stash is the spell pool minus the starter kit and minus every page placed for the player.** It is fixed
-  by the seed. He has no spells of his own: he casts from the same pool as the player.
-- He casts a subset of his stash per fight. How he picks and when is still to be decided. Constraints so far:
-  at least one projectile, one area-denial spell and one escape, and every spell stays counterable by moving.
-- The number of placed pages is capped so his stash stays large enough to build a fight from.
-- A roaming dark wizard who competes for pages is a possible idea for a multiplayer version. Not now.
 
 ## Not now
 
@@ -101,12 +93,10 @@ Spells are rolled first. Then the generator picks gates.
 3. Per-run spellbook: a small start kit plus collectable pages.
 4. Enemies that notice the player.
 5. The world generator, then the seed and incantation.
-6. The boss fight and its choice of spells.
 
 Items 2 and 3 work inside the current arena, so they can be tried straight away.
 
 ## Open questions
 
 - Schools and buttons are decided: see `spell_pool.md`. Only Left+Right+Middle is still open.
-- How the boss picks which spells from his stash to cast.
 - How noisy each spell is, if noise is used.

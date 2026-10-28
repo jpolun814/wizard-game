@@ -497,11 +497,11 @@ func _count_wizards(delta: float) -> void:
 		Sfx.play("ritual_ok", player.center())
 
 
-## A Rift sets the wizard down in another hall, picked by chance: not the boss's, and none behind a gate.
+## A Rift sets the wizard down in another hall, picked by chance, and none behind a gate.
 func _rift_spot(from: Vector2) -> Vector2:
 	var spots: Array[Vector2] = []
 	for room in graph.rooms:
-		if room["id"] == graph.boss or (room["lock"] != -1 and not _gates_open):
+		if room["lock"] != -1 and not _gates_open:
 			continue
 		var spot := _stand_at(_markers[room["id"]])
 		if spot.distance_to(from) > 400.0:
