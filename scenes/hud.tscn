@@ -26,6 +26,7 @@ offset_top = 74.0
 offset_right = 422.0
 offset_bottom = 100.0
 mouse_filter = 2
+theme_type_variation = &"Outlined"
 theme_override_colors/font_color = Color(1, 0.722, 0.42, 1)
 theme_override_font_sizes/font_size = 15
 
@@ -39,6 +40,7 @@ offset_right = 200.0
 offset_bottom = 42.0
 grow_horizontal = 2
 mouse_filter = 2
+theme_type_variation = &"Outlined"
 theme_override_font_sizes/font_size = 22
 horizontal_alignment = 1
 
@@ -98,6 +100,7 @@ offset_top = 72.0
 offset_bottom = 102.0
 grow_horizontal = 2
 mouse_filter = 2
+theme_type_variation = &"Outlined"
 theme_override_colors/font_color = Color(0.9, 0.85, 1, 1)
 theme_override_font_sizes/font_size = 20
 horizontal_alignment = 1
@@ -112,6 +115,7 @@ offset_top = -40.0
 offset_bottom = -16.0
 grow_vertical = 0
 mouse_filter = 2
+theme_type_variation = &"Outlined"
 theme_override_font_sizes/font_size = 17
 
 [node name="PortalArrow" type="Control" parent="."]
@@ -172,6 +176,7 @@ text = "You have fallen"
 horizontal_alignment = 1
 
 [node name="Hint" type="Label" parent="GameOver/Box"]
+theme_type_variation = &"Outlined"
 layout_mode = 2
 theme_override_colors/font_color = Color(0.8, 0.75, 0.9, 1)
 theme_override_font_sizes/font_size = 18
@@ -214,6 +219,7 @@ theme_override_constants/v_separation = 6
 columns = 2
 
 [node name="Resume" type="Label" parent="Pause/Box"]
+theme_type_variation = &"Outlined"
 layout_mode = 2
 theme_override_colors/font_color = Color(0.75, 0.7, 0.85, 1)
 theme_override_font_sizes/font_size = 16
@@ -221,6 +227,7 @@ text = "Press Esc to carry on"
 horizontal_alignment = 1
 
 [node name="Note" type="Label" parent="Pause/Box"]
+theme_type_variation = &"Outlined"
 layout_mode = 2
 size_flags_vertical = 10
 theme_override_colors/font_color = Color(0.784, 0.659, 1, 1)

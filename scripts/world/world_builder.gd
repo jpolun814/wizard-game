@@ -667,10 +667,10 @@ static func _castle(cells: TileGrid, ground: int, x: int) -> Dictionary:
 		for k in 2:
 			carve.call(i + k, low_floor + CASTLE_AIR, up_floor - 1)
 		ladders.append({"x": x + i, "bottom": ground - low_floor, "top": ground - up_floor})
-	# The gate: a porch with a stepped arch and a door in the wall.
-	carve.call(0, 0, 4)
-	carve.call(1, 0, 5)
-	door.call(2, 0)
+	# The gate: a door in the outer wall, where the outside gives way to the inside, and a porch behind it.
+	door.call(0, 0)
+	carve.call(2, 0, CASTLE_AIR - 1)
+	carve.call(3, 0, CASTLE_AIR - 1)
 	# The rooms of a floor, as the first and last column of each; the walls between them take the two columns after each room.
 	var rows: Array[Vector2i] = [Vector2i(4, 13), Vector2i(16, 33), Vector2i(36, 53), Vector2i(56, 73), Vector2i(76, 93), Vector2i(96, 113), Vector2i(116, 125)]
 	for k in rows.size():
@@ -682,10 +682,9 @@ static func _castle(cells: TileGrid, ground: int, x: int) -> Dictionary:
 		hatch.call(rows[k].x + 3, 0, floor_1)
 	door.call(126, 0)  # the back door
 	room.call(128, 131, 0, CASTLE_AIR - 1)
-	carve.call(132, 0, 6)
-	carve.call(133, 0, 5)
-	carve.call(134, 0, 5)
-	carve.call(135, 0, 4)
+	carve.call(132, 0, CASTLE_AIR - 1)
+	carve.call(133, 0, CASTLE_AIR - 1)
+	door.call(134, 0)  # and the door in the outer wall at the back
 	# The second floor, under the keep.
 	var great: Array[Vector2i] = [Vector2i(40, 57), Vector2i(60, 77), Vector2i(80, 101)]
 	for k in great.size():

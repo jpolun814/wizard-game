@@ -110,6 +110,8 @@ static func fire_points(tree: SceneTree) -> Array:
 				fires.append({"at": point, "heat": 1.0, "size": -10.0, "shot": false})
 		elif node is Pond:
 			fires.append({"at": node.global_position + Vector2(node.width * 0.5, 0), "heat": 1.0, "size": node.width * 0.5, "shot": false})
+		elif node is Bonfire:
+			fires.append({"at": node.global_position + Vector2(0, -20), "heat": 1.0, "size": 24.0, "shot": false})
 	return fires
 
 

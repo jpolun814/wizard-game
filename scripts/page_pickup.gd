@@ -45,6 +45,22 @@ func _ready() -> void:
 	_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_hint.visible = false
 	add_child(_hint)
+	material = Fx.additive()  # the halo below adds light to what is behind it
+	var light := PointLight2D.new()  # and lights the dark round it, in the school's colour
+	light.texture = Fx.tex("light_01")
+	light.texture_scale = 420.0 / Fx.TEX_SIZE
+	light.color = _color
+	light.energy = 0.9
+	light.position = Vector2(0, -FLOAT)
+	add_child(light)
+	var sparks := Fx.trail(_color, 14, 1.4, 25.0, Vector2(0, -18), "star_04", 9.0)  # motes of its colour drifting up off it
+	sparks.local_coords = true
+	sparks.position = Vector2(0, -FLOAT)
+	sparks.emission_shape = CPUParticles2D.EMISSION_SHAPE_SPHERE
+	sparks.emission_sphere_radius = 22.0
+	sparks.material = Fx.additive()
+	add_child(sparks)
+	sparks.emitting = true
 
 
 func _physics_process(delta: float) -> void:
@@ -99,5 +115,6 @@ static func underfoot(tree: SceneTree) -> PagePickup:
 
 
 func _draw() -> void:
-	Fx.draw_glow(self, Vector2(0, -FLOAT), 110.0 + sin(_t * 2.0) * 8.0, Color(_color.r, _color.g, _color.b, 0.07))  # the faint light seen from afar
-	Fx.draw_glow(self, Vector2(0, -FLOAT), 34.0 + sin(_t * 3.0) * 3.0, Color(_color.r, _color.g, _color.b, 0.14))
+	Fx.draw_glow(self, Vector2(0, -FLOAT), 150.0 + sin(_t * 2.0) * 10.0, Color(_color.r, _color.g, _color.b, 0.22))  # the light seen from afar
+	Fx.draw_glow(self, Vector2(0, -FLOAT), 70.0 + sin(_t * 2.6) * 6.0, Color(_color.r, _color.g, _color.b, 0.3))
+	Fx.draw_glow(self, Vector2(0, -FLOAT), 34.0 + sin(_t * 3.0) * 3.0, Color(_color.r, _color.g, _color.b, 0.5))

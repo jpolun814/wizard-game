@@ -22,6 +22,10 @@ var _shape: CollisionShape2D
 
 func _ready() -> void:
 	z_index = 1
+	var doorway := Polygon2D.new()  # the dark of the passage, which the door turns away from as it opens
+	doorway.color = Color(0.03, 0.02, 0.06, 0.92)
+	doorway.polygon = PackedVector2Array([Vector2(-WIDTH * 0.5, -HEIGHT), Vector2(WIDTH * 0.5, -HEIGHT), Vector2(WIDTH * 0.5, 0), Vector2(-WIDTH * 0.5, 0)])
+	add_child(doorway)
 	_sprite = Sprite2D.new()
 	_sprite.texture = load("res://art/props/door.png")
 	_sprite.centered = false

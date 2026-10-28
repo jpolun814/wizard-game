@@ -105,31 +105,61 @@ static func plan(graph: WorldGraph, rng: RandomNumberGenerator) -> Dictionary:
 	for k in mini(STASH, lockable.size()):
 		kept.append(lockable.pop_back())
 	var placed := []
+	var spots: Array[Vector2] = []  # where pages already lie, in tiles, so the next one goes as far from them as it can
+	var rest: Array[String] = open + lockable
+	_shuffle(rest, rng)
+	for column in _surface_columns(graph, ON_SURFACE):
+		placed.append({"page": rest.pop_back(), "room": 0, "x": column})  # room 0 is the surface
+		spots.append(Vector2(column, 0))
+	if graph.surface["castle"] >= 0:
+		for spot in CASTLE_SPOTS.slice(0, IN_CASTLE):
+			placed.append({"page": rest.pop_back(), "room": 0, "castle": spot})
+			spots.append(Vector2(graph.surface["castle"] + spot.x, 0))
 	# The locked areas, but not the boss's own: only pages that open no gate lie in them, one to a room, as the reward for getting in.
 	var inner_rooms := []
 	for lock: Dictionary in graph.locks:
 		if not lock["boss"]:
 			inner_rooms.append_array(lock["rooms"])
 	_shuffle(inner_rooms, rng)
-	for room: int in inner_rooms:
-		if lockable.is_empty():
-			break
-		placed.append({"page": lockable.pop_back(), "room": room})
+	for page in lockable.duplicate():
+		if not rest.has(page):
+			lockable.erase(page)  # already out on the surface or in the castle
+	_shuffle(lockable, rng)
+	while not inner_rooms.is_empty() and not lockable.is_empty():
+		var room := _farthest(graph, inner_rooms, spots)
+		inner_rooms.erase(room)
+		var page: String = lockable.pop_back()
+		rest.erase(page)
+		placed.append({"page": page, "room": room})
+		spots.append(Vector2(graph.rooms[room]["cx"], graph.rooms[room]["cy"]))
 	var free := []  # the halls outside every locked area, off the surface
 	for room in graph.rooms:
 		if room["lock"] == -1 and not room.has("surface") and room["id"] != graph.boss:
 			free.append(room["id"])
-	_shuffle(free, rng)
-	var rest: Array[String] = open + lockable
-	_shuffle(rest, rng)
-	for column in _surface_columns(graph, ON_SURFACE):
-		placed.append({"page": rest.pop_back(), "room": 0, "x": column})  # room 0 is the surface
-	if graph.surface["castle"] >= 0:
-		for spot in CASTLE_SPOTS.slice(0, IN_CASTLE):
-			placed.append({"page": rest.pop_back(), "room": 0, "castle": spot})
-	for k in rest.size():
-		placed.append({"page": rest[k], "room": free[k % free.size()]})  # one to a hall until every hall has one
+	var open_halls := free.duplicate()
+	while not rest.is_empty():
+		if open_halls.is_empty():
+			open_halls = free.duplicate()  # more pages than halls: the second round doubles up, as far apart as can be
+		var room := _farthest(graph, open_halls, spots)
+		open_halls.erase(room)
+		placed.append({"page": rest.pop_back(), "room": room})
+		spots.append(Vector2(graph.rooms[room]["cx"], graph.rooms[room]["cy"]))
 	return {"placed": placed, "stash": kept}
+
+
+## The room, of those given, whose middle is farthest from every spot already taken (the first when nothing is).
+static func _farthest(graph: WorldGraph, candidates: Array, spots: Array[Vector2]) -> int:
+	var best: int = candidates[0]
+	var best_gap := -1.0
+	for room: int in candidates:
+		var at := Vector2(graph.rooms[room]["cx"], graph.rooms[room]["cy"])
+		var gap := 1.0e9
+		for spot in spots:
+			gap = minf(gap, at.distance_to(spot))
+		if gap > best_gap:
+			best_gap = gap
+			best = room
+	return best
 
 
 ## Columns of open ground close to the start, away from the castle and the pools, a stretch apart, nearest first.

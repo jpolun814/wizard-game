@@ -66,7 +66,7 @@ func _ready() -> void:
 	else:
 		camera.limit_left = ArenaGen.LEFT_WALL * TILE + TILE / 2
 		camera.limit_right = (ArenaGen.RIGHT_WALL + 1) * TILE - TILE / 2
-		camera.limit_bottom = ArenaGen.GROUND_Y + TILE * 4
+		camera.limit_bottom = (ArenaGen.GROUND_ROW + ArenaGen.DEPTH) * TILE  # the ground ends here; never look below it
 
 	hud = preload("res://scenes/hud.tscn").instantiate()
 	hud.player = player

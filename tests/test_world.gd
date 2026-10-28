@@ -123,6 +123,16 @@ func _initialize() -> void:
 			first_hops = minf(first_hops, nearest_page)
 			mean += nearest_page
 		print("seed %d: %d rooms, %d of %d halls hold a page; nearest page from a spawn: %.0f passages (average %.1f); world %s tiles" % [s, graph.rooms.size(), page_rooms.size() - 1, graph.rooms.size() - 1, first_hops, mean / maxf(graph.spawns.size(), 1), str(world["size"])])
+		var closest := 1.0e9  # no two pages side by side: the nearest pair of rooms that hold one are well apart
+		var held: Array = page_rooms.keys()
+		for i in held.size():
+			for j in range(i + 1, held.size()):
+				if held[i] > 0 and held[j] > 0:
+					var ra: Dictionary = graph.rooms[held[i]]
+					var rb: Dictionary = graph.rooms[held[j]]
+					closest = minf(closest, Vector2(ra["cx"], ra["cy"]).distance_to(Vector2(rb["cx"], rb["cy"])))
+		if closest < 20.0:
+			_fail("seed %d: two pages lie only %.0f tiles apart" % [s, closest])
 		var seen := {}
 		for entry: Dictionary in layout["placed"]:
 			var page: String = entry["page"]

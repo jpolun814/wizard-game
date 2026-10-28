@@ -40,11 +40,13 @@ func _ready() -> void:
 		var key := Label.new()
 		key.text = row[0]
 		key.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		key.theme_type_variation = &"Outlined"
 		key.add_theme_color_override("font_color", Color("#f2c14e"))
 		key.add_theme_font_size_override("font_size", 19)
 		rows.add_child(key)
 		var what := Label.new()
 		what.text = row[1]
+		what.theme_type_variation = &"Outlined"
 		what.add_theme_color_override("font_color", Color(0.92, 0.9, 1.0))
 		what.add_theme_font_size_override("font_size", 19)
 		rows.add_child(what)

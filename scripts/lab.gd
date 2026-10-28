@@ -148,7 +148,7 @@ func _on_portal_entered(body: Node2D) -> void:
 	add_child(cover)
 	fade.tween_property(black, "color:a", 1.0, 0.4)
 	fade.tween_interval(0.15)
-	fade.tween_callback(get_tree().change_scene_to_file.bind("res://scenes/world.tscn"))
+	fade.tween_callback(get_tree().change_scene_to_file.bind("res://scenes/loading.tscn"))
 
 
 ## Four words of a world's name, typed into the ritual box, tune the portal to that world.

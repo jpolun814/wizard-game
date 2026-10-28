@@ -15,6 +15,7 @@ var _flames: Node2D
 
 
 func _ready() -> void:
+	add_to_group("fires")  # it lights the dark and shows up to fire-sensitive things like any other fire
 	var logs := Sprite2D.new()  # the fire burns on a stone hearth, seen from the side
 	logs.texture = load("res://art/props/bonfire_logs.png")
 	logs.scale = Vector2.ONE * 3.0
