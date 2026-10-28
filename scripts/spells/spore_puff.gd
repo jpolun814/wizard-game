@@ -18,7 +18,6 @@ const RATE := 26.0          # spore puffs per second
 const DRAG := 1.4           # they slow quickly, then hang in the air
 const LIFE := 4.5           # how long one puff lives
 const FADE := 0.7           # how long it takes to thin away when the wind takes it
-const TEXTURE_SIZE := 64.0
 
 var caster_node: Node2D
 var aim := 0.0

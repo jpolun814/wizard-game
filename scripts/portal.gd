@@ -5,7 +5,6 @@ extends Area2D
 ## sprite sheet, drawn at two times its size.
 
 const RY := 28.0  # half the height of the way through; the arena stands the portal this far (and a bit) off the ground
-const SINK := 10.0  # the archway's foot is pushed this far into the ground, so the ground hides it
 
 var _t := 0.0
 var _ring: AnimatedSprite2D  # the purple ring: closed, then opening, then open

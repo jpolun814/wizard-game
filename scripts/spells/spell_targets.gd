@@ -158,13 +158,6 @@ static func _lit_by_flare(tree: SceneTree, point: Vector2) -> bool:
 	return false
 
 
-## Strikes whatever stone is near a point: stone walls, boulders, trees. Anything that can be broken is in the
-## "breakables" group and takes the blow through take_blow_near(point, damage).
-static func break_stone(tree: SceneTree, point: Vector2, damage: float) -> void:
-	for thing in tree.get_nodes_in_group("breakables"):
-		thing.take_blow_near(point, damage)
-
-
 ## The heat of the hottest steady fire (not a shot in flight) within reach of a box in the world, or 0 if none is.
 static func fire_heat_near(tree: SceneTree, box: Rect2, reach: float) -> float:
 	var heat := 0.0

@@ -12,7 +12,6 @@ const GRAVEYARD_WIDTH := 270
 const CASTLE_WIDTH := 136   # the same as WorldBuilder's
 const POOL_PAD := 3         # columns of level shore each side of a pool
 const START_FLAT := 8       # columns each side of the middle that are level, to start on
-const MOUNTAIN_SLOPE := 1.0 # rows a mountain climbs for each column: the 45 degrees a walker can just manage
 const LEDGE := 3            # the most a ledge on a mountain climbs in one column: a jump (the wizard clears three rows)
 const OTHERS := ["mountains", "swamp", "tundra", "ashlands"]
 

@@ -136,10 +136,6 @@ static func column_x(col: int) -> float:
 	return col * TILE + TILE * 0.5
 
 
-static func column_of(x: float) -> int:
-	return floori(x / TILE)
-
-
 ## The left and right edges of the walkable map, in world pixels.
 static func left_edge() -> float:
 	if world_size.x > 0:

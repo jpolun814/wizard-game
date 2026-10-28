@@ -187,10 +187,6 @@ func _make(key: Vector2i) -> void:
 	_built[key] = nodes
 
 
-func chunks_built() -> int:
-	return _built.size()
-
-
 func _rect_of(key: Vector2i) -> Rect2:
 	return Rect2(Vector2(key) * _px, Vector2(_px, _px))
 
