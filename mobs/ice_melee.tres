@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="MobKind" format=3]
+
+[ext_resource type="Script" path="res://scripts/mob_kind.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "ice_melee"
+sort_order = 10
+display_name = "Melee Water"
+desc = "Leaves falling snow that slows."
+role = "melee"
+art = "skeleton"
+hp = 34
+school = "Water"
+weak = "Fire"
+resist = "Water"
+damage = 6
+speed = 0.9
+effect = "frost_trail"

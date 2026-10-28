@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="MobKind" format=3]
+
+[ext_resource type="Script" path="res://scripts/mob_kind.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "dummy"
+sort_order = 19
+display_name = "Dummy"
+desc = "Never falls. Test your spells on it."
+role = "melee"
+art = "skeleton"
+hp = 300
+damage = 0
+speed = 0.0
+effect = "dummy"

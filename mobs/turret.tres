@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="MobKind" format=3]
+
+[ext_resource type="Script" path="res://scripts/mob_kind.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "turret"
+sort_order = 20
+display_name = "Turret"
+desc = "Never falls. Fires plain bolts."
+role = "ranged"
+art = "goblin"
+hp = 300
+damage = 0
+speed = 0.0
+effect = "dummy"
+shot = {"interval": 2.0, "damage": 6}

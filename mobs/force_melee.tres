@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="MobKind" format=3]
+
+[ext_resource type="Script" path="res://scripts/mob_kind.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "force_melee"
+sort_order = 4
+display_name = "Melee Air"
+desc = "Hits hard enough to send people flying."
+role = "melee"
+art = "skeleton"
+hp = 30
+school = "Air"
+damage = 8
+speed = 1.0
+effect = "big_knockback"

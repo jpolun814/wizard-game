@@ -63,12 +63,12 @@ func _process(delta: float) -> void:
 	_boss_name.visible = wizard != null
 	if wizard:
 		_boss.set_value(wizard.hp, wizard.max_hp)
-		_boss_name.text = "The " + wizard.KINDS[wizard.kind]["name"]
+		_boss_name.text = "The " + wizard.KINDS[wizard.kind].display_name
 
 
 func _find_wizard() -> Node:
 	for mob in get_tree().get_nodes_in_group("mobs"):
-		if mob.KINDS[mob.kind]["role"] == "wizard":
+		if mob.KINDS[mob.kind].role == "wizard":
 			return mob
 	return null
 

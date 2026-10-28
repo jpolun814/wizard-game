@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="MobKind" format=3]
+
+[ext_resource type="Script" path="res://scripts/mob_kind.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "fire_ranged"
+sort_order = 8
+display_name = "Ranged Fire"
+desc = "Hurls fireballs."
+role = "ranged"
+art = "goblin"
+hp = 24
+school = "Fire"
+weak = "Water"
+resist = "Fire"
+damage = 0
+speed = 1.0
+shot = {"interval": 2.4, "damage": 8, "art": "fireball"}

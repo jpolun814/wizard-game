@@ -63,10 +63,10 @@ func _blow(body: Node2D, delta: float) -> void:
 	var along := Vector2(signf(_aim.x) * absf(_aim.x), 0.0) * SPEED
 	if body.is_in_group("mobs"):
 		var share := WALKER_SHARE
-		if body.KINDS[body.kind]["role"] == "flyer":
+		if body.KINDS[body.kind].role == "flyer":
 			share = 1.0
 			along = _aim * SPEED  # a flyer is carried any way the wind blows
-		elif body.KINDS[body.kind]["effect"] == "smash":
+		elif body.KINDS[body.kind].effect == "smash":
 			share = 0.0
 		if share > 0.0:
 			body.knock_back(along * share)

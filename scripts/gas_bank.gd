@@ -91,7 +91,7 @@ func _physics_process(delta: float) -> void:
 		if not SpellTargets.affects(body):
 			continue
 		if body.is_in_group("mobs"):
-			if body.KINDS[body.kind]["role"] != "flyer":
+			if body.KINDS[body.kind].role != "flyer":
 				body.take_damage(DAMAGE, "Flora")
 		elif not body.holding_breath():  # whoever holds their breath is not poisoned
 			body.take_damage(DAMAGE, false, true)  # no grace between breaths, but a Barrier keeps it off

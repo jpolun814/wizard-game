@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="MobKind" format=3]
+
+[ext_resource type="Script" path="res://scripts/mob_kind.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "earth_melee"
+sort_order = 13
+display_name = "Melee Earth"
+desc = "Hits hard and knocks back."
+role = "melee"
+art = "skeleton"
+hp = 48
+school = "Earth"
+weak = "Water"
+resist = "Earth"
+damage = 14
+speed = 0.6
+effect = "knockback"

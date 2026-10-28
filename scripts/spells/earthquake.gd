@@ -36,7 +36,7 @@ func _physics_process(delta: float) -> void:
 		_beat = BEAT
 		_side = -_side
 		for mob in get_tree().get_nodes_in_group("mobs"):
-			if not mob.is_dead() and mob.KINDS[mob.kind]["role"] != "flyer":
+			if not mob.is_dead() and mob.KINDS[mob.kind].role != "flyer":
 				mob.knock_back(Vector2(_side * KNOCK, 0.0))
 		var player := get_tree().get_first_node_in_group("player")
 		if player != null:  # a quake brings down the wall or the plug of ice near the wizard

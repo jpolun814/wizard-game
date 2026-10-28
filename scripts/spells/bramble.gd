@@ -83,7 +83,7 @@ func _physics_process(delta: float) -> void:
 
 ## True for a walker standing in the thorns: on the ground within the thicket (whatever the slope under it), not jumping over it.
 func _caught(body: Node2D) -> bool:
-	if body.is_in_group("mobs") and body.KINDS[body.kind]["role"] == "flyer":
+	if body.is_in_group("mobs") and body.KINDS[body.kind].role == "flyer":
 		return false
 	var feet := body.global_position
 	if feet.x < _box.position.x or feet.x > _box.end.x:

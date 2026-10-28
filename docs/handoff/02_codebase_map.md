@@ -119,7 +119,7 @@ never block each other.
 
 ### Enemies
 - **`mob.gd`:**
-  - `KINDS` gives each kind: role (melee, ranged, flyer, wizard), art, school, weak, resist, hp, damage, speed,
+  - `Mob.KINDS` loads one `MobKind` resource per kind from `res://mobs/` (edit them in the inspector); each gives: role (melee, ranged, flyer, wizard), art, school, weak, resist, hp, damage, speed,
     effect and shot.
   - Creature frames are built by `CharFrames`. The shader `mob.gdshader` adds a slight school tint, a 1 px
     school-coloured outline, the hit flash and the frozen look.

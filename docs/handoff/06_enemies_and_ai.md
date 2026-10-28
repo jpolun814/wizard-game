@@ -1,6 +1,6 @@
 # Enemies and the dark wizard
 
-## Enemy kinds (`Mob.KINDS`)
+## Enemy kinds (`Mob.KINDS`, one `MobKind` resource each in `res://mobs/`)
 
 - **Naming:** `<school>_<role>`, plus `basic` and `dark_wizard`.
 - **Roles and art:**

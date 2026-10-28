@@ -153,7 +153,7 @@ func _add_mob(kind: String, feet: Vector2) -> Node2D:
 	var mob := MOB_SCENE.instantiate()
 	mob.kind = kind
 	mob.player = player
-	mob.position = feet - Vector2(0, FLYER_HEIGHT if Mob.KINDS[kind]["role"] == "flyer" else 0.0)
+	mob.position = feet - Vector2(0, FLYER_HEIGHT if Mob.KINDS[kind].role == "flyer" else 0.0)
 	add_child(mob)
 	return mob
 
@@ -903,14 +903,14 @@ func _update_insight() -> void:
 	_insight_tip.visible = mob != null
 	if mob == null:
 		return
-	var data: Dictionary = Mob.KINDS[mob.kind]
-	var weak := _school_bb(data["weak"]) if data["weak"] != "" else "nothing"
-	var resist := _school_bb(data["resist"]) if data["resist"] != "" else "nothing"
+	var data: MobKind = Mob.KINDS[mob.kind]
+	var weak := _school_bb(data.weak) if data.weak != "" else "nothing"
+	var resist := _school_bb(data.resist) if data.resist != "" else "nothing"
 	_insight_text.text = "[b]%s[/b]   Health %d / %d\nWeak to %s\nResists %s\n[i]%s[/i]" % [
-		data["name"], mob.hp, mob.max_hp,
-		weak, resist, data["desc"],
+		data.display_name, mob.hp, mob.max_hp,
+		weak, resist, data.desc,
 	]
-	if data["role"] == "wizard":  # a wizard's spells, each in the colour of its school
+	if data.role == "wizard":  # a wizard's spells, each in the colour of its school
 		var lines := ""
 		for spell_name: String in WizardBrain.KNOWN:
 			var colour: Color = SpellData.SCHOOL_COLORS[SpellData.SPELLS[spell_name].school]

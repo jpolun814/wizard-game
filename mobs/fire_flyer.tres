@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="MobKind" format=3]
+
+[ext_resource type="Script" path="res://scripts/mob_kind.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "fire_flyer"
+sort_order = 9
+display_name = "Flying Fire"
+desc = "Drops fireballs as it flies."
+role = "flyer"
+art = "eye"
+hp = 22
+school = "Fire"
+weak = "Water"
+resist = "Fire"
+damage = 6
+speed = 1.0
+shot = {"interval": 1.4, "damage": 6, "drop": true}

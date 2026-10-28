@@ -146,7 +146,7 @@ func _erupt() -> void:
 
 ## True for a body whose feet are on the geyser's spot, on the ground (a flyer overhead is not).
 func _on_the_spot(body: Node2D) -> bool:
-	if body.is_in_group("mobs") and body.KINDS[body.kind]["role"] == "flyer":
+	if body.is_in_group("mobs") and body.KINDS[body.kind].role == "flyer":
 		return false
 	return absf(body.global_position.x - global_position.x) <= WIDTH * 0.5 + 8.0 \
 		and body.global_position.y >= global_position.y - 30.0 and body.global_position.y <= global_position.y + 20.0

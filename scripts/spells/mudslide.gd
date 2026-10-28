@@ -79,7 +79,7 @@ func _physics_process(delta: float) -> void:
 
 ## True for a walker standing in the pit. Flyers are never caught.
 func _caught(body: Node2D) -> bool:
-	if body.is_in_group("mobs") and body.KINDS[body.kind]["role"] == "flyer":
+	if body.is_in_group("mobs") and body.KINDS[body.kind].role == "flyer":
 		return false
 	var feet := body.global_position
 	var local_x := feet.x - global_position.x

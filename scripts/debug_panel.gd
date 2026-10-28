@@ -33,7 +33,7 @@ func _ready() -> void:
 	grid.add_theme_constant_override("v_separation", 4)
 	column.add_child(grid)
 	for kind in Mob.KINDS:
-		grid.add_child(_button(Mob.KINDS[kind]["name"], _summon.bind(kind)))
+		grid.add_child(_button(Mob.KINDS[kind].display_name, _summon.bind(kind)))
 	var tools := HBoxContainer.new()
 	column.add_child(tools)
 	tools.add_child(_button("Clear enemies", func() -> void: arena.clear_enemies()))

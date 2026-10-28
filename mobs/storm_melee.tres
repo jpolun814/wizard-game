@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="MobKind" format=3]
+
+[ext_resource type="Script" path="res://scripts/mob_kind.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "storm_melee"
+sort_order = 16
+display_name = "Melee Wind"
+desc = "Fast. Explodes on contact."
+role = "melee"
+art = "skeleton"
+hp = 20
+school = "Air"
+weak = "Earth"
+resist = "Air"
+damage = 35
+speed = 2.6
+effect = "explode"

@@ -9,31 +9,21 @@ extends CharacterBody2D
 ## A walker's origin is at its feet, so it stands exactly on the ground; a flyer's is the middle of its body.
 ## Every attack is telegraphed: walkers wind up, shooters charge a glow, flyers hover before they dive.
 
-const KINDS := {
-	"basic": {"name": "Basic", "desc": "Has no weakness and no resistance.", "role": "melee", "art": "skeleton", "hp": 30, "school": "", "weak": "", "resist": "", "damage": 8, "speed": 1.0, "effect": ""},
-	"dark_wizard": {"name": "Dark Wizard", "desc": "Casts your own spells. Hit it while it draws to break its cast.", "role": "wizard", "art": "dark_wizard", "scale": 1.0, "hp": 120, "school": "Shadow", "weak": "", "resist": "", "damage": 0, "speed": 1.0, "effect": ""},
-	"pyre_wizard": {"name": "Pyre Wizard", "desc": "Casts your own spells. Hit it while it draws to break its cast.", "role": "wizard", "art": "pyre_wizard", "scale": 1.5, "hp": 120, "school": "Shadow", "weak": "", "resist": "", "damage": 0, "speed": 1.0, "effect": ""},
-	"bone_wizard": {"name": "Bone Wizard", "desc": "Casts your own spells. Hit it while it draws to break its cast.", "role": "wizard", "art": "bone_wizard", "scale": 1.5, "hp": 120, "school": "Shadow", "weak": "", "resist": "", "damage": 0, "speed": 1.0, "effect": ""},
-	"force_melee": {"name": "Melee Air", "desc": "Hits hard enough to send people flying.", "role": "melee", "art": "skeleton", "hp": 30, "school": "Air", "weak": "", "resist": "", "damage": 8, "speed": 1.0, "effect": "big_knockback"},
-	"force_ranged": {"name": "Ranged Air", "desc": "Fires orbs from a distance.", "role": "ranged", "art": "goblin", "hp": 24, "school": "Air", "weak": "", "resist": "", "damage": 0, "speed": 1.0, "effect": "", "shot": {"interval": 2.2, "damage": 6}},
-	"force_flyer": {"name": "Flying Air", "desc": "Swoops down.", "role": "flyer", "art": "eye", "hp": 22, "school": "Air", "weak": "", "resist": "", "damage": 6, "speed": 1.0, "effect": ""},
-	"fire_melee": {"name": "Melee Fire", "desc": "Sets alight whatever it touches.", "role": "melee", "art": "skeleton", "hp": 30, "school": "Fire", "weak": "Water", "resist": "Fire", "damage": 8, "speed": 1.0, "effect": "burning"},
-	"fire_ranged": {"name": "Ranged Fire", "desc": "Hurls fireballs.", "role": "ranged", "art": "goblin", "hp": 24, "school": "Fire", "weak": "Water", "resist": "Fire", "damage": 0, "speed": 1.0, "effect": "", "shot": {"interval": 2.4, "damage": 8, "art": "fireball"}},
-	"fire_flyer": {"name": "Flying Fire", "desc": "Drops fireballs as it flies.", "role": "flyer", "art": "eye", "hp": 22, "school": "Fire", "weak": "Water", "resist": "Fire", "damage": 6, "speed": 1.0, "effect": "", "shot": {"interval": 1.4, "damage": 6, "drop": true}},
-	"ice_melee": {"name": "Melee Water", "desc": "Leaves falling snow that slows.", "role": "melee", "art": "skeleton", "hp": 34, "school": "Water", "weak": "Fire", "resist": "Water", "damage": 6, "speed": 0.9, "effect": "frost_trail"},
-	"ice_ranged": {"name": "Ranged Water", "desc": "Fires bolts that slow.", "role": "ranged", "art": "goblin", "hp": 24, "school": "Water", "weak": "Fire", "resist": "Water", "damage": 0, "speed": 1.0, "effect": "", "shot": {"interval": 2.0, "damage": 4, "slow": true}},
-	"ice_flyer": {"name": "Flying Water", "desc": "Drops icicles that slow.", "role": "flyer", "art": "eye", "hp": 22, "school": "Water", "weak": "Fire", "resist": "Water", "damage": 4, "speed": 1.0, "effect": "", "shot": {"interval": 1.8, "damage": 3, "slow": true, "drop": true}},
-	"earth_melee": {"name": "Melee Earth", "desc": "Hits hard and knocks back.", "role": "melee", "art": "skeleton", "hp": 48, "school": "Earth", "weak": "Water", "resist": "Earth", "damage": 14, "speed": 0.6, "effect": "knockback"},
-	"earth_ranged": {"name": "Ranged Earth", "desc": "Hurls boulders in an arc.", "role": "ranged", "art": "goblin", "hp": 28, "school": "Earth", "weak": "Water", "resist": "Earth", "damage": 0, "speed": 1.0, "effect": "", "shot": {"interval": 2.6, "damage": 10, "gravity": 420.0}},
-	"earth_flyer": {"name": "Flying Earth", "desc": "Drops boulders as it flies.", "role": "flyer", "art": "eye", "hp": 26, "school": "Earth", "weak": "Water", "resist": "Earth", "damage": 8, "speed": 1.0, "effect": "", "shot": {"interval": 2.2, "damage": 8, "gravity": 300.0, "drop": true}},
-	"storm_melee": {"name": "Melee Wind", "desc": "Fast. Explodes on contact.", "role": "melee", "art": "skeleton", "hp": 20, "school": "Air", "weak": "Earth", "resist": "Air", "damage": 35, "speed": 2.6, "effect": "explode"},
-	"storm_ranged": {"name": "Ranged Wind", "desc": "Fires a fan of zaps.", "role": "ranged", "art": "goblin", "hp": 24, "school": "Air", "weak": "Earth", "resist": "Air", "damage": 0, "speed": 1.0, "effect": "", "shot": {"interval": 2.4, "damage": 5, "spread": 3}},
-	"storm_flyer": {"name": "Flying Wind", "desc": "Dives, then flies away.", "role": "flyer", "art": "eye", "hp": 22, "school": "Air", "weak": "Earth", "resist": "Air", "damage": 8, "speed": 1.4, "effect": ""},
-	"dummy": {"name": "Dummy", "desc": "Never falls. Test your spells on it.", "role": "melee", "art": "skeleton", "hp": 300, "school": "", "weak": "", "resist": "", "damage": 0, "speed": 0.0, "effect": "dummy"},
-	"turret": {"name": "Turret", "desc": "Never falls. Fires plain bolts.", "role": "ranged", "art": "goblin", "hp": 300, "school": "", "weak": "", "resist": "", "damage": 0, "speed": 0.0, "effect": "dummy", "shot": {"interval": 2.0, "damage": 6}},
-	"ninja": {"name": "Ninja", "desc": "Fragile and quick. Throws stars.", "role": "ranged", "art": "ninja", "scale": 1.0, "hp": 14, "school": "", "weak": "", "resist": "", "damage": 0, "speed": 2.4, "effect": "ninja", "shot": {"interval": 1.6, "damage": 5, "art": "ninja_star", "burst": 5, "charge": 0.06, "spare_kin": true}},
-	"giant": {"name": "Giant", "desc": "Slow and tough. Smashes stone walls.", "role": "melee", "art": "giant", "scale": 4.0, "hp": 260, "school": "", "weak": "", "resist": "", "damage": 30, "speed": 0.75, "effect": "smash"},
-}
+## Every kind of enemy, by the name it is summoned by, each a MobKind resource read from res://mobs/ in the order they are meant to be listed.
+static var KINDS: Dictionary = _load_kinds()
+
+
+static func _load_kinds() -> Dictionary:
+	var found: Array[MobKind] = []
+	for file in ResourceLoader.list_directory("res://mobs"):
+		file = file.trim_suffix(".remap")  # an exported game lists remapped resources under this name
+		if file.ends_with(".tres") or file.ends_with(".res"):
+			found.append(load("res://mobs/" + file))
+	found.sort_custom(func(x: MobKind, y: MobKind) -> bool: return x.sort_order < y.sort_order)
+	var out := {}
+	for kind in found:
+		out[kind.id] = kind
+	return out
 const SPEED := 80.0
 const TERMINAL_FALL := 900.0  # no enemy falls faster than this
 const FALL_LIMIT := 800.0     # an enemy below this has fallen off the map and is removed
@@ -101,22 +91,33 @@ var _draw_total := DRAW_TIME
 var _stroke := PackedVector2Array()
 var _stroke_colour := Color.WHITE
 var _on_drawn: Callable
-var _shield_time := 0.0
+var _shield_time: float:
+	get: return _status.left(&"shield")
+	set(seconds): _status.set_left(&"shield", seconds)
 var _cooldown := 0.0
 var _since_hit := 0.0  # seconds since this enemy was last hurt; a dummy heals once it has been left alone
-var _slow_time := 0.0
+var _slow_time: float:
+	get: return _status.left(&"slow")
+	set(seconds): _status.set_left(&"slow", seconds)
 var _knock_x := 0.0
 var _drift := Vector2.ZERO  # a pull (Gravity Well) that fades
 var _dead := false
 var _fainted := false  # knocked out by a Faint: down until its stamina has come back to GET_UP
 var _since_stamina := 0.0  # seconds since a fainted enemy lost its stamina; it does not come back at once
+var _status := StatusEffects.new()  # the timed conditions above, each a Timer
 var _gravity: float = ProjectSettings.get_setting("physics/2d/default_gravity")
 var _idle_t := 0.0
 var facing := 1.0
 var _shot_timer := 1.5
-var _root_time := 0.0
-var _nojump_time := 0.0  # while above zero, the walker cannot jump (mudslide)
-var _frozen_time := 0.0
+var _root_time: float:
+	get: return _status.left(&"root")
+	set(seconds): _status.set_left(&"root", seconds)
+var _nojump_time: float: # while above zero, the walker cannot jump (mudslide)
+	get: return _status.left(&"nojump")
+	set(seconds): _status.set_left(&"nojump", seconds)
+var _frozen_time: float:
+	get: return _status.left(&"frozen")
+	set(seconds): _status.set_left(&"frozen", seconds)
 var _flame: Node2D  # a burning walker's flame; it goes out while the walker is frozen
 var _relight := 0.0  # seconds until the flame is lit again after a freeze
 var _base_scale := 1.0
@@ -152,23 +153,27 @@ const ICE := preload("res://art/props/ice_fill.png")
 
 
 func _ready() -> void:
+	add_child(_status)
+	_status.ended.connect(func(status: StringName) -> void:
+		if status == &"frozen":
+			Shatter.spawn(get_parent(), center(), Color("#cdeeff")))  # the ice gives way
 	floor_max_angle = deg_to_rad(50.0)
 	add_to_group("mobs")
-	var data: Dictionary = KINDS[kind]
+	var data: MobKind = KINDS[kind]
 	if _burns():
 		_set_alight()
-	max_hp = data.get("hp", 30)
+	max_hp = data.hp
 	hp = max_hp
 	_overlay = Node2D.new()
 	_overlay.z_index = 10
 	_overlay.draw.connect(_draw_overlay)
 	_overlay.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
 	add_child(_overlay)
-	if data["role"] == "wizard":
+	if data.role == "wizard":
 		_build_wizard()
 	else:
 		_build_creature(data)
-	if data["role"] == "flyer":
+	if data.role == "flyer":
 		collision_mask = 0  # flyers pass through the terrain; they reach you from above
 		_fly_goal_x = global_position.x
 		_fly_timer = 1.0 + randf() * 2.0
@@ -180,15 +185,15 @@ func _ready() -> void:
 
 
 ## A creature drawn from art/mobs: its frames, its size, and a hitbox that matches the body in the drawing.
-func _build_creature(data: Dictionary) -> void:
-	var art: String = data["art"]
+func _build_creature(data: MobKind) -> void:
+	var art: String = data.art
 	var info: Dictionary = PixelArt.CHARACTERS[art]
 	_visual.sprite_frames = CharFrames.build("res://art/mobs/" + art, CREATURE_ANIMATIONS)
-	if data["effect"] == "smash":
+	if data.effect == "smash":
 		# The lean is slowed to fill the giant's wind-up, so one pass of it lasts as long as the wind-up does.
 		_visual.sprite_frames.set_animation_speed("attack", 7.0)
 	_visual.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST  # scaled-up pixel art stays crisp, not blurred
-	_base_scale = data.get("scale", 1.0)
+	_base_scale = data.scale
 	var body: Rect2 = info["body"]
 	var frame: Vector2 = info["size"]
 	var hitbox: CollisionShape2D = $CollisionShape2D
@@ -230,7 +235,7 @@ func _start_animating() -> void:
 ## The creature's own colours, with a little of its school's colour and an outline in it. Plain enemies get no
 ## outline at all.
 func _apply_material() -> void:
-	var school: String = KINDS[kind]["school"]
+	var school: String = KINDS[kind].school
 	_material = ShaderMaterial.new()
 	_material.shader = load("res://scripts/mob.gdshader")
 	_material.set_shader_parameter("school_color", _school_colour())
@@ -240,12 +245,12 @@ func _apply_material() -> void:
 
 
 func _school_colour() -> Color:
-	var school: String = KINDS[kind]["school"]
+	var school: String = KINDS[kind].school
 	return SpellData.SCHOOL_COLORS.get(school, Color("#d8d0e8"))
 
 
 func _flies() -> bool:
-	return KINDS[kind]["role"] == "flyer"
+	return KINDS[kind].role == "flyer"
 
 
 ## The middle of the enemy's body in the world. Spells and the player's aim go here.
@@ -269,20 +274,13 @@ func _physics_process(delta: float) -> void:
 	modulate.a = 1.0
 	_cooldown -= delta
 	_since_hit += delta
-	if KINDS[kind]["effect"] == "dummy" and _since_hit > 3.0:
+	if KINDS[kind].effect == "dummy" and _since_hit > 3.0:
 		hp = max_hp  # a dummy heals as soon as you stop
-	_root_time -= delta
-	_nojump_time -= delta
-	_shield_time -= delta
-	_slow_time -= delta
 	_knock_x = move_toward(_knock_x, 0.0, KNOCK_DECAY * delta)
 	_drift = _drift.move_toward(Vector2.ZERO, 900.0 * delta)
 	if _frozen_time > 0.0:
-		_frozen_time -= delta
 		_windup = 0.0
 		_charge = 0.0
-		if _frozen_time <= 0.0:
-			Shatter.spawn(get_parent(), center(), Color("#cdeeff"))
 		if not _flies():
 			_fall(delta)
 			velocity.x = _knock_x + _drift.x
@@ -304,16 +302,16 @@ func _physics_process(delta: float) -> void:
 				velocity.x = _knock_x + _drift.x
 				move_and_slide()
 			return
-	if KINDS[kind]["effect"] == "ninja":
+	if KINDS[kind].effect == "ninja":
 		_ninja_strike(delta)
-	match KINDS[kind]["role"]:
+	match KINDS[kind].role:
 		"wizard":
 			_wizard(delta)
 		"flyer":
 			_fly(delta)
 		_:
 			_walk(delta)
-	if KINDS[kind]["effect"] == "smash":
+	if KINDS[kind].effect == "smash":
 		_climb_ledges(delta)
 ## A giant's tall, wide hitbox can catch the lip of a ledge without touching a wall, and stop dead. When it is held up
 ## like that on the way to the player, it jumps.
@@ -334,18 +332,18 @@ func _fall(delta: float) -> void:
 
 ## Walkers and shooters stay on the ground: they walk, jump blocks, shoot, or wind up and hit.
 func _walk(delta: float) -> void:
-	var data: Dictionary = KINDS[kind]
+	var data: MobKind = KINDS[kind]
 	_fall(delta)
 	velocity.y += _drift.y * delta * 4.0
-	var speed: float = SPEED * data["speed"]
+	var speed: float = SPEED * data.speed
 	if _slow_time > 0.0:
 		speed *= 0.5
 	var target: Node2D = _target()  # the player, or a decoy it has noticed
 	var to_player: Vector2 = target.center() - center() if target else Vector2.ZERO
 	var distance := to_player.length() if target else INF
-	var shooter: bool = data["role"] == "ranged"
+	var shooter: bool = data.role == "ranged"
 	var sees := target != null and _sees(target)
-	var stands_to_shoot: bool = shooter and distance < SPIT_STAND_RANGE and sees and data.get("effect", "") != "ninja"
+	var stands_to_shoot: bool = shooter and distance < SPIT_STAND_RANGE and sees and data.effect != "ninja"
 	var close := absf(to_player.x) < 18.0  # right on top of the player: stop instead of walking through
 	var moving := target != null and speed > 0.0 and not stands_to_shoot and _root_time <= 0.0 and _windup <= 0.0 and _charge <= 0.0 and not close
 	velocity.x = (signf(to_player.x) * speed if moving else 0.0) + _knock_x + _drift.x
@@ -355,7 +353,7 @@ func _walk(delta: float) -> void:
 		if above:
 			velocity.y = MOB_JUMP_HIGH
 		elif is_on_wall():
-			velocity.y = GIANT_JUMP if KINDS[kind]["effect"] == "smash" else MOB_JUMP
+			velocity.y = GIANT_JUMP if KINDS[kind].effect == "smash" else MOB_JUMP
 	move_and_slide()
 	# Touching a burning walker sets you alight, whether or not it is attacking.
 	if _burns() and _flame_lit() and player and not player.dead:
@@ -366,25 +364,25 @@ func _walk(delta: float) -> void:
 	# Some melee enemies leave something behind as they walk.
 	if is_on_floor() and absf(velocity.x) > 5.0:
 		_trail_timer -= delta
-		if _trail_timer <= 0.0 and data["effect"] == "frost_trail":
+		if _trail_timer <= 0.0 and data.effect == "frost_trail":
 			_trail_timer = FROST_TRAIL_INTERVAL
 			_leave_snow()
 	if shooter and target:
-		_update_shooter(delta, distance, sees, data["shot"])
-	if data["role"] == "melee" and target and data["effect"] != "dummy":
+		_update_shooter(delta, distance, sees, data.shot)
+	if data.role == "melee" and target and data.effect != "dummy":
 		_update_melee(delta, distance)
 
 
 ## A walker that is close enough draws back, then lunges. If the player moved away during the wind-up, it misses.
 func _update_melee(delta: float, distance: float) -> void:
 	# A giant that walks into a stone wall or boulder swings at it, even with the player out of reach.
-	if KINDS[kind]["effect"] == "smash" and _windup <= 0.0 and _cooldown <= 0.0 and _wall_ahead():
+	if KINDS[kind].effect == "smash" and _windup <= 0.0 and _cooldown <= 0.0 and _wall_ahead():
 		_windup = SMASH_WINDUP
 		_telegraph_smash()
 	if _windup > 0.0:
 		_windup -= delta
 		if _windup <= 0.0:
-			if KINDS[kind]["effect"] == "smash":
+			if KINDS[kind].effect == "smash":
 				_smash()
 			elif distance < _reach() + 10.0 and _can_reach(_target()):
 				_attack()
@@ -393,7 +391,7 @@ func _update_melee(delta: float, distance: float) -> void:
 		return
 	if _cooldown <= 0.0 and distance < _reach() and _can_reach(_target()):
 		_windup = _windup_time()
-		if KINDS[kind]["effect"] == "smash":
+		if KINDS[kind].effect == "smash":
 			_telegraph_smash()
 
 
@@ -435,7 +433,7 @@ func _smash() -> void:
 	# far away and frees them.
 	var rel: Vector2 = player.center() - global_position if player else Vector2.ZERO
 	if player and not player.dead and signf(rel.x) == facing and absf(rel.x) < SMASH_REACH + 40.0 and absf(rel.y) < 120.0:
-		player.take_damage(KINDS[kind]["damage"])
+		player.take_damage(KINDS[kind].damage)
 		if player.root_time > 0.0:
 			player.push(Vector2(facing * 900.0, -220.0))
 		else:
@@ -456,11 +454,11 @@ func _wall_ahead() -> bool:
 
 ## How far a melee enemy's hit reaches: a giant's stomp reaches much farther than a fist.
 func _reach() -> float:
-	return SMASH_REACH if KINDS[kind]["effect"] == "smash" else CONTACT_RANGE
+	return SMASH_REACH if KINDS[kind].effect == "smash" else CONTACT_RANGE
 
 
 func _windup_time() -> float:
-	match KINDS[kind]["effect"]:
+	match KINDS[kind].effect:
 		"explode":
 			return WINDUP * 0.6
 		"smash":
@@ -512,12 +510,12 @@ func _update_shooter(delta: float, distance: float, sees: bool, shot: Dictionary
 ## Flyers drift over the arena above the player. Every so often they hang still, shaking, then dive at the
 ## player, hit, and fly away.
 func _fly(delta: float) -> void:
-	var data: Dictionary = KINDS[kind]
+	var data: MobKind = KINDS[kind]
 	if player == null:
 		return
 	var before := global_position
 	var cruise_y := minf(player.center().y - 130.0, ArenaGen.GROUND_Y - 110.0)
-	var speed_mult: float = data["speed"] * (0.5 if _slow_time > 0.0 else 1.0)
+	var speed_mult: float = data.speed * (0.5 if _slow_time > 0.0 else 1.0)
 	_fly_timer -= delta
 	match _fly_state:
 		PATROL:
@@ -558,9 +556,9 @@ func _fly(delta: float) -> void:
 		global_position = before  # flyers cannot pass through stone or walls
 		if _fly_state == DIVE:
 			_start_retreat()
-	if data.get("shot", {}).size() > 0:
+	if data.shot.size() > 0:
 		_shot_timer -= delta
-		var shot: Dictionary = data["shot"]
+		var shot: Dictionary = data.shot
 		# A dropping flyer waits until it is over the player before it lets go.
 		var lined_up: bool = not shot.get("drop", false) or absf(player.global_position.x - global_position.x) < 70.0
 		if _shot_timer <= 0.0 and lined_up and _fly_state != DIVE:
@@ -638,11 +636,11 @@ func take_damage(amount: int, school := "", shot := false) -> void:
 	if shot and _shield_time > 0.0:
 		FloatText.spawn(get_parent(), center() + Vector2(0, -_body_size.y * 0.5), "Blocked", Color(0.8, 0.7, 1.0), 0.8)
 		return
-	var data: Dictionary = KINDS[kind]
+	var data: MobKind = KINDS[kind]
 	var dealt := amount
-	if school != "" and school == data["resist"]:
+	if school != "" and school == data.resist:
 		dealt = 0
-	elif school != "" and school == data["weak"]:
+	elif school != "" and school == data.weak:
 		dealt = amount * 2
 	dealt = roundi(dealt * Hex.multiplier(get_tree(), self))  # a hexed enemy takes half again as much
 	if _frozen_time > 0.0 and school in ["Air", "Earth"]:
@@ -656,12 +654,12 @@ func take_damage(amount: int, school := "", shot := false) -> void:
 		return
 	hp -= dealt
 	_since_hit = 0.0
-	if data["effect"] == "dummy" and hp <= 0:
+	if data.effect == "dummy" and hp <= 0:
 		hp = max_hp  # a dummy is never beaten: it stands up again
 	_flash = 1.0
 	var weak := dealt > amount
 	FloatText.spawn(get_parent(), text_at, "%d%s" % [dealt, "!" if weak else ""], Color("#ff9a3a") if weak else Color("#fff0a0"), 1.25 if weak else 1.0)
-	if data["role"] == "wizard" and brain:
+	if data.role == "wizard" and brain:
 		brain.on_hurt(dealt)
 	# Sparks take the spell's colour, not the enemy's.
 	var spark: Color = SpellData.SCHOOL_COLORS.get(school, _school_colour())
@@ -754,7 +752,7 @@ func soak(tint: Color, surface_y := INF, _lava := false) -> void:
 
 
 func apply_slow(seconds: float) -> void:
-	if KINDS[kind]["school"] == "Water":
+	if KINDS[kind].school == "Water":
 		return  # water enemies cannot be slowed by ice or snow
 	_slow_time = maxf(_slow_time, seconds)
 
@@ -762,7 +760,7 @@ func apply_slow(seconds: float) -> void:
 ## Encases the enemy in ice: it cannot move or attack until it thaws or something shatters it.
 ## Returns false for ice enemies, which shrug it off.
 func freeze(seconds: float) -> bool:
-	if KINDS[kind]["school"] == "Water" or _dead:
+	if KINDS[kind].school == "Water" or _dead:
 		return false
 	_frozen_time = maxf(_frozen_time, seconds)
 	return true
@@ -775,7 +773,7 @@ func is_frozen() -> bool:
 func knock_back(impulse: Vector2) -> void:
 	if _frozen_time > 0.0:
 		impulse *= 0.4  # a block of ice is heavy
-	if KINDS[kind]["effect"] == "smash":
+	if KINDS[kind].effect == "smash":
 		impulse *= 0.25  # a giant's bulk barely moves for a fireball
 	_knock_x = impulse.x
 	velocity.y = minf(velocity.y, impulse.y)  # a little lift for upward knocks
@@ -805,19 +803,19 @@ func has_shield() -> bool:
 
 ## An enemy hits the player. Its effect (knockback, or an explosion) comes after the damage.
 func _attack() -> void:
-	var data: Dictionary = KINDS[kind]
+	var data: MobKind = KINDS[kind]
 	_lunge = 1.0
-	if data["effect"] == "explode":
+	if data.effect == "explode":
 		_explode()
 		return
 	var target := _target()
 	if target != player:
-		target.take_damage(data["damage"])  # a decoy takes the blow
+		target.take_damage(data.damage)  # a decoy takes the blow
 		Sfx.play("push", target.center(), -6.0)
 		return
-	player.take_damage(data["damage"])
-	Sfx.play("stones" if data["school"] == "Earth" else "fire_hit" if data["school"] == "Fire" else "push", player.center(), -6.0)
-	match data["effect"]:
+	player.take_damage(data.damage)
+	Sfx.play("stones" if data.school == "Earth" else "fire_hit" if data.school == "Fire" else "push", player.center(), -6.0)
+	match data.effect:
 		"knockback":
 			player.push(Vector2(signf(player.global_position.x - global_position.x) * 420.0, -160.0))
 		"big_knockback":
@@ -831,7 +829,7 @@ func _explode() -> void:
 	GameCamera.shake_scene(get_tree(), 0.4)
 	# Damage the player and any other enemy close enough to the blast.
 	if center().distance_to(player.center()) <= BURST_RADIUS:
-		player.take_damage(KINDS[kind]["damage"])
+		player.take_damage(KINDS[kind].damage)
 	for other in get_tree().get_nodes_in_group("mobs"):
 		if other != self and other.center().distance_to(center()) <= BURST_RADIUS:
 			other.take_damage(BURST_DAMAGE)
@@ -854,7 +852,7 @@ func _process(delta: float) -> void:
 ## flyer's dive), flinching, walking or idling, and faces where it is going. Flyers bob as they hover.
 func _animate(delta: float) -> void:
 	var flying := _flies()
-	var wizard: bool = KINDS[kind]["role"] == "wizard"
+	var wizard: bool = KINDS[kind].role == "wizard"
 	if player and not _dead and _frozen_time <= 0.0:
 		if flying or wizard or _windup > 0.0 or _charge > 0.0 or absf(velocity.x) < 5.0:
 			facing = signf(player.global_position.x - global_position.x) if player.global_position.x != global_position.x else facing
@@ -943,7 +941,7 @@ func _draw_overlay() -> void:
 	if _bubble:
 		_bubble.visible = _shield_time > 0.0
 		_bubble.modulate = Color(0.85, 0.93, 1.0, 0.3 * clampf(_shield_time / 0.4, 0.0, 1.0))
-	var wizard: bool = KINDS[kind]["role"] == "wizard"
+	var wizard: bool = KINDS[kind].role == "wizard"
 	if hp < max_hp or wizard:
 		var width := 40.0 if wizard else 28.0
 		var top := _body_center.y - _body_size.y * 0.5 - (26.0 if wizard else 9.0)
@@ -985,10 +983,10 @@ func _hits_terrain(from: Vector2, to: Vector2) -> bool:
 ## The dark wizard: a hooded figure with a staff wreathed in shadow, the same size as the player. Its hitbox is the
 ## hooded body, not the staff.
 func _build_wizard() -> void:
-	_visual.sprite_frames = CharFrames.build("res://art/chars/" + str(KINDS[kind]["art"]), WIZARD_ANIMATIONS)
-	_base_scale = KINDS[kind].get("scale", 1.0)
-	_visual.offset = Vector2(0, -PixelArt.CHARACTERS[KINDS[kind]["art"]]["size"].y * 0.5)
-	var body: Rect2 = WIZARD_BODY if kind == "dark_wizard" else PixelArt.CHARACTERS[KINDS[kind]["art"]]["body"]
+	_visual.sprite_frames = CharFrames.build("res://art/chars/" + str(KINDS[kind].art), WIZARD_ANIMATIONS)
+	_base_scale = KINDS[kind].scale
+	_visual.offset = Vector2(0, -PixelArt.CHARACTERS[KINDS[kind].art]["size"].y * 0.5)
+	var body: Rect2 = WIZARD_BODY if kind == "dark_wizard" else PixelArt.CHARACTERS[KINDS[kind].art]["body"]
 	_set_walker_body(body.size * _base_scale * Vector2(0.9, 0.95))
 	_start_animating()
 	# Dark wisps rising off the robes.
@@ -1061,7 +1059,7 @@ func interrupt_cast() -> void:
 
 
 func _burns() -> bool:
-	return KINDS[kind]["effect"] == "burning"
+	return KINDS[kind].effect == "burning"
 
 
 ## A burning walker: one flame, tall enough to cover its whole body, stands on it and moves with it.

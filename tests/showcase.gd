@@ -472,7 +472,7 @@ func _plan() -> void:
 				var x: float = _player().global_position.x - 330.0
 				var i := 0
 				for kind in Mob.KINDS:
-					if Mob.KINDS[kind]["role"] == "flyer":
+					if Mob.KINDS[kind].role == "flyer":
 						continue
 					var mob := _summon_at(kind, x + i * 60.0)
 					mob._spawn = 0.0

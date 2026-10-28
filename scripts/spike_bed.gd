@@ -68,7 +68,7 @@ func _physics_process(delta: float) -> void:
 		if _hurt[body] <= 0.0 or not is_instance_valid(body):
 			_hurt.erase(body)
 	for body in get_overlapping_bodies():
-		if SpellTargets.affects(body) and not _hurt.has(body) and not (body.is_in_group("mobs") and body.KINDS[body.kind]["role"] == "flyer"):
+		if SpellTargets.affects(body) and not _hurt.has(body) and not (body.is_in_group("mobs") and body.KINDS[body.kind].role == "flyer"):
 			_hurt[body] = GAP
 			SpellTargets.hurt(body, DAMAGE, "Earth")
 			Fx.burst(get_parent(), SpellTargets.center_of(body), Color("#b04040"), 6, 90.0, 0.3)

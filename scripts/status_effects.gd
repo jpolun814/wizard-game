@@ -4,6 +4,9 @@ extends Node
 ## The timed conditions on a body (slowed, hasted, muted, shielded...). Each one is a Timer node that counts itself down
 ## in the physics step, so nothing has to decrement it by hand: ask has() or left(), and start() to set or lengthen one.
 
+## A condition has run out on its own (not been cleared).
+signal ended(status: StringName)
+
 var _timers := {}  # name -> Timer
 
 
@@ -37,6 +40,7 @@ func _timer(status: StringName) -> Timer:
 		timer.one_shot = true
 		timer.process_callback = Timer.TIMER_PROCESS_PHYSICS
 		timer.name = status
+		timer.timeout.connect(func() -> void: ended.emit(status))
 		add_child(timer)
 		_timers[status] = timer
 	return _timers[status]

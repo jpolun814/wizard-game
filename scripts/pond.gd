@@ -85,7 +85,7 @@ func _douse_shots() -> void:
 
 
 func _flies(body: Node2D) -> bool:
-	return body.is_in_group("mobs") and body.KINDS[body.kind]["role"] == "flyer"
+	return body.is_in_group("mobs") and body.KINDS[body.kind].role == "flyer"
 
 
 ## True when the body stands on frozen water rather than in it.

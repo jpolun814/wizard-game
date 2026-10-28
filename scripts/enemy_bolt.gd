@@ -33,7 +33,7 @@ static func fire(parent: Node, origin: Vector2, target: Vector2, color: Color, d
 	bolt._slows = slows
 	bolt._color = color
 	bolt._shooter = shooter
-	if shooter != null and shooter.KINDS[shooter.kind].get("shot", {}).get("spare_kin", false):
+	if shooter != null and shooter.KINDS[shooter.kind].shot.get("spare_kin", false):
 		bolt._kin = shooter.kind
 	bolt.damage = damage
 	bolt.rotation = direction.angle()

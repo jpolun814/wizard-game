@@ -62,7 +62,7 @@ func _physics_process(delta: float) -> void:
 ## Who is standing on the plant: a walker on the ground within reach. Flyers never are, and neither is anyone in the air.
 func _prey() -> Node2D:
 	for body in SpellTargets.all(get_tree()):
-		if body.is_in_group("mobs") and body.KINDS[body.kind]["role"] == "flyer":
+		if body.is_in_group("mobs") and body.KINDS[body.kind].role == "flyer":
 			continue
 		var feet: Vector2 = body.global_position
 		if absf(feet.x - global_position.x) <= REACH and feet.y >= global_position.y - 20.0 and feet.y <= global_position.y + 12.0:

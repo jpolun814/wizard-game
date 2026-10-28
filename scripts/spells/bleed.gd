@@ -63,7 +63,7 @@ func _physics_process(delta: float) -> void:
 		return
 	var slowed: bool = (target.has_method("is_frozen") and target.is_frozen()) or (target.has_method("is_slowed") and target.is_slowed()) or ("slow_time" in target and target.slow_time > 0.0)
 	var pace := 0.5 if slowed else 1.0  # cold keeps the blood in
-	if "stamina" in target and (target.is_in_group("player") or target.KINDS[target.kind]["role"] == "wizard"):
+	if "stamina" in target and (target.is_in_group("player") or target.KINDS[target.kind].role == "wizard"):
 		if target.is_in_group("player"):
 			target.drain(RATE * pace * delta)
 		else:

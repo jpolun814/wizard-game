@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="MobKind" format=3]
+
+[ext_resource type="Script" path="res://scripts/mob_kind.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "earth_ranged"
+sort_order = 14
+display_name = "Ranged Earth"
+desc = "Hurls boulders in an arc."
+role = "ranged"
+art = "goblin"
+hp = 28
+school = "Earth"
+weak = "Water"
+resist = "Earth"
+damage = 0
+speed = 1.0
+shot = {"interval": 2.6, "damage": 10, "gravity": 420.0}

@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="MobKind" format=3]
+
+[ext_resource type="Script" path="res://scripts/mob_kind.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "storm_flyer"
+sort_order = 18
+display_name = "Flying Wind"
+desc = "Dives, then flies away."
+role = "flyer"
+art = "eye"
+hp = 22
+school = "Air"
+weak = "Earth"
+resist = "Air"
+damage = 8
+speed = 1.4

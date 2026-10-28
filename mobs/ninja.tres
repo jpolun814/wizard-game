@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="MobKind" format=3]
+
+[ext_resource type="Script" path="res://scripts/mob_kind.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "ninja"
+sort_order = 21
+display_name = "Ninja"
+desc = "Fragile and quick. Throws stars."
+role = "ranged"
+art = "ninja"
+scale = 1.0
+hp = 14
+damage = 0
+speed = 2.4
+effect = "ninja"
+shot = {"interval": 1.6, "damage": 5, "art": "ninja_star", "burst": 5, "charge": 0.06, "spare_kin": true}

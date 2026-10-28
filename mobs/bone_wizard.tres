@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="MobKind" format=3]
+
+[ext_resource type="Script" path="res://scripts/mob_kind.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "bone_wizard"
+sort_order = 3
+display_name = "Bone Wizard"
+desc = "Casts your own spells. Hit it while it draws to break its cast."
+role = "wizard"
+art = "bone_wizard"
+scale = 1.5
+hp = 120
+school = "Shadow"
+damage = 0
+speed = 1.0
