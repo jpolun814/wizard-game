@@ -754,13 +754,20 @@ static func shut(world: Dictionary) -> Dictionary:
 	var cells: TileGrid = world["cells"].duplicate()
 	var barred: Dictionary = world["hazards"].duplicate()
 	for gate in world["gates"]:
-		for cell: Vector2i in gate["thorns"]:
-			barred[cell] = true
-		for cell: Vector2i in gate["blocks"]:
-			if gate["kind"] == "ice" or gate["kind"] == "wall":
-				cells.put(cell, ArenaGen.GROUND)
-			else:
-				barred[cell] = true
+		if gate.get("open", false):
+			continue  # a gate that has been cleared bars nothing
+		var per: int = gate.get("per", 0)  # a gate of thorns or gas is cleared a piece at a time: this many columns each
+		var gone: Array = gate.get("gone", [])
+		for part in 2:  # the thorns, then the rest of what bars the way
+			var list: Array = gate["thorns"] if part == 0 else gate["blocks"]
+			for k in list.size():
+				if per > 0 and gone.size() > k / per and gone[k / per]:
+					continue
+				var cell: Vector2i = list[k]
+				if part == 1 and (gate["kind"] == "ice" or gate["kind"] == "wall"):
+					cells.put(cell, ArenaGen.GROUND)
+				else:
+					barred[cell] = true
 	return {"cells": cells, "barred": barred}
 
 

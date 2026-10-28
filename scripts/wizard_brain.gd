@@ -29,6 +29,15 @@ const QUICK_DRAW := 0.35      # defensive signs are drawn quickly
 const ATTACK_DRAW := 0.8      # attacks take longer, which is your chance to interrupt them
 const ATTACK_RANGE := 460.0   # it only casts at you from about a screen away, never across the map
 const SHOT_SPEED := 650.0     # roughly how fast its bolts fly, for leading a moving target
+const CLEARS := {  # the gates a wizard clears, and the spells that do it, best first
+	"brambles": ["Ignite", "Fire Breath"],
+	"gas": ["Ignite", "Fire Breath"],
+	"ice": ["Fire Breath", "Ignite", "Stonefall", "Earthquake"],
+	"wall": ["Stonefall", "Earthquake"],
+}
+const CLEAR_TRIES := 14       # casts at one gate before it gives up on it for a while
+const STRIKE_REACH := {"Fire Breath": 5, "Ignite": 12, "Stonefall": 10, "Earthquake": 10}  # tiles: how far off a spell strikes a gate
+const STRIKE_STAND := 4       # tiles: and it steps up to this far from it
 
 var mob: Node2D               # the wizard
 var skill := 0.6              # 0 to 1: how quick its reactions are and how true its aim is
@@ -52,8 +61,11 @@ var _route := WizardRoute.new()
 var _goal := ""                  # what it is travelling to: "page", "foe", or "" for nothing
 var _goal_page: PagePickup
 var _goal_timer := 0.0
-var _skip := {}                  # page instance id -> seconds it stays off the list, for a page that could not be reached
+var _skip := {}                  # a page (its instance id) or a gate (its name) -> seconds it stays off the list, for one that could not be had
 var stuck_at: Array[String] = []  # where it has been held up, for a report
+var _goal_gate := {}              # the gate it is going to clear: {"kind", "outside", "target", "entry"}
+var _gate_tries := 0
+var _nav_version := -1           # which build of the ways its list of pages it cannot reach belongs to
 var _replans := 0                # times in a row it has had to find its way again
 
 
@@ -84,6 +96,9 @@ func think(delta: float) -> void:
 		_skip[id] -= delta
 		if _skip[id] <= 0.0:
 			_skip.erase(id)
+	if mob.nav != null and mob.nav.version != _nav_version:
+		_nav_version = mob.nav.version
+		_skip.clear()  # a gate has been cleared: pages that could not be reached may be reachable now
 	_track_shots()
 	_foe = _nearest_foe()
 	if _foe == null:  # the last wizard standing
@@ -185,6 +200,13 @@ func _travel(delta: float) -> float:
 		_skip[_goal_page.get_instance_id()] = GIVE_UP
 		_goal = ""
 		_goal_timer = 0.0
+	if _goal == "gate":
+		if _goal_gate["entry"].get("open", false):
+			_goal = ""
+			_goal_timer = 0.0
+		elif _route.done():
+			_work_gate()
+			return 0.0
 	if (_goal == "" and _goal_timer <= 0.0) or _goal_lost() or (_goal == "foe" and (_goal_timer <= 0.0 or _route.done())):
 		_choose_goal()
 	var steer := _route.steer(mob, delta)
@@ -240,11 +262,107 @@ func _choose_goal() -> void:
 		_goal_page = best_page
 		_route.set_path(best_path)
 		return
+	if _choose_gate(start):
+		return
 	if _foe != null:
 		var path: Array[Vector2i] = mob.nav.path(start, mob.nav.nearest(_tile_of(_foe.global_position)))
 		if not path.is_empty():
 			_goal = "foe"
 			_route.set_path(path)
+
+
+## When no page is to be had, the nearest gate that it holds a spell for: it goes to the place short of it. True when it has set out.
+func _choose_gate(start: Vector2i) -> bool:
+	var world := mob.get_tree().get_first_node_in_group(&"world")
+	if world == null:
+		return false
+	var best := {}
+	var best_path: Array[Vector2i] = []
+	for gate: Dictionary in world.closed_gates():
+		if _skip.has(_gate_key(gate)) or _clearing_spell(gate["kind"]) == "":
+			continue
+		var floor_tile: Vector2i = gate["outside"] + Vector2i(0, -1)
+		var stand: Vector2i = mob.nav.nearest(floor_tile)
+		var path: Array[Vector2i] = []
+		if absi(stand.x - floor_tile.x) + absi(stand.y - floor_tile.y) <= 3:
+			path = mob.nav.path(start, stand)
+		if path.is_empty():
+			_skip[_gate_key(gate)] = GIVE_UP
+			continue
+		if best.is_empty() or path.size() < best_path.size():
+			best = gate
+			best_path = path
+	if best.is_empty():
+		return false
+	_goal = "gate"
+	_goal_gate = best
+	_gate_tries = 0
+	_route.set_path(best_path)
+	return true
+
+
+## What a gate is called on the list of what it has given up.
+func _gate_key(gate: Dictionary) -> String:
+	return "gate %s" % str(gate["outside"])
+
+
+## At the gate: strikes it when it is near enough, and otherwise steps up to it, for the part of it that is left may lie farther in.
+func _work_gate() -> void:
+	var world := mob.get_tree().get_first_node_in_group(&"world")
+	var target: Vector2 = world.gate_target(_goal_gate["entry"])
+	var across: float = target.x - mob.global_position.x
+	var reach: int = STRIKE_REACH.get(_clearing_spell(_goal_gate["kind"]), 5)
+	if absf(across) <= reach * WizardRoute.TILE and absf(target.y - mob.center().y) <= minf(reach, 6) * WizardRoute.TILE:
+		_clear_gate(target)
+		return
+	var side := -1 if across > 0.0 else 1  # it stands on the side it came by
+	var tile := _tile_of(target)
+	var stand: Vector2i = mob.nav.nearest(Vector2i(tile.x + side * STRIKE_STAND, tile.y))
+	var path: Array[Vector2i] = mob.nav.path(mob.nav.nearest(_tile_of(mob.global_position)), stand)
+	if path.is_empty() or absi(stand.x - tile.x) > reach + 2 or absi(stand.y - tile.y) > 6:
+		_skip[_gate_key(_goal_gate)] = GIVE_UP
+		_goal = ""
+		_goal_timer = 0.0
+	else:
+		_route.set_path(path)
+
+
+## The spell it will clear this kind of gate with: one it knows and can pay for, or "".
+func _clearing_spell(kind: String) -> String:
+	for spell_name: String in CLEARS.get(kind, []):
+		if _knows(spell_name) and mob.stamina >= SpellData.SPELLS[spell_name].cost:
+			return spell_name
+	return ""
+
+
+## At the gate: strikes it, and again, until it is open or it has tried enough.
+func _clear_gate(target: Vector2) -> void:
+	if mob.is_drawing() or _cast_cooldown > 0.0 or _react > 0.0:
+		return
+	var spell_name := _clearing_spell(_goal_gate["kind"])
+	if spell_name == "" or _gate_tries >= CLEAR_TRIES:
+		_skip[_gate_key(_goal_gate)] = GIVE_UP
+		_goal = ""
+		_goal_timer = 0.0
+		return
+	_gate_tries += 1
+	_cast_cooldown = 2.2
+	_begin_cast(spell_name, _gate_stroke(spell_name, target), ATTACK_DRAW)
+
+
+## The stroke of a spell that strikes a point.
+func _gate_stroke(spell_name: String, point: Vector2) -> PackedVector2Array:
+	match spell_name:
+		"Ignite":
+			var start: Vector2 = mob.center() + Vector2(signf(point.x - mob.center().x) * 12.0, -6.0)
+			return _line(start, start + (point - start).normalized() * 90.0)
+		"Fire Breath":
+			return _breath_stroke(point)
+		"Stonefall":
+			return _offset(GestureTemplates.preview_points("stonefall"), Vector2(point.x, point.y - 130.0), 0.8)
+		"Earthquake":
+			return _offset(GestureTemplates.preview_points("earthquake"), Vector2(point.x, point.y - 120.0), 1.0)
+	return PackedVector2Array()
 
 
 ## It is getting nowhere on its way: find the way again, and after a few tries give the page up for a while.
@@ -352,7 +470,7 @@ func _act(reaction: String) -> void:
 			_begin_cast("Push", _push_stroke(foe.center(), away), QUICK_DRAW)
 			_defend_cooldown = 1.5
 		"breath":
-			_begin_cast("Fire Breath", _breath_stroke(), QUICK_DRAW + 0.1)
+			_begin_cast("Fire Breath", _breath_stroke(foe.center()), QUICK_DRAW + 0.1)
 			_defend_cooldown = 1.8
 
 
@@ -559,16 +677,16 @@ func _attack_stroke(spell_name: String) -> PackedVector2Array:
 		"Blizzard":
 			return _offset(GestureTemplates.preview_points("snowfall"), Vector2(feet.x - 30.0, foe.center().y - 70.0), 0.8)
 		"Fire Breath":
-			return _breath_stroke()
+			return _breath_stroke(foe.center())
 	return PackedVector2Array()
 
 
 ## A Fire Breath cone with its point at the wizard and its mouth toward you, a little off when it is unskilled.
 ## It draws the cone longer when you are farther off, so the fire reaches you.
-func _breath_stroke() -> PackedVector2Array:
-	var gap: float = mob.center().distance_to(_foe.center())
+func _breath_stroke(target: Vector2) -> PackedVector2Array:
+	var gap: float = mob.center().distance_to(target)
 	var size := clampf(gap / 150.0, 1.0, 1.4)
-	var aim: float = (_foe.center() - mob.center()).angle() + _rng.randfn(0.0, 0.2 * (1.0 - skill))
+	var aim: float = (target - mob.center()).angle() + _rng.randfn(0.0, 0.2 * (1.0 - skill))
 	var tip: Vector2 = mob.center() + Vector2.from_angle(aim) * 20.0
 	var out := PackedVector2Array()
 	for p in GestureTemplates.preview_points("cone"):

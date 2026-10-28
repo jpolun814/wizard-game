@@ -48,9 +48,14 @@ single-run loop in `docs/roguelite_exploration_design.md`; the spells, the world
   wizard (`World._follow_watched`), a click picks the next, and the player stays out in later worlds (`World._stay_out`). The game-over screen
   comes only when no rival is left. Test: `tests/spectate_check.tscn` (add `-- collapse` to follow it into the next world).
 
+- **AI wizards clear gates.** When no page is to be had, a wizard goes to the nearest gate that a spell it holds can clear (`WizardBrain.CLEARS`: Ignite or Fire Breath for
+  thorns, gas and ice, Stonefall or Earthquake for a wall and for ice), steps up to what is left of it and strikes until it is gone. `World._watch_gates` sees ice, wall, thorns or gas
+  go (a thicket or a bank at a time), marks the gate open and builds the ways again (`WorldNav.version` tells the wizards to think again about the pages they gave up). A human who
+  clears a gate opens it for the AI too. Chasms, floods, piranhas, the dark stretch and sentinels are not cleared by the AI yet: it treats them as walls. Test: `tests/gate_check.tscn`.
 - **No boss left in the code.** `WorldGraph` has no boss hall, guard or boss lock (`deepest` is just the farthest hall); every locked area may hold a page and a Rift may land anywhere open.
 
 ## Planned
 
-1. Balance the AI wizards by running AI-only matches headless (see `tests/arena_sim.gd`). They share one set of stats; only skill differs.
-   Teach them to get past gates with the spells they hold.
+1. Balance the AI wizards by running AI-only matches headless (see `tests/arena_sim.gd`). They share one set of stats; only skill differs. A first tally of 11 final-world
+   fights (stage 3, three AIs, the player standing down) gave the dark wizard 6 wins, the bone wizard 5, the pyre wizard 1; starting places are not the same, so look at that again
+   with more seeds. Teach them to get past the other gates (chasm, flood, piranhas, dark, sentinel).

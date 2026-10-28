@@ -16,6 +16,8 @@ var graph: WorldGraph
 var _markers := {}
 var _ponds := []
 var _gates := []
+var _built: Dictionary  # what the generator made, kept to build the ways again when a gate is cleared
+var _since_gates := 0.0
 var _castle_doors := []  # [{"x", "floor"}]: where the castle's wooden doors stand
 var _castle_ladders := []  # [{"x", "bottom", "top"}]: its rope ladders, by the first column of the hatch and the rows of the floors
 var _weather: Array[Weather] = []
@@ -47,6 +49,8 @@ func _build_map() -> Variant:
 	_markers = built["markers"]
 	_ponds = built["ponds"]
 	_gates = built["gates"]
+	_built = built
+	add_to_group(&"world")
 	castle_x = built["castle"]
 	ArenaGen.world_size = built["size"]
 	ArenaGen.sky_xl = built["sky"]["xl"]
@@ -172,10 +176,12 @@ func _begin_encounter(camera: Camera2D) -> void:
 				var plug := IcePlug.new()
 				plug.columns = entry["columns"]
 				add_child(plug)
+				entry["nodes"] = [plug]
 			"wall":
 				var wall := RockWall.new()
 				wall.columns = entry["columns"]
 				add_child(wall)
+				entry["nodes"] = [wall]
 			"dark":
 				var bed := SpikeBed.new()
 				bed.strips = entry["strips"]
@@ -201,6 +207,8 @@ func _begin_encounter(camera: Camera2D) -> void:
 ## Thorns over a stretch of a passage's floor, grown in thickets a few tiles long, so fire burns one thicket at a time and a way
 ## can be burnt through them. They are the thorns of the Bramble spell.
 func _grow_thorns(entry: Dictionary) -> void:
+	entry["nodes"] = []
+	entry["per"] = THORN_CHUNK
 	var floors: PackedInt32Array = entry["floors"]
 	var first: int = entry["first"]
 	var t := float(TILE)
@@ -216,17 +224,20 @@ func _grow_thorns(entry: Dictionary) -> void:
 		var thorns := Bramble.new()
 		thorns.planted_ground = points
 		add_child(thorns)
+		entry["nodes"].append(thorns)
 
 
 ## Banks of gas along a passage, each from the floor to the roof.
 func _spread_gas(entry: Dictionary) -> void:
-	var t := float(TILE)
+	entry["nodes"] = []
+	entry["per"] = WorldBuilder.GAS_BANK
 	for bank: Dictionary in entry["banks"]:
 		var gas := GasBank.new()
 		gas.column = bank["x"]
 		gas.floors = bank["floors"]
 		gas.tops = bank["tops"]
 		add_child(gas)
+		entry["nodes"].append(gas)
 
 
 ## The other wizards: each stands at one of the starting places the player did not take (the ones farthest from them), holding the pages
@@ -317,6 +328,7 @@ func _process(delta: float) -> void:
 	_update_weather(under)
 	_count_wizards(delta)
 	_watch_portal(delta)
+	_watch_gates(delta)
 	if player.dead:
 		_follow_watched()
 		return
@@ -438,6 +450,74 @@ func _collapse() -> void:
 	var tween := black.create_tween()
 	tween.tween_property(black, "color:a", 1.0, 0.7)
 	tween.tween_callback(func() -> void: get_tree().change_scene_to_file(Loading.WORLD))
+
+
+## Every half second: a gate whose ice, wall, thorns or gas are all gone is open, and the wizards' ways are built again without it.
+func _watch_gates(delta: float) -> void:
+	_since_gates += delta
+	if _since_gates < 0.5:
+		return
+	_since_gates = 0.0
+	var changed := false
+	for entry in _gates:
+		if entry.get("open", false) or not entry.has("nodes"):
+			continue
+		var gone: Array[bool] = []
+		for node in entry["nodes"]:  # (untyped: it may be a freed object)
+			gone.append(not is_instance_valid(node) or node.is_queued_for_deletion())
+		if gone != entry.get("gone", []):
+			entry["gone"] = gone
+			changed = true
+		if not gone.has(false):
+			entry["open"] = true
+	if changed:
+		var shut := WorldBuilder.shut(_built)
+		nav.build(shut["cells"], _built["size"].y, shut["barred"], _spawn_tiles[0])
+
+
+## The gates that spells can clear and have not yet: {"kind", "outside": a floor tile just short of it, "target": a point in pixels to strike}.
+func closed_gates() -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for entry in _gates:
+		if entry.get("open", false) or not entry.has("nodes"):
+			continue
+		out.append({"kind": entry["kind"], "outside": entry["outside"], "target": gate_target(entry), "entry": entry})
+	return out
+
+
+## The point of a gate to strike: the part of it that is nearest the side one comes by, of what is left of it.
+func gate_target(entry: Dictionary) -> Vector2:
+	var t := float(TILE)
+	var outside: Vector2i = entry["outside"]
+	match entry["kind"]:
+		"brambles":
+			var first: int = entry["first"]
+			var floors: PackedInt32Array = entry["floors"]
+			var best := -1  # the thicket nearest the way in, of those still standing
+			for k in entry["nodes"].size():
+				var node = entry["nodes"][k]
+				if is_instance_valid(node) and not node.is_queued_for_deletion():
+					var middle := mini(k * THORN_CHUNK + THORN_CHUNK / 2, floors.size() - 1)
+					var kept := mini(best * THORN_CHUNK + THORN_CHUNK / 2, floors.size() - 1)
+					if best < 0 or absi(first + middle - outside.x) < absi(first + kept - outside.x):
+						best = k
+			var column := mini(maxi(best, 0) * THORN_CHUNK + THORN_CHUNK / 2, floors.size() - 1)
+			return Vector2((first + column + 0.5) * t, floors[column] * t - 17.0)
+		"gas":
+			var best := -1
+			for k in entry["banks"].size():
+				var node = entry["nodes"][k]
+				if not is_instance_valid(node) or node.is_queued_for_deletion():
+					continue
+				if best < 0 or absi(entry["banks"][k]["x"] - outside.x) < absi(entry["banks"][best]["x"] - outside.x):
+					best = k
+			var bank: Dictionary = entry["banks"][maxi(best, 0)]
+			return Vector2((bank["x"] + 0.5) * t, (bank["floors"][0] + bank["tops"][0]) * 0.5 * t)
+	var best: Dictionary = entry["columns"][0]  # ice and wall: a column of it
+	for column: Dictionary in entry["columns"]:
+		if absi(column["x"] - outside.x) < absi(best["x"] - outside.x):
+			best = column
+	return Vector2((best["x"] + 0.5) * t, (best["top"] + best["bottom"]) * 0.5 * t)
 
 
 ## Out of the match: while other wizards still live the match goes on, and the camera follows one of them. Otherwise the run is over.

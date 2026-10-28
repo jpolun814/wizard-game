@@ -7,11 +7,14 @@ extends RefCounted
 var _ways: Walkways
 var _astar := AStar2D.new()
 var _width := 0
+var version := 0  # counts the times the map has been built, so that a wizard can tell the ways have changed
 
 
 ## Builds the map of the ways. blocked is {Vector2i: true}: tiles that bar the way (lava, a gate), which no path goes through. Only the tiles that can
 ## be left as well as come to, from the tile the map is anchored on, are kept: a wizard that drops into a pit with no way out would be there for good.
 func build(cells: TileGrid, bottom: int, blocked := {}, anchor := Vector2i(-1, -1)) -> void:
+	_astar.clear()
+	version += 1
 	_width = cells.size.x
 	_ways = Walkways.new(cells, bottom, blocked)
 	var tiles := _ways.standing()
