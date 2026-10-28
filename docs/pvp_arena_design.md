@@ -51,11 +51,14 @@ single-run loop in `docs/roguelite_exploration_design.md`; the spells, the world
 - **AI wizards clear gates.** When no page is to be had, a wizard goes to the nearest gate that a spell it holds can clear (`WizardBrain.CLEARS`: Ignite or Fire Breath for
   thorns, gas and ice, Stonefall or Earthquake for a wall and for ice), steps up to what is left of it and strikes until it is gone. `World._watch_gates` sees ice, wall, thorns or gas
   go (a thicket or a bank at a time), marks the gate open and builds the ways again (`WorldNav.version` tells the wizards to think again about the pages they gave up). A human who
-  clears a gate opens it for the AI too. Chasms, floods, piranhas, the dark stretch and sentinels are not cleared by the AI yet: it treats them as walls. Test: `tests/gate_check.tscn`.
+  clears a gate opens it for the AI too. The dark stretch needs no spell: the ways about the world bar only its spike strips (`WorldBuilder.shut`), and a wizard jumps them (`tests/dark_check.tscn`). Chasms, floods, piranha pits
+  and sentinels are not passed by the AI yet: it treats them as walls. Test: `tests/gate_check.tscn`.
 - **No boss left in the code.** `WorldGraph` has no boss hall, guard or boss lock (`deepest` is just the farthest hall); every locked area may hold a page and a Rift may land anywhere open.
 
 ## Planned
 
-1. Teach the AI wizards to get past the other gates (chasm, flood, piranhas, dark, sentinel): bridging and crossing spells, and walking a bridge that appears.
+1. Teach the AI wizards to get past the last gates. Chasm, flood and piranha pit need a crossing spell (Frost Bridge for water, Liana, Lily Pads, Shadow Step) and a way for the ways about
+   the world to take in a bridge that appears and later goes. The sentinel only shoots the player today (`Sentinel._target`); it should shoot any wizard, and the AI would answer it
+   with Decoy, Smoke Screen or Barrier.
 2. Balance is checked by `tests/arena_sim.gd` (`stage=3` plays the final world, three AIs, the player standing down). The three looks share one set of stats; the start between the
    other two was the weakest, so which look starts where is now drawn from the seed (`World._spawn_wizards`): over 16 seeds the survivors were 6, 7 and 8 for the three looks.

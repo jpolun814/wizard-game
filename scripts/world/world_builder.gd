@@ -758,6 +758,11 @@ static func shut(world: Dictionary) -> Dictionary:
 			continue  # a gate that has been cleared bars nothing
 		var per: int = gate.get("per", 0)  # a gate of thorns or gas is cleared a piece at a time: this many columns each
 		var gone: Array = gate.get("gone", [])
+		if gate["kind"] == "dark":  # only the strips bar the way: they are narrow, and a wizard jumps them
+			for strip: Dictionary in gate["strips"]:
+				for k in strip["floors"].size():
+					barred[Vector2i(strip["x"] + k, strip["floors"][k] - 1)] = true
+			continue
 		for part in 2:  # the thorns, then the rest of what bars the way
 			var list: Array = gate["thorns"] if part == 0 else gate["blocks"]
 			for k in list.size():

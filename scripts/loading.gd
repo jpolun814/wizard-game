@@ -5,6 +5,7 @@ extends Control
 ## loaded, so the wait shows the seed's incantation on a dark page and not a blank window.
 
 const WORLD := "res://scenes/world.tscn"
+const SCREEN := "res://scenes/loading.tscn"
 
 
 func _ready() -> void:

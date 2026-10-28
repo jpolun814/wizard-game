@@ -456,7 +456,7 @@ func _collapse() -> void:
 	add_child(layer)
 	var tween := black.create_tween()
 	tween.tween_property(black, "color:a", 1.0, 0.7)
-	tween.tween_callback(func() -> void: get_tree().change_scene_to_file(Loading.WORLD))
+	tween.tween_callback(func() -> void: get_tree().change_scene_to_file(Loading.SCREEN))  # the words of the next world show while it builds
 
 
 ## Every half second: a gate whose ice, wall, thorns or gas are all gone is open, and the wizards' ways are built again without it.
