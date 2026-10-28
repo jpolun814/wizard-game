@@ -90,11 +90,14 @@ func _chime() -> void:
 		_chimed = false
 
 
-## True while the wizard stands under the page.
+## True while the player's wizard stands under the page.
 func is_underfoot() -> bool:
 	var wizard := get_tree().get_first_node_in_group("player") as Node2D
-	if wizard == null:
-		return false
+	return wizard != null and is_under(wizard)
+
+
+## True while this wizard stands under the page.
+func is_under(wizard: Node2D) -> bool:
 	var at := SpellTargets.center_of(wizard)
 	return absf(at.x - global_position.x) < REACH_X and at.y > global_position.y - REACH_Y and at.y < global_position.y + 30.0
 

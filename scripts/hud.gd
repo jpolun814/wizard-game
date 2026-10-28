@@ -26,8 +26,6 @@ var _feedback_time := 0.0
 @onready var _title_label: Label = $Title
 @onready var _banner: Label = $Banner
 @onready var _banner_sub: Label = $BannerSub
-@onready var _boss: HudBar = $BossBar
-@onready var _boss_name: Label = $BossName
 @onready var _game_over: Control = $GameOver
 @onready var _pause: Control = $Pause
 @onready var _pause_note: Label = $Pause/Box/Note
@@ -61,19 +59,6 @@ func _process(delta: float) -> void:
 		_status.text = player.status_text()
 	_feedback_time -= delta
 	_feedback.modulate.a = clampf(_feedback_time / 0.6, 0.0, 1.0)
-	var wizard := _find_wizard()
-	_boss.visible = wizard != null
-	_boss_name.visible = wizard != null
-	if wizard:
-		_boss.set_value(wizard.hp, wizard.max_hp)
-		_boss_name.text = "The " + wizard.KINDS[wizard.kind].display_name
-
-
-func _find_wizard() -> Node:
-	for mob in get_tree().get_nodes_in_group("mobs"):
-		if mob.KINDS[mob.kind].role == "wizard":
-			return mob
-	return null
 
 
 ## A message along the bottom of the screen that fades after a few seconds.

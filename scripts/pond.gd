@@ -135,7 +135,7 @@ func _age_ice(delta: float) -> void:
 
 
 func danger_at(point: Vector2) -> bool:
-	return lava and point.x >= global_position.x and point.x <= global_position.x + width and point.y > global_position.y - 20.0
+	return lava and point.x >= global_position.x and point.x <= global_position.x + width and point.y > global_position.y - 20.0 and point.y < global_position.y + depth
 
 
 ## The pool's fill, cut to the open air round it when there are cave outlines to cut it to.

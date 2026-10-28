@@ -113,6 +113,9 @@ GODOT="/c/Users/Jordan Polun/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.
 "$GODOT" --headless -s tests/test_pages.gd                     # the pages each wizard is dealt and a ledger's rules
 "$GODOT" --headless --path . tests/intro_check.tscn            # the cut-scene (add `-- mode=skip`, or `-- out=DIR` for pictures, without --headless)
 "$GODOT" --headless --path . tests/flow_check.tscn             # lab, portal, cut-scene, loading, world
+"$GODOT" --headless -s tests/test_nav.gd -- seeds=6            # the wizards' map of the ways agrees with the generator's
+"$GODOT" --headless --fixed-fps 60 --path . tests/route_check.tscn -- seed=3 moves=500  # every kind of move works in real physics (`trace=X,Y,TX,TY` follows one)
+"$GODOT" --headless --fixed-fps 60 --path . tests/arena_sim.tscn -- seed=7 seconds=300 report=60  # AI wizards alone in a world: pages read, who is beaten, where they were held up
 "$GODOT" --path . tests/showcase.tscn -- scenario=spells out=C:/some/dir          # a screenshot of every spell
 "$GODOT" --path . tests/showcase.tscn -- scenario=spells only=Fire_Breath out=DIR # one spell, frame by frame
 "$GODOT" --headless --path . tests/showcase.tscn -- scenario=soak out=DIR  # random play; look for errors
@@ -287,8 +290,9 @@ clean. It was cleaned up once, without losing any behaviour. Keep it that way:
   script. Simple effects extend `SpellEffect` (`scripts/spells/spell_effect.gd`) and fill in `_begin`, `_act`
   and `_finish`; bigger ones are their own Node. Add the new class to `arena._new_effect` or `spawn_spell`.
   A new `class_name` is only registered after `godot --import`.
-- **Every spell** joins the `"danger"` group, and implements `danger_at(point)` (the dark wizard avoids danger,
-  its own spells included, since they hurt it too).
+- **Every spell** joins the `"danger"` group, and implements `danger_at(point)` (the AI wizards avoid danger,
+  their own spells included, since they hurt them too). Anything else in `"danger"` (lava) must have it too: it is called on every member.
+- **`mob.velocity.x = f()` where `f()` sets `velocity.y` loses the `y`**: GDScript copies the vector before it calls `f()`. Assign to a local first.
 - **Find nodes through groups, not by scanning the tree.** `"fires"`, `"clouds"`, `"shots"`, `"rocks"`,
   `"lasting"`, `"earthquakes"`, `"danger"`, `"mobs"` (full list in `02_codebase_map.md`). Anything new that
   burns joins `"fires"` and is then melted, lit and avoided by everything else for free.

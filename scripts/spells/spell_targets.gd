@@ -42,6 +42,18 @@ static func all(tree: SceneTree) -> Array:
 	return out
 
 
+## The wizards still standing: the player, and every other wizard that is not beaten.
+static func wizards(tree: SceneTree) -> Array:
+	var out := []
+	var player := tree.get_first_node_in_group("player")
+	if player and not player.dead:
+		out.append(player)
+	for mob in tree.get_nodes_in_group("mobs"):
+		if not mob.is_dead() and Mob.KINDS[mob.kind].role == "wizard":
+			out.append(mob)
+	return out
+
+
 ## The surface a point sits on. A point under the ground is moved up to the ground above it, so a drawn spell that
 ## starts underground still lands on top of the earth.
 static func surface_over(world: World2D, point: Vector2) -> Vector2:

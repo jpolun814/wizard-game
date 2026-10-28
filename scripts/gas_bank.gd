@@ -20,7 +20,6 @@ var _emitter: CPUParticles2D
 
 func _ready() -> void:
 	add_to_group("clouds")
-	add_to_group("danger")
 	collision_mask = 6  # the player and enemies
 	var t := float(ArenaGen.TILE)
 	var low := tops[0]

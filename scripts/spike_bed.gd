@@ -18,7 +18,6 @@ var _boxes: Array[Rect2] = []
 
 
 func _ready() -> void:
-	add_to_group("danger")
 	collision_mask = 6  # the player and enemies
 	var t := float(ArenaGen.TILE)
 	var rng := RandomNumberGenerator.new()

@@ -25,9 +25,20 @@ single-run loop in `docs/roguelite_exploration_design.md`; the spells, the world
   scuffle every page but one each wizard keeps is knocked through the portal; then they run in after them. Any key skips it. It ends
   with the `finished` signal and a change to `scenes/loading.tscn`. Tests: `tests/intro_check.tscn`, `tests/flow_check.tscn`.
 
+- AI wizards that walk the world for pages and fight each other. `WorldBuilder.shut(world)` is the world with every gate shut; `Walkways`
+  (`scripts/world/walkways.gd`) is the one set of rules for where a wizard can stand and the moves between (walk, step, fall, jump), shared by
+  the generator's reachability test and the wizards. `WorldNav` is a path finder over it, kept to the tiles that can be left as well as
+  come to (no pit with no way out). `WizardRoute` follows a path: when to jump, how fast, when it is stuck. `WizardBrain` chooses
+  what to go for (the nearest page by the way it must walk, else the nearest wizard), fights when a rival is in sight and near, and casts
+  only what its ledger holds. All four wizards have the player's own body (a capsule), health and stamina rules. The AI cannot get past a
+  gate (a chasm, a wall of ice and so on), so a page behind one is not for it. A rival's stamina and spells show only under Insight.
+- Tests: `tests/test_nav.gd`, `tests/route_check.tscn` (each kind of move, tried in the real physics), `tests/arena_sim.tscn` (AI-only
+  matches).
+
 ## Planned
 
-1. AI wizards that seek pages and attack, balanced by running AI-only matches headless. Their three looks share one set of stats.
+1. Balance the AI wizards by running AI-only matches headless (see `tests/arena_sim.gd`). They share one set of stats; only skill differs.
+   Teach them to get past gates with the spells they hold.
 2. The portal grows unstable: after about 3 minutes the screen shakes and everyone is teleported into a newly generated, smaller
    world; then 2 minutes, then 1, then a final world with no caves. Every uncollected page is carried over; wizards land spread apart;
    shots, fires and walls are cleared. The next world should be generated in the background during the stage.

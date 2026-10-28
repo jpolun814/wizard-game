@@ -14,15 +14,17 @@ const FLOOR_Y := float(ArenaGen.GROUND_Y)
 const PILE_X := -150.0
 const PORTAL_X := 250.0
 const PAGES_IN_PILE := 26
+const PAGE_SCALE := 0.4  # a page is about as big as a hand
+const CRACKLE_COLOUR := Color(0.55, 0.25, 1.0)  # the portal's violet
 const KEPT := 4          # the pages each wizard has hold of, one shown for each wizard
 const GOLD := Color("#ffe9a0")
 const SKIP_HINT_AFTER := 1.0
 ## Each wizard: the folder of its frames, where it starts and where it stands at the pile, and which way it faces to begin with.
 const WIZARDS := [
-	{"art": "wizard_wand", "from": -360.0, "to": -245.0},
-	{"art": "dark_wizard", "from": -320.0, "to": -190.0},
-	{"art": "bone_wizard", "from": 40.0, "to": -110.0},
-	{"art": "pyre_wizard", "from": 100.0, "to": -55.0},
+	{"art": "wizard_wand", "from": -360.0, "to": -178.0},
+	{"art": "dark_wizard", "from": -320.0, "to": -160.0},
+	{"art": "bone_wizard", "from": 40.0, "to": -140.0},
+	{"art": "pyre_wizard", "from": 100.0, "to": -122.0},
 ]
 const WALK := 150.0  # pixels a second, running to the pile
 const RUN := 260.0   # and to the portal
@@ -30,12 +32,14 @@ const END := 10.6  # seconds, from the first frame to the world
 
 var next_scene := LOADING  # set before it enters the tree; empty to stay on when it is over (a test does that)
 var _t := 0.0
+var _unrest := 0.35  # how unstable the portal is: 0 to 1, and it grows when the pages go through
+var _crackle := 0.0
+var _portal_home := Vector2.ZERO
 var _cues: Array = []  # [seconds, Callable], in order
 var _wizards: Array[Node2D] = []
 var _pile: Array[Sprite2D] = []
 var _portal: Portal
 var _camera: Camera2D
-var _caption: Label
 var _hint: Label
 var _black: ColorRect
 var _shake := 0.0
@@ -52,12 +56,10 @@ func _ready() -> void:
 	_build_portal()
 	_build_overlay()
 	_cue(0.0, func() -> void: _fade(0.0, 0.8))
-	_cue(0.4, func() -> void: _say("Four wizards. One pile of pages."))
-	_cue(2.0, func() -> void: _say(""))
 	_cue(2.1, _wizards_run_to_pile)
 	_cue(3.5, _scuffle)
-	_cue(4.9, func() -> void: _say("In the scuffle, the pages are knocked through the portal."))
-	_cue(6.8, func() -> void: _say("Find them. Be the last wizard standing."))
+	for at in [3.6, 3.85, 4.2, 4.5]:
+		_cue(at, _cry_out.bind(int(at * 10.0) % 2 == 0))
 	_cue(7.8, _wizards_run_to_portal)
 	_cue(9.8, func() -> void: _fade(1.0, 0.7))
 	_cue(END, _leave)
@@ -72,6 +74,7 @@ func _process(delta: float) -> void:
 	_camera.offset = Vector2(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)) * _shake * 6.0
 	_hint.visible = _t > SKIP_HINT_AFTER and not _leaving
 	_halo.queue_redraw()
+	_destabilise(delta)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -126,7 +129,8 @@ func _build_pile(rng: RandomNumberGenerator) -> void:
 		var page := Sprite2D.new()
 		page.texture = PAGE
 		page.offset = Vector2(0.0, -PAGE.get_height() * 0.5)
-		page.position = Vector2(PILE_X + rng.randf_range(-30.0, 30.0), FLOOR_Y - 2.0 - float(i) * 0.55)
+		page.scale = Vector2.ONE * PAGE_SCALE
+		page.position = Vector2(PILE_X + rng.randf_range(-16.0, 16.0), FLOOR_Y - 1.0 - float(i) * 0.4)
 		page.rotation = rng.randf_range(-1.35, 1.35)
 		page.modulate = Color(0.9 + rng.randf() * 0.1, 0.85 + rng.randf() * 0.1, 0.8)
 		page.z_index = 1
@@ -158,30 +162,46 @@ func _build_wizards() -> void:
 func _build_portal() -> void:
 	_portal = Portal.new()
 	_portal.position = Vector2(PORTAL_X, FLOOR_Y - Portal.RY - 4.0)
+	_portal_home = _portal.position
 	add_child(_portal)
 	_portal.open()
 	Sfx.play("portal_open", _portal.global_position, -6.0)
+
+
+## The portal is growing unstable: it shakes, and bolts of its own violet light crack out of it, more of them once the pages go through.
+func _destabilise(delta: float) -> void:
+	if _portal == null or _leaving:
+		return
+	_portal.position = _portal_home + Vector2(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)) * _unrest * 3.0
+	_crackle -= delta
+	if _crackle > 0.0:
+		return
+	_crackle = lerpf(0.5, 0.12, _unrest) * randf_range(0.6, 1.4)
+	var bolt := AnimatedSprite2D.new()
+	bolt.sprite_frames = PixelFx.frames("lightning", 24.0, false)
+	bolt.material = Fx.additive()
+	bolt.modulate = CRACKLE_COLOUR
+	bolt.scale = Vector2.ONE * randf_range(0.5, 0.9)
+	bolt.offset = Vector2(0.0, -100.0)  # the bolt leaves from the portal
+	bolt.rotation = randf() * TAU
+	bolt.position = _portal.position
+	bolt.z_index = 2
+	bolt.animation_finished.connect(bolt.queue_free)
+	add_child(bolt)
+	bolt.play("default")
+	if randf() < 0.4:
+		Sfx.play("thunder", _portal.position, -24.0)
+
+
+## A wizard gives a cry in the scuffle.
+func _cry_out(player: bool) -> void:
+	Sfx.play("player_hurt" if player else "mob_hurt", Vector2(PILE_X, FLOOR_Y - 30.0), -4.0)
 
 
 func _build_overlay() -> void:
 	var layer := CanvasLayer.new()
 	layer.layer = 50
 	add_child(layer)
-	_caption = Label.new()
-	_caption.theme_type_variation = &"Outlined"
-	_caption.add_theme_font_size_override("font_size", 30)
-	_caption.add_theme_color_override("font_color", Color("#f2e6c4"))
-	_caption.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
-	_caption.anchor_left = 0.0
-	_caption.anchor_right = 1.0
-	_caption.offset_left = 40.0
-	_caption.offset_right = -40.0
-	_caption.offset_top = -130.0
-	_caption.offset_bottom = -70.0
-	_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_caption.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_caption.modulate.a = 0.0
-	layer.add_child(_caption)
 	_hint = Label.new()
 	_hint.theme_type_variation = &"Outlined"
 	_hint.text = "Press any key to skip"
@@ -208,15 +228,6 @@ func _build_overlay() -> void:
 ## Fades the black over everything to this much (0 clear, 1 black).
 func _fade(to: float, seconds: float) -> void:
 	create_tween().tween_property(_black, "color:a", to, seconds)
-
-
-## Changes the words at the bottom of the screen: the old ones fade out, the new ones fade in.
-func _say(text: String) -> void:
-	var tween := create_tween()
-	tween.tween_property(_caption, "modulate:a", 0.0, 0.25)
-	if text != "":
-		tween.tween_callback(func() -> void: _caption.text = text)
-		tween.tween_property(_caption, "modulate:a", 1.0, 0.4)
 
 
 ## A wizard's frames, by what it is doing: the player's wizard and the others name some of their animations differently.
@@ -254,6 +265,7 @@ func _wizards_run_to_pile() -> void:
 ## Four pairs of hands in one pile: the pages fly up, most of them toward the portal, and each wizard keeps one.
 func _scuffle() -> void:
 	_shake = 1.0
+	_unrest = 1.0
 	Sfx.play("push", Vector2(PILE_X, FLOOR_Y), -2.0)
 	Fx.burst(self, Vector2(PILE_X, FLOOR_Y - 20.0), GOLD, 22, 220.0, 0.6, true)
 	for i in _wizards.size():
@@ -312,12 +324,23 @@ func _keep(page: Sprite2D, wizard: Node2D) -> void:
 	page.global_position = start
 	page.rotation = 0.0
 	var tween := create_tween()
-	tween.tween_property(page, "position", Vector2(0.0, -150.0), 0.9).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tween.tween_property(page, "position", Vector2(0.0, -130.0), 0.9).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	tween.parallel().tween_property(page, "modulate", Color(1.3, 1.2, 0.9), 0.9)
+	tween.tween_interval(1.5)  # it hangs there a moment, then sinks into the wizard: it is theirs now, a page of their spellbook
+	tween.tween_property(page, "position", Vector2(0.0, -42.0), 0.7).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+	tween.parallel().tween_property(page, "scale", Vector2.ONE * 0.1, 0.7)
+	tween.tween_callback(_absorbed.bind(page, wizard))
 	var glow := Fx.trail(GOLD, 14, 1.0, 25.0, Vector2(0, -12), "star_04", 7.0)
 	glow.local_coords = true
-	glow.position = Vector2(0.0, -PAGE.get_height() * 0.5)
+	glow.position = Vector2(0.0, -PAGE.get_height() * PAGE_SCALE * 0.5)
 	page.add_child(glow)
+
+
+## A kept page is gone into its wizard: a flash of light where it went in.
+func _absorbed(page: Sprite2D, wizard: Node2D) -> void:
+	Fx.burst(self, wizard.position + Vector2(0.0, -42.0), GOLD, 8, 70.0, 0.4, true)
+	Sfx.play("pickup", wizard.position, -10.0)
+	page.queue_free()
 
 
 func _wizards_run_to_portal() -> void:

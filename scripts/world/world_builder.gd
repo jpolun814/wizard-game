@@ -747,74 +747,30 @@ static func standing(cells: TileGrid, c: int, r: int, hazards := {}) -> bool:
 	return clear(cells, c, r) and supported(cells, c, r) and not hazards.has(Vector2i(c, r))
 
 
+## The world as it is before any gate is opened, for a wizard to find its way about: {"cells": a TileGrid in which ice and walls are as solid as rock,
+## "barred": the tiles no one stands in or walks through (lava, thorns, the stretch a trap covers)}. Takes what build() returns.
+static func shut(world: Dictionary) -> Dictionary:
+	var cells: TileGrid = world["cells"].duplicate()
+	var barred: Dictionary = world["hazards"].duplicate()
+	for gate in world["gates"]:
+		for cell: Vector2i in gate["thorns"]:
+			barred[cell] = true
+		for cell: Vector2i in gate["blocks"]:
+			if gate["kind"] == "ice" or gate["kind"] == "wall":
+				cells.put(cell, ArenaGen.GROUND)
+			else:
+				barred[cell] = true
+	return {"cells": cells, "barred": barred}
+
+
 ## Every tile the wizard can stand on that can be reached from a starting tile by walking, stepping up one tile, falling
-## and jumping up to JUMP_ROWS rows. Standing in lava does not count. This is a little stricter than the real jump, so a
-## world that passes is walkable. The tiles worth standing on are worked out once, in packed arrays, and the search then only reads
-## them: a world is hundreds of thousands of tiles.
+## and jumping up to JUMP_ROWS rows (see Walkways). Standing in lava does not count.
 static func reachable(cells: TileGrid, start: Vector2i, bottom: int, hazards := {}) -> Dictionary:
-	var w := cells.size.x
-	var h := cells.size.y
-	var solid := cells.data
-	var clear_at := PackedByteArray()  # HEADROOM clear tiles from here up
-	var stand := PackedByteArray()     # clear, supported from below, and not in lava
-	clear_at.resize(w * h)
-	stand.resize(w * h)
-	for r in range(HEADROOM - 1, h):
-		var row := r * w
-		for c in w:
-			var at := row + c
-			if solid[at] == 0 and solid[at - w] == 0 and solid[at - w - w] == 0:
-				clear_at[at] = 1
-				if r + 1 < h and solid[at + w] != 0:
-					stand[at] = 1
-	for cell: Vector2i in hazards:
-		if cells.inside(cell):
-			stand[cell.y * w + cell.x] = 0
+	var ways := Walkways.new(cells, bottom, hazards)
 	var seen := {start: true}
 	var queue: Array[Vector2i] = [start]
 	while not queue.is_empty():
-		var at: Vector2i = queue.pop_back()
-		var found: Array[Vector2i] = []
-		for dc in [-1, 1]:
-			var c: int = at.x + dc
-			if c < 0 or c >= w:
-				continue
-			for dr in [0, -1]:
-				var r: int = at.y + dr
-				if r >= 0 and stand[r * w + c] == 1 and clear_at[r * w + at.x] == 1:
-					found.append(Vector2i(c, r))
-			# Walking off an edge: fall to the first thing below.
-			if clear_at[at.y * w + c] == 1 and stand[at.y * w + c] == 0:
-				var r := at.y
-				while r < bottom and clear_at[r * w + c] == 1 and stand[r * w + c] == 0:
-					r += 1
-				if r < bottom and stand[r * w + c] == 1:
-					found.append(Vector2i(c, r))
-		# Jumps: up to JUMP_ROWS higher, across at the same height, or down to a lower landing.
-		for height in range(-JUMP_ROWS, JUMP_ROWS + 1):
-			var target_row: int = at.y - height
-			if target_row < 0 or target_row >= h:
-				continue
-			var span := JUMP_FAR if absi(height) <= 1 else JUMP_COLS
-			for dc in range(-span, span + 1):
-				if dc == 0 and height <= 0:
-					continue
-				var column: int = at.x + dc
-				if column < 0 or column >= w or stand[target_row * w + column] == 0:
-					continue
-				var open := true
-				var top := mini(at.y, target_row) - HEADROOM + 1
-				for c in range(mini(at.x, column), maxi(at.x, column) + 1):
-					var last := at.y - 1 if c != column else target_row
-					for r in range(maxi(top, 0), last + 1):
-						if solid[r * w + c] != 0:
-							open = false
-							break
-					if not open:
-						break
-				if open:
-					found.append(Vector2i(column, target_row))
-		for next in found:
+		for next in ways.moves(queue.pop_back()):
 			if not seen.has(next):
 				seen[next] = true
 				queue.append(next)

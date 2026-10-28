@@ -26,7 +26,7 @@ const DARKEN_ROWS := 16.0  # how far under the surface it takes for the light of
 const BLACKEN_ROWS := 110.0  # and for the dark to become total
 
 var _dark: CanvasModulate
-static var random_start := true  # the start is anywhere on the surface; the showcase and tests turn this off to see the same place each time
+static var random_start := true  # the player starts at any one of the starting places; the showcase and tests turn this off to see the same place each time
 var castle_x := -1  # the first column of the castle on the surface, or -1 when there is none
 
 
@@ -56,13 +56,22 @@ func _build_map() -> Variant:
 	_castle_ladders = built["ladders"]
 	tiled_ground = true
 	_start_tile = built["start"]
+	_spawn_tiles = built["spawns"]
 	if random_start:
-		_start_tile = _random_surface_tile(built["cells"], built["ponds"], built["sky"], _start_tile)
+		_start_tile = _spawn_tiles[randi() % _spawn_tiles.size()]  # not seeded, so the same world starts you somewhere new
+	var shut := WorldBuilder.shut(built)
+	nav = WorldNav.new()
+	nav.build(shut["cells"], built["size"].y, shut["barred"], _spawn_tiles[0])
 	return built["cells"]
 
 
 const THORN_CHUNK := 5  # tiles of floor in a thicket of the world
+const LOOKS := ["dark_wizard", "pyre_wizard", "bone_wizard"]  # the other wizards, one look each
+var nav: WorldNav  # the ways about the world on foot, with every gate shut
 var _start_tile := Vector2i.ZERO
+var _spawn_tiles: Array[Vector2i] = []  # the starting places, far apart; the player takes one and a wizard each of the others
+var _since_count := 0.0
+var _won := false
 var _backdrops := {}  # place -> Backdrop
 
 
@@ -112,34 +121,11 @@ func _fade_backdrops(delta: float) -> void:
 		backdrop.set_opacity(move_toward(amount, 1.0 if place == here else 0.0, delta * 0.7))
 
 
-## A spot on the surface to be dropped at, anywhere along the top of the world: level ground clear of the water, lava, castle and
-## the mouths of the ways down. The built start is the fallback. This is not seeded, so the same world starts you somewhere new.
-func _random_surface_tile(cells: Variant, ponds: Array, sky: Dictionary, fallback: Vector2i) -> Vector2i:
-	var floor_rows: PackedInt32Array = sky["floor"]
-	var first: int = sky["xl"]
-	for attempt in 200:
-		var i := randi_range(8, floor_rows.size() - 9)
-		var level := floor_rows[i]
-		var fits := true
-		for k in range(i - 4, i + 5):
-			if floor_rows[k] != level or cells.has(Vector2i(first + k, level - 1)) or not cells.has(Vector2i(first + k, level)):
-				fits = false
-				break
-		var x := first + i
-		if castle_x >= 0 and x > castle_x - 8 and x < castle_x + SurfaceGen.CASTLE_WIDTH + 8:
-			fits = false
-		for pond in ponds:
-			if x >= pond["a"] - SurfaceGen.POOL_PAD - 6 and x <= pond["b"] + SurfaceGen.POOL_PAD + 6:
-				fits = false
-		if fits:
-			return Vector2i(x, level - 1)
-	return fallback
-
-
 func _begin_encounter(camera: Camera2D) -> void:
 	_lay_pages()
 	player.position = _stand_at(_start_tile)
 	_safe_spot = player.position
+	_spawn_wizards()
 	_ground.watch([player.position], true)  # the rock round the start is drawn before the first frame
 	camera.reset_smoothing()
 	_set_up_backdrops()
@@ -228,6 +214,17 @@ func _spread_gas(entry: Dictionary) -> void:
 		add_child(gas)
 
 
+## The other wizards: each stands at one of the starting places the player did not take (the ones farthest from them), holding the pages
+## it was dealt.
+func _spawn_wizards() -> void:
+	var places := _spawn_tiles.duplicate()
+	places.sort_custom(func(a: Vector2i, b: Vector2i) -> bool: return absi(a.x - _start_tile.x) > absi(b.x - _start_tile.x))
+	for i in LOOKS.size():
+		var wizard := _add_mob(LOOKS[i], _stand_at(places[i]))
+		wizard.ledger = ledgers[i + 1]
+		wizard.nav = nav
+
+
 ## The world position of the floor of a tile, at its middle.
 func _stand_at(tile: Vector2i) -> Vector2:
 	return Vector2((tile.x + 0.5) * TILE, (tile.y + 1) * TILE)
@@ -295,6 +292,7 @@ func _process(delta: float) -> void:
 	var day: Color = SurfaceGen.LOOKS[SurfaceGen.biome_at(graph.surface, column + ArenaGen.sky_xl)]["tint"]
 	_dark.color = day.lerp(DEEP, depth).lerp(BLACK, far)
 	_update_weather(under)
+	_count_wizards(delta)
 	if player.dead:
 		return
 	if _body_in_rock(player.global_position) or player.global_position.y > ArenaGen.world_size.y * TILE:
@@ -339,6 +337,20 @@ func _light_when_ready(node: Node) -> void:
 		node.add_child(glow)
 	else:
 		node.add_child(_make_light(260.0, Color(1.0, 0.6, 0.25), 1.1))
+
+
+## How many wizards are left, shown at the top of the screen; the last one standing wins.
+func _count_wizards(delta: float) -> void:
+	_since_count += delta
+	if _since_count < 0.5 or _won:
+		return
+	_since_count = 0.0
+	var standing := SpellTargets.wizards(get_tree())
+	hud.set_title("Wizards left: %d" % standing.size())
+	if standing.size() == 1 and standing[0] == player:
+		_won = true
+		hud.banner("Last wizard standing", "You win")
+		Sfx.play("ritual_ok", player.center())
 
 
 ## A Rift sets the wizard down in another hall, picked by chance: not the boss's, and none behind a gate.

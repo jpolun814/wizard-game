@@ -1,12 +1,13 @@
 class_name WizardBrain
 extends RefCounted
 
-## The dark wizard's mind. It duels the way a player would: it keeps its distance, reacts to what you throw at it,
-## and picks spells that suit the moment. Every spell it casts is drawn in front of it as a real gesture and read
-## by the same recognizer as yours, so you can watch it form, learn the shapes from it, and break the spell by
-## hitting the wizard before it finishes.
+## A rival wizard's mind. It plays the way a player would: it walks the world looking for pages, and when it comes near another wizard (you,
+## or another of its own kind: spells have no teams) it keeps its distance, reacts to what is thrown at it, and picks spells that suit the
+## moment. It casts only the spells whose pages it has found. Every spell it casts is drawn in front of it as a real gesture and read by the
+## same recognizer as yours, so you can watch it form, learn the shapes from it, and break the spell by hitting the wizard before it finishes.
 ##
-## Three layers, checked in order each frame:
+## Four layers, checked in order each frame:
+##   Travel: with no wizard in reach it walks to the nearest page it has not read, and when there are none, to the nearest wizard.
 ##   Reactions: a shot coming at it, standing in something dangerous, or you right on top of it. After a short
 ##     reaction time (shorter the more skilled it is) it jumps, reflects the shot with a Gust, raises a
 ##     Barrier, steps away, or pushes you off.
@@ -14,12 +15,12 @@ extends RefCounted
 ##   Attacks: each spell is scored for the situation (are you moving, behind cover, rooted, close, far?) and one is
 ##     picked by weight. Projectiles are aimed where you are going, not where you are.
 
-## Every spell a wizard casts, for Insight to list.
-const KNOWN := ["Ignite", "Fire Breath", "Firewall", "Spark", "Frostbolt", "Ice Prison", "Blizzard", "Gust", "Push", "Barrier", "Tornado",
-		"Stonefall", "Mudslide", "Earthquake", "Volcano", "Abyss", "Shadow Step"]
-const STAMINA_REGEN := 16.0
 const WALK_SPEED := 170.0
-const JUMP := -560.0
+const JUMP := -520.0          # the same jump as the player's
+const ENGAGE := 620.0         # a wizard this close, and in sight, is a fight; farther off, it is a journey
+const PAGE_REACH := 4          # tiles: a page further than this from any place to stand is not one it can get
+const GOAL_EVERY := 4.0       # seconds between looking for a nearer page
+const GIVE_UP := 45.0         # seconds a page it could not reach stays off its list
 const NEAR := 190.0           # closer than this it backs away
 const FAR := 330.0            # farther than this it closes in
 const TOO_CLOSE := 95.0       # this close it acts to get you off it
@@ -29,7 +30,7 @@ const ATTACK_DRAW := 0.8      # attacks take longer, which is your chance to int
 const ATTACK_RANGE := 460.0   # it only casts at you from about a screen away, never across the map
 const SHOT_SPEED := 650.0     # roughly how fast its bolts fly, for leading a moving target
 
-var mob: Node2D               # the dark wizard
+var mob: Node2D               # the wizard
 var skill := 0.6              # 0 to 1: how quick its reactions are and how true its aim is
 var _cast_cooldown := 1.8
 var _react := 0.0             # counting down to a planned reaction
@@ -46,6 +47,14 @@ var _pressure := 0.0          # how many shots you have thrown at it lately
 var _seen_shots := {}
 var _recent: Array[String] = []  # its last two attacks, which it avoids repeating
 var _rng := RandomNumberGenerator.new()
+var _foe: Node2D                 # the wizard it is dealing with: the nearest of the others
+var _route := WizardRoute.new()
+var _goal := ""                  # what it is travelling to: "page", "foe", or "" for nothing
+var _goal_page: PagePickup
+var _goal_timer := 0.0
+var _skip := {}                  # page instance id -> seconds it stays off the list, for a page that could not be reached
+var stuck_at: Array[String] = []  # where it has been held up, for a report
+var _replans := 0                # times in a row it has had to find its way again
 
 
 func _init(wizard: Node2D) -> void:
@@ -60,23 +69,30 @@ func on_hurt(amount: int) -> void:
 	if mob.is_drawing() and amount >= INTERRUPT_DAMAGE:
 		mob.interrupt_cast()
 		_cast_cooldown = maxf(_cast_cooldown, 0.9)
-	if mob.hp < mob.max_hp * 0.4 and _defend_cooldown <= 0.0 and _react <= 0.0 and _rng.randf() < 0.5:
+	if _knows("Shadow Step") and mob.hp < mob.max_hp * 0.4 and _defend_cooldown <= 0.0 and _react <= 0.0 and _rng.randf() < 0.5:
 		_plan("blink_away", 0.25)
 
 
 func think(delta: float) -> void:
-	var player: Node2D = mob.player
 	_cast_cooldown -= delta
 	_defend_cooldown -= delta
 	_jump_cooldown -= delta
 	_escape_time -= delta
+	_goal_timer -= delta
 	_pressure *= exp(-delta / 3.0)
+	for id in _skip.keys():
+		_skip[id] -= delta
+		if _skip[id] <= 0.0:
+			_skip.erase(id)
 	_track_shots()
-	if player.dead:
+	_foe = _nearest_foe()
+	if _foe == null:  # the last wizard standing
 		mob.velocity.x = 0.0
 		return
-	var to_player: Vector2 = player.center() - mob.center()
-	var sees := _clear_line(mob.center(), player.center()) and not SpellTargets.sight_blocked(mob.get_tree(), mob.center(), player.center())
+	var foe: Node2D = _foe
+	var to_player: Vector2 = foe.center() - mob.center()
+	var sees := _clear_line(mob.center(), foe.center()) and not SpellTargets.sight_blocked(mob.get_tree(), mob.center(), foe.center())
+	var fighting := sees and to_player.length() < ENGAGE
 
 	# Reactions.
 	if _react > 0.0:
@@ -90,15 +106,18 @@ func think(delta: float) -> void:
 			_plan(_choose_defence(shot["eta"]), _reaction_time())
 		elif _in_danger(mob.global_position + Vector2(0, -6)) or _in_danger(mob.center()):
 			_plan("escape", _reaction_time() * 0.6)
-		elif to_player.length() < TOO_CLOSE and _defend_cooldown <= 0.0:
+		elif fighting and to_player.length() < TOO_CLOSE and _defend_cooldown <= 0.0:
 			_plan(_choose_repel(), _reaction_time())
 
-	# Footwork.
-	mob.velocity.x = _footwork(delta, to_player, sees)
+	# Footwork, or the journey.
+	var run := _footwork(delta, to_player, sees) if fighting else _travel(delta)  # (both may jump: the speed is written after they have)
+	mob.velocity.x = run
+	if not fighting:
+		return
 
 	# Attacks.
 	if _cast_cooldown <= 0.0 and not mob.is_drawing() and _react <= 0.0:
-		if player.has_shield():
+		if foe.has_shield():
 			_cast_cooldown = 0.3  # nothing gets through a Barrier; wait it out
 		elif _attack(to_player, sees):
 			_cast_cooldown = lerpf(2.8, 1.5, skill) + _rng.randf() * 0.8
@@ -115,6 +134,140 @@ func _plan(reaction: String, delay: float) -> void:
 	_react = delay
 
 
+# --- Travel -----------------------------------------------------------------------------------------------------
+
+
+## Whether it holds the page of a spell.
+func _knows(spell_name: String) -> bool:
+	return mob.ledger.knows_spell(spell_name)
+
+
+## The nearest of the other wizards still standing, or null when it is the last.
+func _nearest_foe() -> Node2D:
+	var best: Node2D = null
+	var best_gap := INF
+	for other: Node2D in SpellTargets.wizards(mob.get_tree()):
+		if other == mob:
+			continue
+		var gap: float = mob.center().distance_to(other.center())
+		if gap < best_gap:
+			best = other
+			best_gap = gap
+	return best
+
+
+## Whether a wizard cannot move freely: rooted, or slowed. The player and the others keep these in different places.
+func _held(foe: Node2D) -> bool:
+	if foe is Mob:
+		return foe.is_rooted() or foe.is_slowed()
+	return foe.root_time > 0.0 or foe.slow_time > 0.0
+
+
+func _slowed(foe: Node2D) -> bool:
+	return foe.is_slowed() if foe is Mob else foe.slow_time > 0.0
+
+
+## The tile a body stands in, from its feet.
+func _tile_of(feet: Vector2) -> Vector2i:
+	return Vector2i(floori(feet.x / WizardRoute.TILE), floori((feet.y - 1.0) / WizardRoute.TILE))
+
+
+## Walks the way to what it is after, and reads a page when it stands under one. Returns the speed to walk at.
+func _travel(delta: float) -> float:
+	if mob.is_drawing():
+		return 0.0
+	if _escape_time > 0.0:
+		return _escape_dir * WALK_SPEED * 1.3
+	if mob.nav == null:
+		return 0.0
+	_read_page_underfoot()
+	if _goal == "page" and _route.done() and not _goal_lost():  # it has come to the place, and the page is not to be had from there
+		_skip[_goal_page.get_instance_id()] = GIVE_UP
+		_goal = ""
+		_goal_timer = 0.0
+	if (_goal == "" and _goal_timer <= 0.0) or _goal_lost() or (_goal == "foe" and (_goal_timer <= 0.0 or _route.done())):
+		_choose_goal()
+	var steer := _route.steer(mob, delta)
+	if steer["replan"]:
+		stuck_at.append("%s %s" % [str(_tile_of(mob.global_position)), _route.status()])
+		_stuck_on_goal()
+	if steer["jump"] and mob.is_on_floor():
+		mob.velocity.y = JUMP
+	return steer["dir"] * steer["speed"]
+
+
+## Reads the page it stands under, if it does not have it.
+func _read_page_underfoot() -> void:
+	for pickup: PagePickup in mob.get_tree().get_nodes_in_group("pages"):
+		if not mob.ledger.knows(pickup.page) and pickup.is_under(mob):
+			pickup.take(mob.ledger)
+			_replans = 0
+			_goal = ""
+			_goal_timer = 0.0
+			return
+
+
+## The page it was going to has gone: someone else read it, or it has it already.
+func _goal_lost() -> bool:
+	return _goal == "page" and (not is_instance_valid(_goal_page) or mob.ledger.knows(_goal_page.page))
+
+
+## Picks what to go for: the page nearest by the way it must walk, and when there is none to be had, the nearest wizard.
+func _choose_goal() -> void:
+	_goal_timer = GOAL_EVERY
+	_goal = ""
+	var start: Vector2i = mob.nav.nearest(_tile_of(mob.global_position))
+	if start.x < 0:
+		return
+	var best_page: PagePickup = null
+	var best_path: Array[Vector2i] = []
+	for pickup: PagePickup in mob.get_tree().get_nodes_in_group("pages"):
+		if mob.ledger.knows(pickup.page) or _skip.has(pickup.get_instance_id()):
+			continue
+		var tile := _tile_of(pickup.global_position)
+		var stand: Vector2i = mob.nav.nearest(tile)
+		var path: Array[Vector2i] = []
+		if absi(stand.x - tile.x) + absi(stand.y - tile.y) <= PAGE_REACH:
+			path = mob.nav.path(start, stand)
+		if path.is_empty():
+			_skip[pickup.get_instance_id()] = GIVE_UP  # no way there that a wizard can walk
+			continue
+		if best_page == null or path.size() < best_path.size():
+			best_page = pickup
+			best_path = path
+	if best_page != null:
+		_goal = "page"
+		_goal_page = best_page
+		_route.set_path(best_path)
+		return
+	if _foe != null:
+		var path: Array[Vector2i] = mob.nav.path(start, mob.nav.nearest(_tile_of(_foe.global_position)))
+		if not path.is_empty():
+			_goal = "foe"
+			_route.set_path(path)
+
+
+## It is getting nowhere on its way: find the way again, and after a few tries give the page up for a while.
+func _stuck_on_goal() -> void:
+	_replans += 1
+	if _goal == "page" and _replans >= 3 and is_instance_valid(_goal_page):
+		_skip[_goal_page.get_instance_id()] = GIVE_UP
+		_replans = 0
+		_choose_goal()
+		return
+	var start: Vector2i = mob.nav.nearest(_tile_of(mob.global_position))
+	var path: Array[Vector2i] = mob.nav.path(start, _route.goal())
+	if path.is_empty():
+		_goal = ""
+	else:
+		_route.set_path(path)
+
+
+## What it is doing, for a report.
+func status() -> String:
+	return "%s (%s)" % [_goal if _goal != "" else "nothing", _route.status()]
+
+
 # --- Reactions --------------------------------------------------------------------------------------------------
 
 
@@ -122,7 +275,7 @@ func _plan(reaction: String, delay: float) -> void:
 func _incoming_shot() -> Dictionary:
 	var best := {}
 	for node in mob.get_tree().get_nodes_in_group("projectiles"):
-		if node.caster != mob.player:
+		if node.caster == mob:
 			continue
 		var velocity: Vector2 = node.velocity()
 		var rel: Vector2 = mob.center() - node.global_position
@@ -139,7 +292,7 @@ func _incoming_shot() -> Dictionary:
 ## Counts how many shots you have thrown lately, so it knows when to put up walls.
 func _track_shots() -> void:
 	for node in mob.get_tree().get_nodes_in_group("projectiles"):
-		if node.caster == mob.player and not _seen_shots.has(node.get_instance_id()):
+		if node.caster != mob and not _seen_shots.has(node.get_instance_id()):
 			_seen_shots[node.get_instance_id()] = true
 			_pressure += 1.0
 	if _seen_shots.size() > 64:
@@ -148,11 +301,11 @@ func _track_shots() -> void:
 
 func _choose_defence(eta: float) -> String:
 	var options := {"jump": 1.0}
-	if mob.stamina >= 15.0 and eta > QUICK_DRAW + 0.05:
+	if _knows("Gust") and mob.stamina >= 15.0 and eta > QUICK_DRAW + 0.05:
 		options["reflect"] = 0.6 + 1.6 * skill  # a skilled wizard sends your spells back at you
-	if mob.stamina >= 35.0 and eta > QUICK_DRAW + 0.05:
+	if _knows("Barrier") and mob.stamina >= 35.0 and eta > QUICK_DRAW + 0.05:
 		options["shield"] = 0.5
-	if mob.stamina >= 10.0:
+	if _knows("Shadow Step") and mob.stamina >= 10.0:
 		options["blink_side"] = 0.7
 	if not mob.is_on_floor():
 		options.erase("jump")
@@ -161,16 +314,17 @@ func _choose_defence(eta: float) -> String:
 
 func _choose_repel() -> String:
 	var options := {}
-	if mob.stamina >= 10.0:
+	if _knows("Push") and mob.stamina >= 10.0:
 		options["push"] = 1.5
+	if _knows("Shadow Step") and mob.stamina >= 10.0:
 		options["blink_away"] = 1.0
-	if mob.stamina >= 16.0 and _clear_line(mob.center(), mob.player.center()):
+	if _knows("Fire Breath") and mob.stamina >= 16.0 and _clear_line(mob.center(), _foe.center()):
 		options["breath"] = 1.3
 	return _pick(options) if not options.is_empty() else "escape"
 
 
 func _act(reaction: String) -> void:
-	var player: Node2D = mob.player
+	var foe: Node2D = _foe
 	match reaction:
 		"jump":
 			if mob.is_on_floor():
@@ -185,17 +339,17 @@ func _act(reaction: String) -> void:
 			_begin_cast("Barrier", _offset(GestureTemplates.preview_points("circle"), mob.center(), 0.8), QUICK_DRAW)
 			_defend_cooldown = 2.5
 		"blink_side", "blink_away":
-			_blink_away(player)
+			_blink_away(foe)
 			_defend_cooldown = 1.6
 		"escape":
 			_escape_dir = _safe_side()
 			_escape_time = 0.6
-			if mob.stamina >= 12.0 and _rng.randf() < skill * 0.6:
-				_blink_away(player)
+			if _knows("Shadow Step") and mob.stamina >= 12.0 and _rng.randf() < skill * 0.6:
+				_blink_away(foe)
 			_defend_cooldown = 0.6
 		"push":
-			var away: Vector2 = (player.center() - mob.center()).normalized()
-			_begin_cast("Push", _push_stroke(player.center(), away), QUICK_DRAW)
+			var away: Vector2 = (foe.center() - mob.center()).normalized()
+			_begin_cast("Push", _push_stroke(foe.center(), away), QUICK_DRAW)
 			_defend_cooldown = 1.5
 		"breath":
 			_begin_cast("Fire Breath", _breath_stroke(), QUICK_DRAW + 0.1)
@@ -203,8 +357,8 @@ func _act(reaction: String) -> void:
 
 
 ## Steps away from the player along the ground, or past them if its back is to a wall.
-func _blink_away(player: Node2D) -> void:
-	var away := -signf(player.global_position.x - mob.global_position.x)
+func _blink_away(foe: Node2D) -> void:
+	var away := -signf(foe.global_position.x - mob.global_position.x)
 	if away == 0.0:
 		away = 1.0
 	var room := (ArenaGen.right_edge() - mob.global_position.x) if away > 0.0 else (mob.global_position.x - ArenaGen.left_edge())
@@ -270,7 +424,7 @@ func _safe_side() -> float:
 		if _in_danger(mob.global_position + Vector2(step, -10.0)):
 			right += 1
 	if left == right:
-		return -signf(mob.player.global_position.x - mob.global_position.x)
+		return -signf(_foe.global_position.x - mob.global_position.x)
 	return -1.0 if left < right else 1.0
 
 
@@ -293,19 +447,19 @@ func _clear_line(from: Vector2, to: Vector2) -> bool:
 
 ## Picks an attack for the situation and starts drawing it. Returns false if nothing is worth casting now.
 func _attack(to_player: Vector2, sees: bool) -> bool:
-	var player: Node2D = mob.player
+	var foe: Node2D = _foe
 	if absf(to_player.x) > ATTACK_RANGE:
 		return false  # too far off to aim at you: it waits for you to come within reach
 	var gap := absf(to_player.x)
-	var still: bool = player.velocity.length() < 30.0
-	var stuck: bool = player.root_time > 0.0 or player.slow_time > 0.0
-	var grounded: bool = player.is_on_floor()
-	var same_ground: bool = grounded and mob.is_on_floor() and absf(player.global_position.y - mob.global_position.y) < 8.0
-	var closing: bool = signf(player.velocity.x) == signf(-to_player.x) and absf(player.velocity.x) > 60.0
+	var still: bool = foe.velocity.length() < 30.0
+	var stuck: bool = _held(foe)
+	var grounded: bool = foe.is_on_floor()
+	var same_ground: bool = grounded and mob.is_on_floor() and absf(foe.global_position.y - mob.global_position.y) < 8.0
+	var closing: bool = signf(foe.velocity.x) == signf(-to_player.x) and absf(foe.velocity.x) > 60.0
 	var aim_ok := absf(to_player.normalized().x) > 0.4  # a near-vertical stroke would draw a Firewall instead
 	var scores := {
 		"Ignite": (2.0 if gap > 140.0 else 0.8) if sees and aim_ok else 0.0,
-		"Frostbolt": (0.4 if player.slow_time > 0.0 else 1.6) if sees else 0.0,
+		"Frostbolt": (0.4 if _slowed(foe) else 1.6) if sees else 0.0,
 		"Spark": 2.2 if still or stuck else 1.0,
 		"Stonefall": 3.0 if stuck else (1.8 if still else 0.5),
 		"Icicles": 0.0,  # they need a ceiling, and the arenas have none yet
@@ -327,7 +481,7 @@ func _attack(to_player: Vector2, sees: bool) -> bool:
 		for spell_name in ["Ignite", "Frostbolt", "Ice Prison", "Abyss", "Firewall", "Fire Breath"]:
 			scores[spell_name] = 0.0
 	for spell_name in scores.keys():
-		if mob.stamina < SpellData.SPELLS[spell_name].cost:
+		if not _knows(spell_name) or mob.stamina < SpellData.SPELLS[spell_name].cost:
 			scores[spell_name] = 0.0
 		elif spell_name in _recent:
 			scores[spell_name] *= 0.25  # it does not keep repeating itself
@@ -343,7 +497,7 @@ func _attack(to_player: Vector2, sees: bool) -> bool:
 
 ## True when something solid (a platform or the ground) is above you, so nothing from the sky can reach you.
 func _sheltered() -> bool:
-	var top: Vector2 = mob.player.center() + Vector2(0, -50)
+	var top: Vector2 = _foe.center() + Vector2(0, -50)
 	# Cast from the sky down, the way lightning comes: a one-way platform only stops things from above.
 	var query := PhysicsRayQueryParameters2D.create(top + Vector2(0, -600), top)
 	query.collision_mask = 1 | 16
@@ -352,58 +506,58 @@ func _sheltered() -> bool:
 
 ## Where you will be by the time a spell lands, judged with the wizard's skill: a skilled wizard leads you well.
 func _predict(seconds: float) -> Vector2:
-	var player: Node2D = mob.player
-	var lead: Vector2 = player.velocity * seconds * skill
-	lead.y = 0.0 if player.is_on_floor() else lead.y * 0.5
-	return player.center() + lead
+	var foe: Node2D = _foe
+	var lead: Vector2 = foe.velocity * seconds * skill
+	lead.y = 0.0 if foe.is_on_floor() else lead.y * 0.5
+	return foe.center() + lead
 
 
 ## The gesture for an attack, drawn where the spell should land.
 func _attack_stroke(spell_name: String) -> PackedVector2Array:
-	var player: Node2D = mob.player
-	var feet: Vector2 = player.global_position
-	var facing := signf(player.global_position.x - mob.global_position.x)
+	var foe: Node2D = _foe
+	var feet: Vector2 = foe.global_position
+	var facing := signf(foe.global_position.x - mob.global_position.x)
 	if facing == 0.0:
 		facing = 1.0
 	match spell_name:
 		"Ignite", "Frostbolt":
 			var start: Vector2 = mob.center() + Vector2(facing * 12.0, -6.0)
-			var target := _predict(start.distance_to(player.center()) / SHOT_SPEED)
+			var target := _predict(start.distance_to(foe.center()) / SHOT_SPEED)
 			var aim := (target - start).angle() + _rng.randfn(0.0, 0.16 * (1.0 - skill))
 			return _line(start, start + Vector2.from_angle(aim) * 90.0)
 		"Spark":
 			var x := _predict(ATTACK_DRAW * 0.8).x
-			return _offset(GestureTemplates.preview_points("zigzag"), Vector2(x, player.center().y - 90.0), 1.0)
+			return _offset(GestureTemplates.preview_points("zigzag"), Vector2(x, foe.center().y - 90.0), 1.0)
 		"Stonefall":
 			var x := _predict(ATTACK_DRAW + 0.6).x
-			return _offset(GestureTemplates.preview_points("stonefall"), Vector2(x, player.center().y - 130.0), 0.8)
+			return _offset(GestureTemplates.preview_points("stonefall"), Vector2(x, foe.center().y - 130.0), 0.8)
 		"Volcano":
 			var x := _predict(ATTACK_DRAW).x
 			return _offset(GestureTemplates.preview_points("volcano"), Vector2(x, feet.y - 60.0), 0.8)
 		"Tornado":
-			var x: float = lerpf(mob.global_position.x, player.global_position.x, 0.45)
+			var x: float = lerpf(mob.global_position.x, foe.global_position.x, 0.45)
 			return _offset(GestureTemplates.preview_points("tornado"), Vector2(x, feet.y - 90.0), 0.9)
 		"Ice Prison":
 			return _offset(GestureTemplates.preview_points("circle"), _predict(ATTACK_DRAW * 0.6), 0.8)
 		"Earthquake":
 			# Drawn in the air above the middle of the fight, where the peaks read clearly.
-			return _offset(GestureTemplates.preview_points("earthquake"), Vector2(_predict(ATTACK_DRAW * 0.6).x, player.center().y - 120.0), 1.0)
+			return _offset(GestureTemplates.preview_points("earthquake"), Vector2(_predict(ATTACK_DRAW * 0.6).x, foe.center().y - 120.0), 1.0)
 		"Mudslide":
 			var x := _predict(ATTACK_DRAW * 0.6).x
 			return _offset(GestureTemplates.preview_points("pit"), Vector2(x, feet.y - 60.0), 1.0)
 		"Abyss":
 			# Beyond you if you are close (it drags you away from it), between you if you keep shooting at it.
-			var spot: Vector2 = player.center() + Vector2(facing * 80.0, 0.0)
+			var spot: Vector2 = foe.center() + Vector2(facing * 80.0, 0.0)
 			if _pressure > 1.5:
-				spot = mob.center().lerp(player.center(), 0.4)
+				spot = mob.center().lerp(foe.center(), 0.4)
 			var spiral := GestureTemplates.preview_points("spiral")
 			# The abyss forms where the spiral ends, so place the spiral's end on the spot.
 			return _offset(spiral, spot - (spiral[spiral.size() - 1] - _centre_of(spiral)), 1.0)
 		"Firewall":
-			var x: float = lerpf(mob.global_position.x, player.global_position.x, 0.5)
+			var x: float = lerpf(mob.global_position.x, foe.global_position.x, 0.5)
 			return _line(Vector2(x, feet.y - 110.0), Vector2(x, feet.y - 20.0))
 		"Blizzard":
-			return _offset(GestureTemplates.preview_points("snowfall"), Vector2(feet.x - 30.0, player.center().y - 70.0), 0.8)
+			return _offset(GestureTemplates.preview_points("snowfall"), Vector2(feet.x - 30.0, foe.center().y - 70.0), 0.8)
 		"Fire Breath":
 			return _breath_stroke()
 	return PackedVector2Array()
@@ -412,9 +566,9 @@ func _attack_stroke(spell_name: String) -> PackedVector2Array:
 ## A Fire Breath cone with its point at the wizard and its mouth toward you, a little off when it is unskilled.
 ## It draws the cone longer when you are farther off, so the fire reaches you.
 func _breath_stroke() -> PackedVector2Array:
-	var gap: float = mob.center().distance_to(mob.player.center())
+	var gap: float = mob.center().distance_to(_foe.center())
 	var size := clampf(gap / 150.0, 1.0, 1.4)
-	var aim: float = (mob.player.center() - mob.center()).angle() + _rng.randfn(0.0, 0.2 * (1.0 - skill))
+	var aim: float = (_foe.center() - mob.center()).angle() + _rng.randfn(0.0, 0.2 * (1.0 - skill))
 	var tip: Vector2 = mob.center() + Vector2.from_angle(aim) * 20.0
 	var out := PackedVector2Array()
 	for p in GestureTemplates.preview_points("cone"):
@@ -510,7 +664,7 @@ func _pick(weights: Dictionary) -> String:
 ## How many of the wizard's own walkers stand within reach of the player: an earthquake would shake them too.
 func _own_walkers_near(reach: float) -> int:
 	var count := 0
-	var target: Node2D = mob.player
+	var target: Node2D = _foe
 	for other in mob.get_tree().get_nodes_in_group("mobs"):
 		if other == mob or other.is_dead() or other.KINDS[other.kind].role == "wizard" or other.KINDS[other.kind].role == "flyer":
 			continue

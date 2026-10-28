@@ -648,7 +648,7 @@ func _place_shapes(spell: String, info: Dictionary) -> void:
 func _on_wizard_cast(spell: String, targeting: String, origin: Vector2, aim: float, info: Dictionary, wizard: Node2D) -> void:
 	if not is_instance_valid(wizard) or wizard.is_dead():
 		return
-	wizard.stamina -= SpellData.SPELLS[spell].cost_for(info)
+	wizard.spend(SpellData.SPELLS[spell].cost_for(info))
 	wizard.last_spell = spell
 	spawn_spell(spell, targeting, origin, aim, info, wizard)
 
@@ -887,18 +887,21 @@ func _update_insight() -> void:
 	if mob == null:
 		return
 	var data: MobKind = Mob.KINDS[mob.kind]
-	var weak := _school_bb(data.weak) if data.weak != "" else "nothing"
-	var resist := _school_bb(data.resist) if data.resist != "" else "nothing"
-	_insight_text.text = "[b]%s[/b]   Health %d / %d\nWeak to %s\nResists %s\n[i]%s[/i]" % [
-		data.display_name, mob.hp, mob.max_hp,
-		weak, resist, data.desc,
-	]
-	if data.role == "wizard":  # a wizard's spells, each in the colour of its school
+	if data.role == "wizard":  # a rival wizard's stamina is shown nowhere else, and the spells it has pages for, each in the colour of its school
+		_insight_text.text = "[b]%s[/b]   Stamina %d / %d\n[i]%s[/i]" % [data.display_name, mob.stamina, mob.hp, data.desc]
 		var lines := ""
-		for spell_name: String in WizardBrain.KNOWN:
-			var colour: Color = SpellData.SCHOOL_COLORS[SpellData.SPELLS[spell_name].school]
-			lines += "\n[color=#%s]%s[/color]" % [colour.lightened(0.15).to_html(false), spell_name]
+		for spell_name: String in SpellData.SPELLS:
+			if mob.ledger.knows_spell(spell_name):
+				var colour: Color = SpellData.SCHOOL_COLORS[SpellData.SPELLS[spell_name].school]
+				lines += "\n[color=#%s]%s[/color]" % [colour.lightened(0.15).to_html(false), spell_name]
 		_insight_text.text += "\n\nKnows:" + lines
+	else:
+		var weak := _school_bb(data.weak) if data.weak != "" else "nothing"
+		var resist := _school_bb(data.resist) if data.resist != "" else "nothing"
+		_insight_text.text = "[b]%s[/b]   Health %d / %d\nWeak to %s\nResists %s\n[i]%s[/i]" % [
+			data.display_name, mob.hp, mob.max_hp,
+			weak, resist, data.desc,
+		]
 	var screen := get_viewport().get_visible_rect().size
 	var tip_size := _insight_tip.get_combined_minimum_size()
 	_insight_tip.position = (get_viewport().get_mouse_position() + Vector2(18, 18)).min(screen - tip_size - Vector2(8, 8)).max(Vector2(8, 8))  # kept on the screen, even with a long list
