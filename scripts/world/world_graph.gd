@@ -10,7 +10,7 @@ extends RefCounted
 ## Some passages are gated: the halls beyond a gate are a locked area, with an elite or the boss in its widest hall and
 ## the key in a vault outside it. Everything here comes from the rng it is given, so one seed always gives one graph.
 
-const SIZE := Vector2i(1200, 380)  # the world, in tiles
+const FULL := Vector2i(1200, 380)  # the first world, in tiles
 const MIN_ROOMS := 36
 const MAX_ROOMS := 42
 const ENTRANCE_SPACING := 40   # one way down for about this many columns of surface, at the least, in every biome
@@ -47,6 +47,7 @@ const GATES := ["chasm", "flood", "brambles", "wall", "ice", "dark", "gas", "pir
 ## {"a", "b": room ids, "kind": "tunnel", "lock": the lock it is gated by, or -1, "slope": columns per row, "pa", "pb": the
 ## two mouths, as tiles, pa in room a and pb in room b, "inside_a" or "inside_b": true when that mouth is in the middle of
 ## a floor rather than at a hall's end}.
+static var size := FULL  # the world to build, in tiles: the portal collapses into smaller ones
 var rooms: Array[Dictionary] = []
 var links: Array[Dictionary] = []
 var locks: Array[Dictionary] = []  # {"id", "link", "rooms": [ids], "guard": room id, "key": room id, "boss": bool, "gate": what bars the passage}
@@ -60,18 +61,40 @@ var _reserved: Array[Dictionary] = []  # {"rect": Rect2i, "owners": [room ids]}:
 
 ## Tries again from scratch until a world has enough halls, a gate and a far boss; the best of a few tries if none does.
 static func build(rng: RandomNumberGenerator) -> WorldGraph:
+	var wanted_mouths := _scaled(8, 3)
+	var wanted_locks := 2 if size.x >= 800 else 1
+	var wanted_depth := 3 if size.x >= 800 else 2
 	var best: WorldGraph = null
 	var best_score := -1
 	for attempt in 60:
 		var graph := _grow(rng)
 		var mouths: int = graph.rooms[0]["mouths"].size()
-		var score := graph.rooms.size() + mouths * 3 + mini(graph.links.size() - graph.rooms.size(), 4) * 4 + (6 if graph.locks.size() >= 2 else 0) + (4 if graph.rooms[graph.boss]["depth"] >= 3 else 0) + (0 if graph._spawns_apart() else -40)
+		var score := graph.rooms.size() + mouths * 3 + mini(graph.links.size() - graph.rooms.size(), 4) * 4 + (6 if graph.locks.size() >= wanted_locks else 0) + (4 if graph.rooms[graph.boss]["depth"] >= wanted_depth else 0) + (0 if graph._spawns_apart() else -40)
 		if score > best_score:
 			best = graph
 			best_score = score
-		if graph.rooms.size() >= MIN_ROOMS and mouths >= 8 and graph._every_biome_has_a_way_down() and graph.locks.size() >= 2 and graph.rooms[graph.boss]["depth"] >= 3 and graph.spawns.size() == PLAYERS and graph._spawns_apart() and graph.links.size() - graph.rooms.size() >= 2:
+		if graph.rooms.size() >= _scaled(MIN_ROOMS, 8) and mouths >= wanted_mouths and graph._every_biome_has_a_way_down() and graph.locks.size() >= wanted_locks and graph.rooms[graph.boss]["depth"] >= wanted_depth and graph.spawns.size() == PLAYERS and graph._spawns_apart() and graph.links.size() - graph.rooms.size() >= 2:
 			return graph
 	return best
+
+
+## A count for the full-size world, scaled down for a smaller one (never below a least).
+static func _scaled(count: int, least: int) -> int:
+	return maxi(least, count * size.x / FULL.x)
+
+
+## A world with no caves: only the surface, with the players' places spread along it. The last world of a match, with nowhere to hide.
+static func build_open(rng: RandomNumberGenerator) -> WorldGraph:
+	var graph := WorldGraph.new()
+	graph.surface = SurfaceGen.open(size.x, rng)
+	graph._add_room({"cx": size.x / 2, "cy": SURFACE_ROW, "hw": size.x / 2 - 4, "air": SURFACE_ROW - 3, "surface": true,
+			"tunnel_1": true, "tunnel_-1": true, "mouths": [], "role": "surface", "cluster": -1})
+	graph._classify(rng)
+	for k in PLAYERS:  # the middle is level, for the first to start on; the others are spread along the rest, away from it
+		var column := roundi(size.x * (k + 0.5) / PLAYERS)
+		graph.spawns.append({"x": column, "room": 0, "side": 0})
+	graph.locks = []
+	return graph
 
 
 ## True when each biome of the surface has at least one way down.
@@ -92,16 +115,16 @@ func _every_biome_has_a_way_down() -> bool:
 func _spawns_apart() -> bool:
 	for i in spawns.size():
 		for j in range(i + 1, spawns.size()):
-			if absi(spawns[i]["x"] - spawns[j]["x"]) < 140:
+			if absi(spawns[i]["x"] - spawns[j]["x"]) < 140 * size.x / FULL.x:
 				return false
 	return true
 
 
 static func _grow(rng: RandomNumberGenerator) -> WorldGraph:
 	var graph := WorldGraph.new()
-	graph.surface = SurfaceGen.build(SIZE.x, rng)
-	var count := rng.randi_range(MIN_ROOMS, MAX_ROOMS)
-	graph._add_room({"cx": SIZE.x / 2, "cy": SURFACE_ROW, "hw": SIZE.x / 2 - 4, "air": SURFACE_ROW - 3, "surface": true,
+	graph.surface = SurfaceGen.build(size.x, rng)
+	var count := rng.randi_range(_scaled(MIN_ROOMS, 8), _scaled(MAX_ROOMS, 10))
+	graph._add_room({"cx": size.x / 2, "cy": SURFACE_ROW, "hw": size.x / 2 - 4, "air": SURFACE_ROW - 3, "surface": true,
 			"tunnel_1": true, "tunnel_-1": true, "mouths": [], "role": "surface", "cluster": -1})
 	# Ways down all along the surface, in every biome, each the start of a system of halls of its own.
 	for biome in graph.surface["biomes"]:
@@ -194,7 +217,7 @@ func _try_descent(from: Dictionary, rng: RandomNumberGenerator, column: int) -> 
 	var mouth_x := column
 	if not on_surface:
 		mouth_x = from["cx"] + rng.randi_range(-from["hw"] / 2, from["hw"] / 2)
-	if on_surface and (mouth_x < 22 or mouth_x > SIZE.x - 22 or not _clear_ground(mouth_x)):
+	if on_surface and (mouth_x < 22 or mouth_x > size.x - 22 or not _clear_ground(mouth_x)):
 		return false
 	if not on_surface and from["hw"] < 12:
 		return false  # a vault has no room for a ramp
@@ -255,7 +278,7 @@ func _under_surface(a: Vector2i, b: Vector2i, slope: float, open_start: bool) ->
 func _clear_ground(x: int) -> bool:
 	var floor_row: PackedInt32Array = surface["floor"]
 	var level := floor_row[x]
-	var spots: Array = [[SIZE.x / 2 - SurfaceGen.START_FLAT, SIZE.x / 2 + SurfaceGen.START_FLAT, SurfaceGen.BASE_ROW],
+	var spots: Array = [[size.x / 2 - SurfaceGen.START_FLAT, size.x / 2 + SurfaceGen.START_FLAT, SurfaceGen.BASE_ROW],
 			[surface["castle"] - 3, surface["castle"] + SurfaceGen.CASTLE_WIDTH + 3, SurfaceGen.BASE_ROW]]
 	for pond in surface["ponds"]:
 		spots.append([pond["a"] - SurfaceGen.POOL_PAD, pond["b"] + SurfaceGen.POOL_PAD, pond["surface"]])
@@ -271,7 +294,7 @@ func _clear_ground(x: int) -> bool:
 ## True when a hall in this spot would stay under the ground and inside the world and not run into anything.
 func _fits(spec: Dictionary) -> bool:
 	var box := _hall_box(spec)
-	if box.position.x < 3 or box.end.x > SIZE.x - 3 or box.end.y > SIZE.y - 3:
+	if box.position.x < 3 or box.end.x > size.x - 3 or box.end.y > size.y - 3:
 		return false
 	var lowest := 0
 	for c in range(box.position.x, box.end.x):
@@ -407,7 +430,7 @@ func _pick_spawns() -> void:
 	for k in PLAYERS:
 		if mouths.is_empty():
 			break
-		var wanted := SIZE.x * (k + 0.5) / PLAYERS
+		var wanted := size.x * (k + 0.5) / PLAYERS
 		var best: int = mouths[0]
 		for x: int in mouths:
 			if absf(x - wanted) < absf(best - wanted):
@@ -416,6 +439,32 @@ func _pick_spawns() -> void:
 		for link in links:
 			if link["a"] == 0 and link["pa"].x == best:
 				spawns.append({"x": best, "room": link["b"], "side": signi(link["pb"].x - link["pa"].x)})
+	while spawns.size() < PLAYERS and size.x < FULL.x:  # a small world has too few ways down: the rest start on open ground, as far from the others as it goes
+		var column := _open_ground_far_from_spawns()
+		if column < 0:
+			break
+		spawns.append({"x": column, "room": 0, "side": 0})
+
+
+## The column of open surface (clear of the pools, the castle and the ways down) farthest from every starting place so far, or -1.
+func _open_ground_far_from_spawns() -> int:
+	var best := -1
+	var best_gap := -1
+	for column in range(SurfaceGen.MARGIN + 20, size.x - SurfaceGen.MARGIN - 20, 4):
+		var clear: bool = column < surface["castle"] - 8 or column > surface["castle"] + SurfaceGen.CASTLE_WIDTH + 8
+		for pond: Dictionary in surface["ponds"]:
+			clear = clear and (column < pond["a"] - 6 or column > pond["b"] + 6)
+		for mouth: int in rooms[0]["mouths"]:
+			clear = clear and absi(column - mouth) > 12
+		if not clear:
+			continue
+		var gap := 1 << 20
+		for spawn in spawns:
+			gap = mini(gap, absi(column - spawn["x"]))
+		if gap > best_gap:
+			best_gap = gap
+			best = column
+	return best
 
 
 ## Works out how many passages each room is from the start, and marks the start, the dead ends (branches) and the farthest

@@ -101,6 +101,36 @@ static func build(width: int, rng: RandomNumberGenerator) -> Dictionary:
 	return {"limits": limits, "floor": floor_row, "biomes": biomes, "ponds": ponds, "castle": castle, "start": middle}
 
 
+## The ground of a world with no caves and no castle, for the last of the worlds: one biome, all of it open sky, with level ground to start on
+## in the middle. Returns the same as build().
+static func open(width: int, rng: RandomNumberGenerator) -> Dictionary:
+	var biome: String = OTHERS[rng.randi() % OTHERS.size()]
+	var n := width - MARGIN * 2
+	var offset := _offsets(biome, n, rng)
+	var floor_row := PackedInt32Array()
+	floor_row.resize(width)
+	floor_row.fill(BASE_ROW)
+	var limits := PackedByteArray()
+	limits.resize(width)
+	limits.fill(1)
+	for i in n:
+		floor_row[MARGIN + i] = BASE_ROW + roundi(offset[i])
+	if biome == "mountains":
+		for c in range(MARGIN + 1, MARGIN + n):
+			var step := floor_row[c] - floor_row[c - 1]
+			if absi(step) > 1:
+				limits[c] = mini(absi(step), LEDGE)
+				floor_row[c] = floor_row[c - 1] + signi(step) * mini(absi(step), LEDGE)
+	var middle := width / 2
+	var pinned := PackedByteArray()
+	pinned.resize(width)
+	for c in range(middle - START_FLAT, middle + START_FLAT + 1):
+		floor_row[c] = BASE_ROW
+		pinned[c] = 1
+	_relax(floor_row, pinned, limits)
+	return {"limits": limits, "floor": floor_row, "biomes": [{"name": biome, "a": MARGIN, "b": width - MARGIN - 1}], "ponds": [], "castle": -1, "start": middle}
+
+
 ## How many pools a biome has, and whether they are lava.
 static func _pools_for(biome: String, rng: RandomNumberGenerator) -> Array:
 	match biome:

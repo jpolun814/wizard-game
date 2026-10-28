@@ -48,7 +48,7 @@ const JUMP_FAR := 9     # how far a jump at (nearly) the same height reaches: a 
 ## "start": Vector2i, "ponds": [{"a", "b": first and last column, "surface": row, "depth": rows, "lava": bool}],
 ## "hazards": {Vector2i: true} for tiles inside lava, "shafts": [{"upper", "lower", "x", "width", "style", "platforms"}]}.
 static func build(graph: WorldGraph, rng: RandomNumberGenerator) -> Dictionary:
-	var size := WorldGraph.SIZE
+	var size := WorldGraph.size
 	var cells := TileGrid.new(size, ArenaGen.GROUND)
 	var plans := {}
 	for room in graph.rooms:
@@ -146,8 +146,9 @@ static func _surface_profile(graph: WorldGraph, plan: Dictionary) -> Dictionary:
 	for pond in graph.surface["ponds"]:
 		for c in range(pond["a"] - SurfaceGen.POOL_PAD, pond["b"] + SurfaceGen.POOL_PAD + 1):
 			pinned[c - xl] = 1
-	for c in range(graph.surface["castle"] - 3, graph.surface["castle"] + CASTLE_WIDTH + 4):
-		pinned[c - xl] = 1
+	if graph.surface["castle"] >= 0:
+		for c in range(graph.surface["castle"] - 3, graph.surface["castle"] + CASTLE_WIDTH + 4):
+			pinned[c - xl] = 1
 	for pin: Vector3i in plan["pins"]:
 		var level := floor_row[pin.z - xl]  # a mouth is level for a stretch, at the height of the mouth itself
 		for c in range(pin.x, pin.y + 1):

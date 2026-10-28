@@ -34,9 +34,15 @@ var castle_x := -1  # the first column of the castle on the surface, or -1 when 
 func _build_map() -> Variant:
 	seed_value = next_seed if next_seed >= 0 else randi() % Incantation.seed_count()
 	next_seed = -1
+	_carried = MatchState.pending  # a world the last one collapsed into: the match goes on, rather than begins
+	MatchState.pending = false
+	if not _carried:
+		MatchState.begin(seed_value)
+	var stage := MatchState.plan()
+	WorldGraph.size = Vector2i(stage["width"], MatchState.HEIGHT)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed_value
-	graph = WorldGraph.build(rng)
+	graph = WorldGraph.build(rng) if stage["caves"] else WorldGraph.build_open(rng)
 	var built := WorldBuilder.build(graph, rng)
 	_markers = built["markers"]
 	_ponds = built["ponds"]
@@ -72,6 +78,11 @@ var _start_tile := Vector2i.ZERO
 var _spawn_tiles: Array[Vector2i] = []  # the starting places, far apart; the player takes one and a wizard each of the others
 var _since_count := 0.0
 var _won := false
+var _carried := false      # the match goes on from a world that collapsed: its ledgers and wizards come with it
+var _stage_time := 0.0     # seconds in this world
+var _leaving := false      # the portal has given way
+var _collapse_in := -1.0   # seconds until the portal gives way, once it has begun to
+var _rivals: Array[Mob] = []  # the other wizards, in the order of LOOKS; one is null where a wizard was beaten in an earlier world
 var _backdrops := {}  # place -> Backdrop
 
 
@@ -123,6 +134,7 @@ func _fade_backdrops(delta: float) -> void:
 
 func _begin_encounter(camera: Camera2D) -> void:
 	_lay_pages()
+	_restore_player()
 	player.position = _stand_at(_start_tile)
 	_safe_spot = player.position
 	_spawn_wizards()
@@ -220,9 +232,17 @@ func _spawn_wizards() -> void:
 	var places := _spawn_tiles.duplicate()
 	places.sort_custom(func(a: Vector2i, b: Vector2i) -> bool: return absi(a.x - _start_tile.x) > absi(b.x - _start_tile.x))
 	for i in LOOKS.size():
+		var state: Dictionary = MatchState.vitals[i + 1] if _carried else {"alive": true}
+		if not state["alive"]:
+			_rivals.append(null)
+			continue
 		var wizard := _add_mob(LOOKS[i], _stand_at(places[i]))
 		wizard.ledger = ledgers[i + 1]
 		wizard.nav = nav
+		if state.has("max"):
+			wizard.hp = int(state["max"])
+			wizard.stamina = state["stamina"]
+		_rivals.append(wizard)
 
 
 ## The world position of the floor of a tile, at its middle.
@@ -293,6 +313,7 @@ func _process(delta: float) -> void:
 	_dark.color = day.lerp(DEEP, depth).lerp(BLACK, far)
 	_update_weather(under)
 	_count_wizards(delta)
+	_watch_portal(delta)
 	if player.dead:
 		return
 	if _body_in_rock(player.global_position) or player.global_position.y > ArenaGen.world_size.y * TILE:
@@ -340,6 +361,74 @@ func _light_when_ready(node: Node) -> void:
 
 
 ## How many wizards are left, shown at the top of the screen; the last one standing wins.
+## What the player has left of their stamina, from the world before.
+func _restore_player() -> void:
+	if not _carried:
+		return
+	var state: Dictionary = MatchState.vitals[0]
+	player.max_stamina = state["max"]
+	player.stamina = state["stamina"]
+	_fade_from_black()
+
+
+## The world comes out of the dark, after a collapse.
+func _fade_from_black() -> void:
+	var layer := CanvasLayer.new()
+	layer.layer = 100
+	var black := ColorRect.new()
+	black.color = Color.BLACK
+	black.set_anchors_preset(Control.PRESET_FULL_RECT)
+	black.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.add_child(black)
+	add_child(layer)
+	var tween := black.create_tween()
+	tween.tween_property(black, "color:a", 0.0, 1.2)
+	tween.tween_callback(layer.queue_free)
+
+
+## Counts down to the collapse of the portal: the warning, the shaking, and then the new world.
+func _watch_portal(delta: float) -> void:
+	var seconds: float = MatchState.plan()["seconds"] * MatchState.hurry
+	if seconds <= 0.0 or player.dead:
+		return
+	_stage_time += delta
+	if _collapse_in < 0.0 and _stage_time >= seconds - MatchState.WARNING:
+		_collapse_in = MatchState.WARNING
+		hud.banner("The portal is growing unstable")
+		Sfx.play("thunder", player.center(), -4.0)
+	if _collapse_in < 0.0:
+		return
+	_collapse_in -= delta
+	GameCamera.shake_scene(get_tree(), 0.03 + 0.06 * (1.0 - _collapse_in / MatchState.WARNING))
+	if _collapse_in <= 0.0 and not _leaving:
+		_collapse()
+
+
+
+## The portal gives way: everyone who is left is thrown into the next world, smaller than this one.
+func _collapse() -> void:
+	_leaving = true
+	var state: Array[Dictionary] = [{"alive": not player.dead, "max": player.max_stamina, "stamina": player.stamina}]
+	for rival in _rivals:
+		if is_instance_valid(rival) and not rival.is_dead():
+			state.append({"alive": true, "max": float(rival.hp), "stamina": rival.stamina})
+		else:
+			state.append({"alive": false})
+	next_seed = MatchState.advance(ledgers, state, Incantation.seed_count())
+	Sfx.play("portal_enter", player.center(), -2.0)
+	var layer := CanvasLayer.new()
+	layer.layer = 100
+	var black := ColorRect.new()
+	black.color = Color(0, 0, 0, 0)
+	black.set_anchors_preset(Control.PRESET_FULL_RECT)
+	black.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.add_child(black)
+	add_child(layer)
+	var tween := black.create_tween()
+	tween.tween_property(black, "color:a", 1.0, 0.7)
+	tween.tween_callback(func() -> void: get_tree().change_scene_to_file(Loading.WORLD))
+
+
 func _count_wizards(delta: float) -> void:
 	_since_count += delta
 	if _since_count < 0.5 or _won:
@@ -367,7 +456,8 @@ func _rift_spot(from: Vector2) -> Vector2:
 
 ## The spellbook of the run: only the starter spells are known, and a page for each of the others lies in a hall of the map.
 func _lay_pages() -> void:
-	ledgers = Pages.deal(seed_value + 31, WIZARDS)  # what each wizard starts with comes from the seed too
+	ledgers = MatchState.ledgers if _carried else Pages.deal(seed_value + 31, WIZARDS)  # what each wizard starts with comes from the seed too
+	MatchState.ledgers = ledgers
 	player.ledger = ledgers[0]
 	spellbook.refresh()
 	var rng := RandomNumberGenerator.new()

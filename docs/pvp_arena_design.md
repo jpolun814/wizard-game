@@ -35,12 +35,19 @@ single-run loop in `docs/roguelite_exploration_design.md`; the spells, the world
 - Tests: `tests/test_nav.gd`, `tests/route_check.tscn` (each kind of move, tried in the real physics), `tests/arena_sim.tscn` (AI-only
   matches).
 
+- The collapsing worlds (`scripts/match_state.gd`, `World._watch_portal` and `_collapse`). A match is four worlds: 1200 tiles wide for 3 minutes,
+  800 for 2, 560 for 1, then a last open one 360 wide with no caves, no castle and no gates that does not collapse. Six seconds before a world
+  gives way the screen shakes and the banner reads "The portal is growing unstable"; then it fades out, the loading screen shows the next
+  world's incantation, and the next world is built from a seed of its own (`MatchState.seed_for`). Each wizard keeps their ledger and their
+  stamina; every page no one holds is laid again in the new world (`Pages.plan` skips what a ledger holds); a wizard already beaten is not
+  brought back; the wizards land at the new world's starting places, which are far apart (a small world with too few ways down starts the rest
+  on open ground). `WorldGraph.size` is the width to build; `WorldGraph.build_open` and `SurfaceGen.open` make the last world.
+  Tests: `tests/test_stages.gd` (the smaller worlds), `tests/collapse_check.tscn` (a whole match, with the time shortened by `MatchState.hurry`).
+  Not yet: the next world is built after the fade rather than in the background during the stage, so the loading screen shows for a few seconds.
+
 ## Planned
 
 1. Balance the AI wizards by running AI-only matches headless (see `tests/arena_sim.gd`). They share one set of stats; only skill differs.
    Teach them to get past gates with the spells they hold.
-2. The portal grows unstable: after about 3 minutes the screen shakes and everyone is teleported into a newly generated, smaller
-   world; then 2 minutes, then 1, then a final world with no caves. Every uncollected page is carried over; wizards land spread apart;
-   shots, fires and walls are cleared. The next world should be generated in the background during the stage.
-3. Watching a living wizard after death.
-4. Delete what the boss loop left: the boss room and its lock in `WorldGraph`, the boss stash text in the old docs, the solo flow.
+2. Watching a living wizard after death.
+3. Delete what the boss loop left: the boss room and its lock in `WorldGraph`, the boss stash text in the old docs, the solo flow.

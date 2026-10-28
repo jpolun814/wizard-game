@@ -19,6 +19,8 @@ var _next_report := 0.0
 var _first_page := {}  # wizard -> game seconds when it read its first page
 var _beaten := {}
 var _failed := false
+var _shot := ""  # shot=FILE saves a picture of the screen after two seconds (needs a window)
+var _stage := 0  # stage=N plays in the Nth world of a match, with everyone as they start
 var _sketch := Vector2i(-1, -1)  # sketch=X,Y prints the map round that tile at the end
 var _finished := false
 var _seen: Array[Dictionary] = []  # for each wizard, in the order of _wizards: {"kind", "pages": how many it held when last seen}
@@ -33,12 +35,23 @@ func _ready() -> void:
 			seconds = float(arg.substr(8))
 		elif arg.begins_with("report="):
 			report = float(arg.substr(7))
+		elif arg.begins_with("stage="):
+			_stage = int(arg.substr(6))
+		elif arg.begins_with("shot="):
+			_shot = arg.substr(5)
 		elif arg.begins_with("sketch="):
 			_sketch = Vector2i(int(arg.get_slice(",", 0).substr(7)), int(arg.get_slice(",", 1)))
 		elif arg == "keep=1":
 			keep_player = true
 	seed(seed_value)  # the starting places are chosen with the global rng
 	World.next_seed = seed_value
+	if _stage > 0:
+		MatchState.begin(seed_value)
+		MatchState.stage = _stage
+		MatchState.pending = true
+		MatchState.ledgers = Pages.deal(seed_value + 31, World.WIZARDS)
+		for k in 4:
+			MatchState.vitals.append({"alive": true, "max": 200.0, "stamina": 200.0})
 	_world = load("res://scenes/world.tscn").instantiate()
 	add_child(_world)
 	await get_tree().process_frame
@@ -63,6 +76,9 @@ func _physics_process(delta: float) -> void:
 		_fail_to_start()
 		return
 	_clock += delta
+	if _shot != "" and _clock > 2.0:
+		get_viewport().get_texture().get_image().save_png(_shot)
+		_shot = ""
 	for i in _wizards.size():
 		var wizard := _wizards[i]
 		if is_instance_valid(wizard) and not wizard.is_dead():

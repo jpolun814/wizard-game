@@ -106,6 +106,10 @@ static func plan(graph: WorldGraph, rng: RandomNumberGenerator, dealt: Array[Led
 	for room in graph.rooms:
 		if room["lock"] == -1 and not room.has("surface") and room["id"] != graph.boss:
 			free.append(room["id"])
+	if free.is_empty():  # a world with no caves: the rest lie out in the open, spread along it
+		for column in _spread_columns(graph, rest.size()):
+			placed.append({"page": rest.pop_back(), "room": 0, "x": column})
+		return placed
 	var open_halls := free.duplicate()
 	while not rest.is_empty():
 		if open_halls.is_empty():
@@ -146,6 +150,20 @@ static func _surface_columns(graph: WorldGraph, count: int) -> Array[int]:
 			out.append(column)
 			if out.size() == count:
 				break
+	return out
+
+
+## Columns evenly spread along the surface, each moved off the pools.
+static func _spread_columns(graph: WorldGraph, count: int) -> Array[int]:
+	var out: Array[int] = []
+	var first := SurfaceGen.MARGIN + 10
+	var width := WorldGraph.size.x - first * 2
+	for k in count:
+		var column := first + roundi(width * (k + 0.5) / count)
+		for pond: Dictionary in graph.surface["ponds"]:
+			if column >= pond["a"] - 4 and column <= pond["b"] + 4:
+				column = pond["b"] + 5
+		out.append(column)
 	return out
 
 
