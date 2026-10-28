@@ -44,10 +44,12 @@ single-run loop in `docs/roguelite_exploration_design.md`; the spells, the world
   on open ground). `WorldGraph.size` is the width to build; `WorldGraph.build_open` and `SurfaceGen.open` make the last world.
   Tests: `tests/test_stages.gd` (the smaller worlds), `tests/collapse_check.tscn` (a whole match, with the time shortened by `MatchState.hurry`).
   Not yet: the next world is built after the fade rather than in the background during the stage, so the loading screen shows for a few seconds.
+- **Spectating.** A player who falls while rivals live is out for the round: the match and its collapses go on, the hidden body follows a living
+  wizard (`World._follow_watched`), a click picks the next, and the player stays out in later worlds (`World._stay_out`). The game-over screen
+  comes only when no rival is left. Test: `tests/spectate_check.tscn` (add `-- collapse` to follow it into the next world).
 
 ## Planned
 
 1. Balance the AI wizards by running AI-only matches headless (see `tests/arena_sim.gd`). They share one set of stats; only skill differs.
    Teach them to get past gates with the spells they hold.
-2. Watching a living wizard after death.
-3. Delete what the boss loop left: the boss room and its lock in `WorldGraph`, the boss stash text in the old docs, the solo flow.
+2. Delete what the boss loop left: the boss room and its lock in `WorldGraph`, the boss stash text in the old docs, the solo flow.

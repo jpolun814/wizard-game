@@ -80,7 +80,7 @@ func _physics_process(delta: float) -> void:
 ## A soft chime as the wizard comes near, so a page is not walked past unheard.
 func _chime() -> void:
 	var wizard := get_tree().get_first_node_in_group("player") as Node2D
-	if wizard == null or wizard.ledger.knows(page):
+	if wizard == null or wizard.dead or wizard.ledger.knows(page):
 		return
 	var far := SpellTargets.center_of(wizard).distance_to(global_position + Vector2(0, -FLOAT))
 	if not _chimed and far < CHIME_NEAR:
@@ -93,7 +93,7 @@ func _chime() -> void:
 ## True while the player's wizard stands under the page.
 func is_underfoot() -> bool:
 	var wizard := get_tree().get_first_node_in_group("player") as Node2D
-	return wizard != null and is_under(wizard)
+	return wizard != null and not wizard.dead and is_under(wizard)
 
 
 ## True while this wizard stands under the page.

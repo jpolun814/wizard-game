@@ -156,6 +156,10 @@ func _add_mob(kind: String, feet: Vector2) -> Node2D:
 
 
 func _on_player_died() -> void:
+	_end_run()
+
+
+func _end_run() -> void:
 	caster.set_casting_enabled(false)
 	ritual.cancel()
 	Sfx.play("game_over")

@@ -78,6 +78,8 @@ var _start_tile := Vector2i.ZERO
 var _spawn_tiles: Array[Vector2i] = []  # the starting places, far apart; the player takes one and a wizard each of the others
 var _since_count := 0.0
 var _won := false
+var _watched := 0  # while out of the match: which of the other wizards the camera follows
+var _spectating := false
 var _carried := false      # the match goes on from a world that collapsed: its ledgers and wizards come with it
 var _stage_time := 0.0     # seconds in this world
 var _leaving := false      # the portal has given way
@@ -138,6 +140,7 @@ func _begin_encounter(camera: Camera2D) -> void:
 	player.position = _stand_at(_start_tile)
 	_safe_spot = player.position
 	_spawn_wizards()
+	_stay_out()
 	_ground.watch([player.position], true)  # the rock round the start is drawn before the first frame
 	camera.reset_smoothing()
 	_set_up_backdrops()
@@ -315,6 +318,7 @@ func _process(delta: float) -> void:
 	_count_wizards(delta)
 	_watch_portal(delta)
 	if player.dead:
+		_follow_watched()
 		return
 	if _body_in_rock(player.global_position) or player.global_position.y > ArenaGen.world_size.y * TILE:
 		_buried += delta
@@ -371,6 +375,13 @@ func _restore_player() -> void:
 	_fade_from_black()
 
 
+## A wizard beaten in an earlier world is still out in this one, and watches.
+func _stay_out() -> void:
+	if _carried and not MatchState.vitals[0]["alive"]:
+		player.max_stamina = 1.0
+		player.take_damage(1)
+
+
 ## The world comes out of the dark, after a collapse.
 func _fade_from_black() -> void:
 	var layer := CanvasLayer.new()
@@ -389,7 +400,7 @@ func _fade_from_black() -> void:
 ## Counts down to the collapse of the portal: the warning, the shaking, and then the new world.
 func _watch_portal(delta: float) -> void:
 	var seconds: float = MatchState.plan()["seconds"] * MatchState.hurry
-	if seconds <= 0.0 or player.dead:
+	if seconds <= 0.0 or (player.dead and not _spectating):
 		return
 	_stage_time += delta
 	if _collapse_in < 0.0 and _stage_time >= seconds - MatchState.WARNING:
@@ -427,6 +438,50 @@ func _collapse() -> void:
 	var tween := black.create_tween()
 	tween.tween_property(black, "color:a", 1.0, 0.7)
 	tween.tween_callback(func() -> void: get_tree().change_scene_to_file(Loading.WORLD))
+
+
+## Out of the match: while other wizards still live the match goes on, and the camera follows one of them. Otherwise the run is over.
+func _on_player_died() -> void:
+	if _living().is_empty():
+		_end_run()
+		return
+	caster.set_casting_enabled(false)
+	ritual.cancel()
+	Sfx.play("game_over")
+	_spectating = true
+	player.collision_layer = 0
+	player.collision_mask = 0
+	player.hide()
+	hud.banner("You are out", "Click to watch another wizard")
+
+
+## The wizards still in the match, other than the player.
+func _living() -> Array[Mob]:
+	var out: Array[Mob] = []
+	for rival in _rivals:
+		if is_instance_valid(rival) and not rival.is_dead():
+			out.append(rival)
+	return out
+
+
+## The camera goes where the watched wizard is: the body of the player, hidden, is moved there.
+func _follow_watched() -> void:
+	if not _spectating:
+		return
+	var living := _living()
+	if living.is_empty():
+		_spectating = false
+		_end_run()  # the last of the rivals fell too: nobody is left to watch
+		return
+	_watched = _watched % living.size()
+	player.global_position = living[_watched].global_position
+	player.velocity = Vector2.ZERO
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	var click := event as InputEventMouseButton
+	if _spectating and click and click.pressed:
+		_watched += 1  # the next one
 
 
 func _count_wizards(delta: float) -> void:
