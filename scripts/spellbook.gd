@@ -70,7 +70,7 @@ class BookArt extends Control:
 		draw_texture_rect_region(_sheet, Rect2(Vector2.ZERO, Spellbook.FRAME * Spellbook.SCALE), source)
 
 
-## A mouse seen from above (Kenney's Input Prompts Pixel, with the pixels of each button kept apart). The buttons in `mask` are
+## A mouse seen from above (Kenney's Input Prompts, with the lit pixels of each button kept apart). The buttons in `mask` are
 ## lit in the school's colour, so the picture shows exactly which buttons a school needs.
 class MouseIcon extends Control:
 	const BODY: Texture2D = preload("res://art/ui/mouse/mouse.png")
@@ -87,19 +87,12 @@ class MouseIcon extends Control:
 		mask = button_mask
 		lit = lit_color.darkened(0.3) if lit_color.get_luminance() > 0.7 else lit_color  # a pale colour would vanish on the white body
 		mouse_scale = size_up
-		texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-		custom_minimum_size = Vector2(16, 16) * Spellbook.SCALE * 0.4 * size_up
+		texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+		custom_minimum_size = Vector2(28, 36) * size_up
 
 	func _draw() -> void:
-		var area := Rect2(Vector2.ZERO, Vector2(16, 16) * Spellbook.SCALE * 0.4 * mouse_scale)
-		var step := Spellbook.SCALE * 0.4 * mouse_scale  # one pixel of the mouse
-		for around in [Vector2(-1, 0), Vector2(1, 0), Vector2(0, -1), Vector2(0, 1)]:
-			draw_texture_rect(BODY, Rect2(area.position + around * step, area.size), false, Spellbook.INK)
+		var area := Rect2(Vector2.ZERO, custom_minimum_size)
 		draw_texture_rect(BODY, area, false)
-		for button: int in BUTTONS:
-			if mask & button:  # a dark edge keeps even a pale colour clear of the white body
-				for around in [Vector2(-1, 0), Vector2(1, 0), Vector2(0, -1), Vector2(0, 1)]:
-					draw_texture_rect(BUTTONS[button], Rect2(area.position + around * step, area.size), false, Spellbook.INK)
 		for button: int in BUTTONS:
 			if mask & button:
 				draw_texture_rect(BUTTONS[button], area, false, lit)
