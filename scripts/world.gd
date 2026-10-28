@@ -245,6 +245,13 @@ func _spread_gas(entry: Dictionary) -> void:
 func _spawn_wizards() -> void:
 	var places := _spawn_tiles.duplicate()
 	places.sort_custom(func(a: Vector2i, b: Vector2i) -> bool: return absi(a.x - _start_tile.x) > absi(b.x - _start_tile.x))
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed_value + 4421
+	for k in range(LOOKS.size() - 1, 0, -1):  # which look starts where is drawn from the seed (the nearest place is the player's own, and stays last): the one between the others has the hardest start
+		var j := rng.randi_range(0, k)
+		var swap: Vector2i = places[k]
+		places[k] = places[j]
+		places[j] = swap
 	for i in LOOKS.size():
 		var state: Dictionary = MatchState.vitals[i + 1] if _carried else {"alive": true}
 		if not state["alive"]:

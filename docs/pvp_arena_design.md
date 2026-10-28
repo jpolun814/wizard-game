@@ -56,6 +56,6 @@ single-run loop in `docs/roguelite_exploration_design.md`; the spells, the world
 
 ## Planned
 
-1. Balance the AI wizards by running AI-only matches headless (see `tests/arena_sim.gd`). They share one set of stats; only skill differs. A first tally of 11 final-world
-   fights (stage 3, three AIs, the player standing down) gave the dark wizard 6 wins, the bone wizard 5, the pyre wizard 1; starting places are not the same, so look at that again
-   with more seeds. Teach them to get past the other gates (chasm, flood, piranhas, dark, sentinel).
+1. Teach the AI wizards to get past the other gates (chasm, flood, piranhas, dark, sentinel): bridging and crossing spells, and walking a bridge that appears.
+2. Balance is checked by `tests/arena_sim.gd` (`stage=3` plays the final world, three AIs, the player standing down). The three looks share one set of stats; the start between the
+   other two was the weakest, so which look starts where is now drawn from the seed (`World._spawn_wizards`): over 16 seeds the survivors were 6, 7 and 8 for the three looks.
