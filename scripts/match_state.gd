@@ -8,8 +8,8 @@ extends RefCounted
 ## Each world of a match: how wide it is in tiles, how long the wizards have in it before it collapses (0: it does not), and whether it has caves.
 const STAGES := [
 	{"width": 1200, "seconds": 180.0, "caves": true},
-	{"width": 800, "seconds": 120.0, "caves": true},
-	{"width": 560, "seconds": 60.0, "caves": true},
+	{"width": 800, "seconds": 180.0, "caves": true},
+	{"width": 560, "seconds": 180.0, "caves": true},
 	{"width": 360, "seconds": 0.0, "caves": false},
 ]
 const HEIGHT := 380  # every world is this deep, in tiles

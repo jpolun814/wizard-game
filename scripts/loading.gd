@@ -7,8 +7,14 @@ extends Control
 const WORLD := "res://scenes/world.tscn"
 const SCREEN := "res://scenes/loading.tscn"
 
+static var quiet := false  # the portal gave way: the screen stays black, with no words, while the next world builds
+
 
 func _ready() -> void:
+	if quiet:
+		quiet = false
+		$Box.hide()
+		$Dark.color = Color.BLACK
 	var words: Label = $Box/Words
 	words.text = Incantation.words_for(World.next_seed) if World.next_seed >= 0 else ""
 	await get_tree().process_frame  # two frames, so the screen is on the display before the world blocks it

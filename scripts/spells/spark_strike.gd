@@ -15,13 +15,13 @@ func _begin(origin: Vector2, _aim_angle: float) -> void:
 	material = Fx.additive()  # lightning adds light to what is behind it
 	_life = LIFE
 	# Under a roof the strike comes down from the roof, not from the sky above it.
-	var start := Vector2(origin.x, ArenaGen.WALL_TOP * ArenaGen.TILE)
+	var start := Vector2(origin.x, maxf(origin.y - SKY, ArenaGen.WALL_TOP * ArenaGen.TILE))  # in the open it comes from the sky over the stroke
 	var roof_query := PhysicsRayQueryParameters2D.create(origin, origin + Vector2(0, -SKY))
 	roof_query.collision_mask = 1
 	var roof := get_world_2d().direct_space_state.intersect_ray(roof_query)
 	if not roof.is_empty():
 		start = Vector2(origin.x, roof["position"].y + 4.0)
-	var ground := SpellTargets.ground_below(get_world_2d(), start, 2000.0)
+	var ground := SpellTargets.ground_below(get_world_2d(), start, 4000.0)
 	var height := clampf(ground.y - start.y, 40.0, SKY)
 	global_position = Vector2(origin.x, ground.y - height)
 	var rect := RectangleShape2D.new()

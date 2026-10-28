@@ -9,6 +9,7 @@ extends "res://scripts/arena.gd"
 static var next_seed := -1
 
 const WIZARDS := 4  # the wizards in a world: the player and three more
+const PortalCollapse := preload("res://scripts/portal_collapse.gd")
 
 var seed_value := 0
 var ledgers: Array[Ledger] = []  # the pages each wizard holds, the player's first
@@ -84,6 +85,8 @@ var _since_count := 0.0
 var _won := false
 var _watched := 0  # while out of the match: which of the other wizards the camera follows
 var _spectating := false
+var _tear: Node2D  # the portal giving way, while it does
+var _pulling := false
 var _carried := false      # the match goes on from a world that collapsed: its ledgers and wizards come with it
 var _stage_time := 0.0     # seconds in this world
 var _leaving := false      # the portal has given way
@@ -339,6 +342,8 @@ func _process(delta: float) -> void:
 	if player.dead:
 		_follow_watched()
 		return
+	if _pulling:
+		return  # drawn up into the portal: the ground has no say
 	if _body_in_rock(player.global_position) or player.global_position.y > ArenaGen.world_size.y * TILE:
 		_buried += delta
 		if _buried > 0.2:
@@ -426,10 +431,18 @@ func _watch_portal(delta: float) -> void:
 		_collapse_in = MatchState.WARNING
 		hud.banner("The portal is growing unstable")
 		Sfx.play("thunder", player.center(), -4.0)
+		_tear = PortalCollapse.new()
+		_tear.position = Vector2(ArenaGen.world_size.x * TILE * 0.5, 8.0 * TILE)  # high in the middle of the world
+		add_child(_tear)
 	if _collapse_in < 0.0:
 		return
 	_collapse_in -= delta
 	GameCamera.shake_scene(get_tree(), 0.03 + 0.06 * (1.0 - _collapse_in / MatchState.WARNING))
+	if not _pulling and _collapse_in <= PortalCollapse.PULL:
+		_pulling = true
+		caster.set_casting_enabled(false)
+		ritual.cancel()
+		_tear.pull(SpellTargets.wizards(get_tree()))  # everyone still standing
 	if _collapse_in <= 0.0 and not _leaving:
 		_collapse()
 
@@ -456,7 +469,9 @@ func _collapse() -> void:
 	add_child(layer)
 	var tween := black.create_tween()
 	tween.tween_property(black, "color:a", 1.0, 0.7)
-	tween.tween_callback(func() -> void: get_tree().change_scene_to_file(Loading.SCREEN))  # the words of the next world show while it builds
+	tween.tween_callback(func() -> void:
+		Loading.quiet = true
+		get_tree().change_scene_to_file(Loading.SCREEN))
 
 
 ## Every half second: a gate whose ice, wall, thorns or gas are all gone is open, and the wizards' ways are built again without it.

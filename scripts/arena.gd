@@ -562,10 +562,16 @@ func _shadow_step(caster_node: Node2D, aim: float, length: float) -> void:
 func _icicle_spots(info: Dictionary) -> Array:
 	var spots := []
 	for tri in info.get("shapes", []):
-		var top := Vector2(tri[1].x, minf(tri[0].y, tri[2].y))
-		var query := PhysicsRayQueryParameters2D.create(top, top + Vector2(0.0, -ICICLE_REACH))
-		query.collision_mask = 1
-		var hit := get_world_2d().direct_space_state.intersect_ray(query)
+		# The ceiling is looked for upward from the V's tip, which hangs in the open: its top may already be in the rock when the V is drawn right up under a roof.
+		var hit := {}
+		for dip in [0.0, 24.0, 48.0, 72.0]:  # a tip drawn a little way into the rock hangs from the roof just above it
+			var from := Vector2(tri[1].x, tri[1].y + dip)
+			var query := PhysicsRayQueryParameters2D.create(from, from + Vector2(0.0, -ICICLE_REACH - dip))
+			query.collision_mask = 1
+			hit = get_world_2d().direct_space_state.intersect_ray(query)
+			if not hit.is_empty() and hit["normal"].y > 0.3:  # the underside of a roof, not a floor seen from inside the rock
+				break
+			hit = {}
 		if hit.is_empty():
 			continue
 		var length := clampf(tri[1].y - hit["position"].y, 40.0, ICICLE_MAX)
