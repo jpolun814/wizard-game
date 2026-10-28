@@ -721,7 +721,7 @@ func _plan_new_spells() -> void:
 		wizard.focus = "staff"
 		_cast("Glowcap", _stroke("circle", _feet(15) + Vector2(80, -60), 1.0)))
 	_at(20.6, func() -> void:
-		check.call("a second Glowcap replaces the first, and sits on the staff", tree.get_nodes_in_group("glowcaps").size() == 1)
+		check.call("a second Glowcap replaces the first, and still sits on the hat with the staff in hand", tree.get_nodes_in_group("glowcaps").size() == 1 and tree.get_nodes_in_group("glowcaps")[0].global_position.distance_to(wizard.global_position + Vector2(0, -80)) < 14.0)
 		_snap("glowcap_staff")
 		wizard.focus = "wand")
 	# Moonbeam: a dim light on the ground where it was drawn.

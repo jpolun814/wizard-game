@@ -1,7 +1,7 @@
 class_name Glowcap
 extends Node2D
 
-## Glowcap: a glowing mushroom grown on the caster's hat, or on the top of their staff, that lights their way. It is a light, not a fire: it
+## Glowcap: a glowing mushroom grown on the top of the caster's hat that lights their way. It is a light, not a fire: it
 ## burns nothing, water and wind do not put it out, and it lasts a minute, or until the caster is gone or grows another.
 
 const SECONDS := 60.0
@@ -41,12 +41,10 @@ func _ready() -> void:
 	Sfx.play("pickup", global_position, -10.0)
 
 
-## Where the mushroom sits: on the top of the hat, or on the crystal of the staff.
+## Where the mushroom sits: on the top of the hat.
 func _rest_spot() -> Vector2:
 	var at: Vector2 = caster_node.global_position
 	var facing: float = caster_node.facing if "facing" in caster_node else 1.0
-	if "focus" in caster_node and caster_node.focus == "staff":
-		return at + Vector2(-22.0 * facing, -96.0)
 	return at + Vector2(2.0 * facing, -HAT_HEIGHT)
 
 

@@ -107,7 +107,7 @@ class MouseIcon extends Control:
 	func _draw() -> void:
 		var px := Spellbook.SCALE * 0.4 * mouse_scale
 		var body := Color("#e9d7bd")
-		var off := Color("#2a2027")  # a button that is not pressed is dark, one that is pressed shows the school's colour with a bright top edge
+		var off := Color("#efe2c8")  # a button that is not pressed is the colour of the mouse, one that is pressed shows the school's colour with a bright top edge
 		for y in SHAPE.size():
 			var row: String = SHAPE[y]
 			for x in row.length():
