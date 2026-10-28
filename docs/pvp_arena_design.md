@@ -20,14 +20,16 @@ single-run loop in `docs/roguelite_exploration_design.md`; the spells, the world
   no one else can find that page on the map; the three moves repeat for the fourth wizard.
 - `Pages.plan(graph, rng, dealt)`: lays every page that no wizard started with. `World.ledgers` holds the four ledgers.
 - Tests: `tests/test_pages.gd`, and the `pages` scenario of `tests/showcase.tscn`.
+- The cut-scene (`scenes/intro.tscn`, `scripts/intro.gd`), played when the lab's portal is entered, before the loading screen. Four wizards
+  (the player's and the looks of `dark_wizard`, `bone_wizard` and `pyre_wizard`) run to a pile of pages in the cathedral hall; in the
+  scuffle every page but one each wizard keeps is knocked through the portal; then they run in after them. Any key skips it. It ends
+  with the `finished` signal and a change to `scenes/loading.tscn`. Tests: `tests/intro_check.tscn`, `tests/flow_check.tscn`.
 
 ## Planned
 
-1. The opening cut-scene: the four wizards grab at a pile of pages, and in the scuffle all but the starting pages are knocked into the
-   portal and scattered over the map. The same scene whether the other wizards are AI or real. It plays before the loading screen.
-2. AI wizards that seek pages and attack, balanced by running AI-only matches headless. Their three looks share one set of stats.
-3. The portal grows unstable: after about 3 minutes the screen shakes and everyone is teleported into a newly generated, smaller
+1. AI wizards that seek pages and attack, balanced by running AI-only matches headless. Their three looks share one set of stats.
+2. The portal grows unstable: after about 3 minutes the screen shakes and everyone is teleported into a newly generated, smaller
    world; then 2 minutes, then 1, then a final world with no caves. Every uncollected page is carried over; wizards land spread apart;
    shots, fires and walls are cleared. The next world should be generated in the background during the stage.
-4. Watching a living wizard after death.
-5. Delete what the boss loop left: the boss room and its lock in `WorldGraph`, the boss stash text in the old docs, the solo flow.
+3. Watching a living wizard after death.
+4. Delete what the boss loop left: the boss room and its lock in `WorldGraph`, the boss stash text in the old docs, the solo flow.

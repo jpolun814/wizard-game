@@ -110,6 +110,9 @@ GODOT="/c/Users/Jordan Polun/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.
 "$GODOT" --headless --path . --import                          # after adding or changing any asset
 "$GODOT" --headless --path . --quit-after 200                  # parse check: grep the output for "SCRIPT ERROR"
 "$GODOT" --headless -s tests/test_gestures.gd                  # must print "136 of 136" (or more, if you add checks)
+"$GODOT" --headless -s tests/test_pages.gd                     # the pages each wizard is dealt and a ledger's rules
+"$GODOT" --headless --path . tests/intro_check.tscn            # the cut-scene (add `-- mode=skip`, or `-- out=DIR` for pictures, without --headless)
+"$GODOT" --headless --path . tests/flow_check.tscn             # lab, portal, cut-scene, loading, world
 "$GODOT" --path . tests/showcase.tscn -- scenario=spells out=C:/some/dir          # a screenshot of every spell
 "$GODOT" --path . tests/showcase.tscn -- scenario=spells only=Fire_Breath out=DIR # one spell, frame by frame
 "$GODOT" --headless --path . tests/showcase.tscn -- scenario=soak out=DIR  # random play; look for errors

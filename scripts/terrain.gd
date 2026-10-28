@@ -49,8 +49,9 @@ var earth_texture: Texture2D  # the biome's plain earth, which repeats under the
 var _grass_texture: Texture2D  # the biome's grassy top, its first few pixels repeat along the surface
 
 
-## Builds everything from the generated cells. Call once, after adding the terrain to the tree.
-func build(map_cells: Variant, biome_name: String, rng: RandomNumberGenerator) -> void:
+## Builds everything from the generated cells. Call once, after adding the terrain to the tree. Props are the decorations scattered
+## over open ground.
+func build(map_cells: Variant, biome_name: String, rng: RandomNumberGenerator, props := true) -> void:
 	cells = map_cells
 	biome = biome_name
 	var tiles: String = ArenaGen.BIOMES[biome]["tiles"]
@@ -64,7 +65,7 @@ func build(map_cells: Variant, biome_name: String, rng: RandomNumberGenerator) -
 	else:
 		_build_edges()
 	_build_collision()
-	if not tiled:
+	if not tiled and props:
 		_scatter_props(rng)
 	queue_redraw()
 
