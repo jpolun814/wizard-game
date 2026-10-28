@@ -409,6 +409,12 @@ func spawn_spell(spell: String, targeting: String, origin: Vector2, aim: float, 
 				Fx.burst(self, caster_node.center(), SpellData.SCHOOL_COLORS["Blood"], 14, 150.0, 0.5, true)
 				Sfx.play("heartbeat", caster_node.center())
 			return
+		"Crimson Veil":
+			if caster_node.has_method("gain_temp_stamina"):
+				caster_node.veil = 2
+				Fx.burst(self, caster_node.center(), SpellData.SCHOOL_COLORS["Blood"], 16, 120.0, 0.5, true)
+				Sfx.play("blood_cast", caster_node.center(), -4.0)
+			return
 		"Offering":
 			if caster_node.has_method("gain_temp_stamina"):
 				caster_node.gain_temp_stamina(OFFERING_GAIN)

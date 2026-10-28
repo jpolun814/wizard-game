@@ -22,10 +22,6 @@ var _shape: CollisionShape2D
 
 func _ready() -> void:
 	z_index = 1
-	var doorway := Polygon2D.new()  # the dark of the passage, which the door turns away from as it opens
-	doorway.color = Color(0.03, 0.02, 0.06, 0.92)
-	doorway.polygon = PackedVector2Array([Vector2(-WIDTH * 0.5, -HEIGHT), Vector2(WIDTH * 0.5, -HEIGHT), Vector2(WIDTH * 0.5, 0), Vector2(-WIDTH * 0.5, 0)])
-	add_child(doorway)
 	_sprite = Sprite2D.new()
 	_sprite.texture = load("res://art/props/door.png")
 	_sprite.centered = false
@@ -68,8 +64,8 @@ func _physics_process(delta: float) -> void:
 func _set_swing() -> void:
 	var texture: Texture2D = _sprite.texture
 	var eased := smoothstep(0.0, 1.0, _swing)
-	var width := lerpf(1.0, OPEN_WIDTH, eased)  # how much of its width shows
+	var width := lerpf(OPEN_WIDTH, 1.0, eased)  # how much of its width shows: edge-on when it starts, swinging wider as it opens
 	_sprite.scale = Vector2(WIDTH / texture.get_width() * width, HEIGHT / texture.get_height())
 	_sprite.position.x = -WIDTH * 0.5 if _hinge < 0.0 else WIDTH * 0.5 - WIDTH * width  # the door stays fixed at its hinge
-	var shade := lerpf(1.0, 0.65, eased)  # the face turns from the light
+	var shade := lerpf(0.65, 1.0, eased)  # the face turns to the light as it opens
 	_sprite.modulate = Color(shade, shade, shade)

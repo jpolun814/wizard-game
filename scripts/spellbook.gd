@@ -44,6 +44,9 @@ class BookArt extends Control:
 	var _clock := 0.0
 	var _done: Callable
 
+	func _init() -> void:
+		texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST  # pixel art scaled up stays sharp
+
 	func play(frames: Array, done: Callable) -> void:
 		_queue = frames.duplicate()
 		_done = done
@@ -73,18 +76,20 @@ class MouseIcon extends Control:
 	var mask := 0
 	var lit := Color.WHITE
 	const SHAPE := [
-		"..#####..",
-		".#LL#RR#.",
-		"#LLL#RRR#",
-		"#LLLWRRR#",
-		"#LLLWRRR#",
-		"#LLL#RRR#",
-		"#########",
-		"#BBBBBBB#",
-		"#BBBBBBB#",
-		"#BBBBBBB#",
-		".#BBBBB#.",
-		"..#####..",
+		"..#########..",
+		".#LLLL#RRRR#.",
+		"#LLLLL#RRRRR#",
+		"#LLLLLWRRRRR#",
+		"#LLLLLWRRRRR#",
+		"#LLLLL#RRRRR#",
+		"#############",
+		"#HBBBBBBBBBS#",
+		"#HBBBBBBBBBS#",
+		"#BBBBBBBBBBS#",
+		"#BBBBBBBBBBS#",
+		".#BBBBBBBBS#.",
+		"..#BBBBBBS#..",
+		"...#######...",
 	]
 
 	var mouse_scale := 1.0
@@ -93,10 +98,10 @@ class MouseIcon extends Control:
 		mask = button_mask
 		lit = lit_color
 		mouse_scale = size_up
-		custom_minimum_size = Vector2(9, 12) * Spellbook.SCALE * 0.6 * size_up
+		custom_minimum_size = Vector2(13, 14) * Spellbook.SCALE * 0.4 * size_up
 
 	func _draw() -> void:
-		var px := Spellbook.SCALE * 0.6 * mouse_scale
+		var px := Spellbook.SCALE * 0.4 * mouse_scale
 		var idle := Color("#e9d7bd")
 		for y in SHAPE.size():
 			var row: String = SHAPE[y]
@@ -113,6 +118,10 @@ class MouseIcon extends Control:
 						colour = lit if mask & SpellData.MIDDLE else Color("#b9a27c")
 					"B":
 						colour = idle
+					"H":
+						colour = idle.lightened(0.4)
+					"S":
+						colour = idle.darkened(0.25)
 				if colour.a > 0.0:
 					draw_rect(Rect2(Vector2(x, y) * px, Vector2(px, px)), colour)
 

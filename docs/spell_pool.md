@@ -1,6 +1,6 @@
 # Spell pool (draft)
 
-Status: **all 42 spells are built** (the 33 below, plus Tide Surf, Obsidian Armor, Glowcap, Moonbeam and the five Blood spells) and can be tried in the waiting room (`scenes/lab.tscn`). Not built yet: stamina
+Status: **all 43 spells are built** (the 33 below, plus Tide Surf, Obsidian Armor, Glowcap, Moonbeam and the six Blood spells) and can be tried in the waiting room (`scenes/lab.tscn`). Not built yet: stamina
 ranges (every spell still costs one number, the midpoint of the range below), mastery, gate tags, the dark wizard casting
 from the pool, and real art for several spells (see "Placeholders"). Part of `roguelite_exploration_design.md`.
 
@@ -123,6 +123,7 @@ nothing is paid for a Faint that finds no one. There is no bleeding. Blood is mo
 | Blood Bolt | straight flick | a dark red bolt for 30 damage (Ignite does 12) | dodge, Barrier | 12 |
 | Offering | a cross in one stroke | gives up 20 of the most stamina for 30 **temporary** stamina on top of the bar (it may pass 200): spent after the usual stamina, and never comes back | it is only spent | 20 |
 | Burst | circle | 40 blood damage in a ring, throws away everyone and everything in it (the caster too) and turns shots back | stay out of it | 25 |
+| Crimson Veil | vertical line | the next two times you would take damage, you take none | it is only two hits | 5 |
 | Adrenaline | tall zigzag | faster on foot and stamina three times as quick for 10 seconds | it ends | 15 |
 | Faint | spiral | all the target's current stamina goes and they drop (the death animation) until their stamina has recovered to 10; the maximum is kept | the target gets up by itself; it cannot walk, cast or chant meanwhile | 30 |
 

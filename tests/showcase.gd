@@ -651,6 +651,27 @@ func _plan_new_spells() -> void:
 		wizard.spend(wizard.stamina + 10.0)
 		check.call("the extra is spent once the usual stamina is gone (%d, %d)" % [wizard.stamina, wizard.temp_stamina], wizard.stamina == 0.0 and wizard.temp_stamina == 20.0)
 		_snap("offering"))
+	# Crimson Veil: the next two hits do nothing, the third lands.
+	_at(4.3, func() -> void:
+		reset.call(15, "Crimson Veil")
+		wizard.max_stamina = 200.0
+		wizard.veil = 0
+		wizard._grace = 0.0)
+	_at(4.35, func() -> void: _arena.caster.cast_stroke(SpellData.SPELLS["Crimson Veil"].buttons, _stroke("wall", wizard.center(), 1.0)))
+	_at(4.4, func() -> void:
+		check.call("a Crimson Veil is raised and costs 5 of the most (max %d, veil %d)" % [wizard.max_stamina, wizard.veil], wizard.veil == 2 and wizard.max_stamina == 195.0)
+		wizard.take_damage(30)
+		wizard._grace = 0.0
+		wizard._veil_cool = 0.0)
+	_at(4.45, func() -> void:
+		wizard.take_damage(30)
+		wizard._grace = 0.0
+		wizard._veil_cool = 0.0)
+	_at(4.5, func() -> void:
+		check.call("two hits do nothing (max %d)" % wizard.max_stamina, wizard.max_stamina == 195.0 and wizard.veil == 0)
+		wizard.take_damage(30)
+		check.call("and the third lands (max %d)" % wizard.max_stamina, wizard.max_stamina == 165.0)
+		_arena._since_hurt = -100000.0)
 	# Adrenaline: hasted and recovering quicker.
 	_at(4.6, func() -> void: reset.call(15, "Adrenaline"))
 	_at(4.8, func() -> void: _cast("Adrenaline", _stroke("zigzag", _feet(15) + Vector2(60, -80), 1.0)))

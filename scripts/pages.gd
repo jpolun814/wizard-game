@@ -17,7 +17,7 @@ const DEFENCES := ["Barrier", "Decoy", "Stone Wall", "Smoke Screen"]
 const CHANTS := ["chant:bonfire", "chant:rift"]
 ## Spells that open no gate, and chants that do not: the ones that may lie in a locked area or in the dark wizard's stash.
 const LOCKABLE := ["Frostbolt", "Icicles", "Ice Prison", "Blizzard", "Stonefall", "Mudslide", "Earthquake", "Bramble", "Spore Puff",
-		"Flytrap", "Hex", "Abyss", "Tide Surf", "Blood Bolt", "Offering", "Burst", "Adrenaline", "Faint", "chant:boundless", "chant:double_jump", "chant:haste"]
+		"Flytrap", "Hex", "Abyss", "Tide Surf", "Blood Bolt", "Offering", "Burst", "Crimson Veil", "Adrenaline", "Faint", "chant:boundless", "chant:double_jump", "chant:haste"]
 const ON_SURFACE := 3  # pages that lie out in the open near the start, so the first one is found within a minute
 const IN_CASTLE := 2   # and pages in the castle, up on its second floor: not one to a room, only a reward for the climb
 const CASTLE_SPOTS := [Vector2i(52, 22), Vector2i(90, 22)]  # where: a column from the castle's west end, and the height of the floor in rows

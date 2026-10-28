@@ -18,7 +18,8 @@ var page := ""
 var _t := 0.0
 var _sprite: Sprite2D
 var _hint: Label
-var _color := CHANT_COLOR
+var _color := CHANT_COLOR  # the outline
+var _glow := CHANT_COLOR   # the light, in the school's own colour
 var _chimed := false
 
 
@@ -26,7 +27,8 @@ func _ready() -> void:
 	add_to_group("pages")
 	z_index = 3
 	if SpellData.SPELLS.has(page):
-		_color = SpellData.SCHOOL_COLORS[SpellData.SPELLS[page].school].lightened(0.2)
+		_glow = SpellData.SCHOOL_COLORS[SpellData.SPELLS[page].school]
+		_color = _glow.lightened(0.2)
 	_t = randf() * TAU
 	_sprite = Sprite2D.new()
 	_sprite.texture = PAGE
@@ -49,11 +51,11 @@ func _ready() -> void:
 	var light := PointLight2D.new()  # and lights the dark round it, in the school's colour
 	light.texture = Fx.tex("light_01")
 	light.texture_scale = 420.0 / Fx.TEX_SIZE
-	light.color = _color
+	light.color = _glow
 	light.energy = 0.9
 	light.position = Vector2(0, -FLOAT)
 	add_child(light)
-	var sparks := Fx.trail(_color, 14, 1.4, 25.0, Vector2(0, -18), "star_04", 9.0)  # motes of its colour drifting up off it
+	var sparks := Fx.trail(_glow, 14, 1.4, 25.0, Vector2(0, -18), "star_04", 9.0)  # motes of its colour drifting up off it
 	sparks.local_coords = true
 	sparks.position = Vector2(0, -FLOAT)
 	sparks.emission_shape = CPUParticles2D.EMISSION_SHAPE_SPHERE
@@ -115,6 +117,6 @@ static func underfoot(tree: SceneTree) -> PagePickup:
 
 
 func _draw() -> void:
-	Fx.draw_glow(self, Vector2(0, -FLOAT), 150.0 + sin(_t * 2.0) * 10.0, Color(_color.r, _color.g, _color.b, 0.22))  # the light seen from afar
-	Fx.draw_glow(self, Vector2(0, -FLOAT), 70.0 + sin(_t * 2.6) * 6.0, Color(_color.r, _color.g, _color.b, 0.3))
-	Fx.draw_glow(self, Vector2(0, -FLOAT), 34.0 + sin(_t * 3.0) * 3.0, Color(_color.r, _color.g, _color.b, 0.5))
+	Fx.draw_glow(self, Vector2(0, -FLOAT), 150.0 + sin(_t * 2.0) * 10.0, Color(_glow.r, _glow.g, _glow.b, 0.22))  # the light seen from afar
+	Fx.draw_glow(self, Vector2(0, -FLOAT), 70.0 + sin(_t * 2.6) * 6.0, Color(_glow.r, _glow.g, _glow.b, 0.3))
+	Fx.draw_glow(self, Vector2(0, -FLOAT), 34.0 + sin(_t * 3.0) * 3.0, Color(_glow.r, _glow.g, _glow.b, 0.5))

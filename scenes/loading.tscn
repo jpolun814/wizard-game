@@ -39,7 +39,7 @@ theme_override_constants/separation = 18
 layout_mode = 2
 theme_type_variation = &"Title"
 theme_override_font_sizes/font_size = 54
-text = "Descending..."
+text = "Stepping through..."
 horizontal_alignment = 1
 
 [node name="Words" type="Label" parent="Box"]

@@ -77,6 +77,8 @@ var surf_time: float: # Tide Surf: a wave carries the wizard along surf_dir whil
 	set(seconds): _status.set_left(&"surf", seconds)
 var surf_dir := 1.0
 var temp_stamina := 0.0  # stamina from an Offering: spent once the usual stamina is gone, never comes back by itself, and may pass the most
+var veil := 0  # hits a Crimson Veil will still turn away
+var _veil_cool := 0.0  # a moment after one is turned away, in which a burn or a second blow is turned away with it
 var fainted := false  # knocked out by a Faint: down on the ground until the stamina comes back
 var air_jump_ready := false  # the air jump is spent by one use, and comes back when the wizard lands
 var _shove := Vector2.ZERO  # a Push on the caster: slides them for a moment, then fades
@@ -263,6 +265,16 @@ func heal(amount: int) -> void:
 func take_damage(amount: int, grace_hit := true, projectile := false) -> void:
 	if (projectile and _shield_time > 0.0) or dead or (grace_hit and _grace > 0.0) or amount <= 0:
 		return
+	if veil > 0 or _veil_cool > 0.0:
+		if _veil_cool <= 0.0:
+			veil -= 1
+			_veil_cool = 0.5
+			FloatText.spawn(get_parent(), center() + Vector2(0, -24), "Veiled" if veil == 0 else "Veiled x%d" % veil, SpellData.SCHOOL_COLORS["Blood"].lightened(0.3), 1.0)
+			Fx.burst(get_parent(), center(), SpellData.SCHOOL_COLORS["Blood"], 14, 140.0, 0.4, true)
+			Sfx.play("glass", center(), -4.0)
+		if grace_hit:
+			_grace = HURT_GRACE
+		return
 	if projectile and obsidian_time > 0.0:
 		amount = maxi(1, roundi(amount * OBSIDIAN_SHOTS))  # black glass takes half of what a shot would
 	amount = roundi(amount * Hex.multiplier(get_tree(), self))  # a hexed wizard takes half again as much
@@ -395,6 +407,8 @@ func status_text() -> String:
 		parts.append("BLIND %.0fs" % blind_time)
 	if slow_time > 0.0:
 		parts.append("SLOWED")
+	if veil > 0:
+		parts.append("VEILED x%d" % veil)
 	return "   ".join(parts)
 
 
@@ -472,6 +486,7 @@ func _draw_shield() -> void:
 
 func _physics_process(delta: float) -> void:
 	_grace -= delta
+	_veil_cool -= delta
 	_shield_emitter.emitting = _shield_time > 0.0
 	if fainted and stamina >= GET_UP:
 		fainted = false  # the stamina is back: up again
