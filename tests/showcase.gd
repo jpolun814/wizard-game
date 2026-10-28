@@ -618,6 +618,7 @@ func _plan_new_spells() -> void:
 		dummy.call().global_position = _feet(19)
 		memo["hp"] = dummy.call().hp
 		memo["x"] = dummy.call().global_position.x
+		memo["wx"] = wizard.global_position.x
 		memo["max"] = wizard.max_stamina)
 	_at(3.0, func() -> void:
 		var bolt := EnemyBolt.fire(_arena, _feet(19) + Vector2(60, -60), _feet(19) + Vector2(-400, -60), Color.RED, 5)
@@ -632,7 +633,7 @@ func _plan_new_spells() -> void:
 	_at(3.4, func() -> void:
 		check.call("a Burst does 40 to anyone in it (hp %d -> %d)" % [memo["hp"], dummy.call().hp], memo["hp"] - dummy.call().hp == 40)
 		check.call("and throws them away from the middle (x %d -> %d)" % [memo["walker_x"], memo["walker"].global_position.x], memo["walker"].global_position.x - memo["walker_x"] > 20.0)
-		check.call("and the caster pays 25 of their most (%d)" % wizard.max_stamina, wizard.max_stamina <= memo["max"] - 25.0)
+		check.call("and the caster pays 25 of their most and is neither hurt nor thrown (%d, x %d)" % [wizard.max_stamina, wizard.global_position.x], wizard.max_stamina == memo["max"] - 25.0 and absf(wizard.global_position.x - memo["wx"]) < 5.0)
 		check.call("and turns back a shot in the air", is_instance_valid(memo["bolt"]) and memo["bolt"].heading().x > 0.0)
 		_arena._since_hurt = -100000.0  # the blast hurt the wizard too: the waiting room must not heal that
 		memo["bolt"].queue_free()

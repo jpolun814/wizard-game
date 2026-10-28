@@ -76,20 +76,20 @@ class MouseIcon extends Control:
 	var mask := 0
 	var lit := Color.WHITE
 	const SHAPE := [
-		"..#########..",
-		".#LLLL#RRRR#.",
-		"#LLLLL#RRRRR#",
-		"#LLLLLWRRRRR#",
-		"#LLLLLWRRRRR#",
-		"#LLLLL#RRRRR#",
-		"#############",
-		"#HBBBBBBBBBS#",
-		"#HBBBBBBBBBS#",
-		"#BBBBBBBBBBS#",
-		"#BBBBBBBBBBS#",
-		".#BBBBBBBBS#.",
-		"..#BBBBBBS#..",
-		"...#######...",
+		"..#############..",
+		".#LLLL#MMM#RRRR#.",
+		"#LLLLL#MMM#RRRRR#",
+		"#LLLLL#MMM#RRRRR#",
+		"#LLLLL#MMM#RRRRR#",
+		"#LLLLL#####RRRRR#",
+		"#################",
+		"#HBBBBBBBBBBBBBS#",
+		"#HBBBBBBBBBBBBBS#",
+		"#BBBBBBBBBBBBBBS#",
+		"#BBBBBBBBBBBBBBS#",
+		".#BBBBBBBBBBBBS#.",
+		"..#BBBBBBBBBBS#..",
+		"...###########...",
 	]
 
 	var mouse_scale := 1.0
@@ -98,11 +98,16 @@ class MouseIcon extends Control:
 		mask = button_mask
 		lit = lit_color
 		mouse_scale = size_up
-		custom_minimum_size = Vector2(13, 14) * Spellbook.SCALE * 0.4 * size_up
+		custom_minimum_size = Vector2(17, 14) * Spellbook.SCALE * 0.4 * size_up
+
+	## A pressed button's colour: its top row is lighter, so it reads as lit whatever the colour.
+	func _pressed(x: int, y: int, key: String) -> Color:
+		return lit.lightened(0.45) if y == 0 or SHAPE[y - 1][x] != key else lit
 
 	func _draw() -> void:
 		var px := Spellbook.SCALE * 0.4 * mouse_scale
-		var idle := Color("#e9d7bd")
+		var body := Color("#e9d7bd")
+		var off := Color("#2a2027")  # a button that is not pressed is dark, one that is pressed shows the school's colour with a bright top edge
 		for y in SHAPE.size():
 			var row: String = SHAPE[y]
 			for x in row.length():
@@ -111,17 +116,17 @@ class MouseIcon extends Control:
 					"#":
 						colour = Spellbook.INK
 					"L":
-						colour = lit if mask & SpellData.LEFT else idle
+						colour = _pressed(x, y, "L") if mask & SpellData.LEFT else off
 					"R":
-						colour = lit if mask & SpellData.RIGHT else idle
-					"W":
-						colour = lit if mask & SpellData.MIDDLE else Color("#b9a27c")
+						colour = _pressed(x, y, "R") if mask & SpellData.RIGHT else off
+					"M":
+						colour = _pressed(x, y, "M") if mask & SpellData.MIDDLE else off
 					"B":
-						colour = idle
+						colour = body
 					"H":
-						colour = idle.lightened(0.4)
+						colour = body.lightened(0.4)
 					"S":
-						colour = idle.darkened(0.25)
+						colour = body.darkened(0.25)
 				if colour.a > 0.0:
 					draw_rect(Rect2(Vector2(x, y) * px, Vector2(px, px)), colour)
 

@@ -1,7 +1,7 @@
 class_name Burst
 extends SpellEffect
 
-## Burst: blood bursts outward from the point drawn. Everything in reach is hurt and thrown away from the middle, the caster too,
+## Burst: blood bursts outward from the point drawn. Everything in reach is hurt and thrown away from the middle, except the caster,
 ## and shots in the air are turned back the way they came.
 
 const RADIUS := 140.0
@@ -14,6 +14,8 @@ func _begin(origin: Vector2, _aim_angle: float) -> void:
 	_life = 0.45
 	var tree := get_tree()
 	for body in SpellTargets.all(tree):
+		if body == caster:
+			continue  # the one who bursts it stands in its middle, and it passes them by
 		var at := SpellTargets.center_of(body)
 		var gap := at.distance_to(origin)
 		if gap > RADIUS:
@@ -24,8 +26,7 @@ func _begin(origin: Vector2, _aim_angle: float) -> void:
 			body.knock_back(Vector2(away.x * KNOCK * share, minf(away.y * KNOCK * share, LIFT * share)))  # thrown first: the blow may be its last
 		elif body.is_in_group("player"):
 			body.push(Vector2(away.x * KNOCK * share * 0.6, minf(away.y * KNOCK * share * 0.6, LIFT * share)))
-		if body != caster:
-			SpellTargets.hurt(body, DAMAGE, "Blood")  # the one who bursts it stands in its middle and takes none of it
+		SpellTargets.hurt(body, DAMAGE, "Blood")
 	for shot in tree.get_nodes_in_group("shots"):
 		var from: Vector2 = shot.global_position
 		if from.distance_to(origin) <= RADIUS and shot.has_method("reflect"):
