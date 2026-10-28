@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="Spell" format=3]
+
+[ext_resource type="Script" path="res://scripts/spell.gd" id="2_hr1x3"]
+
+[resource]
+script = ExtResource("2_hr1x3")
+spell_name = "Firewall"
+gesture = "wall"
+cost = 20.0
+draw = "Straight vertical line. The wall rises from the ground under it."
+effect = "Burns anyone in it for 4 seconds."
+damage = "4 damage per half second"
+effect_path = "res://scripts/spells/firewall.gd"

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="Spell" format=3]
+
+[ext_resource type="Script" path="res://scripts/spell.gd" id="2_bu48n"]
+
+[resource]
+script = ExtResource("2_bu48n")
+spell_name = "Frostbolt"
+school = "Water"
+gesture = "flick"
+targeting = "directional"
+cost = 15.0
+draw = "Straight stroke, not vertical. Same stroke as Ignite."
+effect = "Hurl a bolt of ice for 6 damage that slows."
+damage = "6 damage, slows"
+effect_path = "res://scripts/spells/projectile.gd"

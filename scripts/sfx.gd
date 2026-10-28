@@ -2,8 +2,9 @@ extends Node
 
 ## Sound effects, available everywhere as Sfx. Sfx.play("cast_fire", where) plays a sound at a spot in the world,
 ## so it is louder on the side of the screen it happens on; leave out the spot for interface sounds.
-## A name with numbered variants (mob_hurt_1, mob_hurt_2...) is played as just "mob_hurt", and a variant is picked
-## at random, so repeated sounds don't all sound the same. M mutes and unmutes.
+## A name with numbered variants (mob_hurt_1, mob_hurt_2...) is one AudioStreamRandomizer: Godot picks a variant and
+## varies the pitch each time, so repeated sounds don't all sound the same. Everything plays on the SFX bus
+## (default_bus_layout.tres). M mutes and unmutes.
 
 ## Loudness of each sound in decibels, so quiet recordings and loud ones sit together. Anything not listed is 0.
 const VOLUME := {
@@ -19,14 +20,13 @@ const VOLUME := {
 	"blood_cast": -6.0, "heartbeat": -4.0, "surf": -4.0, "glass": -8.0, "faint": -4.0, "wizard_cast": -8.0, "game_over": -6.0, "summon": -12.0, "ui_click": -10.0,
 }
 const MAX_DISTANCE := 1400.0  # world sounds farther than this from the camera are not heard
-const POOL := 24              # how many sounds can play at once
+const POLYPHONY := 24         # how many sounds can play at once; the oldest are cut off beyond that
+const BUS := &"SFX"
 
 var muted := false
-var _streams := {}  # name -> Array of file paths, one per variant
-var _loaded := {}   # path -> AudioStream, filled in the first time a sound plays
-var _players: Array[AudioStreamPlayer2D] = []
-var _flat: Array[AudioStreamPlayer] = []
-var _next := 0
+var _files := {}      # name -> Array of file paths, one per variant
+var _sounds := {}     # name -> AudioStreamRandomizer, built the first time the sound plays
+var _live := 0
 
 
 func _ready() -> void:
@@ -39,55 +39,53 @@ func _ready() -> void:
 		var tail := base.get_slice("_", base.get_slice_count("_") - 1)
 		if tail.is_valid_int():
 			key = base.substr(0, base.length() - tail.length() - 1)
-		if not _streams.has(key):
-			_streams[key] = []
-		# The path is kept, and the file is only loaded the first time the sound plays: loading every sound at launch
+		if not _files.has(key):
+			_files[key] = []
+		# Only the paths are kept: a sound is loaded the first time it plays, because loading every sound at launch
 		# made the game take most of a minute to open.
-		_streams[key].append("res://audio/" + file)
-	for i in POOL:
-		var p := AudioStreamPlayer2D.new()
-		p.max_distance = MAX_DISTANCE
-		p.attenuation = 0.6
-		add_child(p)
-		_players.append(p)
-	for i in 6:
-		var flat := AudioStreamPlayer.new()
-		add_child(flat)
-		_flat.append(flat)
+		_files[key].append("res://audio/" + file)
 
 
 ## Plays a sound. at is a world position, or leave it out for a sound that is not in the world.
 ## pitch_spread varies the pitch a little each time, so repeats sound alive.
 func play(sound: String, at: Variant = null, volume_db := 0.0, pitch_spread := 0.08) -> void:
-	if muted or not _streams.has(sound):
+	if muted or not _files.has(sound) or _live >= POLYPHONY:
 		return
-	var variants: Array = _streams[sound]
-	var path: String = variants[randi() % variants.size()]
-	if not _loaded.has(path):
-		_loaded[path] = load(path)
-	var stream: AudioStream = _loaded[path]
-	var loudness: float = VOLUME.get(sound, 0.0) + volume_db
-	var pitch := 1.0 + randf_range(-pitch_spread, pitch_spread)
+	var stream := _stream(sound, pitch_spread)
+	var player: Node
 	if at == null:
-		for flat in _flat:
-			if not flat.playing:
-				flat.stream = stream
-				flat.volume_db = loudness
-				flat.pitch_scale = pitch
-				flat.play()
-				return
-		return
-	var player := _players[_next]
-	_next = (_next + 1) % _players.size()
+		player = AudioStreamPlayer.new()
+	else:
+		player = AudioStreamPlayer2D.new()
+		player.max_distance = MAX_DISTANCE
+		player.attenuation = 0.6
+		player.global_position = at
 	player.stream = stream
-	player.global_position = at
-	player.volume_db = loudness
-	player.pitch_scale = pitch
+	player.bus = BUS
+	player.volume_db = VOLUME.get(sound, 0.0) + volume_db
+	player.finished.connect(_done.bind(player))
+	_live += 1
+	add_child(player)
 	player.play()
 
 
+func _done(player: Node) -> void:
+	_live -= 1
+	player.queue_free()
+
+
+func _stream(sound: String, pitch_spread: float) -> AudioStreamRandomizer:
+	if not _sounds.has(sound):
+		var randomizer := AudioStreamRandomizer.new()
+		for path: String in _files[sound]:
+			randomizer.add_stream(-1, load(path))
+		_sounds[sound] = randomizer
+	var randomizer: AudioStreamRandomizer = _sounds[sound]
+	randomizer.random_pitch = 1.0 + pitch_spread
+	return randomizer
+
+
 func _unhandled_input(event: InputEvent) -> void:
-	var key := event as InputEventKey
-	if key and key.pressed and not key.echo and key.keycode == KEY_M:
+	if event.is_action_pressed("mute"):
 		muted = not muted
 		AudioServer.set_bus_mute(0, muted)

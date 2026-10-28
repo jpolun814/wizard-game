@@ -327,7 +327,7 @@ func _attack(to_player: Vector2, sees: bool) -> bool:
 		for spell_name in ["Ignite", "Frostbolt", "Ice Prison", "Abyss", "Firewall", "Fire Breath"]:
 			scores[spell_name] = 0.0
 	for spell_name in scores.keys():
-		if mob.stamina < SpellData.cost(spell_name):
+		if mob.stamina < SpellData.SPELLS[spell_name].cost:
 			scores[spell_name] = 0.0
 		elif spell_name in _recent:
 			scores[spell_name] *= 0.25  # it does not keep repeating itself
@@ -437,10 +437,10 @@ func _push_stroke(around: Vector2, away: Vector2) -> PackedVector2Array:
 func _begin_cast(spell_name: String, stroke: PackedVector2Array, draw_time: float) -> void:
 	if stroke.size() < 2:
 		return
-	var data: Dictionary = SpellData.SPELLS[spell_name]
-	var mask: int = data["buttons"]
+	var data: Spell = SpellData.SPELLS[spell_name]
+	var mask: int = data.buttons
 	var caster: Caster = mob.caster
-	mob.start_drawing(stroke, SpellData.SCHOOL_COLORS[data["school"]], func(points: PackedVector2Array) -> void:
+	mob.start_drawing(stroke, SpellData.SCHOOL_COLORS[data.school], func(points: PackedVector2Array) -> void:
 		caster.cast_stroke(mask, _shaken(points)), draw_time)
 
 

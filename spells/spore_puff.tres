@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="Spell" format=3]
+
+[ext_resource type="Script" path="res://scripts/spell.gd" id="1_p4bov"]
+
+[resource]
+script = ExtResource("1_p4bov")
+spell_name = "Spore Puff"
+school = "Flora"
+gesture = "cone"
+targeting = "cone"
+cost = 20.0
+draw = "A cone, like <, just as for Fire Breath. The point is you; spores sprays out toward the open end."
+effect = "Release spores that poison whoever breathes them."
+damage = "poison, 2 damage per half second"
+size_from = 2
+size_unit = 160.0
+size_min = 0.7
+size_max = 1.4

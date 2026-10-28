@@ -100,11 +100,11 @@ func _pointer_over_blocked() -> bool:
 ## The mouse buttons currently held, as SpellData bits.
 func _held_mask() -> int:
 	var mask := 0
-	if Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
+	if Input.is_action_pressed("school_left"):
 		mask |= SpellData.LEFT
-	if Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT):
+	if Input.is_action_pressed("school_right"):
 		mask |= SpellData.RIGHT
-	if Input.is_mouse_button_pressed(MOUSE_BUTTON_MIDDLE):
+	if Input.is_action_pressed("school_middle"):
 		mask |= SpellData.MIDDLE
 	return mask
 

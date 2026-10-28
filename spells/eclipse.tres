@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="Spell" format=3]
+
+[ext_resource type="Script" path="res://scripts/spell.gd" id="1_63o8v"]
+
+[resource]
+script = ExtResource("1_63o8v")
+spell_name = "Eclipse"
+school = "Shadow"
+gesture = "crescent"
+cost = 22.0
+draw = "A crescent moon: a curve like a C."
+effect = "Blind anyone inside for 10 seconds."
+damage = "enemies inside see very little"

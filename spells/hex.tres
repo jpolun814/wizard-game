@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="Spell" format=3]
+
+[ext_resource type="Script" path="res://scripts/spell.gd" id="1_dtd7u"]
+
+[resource]
+script = ExtResource("1_dtd7u")
+spell_name = "Hex"
+school = "Shadow"
+gesture = "pentagram"
+cost = 20.0
+draw = "A five-pointed star in one stroke, never lifting: point to point, straight lines, until it closes. Draw it over your target."
+effect = "Curse anyone inside to take 50% more damage for 30 seconds."
+damage = "the marked take 50% more damage"

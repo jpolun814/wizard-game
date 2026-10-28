@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="Spell" format=3]
+
+[ext_resource type="Script" path="res://scripts/spell.gd" id="1_rtieg"]
+
+[resource]
+script = ExtResource("1_rtieg")
+spell_name = "Tide Surf"
+school = "Water"
+gesture = "tsunami"
+targeting = "directional"
+cost = 30.0
+draw = "A wave: a line that rises and curls over at its crest. The wave runs the way the crest leans."
+effect = "Ride a wave along the ground for 4 seconds, shoving anyone aside."
+damage = "carries you, shoves anyone"

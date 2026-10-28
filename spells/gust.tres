@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="Spell" format=3]
+
+[ext_resource type="Script" path="res://scripts/spell.gd" id="2_qn5f6"]
+
+[resource]
+script = ExtResource("2_qn5f6")
+spell_name = "Gust"
+school = "Air"
+gesture = "flick"
+targeting = "directional"
+cost = 14.0
+draw = "A straight stroke. The wind blows the way you draw it."
+effect = "Blow light things away."
+damage = "blows light things along"
+effect_path = "res://scripts/spells/gust.gd"

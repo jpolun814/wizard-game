@@ -1,0 +1,14 @@
+[gd_resource type="Theme" load_steps=3 format=3]
+
+[ext_resource type="FontFile" path="res://fonts/Jersey15-Regular.ttf" id="1"]
+[ext_resource type="FontFile" path="res://fonts/Jacquard24-Regular.ttf" id="2"]
+
+[resource]
+default_font = ExtResource("1")
+default_font_size = 18
+Label/colors/font_color = Color(1, 1, 1, 1)
+Label/colors/font_outline_color = Color(0.07, 0.04, 0.1, 1)
+Label/constants/outline_size = 4
+Title/base_type = &"Label"
+Title/fonts/font = ExtResource("2")
+Title/colors/font_color = Color(1, 0.949, 0.839, 1)

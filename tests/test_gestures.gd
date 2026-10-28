@@ -36,24 +36,24 @@ func _initialize() -> void:
 ## The caster is ready (its templates loaded) from the first frame, so the checks run then.
 func _process(_delta: float) -> bool:
 	for spell_name in SpellData.SPELLS:
-		var s: Dictionary = SpellData.SPELLS[spell_name]
-		var shape := GestureTemplates.preview_points(s.get("preview", s["gesture"]))
+		var s: Spell = SpellData.SPELLS[spell_name]
+		var shape := GestureTemplates.preview_points(s.preview if s.preview != "" else s.gesture)
 		for size in [0.7, 1.0, 1.6]:
 			for shaky in [false, true]:
-				_check(spell_name, s["buttons"], shape, size, shaky, false)
+				_check(spell_name, s.buttons, shape, size, shaky, false)
 		# Directions that should not matter: a circle drawn the other way, a flick to the left.
-		if s["gesture"] in MIRRORED:
-			_check(spell_name, s["buttons"], shape, 1.0, false, true)
+		if s.gesture in MIRRORED:
+			_check(spell_name, s.buttons, shape, 1.0, false, true)
 		# Real hands tilt and squash what they draw: every shape must survive a tilt and a stretch, with a shaky hand.
 		for tilt in [-10.0, 10.0]:
 			for stretch in [Vector2(0.88, 1.14), Vector2(1.14, 0.88)]:
 				var warp := Transform2D(deg_to_rad(tilt), Vector2.ONE).scaled_local(stretch)
-				_check(spell_name, s["buttons"], shape, 1.0, true, false, warp)
+				_check(spell_name, s.buttons, shape, 1.0, true, false, warp)
 	# A single V is an icicle too: the ceiling check is what limits where it can be cast.
 	var single_v := PackedVector2Array([Vector2(-30, -40), Vector2(0, 30), Vector2(30, -40)])
 	for size in [0.7, 1.0, 1.6]:
 		for shaky in [false, true]:
-			_check("Icicles", SpellData.SPELLS["Icicles"]["buttons"], single_v, size, shaky, false)
+			_check("Icicles", SpellData.SPELLS["Icicles"].buttons, single_v, size, shaky, false)
 	# A Fire Breath cone can point any way, and the fire must go toward its open end.
 	for angle in [0.0, PI * 0.5, PI, -PI * 0.5, PI * 0.25]:
 		_checks += 1
@@ -73,7 +73,7 @@ func _process(_delta: float) -> bool:
 ## Draws one gesture and checks what it casts. mirror flips it left to right.
 func _check(spell_name: String, buttons: int, shape: PackedVector2Array, size: float, shaky: bool, mirror: bool, warp := Transform2D.IDENTITY) -> void:
 	_checks += 1
-	var gesture: String = SpellData.SPELLS[spell_name]["gesture"]
+	var gesture: String = SpellData.SPELLS[spell_name].gesture
 	var points := PackedVector2Array()
 	for p in shape:
 		points.append(warp * (Vector2(-p.x if mirror else p.x, p.y) * size))

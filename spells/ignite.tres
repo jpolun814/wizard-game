@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="Spell" format=3]
+
+[ext_resource type="Script" path="res://scripts/spell.gd" id="2_pwllh"]
+
+[resource]
+script = ExtResource("2_pwllh")
+spell_name = "Ignite"
+gesture = "flick"
+targeting = "directional"
+cost = 15.0
+draw = "Straight stroke, not vertical. Draw it in the direction you want to throw."
+effect = "Hurl a bolt of fire for 12 damage."
+damage = "12 damage"
+effect_path = "res://scripts/spells/projectile.gd"

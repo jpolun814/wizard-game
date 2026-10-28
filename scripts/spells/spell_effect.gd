@@ -62,7 +62,7 @@ func _damage_overlapping(amount: int) -> void:
 
 ## The school this spell belongs to, which decides what enemies resist or are weak to.
 func _school() -> String:
-	return SpellData.SPELLS[spell]["school"] if SpellData.SPELLS.has(spell) else "Fire"
+	return SpellData.SPELLS[spell].school if SpellData.SPELLS.has(spell) else "Fire"
 
 
 ## True when a point is in this spell's harm. The dark wizard uses it to step out of danger.

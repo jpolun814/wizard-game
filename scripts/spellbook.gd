@@ -254,20 +254,17 @@ func refresh() -> void:
 
 
 func _input(event: InputEvent) -> void:
-	var key := event as InputEventKey
-	if key == null or not key.pressed or key.echo:
-		return
-	if key.keycode == KEY_TAB:
+	if event.is_action_pressed("book"):
 		var lying := PagePickup.underfoot(get_tree()) if not visible else null
 		if lying != null:
 			_read(lying)
 		else:
 			_toggle()
 		get_viewport().set_input_as_handled()
-	elif visible and key.keycode == KEY_RIGHT:
+	elif visible and event.is_action_pressed("ui_right"):
 		_turn(1)
 		get_viewport().set_input_as_handled()
-	elif visible and key.keycode == KEY_LEFT:
+	elif visible and event.is_action_pressed("ui_left"):
 		_turn(-1)
 		get_viewport().set_input_as_handled()
 
@@ -403,9 +400,9 @@ func _rule(colour := PAPER_DARK) -> ColorRect:
 ## The mask of mouse buttons a school is cast with, found from its spells.
 func _school_mask(school: String) -> int:
 	for spell_name in SpellData.SPELLS:
-		var s: Dictionary = SpellData.SPELLS[spell_name]
-		if s["school"] == school:
-			return s["buttons"]
+		var s: Spell = SpellData.SPELLS[spell_name]
+		if s.school == school:
+			return s.buttons
 	return 0
 
 
@@ -442,15 +439,15 @@ func _page_contents(column: VBoxContainer) -> void:
 func _spells_of(school: String) -> Array:
 	var names := []
 	for spell_name in SpellData.SPELLS:
-		if SpellData.SPELLS[spell_name]["school"] == school:
+		if SpellData.SPELLS[spell_name].school == school:
 			names.append(spell_name)
 	return names
 
 
 ## A spell's own page: its name with its school's mouse, the shape drawn out large, what it costs, what it does, how to draw it.
 func _page_spell(column: VBoxContainer, spell_name: String) -> void:
-	var s: Dictionary = SpellData.SPELLS[spell_name]
-	var school: String = s["school"]
+	var s: Spell = SpellData.SPELLS[spell_name]
+	var school: String = s.school
 	var top := HBoxContainer.new()
 	top.add_theme_constant_override("separation", 10)
 	var heading := _heading(spell_name, 42)
@@ -458,12 +455,12 @@ func _page_spell(column: VBoxContainer, spell_name: String) -> void:
 	top.add_child(heading)
 	top.add_child(MouseIcon.new(_school_mask(school), SpellData.SCHOOL_COLORS[school]))
 	column.add_child(top)
-	var gesture: String = s.get("preview", s["gesture"])
+	var gesture: String = s.preview if s.preview != "" else s.gesture
 	var preview := Preview.new(GestureTemplates.preview_points(gesture), GestureTemplates.preview_ground(gesture), 150.0)
 	preview.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	column.add_child(preview)
-	column.add_child(_ink("%d maximum stamina" % roundi(s["cost"]) if SpellData.pays_max(spell_name) else "%d stamina" % roundi(s["cost"]), 20, SUBTLE))
-	column.add_child(_ink(s["effect"], 22, TEXT_INK))
+	column.add_child(_ink("%d maximum stamina" % roundi(s.cost) if s.pays_max() else "%d stamina" % roundi(s.cost), 20, SUBTLE))
+	column.add_child(_ink(s.effect, 22, TEXT_INK))
 
 
 ## An incantation's own page: its name, its words and what it does. Every one is spoken by typing it and pressing Enter,

@@ -68,7 +68,7 @@ func _ready() -> void:
 		camera.limit_right = (ArenaGen.RIGHT_WALL + 1) * TILE - TILE / 2
 		camera.limit_bottom = ArenaGen.GROUND_Y + TILE * 4
 
-	hud = Hud.new()
+	hud = preload("res://scenes/hud.tscn").instantiate()
 	hud.player = player
 	add_child(hud)
 	hud.restart_requested.connect(_restart_run)
@@ -173,25 +173,21 @@ func _restart_run() -> void:
 
 func _input(event: InputEvent) -> void:
 	var click := event as InputEventMouseButton
-	if click != null and click.pressed and click.double_click and click.button_index == MOUSE_BUTTON_LEFT and not ritual.visible and not hud.is_paused() and not player.dead:
+	if click != null and click.pressed and click.double_click and event.is_action("school_left") and not ritual.visible and not hud.is_paused() and not player.dead:
 		Flare.snuff_near(get_tree(), get_global_mouse_position(), 0.0)  # a double click on a flare puts it out
-	var key := event as InputEventKey
-	if key == null or not key.pressed or key.echo:
-		return
-	if key.keycode == KEY_F1:
+	if event.is_action_pressed("debug_menu"):
 		debug_panel.visible = not debug_panel.visible
 		return
-	if key.keycode == KEY_ESCAPE and not ritual.visible and not hud.is_game_over():
+	if event.is_action_pressed("pause") and not ritual.visible and not hud.is_game_over():
 		hud.toggle_pause()
 		get_viewport().set_input_as_handled()
 		return
 	if ritual.visible or hud.is_paused() or player.dead:
 		return
-	match key.keycode:
-		KEY_ENTER, KEY_KP_ENTER:
-			_start_ritual()
-		KEY_E:
-			_try_pickup()
+	if event.is_action_pressed("start_ritual"):
+		_start_ritual()
+	elif event.is_action_pressed("swap_focus"):
+		_try_pickup()
 
 
 func _process(_delta: float) -> void:
@@ -269,11 +265,12 @@ func _on_cast_resolved(spell: String, targeting: String, origin: Vector2, aim: f
 	if spell in ["Transfusion", "Hemorrhage", "Faint"] and _blood_target(spell, origin) == null:
 		FloatText.spawn(self, label_at, "Aim at a foe", Color("#ff9a9a"), 0.9)  # nothing is paid for a cut that finds no one
 		return
-	var cost := SpellData.cost_for(spell, info)
+	var spell_data: Spell = SpellData.SPELLS[spell]
+	var cost := spell_data.cost_for(info)
 	if player.focus == "staff":
 		cost *= 0.75  # a staff channels spells better: a quarter off every cast
-	var colour := SpellData.color_of(spell)
-	if SpellData.pays_max(spell):
+	var colour := spell_data.glow()
+	if spell_data.pays_max():
 		if not player.pay_max(cost):
 			FloatText.spawn(self, label_at, "Too weak", Color("#ff9a9a"), 0.9)  # blood is never spent to the last drop
 			Sfx.play("misfire", player.center(), -6.0)
@@ -319,7 +316,7 @@ func _earth_texture() -> Texture2D:
 ## caster is whoever cast it: the player or a dark wizard.
 func spawn_spell(spell: String, targeting: String, origin: Vector2, aim: float, info: Dictionary, caster_node: Node2D) -> void:
 	var from: Vector2 = caster_node.center()
-	var school: String = SpellData.SPELLS[spell]["school"] if SpellData.SPELLS.has(spell) else ""
+	var school: String = SpellData.SPELLS[spell].school if SpellData.SPELLS.has(spell) else ""
 	if (school == "Water" or school == "Air") and spell != "Barrier":
 		# Water and wind put a flare out, but only one the spell actually reaches.
 		if targeting == "directional":
@@ -511,23 +508,13 @@ func _transfuse(donor: Node2D, taker: Node2D) -> void:
 	Sfx.play("pickup", to, -4.0)
 
 
-## A new effect of the kind a spell needs.
+## A new effect of the kind a spell needs: the script its resource names.
 func _new_effect(spell: String) -> SpellEffect:
-	match spell:
-		"Ignite", "Frostbolt", "Blood Bolt":
-			return Projectile.new()
-		"Firewall":
-			return Firewall.new()
-		"Push":
-			return PushZone.new()
-		"Gust":
-			return Gust.new()
-		"Stone Wall":
-			return StoneWall.new()
-		"Spark":
-			return SparkStrike.new()
-	push_error("No spell effect for %s" % spell)
-	return SpellEffect.new()
+	var path: String = SpellData.SPELLS[spell].effect_path
+	if path == "":
+		push_error("No spell effect for %s" % spell)
+		return SpellEffect.new()
+	return load(path).new()
 
 
 ## The last spot on the way from start to end where a body fits: feet, middle and head all clear of the ground. A step
@@ -678,7 +665,7 @@ func _place_shapes(spell: String, info: Dictionary) -> void:
 func _on_wizard_cast(spell: String, targeting: String, origin: Vector2, aim: float, info: Dictionary, wizard: Node2D) -> void:
 	if not is_instance_valid(wizard) or wizard.is_dead():
 		return
-	wizard.stamina -= SpellData.cost_for(spell, info)
+	wizard.stamina -= SpellData.SPELLS[spell].cost_for(info)
 	wizard.last_spell = spell
 	spawn_spell(spell, targeting, origin, aim, info, wizard)
 
@@ -926,7 +913,7 @@ func _update_insight() -> void:
 	if data["role"] == "wizard":  # a wizard's spells, each in the colour of its school
 		var lines := ""
 		for spell_name: String in WizardBrain.KNOWN:
-			var colour: Color = SpellData.SCHOOL_COLORS[SpellData.SPELLS[spell_name]["school"]]
+			var colour: Color = SpellData.SCHOOL_COLORS[SpellData.SPELLS[spell_name].school]
 			lines += "\n[color=#%s]%s[/color]" % [colour.lightened(0.15).to_html(false), spell_name]
 		_insight_text.text += "\n\nKnows:" + lines
 	var screen := get_viewport().get_visible_rect().size

@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="Spell" format=3]
+
+[ext_resource type="Script" path="res://scripts/spell.gd" id="1_mu1ge"]
+
+[resource]
+script = ExtResource("1_mu1ge")
+spell_name = "Tornado"
+school = "Air"
+gesture = "tornado"
+targeting = "shape"
+cost = 30.0
+draw = "A coil going down: a tall, narrow spiral, like a drill bit. A spinning wind touches down under it."
+effect = "Fling anyone who walks into it up and away, and bat projectiles back for 6 seconds."
+damage = "flings foes"

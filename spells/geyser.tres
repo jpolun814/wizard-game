@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="Spell" format=3]
+
+[ext_resource type="Script" path="res://scripts/spell.gd" id="1_e4km8"]
+
+[resource]
+script = ExtResource("1_e4km8")
+spell_name = "Geyser"
+school = "Water"
+gesture = "geyser"
+targeting = "shape"
+cost = 20.0
+draw = "A mountain: an upward-pointing triangle with a line up through its middle, the same shape as a Volcano. Draw it on the ground."
+effect = "Burst a jet of water that throws up what stands on it."
+damage = "launches what stands on it"

@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="Spell" format=3]
+
+[ext_resource type="Script" path="res://scripts/spell.gd" id="1_8lujr"]
+
+[resource]
+script = ExtResource("1_8lujr")
+spell_name = "Decoy"
+school = "Shadow"
+gesture = "eight"
+cost = 20.0
+draw = "A figure of eight."
+effect = "Cast a shadow of yourself that walks where you send it, for 24 seconds."
+damage = "enemies attack it instead of you"

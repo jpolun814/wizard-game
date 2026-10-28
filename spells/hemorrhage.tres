@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="Spell" format=3]
+
+[ext_resource type="Script" path="res://scripts/spell.gd" id="1_ceful"]
+
+[resource]
+script = ExtResource("1_ceful")
+spell_name = "Hemorrhage"
+school = "Blood"
+gesture = "cross"
+draw = "A cross, drawn in one stroke."
+effect = "Cut anyone you draw it over: they bleed stamina for 8 seconds."
+damage = "bleeds stamina, 8 seconds"

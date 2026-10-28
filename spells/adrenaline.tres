@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="Spell" format=3]
+
+[ext_resource type="Script" path="res://scripts/spell.gd" id="1_t1ssb"]
+
+[resource]
+script = ExtResource("1_t1ssb")
+spell_name = "Adrenaline"
+school = "Blood"
+gesture = "zigzag"
+cost = 15.0
+draw = "A tall zigzag going down, like a pulse."
+effect = "Run faster and recover stamina quicker for 10 seconds."
+damage = "faster, quicker recovery"

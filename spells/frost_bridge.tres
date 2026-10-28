@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="Spell" format=3]
+
+[ext_resource type="Script" path="res://scripts/spell.gd" id="1_u6iot"]
+
+[resource]
+script = ExtResource("1_u6iot")
+spell_name = "Frost Bridge"
+school = "Water"
+gesture = "wave"
+targeting = "shape"
+cost = 18.0
+draw = "A wavy line, drawn across the water you want to freeze."
+effect = "Freeze water into ice you can walk on."
+damage = "freezes water into ice"
+size_from = 4
+size_unit = 120.0
+size_min = 0.6
+size_max = 2.0

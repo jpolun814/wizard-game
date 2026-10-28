@@ -107,12 +107,11 @@ func _process(delta: float) -> void:
 
 
 func _input(event: InputEvent) -> void:
-	var key := event as InputEventKey
-	if key != null and key.pressed and not key.echo and not ritual.visible:
-		if key.keycode == KEY_N:
+	if not ritual.visible:
+		if event.is_action_pressed("night_toggle"):
 			_night.visible = not _night.visible
 			_player_light.enabled = _night.visible
-		elif key.keycode == KEY_R and not hud.is_game_over():
+		elif event.is_action_pressed("restart") and not hud.is_game_over():
 			get_tree().reload_current_scene()
 	super(event)
 

@@ -26,7 +26,7 @@ func _ready() -> void:
 	add_to_group("pages")
 	z_index = 3
 	if SpellData.SPELLS.has(page):
-		_color = SpellData.SCHOOL_COLORS[SpellData.SPELLS[page]["school"]].lightened(0.2)
+		_color = SpellData.SCHOOL_COLORS[SpellData.SPELLS[page].school].lightened(0.2)
 	_t = randf() * TAU
 	_sprite = Sprite2D.new()
 	_sprite.texture = PAGE

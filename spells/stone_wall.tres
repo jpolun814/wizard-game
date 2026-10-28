@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="Spell" format=3]
+
+[ext_resource type="Script" path="res://scripts/spell.gd" id="2_ktkj1"]
+
+[resource]
+script = ExtResource("2_ktkj1")
+spell_name = "Stone Wall"
+school = "Earth"
+gesture = "stone_wall"
+targeting = "directional"
+cost = 30.0
+draw = "A straight stroke that starts on the ground or another stone wall. It cannot be drawn in mid-air: the wall grows out of whatever solid thing the stroke starts on."
+effect = "Raise a wall of stone."
+damage = "solid · must start on solid ground"
+size_from = 5
+size_unit = 140.0
+size_min = 0.5
+size_max = 1.7
+effect_path = "res://scripts/spells/stone_wall.gd"

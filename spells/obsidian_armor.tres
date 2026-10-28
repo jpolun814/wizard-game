@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="Spell" format=3]
+
+[ext_resource type="Script" path="res://scripts/spell.gd" id="1_1vyv5"]
+
+[resource]
+script = ExtResource("1_1vyv5")
+spell_name = "Obsidian Armor"
+school = "Earth"
+gesture = "circle"
+cost = 40.0
+draw = "A circle, either way round. The glass grows over you."
+effect = "Turn to black glass for 20 seconds: take half damage from shots, wade through lava unharmed, and walk slower."
+damage = "half damage from shots, lava is harmless, slower"

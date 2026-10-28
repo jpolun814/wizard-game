@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="Spell" format=3]
+
+[ext_resource type="Script" path="res://scripts/spell.gd" id="1_p767g"]
+
+[resource]
+script = ExtResource("1_p767g")
+spell_name = "Bramble"
+school = "Flora"
+gesture = "bramble"
+targeting = "shape"
+cost = 22.0
+draw = "A low row of sharp thorns: a sawtooth line, drawn along the ground."
+effect = "Grow thorns that slow anyone who walks through them to a crawl and hurt them with every step."
+damage = "slows, 3 damage per half second"
+size_from = 4
+size_unit = 120.0
+size_min = 0.6
+size_max = 2.0

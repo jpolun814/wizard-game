@@ -82,8 +82,11 @@ never block each other.
   picture, which is also the stroke the wizard draws), and `preview_ground`.
 - **`gesture/unistroke_recognizer.gd`:** the $1 recognizer. `recognize(points, only)` limits it to the named
   templates.
-- **`spell_data.gd`:** the `SPELLS` table (buttons, gesture, targeting, cost, school, draw, effect), `DAMAGE`
-  (the spellbook stats line), `SCHOOL_COLORS`, and `cost_for` (size-scaled costs).
+- **`spell.gd` and `res://spells/*.tres`:** one `Spell` resource per fast spell (school, gesture, targeting, cost, draw, effect,
+  damage line, the size that scales its cost, the effect script's path). Edit them in the inspector.
+- **`spell_data.gd`:** loads those resources into `SPELLS` (name -> `Spell`), plus `SCHOOL_COLORS`, `SCHOOL_BUTTONS` and `bindings()`.
+- **`status_effects.gd`:** the player's timed conditions, each a `Timer` node (`slow_time`, `haste_time`... are properties over it).
+- **`scenes/hud.tscn`, `ui/theme.tres`, `hud_bar.gd`, `edge_arrows.gd`:** the HUD is a scene on a project-wide Theme.
 - **`ritual_input.gd`:** the typed incantation box and `RITUALS`.
   - Accuracy uses edit distance.
   - An unfinished chant (a good match to the chant's start) fizzles harmlessly.

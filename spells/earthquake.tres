@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="Spell" format=3]
+
+[ext_resource type="Script" path="res://scripts/spell.gd" id="1_vt8yl"]
+
+[resource]
+script = ExtResource("1_vt8yl")
+spell_name = "Earthquake"
+school = "Earth"
+gesture = "earthquake"
+cost = 75.0
+draw = "Three mountain peaks, drawn in the air."
+effect = "Shake the ground for 6 seconds."
+damage = "shakes the ground"

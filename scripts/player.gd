@@ -44,29 +44,60 @@ var stamina := MAX_STAMINA
 var max_stamina := MAX_STAMINA  # what stamina can reach for now. Hits and the Rift wear it down; you die when it is gone
 var focus := "wand"          # the held focus item, see FocusItem.FOCI
 var movement_enabled := true  # the arena turns this off while a typing box or the spellbook is open
-var infinite_time := 0.0  # Chant of Boundless Vigour: stamina does not run out while this lasts
-var slow_time := 0.0  # frost slows the caster while this lasts
-var sink_time := 0.0  # quicksand: slowed, and unable to jump while this lasts
-var tangle_time := 0.0  # caught in thorns: nearly stopped, and unable to jump while this lasts
-var deep_breath_time := 0.0  # the Chant of the Deep Breath: the breath is held while this lasts, under water or not
+var infinite_time: float: # Chant of Boundless Vigour: stamina does not run out while this lasts
+	get: return _status.left(&"infinite")
+	set(seconds): _status.set_left(&"infinite", seconds)
+var slow_time: float: # frost slows the caster while this lasts
+	get: return _status.left(&"slow")
+	set(seconds): _status.set_left(&"slow", seconds)
+var sink_time: float: # quicksand: slowed, and unable to jump while this lasts
+	get: return _status.left(&"sink")
+	set(seconds): _status.set_left(&"sink", seconds)
+var tangle_time: float: # caught in thorns: nearly stopped, and unable to jump while this lasts
+	get: return _status.left(&"tangle")
+	set(seconds): _status.set_left(&"tangle", seconds)
+var deep_breath_time: float: # the Chant of the Deep Breath: the breath is held while this lasts, under water or not
+	get: return _status.left(&"deep_breath")
+	set(seconds): _status.set_left(&"deep_breath", seconds)
 var breath := BREATH  # seconds of air left under water
-var haste_time := 0.0  # the Chant of Swift Feet: faster on foot while this lasts
-var air_jump_time := 0.0  # the Chant of the Second Leap: a jump in the air is allowed while this lasts
-var adrenaline_time := 0.0  # Adrenaline: stamina comes back quicker and the wizard is hasted while this lasts
-var obsidian_time := 0.0  # Obsidian Armor: shots do half, lava does nothing, and the wizard is slower while this lasts
-var surf_time := 0.0  # Tide Surf: a wave carries the wizard along surf_dir while this lasts
+var haste_time: float: # the Chant of Swift Feet: faster on foot while this lasts
+	get: return _status.left(&"haste")
+	set(seconds): _status.set_left(&"haste", seconds)
+var air_jump_time: float: # the Chant of the Second Leap: a jump in the air is allowed while this lasts
+	get: return _status.left(&"air_jump")
+	set(seconds): _status.set_left(&"air_jump", seconds)
+var adrenaline_time: float: # Adrenaline: stamina comes back quicker and the wizard is hasted while this lasts
+	get: return _status.left(&"adrenaline")
+	set(seconds): _status.set_left(&"adrenaline", seconds)
+var obsidian_time: float: # Obsidian Armor: shots do half, lava does nothing, and the wizard is slower while this lasts
+	get: return _status.left(&"obsidian")
+	set(seconds): _status.set_left(&"obsidian", seconds)
+var surf_time: float: # Tide Surf: a wave carries the wizard along surf_dir while this lasts
+	get: return _status.left(&"surf")
+	set(seconds): _status.set_left(&"surf", seconds)
 var surf_dir := 1.0
 var fainted := false  # knocked out by a Faint: down on the ground until the stamina comes back
 var air_jump_ready := false  # the air jump is spent by one use, and comes back when the wizard lands
 var _shove := Vector2.ZERO  # a Push on the caster: slides them for a moment, then fades
-var mute_time := 0.0          # no rituals while above zero
-var root_time := 0.0          # no walking or jumping while above zero
+var mute_time: float: # no rituals while above zero
+	get: return _status.left(&"mute")
+	set(seconds): _status.set_left(&"mute", seconds)
+var root_time: float: # no walking or jumping while above zero
+	get: return _status.left(&"root")
+	set(seconds): _status.set_left(&"root", seconds)
 var _stuck_time := 0.0         # how long a giant's stomp has the player stuck in the ground
 var _wet_material: ShaderMaterial  # cuts the body off at the waist while stuck, and colours the part under water or lava
-var blind_time := 0.0         # the caster's gesture trail is hidden while above zero
+var blind_time: float: # the caster's gesture trail is hidden while above zero
+	get: return _status.left(&"blind")
+	set(seconds): _status.set_left(&"blind", seconds)
 var dead := false
-var _shield_time := 0.0
-var _frozen_time := 0.0  # frozen in ice: rooted, and shattered out of it by Air or Earth
+var _status := StatusEffects.new()  # the timed conditions above, each a Timer
+var _shield_time: float:
+	get: return _status.left(&"shield")
+	set(seconds): _status.set_left(&"shield", seconds)
+var _frozen_time: float: # frozen in ice: rooted, and shattered out of it by Air or Earth
+	get: return _status.left(&"frozen")
+	set(seconds): _status.set_left(&"frozen", seconds)
 var _since_spend := 0.0
 var facing := 1.0
 var _flash := 0.0        # red flash after being hit
@@ -94,6 +125,7 @@ var _vine_cooldown := 0.0  # after letting go, a vine cannot be grabbed again fo
 
 
 func _ready() -> void:
+	add_child(_status)
 	floor_max_angle = deg_to_rad(50.0)  # a 45 degree slope, the steepest a tunnel climbs, still counts as floor
 	add_to_group("player")
 	_dress_for_focus()
@@ -429,28 +461,13 @@ func _draw_shield() -> void:
 
 
 func _physics_process(delta: float) -> void:
-	_shield_time -= delta
-	_frozen_time -= delta
 	_grace -= delta
 	_shield_emitter.emitting = _shield_time > 0.0
-	mute_time -= delta
-	root_time -= delta
-	blind_time -= delta
-	slow_time -= delta
-	sink_time -= delta
-	tangle_time -= delta
-	air_jump_time -= delta
-	haste_time -= delta
-	adrenaline_time -= delta
-	obsidian_time -= delta
-	surf_time -= delta
 	if fainted and stamina >= GET_UP:
 		fainted = false  # the stamina is back: up again
-	deep_breath_time -= delta
 	_breathe(delta)
 	if is_on_floor():
 		air_jump_ready = true
-	infinite_time -= delta
 	if infinite_time > 0.0:
 		stamina = max_stamina
 	_since_spend += delta
@@ -519,7 +536,7 @@ func _climb() -> bool:
 	if _vine != null and (not is_instance_valid(_vine) or not _vine.can_grab(hands)):
 		_vine = null
 	if _vine == null:
-		if _vine_cooldown > 0.0 or not Input.is_key_pressed(KEY_W):
+		if _vine_cooldown > 0.0 or not Input.is_action_pressed("move_up"):
 			return false
 		for vine in get_tree().get_nodes_in_group("climbables"):
 			if vine.can_grab(hands):
@@ -528,11 +545,11 @@ func _climb() -> bool:
 		if _vine == null:
 			return false
 	var sideways := Input.get_axis("move_left", "move_right")
-	var up := Input.is_key_pressed(KEY_W)
+	var up := Input.is_action_pressed("move_up")
 	var down := Input.is_action_pressed("move_down")
-	if Input.is_key_pressed(KEY_SPACE) or absf(sideways) > 0.5:
+	if Input.is_action_pressed("let_go") or absf(sideways) > 0.5:
 		# Let go: a hop off the vine in the way the wizard was leaning.
-		velocity = Vector2(sideways * SPEED, JUMP_VELOCITY * 0.6 if Input.is_key_pressed(KEY_SPACE) else 0.0)
+		velocity = Vector2(sideways * SPEED, JUMP_VELOCITY * 0.6 if Input.is_action_pressed("let_go") else 0.0)
 		_vine = null
 		_vine_cooldown = 0.3
 		return false

@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="Spell" format=3]
+
+[ext_resource type="Script" path="res://scripts/spell.gd" id="2_bcvr6"]
+
+[resource]
+script = ExtResource("2_bcvr6")
+spell_name = "Push"
+school = "Air"
+gesture = "circle_push"
+targeting = "angled"
+draw = "A circle, then a line going out of it. Everything inside the circle is moved along the line."
+effect = "Push everything along the line."
+damage = "moves foes"
+size_from = 1
+size_unit = 40.0
+size_min = 0.5
+size_max = 4.0
+effect_path = "res://scripts/spells/push_zone.gd"

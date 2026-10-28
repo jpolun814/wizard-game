@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="Spell" format=3]
+
+[ext_resource type="Script" path="res://scripts/spell.gd" id="1_lqw84"]
+
+[resource]
+script = ExtResource("1_lqw84")
+spell_name = "Moonbeam"
+school = "Shadow"
+gesture = "wall"
+cost = 16.0
+draw = "A straight vertical line. A pale light falls along it."
+effect = "Call down a dim, pale light for 30 seconds."
+damage = "a dim light, harmless"

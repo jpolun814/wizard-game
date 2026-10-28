@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="Spell" format=3]
+
+[ext_resource type="Script" path="res://scripts/spell.gd" id="1_q2gd0"]
+
+[resource]
+script = ExtResource("1_q2gd0")
+spell_name = "Faint"
+school = "Blood"
+gesture = "spiral"
+cost = 30.0
+draw = "A spiral that starts wide and winds in to its middle, drawn over the one who will fall."
+effect = "Drain all the stamina of anyone you draw it over, and drop them until it returns."
+damage = "drops anyone until their stamina returns"

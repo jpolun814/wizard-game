@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="Spell" format=3]
+
+[ext_resource type="Script" path="res://scripts/spell.gd" id="1_87ois"]
+
+[resource]
+script = ExtResource("1_87ois")
+spell_name = "Lily Pads"
+school = "Flora"
+gesture = "pads"
+targeting = "shape"
+cost = 18.0
+draw = "A row of flat ovals, drawn as a chain of low loops."
+effect = "Make lily pads float on the water for 8 seconds."
+damage = "floating leaves to walk on"
+size_from = 4
+size_unit = 120.0
+size_min = 0.6
+size_max = 2.0

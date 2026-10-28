@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="Spell" format=3]
+
+[ext_resource type="Script" path="res://scripts/spell.gd" id="1_8i3kh"]
+
+[resource]
+script = ExtResource("1_8i3kh")
+spell_name = "Ice Prison"
+school = "Water"
+gesture = "circle"
+targeting = "shape"
+cost = 14.0
+draw = "A circle, drawn round your target and closed where you started. The circle fills with ice."
+effect = "Freezes everything in the circle for 6 seconds."
+damage = "freezes foes solid"
+size_from = 7
+size_unit = 4900.0
+size_min = 0.6
+size_max = 2.5

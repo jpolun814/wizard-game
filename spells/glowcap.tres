@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="Spell" format=3]
+
+[ext_resource type="Script" path="res://scripts/spell.gd" id="1_w6acx"]
+
+[resource]
+script = ExtResource("1_w6acx")
+spell_name = "Glowcap"
+school = "Flora"
+gesture = "circle"
+cost = 14.0
+draw = "A circle, either way round: the cap of a mushroom."
+effect = "Grow a glowing mushroom on your hat, or your staff, to light your way for 60 seconds."
+damage = "a green light, harmless"

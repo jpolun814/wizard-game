@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="Spell" format=3]
+
+[ext_resource type="Script" path="res://scripts/spell.gd" id="1_w6wbe"]
+
+[resource]
+script = ExtResource("1_w6wbe")
+spell_name = "Abyss"
+school = "Shadow"
+gesture = "spiral"
+cost = 22.0
+draw = "A spiral that starts wide and winds in to its middle, at least one and a half turns."
+effect = "Pull everything in for 2 seconds."
+damage = "pulls everything in"

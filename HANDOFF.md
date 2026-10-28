@@ -152,7 +152,7 @@ GODOT="/c/Users/Jordan Polun/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.
 | F1 | Debug summon panel |
 | R | New run, on the game-over screen |
 
-## 5. Spells (`scripts/spell_data.gd` is the single source of truth)
+## 5. Spells (the `Spell` resources in `res://spells/` are the single source of truth)
 
 | School | Spell | Shape | Real thing | Counterplay |
 |---|---|---|---|---|

@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="Spell" format=3]
+
+[ext_resource type="Script" path="res://scripts/spell.gd" id="1_bw6w7"]
+
+[resource]
+script = ExtResource("1_bw6w7")
+spell_name = "Smoke Screen"
+gesture = "smoke"
+targeting = "shape"
+cost = 18.0
+draw = "A wavy line going up. The smoke billows along it."
+effect = "Hide behind a bank of smoke."
+damage = "hides what is behind it"
+size_from = 4
+size_unit = 120.0
+size_min = 0.6
+size_max = 2.0

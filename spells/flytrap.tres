@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="Spell" format=3]
+
+[ext_resource type="Script" path="res://scripts/spell.gd" id="1_xgakt"]
+
+[resource]
+script = ExtResource("1_xgakt")
+spell_name = "Flytrap"
+school = "Flora"
+gesture = "jaws"
+cost = 26.0
+draw = "Open jaws: a tall narrow W."
+effect = "Plant a trap that snaps shut on whatever steps on it."
+damage = "snaps shut on whoever steps in"

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="Spell" format=3]
+
+[ext_resource type="Script" path="res://scripts/spell.gd" id="2_rd18d"]
+
+[resource]
+script = ExtResource("2_rd18d")
+spell_name = "Blood Bolt"
+school = "Blood"
+gesture = "flick"
+targeting = "directional"
+cost = 12.0
+draw = "Straight stroke, not vertical. Draw it in the direction you want to throw."
+effect = "Hurl a bolt of blood for 30 damage."
+damage = "30 damage"
+effect_path = "res://scripts/spells/projectile.gd"
