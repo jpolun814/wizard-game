@@ -70,65 +70,39 @@ class BookArt extends Control:
 		draw_texture_rect_region(_sheet, Rect2(Vector2.ZERO, Spellbook.FRAME * Spellbook.SCALE), source)
 
 
-## A mouse seen from above, drawn in the book's pixels: an outlined body split into two buttons and a wheel. The
-## buttons in `mask` are lit, so the picture shows exactly which buttons a school needs.
+## A mouse seen from above (Kenney's Input Prompts Pixel, with the pixels of each button kept apart). The buttons in `mask` are
+## lit in the school's colour, so the picture shows exactly which buttons a school needs.
 class MouseIcon extends Control:
+	const BODY: Texture2D = preload("res://art/ui/mouse/mouse.png")
+	const BUTTONS := {
+		SpellData.LEFT: preload("res://art/ui/mouse/button_left.png"),
+		SpellData.MIDDLE: preload("res://art/ui/mouse/button_middle.png"),
+		SpellData.RIGHT: preload("res://art/ui/mouse/button_right.png"),
+	}
 	var mask := 0
 	var lit := Color.WHITE
-	const SHAPE := [
-		"..#############..",
-		".#LLLL#MMM#RRRR#.",
-		"#LLLLL#MMM#RRRRR#",
-		"#LLLLL#MMM#RRRRR#",
-		"#LLLLL#MMM#RRRRR#",
-		"#LLLLL#####RRRRR#",
-		"#################",
-		"#HBBBBBBBBBBBBBS#",
-		"#HBBBBBBBBBBBBBS#",
-		"#BBBBBBBBBBBBBBS#",
-		"#BBBBBBBBBBBBBBS#",
-		".#BBBBBBBBBBBBS#.",
-		"..#BBBBBBBBBBS#..",
-		"...###########...",
-	]
-
 	var mouse_scale := 1.0
 
 	func _init(button_mask: int, lit_color: Color, size_up := 1.0) -> void:
 		mask = button_mask
-		lit = lit_color
+		lit = lit_color.darkened(0.3) if lit_color.get_luminance() > 0.7 else lit_color  # a pale colour would vanish on the white body
 		mouse_scale = size_up
-		custom_minimum_size = Vector2(17, 14) * Spellbook.SCALE * 0.4 * size_up
-
-	## A pressed button's colour: its top row is lighter, so it reads as lit whatever the colour.
-	func _pressed(x: int, y: int, key: String) -> Color:
-		return lit.lightened(0.45) if y == 0 or SHAPE[y - 1][x] != key else lit
+		texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		custom_minimum_size = Vector2(16, 16) * Spellbook.SCALE * 0.4 * size_up
 
 	func _draw() -> void:
-		var px := Spellbook.SCALE * 0.4 * mouse_scale
-		var body := Color("#e9d7bd")
-		var off := Color("#efe2c8")  # a button that is not pressed is the colour of the mouse, one that is pressed shows the school's colour with a bright top edge
-		for y in SHAPE.size():
-			var row: String = SHAPE[y]
-			for x in row.length():
-				var colour := Color.TRANSPARENT
-				match row[x]:
-					"#":
-						colour = Spellbook.INK
-					"L":
-						colour = _pressed(x, y, "L") if mask & SpellData.LEFT else off
-					"R":
-						colour = _pressed(x, y, "R") if mask & SpellData.RIGHT else off
-					"M":
-						colour = _pressed(x, y, "M") if mask & SpellData.MIDDLE else off
-					"B":
-						colour = body
-					"H":
-						colour = body.lightened(0.4)
-					"S":
-						colour = body.darkened(0.25)
-				if colour.a > 0.0:
-					draw_rect(Rect2(Vector2(x, y) * px, Vector2(px, px)), colour)
+		var area := Rect2(Vector2.ZERO, Vector2(16, 16) * Spellbook.SCALE * 0.4 * mouse_scale)
+		var step := Spellbook.SCALE * 0.4 * mouse_scale  # one pixel of the mouse
+		for around in [Vector2(-1, 0), Vector2(1, 0), Vector2(0, -1), Vector2(0, 1)]:
+			draw_texture_rect(BODY, Rect2(area.position + around * step, area.size), false, Spellbook.INK)
+		draw_texture_rect(BODY, area, false)
+		for button: int in BUTTONS:
+			if mask & button:  # a dark edge keeps even a pale colour clear of the white body
+				for around in [Vector2(-1, 0), Vector2(1, 0), Vector2(0, -1), Vector2(0, 1)]:
+					draw_texture_rect(BUTTONS[button], Rect2(area.position + around * step, area.size), false, Spellbook.INK)
+		for button: int in BUTTONS:
+			if mask & button:
+				draw_texture_rect(BUTTONS[button], area, false, lit)
 
 
 ## A gesture's shape, drawn as a hand would ink it: a smooth stroke with a fine second line beside it, an arrowhead
