@@ -92,7 +92,7 @@ class MouseIcon extends Control:
 
 	func _draw() -> void:
 		var area := Rect2(Vector2.ZERO, custom_minimum_size)
-		draw_texture_rect(BODY, area, false)
+		draw_texture_rect(BODY, area, false, Color("#e2cba8"))  # parchment-toned, so the white does not glare
 		for button: int in BUTTONS:
 			if mask & button:
 				draw_texture_rect(BUTTONS[button], area, false, lit)
