@@ -1,6 +1,6 @@
 # Spell pool (draft)
 
-Status: **all 43 spells are built** (the 33 below, plus Tide Surf, Obsidian Armor, Glowcap, Moonbeam and the six Blood spells) and can be tried in the waiting room (`scenes/lab.tscn`). Not built yet: stamina
+Status: **all 42 spells are built** (the 33 below, plus Tide Surf, Obsidian Armor, Glowcap, Moonbeam and the five Blood spells) and can be tried in the waiting room (`scenes/lab.tscn`). Not built yet: stamina
 ranges (every spell still costs one number, the midpoint of the range below), mastery, gate tags, the dark wizard casting
 from the pool, and real art for several spells (see "Placeholders"). Part of `roguelite_exploration_design.md`.
 
@@ -116,15 +116,14 @@ lowers the whole window (see the main design doc). All numbers are provisional.
 ### Blood (Left + Right + Middle)
 
 Paid for in maximum stamina, not the stamina that recovers. A cast is refused when it would take the last of the maximum, and
-nothing is paid for a cut that finds no one. Blood is more powerful than the other schools for the same reason.
+nothing is paid for a Faint that finds no one. There is no bleeding. Blood is more powerful than the other schools for the same reason.
 
 | Spell | Shape | Pictures | Counter | Max cost |
 |---|---|---|---|---|
 | Blood Bolt | straight flick | a dark red bolt for 30 damage (Ignite does 12) | dodge, Barrier | 12 |
-| Transfusion | circle round the one you take from | 20 damage to them and 40 stamina back to you, never maximum | dodge out of the circle | 10 |
+| Offering | a cross in one stroke | gives up 20 of the most stamina for 30 **temporary** stamina on top of the bar (it may pass 200): spent after the usual stamina, and never comes back | it is only spent | 20 |
+| Burst | circle | 40 blood damage in a ring, throws away everyone and everything in it (the caster too) and turns shots back | stay out of it | 25 |
 | Adrenaline | tall zigzag | faster on foot and stamina three times as quick for 10 seconds | it ends | 15 |
-| Hemorrhage | a cross in one stroke | a wound that bleeds the **current** stamina of anyone cut (8 per second for 8 seconds) and never the maximum; plain enemies with no stamina lose 2 health a second | a Clot, fire (cauterizes), cold (halves it) | 10 |
-| Clot | vertical line | closes every wound near the line | | 5 |
 | Faint | spiral | all the target's current stamina goes and they drop (the death animation) until their stamina has recovered to 10; the maximum is kept | the target gets up by itself; it cannot walk, cast or chant meanwhile | 30 |
 
 ## Gate tags and who can answer them

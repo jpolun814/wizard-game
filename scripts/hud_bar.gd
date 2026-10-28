@@ -10,6 +10,7 @@ extends Control
 var _value := 1.0
 var _max := 1.0
 var _cap := 1.0  # the most the bar could ever show: what a hit takes off the most is drawn as a dark gap at its end
+var extra := 0.0  # stamina on top of the bar, from an Offering: a thin strip under it and a figure in its text
 var _chip := 1.0  # the share shown by the draining chunk
 
 
@@ -43,9 +44,15 @@ func _draw() -> void:
 		draw_rect(Rect2(inner.position, Vector2(width, inner.size.y)), fill)
 		draw_rect(Rect2(inner.position, Vector2(width, 2)), fill.lightened(0.35))
 		draw_rect(Rect2(inner.position + Vector2(0, inner.size.y - 2), Vector2(width, 2)), fill.darkened(0.35))
+	if extra > 0.0:
+		var strip := Rect2(Vector2(4, size.y + 1), Vector2(minf(extra / _cap, 1.0) * inner.size.x, 4))
+		draw_rect(strip, Color("#c4162f"))
+		draw_rect(Rect2(strip.position, Vector2(strip.size.x, 1)), Color("#ff6b7a"))
 	var font := get_theme_default_font()
 	if title != "":
 		var text := "%s  %d / %d" % [title, roundi(_value), roundi(_max)]
+		if extra > 0.0:
+			text += "  +%d" % roundi(extra)
 		var font_size := int(size.y * 0.78)
 		var at := Vector2(10, size.y * 0.5 + font_size * 0.32)
 		draw_string_outline(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, 4, Color(0.03, 0.01, 0.04, 0.95))

@@ -14,9 +14,7 @@ const ICICLE_MAX := 240.0    # the longest an icicle grows
 const MUZZLE_OFFSET := 26.0  # spawn directional spells just outside the caster's body
 const BARRIER_SECONDS := 6.0
 const MISFIRE_COST := 10.0
-const CLOT_REACH := 110.0  # how near a line a wound must be for a Clot to close it
-const TRANSFUSION_DAMAGE := 20
-const TRANSFUSION_GAIN := 40.0  # the stamina a Transfusion gives back
+const OFFERING_GAIN := 30.0  # the temporary stamina an Offering gives, for the 20 most it costs
 const PICKUP_RANGE := 48.0
 const STEP_DAMAGE := 8
 const INSIGHT_REACH := 40.0  # how close the pointer must be to an enemy for Insight to show it
@@ -262,7 +260,7 @@ func _on_cast_resolved(spell: String, targeting: String, origin: Vector2, aim: f
 	if player.fainted:
 		return
 	var label_at := get_global_mouse_position() + Vector2(0, -22)
-	if spell in ["Transfusion", "Hemorrhage", "Faint"] and _blood_target(spell, origin) == null:
+	if spell == "Faint" and _blood_target(spell, origin) == null:
 		FloatText.spawn(self, label_at, "Aim at a foe", Color("#ff9a9a"), 0.9)  # nothing is paid for a cut that finds no one
 		return
 	var spell_data: Spell = SpellData.SPELLS[spell]
@@ -411,23 +409,10 @@ func spawn_spell(spell: String, targeting: String, origin: Vector2, aim: float, 
 				Fx.burst(self, caster_node.center(), SpellData.SCHOOL_COLORS["Blood"], 14, 150.0, 0.5, true)
 				Sfx.play("heartbeat", caster_node.center())
 			return
-		"Clot":
-			var closed := Bleed.close_near(get_tree(), origin, CLOT_REACH)
-			Fx.pop(self, origin, "circle_03", Color("#f2c7c7"), CLOT_REACH * 2.0, 0.5, 1.2)
-			if closed > 0:
-				Sfx.play("pickup", origin, -6.0)
-			return
-		"Transfusion":
-			var donor := _blood_target(spell, origin)
-			if donor != null:
-				_transfuse(donor, caster_node)
-			return
-		"Hemorrhage":
-			var cut := _blood_target(spell, origin)
-			if cut != null:
-				Bleed.open(self, cut)
-				Fx.burst(self, SpellTargets.center_of(cut), SpellData.SCHOOL_COLORS["Blood"], 12, 130.0, 0.4, true)
-				Sfx.play("blood_cast", SpellTargets.center_of(cut), -6.0)
+		"Offering":
+			if caster_node.has_method("gain_temp_stamina"):
+				caster_node.gain_temp_stamina(OFFERING_GAIN)
+				_offer(caster_node)
 			return
 		"Faint":
 			var down := _blood_target(spell, origin)
@@ -470,13 +455,11 @@ func spawn_spell(spell: String, targeting: String, origin: Vector2, aim: float, 
 	effect.setup(spell, origin, aim)
 
 
-## Whoever a blood spell is aimed at: the one nearest the stroke, but never the caster for a Transfusion.
+## Whoever a blood spell is aimed at: the one nearest the stroke.
 func _blood_target(spell: String, origin: Vector2) -> Node2D:
 	var best: Node2D = null
 	var best_distance := Hex.REACH
 	for body in SpellTargets.all(get_tree()):
-		if spell == "Transfusion" and body == player:
-			continue
 		var distance := SpellTargets.center_of(body).distance_to(origin)
 		if distance < best_distance:
 			best_distance = distance
@@ -484,27 +467,22 @@ func _blood_target(spell: String, origin: Vector2) -> Node2D:
 	return best
 
 
-## A Transfusion: the donor takes damage, a stream of blood runs to the caster and their stamina comes back.
-func _transfuse(donor: Node2D, taker: Node2D) -> void:
-	SpellTargets.hurt(donor, TRANSFUSION_DAMAGE, "Blood")
-	if taker.has_method("restore_stamina"):
-		taker.restore_stamina(TRANSFUSION_GAIN)
-	var from := SpellTargets.center_of(donor)
+## An Offering: drops of blood gather from round the caster and sink into them.
+func _offer(taker: Node2D) -> void:
 	var to := SpellTargets.center_of(taker)
-	for k in 9:
+	for k in 12:
 		var drop := Sprite2D.new()
 		drop.texture = Fx.tex("circle_05")
 		drop.material = Fx.additive()
 		drop.modulate = SpellData.SCHOOL_COLORS["Blood"].lightened(0.2)
 		drop.scale = Vector2.ONE * (10.0 / Fx.TEX_SIZE)
-		drop.position = from
+		drop.position = to + Vector2.from_angle(k * TAU / 12.0) * 80.0
 		drop.z_index = 8
 		add_child(drop)
 		var flight := create_tween()
-		flight.tween_interval(k * 0.05)
-		flight.tween_property(drop, "position", to + Vector2(0, -20), 0.45).set_ease(Tween.EASE_IN)
+		flight.tween_property(drop, "position", to, 0.45).set_ease(Tween.EASE_IN)
 		flight.tween_callback(drop.queue_free)
-	Sfx.play("blood_cast", from, -4.0)
+	Sfx.play("blood_cast", to, -4.0)
 	Sfx.play("pickup", to, -4.0)
 
 

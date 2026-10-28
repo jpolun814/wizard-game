@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="Spell" format=3]
+
+[ext_resource type="Script" path="res://scripts/spell.gd" id="1_bur01"]
+
+[resource]
+script = ExtResource("1_bur01")
+spell_name = "Burst"
+school = "Blood"
+gesture = "circle"
+cost = 25.0
+draw = "A circle, drawn where it will burst."
+effect = "Burst blood outward for 40 damage, throwing back anyone and everything near, you too."
+damage = "40 damage"
+effect_path = "res://scripts/spells/burst.gd"

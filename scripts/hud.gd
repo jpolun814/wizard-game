@@ -57,6 +57,7 @@ func _process(delta: float) -> void:
 		var unlimited: bool = player.infinite_time > 0.0
 		stamina_bar.fill = UNLIMITED if unlimited else STAMINA
 		stamina_bar.set_value(player.stamina, player.max_stamina, player.MAX_STAMINA)
+		stamina_bar.extra = player.temp_stamina
 		_status.text = player.status_text()
 	_feedback_time -= delta
 	_feedback.modulate.a = clampf(_feedback_time / 0.6, 0.0, 1.0)

@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="Spell" format=3]
+
+[ext_resource type="Script" path="res://scripts/spell.gd" id="1_off01"]
+
+[resource]
+script = ExtResource("1_off01")
+spell_name = "Offering"
+school = "Blood"
+gesture = "cross"
+cost = 20.0
+draw = "A cross in one stroke, like a mark of sacrifice."
+effect = "Give up some of your most stamina for extra stamina that is spent last and never returns."
+damage = "-20 most, +30 stamina"

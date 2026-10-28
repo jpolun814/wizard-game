@@ -611,56 +611,59 @@ func _plan_new_spells() -> void:
 		wizard.stamina = 9.0)
 	_at(2.1, func() -> void: _cast("Blood Bolt", line.call(_feet(15) + Vector2(0, -40), _feet(15) + Vector2(100, -40))))
 	_at(2.3, func() -> void: check.call("a wizard with too little maximum stamina is refused (max %d)" % wizard.max_stamina, wizard.max_stamina == 9.0))
-	# Transfusion: the foe loses 20, the caster's stamina comes back.
+	# Burst: everyone near is hurt and thrown away from the middle, the caster too, and a shot in the air is turned back.
 	_at(2.6, func() -> void:
-		reset.call(15, "Transfusion")
+		reset.call(15, "Burst")
 		wizard.max_stamina = 200.0
 		dummy.call().global_position = _feet(19)
-		memo["hp"] = dummy.call().hp)
+		memo["hp"] = dummy.call().hp
+		memo["x"] = dummy.call().global_position.x
+		memo["max"] = wizard.max_stamina)
 	_at(3.0, func() -> void:
-		wizard.stamina = 20.0
-		_arena.caster.cast_stroke(SpellData.SPELLS["Transfusion"].buttons, _stroke("circle", _feet(19) + Vector2(0, -30), 0.9)))  # not _cast, which fills the stamina first
-	_at(3.6, func() -> void:
-		check.call("a Transfusion takes 20 from the foe (hp %d -> %d)" % [memo["hp"], dummy.call().hp], memo["hp"] - dummy.call().hp >= 20)
-		check.call("and gives the caster stamina back (%d)" % wizard.stamina, wizard.stamina >= 55.0)
-		_snap("transfusion"))
+		var bolt := EnemyBolt.fire(_arena, _feet(19) + Vector2(60, -60), _feet(19) + Vector2(-400, -60), Color.RED, 5)
+		memo["bolt"] = bolt
+		var walker: Node2D = _arena._add_mob("basic", _feet(19) + Vector2(30, -4))
+		walker._spawn = 0.0  # already up, not rising
+		walker.max_hp = 500
+		walker.hp = 500  # and tough enough to be thrown rather than killed
+		memo["walker"] = walker
+		memo["walker_x"] = walker.global_position.x
+		_cast("Burst", _stroke("circle", _feet(19) + Vector2(0, -30), 0.9)))
+	_at(3.4, func() -> void:
+		check.call("a Burst does 40 to anyone in it (hp %d -> %d)" % [memo["hp"], dummy.call().hp], memo["hp"] - dummy.call().hp == 40)
+		check.call("and throws them away from the middle (x %d -> %d)" % [memo["walker_x"], memo["walker"].global_position.x], memo["walker"].global_position.x - memo["walker_x"] > 20.0)
+		check.call("and the caster pays 25 of their most (%d)" % wizard.max_stamina, wizard.max_stamina <= memo["max"] - 25.0)
+		check.call("and turns back a shot in the air", is_instance_valid(memo["bolt"]) and memo["bolt"].heading().x > 0.0)
+		_arena._since_hurt = -100000.0  # the blast hurt the wizard too: the waiting room must not heal that
+		memo["bolt"].queue_free()
+		memo["walker"].queue_free()
+		_snap("burst"))
+	# Offering: the most stamina falls by 20 and 30 more is kept apart, spent last.
+	_at(3.8, func() -> void:
+		reset.call(15, "Offering")
+		wizard.max_stamina = 200.0
+		wizard.stamina = 200.0
+		wizard.temp_stamina = 0.0)
+	_at(4.0, func() -> void: _arena.caster.cast_stroke(SpellData.SPELLS["Offering"].buttons, _stroke("cross", wizard.center() + Vector2(0, -4), 0.8)))
+	_at(4.2, func() -> void:
+		check.call("an Offering lowers the most stamina by 20 (%d)" % wizard.max_stamina, wizard.max_stamina == 180.0)
+		check.call("and gives 30 extra (%d)" % wizard.temp_stamina, wizard.temp_stamina == 30.0)
+		wizard.spend(wizard.stamina + 10.0)
+		check.call("the extra is spent once the usual stamina is gone (%d, %d)" % [wizard.stamina, wizard.temp_stamina], wizard.stamina == 0.0 and wizard.temp_stamina == 20.0)
+		_snap("offering"))
 	# Adrenaline: hasted and recovering quicker.
-	_at(4.0, func() -> void: reset.call(15, "Adrenaline"))
-	_at(4.2, func() -> void: _cast("Adrenaline", _stroke("zigzag", _feet(15) + Vector2(60, -80), 1.0)))
-	_at(4.5, func() -> void:
+	_at(4.6, func() -> void: reset.call(15, "Adrenaline"))
+	_at(4.8, func() -> void: _cast("Adrenaline", _stroke("zigzag", _feet(15) + Vector2(60, -80), 1.0)))
+	_at(5.1, func() -> void:
 		check.call("Adrenaline hastes the wizard and quickens recovery", wizard.adrenaline_time > 5.0 and wizard.haste_time > 5.0)
 		_snap("adrenaline"))
-	# Hemorrhage: a wound that bleeds the wizard's stamina and never the most they can have.
-	_at(5.0, func() -> void:
-		reset.call(15, "Hemorrhage")
-		wizard.max_stamina = 200.0
-		wizard.stamina = 150.0
-		wizard.adrenaline_time = 0.0
-		memo["max"] = wizard.max_stamina)
-	_at(5.2, func() -> void: _cast("Hemorrhage", _stroke("cross", wizard.center() + Vector2(0, -4), 0.8)))
-	_at(5.25, func() -> void: wizard.stamina = 150.0)
-	_at(6.2, func() -> void:
-		check.call("a wound bleeds the wizard's current stamina (%d)" % wizard.stamina, Bleed.of(tree, wizard) != null and wizard.stamina < 148.0)
-		check.call("and never the maximum (%d)" % wizard.max_stamina, wizard.max_stamina == memo["max"] - 10.0)
-		_snap("bleeding"))
-	# Clot closes it.
-	_at(6.4, func() -> void: _cast("Clot", _stroke("wall", wizard.center(), 1.0)))
-	_at(6.7, func() -> void: check.call("a Clot closes the wound", Bleed.of(tree, wizard) == null))
-	# A bleeding dummy loses health; fire cauterizes the wound.
-	_at(7.0, func() -> void:
-		reset.call(15, "Hemorrhage")
-		wizard.max_stamina = 200.0
-		dummy.call().global_position = _feet(19)
-		memo["hp"] = dummy.call().hp)
-	_at(7.2, func() -> void: _cast("Hemorrhage", _stroke("cross", _feet(19) + Vector2(0, -30), 0.8)))
-	_at(9.2, func() -> void: check.call("a plain foe bleeds health (hp %d -> %d)" % [memo["hp"], dummy.call().hp], dummy.call().hp < memo["hp"]))
-	_at(9.3, func() -> void: Hazard.place(_arena, dummy.call().global_position, 80.0, 3.0))
-	_at(9.6, func() -> void: check.call("fire seals the wound", Bleed.of(tree, dummy.call()) == null))
 	# Faint: the wizard drops, and stands up again once stamina has come back to 10.
 	_at(11.0, func() -> void:
 		reset.call(15, "Faint")
 		wizard.max_stamina = 200.0
 		wizard.stamina = 150.0
+		wizard.adrenaline_time = 0.0  # the Adrenaline above would bring the stamina back before it could be looked at
+		wizard.haste_time = 0.0
 		memo["max"] = wizard.max_stamina)
 	_at(11.2, func() -> void: _cast("Faint", _stroke("spiral", wizard.center(), 1.0)))
 	_at(11.5, func() -> void:

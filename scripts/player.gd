@@ -76,6 +76,7 @@ var surf_time: float: # Tide Surf: a wave carries the wizard along surf_dir whil
 	get: return _status.left(&"surf")
 	set(seconds): _status.set_left(&"surf", seconds)
 var surf_dir := 1.0
+var temp_stamina := 0.0  # stamina from an Offering: spent once the usual stamina is gone, never comes back by itself, and may pass the most
 var fainted := false  # knocked out by a Faint: down on the ground until the stamina comes back
 var air_jump_ready := false  # the air jump is spent by one use, and comes back when the wizard lands
 var _shove := Vector2.ZERO  # a Push on the caster: slides them for a moment, then fades
@@ -226,7 +227,7 @@ func thaw() -> void:
 func spend(amount: float) -> bool:
 	if infinite_time > 0.0:
 		return true
-	if stamina < amount:
+	if stamina + temp_stamina < amount:
 		return false
 	drain(amount)
 	return true
@@ -236,8 +237,16 @@ func spend(amount: float) -> bool:
 func drain(amount: float) -> void:
 	if infinite_time > 0.0:
 		return
+	var short := maxf(amount - stamina, 0.0)  # what the usual stamina could not cover is taken from the offering
 	stamina = maxf(stamina - amount, 0.0)
+	temp_stamina = maxf(temp_stamina - short, 0.0)
 	_since_spend = 0.0
+
+
+## An Offering: stamina on top of the bar that is used last and not given back.
+func gain_temp_stamina(amount: float) -> void:
+	temp_stamina += amount
+	FloatText.spawn(get_parent(), center() + Vector2(0, -24), "+%d" % roundi(amount), Color("#ff9aa8"), 1.0)
 
 
 func restore_stamina(amount: float) -> void:
@@ -345,6 +354,7 @@ func faint() -> void:
 		return
 	fainted = true
 	stamina = 0.0
+	temp_stamina = 0.0
 	_since_spend = 0.0
 	casting = false
 	Sfx.play("player_hurt", center())
