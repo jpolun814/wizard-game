@@ -46,14 +46,13 @@ jobs:
           mkdir -p build
           ./godot --headless --path . --export-release "Windows Desktop" build/WizardGame.exe
           test -f build/WizardGame.exe
-          cd build && zip -q WizardGame-windows.zip WizardGame.exe
 
       - name: Publish the release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release delete latest --cleanup-tag --yes || true
-          gh release create latest build/WizardGame-windows.zip \
+          gh release create latest build/WizardGame.exe \
             --target "$GITHUB_SHA" \
             --title "Latest build" \
-            --notes "Built from ${GITHUB_SHA::7}. Unzip and run WizardGame.exe. Windows may say it protected your PC: click More info, then Run anyway."
+            --notes "Built from ${GITHUB_SHA::7}. Download WizardGame.exe and run it. Windows may say it protected your PC: click More info, then Run anyway."
