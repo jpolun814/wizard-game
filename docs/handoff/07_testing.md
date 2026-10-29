@@ -13,6 +13,13 @@ claimed and not checked.
 5. **Soak:** `scenario=soak`, headless. Grep for
    `SCRIPT ERROR`.
 
+## Network play (two copies of the game on this computer)
+
+`tests/net_check.tscn` (the shared waiting room) and `tests/net_match_check.tscn` (a whole match) each run as two copies: start one
+with `-- role=host` in the background, then one with `-- role=client`. Both must print PASS, and their logs must have no
+`ERROR` lines. Run them in real time: no `--fixed-fps`. Drop `--headless` and add `out=DIR` for pictures of what each side sees.
+See `11_network_play.md`.
+
 ## Showcase scenarios (`tests/showcase.tscn`)
 
 Run with `godot --path . tests/showcase.tscn -- scenario=NAME out=DIR [only=Spell_Name]`.

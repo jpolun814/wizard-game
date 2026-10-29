@@ -75,6 +75,11 @@ func is_drawing() -> bool:
 	return _active_mask != 0
 
 
+## The stroke being drawn, in the world; empty while none is.
+func stroke() -> PackedVector2Array:
+	return _stroke if is_drawing() else PackedVector2Array()
+
+
 ## The colour of the school whose buttons are held for the stroke being drawn.
 func drawing_color() -> Color:
 	return _school_color(_active_mask)

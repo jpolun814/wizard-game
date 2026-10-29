@@ -54,7 +54,13 @@ const FALL_LIMIT := 800.0     # a wizard below this has fallen off the map (in a
 const ICE := preload("res://art/props/ice_fill.png")
 
 var gravity: float = ProjectSettings.get_setting("physics/2d/default_gravity")
-var look := "wizard"  # which wizard this is: the player's own, or the id of one of the others' looks (a MobKind in res://mobs)
+var look := "wizard":  # which wizard this is: the player's own, or the id of one of the others' looks (a MobKind in res://mobs)
+	set(value):
+		if value == look:
+			return
+		look = value
+		if is_node_ready():
+			_dress()
 var brain: WizardBrain  # what plays this wizard; none while a person does
 var caster: Caster  # a brain's wizard draws its spells through this; a person's strokes are read by the arena's own
 var nav: WorldNav  # the ways about the world, for a wizard that walks it by itself; none in the waiting room
@@ -65,7 +71,6 @@ var climb_up := false  # what a brain asks of a vine; a person's keys say the sa
 var climb_down := false
 var let_go := false
 var _stroke := PackedVector2Array()  # the spell a brain's wizard is drawing, and how far on it is
-var _stroke_colour := Color.WHITE
 var _draw_time := 0.0
 var _draw_total := DRAW_TIME
 var _on_drawn: Callable
@@ -155,6 +160,27 @@ var _swirl: Sprite2D  # the wind turning round the Barrier
 var _vine: Node2D  # the vine (Liana) the wizard is hanging on, if any
 var _vine_cooldown := 0.0  # after letting go, a vine cannot be grabbed again for a moment
 
+# --- What the other machines of a network game see of this wizard (see share and Net) -------------------------------------
+## Only the machine that drives a wizard (its multiplayer authority) moves it and decides what happens to it. A MultiplayerSynchronizer
+## copies these to the others, where the wizard is a likeness that follows them. Playing alone, every wizard is driven here.
+const FROZEN := 1
+const SHIELDED := 2
+const OBSIDIAN := 4
+const STUCK := 8
+const GROUNDED := 16
+const ROOTED := 32
+const SLOWED := 64
+var peer := 0  # the machine that drives this wizard, as a peer id; 0 for this machine. Set before the wizard enters the tree
+var human := true  # a person plays this wizard, here or on another machine; false for one a brain plays (on the host)
+var net_position := Vector2.ZERO  # where the driving machine has the wizard; a likeness glides there
+var shown_anim := &"idle"  # the animation the driving machine plays
+var shown_stroke := PackedVector2Array()  # the stroke being drawn, in the world, for others to see and read
+var marks := 0  # FROZEN, SHIELDED, OBSIDIAN, STUCK, GROUNDED, ROOTED and SLOWED, as the driving machine has them
+var _was_casting := false  # a likeness was drawing the frame before
+var _passed := false  # its fall has been shown
+const GLIDE := 0.45  # how much of the way to where it really is a likeness moves each physics frame
+const SNAP := 160.0  # farther than this, and it is put there at once (a step, a portal, a rift)
+
 
 func _ready() -> void:
 	add_child(_status)
@@ -163,21 +189,17 @@ func _ready() -> void:
 			Shatter.spawn(get_parent(), center(), Color("#cdeeff")))  # the ice gives way
 	floor_max_angle = deg_to_rad(50.0)  # a 45 degree slope, the steepest a tunnel climbs, still counts as floor
 	add_to_group("wizards")
-	var art := "wizard"
-	if brain == null:
+	_dress()
+	net_position = global_position
+	if is_person():
 		add_to_group("player")  # the one wizard the camera, the book and the bar belong to
 	else:
-		var data: MobKind = Mob.KINDS[look]
-		art = data.art
-		_sprite.scale = Vector2.ONE * data.scale
 		$Camera2D.queue_free()
-		_make_caster()
 		_sprite.animation_finished.connect(_on_animation_finished)
 		Fx.pop(get_parent(), global_position + Vector2(0, -2), "magic_02", Color("#d8d0e8"), 70.0, SPAWN_TIME + 0.2, 1.2, 1.5)  # it arrives through a summoning circle
 		Sfx.play("summon", global_position)
-	_sprite.sprite_frames = CharFrames.build("res://art/chars/" + art, ANIMATIONS if brain == null else LOOK_ANIMATIONS)
-	_sprite.offset = Vector2(0, -PixelArt.CHARACTERS[art]["size"].y * 0.5)  # the frames' bottom edge is the feet
-	_sprite.play("idle")
+	if brain != null:
+		_make_caster()
 	_overlay = Node2D.new()
 	_overlay.z_index = 10
 	_overlay.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
@@ -235,6 +257,19 @@ func _ready() -> void:
 	add_child(_shield_emitter)
 
 
+## Puts on the frames of the wizard's look. A network game gives each seat its own look, after the scene's wizard is ready.
+func _dress() -> void:
+	var art := "wizard"
+	_sprite.scale = Vector2.ONE
+	if look != "wizard":
+		var data: MobKind = Mob.KINDS[look]
+		art = data.art
+		_sprite.scale = Vector2.ONE * data.scale
+	_sprite.sprite_frames = CharFrames.build("res://art/chars/" + art, ANIMATIONS if look == "wizard" else LOOK_ANIMATIONS)
+	_sprite.offset = Vector2(0, -PixelArt.CHARACTERS[art]["size"].y * 0.5)  # the frames' bottom edge is the feet
+	_sprite.play("idle")
+
+
 ## Where the wizard's mouth is, for Fire Breath.
 func mouth() -> Vector2:
 	return global_position + Vector2(26.0 * facing, -56.0)  # at the front of the wizard, around the face
@@ -256,7 +291,7 @@ func raise_shield(seconds: float) -> void:
 
 
 func has_shield() -> bool:
-	return _shield_time > 0.0
+	return marks & SHIELDED != 0 if is_likeness() else _shield_time > 0.0
 
 
 ## Encases the player in ice: rooted for the same time an enemy stays frozen.
@@ -267,7 +302,7 @@ func freeze(seconds: float) -> bool:
 
 
 func is_frozen() -> bool:
-	return _frozen_time > 0.0
+	return marks & FROZEN != 0 if is_likeness() else _frozen_time > 0.0
 
 
 func thaw() -> void:
@@ -286,7 +321,7 @@ func spend(amount: float) -> bool:
 
 ## Take stamina even if it's short (misfire penalty); never goes below zero.
 func drain(amount: float) -> void:
-	if infinite_time > 0.0:
+	if infinite_time > 0.0 or is_likeness():
 		return
 	var short := maxf(amount - stamina, 0.0)  # what the usual stamina could not cover is taken from the offering
 	stamina = maxf(stamina - amount, 0.0)
@@ -296,6 +331,8 @@ func drain(amount: float) -> void:
 
 ## An Offering: stamina on top of the bar that is used last and not given back.
 func gain_temp_stamina(amount: float) -> void:
+	if is_likeness():
+		return
 	temp_stamina += amount
 	FloatText.spawn(get_parent(), center() + Vector2(0, -24), "+%d" % roundi(amount), Color("#ff9aa8"), 1.0)
 
@@ -305,6 +342,8 @@ func restore_stamina(amount: float) -> void:
 
 
 func heal(amount: int) -> void:
+	if is_likeness():
+		return
 	max_stamina = minf(max_stamina + amount, MAX_STAMINA)
 	stamina = minf(stamina + amount, max_stamina)
 
@@ -312,6 +351,8 @@ func heal(amount: int) -> void:
 ## A hit lowers your most stamina and then gives a short grace, in which no other hit lands. A burn (grace_hit false) takes
 ## it without starting that grace, so a burn and a blow can both land.
 func take_damage(amount: int, grace_hit := true, projectile := false) -> void:
+	if is_likeness():
+		return  # the machine that drives this wizard decides what a hit does, and shows it here (see _show_hurt)
 	if (projectile and _shield_time > 0.0) or dead or (grace_hit and _grace > 0.0) or amount <= 0:
 		return
 	if veil > 0 or _veil_cool > 0.0:
@@ -335,6 +376,7 @@ func take_damage(amount: int, grace_hit := true, projectile := false) -> void:
 	Sfx.play("player_hurt", center())
 	GameCamera.shake_scene(get_tree(), 0.35 + amount * 0.02)
 	FloatText.spawn(get_parent(), center() + Vector2(0, -24), "-%d" % amount, Color("#ff5a5a"), 1.1)
+	Net.send(self, &"_show_hurt", [amount])
 	damaged.emit(amount)
 	if brain != null:
 		brain.on_hurt(amount)
@@ -354,9 +396,12 @@ func _check_death() -> void:
 			_pass_away()
 
 
-## A wizard no person plays falls where it stands: spells pass through it, and it fades after its death tumble. (A person's wizard
-## stays, for the game-over screen and the camera.)
+## A wizard no person plays here (a brain's, or a likeness of another machine's) falls where it stands: spells pass through it, and it
+## fades after its death tumble. (A person's own wizard stays, for the game-over screen and the camera.)
 func _pass_away() -> void:
+	if _passed:
+		return
+	_passed = true
 	set_deferred("collision_layer", 0)
 	Sfx.play("mob_die", center())
 	Fx.burst(get_parent(), center(), Color("#d8d0e8"), 18, 180.0, 0.6, true)
@@ -364,12 +409,15 @@ func _pass_away() -> void:
 	GameCamera.shake_scene(get_tree(), 0.18)
 
 
+## A fallen wizard fades after its death tumble, and one a brain plays is gone. A likeness only fades: it stays until its scene does,
+## as the machine that drives it may still be telling it things.
 func _on_animation_finished() -> void:
-	if dead and _sprite.animation == &"death":
+	if dead and _sprite.animation == &"death" and not (human and is_likeness()):  # a person's own machine hides their wizard
 		var fade := create_tween()
 		fade.tween_interval(0.4)
 		fade.tween_property(self, "modulate:a", 0.0, 0.4)
-		fade.tween_callback(queue_free)
+		if not is_likeness():
+			fade.tween_callback(queue_free)
 
 
 ## Standing in water or lava: the part of the wizard below the surface takes its colour for a moment after each call, so
@@ -398,7 +446,7 @@ func grant_deep_breath(seconds: float) -> void:
 
 
 func apply_debuff(kind: String, seconds: float) -> void:
-	if dead:
+	if dead or is_likeness():
 		return
 	match kind:
 		"mute":
@@ -423,7 +471,7 @@ func is_muted() -> bool:
 ## Pays for a spell in maximum stamina, which only healing brings back. Never takes the last of it: false, and nothing paid, if the
 ## wizard could not live through it.
 func pay_max(amount: float) -> bool:
-	if dead or max_stamina <= amount:
+	if dead or max_stamina <= amount or is_likeness():
 		return false
 	max_stamina -= amount
 	stamina = minf(stamina, max_stamina)
@@ -435,7 +483,7 @@ func pay_max(amount: float) -> bool:
 
 ## A Faint: all the stamina goes, and the wizard drops. They stand up when the stamina has come back to GET_UP.
 func faint() -> void:
-	if dead or fainted:
+	if dead or fainted or is_likeness():
 		return
 	fainted = true
 	stamina = 0.0
@@ -465,7 +513,7 @@ func start_surf(direction: float, seconds: float) -> void:
 
 ## True while black glass keeps lava from hurting.
 func lava_proof() -> bool:
-	return obsidian_time > 0.0
+	return marks & OBSIDIAN != 0 if is_likeness() else obsidian_time > 0.0
 
 
 func is_blind() -> bool:
@@ -492,7 +540,7 @@ func _draw() -> void:
 
 ## Air under water: a row of bubbles over the head, one for each second left.
 func _draw_breath() -> void:
-	if dead:
+	if dead or is_likeness():
 		return
 	var bubble := Fx.tex("circle_05")
 	if not holding_breath() and not underwater() and breath >= BREATH:
@@ -543,15 +591,19 @@ func _draw_ellipse(at: Vector2, rx: float, ry: float, colour: Color) -> void:
 
 ## The Barrier: a faint pale bubble of air round the wizard with wind turning round it. It fades out over its last moments.
 func _draw_shield() -> void:
-	var fade := clampf(_shield_time / 0.4, 0.0, 1.0)
-	_bubble.visible = _shield_time > 0.0
+	var left := (1.0 if has_shield() else 0.0) if is_likeness() else _shield_time
+	var fade := clampf(left / 0.4, 0.0, 1.0)
+	_bubble.visible = left > 0.0
 	_bubble.modulate = Color(0.85, 0.93, 1.0, 0.22 * fade)
-	_swirl.visible = _shield_time > 0.0
+	_swirl.visible = left > 0.0
 	_swirl.rotation = -Time.get_ticks_msec() * 0.004
 	_swirl.modulate = Color(0.9, 0.96, 1.0, 0.8 * fade)
 
 
 func _physics_process(delta: float) -> void:
+	if is_likeness():
+		_follow()
+		return
 	if brain != null and global_position.y > (ArenaGen.world_size.y * float(ArenaGen.TILE) if ArenaGen.world_size.y > 0 else FALL_LIMIT) and not dead:
 		max_stamina = 0.0  # off the bottom of the map
 		_check_death()
@@ -678,11 +730,15 @@ func grant_unlimited(seconds: float) -> void:
 
 ## A Push on the caster: they are shoved along the line for a moment.
 func pull(force: Vector2, delta: float) -> void:
+	if is_likeness():
+		return
 	free_from_ground()
 	_shove += force * delta
 
 
 func push(impulse: Vector2) -> void:
+	if is_likeness():
+		return
 	free_from_ground()
 	_shove = impulse
 
@@ -698,6 +754,8 @@ func free_from_ground() -> void:
 ## A giant's stomp sticks the player in the ground: their body sinks down out of sight, and they cannot move or jump
 ## until it lets go.
 func stick_in_ground(seconds: float) -> void:
+	if is_likeness():
+		return
 	apply_debuff("root", seconds)
 	_stuck_time = maxf(_stuck_time, seconds)
 	_wet_material.set_shader_parameter("keep", 0.7)
@@ -713,6 +771,11 @@ func unstick() -> void:
 
 
 func _process(delta: float) -> void:
+	if not is_likeness():
+		_tell_others()
+	elif (marks & STUCK != 0) != (_sprite.position.y != 0.0):
+		_wet_material.set_shader_parameter("keep", 0.7 if marks & STUCK != 0 else 2.0)  # sunk in the ground, as on the machine that drives it
+		_sprite.position = Vector2(0, 57) if marks & STUCK != 0 else Vector2.ZERO
 	if _stuck_time > 0.0:
 		_stuck_time -= delta
 		if _stuck_time <= 0.0:
@@ -723,12 +786,14 @@ func _process(delta: float) -> void:
 
 ## Picks the animation for what the wizard is doing, faces the way it is moving, and flashes when hit.
 func _animate(delta: float) -> void:
-	if absf(velocity.x) > 10.0 and not dead and brain == null:
+	if absf(velocity.x) > 10.0 and not dead and is_person():
 		facing = signf(velocity.x)  # (a brain turns its wizard itself)
 	_releasing = maxf(_releasing - delta, 0.0)
 	_hurt_anim = maxf(_hurt_anim - delta, 0.0)
 	var wanted := "idle"
-	if dead or fainted:
+	if is_likeness():
+		wanted = shown_anim
+	elif dead or fainted:
 		wanted = "death"
 	elif _hurt_anim > 0.0:
 		wanted = "hit"
@@ -742,6 +807,7 @@ func _animate(delta: float) -> void:
 		wanted = "run"
 	if _sprite.animation != wanted:
 		_sprite.play(wanted)
+	shown_anim = wanted
 	_sprite.flip_h = facing < 0.0
 	_glow.visible = casting and not dead
 	if _glow.visible:
@@ -755,7 +821,7 @@ func _animate(delta: float) -> void:
 	_wet_material.set_shader_parameter("water_y", _liquid_y if wet else 1000000.0)
 	_wet_material.set_shader_parameter("water_tint", _liquid)
 	_sprite.modulate = Color(1.0, 0.45, 0.45) if _flash > 0.0 else Color(1.0, 1.0, 1.0, 0.55 if blink else 1.0)
-	if obsidian_time > 0.0 and _flash <= 0.0:
+	if (marks & OBSIDIAN != 0 if is_likeness() else obsidian_time > 0.0) and _flash <= 0.0:
 		var glint := 0.5 + 0.08 * sin(Time.get_ticks_msec() * 0.006)
 		_sprite.modulate = Color(glint, glint * 0.92, glint * 1.2, _sprite.modulate.a)  # black glass, with a violet shine
 
@@ -819,7 +885,6 @@ func request_jump(strength := 1.0) -> void:
 ## Being hit hard while drawing breaks the spell (see WizardBrain.on_hurt).
 func start_drawing(points: PackedVector2Array, colour: Color, on_done: Callable, draw_time := DRAW_TIME) -> void:
 	_stroke = points
-	_stroke_colour = colour
 	cast_color = colour
 	_on_drawn = on_done
 	_draw_time = draw_time
@@ -839,13 +904,19 @@ func interrupt_cast() -> void:
 	_draw_time = 0.0
 	_stroke = PackedVector2Array()
 	casting = false
-	Fx.burst(get_parent(), center() + Vector2(facing * 14.0, -16.0), _stroke_colour, 14, 140.0, 0.4, true)
+	_show_interrupt()
+	Net.send(self, &"_show_interrupt")
+
+
+@rpc("authority", "call_remote", "reliable")
+func _show_interrupt() -> void:
+	Fx.burst(get_parent(), center() + Vector2(facing * 14.0, -16.0), cast_color, 14, 140.0, 0.4, true)
 	FloatText.spawn(get_parent(), center() + Vector2(0, -44), "Interrupted!", Color("#d9b8ff"), 0.9)
 	Sfx.play("misfire", center())
 
 
-## Things drawn over the sprite: the block of ice a frozen wizard is in, and the stroke a brain's wizard is drawing, which
-## grows as the spell does so that it can be read and broken.
+## Things drawn over the sprite: the block of ice a frozen wizard is in, and the stroke any other wizard is drawing (a brain's, or a
+## person's on another machine), which grows as the spell does so that it can be read and broken. Your own is the caster's trail.
 func _draw_overlay() -> void:
 	if dead:
 		return
@@ -853,13 +924,11 @@ func _draw_overlay() -> void:
 		var body := Vector2(BODY_WIDTH, BODY_HEIGHT)
 		var box := Rect2((center_offset() - body * 0.5 - Vector2(6, 6)).floor(), (body + Vector2(12, 10)).floor())
 		_overlay.draw_texture_rect(ICE, box, true, Color(1, 1, 1, 0.6))
-	if _draw_time > 0.0 and _stroke.size() >= 2:
-		var progress := 1.0 - _draw_time / _draw_total
-		var count := clampi(int(_stroke.size() * progress), 2, _stroke.size())
+	if shown_stroke.size() >= 2 and not is_person():
 		var local := PackedVector2Array()
-		for i in count:
-			local.append(_stroke[i] - global_position)
-		var c := _stroke_colour
+		for point in shown_stroke:
+			local.append(point - global_position)
+		var c := cast_color
 		_overlay.draw_polyline(local, Color(c.r, c.g, c.b, 0.25), 7.0)
 		_overlay.draw_polyline(local, Color(c.r, c.g, c.b, 0.9), 3.0)
 		_overlay.draw_polyline(local, Color(1.0, 1.0, 1.0, 0.9), 1.0)
@@ -867,8 +936,115 @@ func _draw_overlay() -> void:
 
 
 func is_rooted() -> bool:
-	return root_time > 0.0
+	return marks & ROOTED != 0 if is_likeness() else root_time > 0.0
 
 
 func is_slowed() -> bool:
-	return slow_time > 0.0
+	return marks & SLOWED != 0 if is_likeness() else slow_time > 0.0
+
+
+## True while the wizard stands on something. A likeness is not moved by physics here, so it says what its own machine says.
+func stands() -> bool:
+	return marks & GROUNDED != 0 if is_likeness() else is_on_floor()
+
+
+# --- In a network game (see Net) ---------------------------------------------------------------------------------------
+
+
+## The name a person's wizard has in a network game, the same on every machine.
+static func name_for(peer_id: int) -> String:
+	return "Wizard%d" % peer_id
+
+
+func _enter_tree() -> void:
+	set_multiplayer_authority(peer if peer != 0 else multiplayer.get_unique_id())
+
+
+## True for the wizard this machine's person plays: the keys and the mouse drive it, and the camera, book and bar are its.
+func is_person() -> bool:
+	return brain == null and is_multiplayer_authority()
+
+
+## True for a likeness of a wizard another machine drives: it shows what that machine says and decides nothing itself.
+func is_likeness() -> bool:
+	return not is_multiplayer_authority()
+
+
+## Shows this wizard to the other machines in the same scene: a MultiplayerSynchronizer sends what they need to draw it from the
+## machine that drives it, many times a second. Things that change now and then are sent only when they change.
+func share() -> void:
+	var config := SceneReplicationConfig.new()
+	for property in ["net_position", "velocity", "facing", "stamina", "max_stamina", "temp_stamina", "cast_color", "casting"]:
+		config.add_property(NodePath(".:" + property))
+		config.property_set_replication_mode(NodePath(".:" + property), SceneReplicationConfig.REPLICATION_MODE_ALWAYS)
+	for property in ["dead", "fainted", "shown_anim", "shown_stroke", "marks", "visible", "modulate"]:
+		config.add_property(NodePath(".:" + property))
+		config.property_set_replication_mode(NodePath(".:" + property), SceneReplicationConfig.REPLICATION_MODE_ON_CHANGE)
+	var sync := MultiplayerSynchronizer.new()
+	sync.name = "Sync"
+	sync.root_path = NodePath("..")
+	sync.replication_config = config
+	sync.add_visibility_filter(Net.is_here)  # nothing is sent to a machine that has not got this scene yet
+	sync.set_multiplayer_authority(get_multiplayer_authority())  # a node added later does not take its parent's driver by itself
+	add_child(sync)
+
+
+## On the machine that drives the wizard: what the others are sent (see share).
+func _tell_others() -> void:
+	net_position = global_position
+	marks = (FROZEN if is_frozen() else 0) | (SHIELDED if has_shield() else 0) | (OBSIDIAN if obsidian_time > 0.0 else 0) | (STUCK if _stuck_time > 0.0 else 0) 			| (GROUNDED if is_on_floor() else 0) | (ROOTED if is_rooted() else 0) | (SLOWED if is_slowed() else 0)
+	if brain != null:
+		shown_stroke = _drawn_so_far()
+
+
+## The part of a brain's stroke drawn so far: it grows as the spell does.
+func _drawn_so_far() -> PackedVector2Array:
+	if _draw_time <= 0.0 or _stroke.size() < 2:
+		return PackedVector2Array()
+	var count := clampi(int(_stroke.size() * (1.0 - _draw_time / _draw_total)), 2, _stroke.size())
+	return _stroke.slice(0, count)
+
+
+## A likeness glides to where its wizard is, or jumps there when it went far at once, and falls when its wizard does. Its drawing
+## is heard as it begins, as a brain's is on the host, whoever is drawing.
+func _follow() -> void:
+	if casting and not _was_casting:
+		Sfx.play("wizard_cast", center())
+	_was_casting = casting
+	if global_position.distance_to(net_position) > SNAP:
+		global_position = net_position
+		reset_physics_interpolation()
+	else:
+		global_position = global_position.lerp(net_position, GLIDE)
+	if dead:
+		_pass_away()
+	_shield_emitter.emitting = has_shield()
+	queue_redraw()
+	_shield.queue_redraw()
+
+
+## A likeness of a person beaten in an earlier world of the match: it is out, unseen, as on their own machine.
+func stay_fallen() -> void:
+	dead = true
+	_passed = true
+	collision_layer = 0
+	hide()
+
+
+## The person who played this wizard has left the game: it falls where it stands and fades, and nothing more is heard from it.
+func abandon() -> void:
+	var sync := get_node_or_null("Sync")
+	if sync != null:
+		sync.queue_free()
+	dead = true
+	shown_anim = &"death"
+	_pass_away()
+	create_tween().tween_property(self, "modulate:a", 0.0, 0.8).set_delay(1.2)
+
+
+## The machine that drives this wizard says it was hurt: the flash, the cry and the number, as there.
+@rpc("authority", "call_remote", "unreliable_ordered")
+func _show_hurt(amount: int) -> void:
+	_flash = 0.3
+	Sfx.play("player_hurt", center())
+	FloatText.spawn(get_parent(), center() + Vector2(0, -24), "-%d" % amount, Color("#ff5a5a"), 1.1)

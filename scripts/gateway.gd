@@ -30,6 +30,8 @@ func _process(delta: float) -> void:
 func _on_body_entered(body: Node2D) -> void:
 	if partner == null or not is_instance_valid(partner) or _recent.has(body):
 		return
+	if body is Wizard and body.is_likeness():
+		return  # another machine drives that wizard, and moves it through on its own copy of the portal
 	partner._recent[body] = COOLDOWN  # it comes out of the other end, which must not send it straight back
 	_recent[body] = COOLDOWN
 	body.global_position = partner.global_position + Vector2(0.0, RY)

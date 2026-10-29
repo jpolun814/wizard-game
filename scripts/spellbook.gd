@@ -275,16 +275,21 @@ func _input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 
-## Reads a page lying on the ground into the book, and opens the book at it.
+## Reads a page lying on the ground into the book, and opens the book at it. A page the book has already is not taken: the book
+## just opens at it.
 func _read(lying: PagePickup) -> void:
-	var fresh := lying.gives(_ledger())
-	var page := lying.take(_ledger())
-	var arena := get_parent()
-	if fresh and arena.has_method("on_page_found"):
-		arena.on_page_found(page)  # takes the page into the book
+	if lying.gives(_ledger()):
+		get_parent().read_page(lying, get_parent().player)  # the arena reads it in, and opens the book at it (see show_page)
+	else:
+		show_page(lying.page)
+
+
+## Opens the book at a page.
+func show_page(page: String) -> void:
 	_spread = int(_page_of.get(page, 0)) / 2
 	_show_spread()
-	_toggle()
+	if not visible:
+		_toggle()
 
 
 ## Opens the book, which falls open before its writing shows, or shuts it.

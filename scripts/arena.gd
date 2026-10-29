@@ -20,6 +20,8 @@ const OFFERING_GAIN := 30.0  # the temporary stamina an Offering gives, for the 
 const STEP_DAMAGE := 8
 const INSIGHT_REACH := 40.0  # how close the pointer must be to an enemy for Insight to show it
 const FLYER_HEIGHT := 150.0  # flyers arrive this far above the ground
+const STROKE_STEP := 8.0  # the points of a stroke the other machines are sent are this far apart
+const HOODED_WIZARD := "Hooded Wizard"  # what Insight calls the wizard in the player's own look
 
 @onready var player: Wizard = $Player
 
@@ -41,6 +43,10 @@ var _ground: Terrain
 var tiled_ground := false  # true when the ground is tiles all the way, as in a generated world; set by _build_map
 
 func _ready() -> void:
+	if Net.online():
+		# In a network game each wizard is named after the machine that drives it, so it is at the same path on every machine.
+		player.name = Wizard.name_for(Net.my_id())
+		player.look = Net.look_of(Net.my_id())
 	# A new random arena each run, in the level's land. Build it before anything that reads the terrain.
 	_rng.randomize()
 	var biome := _biome()
@@ -91,6 +97,37 @@ func _ready() -> void:
 	add_child(debug_panel)
 
 	_begin_encounter(camera)
+	if Net.online():
+		player.share()
+		Net.enter_scene(_scene_name())  # only now is anything about this scene sent here
+
+
+func _exit_tree() -> void:
+	_leave_network_scene()
+
+
+## In a network game a machine says it is leaving a scene a moment before it lets go of it (as the screen fades), so that nothing more
+## about the scene is sent to it once it is gone.
+func _leave_network_scene() -> void:
+	if Net.online() and Net.scene != "":
+		Net.enter_scene("")
+
+
+## What this scene is called in a network game: each machine says which one it is in (see Net.enter_scene).
+func _scene_name() -> String:
+	return "arena"
+
+
+## A likeness of a person who plays on another machine, standing at a point (see Net).
+func _add_person(peer_id: int, feet: Vector2) -> Wizard:
+	var wizard: Wizard = WIZARD_SCENE.instantiate()
+	wizard.name = Wizard.name_for(peer_id)
+	wizard.peer = peer_id
+	wizard.look = Net.look_of(peer_id)
+	wizard.position = feet
+	add_child(wizard)
+	wizard.share()
+	return wizard
 
 
 ## A page has been found: the book takes it in.
@@ -98,6 +135,41 @@ func on_page_found(page: String) -> void:
 	spellbook.refresh()
 	Sfx.play("pickup", player.center())
 	FloatText.spawn(self, player.center() + Vector2(0, -70), "Page: %s" % Pages.title_of(page), Color("#ffe9a0"), 1.1)
+
+
+## A wizard reads the page it stands under. In a network game the host says who gets each page, so two never read the same one: a
+## person on another machine asks it, and the page is read on every machine once it answers.
+func read_page(pickup: PagePickup, wizard: Wizard) -> void:
+	if Net.online() and not Net.is_host():
+		_ask_to_read.rpc_id(1, String(pickup.name))
+		return
+	_page_read(String(pickup.name), String(wizard.name))
+	Net.send(self, &"_page_read", [String(pickup.name), String(wizard.name)])
+
+
+## On the host: a person on another machine asks to read a page. Someone else may have read it first.
+@rpc("any_peer", "call_remote", "reliable")
+func _ask_to_read(pickup_name: String) -> void:
+	var asker := get_node_or_null(Wizard.name_for(multiplayer.get_remote_sender_id())) as Wizard
+	var pickup := get_node_or_null(NodePath(pickup_name)) as PagePickup
+	if asker == null or asker.dead or pickup == null or pickup.is_queued_for_deletion() or not pickup.gives(asker.ledger):
+		return
+	read_page(pickup, asker)
+
+
+## A page is read into a wizard's book and taken off the ground. The person whose wizard it is sees it go into their book.
+@rpc("authority", "call_remote", "reliable")
+func _page_read(pickup_name: String, wizard_name: String) -> void:
+	var pickup := get_node_or_null(NodePath(pickup_name)) as PagePickup
+	var wizard := get_node_or_null(NodePath(wizard_name)) as Wizard
+	if pickup == null or wizard == null:
+		return
+	var fresh := pickup.gives(wizard.ledger)
+	var page := pickup.take(wizard.ledger)
+	if wizard == player:
+		if fresh:
+			on_page_found(page)  # takes the page into the book
+		spellbook.show_page(page)
 
 
 ## Every page is known at once, those on the map left where they lie.
@@ -154,13 +226,19 @@ func _add_mob(kind: String, feet: Vector2) -> Node2D:
 	return mob
 
 
-## A wizard that a brain plays, in one of the looks in res://mobs, standing at a point on the ground.
-func _add_wizard(look: String, feet: Vector2) -> Wizard:
+## A wizard that a brain plays, in one of the looks in res://mobs, standing at a point on the ground. One with a name of its own is a
+## seat of a match, which a network game shows on every machine (see World).
+func _add_wizard(look: String, feet: Vector2, seat_name := "") -> Wizard:
 	var wizard: Wizard = WIZARD_SCENE.instantiate()
 	wizard.look = look
+	wizard.human = false
 	wizard.brain = WizardBrain.new(wizard)
 	wizard.position = feet
+	if seat_name != "":
+		wizard.name = seat_name
 	add_child(wizard)
+	if seat_name != "" and Net.online():
+		wizard.share()
 	return wizard
 
 
@@ -195,7 +273,8 @@ func _input(event: InputEvent) -> void:
 func _process(_delta: float) -> void:
 	# Casting and movement pause while the ritual box is open, so typing doesn't move or cast.
 	# The spellbook doesn't pause anything, so it can stay open while you play.
-	var busy: bool = ritual.visible or player.dead or player.fainted
+	# In a network game the menu does not stop the world, so it stops the wizard instead.
+	var busy: bool = ritual.visible or player.dead or player.fainted or hud.is_paused()
 	if player.is_frozen():  # in a block of ice no spell is drawn and no chant is said
 		ritual.cancel()
 	caster.set_casting_enabled(not busy and not player.is_frozen())
@@ -205,8 +284,21 @@ func _process(_delta: float) -> void:
 	caster.hide_trail = player.is_blind()
 	player.casting = caster.is_drawing()  # the wizard holds the staff up while a stroke is drawn
 	player.cast_color = caster.drawing_color()  # and the crystal shows the school being drawn
+	if Net.online():
+		player.shown_stroke = _thinned(caster.stroke())  # the others see the stroke being drawn, as you see theirs
 	_minimap.visible = _revealed["minimap"]
 	_update_insight()
+
+
+## A stroke with its points at least STROKE_STEP apart, which is all a likeness needs to draw it: a fraction of what is sent.
+func _thinned(points: PackedVector2Array) -> PackedVector2Array:
+	var out := PackedVector2Array()
+	for point in points:
+		if out.is_empty() or point.distance_to(out[out.size() - 1]) >= STROKE_STEP:
+			out.append(point)
+	if not points.is_empty() and out[out.size() - 1] != points[points.size() - 1]:
+		out.append(points[points.size() - 1])  # the end is where the pointer is now
+	return out
 
 
 ## The minimap and the Insight tooltip, which their chants reveal.
@@ -298,6 +390,24 @@ func cast_by(spell: String, targeting: String, origin: Vector2, aim: float, info
 		FloatText.spawn(self, label_at, spell, colour.lightened(0.25), 0.9)
 		if info.get("accuracy", 0.0) >= PERFECT_CAST:
 			_flourish(colour)
+	_spawn_everywhere(spell, targeting, origin, aim, info, wizard)
+
+
+## A cast goes off on every machine of a network game, sent by the one that drives the wizard: the same spell in the same place, with
+## the same throw of the dice for whatever it scatters. Each machine then decides what it does to the wizards that machine drives.
+func _spawn_everywhere(spell: String, targeting: String, origin: Vector2, aim: float, info: Dictionary, wizard: Wizard) -> void:
+	var luck := randi()
+	Net.send(self, &"_spawn_seen", [spell, targeting, origin, aim, info, String(wizard.name), luck])
+	seed(luck)
+	spawn_spell(spell, targeting, origin, aim, info, wizard)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _spawn_seen(spell: String, targeting: String, origin: Vector2, aim: float, info: Dictionary, wizard_name: String, luck: int) -> void:
+	var wizard := get_node_or_null(NodePath(wizard_name)) as Wizard
+	if wizard == null or wizard.get_multiplayer_authority() != multiplayer.get_remote_sender_id():
+		return  # only the machine that drives a wizard casts for it
+	seed(luck)
 	spawn_spell(spell, targeting, origin, aim, info, wizard)
 
 
@@ -713,8 +823,8 @@ func _on_ritual_finished(id: String, acc: float, unfinished: bool) -> void:
 		Fx.impact(self, player.center(), Color("#ff4a4a"), 50.0)
 		return
 
-	Sfx.play("ritual_ok", player.center())
-	Fx.pop(self, player.global_position + Vector2(0, -2), "magic_02", Color(1.0, 0.9, 0.6), 80.0, 0.8, 1.3, 2.0)
+	_show_chant(String(player.name))
+	Net.send(self, &"_show_chant", [String(player.name)])
 	_grant_chant(player, id)
 	match id:
 		"mark":
@@ -725,10 +835,18 @@ func _on_ritual_finished(id: String, acc: float, unfinished: bool) -> void:
 		"rift":
 			_rift()
 		"bonfire":
-			var fire := Bonfire.new()
-			add_child(fire)
-			fire.power = power
-			fire.global_position = _bonfire_spot()  # beside the wizard, not under them
+			var spot := _bonfire_spot()  # beside the wizard, not under them
+			_kindle(spot, power)
+			Net.send(self, &"_kindle", [spot, power])
+
+
+## A bonfire burns at a spot, on every machine of a network game.
+@rpc("any_peer", "call_remote", "reliable")
+func _kindle(spot: Vector2, power: float) -> void:
+	var fire := Bonfire.new()
+	add_child(fire)
+	fire.power = power
+	fire.global_position = spot
 
 
 ## The chants that give their speaker something for a while.
@@ -749,10 +867,20 @@ func _grant_chant(speaker: Wizard, id: String) -> void:
 func chant_by(speaker: Wizard, id: String) -> bool:
 	if not is_instance_valid(speaker) or speaker.dead or not speaker.ledger.knows_chant(id) or speaker.is_muted() or speaker.is_frozen() or speaker.underwater():
 		return false
-	Sfx.play("ritual_ok", speaker.center())
-	Fx.pop(self, speaker.global_position + Vector2(0, -2), "magic_02", Color(1.0, 0.9, 0.6), 80.0, 0.8, 1.3, 2.0)
+	_show_chant(String(speaker.name))
+	Net.send(self, &"_show_chant", [String(speaker.name)])
 	_grant_chant(speaker, id)
 	return true
+
+
+## A chant takes hold: a ring of light under the speaker, seen and heard on every machine of a network game.
+@rpc("any_peer", "call_remote", "reliable")
+func _show_chant(speaker_name: String) -> void:
+	var speaker := get_node_or_null(NodePath(speaker_name)) as Wizard
+	if speaker == null:
+		return
+	Sfx.play("ritual_ok", speaker.center())
+	Fx.pop(self, speaker.global_position + Vector2(0, -2), "magic_02", Color(1.0, 0.9, 0.6), 80.0, 0.8, 1.3, 2.0)
 
 
 ## Where a bonfire is made: on the ground 80 px in front of the wizard, or behind them when there is a drop or a wall there.
@@ -784,9 +912,18 @@ func _open_gateways() -> bool:
 		return false
 	# Each pair's hue is a golden-ratio step from the last, so any two pairs, however many, are as far apart in colour as can be.
 	_gateway_hue = fposmod(_gateway_hue + 0.618034, 1.0)
-	var tint := Color.from_hsv(_gateway_hue, 0.7, 1.0)
+	_open_pair(_marked, here, _gateway_hue)
+	Net.send(self, &"_open_pair", [_marked, here, _gateway_hue])
+	_marked = Vector2.INF
+	return true
+
+
+## A pair of portals opens between two spots, on every machine of a network game.
+@rpc("any_peer", "call_remote", "reliable")
+func _open_pair(from: Vector2, to: Vector2, hue: float) -> void:
+	var tint := Color.from_hsv(hue, 0.7, 1.0)
 	var pair: Array[Gateway] = []
-	for spot in [_marked, here]:
+	for spot in [from, to]:
 		var gateway := Gateway.new()
 		gateway.tint = tint
 		gateway.position = spot - Vector2(0.0, Portal.RY + 4.0)
@@ -795,8 +932,6 @@ func _open_gateways() -> bool:
 		pair.append(gateway)
 	pair[0].partner = pair[1]
 	pair[1].partner = pair[0]
-	_marked = Vector2.INF
-	return true
 
 
 ## The Rift: the wizard is torn away and set down somewhere else, with no stamina left and 20 less to ever have.
@@ -873,9 +1008,13 @@ func _update_insight() -> void:
 		return
 	if body is Wizard:  # a rival wizard's stamina is shown nowhere else, and the spells it has pages for, each in the colour of its school
 		var wizard: Wizard = body
-		var data: MobKind = Mob.KINDS[wizard.look]
+		var title := HOODED_WIZARD  # the hooded look has no MobKind: only a person wears it, and in a network game another may
+		var desc: String = Mob.KINDS["dark_wizard"].desc
+		if Mob.KINDS.has(wizard.look):
+			title = Mob.KINDS[wizard.look].display_name
+			desc = Mob.KINDS[wizard.look].desc
 		_insight_text.text = "[b]%s[/b]   Stamina %d / %d
-[i]%s[/i]" % [data.display_name, wizard.stamina, wizard.max_stamina, data.desc]
+[i]%s[/i]" % [title, wizard.stamina, wizard.max_stamina, desc]
 		var lines := ""
 		for spell_name: String in SpellData.SPELLS:
 			if wizard.ledger.knows_spell(spell_name):

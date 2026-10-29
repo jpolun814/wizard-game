@@ -32,6 +32,7 @@ var _feedback_time := 0.0
 
 ## The list of controls is data, so its rows are filled in here; the rest of the screen is laid out in scenes/hud.tscn.
 func _ready() -> void:
+	$Pause/Box/Leave.pressed.connect(_on_leave)
 	var rows: GridContainer = $Pause/Box/Controls
 	for row in CONTROLS:
 		if row[0] == "F1" and not OS.is_debug_build():
@@ -44,7 +45,7 @@ func _ready() -> void:
 		key.add_theme_font_size_override("font_size", 19)
 		rows.add_child(key)
 		var what := Label.new()
-		what.text = row[1]
+		what.text = row[1] if not (row[0] == "Esc" and Net.online()) else "Open the menu"  # a network game goes on while it is open
 		what.theme_type_variation = &"Outlined"
 		what.add_theme_color_override("font_color", Color(0.92, 0.9, 1.0))
 		what.add_theme_font_size_override("font_size", 19)
@@ -102,9 +103,18 @@ func is_game_over() -> bool:
 	return _game_over.visible
 
 
+## Opens or closes the menu. Playing alone it stops the world; in a network game the world goes on for the others.
 func toggle_pause() -> void:
 	_pause.visible = not _pause.visible
-	get_tree().paused = _pause.visible
+	get_tree().paused = _pause.visible and not Net.online()
+
+
+## Back to the first screen, out of the game (a network game goes on without you; one you host ends for everyone).
+func _on_leave() -> void:
+	Sfx.play("ui_click")
+	Net.leave()
+	get_tree().paused = false
+	get_tree().change_scene_to_file(Net.MENU)
 
 
 ## Words shown at the bottom of the pause screen, such as the incantation that names this world. Empty hides them.

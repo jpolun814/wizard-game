@@ -1,5 +1,19 @@
 # Godot 4 and GDScript pitfalls (each one has cost time here)
 
+## Network play (see `11_network_play.md`)
+
+- **A child added later does not take its parent's authority.** `set_multiplayer_authority` on a node reaches the children it has
+  then. A `MultiplayerSynchronizer` added afterwards stays with peer 1, so on a client the host overwrote the client's own wizard.
+  Set the synchronizer's authority before adding it (`Wizard.share`).
+- **`--fixed-fps` with `--headless` runs faster than the clock.** Two copies that talk over the network then time out: a 40 second
+  wait ended in two real seconds. Run network tests in real time.
+- **Do not free a node another machine still sends to.** A likeness that freed itself after its death fade, while the host's wizard
+  still existed, gave "Node not found ... /Sync" on every packet. Likenesses only fade; they go with their scene.
+- **Say you are leaving a scene before you leave it.** A machine that frees its scene first gets the packets already sent to it
+  ("Ignoring sync data ... missing node"). `_leave_network_scene` runs as the screen fades.
+- **`Input.parse_input_event` does not move the pointer** that `get_global_mouse_position` reads; `Input.warp_mouse` does.
+- **Typed arrays do not survive an rpc.** An `Array[int]` argument arrives as a plain `Array`: take `Array` and `assign` it.
+
 ## Rendering
 
 - **The white rectangle bug.** `var tex := load(...)` inside `_draw()`, used with `draw_texture`: the texture is

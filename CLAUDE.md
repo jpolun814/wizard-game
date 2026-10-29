@@ -3,7 +3,7 @@
 This is a Godot game built by one owner through many sessions. This file is the complete handoff for every agent that
 works on it. It holds everything you need: the owner's wording rules in section 0 (the number one priority), the game,
 the rules, the codebase, the testing and the known problems. Chapter files for particular jobs are in `docs/handoff/`;
-chapter 10 is the next job.
+chapter 11 (network play) is the newest work.
 
 # HANDOFF: read this before you touch anything
 
@@ -25,7 +25,8 @@ trust the code and this file where they disagree.
 | `07_testing.md` | say anything is done |
 | `08_working_with_the_owner.md` | reply to the owner |
 | `09_godot_pitfalls.md` | debug something strange |
-| `10_unify_wizards.md` | **start here for the next job** (make every wizard the player character) |
+| `10_unify_wizards.md` | touch the wizard body or the brains (done: every wizard is the player character) |
+| `11_network_play.md` | touch anything a second machine must see: wizards, spells, pages, gates, the match (done: host and join over a network) |
 
 ---
 
@@ -233,7 +234,7 @@ A 2D side-view last-wizard-standing duel built in Godot 4.7.2 and GDScript. You 
   plus hand-written shape detectors.
 - **Rituals:** press Enter and type a pseudo-Latin chant. Typing accuracy sets the ritual's power.
 
-A match: four identical wizards (you and three AI wizards) race through a generated world for spellbook pages and fight each other. The last one standing wins. The AI wizards cast the same
+A match: four identical wizards (you and three AI wizards, or friends over a network with AI wizards in the empty seats) race through a generated world for spellbook pages and fight each other. The last one standing wins. The AI wizards cast the same
 spells you do, drawing them visibly. There are no waves and no boss (see `docs/pvp_arena_design.md`).
 
 **The owner's taste, in their words:**
@@ -338,6 +339,8 @@ GODOT="/c/Users/Jordan Polun/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.
 "$GODOT" --path . tests/showcase.tscn -- scenario=spells out=C:/some/dir          # a screenshot of every spell
 "$GODOT" --path . tests/showcase.tscn -- scenario=spells only=Fire_Breath out=DIR # one spell, frame by frame
 "$GODOT" --headless --path . tests/showcase.tscn -- scenario=soak out=DIR  # random play; look for errors
+"$GODOT" --headless --path . tests/net_check.tscn -- role=host &  then  ... -- role=client  # two copies in a shared waiting room (no --fixed-fps!)
+"$GODOT" --headless --path . tests/net_match_check.tscn -- role=host &  then  ... -- role=client  # two copies play a whole match (add `leave` to both)
 ```
 
 - **Other scenarios:** `world`, `kinds`, `ui` (portal, spellbook pages, pause, game over), `wizard` (a dark-wizard
@@ -373,7 +376,7 @@ GODOT="/c/Users/Jordan Polun/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.
 | Tab | Spellbook (arrow keys turn pages) |
 | Enter | Incantation box |
 | M | Mute |
-| Esc | Pause and controls list |
+| Esc | Pause and controls list (in a network game the world goes on) |
 | F1 | Debug summon panel |
 | R | New run, on the game-over screen |
 

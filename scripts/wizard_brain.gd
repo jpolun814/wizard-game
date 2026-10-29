@@ -567,7 +567,7 @@ func _cover(post: Node2D) -> String:
 func _read_page_underfoot() -> void:
 	for pickup: PagePickup in wizard.get_tree().get_nodes_in_group("pages"):
 		if pickup.gives(wizard.ledger) and pickup.is_under(wizard):
-			pickup.take(wizard.ledger)
+			wizard.get_parent().read_page(pickup, wizard)
 			_replans = 0
 			_goal = ""
 			_goal_timer = 0.0
@@ -1000,7 +1000,7 @@ func _attack(to_player: Vector2, sees: bool) -> bool:
 	var gap := absf(to_player.x)
 	var still: bool = foe.velocity.length() < 30.0
 	var stuck: bool = _held(foe)
-	var grounded: bool = foe.is_on_floor()
+	var grounded: bool = foe.stands()
 	var same_ground: bool = grounded and wizard.is_on_floor() and absf(foe.global_position.y - wizard.global_position.y) < 8.0
 	var closing: bool = signf(foe.velocity.x) == signf(-to_player.x) and absf(foe.velocity.x) > 60.0
 	var aim_ok := absf(to_player.normalized().x) > 0.4  # a near-vertical stroke would draw a Firewall instead
@@ -1055,7 +1055,7 @@ func _sheltered() -> bool:
 func _predict(seconds: float) -> Vector2:
 	var foe: Wizard = _foe
 	var lead: Vector2 = foe.velocity * seconds * skill
-	lead.y = 0.0 if foe.is_on_floor() else lead.y * 0.5
+	lead.y = 0.0 if foe.stands() else lead.y * 0.5
 	return foe.center() + lead
 
 

@@ -1,6 +1,8 @@
 # Codebase map
 
-Godot 4.7.2 and GDScript. The main scene is `scenes/lab.tscn`, the waiting room. Its portal opens `scenes/world.tscn`, a generated world. One autoload: `Sfx` (`scripts/sfx.gd`).
+Godot 4.7.2 and GDScript. The main scene is `scenes/menu.tscn`, the first screen (play alone, host, join), which leads to
+`scenes/lab.tscn`, the waiting room. Its portal opens `scenes/world.tscn`, a generated world. Two autoloads: `Sfx` (`scripts/sfx.gd`)
+and `Net` (`scripts/net.gd`, network play: see `11_network_play.md`).
 The viewport is 1280x720, with stretch mode `canvas_items`.
 
 ## How a frame of the game fits together
@@ -66,7 +68,7 @@ never block each other.
   - `mouth()` gives the Fire Breath origin.
 
 ### The waiting room
-- **`lab.gd`** (`scenes/lab.tscn`, the project's main scene): extends `arena.gd` and overrides its `_where_are_we`,
+- **`lab.gd`** (`scenes/lab.tscn`, the waiting room the first screen leads to): extends `arena.gd` and overrides its `_where_are_we`,
   `_build_map` and `_begin_encounter`. A long map with a lava pit, a gap, a pond, a hill, dummies and a turret; infinite
   stamina, health that comes back, night on N, reset on R. Its portal starts a match in `scenes/world.tscn`; the worlds are described below.
   `tests/showcase.gd` with `scenario=spells` casts every spell here and photographs it.

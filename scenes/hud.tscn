@@ -179,6 +179,13 @@ theme_override_font_sizes/font_size = 16
 text = "Press Esc to carry on"
 horizontal_alignment = 1
 
+[node name="Leave" type="Button" parent="Pause/Box"]
+layout_mode = 2
+size_flags_horizontal = 4
+focus_mode = 0
+theme_type_variation = &"Choice"
+text = "Leave the game"
+
 [node name="Note" type="Label" parent="Pause/Box"]
 theme_type_variation = &"Outlined"
 layout_mode = 2
