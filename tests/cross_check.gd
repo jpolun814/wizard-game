@@ -1,6 +1,6 @@
 extends Node
 
-## A wizard that holds a spell that gets past a gate (a flood, a piranha pit, a sentinel) goes across it to a page lying beyond, alive; and one that
+## A wizard that holds a spell that gets past a gate (a chasm, a flood, a piranha pit, a sentinel) goes across it to a page lying beyond, alive; and one that
 ## holds none does not get there, for the way is shut to it. Pages are taken off the map so that nothing else draws it away.
 ##
 ##     godot --headless --path . --fixed-fps 60 tests/cross_check.tscn -- seed=8 kind=flood spells=Frost%Bridge

@@ -44,6 +44,8 @@ const BRIDGES_OVER := {  # which of them serve for each kind of pit: the pads ar
 	"piranhas": ["Frost Bridge"],
 }
 const COVERS := ["Smoke Screen", "Barrier", "Decoy"]  # the spells that keep a sentinel from hitting it, best first
+const LEAP_STEPS := 2         # Shadow Steps it makes in the air to get over a chasm: a jump and two of them carry it 900 px
+const LEAP_DRAW := 0.15       # seconds to draw one: it falls the while
 const SENTINEL_LOOKOUT := 40  # tiles of the way it looks ahead along for a sentinel
 const COVER_RANGE := 780.0    # it draws its cover when it is this close to a sentinel, a little before the sentinel sees it (700)
 const COVER_LASTS := {"Smoke Screen": 11.0, "Barrier": 5.0, "Decoy": 3.0}  # seconds the way past is safe
@@ -79,6 +81,9 @@ var _goal_gate := {}              # the gate it is going to clear: {"kind", "out
 var _gate_tries := 0
 var _nav_version := -1           # which build of the ways its list of pages it cannot reach belongs to
 var _bridged := {}               # crossing (by key) -> seconds more that the way over it, which this wizard made, will last
+var _cross_run := 0.0            # the speed it goes at while it makes its way over a crossing
+var _leap := {}                  # a jump over a chasm: {"dir": -1 or 1, "key", "steps": Shadow Steps left to make, "span": the chasm, "jumped"}
+var _cannot := {}                # crossing (by key) -> seconds more that it will not try it, having fallen in
 var _replans := 0                # times in a row it has had to find its way again
 
 
@@ -109,6 +114,10 @@ func think(delta: float) -> void:
 		_skip[id] -= delta
 		if _skip[id] <= 0.0:
 			_skip.erase(id)
+	for key in _cannot.keys():
+		_cannot[key] -= delta
+		if _cannot[key] <= 0.0:
+			_cannot.erase(key)
 	for key in _bridged.keys():
 		_bridged[key] -= delta
 		if _bridged[key] <= 0.0:
@@ -208,6 +217,8 @@ func _tile_of(feet: Vector2) -> Vector2i:
 
 ## Walks the way to what it is after, and reads a page when it stands under one. Returns the speed to walk at.
 func _travel(delta: float) -> float:
+	if not _leap.is_empty():
+		return _leaping()
 	if mob.is_drawing():
 		return 0.0
 	if _escape_time > 0.0:
@@ -228,8 +239,9 @@ func _travel(delta: float) -> float:
 			return 0.0
 	if _goal != "" and not _route.done():
 		var crossing := _crossing_ahead()
+		_cross_run = 0.0
 		if not crossing.is_empty() and _cross(crossing):
-			return 0.0
+			return _cross_run
 	if (_goal == "" and _goal_timer <= 0.0) or _goal_lost() or (_goal == "foe" and (_goal_timer <= 0.0 or _route.done())):
 		_choose_goal()
 	var steer := _route.steer(mob, delta)
@@ -260,6 +272,17 @@ func _crossing_ahead() -> Dictionary:
 func _cross(crossing: Dictionary) -> bool:
 	if mob.is_drawing() or _react > 0.0:
 		return true
+	if crossing["kind"] == "chasm":  # it walks to the edge, and waits there until it is on the ground with strength to spare, and leaps
+		var span: Rect2 = crossing["span"]
+		var dir := 1 if span.get_center().x > mob.global_position.x else -1
+		var edge := span.position.x if dir > 0 else span.end.x
+		var short := (edge - mob.global_position.x) * dir  # how far it still has to go to the edge
+		_cross_run = 0.0
+		if short > 20.0:
+			_cross_run = dir * WALK_SPEED
+		elif mob.is_on_floor() and mob.stamina >= 2.0 * SpellData.SPELLS["Shadow Step"].cost:
+			_leap = {"dir": dir, "key": crossing["key"], "steps": LEAP_STEPS, "span": span, "jumped": false}
+		return true
 	if crossing["kind"] == "sentinel":
 		if mob.center().distance_to(crossing["post"].center()) > COVER_RANGE:
 			return false
@@ -281,6 +304,31 @@ func _cross(crossing: Dictionary) -> bool:
 	_begin_cast(spell_name, _bridge_stroke(spell_name, span), ATTACK_DRAW)
 	_bridged[crossing["key"]] = BRIDGES[spell_name]
 	return true
+
+
+## A jump over a chasm: it leaps from the edge, and in the air slips along the way with Shadow Steps until it is across. Returns the speed to go at.
+func _leaping() -> float:
+	var span: Rect2 = _leap["span"]
+	var dir: int = _leap["dir"]
+	if mob.is_on_floor():
+		if _leap["jumped"]:  # down again: over, or in the pit
+			var across: bool = (mob.global_position.x - span.get_center().x) * dir > span.size.x * 0.5
+			if not across:
+				_cannot[_leap["key"]] = GIVE_UP
+			_bridged[_leap["key"]] = 2.0
+			_leap = {}
+			_goal = ""
+			_goal_timer = 0.0
+			return 0.0
+		_leap["jumped"] = true
+		mob.velocity.y = JUMP
+		return dir * WizardRoute.MAX_AIR_SPEED
+	var beyond: bool = (mob.global_position.x - span.get_center().x) * dir > span.size.x * 0.5 - 40.0
+	if _leap["steps"] > 0 and not mob.is_drawing() and not beyond and (mob.velocity.y > -40.0 or _leap["steps"] < LEAP_STEPS):
+		_leap["steps"] -= 1
+		var start: Vector2 = mob.center()
+		_begin_cast("Shadow Step", _line(start, start + Vector2(dir * SpellData.STEP_MAX, -10.0)), LEAP_DRAW)
+	return dir * WizardRoute.MAX_AIR_SPEED
 
 
 ## The stroke that makes a way over a pit of water, along the width of it at its surface: a wave for Frost Bridge, a row of loops for Lily Pads.
@@ -408,18 +456,20 @@ func _path(from: Vector2i, to: Vector2i) -> Array[Vector2i]:
 	var world := mob.get_tree().get_first_node_in_group(&"world")
 	if world != null:
 		for crossing: Dictionary in world.crossings():
-			if not _can_cross(crossing["kind"]):
+			if not _can_cross(crossing["kind"]) or _cannot.has(crossing["key"]):
 				shut.append(crossing["key"])
 	return mob.nav.path(from, to, shut)
 
 
-## Whether it holds a page for crossing this kind of gate. (Nothing it knows takes a wizard over lava.)
+## Whether it holds a page for crossing this kind of gate.
 func _can_cross(kind: String) -> bool:
 	match kind:
 		"flood", "piranhas":
 			return BRIDGES_OVER[kind].any(_knows)
 		"sentinel":
 			return COVERS.any(_knows)
+		"chasm":
+			return _knows("Shadow Step")
 	return false
 
 
