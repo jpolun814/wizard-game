@@ -29,28 +29,29 @@ const QUICK_DRAW := 0.35      # defensive signs are drawn quickly
 const ATTACK_DRAW := 0.8      # attacks take longer, which is your chance to interrupt them
 const ATTACK_RANGE := 460.0   # it only casts at you from about a screen away, never across the map
 const SHOT_SPEED := 650.0     # roughly how fast its bolts fly, for leading a moving target
-const CLEARS := {  # the gates a wizard clears, and the spells that do it, best first
-	"brambles": ["Ignite", "Fire Breath"],
-	"gas": ["Ignite", "Fire Breath"],
-	"ice": ["Fire Breath", "Ignite", "Stonefall", "Earthquake"],
+const CLEARS := {  # the gates a wizard clears, and the spells that do it, best first: any fire burns growth and gas and melts ice, wind thins gas, stone breaks ice and walls
+	"brambles": ["Ignite", "Fire Breath", "Firewall", "Volcano"],
+	"gas": ["Ignite", "Fire Breath", "Firewall", "Gust", "Tornado", "Volcano"],
+	"ice": ["Fire Breath", "Firewall", "Ignite", "Stonefall", "Earthquake", "Volcano"],
 	"wall": ["Stonefall", "Earthquake"],
+	"piranhas": ["Spark"],
 }
-const BRIDGES := {  # the spells that make a way over a pit of water, and for how long it lasts, seconds (Frost Bridge ice melts after 30)
-	"Frost Bridge": 25.0,
-	"Lily Pads": 6.0,
+const WAYS := {  # the spells that get a wizard past each crossing that no one clears, the one it likes best first
+	"chasm": ["Shadow Step", "Gust"],
+	"flood": ["Frost Bridge", "Lily Pads", "Shadow Step", "Gust"],
+	"piranhas": ["Frost Bridge", "Lily Pads", "Shadow Step"],  # (a Gust falls short of a pit so long)
+	"sentinel": ["Smoke Screen", "Eclipse", "Barrier", "Decoy"],
 }
-const BRIDGES_OVER := {  # which of them serve for each kind of pit: the pads are too few and too far apart to cross a pit as long as the piranhas'
-	"flood": ["Frost Bridge", "Lily Pads"],
-	"piranhas": ["Frost Bridge"],
-}
-const COVERS := ["Smoke Screen", "Barrier", "Decoy"]  # the spells that keep a sentinel from hitting it, best first
-const LEAP_STEPS := 2         # Shadow Steps it makes in the air to get over a chasm: a jump and two of them carry it 900 px
+const LASTS := {"Frost Bridge": 25.0, "Lily Pads": 6.0, "Smoke Screen": 11.0, "Eclipse": 9.0, "Barrier": 5.0, "Decoy": 3.0}  # seconds that the way a spell makes lasts
+const COVERS := ["Smoke Screen", "Eclipse", "Barrier", "Decoy"]  # the spells that keep a sentinel from hitting it, best first
+const SETTLE := 1.0           # seconds from drawing a way over water to its being there to walk on
+const PADS_REACH := 480.0     # pixels of pit that one row of Lily Pads covers, no further apart than a wizard can step
+const LEAP_STEPS := 2         # Shadow Steps (or Gusts) at least that it makes in the air to get over a pit: a jump and two of them carry it 900 px
 const LEAP_DRAW := 0.15       # seconds to draw one: it falls the while
 const SENTINEL_LOOKOUT := 40  # tiles of the way it looks ahead along for a sentinel
 const COVER_RANGE := 780.0    # it draws its cover when it is this close to a sentinel, a little before the sentinel sees it (700)
-const COVER_LASTS := {"Smoke Screen": 11.0, "Barrier": 5.0, "Decoy": 3.0}  # seconds the way past is safe
 const CLEAR_TRIES := 14       # casts at one gate before it gives up on it for a while
-const STRIKE_REACH := {"Fire Breath": 5, "Ignite": 12, "Stonefall": 10, "Earthquake": 10}  # tiles: how far off a spell strikes a gate
+const STRIKE_REACH := {"Fire Breath": 5, "Ignite": 12, "Stonefall": 10, "Earthquake": 10, "Firewall": 8, "Volcano": 8, "Gust": 7, "Tornado": 6, "Spark": 40}  # tiles: how far off a spell strikes a gate
 const STRIKE_STAND := 4       # tiles: and it steps up to this far from it
 
 var mob: Node2D               # the wizard
@@ -79,9 +80,12 @@ var _skip := {}                  # a page (its instance id) or a gate (its name)
 var stuck_at: Array[String] = []  # where it has been held up, for a report
 var _goal_gate := {}              # the gate it is going to clear: {"kind", "outside", "target", "entry"}
 var _gate_tries := 0
+var _gate_gone := 0              # how many pieces of the gate had gone when it last struck it
 var _nav_version := -1           # which build of the ways its list of pages it cannot reach belongs to
 var _bridged := {}               # crossing (by key) -> seconds more that the way over it, which this wizard made, will last
 var _cross_run := 0.0            # the speed it goes at while it makes its way over a crossing
+var _settle := 0.0               # seconds it stands still while a way over water grows
+var _pads := {}                  # crossing (by key) -> {"dir", "front"}: the row of Lily Pads it has made so far over a long pit
 var _leap := {}                  # a jump over a chasm: {"dir": -1 or 1, "key", "steps": Shadow Steps left to make, "span": the chasm, "jumped"}
 var _cannot := {}                # crossing (by key) -> seconds more that it will not try it, having fallen in
 var _replans := 0                # times in a row it has had to find its way again
@@ -109,6 +113,7 @@ func think(delta: float) -> void:
 	_jump_cooldown -= delta
 	_escape_time -= delta
 	_goal_timer -= delta
+	_settle -= delta
 	_pressure *= exp(-delta / 3.0)
 	for id in _skip.keys():
 		_skip[id] -= delta
@@ -219,6 +224,8 @@ func _tile_of(feet: Vector2) -> Vector2i:
 func _travel(delta: float) -> float:
 	if not _leap.is_empty():
 		return _leaping()
+	if _settle > 0.0:
+		return 0.0
 	if mob.is_drawing():
 		return 0.0
 	if _escape_time > 0.0:
@@ -272,41 +279,55 @@ func _crossing_ahead() -> Dictionary:
 func _cross(crossing: Dictionary) -> bool:
 	if mob.is_drawing() or _react > 0.0:
 		return true
-	if crossing["kind"] == "chasm":  # it walks to the edge, and waits there until it is on the ground with strength to spare, and leaps
-		var span: Rect2 = crossing["span"]
-		var dir := 1 if span.get_center().x > mob.global_position.x else -1
-		var edge := span.position.x if dir > 0 else span.end.x
-		var short := (edge - mob.global_position.x) * dir  # how far it still has to go to the edge
-		_cross_run = 0.0
-		if short > 20.0:
-			_cross_run = dir * WALK_SPEED
-		elif mob.is_on_floor() and mob.stamina >= 2.0 * SpellData.SPELLS["Shadow Step"].cost:
-			_leap = {"dir": dir, "key": crossing["key"], "steps": LEAP_STEPS, "span": span, "jumped": false}
-		return true
-	if crossing["kind"] == "sentinel":
+	var kind: String = crossing["kind"]
+	if kind == "sentinel":
 		if mob.center().distance_to(crossing["post"].center()) > COVER_RANGE:
 			return false
 		var used := _cover(crossing["post"])
 		if used == "":
 			return false
-		_bridged[crossing["key"]] = COVER_LASTS[used]
+		_bridged[crossing["key"]] = LASTS[used]
 		return true
-	var spell_name := ""
-	for candidate: String in BRIDGES_OVER[crossing["kind"]]:
-		if _knows(candidate):
-			spell_name = candidate
-			break
+	var spell_name := _way(kind)
 	if spell_name == "":
 		return false
-	if mob.stamina < SpellData.SPELLS[spell_name].cost:
-		return true  # it waits for the strength to cast
 	var span: Rect2 = crossing["span"]
-	_begin_cast(spell_name, _bridge_stroke(spell_name, span), ATTACK_DRAW)
-	_bridged[crossing["key"]] = BRIDGES[spell_name]
+	var dir := 1 if span.get_center().x > mob.global_position.x else -1
+	if _pads.has(crossing["key"]):
+		dir = _pads[crossing["key"]]["dir"]  # a row of pads is laid along the way it set out
+	_cross_run = 0.0
+	match spell_name:
+		"Shadow Step", "Gust":  # it walks to the edge, waits there until it is on the ground with strength to spare, and leaps
+			var edge := span.position.x if dir > 0 else span.end.x
+			if (edge - mob.global_position.x) * dir > 20.0:
+				_cross_run = dir * WALK_SPEED
+			elif mob.is_on_floor() and mob.stamina >= 2.0 * SpellData.SPELLS[spell_name].cost:
+				var steps := clampi(ceili((span.size.x - 200.0) / 300.0), LEAP_STEPS, 5)
+				_leap = {"dir": dir, "key": crossing["key"], "steps": steps, "span": span, "jumped": false, "spell": spell_name}
+		"Lily Pads":  # a row at a time, as far as it reaches, and the next when it has come to the end of that
+			if mob.stamina >= SpellData.SPELLS[spell_name].cost:
+				var reach := span.grow_individual(WizardRoute.TILE, 0.0, WizardRoute.TILE, 0.0)  # pads run a tile onto the bank at each end
+				var near := reach.position.x if dir > 0 else reach.end.x
+				var front: float = _pads[crossing["key"]]["front"] if _pads.has(crossing["key"]) else near
+				var from_x := maxf(front, mob.global_position.x) if dir > 0 else minf(front, mob.global_position.x)
+				var to_x := clampf(from_x + dir * PADS_REACH, reach.position.x, reach.end.x)
+				var row := Rect2(minf(from_x, to_x), span.position.y, absf(to_x - from_x), span.size.y)
+				_begin_cast(spell_name, _bridge_stroke(spell_name, row), ATTACK_DRAW)
+				_settle = SETTLE
+				var over := (to_x - (reach.end.x if dir > 0 else reach.position.x)) * dir >= 0.0
+				_pads[crossing["key"]] = {"dir": dir, "front": to_x}
+				_bridged[crossing["key"]] = LASTS[spell_name] if over else SETTLE + absf(to_x - from_x) / WALK_SPEED - 0.8  # the next row goes down when it is near the end of this one
+				if over:
+					_pads.erase(crossing["key"])
+		_:  # a bridge across the whole of it
+			if mob.stamina >= SpellData.SPELLS[spell_name].cost:
+				_begin_cast(spell_name, _bridge_stroke(spell_name, span), ATTACK_DRAW)
+				_settle = SETTLE
+				_bridged[crossing["key"]] = LASTS[spell_name]
 	return true
 
 
-## A jump over a chasm: it leaps from the edge, and in the air slips along the way with Shadow Steps until it is across. Returns the speed to go at.
+## A jump over a pit: it leaps from the edge, and in the air carries itself on with Shadow Steps or Gusts until it is across. Returns the speed to go at.
 func _leaping() -> float:
 	var span: Rect2 = _leap["span"]
 	var dir: int = _leap["dir"]
@@ -327,7 +348,8 @@ func _leaping() -> float:
 	if _leap["steps"] > 0 and not mob.is_drawing() and not beyond and (mob.velocity.y > -40.0 or _leap["steps"] < LEAP_STEPS):
 		_leap["steps"] -= 1
 		var start: Vector2 = mob.center()
-		_begin_cast("Shadow Step", _line(start, start + Vector2(dir * SpellData.STEP_MAX, -10.0)), LEAP_DRAW)
+		var length: float = SpellData.STEP_MAX if _leap["spell"] == "Shadow Step" else 90.0
+		_begin_cast(_leap["spell"], _line(start, start + Vector2(dir * length, -10.0)), LEAP_DRAW)
 	return dir * WizardRoute.MAX_AIR_SPEED
 
 
@@ -341,11 +363,11 @@ func _bridge_stroke(spell_name: String, span: Rect2) -> PackedVector2Array:
 			var x := span.size.x * i / steps
 			out.append(Vector2(span.position.x + x, level + 14.0 * sin(x / 22.0)))
 	else:
-		var loops := clampi(roundi(span.size.x / 90.0), 2, 8)
-		var steps := loops * 24
+		var loops := maxi(roundi(span.size.x / 31.0), 2)  # small loops, two to a pad, so that the pad's height is the line's own
+		var steps := loops * 16
 		for i in steps + 1:
 			var angle := TAU * loops * i / steps
-			out.append(Vector2(span.position.x + span.size.x * i / steps - 26.0 * sin(angle), level - 26.0 * cos(angle)))
+			out.append(Vector2(span.position.x + span.size.x * i / steps - 10.0 * sin(angle), level - 8.0 - 10.0 * cos(angle)))
 	return _densify(out)
 
 
@@ -359,6 +381,8 @@ func _cover(post: Node2D) -> String:
 			"Smoke Screen":
 				var base: Vector2 = post.center()
 				_begin_cast(spell_name, _offset(GestureTemplates.preview_points("smoke"), base + Vector2(0, -30.0), 0.9), QUICK_DRAW)
+			"Eclipse":
+				_begin_cast(spell_name, _offset(GestureTemplates.preview_points("crescent"), post.center() + Vector2(0, -20.0), 1.0), QUICK_DRAW)
 			"Barrier":
 				_begin_cast(spell_name, _offset(GestureTemplates.preview_points("circle"), around, 0.8), QUICK_DRAW)
 			"Decoy":
@@ -446,6 +470,7 @@ func _choose_gate(start: Vector2i) -> bool:
 	_goal = "gate"
 	_goal_gate = best
 	_gate_tries = 0
+	_gate_gone = 0
 	_route.set_path(best_path)
 	return true
 
@@ -463,14 +488,15 @@ func _path(from: Vector2i, to: Vector2i) -> Array[Vector2i]:
 
 ## Whether it holds a page for crossing this kind of gate.
 func _can_cross(kind: String) -> bool:
-	match kind:
-		"flood", "piranhas":
-			return BRIDGES_OVER[kind].any(_knows)
-		"sentinel":
-			return COVERS.any(_knows)
-		"chasm":
-			return _knows("Shadow Step")
-	return false
+	return WAYS.get(kind, []).any(_knows)
+
+
+## The spell it will make its way over a crossing with, the one it likes best of those it knows, or "".
+func _way(kind: String) -> String:
+	for spell_name: String in WAYS.get(kind, []):
+		if _knows(spell_name):
+			return spell_name
+	return ""
 
 
 ## What a gate is called on the list of what it has given up.
@@ -517,6 +543,10 @@ func _clear_gate(target: Vector2) -> void:
 		_goal = ""
 		_goal_timer = 0.0
 		return
+	var gone: int = _goal_gate["entry"].get("gone", []).count(true)
+	if gone > _gate_gone:  # a piece has gone since it last struck: it has the whole of its tries for the next
+		_gate_tries = 0
+	_gate_gone = gone
 	_gate_tries += 1
 	_cast_cooldown = 2.2
 	_begin_cast(spell_name, _gate_stroke(spell_name, target), ATTACK_DRAW)
@@ -534,7 +564,33 @@ func _gate_stroke(spell_name: String, point: Vector2) -> PackedVector2Array:
 			return _offset(GestureTemplates.preview_points("stonefall"), Vector2(point.x, point.y - 130.0), 0.8)
 		"Earthquake":
 			return _offset(GestureTemplates.preview_points("earthquake"), Vector2(point.x, point.y - 120.0), 1.0)
+		"Firewall":
+			var ground := _ground_under(point)
+			return _line(Vector2(point.x, ground - 110.0), Vector2(point.x, ground - 20.0))
+		"Volcano":
+			return _offset(GestureTemplates.preview_points("volcano"), Vector2(point.x, _ground_under(point) - 60.0), 0.8)
+		"Tornado":
+			return _offset(GestureTemplates.preview_points("tornado"), Vector2(point.x, _ground_under(point) - 90.0), 0.9)
+		"Spark":
+			return _offset(GestureTemplates.preview_points("zigzag"), Vector2(point.x, point.y - 90.0), 1.0)
+		"Gust":
+			var from: Vector2 = mob.center()
+			var cloud := point  # the wind takes a cloud by its middle, which may lie off the point struck, down a slope
+			var near := INF
+			for node in _goal_gate["entry"].get("nodes", []):  # (untyped: it may be a freed object)
+				if is_instance_valid(node) and not node.is_queued_for_deletion() and node.global_position.distance_to(from) < near:
+					near = node.global_position.distance_to(from)
+					cloud = node.global_position
+			return _line(from, from + (cloud - from).normalized() * 90.0)
 	return PackedVector2Array()
+
+
+## The height of the ground under a point (a little above it, looking down).
+func _ground_under(point: Vector2) -> float:
+	var query := PhysicsRayQueryParameters2D.create(point + Vector2(0, -40), point + Vector2(0, 400))
+	query.collision_mask = 1
+	var hit := mob.get_world_2d().direct_space_state.intersect_ray(query)
+	return hit["position"].y if not hit.is_empty() else point.y
 
 
 ## It is getting nowhere on its way: find the way again, and after a few tries give the page up for a while.

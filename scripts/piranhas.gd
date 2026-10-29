@@ -100,6 +100,18 @@ func alive() -> bool:
 	return not _fish.is_empty()
 
 
+## The x position of the live fish nearest to one, or the middle of the water when there are none.
+func fish_x_near(x: float) -> float:
+	var best := water.get_center().x
+	var gap := INF
+	for fish in _fish:
+		var at: float = fish["sprite"].position.x
+		if absf(at - x) < gap:
+			gap = absf(at - x)
+			best = at
+	return best
+
+
 ## A bolt of lightning strikes the water at this point: every fish within reach along the water dies.
 func shock(point: Vector2) -> void:
 	if not water.grow(8.0).has_point(point):
@@ -110,3 +122,5 @@ func shock(point: Vector2) -> void:
 			Fx.burst(get_parent(), sprite.global_position, Color("#ffe85a"), 8, 120.0, 0.3, true, "spark_04")
 			sprite.queue_free()
 			_fish.erase(fish)
+	if _fish.is_empty():
+		queue_free()  # no fish left: the pit is only water

@@ -22,7 +22,7 @@ func _ready() -> void:
 		elif arg.begins_with("only="):
 			only = arg.substr(5)
 		elif arg.begins_with("spells="):
-			spells = arg.substr(7).split(",")
+			spells = Array(arg.substr(7).replace("%", " ").split(","))
 	MatchState.hurry = 100.0  # the portal does not give way during the test
 	World.random_start = false
 	World.next_seed = seed_value
@@ -47,7 +47,7 @@ func _ready() -> void:
 	print("seed %d has %d gates that spells can clear: %s" % [seed_value, gates.size(), gates.map(func(g: Dictionary) -> String: return g["kind"])])
 	var wanted: Array[Dictionary] = []
 	for gate in gates:
-		if (only == "" or gate["kind"] == only) and CLEARS_BY.get(gate["kind"], []).any(func(spell: String) -> bool: return spells.has(spell)):
+		if (only == "" or gate["kind"] == only) and WizardBrain.CLEARS.get(gate["kind"], []).any(func(spell: String) -> bool: return spells.has(spell)):
 			wanted.append(gate)
 	if only != "" and not wanted.is_empty():
 		var at: Vector2i = wanted[0]["outside"]
@@ -78,14 +78,6 @@ func _ready() -> void:
 	_verdict(not wizard.is_dead(), "the wizard lived")
 	print("gates are cleared" if _failures == 0 else "%d FAILED" % _failures)
 	tree.quit(1 if _failures > 0 else 0)
-
-
-const CLEARS_BY := {
-	"brambles": ["Fire Breath", "Ignite"],
-	"gas": ["Fire Breath", "Ignite"],
-	"ice": ["Fire Breath", "Ignite", "Stonefall", "Earthquake"],
-	"wall": ["Stonefall", "Earthquake"],
-}
 
 
 func _tile_of(wizard: Mob) -> Vector2i:

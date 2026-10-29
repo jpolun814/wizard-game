@@ -47,13 +47,17 @@ single-run loop in `docs/roguelite_exploration_design.md`; the spells, the world
   wizard (`World._follow_watched`), a click picks the next, and the player stays out in later worlds (`World._stay_out`). The game-over screen
   comes only when no rival is left. Test: `tests/spectate_check.tscn` (add `-- collapse` to follow it into the next world).
 
-- **AI wizards clear gates.** When no page is to be had, a wizard goes to the nearest gate that a spell it holds can clear (`WizardBrain.CLEARS`: Ignite or Fire Breath for
+- **AI wizards clear gates.** When no page is to be had, a wizard goes to the nearest gate that a spell it holds can clear (`WizardBrain.CLEARS`: Ignite, Fire Breath, Firewall or Volcano for
   thorns, gas and ice, Stonefall or Earthquake for a wall and for ice), steps up to what is left of it and strikes until it is gone. `World._watch_gates` sees ice, wall, thorns or gas
   go (a thicket or a bank at a time), marks the gate open and builds the ways again (`WorldNav.version` tells the wizards to think again about the pages they gave up). A human who
-  clears a gate opens it for the AI too. The dark stretch needs no spell: the ways about the world bar only its spike strips (`WorldBuilder.shut`), and a wizard jumps them (`tests/dark_check.tscn`). - **AI wizards cross chasms, floods, piranha pits and sentinels.** `WorldBuilder.shut(world, true)` leaves these gates open in the ways about the world and lists the tiles that cross each
-  (`tolls`, by `toll_key`); `WorldNav.path(from, to, shut)` goes round the crossings a wizard holds no spell for (`WizardBrain._can_cross`). A wizard whose way runs onto one
-  stands at the edge and draws a Frost Bridge (a wave along the water; the ice lasts 30 s) or, over a flood, Lily Pads (a row of loops; they sink after 8 s), then walks over (the piranhas' pit is too long for the pads). A chasm is too wide to jump: with Shadow Step the wizard walks to the edge, jumps, and slips twice along the way in the air (`WizardBrain._leaping`; a wizard that lands in the pit does not try again for 45 s). At a sentinel it draws Smoke Screen
-  over the statue, or a Barrier, or a Decoy, once it is within 780 px, and again when they run out; any wizard a sentinel can see and that holds one of them answers the same way. Tests: `tests/cross_check.tscn`, `tests/sentinel_check.tscn`, `tests/gate_check.tscn`.
+  clears a gate opens it for the AI too. The dark stretch needs no spell: the ways about the world bar only its spike strips (`WorldBuilder.shut`), and a wizard jumps them (`tests/dark_check.tscn`).
+- **AI wizards cross chasms, floods, piranha pits and sentinels the ways a player can.** `WorldBuilder.shut(world, true)` leaves these gates open in the ways about the world and lists the tiles that cross each
+  (`tolls`, by `toll_key`); `WorldNav.path(from, to, shut)` goes round the crossings a wizard holds no spell for (`WizardBrain._can_cross`, from `WAYS`). Over water it draws a Frost Bridge (a wave along the pit; the ice lasts 30 s) or Lily Pads
+  (small loops, a row of up to 480 px at a time, the next row put down as it nears the end of the last; they sink after 8 s), then waits for them to grow and walks over. Over a chasm, a flood or the piranhas' pit it can also walk to the edge, jump and
+  carry itself on in the air with Shadow Steps (or, for the shorter chasm and flood, Gusts: `WizardBrain._leaping`); a wizard that lands in the pit does not try again for 45 s. Against the piranhas, Spark clears the pit (the shock kills
+  the fish). At a sentinel it draws Smoke Screen over the statue, or an Eclipse, a Barrier or a Decoy, once it is within 780 px, and again when they run out; any wizard a sentinel can see that holds one of them answers the same way.
+  Not done: the wall (a Geyser throws a wizard about 185 px up, a wall is 288 px; a player's thrust is longer), and the ways that need a climb or a platform (Liana, Great Oak, Push, Stone Wall), Obsidian Armor over lava and Shadow Step through thorns, gas or ice.
+  Tests: `tests/cross_check.tscn`, `tests/sentinel_check.tscn`, `tests/gate_check.tscn`.
 - **No boss left in the code.** `WorldGraph` has no boss hall, guard or boss lock (`deepest` is just the farthest hall); every locked area may hold a page and a Rift may land anywhere open.
 
 ## Planned

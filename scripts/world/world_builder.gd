@@ -749,7 +749,7 @@ static func standing(cells: TileGrid, c: int, r: int, hazards := {}) -> bool:
 
 
 ## The gates that are crossed rather than cleared: a spell lets a wizard past, and the gate is as it was behind them.
-const CROSSINGS := ["chasm", "flood", "piranhas", "sentinel"]
+const CROSSINGS := ["chasm", "flood", "piranhas", "sentinel", "wall"]
 
 
 ## What a crossing is called on a wizard's list of what it has given up, and in the ways about the world.
@@ -759,12 +759,13 @@ static func toll_key(gate: Dictionary) -> String:
 
 ## The world as it is before any gate is opened, for a wizard to find its way about: {"cells": a TileGrid in which ice and walls are as solid as rock,
 ## "barred": the tiles no one stands in or walks through (lava, thorns, the stretch a trap covers), "tolls": with `crossings`, the tiles one
-## stands on to cross each of those gates, by toll_key}. Takes what build() returns. With `crossings` a pit is bridged and a sentinel's passage is
+## stands on to cross each of those gates, by toll_key, "links": the ways up onto a wall and down from it}. Takes what build() returns. With `crossings` a pit is bridged and a sentinel's passage is
 ## open in the map, for a wizard to say which of them it can pass (see WorldNav.path); without it they bar the way.
 static func shut(world: Dictionary, crossings := false) -> Dictionary:
 	var cells: TileGrid = world["cells"].duplicate()
 	var barred: Dictionary = world["hazards"].duplicate()
 	var tolls := {}
+	var links := []  # {"key", "left", "right", "top_left", "top_right"}: where a wizard lifted over a wall goes up from, and comes down to
 	for gate in world["gates"]:
 		if gate.get("open", false):
 			continue  # a gate that has been cleared bars nothing
@@ -772,6 +773,14 @@ static func shut(world: Dictionary, crossings := false) -> Dictionary:
 			var tiles: Array[Vector2i] = []
 			if gate["kind"] == "sentinel":
 				tiles.assign(gate["blocks"])
+			elif gate["kind"] == "wall":  # the wall stands as rock, and the places to stand on top of it are the toll: a lift gets one up there
+				for cell: Vector2i in gate["blocks"]:
+					cells.put(cell, ArenaGen.GROUND)
+				for column: Dictionary in gate["columns"]:
+					tiles.append(Vector2i(column["x"], column["top"] - 1))
+				var first: Dictionary = gate["columns"][0]
+				var last: Dictionary = gate["columns"][gate["columns"].size() - 1]
+				links.append({"key": toll_key(gate), "left": Vector2i(first["x"] - 1, first["bottom"] - 1), "right": Vector2i(last["x"] + 1, last["bottom"] - 1), "top_left": tiles[0], "top_right": tiles[tiles.size() - 1]})
 			else:
 				for step: Dictionary in gate["solve"]:
 					var rect: Rect2i = step["rect"]
@@ -797,7 +806,7 @@ static func shut(world: Dictionary, crossings := false) -> Dictionary:
 					cells.put(cell, ArenaGen.GROUND)
 				else:
 					barred[cell] = true
-	return {"cells": cells, "barred": barred, "tolls": tolls}
+	return {"cells": cells, "barred": barred, "tolls": tolls, "links": links}
 
 
 ## Every tile the wizard can stand on that can be reached from a starting tile by walking, stepping up one tile, falling

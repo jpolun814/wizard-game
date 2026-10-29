@@ -72,7 +72,7 @@ func _build_map() -> Variant:
 		_start_tile = _spawn_tiles[randi() % _spawn_tiles.size()]  # not seeded, so the same world starts you somewhere new
 	var shut := WorldBuilder.shut(built, true)
 	nav = WorldNav.new()
-	nav.build(shut["cells"], built["size"].y, shut["barred"], _spawn_tiles[0], shut["tolls"])
+	nav.build(shut["cells"], built["size"].y, shut["barred"], _spawn_tiles[0], shut["tolls"], shut["links"])
 	return built["cells"]
 
 
@@ -202,6 +202,7 @@ func _begin_encounter(camera: Camera2D) -> void:
 				shoal.water = Rect2(pit.position * TILE, Vector2(pit.size * TILE))
 				shoal.count = pit.size.x / 3
 				add_child(shoal)
+				entry["nodes"] = [shoal]  # killed to a fish, the pit is open
 	_dark = CanvasModulate.new()  # under the ground it is dark; only fire and the flare light the way
 	_dark.add_to_group("darkness")
 	add_child(_dark)
@@ -495,7 +496,7 @@ func _watch_gates(delta: float) -> void:
 			entry["open"] = true
 	if changed:
 		var shut := WorldBuilder.shut(_built, true)
-		nav.build(shut["cells"], _built["size"].y, shut["barred"], _spawn_tiles[0], shut["tolls"])
+		nav.build(shut["cells"], _built["size"].y, shut["barred"], _spawn_tiles[0], shut["tolls"], shut["links"])
 
 
 ## The gates that spells can clear and have not yet: {"kind", "outside": a floor tile just short of it, "target": a point in pixels to strike}.
@@ -518,6 +519,9 @@ func crossings() -> Array[Dictionary]:
 		if entry.has("pit") or entry["kind"] in ["chasm", "flood"]:
 			var rect: Rect2i = entry["solve"][0]["rect"]
 			found["span"] = Rect2(Vector2(rect.position * TILE), Vector2(rect.size * TILE))
+		elif entry["kind"] == "wall":
+			var columns: Array = entry["columns"]
+			found["span"] = Rect2(Vector2(columns[0]["x"] * TILE, columns[0]["top"] * TILE), Vector2(columns.size() * TILE, (columns[0]["bottom"] - columns[0]["top"]) * TILE))
 		out.append(found)
 	return out
 
@@ -550,6 +554,11 @@ func gate_target(entry: Dictionary) -> Vector2:
 					best = k
 			var bank: Dictionary = entry["banks"][maxi(best, 0)]
 			return Vector2((bank["x"] + 0.5) * t, (bank["floors"][0] + bank["tops"][0]) * 0.5 * t)
+	if entry["kind"] == "piranhas":  # the water over the fish that is nearest the way in
+		if not is_instance_valid(entry["nodes"][0]):  # shocked to the last fish
+			return Vector2((outside.x + 0.5) * t, outside.y * t)
+		var shoal: Piranhas = entry["nodes"][0]
+		return Vector2(shoal.fish_x_near(outside.x * t), (entry["pit"] as Rect2i).position.y * t + 8.0)
 	var best: Dictionary = entry["columns"][0]  # ice and wall: a column of it
 	for column: Dictionary in entry["columns"]:
 		if absi(column["x"] - outside.x) < absi(best["x"] - outside.x):
