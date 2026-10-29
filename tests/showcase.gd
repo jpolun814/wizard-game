@@ -592,7 +592,6 @@ func _plan_new_spells() -> void:
 				kept = true
 		wizard.infinite_time = 0.0
 	_arena._since_hurt = -100000.0  # the waiting room heals a wizard after a few seconds; here the damage has to stay
-	_arena.caster.feedback.connect(func(t: String, _c: Color) -> void: print("  feedback: ", t))
 	# Blood Bolt: 30 damage, paid for in maximum stamina.
 	_at(0.5, func() -> void:
 		reset.call(15, "Blood Bolt")
@@ -718,12 +717,10 @@ func _plan_new_spells() -> void:
 		check.call("and lights what is hidden near it", SpellTargets.lit_near(tree, wizard.global_position + Vector2(100, 0), 20.0) and not SpellTargets.lit_near(tree, wizard.global_position + Vector2(900, 0), 20.0))
 		_snap("glowcap"))
 	_at(20.0, func() -> void:
-		wizard.focus = "staff"
 		_cast("Glowcap", _stroke("circle", _feet(15) + Vector2(80, -60), 1.0)))
 	_at(20.6, func() -> void:
 		check.call("a second Glowcap replaces the first, and still sits on the hat with the staff in hand", tree.get_nodes_in_group("glowcaps").size() == 1 and tree.get_nodes_in_group("glowcaps")[0].global_position.distance_to(wizard.global_position + Vector2(0, -80)) < 14.0)
-		_snap("glowcap_staff")
-		wizard.focus = "wand")
+		_snap("glowcap_staff"))
 	# Moonbeam: a dim light on the ground where it was drawn.
 	_at(21.0, func() -> void:
 		reset.call(15, "Moonbeam")
@@ -816,7 +813,7 @@ func _plan_spells() -> void:
 		["Decoy", 14, func(f: Vector2) -> PackedVector2Array: return _stroke("eight", f + Vector2(90, -50), 0.8), [0.6]],
 		["Eclipse", 14, func(f: Vector2) -> PackedVector2Array: return _stroke("crescent", f + Vector2(110, -60), 1.2), [1.0]],
 		["Hex", 14, func(f: Vector2) -> PackedVector2Array: return _stroke("pentagram", Vector2(ArenaGen.column_x(16), f.y - 40.0), 0.8), [0.7]],
-		["Abyss", 14, func(f: Vector2) -> PackedVector2Array: return _stroke("spiral", f + Vector2(110, -40), 1.2), [0.9]],
+		["Black Hole", 14, func(f: Vector2) -> PackedVector2Array: return _stroke("spiral", f + Vector2(110, -40), 1.2), [0.9]],
 		["Shadow Step", 14, func(f: Vector2) -> PackedVector2Array: return line.call(f + Vector2(0, -20), f + Vector2(140, -20)), [0.1, 0.3]],
 	]
 	if only != "":
@@ -1022,7 +1019,7 @@ func _reset_room(col: int, spell_name: String) -> void:
 			if not node is Pond:
 				node.queue_free()
 	for node in _arena.get_children():
-		if node is SpellEffect or node is Tornado or node is Volcano or node is Hazard or node is Mudslide or node is IcePrison or node is Abyss or node is FireBreath or node is Earthquake:
+		if node is SpellEffect or node is Tornado or node is Volcano or node is Hazard or node is Mudslide or node is IcePrison or node is BlackHole or node is FireBreath or node is Earthquake:
 			node.queue_free()
 	for pond in _arena.get_tree().get_nodes_in_group("ponds"):
 		for slab in pond._slabs:

@@ -11,12 +11,12 @@
    - **Shape detectors** then run for shapes $1 handles badly: `_inward_spiral`, `_ring_then_line_split` (Push),
      `_box`, `_snowfall_line`, `_funnel_stroke`, `_cloud_line` (also Frost Bridge's wave), `_pit_stroke`, `_cone`,
      `_icicle_triangles`, `_rising_wave` (Smoke Screen), `_stem_and_arc` (a stroke that sets off upward and curls: Liana,
-     Geyser, Spore Puff and Great Oak, told apart by proportions in `_stem_gesture`), `_big_wave` (Tsunami), `_coil`
+     Geyser, Spore Puff and Great Oak, told apart by proportions in `_stem_gesture`), `_big_wave` (Tsunami, cut: still wired, no spell uses it), `_coil`
      (Tornado), `_sawtooth` (Bramble), `_w_shape` (Flytrap) and `_loop_row` (Lily Pads). Flare, Decoy, Eclipse and Hex are
      $1 templates (a flame, a figure of eight, a crescent, a pentagram, a geyser peak). A detector match sets score 1.0 and fills `info`.
    - **Straight strokes:** a flick that is near-vertical becomes `wall` (Firewall). A flick starting on solid
      ground with Earth held becomes `stone_wall`.
-   - **Thresholds:** a score below `tolerance` (the focus: wand 0.70, staff 0.90) is a misfire, which costs
+   - **Thresholds:** a score below `tolerance` (0.70) is a misfire, which costs
      stamina and plays a fizzle. A recognized shape with no spell on those buttons is also a misfire.
 3. **`cast_resolved`** goes to the arena, which deducts the cost (`SpellData.cost_for`, scaled by drawn size)
    and spawns the effect.
@@ -26,8 +26,7 @@
 1. **It pictures the effect.** It's the silhouette of the thing (mountain, cloud, cone, pit, box, crack) or its
    motion (an inward spiral pulls in, a zigzag down is lightning).
 2. **The drawing places it.** Where and how big you draw is where and how big it happens, wherever that makes
-   sense: Snowfall along its line, Ice Prison in its box, Push's circle as the area, Storm Cloud along its
-   bumps. Size should cost stamina (`cost_for`).
+   sense: Snowfall along its line, Ice Prison in its box, Push's circle as the area, Icicles under their ceiling. Size should cost stamina (`cost_for`).
 3. **Distinct within its button combination.** Two spells on the same buttons must not be confusable when drawn
    sloppily. Spells on different buttons may share a shape: Ignite, Frostbolt and Blink are all flicks, which
    is good, because muscle memory carries across schools.
@@ -104,7 +103,7 @@ where it makes sense for both, and two spells on one button combination never sh
 ## Interactions worth building (owner-approved direction: physical consistency)
 
 - **Fire and ice:** Fire melts icicles and Blizzard snow; Frost puts out fire patches.
-- **Storm and stone:** lightning hits a Stone Wall instead of whoever is behind it.
+- **Lightning and stone:** lightning hits a Stone Wall instead of whoever is behind it.
 - **Push and hazards:** pushing an enemy into Mudslide or fire makes those hazards a combo.
 - **Wind and fire:** Tornado carries fire patches, becoming a fire whirl.
 - **Force and ice:** a frozen enemy shatters with Force or Earth. This already exists; keep the pattern.
@@ -113,12 +112,11 @@ where it makes sense for both, and two spells on one button combination never sh
 
 Every spell, its shape, its counter and its gate tags are in `docs/spell_pool.md`. The plan they are part of (random pages
 in a generated world, raced for by four wizards) is in `docs/pvp_arena_design.md`; the older roguelite plan is in `docs/roguelite_exploration_design.md`. Design
-each new spell with the checklist in `HANDOFF.md` §6, and expect the owner to veto physics they find unfair.
+each new spell with the checklist in `CLAUDE.md` §6, and expect the owner to veto physics they find unfair.
 
 ## Rituals (typed)
 
-- **Existing:** Second Wind (heal), Land (minimap), Insight (enemy info), Bonfire (a healing fire), Boundless
-  (endless stamina).
+- **Existing:** the `RITUALS` table in `scripts/ritual_input.gd` holds them: Land (minimap), Insight (enemy info), Bonfire (a healing fire), Boundless Vigour (endless stamina), Second Leap, Rift, Swift Feet, Deep Breath, Mark and Return.
 - **Chants are Latin-ish and grammatical-sounding.** Longer chants are for stronger effects.
 - **Accuracy sets power.** Stopping partway does nothing; garbling backfires.
 - **Text:** the spellbook shows each ritual's name, chant and one short line. Never repeat "costs no stamina".

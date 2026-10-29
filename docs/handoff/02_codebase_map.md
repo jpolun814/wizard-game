@@ -17,7 +17,7 @@ Arena (scripts/arena.gd)            the base of the waiting room and the world: 
 ```
 
 There are no waves. The waiting room's portal loads a world from a seed (`World.next_seed`).
-`FocusItem.held_focus` carries the wand or staff between maps.
+
 
 ## World coordinates
 
@@ -61,15 +61,13 @@ never block each other.
   debuffs (mute, root, blind, slow), Barrier (a pixel bubble) and animation.
   - **Animations** (`ANIMATIONS`): idle, run, jump, fall, cast (staff held up while drawing), release
     (a thrust), hit, death.
-  - **Frames** come from `art/chars/wizard` or `wizard_wand`, swapped by `focus` in `_dress_for_focus`.
+  - **Frames** come from `art/chars/wizard`.
   - `mouth()` gives the Fire Breath origin.
-- **`focus_item.gd`:** a wand or staff lying on the ground. `FOCI[...]["tolerance"]` is the recognizer
-  threshold: 0.70 for the wand, 0.90 for the staff.
 
 ### The waiting room
 - **`lab.gd`** (`scenes/lab.tscn`, the project's main scene): extends `arena.gd` and overrides its `_where_are_we`,
   `_build_map` and `_begin_encounter`. A long map with a lava pit, a gap, a pond, a hill, dummies and a turret; infinite
-  stamina, health that comes back, night on N, reset on R. Its portal starts a real run in `scenes/arena.tscn`.
+  stamina, health that comes back, night on N, reset on R. Its portal starts a match in `scenes/world.tscn`; the worlds are described below.
   `tests/showcase.gd` with `scenario=spells` casts every spell here and photographs it.
 
 ### Casting
@@ -156,6 +154,18 @@ never block each other.
 - **`make_sounds.py`:** the layered spark, blink, push and fire_breath sounds.
 - **`itch_download.py`:** fetches free itch.io pages.
 - **`audio_profile.py`:** describes sounds in numbers.
+
+## World, match and pages
+
+The PvP match (see `docs/pvp_arena_design.md`) runs on these. `World` extends `Arena`, so the base code still applies.
+
+- **Match:** `match_state.gd` (`MatchState`): the four worlds, their timers and seeds. `portal_collapse.gd` tears the portal open when a world gives way.
+- **World:** `world.gd` builds each world, places the wizards, follows the one you watch, and watches the gates.
+- **World generation:** `scripts/world/`. `world_graph.gd` (halls, tunnels, gates), `world_builder.gd` (carves rock, castle and gates), `surface_gen.gd` (the surface biomes), `tile_grid.gd` (one byte per tile), `rock_world.gd` and `contour.gd` (chunked drawing and collision), `incantation.gd` (the seed words).
+- **Walking:** `walkways.gd` (where a wizard can stand, and the moves between), `world_nav.gd` (path finder over those), `wizard_route.gd` (follows a path), `wizard_brain.gd` (what the AI wizard goes for, when it fights, what it casts).
+- **Pages:** `pages.gd` (deals the starting pages and lays the rest), `ledger.gd` (one wizard's pages), `page_pickup.gd` (a page on the map).
+- **Gates:** `ice_plug.gd`, `rock_wall.gd`, `spike_bed.gd`, `gas_bank.gd`, `piranhas.gd`, `sentinel.gd`, `castle_door.gd`, `rope_ladder.gd`.
+- **Other:** `intro.gd` (the cut-scene), `weather.gd`.
 
 ## Tests (`tests/`)
 - **`test_gestures.gd`:** every spellbook picture, at three sizes, shaky and mirrored, plus rotated cones.

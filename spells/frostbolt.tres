@@ -10,6 +10,6 @@ gesture = "flick"
 targeting = "directional"
 cost = 15.0
 draw = "Straight stroke, not vertical. Same stroke as Ignite."
-effect = "Hurl a bolt of ice for 6 damage that slows."
+effect = "Hurl a chilling bolt of ice."
 damage = "6 damage, slows"
 effect_path = "res://scripts/spells/projectile.gd"

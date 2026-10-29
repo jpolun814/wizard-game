@@ -9,5 +9,5 @@ school = "Earth"
 gesture = "stonefall"
 cost = 25.0
 draw = "A circle, then a line running down from its top. A boulder drops onto the spot."
-effect = "Drop a boulder for 30 damage."
+effect = "Drop a boulder from above."
 damage = "30 damage"

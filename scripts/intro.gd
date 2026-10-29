@@ -21,7 +21,7 @@ const GOLD := Color("#ffe9a0")
 const SKIP_HINT_AFTER := 1.0
 ## Each wizard: the folder of its frames, where it starts and where it stands at the pile, and which way it faces to begin with.
 const WIZARDS := [
-	{"art": "wizard_wand", "from": -360.0, "to": -178.0},
+	{"art": "wizard", "from": -360.0, "to": -178.0},
 	{"art": "dark_wizard", "from": -320.0, "to": -160.0},
 	{"art": "bone_wizard", "from": 40.0, "to": -140.0},
 	{"art": "pyre_wizard", "from": 100.0, "to": -122.0},

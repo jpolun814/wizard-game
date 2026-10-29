@@ -8,6 +8,6 @@ spell_name = "Firewall"
 gesture = "wall"
 cost = 20.0
 draw = "Straight vertical line. The wall rises from the ground under it."
-effect = "Burns anyone in it for 4 seconds."
+effect = "Raise a line of fire from the ground."
 damage = "4 damage per half second"
 effect_path = "res://scripts/spells/firewall.gd"

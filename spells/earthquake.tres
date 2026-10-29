@@ -9,5 +9,5 @@ school = "Earth"
 gesture = "earthquake"
 cost = 75.0
 draw = "Three mountain peaks, drawn in the air."
-effect = "Shake the ground for 6 seconds."
+effect = "Shake the world for a little while."
 damage = "shakes the ground"

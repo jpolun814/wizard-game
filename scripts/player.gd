@@ -37,12 +37,10 @@ const ANIMATIONS := {
 	"hit": {"fps": 14.0, "loop": false}, "death": {"fps": 10.0, "loop": false},
 }
 const STAFF_HEAD := Vector2(-55, -115)  # where the staff's crystal is in the casting pose, facing right
-const WAND_HEAD := Vector2(-24, -95)     # and the wand's
 
 var gravity: float = ProjectSettings.get_setting("physics/2d/default_gravity")
 var stamina := MAX_STAMINA
 var max_stamina := MAX_STAMINA  # what stamina can reach for now. Hits and the Rift wear it down; you die when it is gone
-var focus := "wand"          # the held focus item, see FocusItem.FOCI
 var ledger := Ledger.complete()  # the pages in the wizard's book: all of them in the waiting room, the ones found in a world
 var movement_enabled := true  # the arena turns this off while a typing box or the spellbook is open
 var infinite_time: float: # Chant of Boundless Vigour: stamina does not run out while this lasts
@@ -118,7 +116,6 @@ var _releasing := 0.0     # time left of the thrust that plays when a spell goes
 var _hurt_anim := 0.0     # time left of the flinch after a hit
 var cast_color := Color.WHITE  # the school being drawn (set by the arena); the staff's glow takes it
 var _glow: Sprite2D            # a glow at the staff's head while a stroke is drawn
-var _dressed_as := ""          # the focus the wizard's frames show
 @onready var _sprite: AnimatedSprite2D = $Look
 var _shield_emitter: CPUParticles2D
 var _shield: Node2D
@@ -132,7 +129,7 @@ func _ready() -> void:
 	add_child(_status)
 	floor_max_angle = deg_to_rad(50.0)  # a 45 degree slope, the steepest a tunnel climbs, still counts as floor
 	add_to_group("player")
-	_dress_for_focus()
+	_sprite.sprite_frames = CharFrames.build("res://art/chars/wizard", ANIMATIONS)
 	_sprite.offset = Vector2(0, -PixelArt.CHARACTERS["wizard"]["size"].y * 0.5)  # the frames' bottom edge is the feet
 	_sprite.play("idle")
 	_wet_material = ShaderMaterial.new()
@@ -270,7 +267,6 @@ func take_damage(amount: int, grace_hit := true, projectile := false) -> void:
 		if _veil_cool <= 0.0:
 			veil -= 1
 			_veil_cool = 0.5
-			FloatText.spawn(get_parent(), center() + Vector2(0, -24), "Veiled" if veil == 0 else "Veiled x%d" % veil, SpellData.SCHOOL_COLORS["Blood"].lightened(0.3), 1.0)
 			Fx.burst(get_parent(), center(), SpellData.SCHOOL_COLORS["Blood"], 14, 140.0, 0.4, true)
 			Sfx.play("glass", center(), -4.0)
 		if grace_hit:
@@ -401,15 +397,7 @@ func is_blind() -> bool:
 func status_text() -> String:
 	var parts: Array[String] = []
 	if mute_time > 0.0:
-		parts.append("MUTED %.0fs" % mute_time)
-	if root_time > 0.0:
-		parts.append("ROOTED %.0fs" % root_time)
-	if blind_time > 0.0:
-		parts.append("BLIND %.0fs" % blind_time)
-	if slow_time > 0.0:
-		parts.append("SLOWED")
-	if veil > 0:
-		parts.append("VEILED x%d" % veil)
+		parts.append("Muted")
 	return "   ".join(parts)
 
 
@@ -648,18 +636,8 @@ func _process(delta: float) -> void:
 	_animate(delta)
 
 
-## The wizard's frames show the focus it holds: its staff, or the same staff cut down to a wand.
-func _dress_for_focus() -> void:
-	_dressed_as = focus
-	var animation := _sprite.animation
-	_sprite.sprite_frames = CharFrames.build("res://art/chars/wizard_wand" if focus == "wand" else "res://art/chars/wizard", ANIMATIONS)
-	_sprite.play(animation if _sprite.sprite_frames.has_animation(animation) else "idle")
-
-
 ## Picks the animation for what the wizard is doing, faces the way it is moving, and flashes when hit.
 func _animate(delta: float) -> void:
-	if focus != _dressed_as:
-		_dress_for_focus()
 	if absf(velocity.x) > 10.0 and not dead:
 		facing = signf(velocity.x)
 	_releasing = maxf(_releasing - delta, 0.0)
@@ -682,8 +660,7 @@ func _animate(delta: float) -> void:
 	_sprite.flip_h = facing < 0.0
 	_glow.visible = casting and not dead
 	if _glow.visible:
-		var head := WAND_HEAD if focus == "wand" else STAFF_HEAD
-		_glow.position = Vector2(head.x * facing, head.y)
+		_glow.position = Vector2(STAFF_HEAD.x * facing, STAFF_HEAD.y)
 		_glow.modulate = Color(cast_color, 0.9)
 	_flash = maxf(_flash - delta, 0.0)
 	# After a hit the wizard blinks while it can't be hurt again.

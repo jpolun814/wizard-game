@@ -4,16 +4,15 @@ extends CanvasLayer
 ## Everything drawn over the game: the stamina bar, a banner, the dark wizard's health, messages, an arrow to the portal, the pause screen with the controls,
 ## and the screen you see when you fall.
 
-signal restart_requested
 
 const HEALTH := Color("#b3122e")
 const STAMINA := Color("#c08a2c")
 const UNLIMITED := Color("#7fe0ff")
 const INK := Color(0.07, 0.04, 0.1)
 const CONTROLS := [
-	["A / D", "Move"], ["W or Space", "Jump (tap to hop)"],
-	["Hold mouse buttons + draw", "Cast a spell (the buttons pick the school)"], ["Tab", "Open your spellbook, or read the page you stand on"], ["Left / Right arrows", "Walk your Decoy"],
-	["Enter", "Speak an incantation"], ["E", "Swap focus with the one on the ground"], ["M", "Mute sound"],
+	["A / D", "Move"], ["W or Space", "Jump"],
+	["Mouse buttons", "Hold mouse buttons and draw a spell"], ["Tab", "Open the spellbook"],
+	["Enter", "Speak an incantation"], ["M", "Mute sound"],
 	["F1", "Open the summon menu (testing)"], ["Esc", "Pause"],
 ]
 
@@ -35,6 +34,8 @@ var _feedback_time := 0.0
 func _ready() -> void:
 	var rows: GridContainer = $Pause/Box/Controls
 	for row in CONTROLS:
+		if row[0] == "F1" and not OS.is_debug_build():
+			continue  # the summon menu is a testing tool
 		var key := Label.new()
 		key.text = row[0]
 		key.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
@@ -121,10 +122,3 @@ func _input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 
-func _unhandled_input(event: InputEvent) -> void:
-	if not _game_over.visible or _game_over.modulate.a < 0.5:
-		return
-	var click := event as InputEventMouseButton
-	if event.is_action_pressed("restart") or (click and click.pressed):
-		get_viewport().set_input_as_handled()
-		restart_requested.emit()

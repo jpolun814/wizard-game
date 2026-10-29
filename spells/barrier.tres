@@ -9,5 +9,5 @@ school = "Air"
 gesture = "circle"
 cost = 35.0
 draw = "A circle, either way round. The shield wraps around you."
-effect = "Redirect incoming projectiles in random directions and keep gas off for 6 seconds."
+effect = "Raise a shell of air around yourself."
 damage = "redirects projectiles, keeps gas off"

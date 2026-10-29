@@ -9,5 +9,5 @@ school = "Blood"
 gesture = "wall"
 cost = 5.0
 draw = "A straight line down, like a curtain falling."
-effect = "Wrap yourself in blood. The next two times you would take damage, you take none."
+effect = "Wrap yourself in a veil of blood that negates the next few blows."
 damage = "blocks 2 hits"

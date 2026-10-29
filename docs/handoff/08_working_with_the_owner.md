@@ -25,9 +25,9 @@
 - **Keep them posted** with a short line of what you're doing during long stretches.
 - **Don't touch unrelated systems.** Don't rename things they know (spell names, keys) without being asked.
 - **Their files:**
-  - Don't delete their original files (`art_source/`, `art/wizard_parts/`, `scripts/*.bak`,
+  - Don't delete their original files (`art_source/`, `art/wizard_parts/`,
     `Wizard-character-FreeSprite.zip`).
-  - Don't commit or push unless asked. The tree carries a large, intentional uncommitted diff.
+  - Don't commit or push unless asked. Check `git status` first: the owner may have uncommitted work.
 - **Downloads** go into a scratch folder outside the repo. Read the licence before using anything. Add every new
   asset to `art/CREDITS.md`.
 

@@ -98,6 +98,26 @@ class MouseIcon extends Control:
 				draw_texture_rect(BUTTONS[button], area, false, lit)
 
 
+## A keyboard key, drawn as a keycap on the book's parchment, the way a mouse button is drawn on a spell's page.
+class KeyCap extends PanelContainer:
+	func _init(key_name: String) -> void:
+		var cap := StyleBoxFlat.new()
+		cap.bg_color = Color("#e9d7bb")  # parchment-toned, like the mouse
+		cap.border_color = Color(0.08, 0.04, 0.08)
+		cap.set_border_width_all(2)
+		cap.set_corner_radius_all(3)
+		cap.content_margin_left = 6.0
+		cap.content_margin_right = 6.0
+		cap.content_margin_top = 2.0
+		cap.content_margin_bottom = 2.0
+		add_theme_stylebox_override("panel", cap)
+		var label := Label.new()
+		label.text = key_name
+		label.add_theme_font_size_override("font_size", 16)
+		label.add_theme_color_override("font_color", Color(0.08, 0.04, 0.08))
+		add_child(label)
+
+
 ## A gesture's shape, drawn as a hand would ink it: a smooth stroke with a fine second line beside it, an arrowhead
 ## on the tip of the ink as it is drawn, a dot where it starts. A spell that must start on the ground has a hatched line of earth under it.
 class Preview extends Control:
@@ -445,17 +465,21 @@ func _page_spell(column: VBoxContainer, spell_name: String) -> void:
 	var preview := Preview.new(GestureTemplates.preview_points(gesture), GestureTemplates.preview_ground(gesture), 150.0)
 	preview.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	column.add_child(preview)
-	column.add_child(_ink("%d maximum stamina" % roundi(s.cost) if s.pays_max() else "%d stamina" % roundi(s.cost), 20, SUBTLE))
 	column.add_child(_ink(s.effect, 22, TEXT_INK))
 
 
 ## An incantation's own page: its name, its words and what it does. Every one is spoken by typing it and pressing Enter,
-## which the first page says once.
+## which the first page shows once, as a key, the way the spell pages show the mouse buttons.
 func _page_incantation(column: VBoxContainer, ritual_id: String) -> void:
 	var r: Dictionary = RitualInput.RITUALS[ritual_id]
-	column.add_child(_heading(r["name"], 40))
+	var top := HBoxContainer.new()
+	top.add_theme_constant_override("separation", 10)
+	var heading := _heading(r["name"], 40)
+	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	top.add_child(heading)
 	if ritual_id == RitualInput.RITUALS.keys()[0]:
-		column.add_child(_ink("Press Enter, type the words, press Enter.", 18, SUBTLE))
+		top.add_child(KeyCap.new("Enter"))
+	column.add_child(top)
 	column.add_child(_ink("“%s”" % r["text"], 26, TEXT_INK))
 	column.add_child(_ink(_ritual_effect(ritual_id), 20, SUBTLE))
 	if ritual_id == "mark":
@@ -468,25 +492,25 @@ func _page_incantation(column: VBoxContainer, ritual_id: String) -> void:
 func _ritual_effect(ritual_id: String) -> String:
 	match ritual_id:
 		"minimap":
-			return "Shows or hides the minimap."
+			return "Show the land around you."
 		"insight":
-			return "Hover over a foe to see information about it."
+			return "Gain deeper knowledge of those around you."
 		"bonfire":
-			return "Lights a bonfire for 30 seconds that restores your lost maximum stamina."
+			return "Kindle a bonfire and heal your wounds."
 		"boundless":
-			return "Gives you endless stamina for 20 seconds."
+			return "Never tire for a while."
 		"double_jump":
-			return "Lets you jump once more in mid-air for 20 seconds."
+			return "Jump again in mid-air for a while."
 		"rift":
-			return "Teleports you to a random place on the map. Costs all your stamina and lowers your maximum by 50."
+			return "Tear open a way to a random place. This can be devastating."
 		"haste":
-			return "Move faster for 20 seconds."
+			return "Run faster for a while."
 		"deep_breath":
-			return "Hold your breath for 45 seconds."
+			return "Hold your breath for a while."
 		"mark":
-			return "Mark the place you stand."
+			return "Mark this place."
 		"recall":
-			return "Open a portal at your mark and another where you stand. Anyone can use them."
+			return "Open a long-lasting portal back to your mark."
 	return ""
 
 

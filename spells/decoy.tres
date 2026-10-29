@@ -9,5 +9,5 @@ school = "Shadow"
 gesture = "eight"
 cost = 20.0
 draw = "A figure of eight."
-effect = "Cast a shadow of yourself that walks where you send it, for 24 seconds."
-damage = "enemies attack it instead of you"
+effect = "Conjure a shadow of yourself."
+damage = "draws attacks to itself"

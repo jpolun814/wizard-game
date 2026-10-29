@@ -10,6 +10,6 @@ gesture = "flick"
 targeting = "directional"
 cost = 12.0
 draw = "Straight stroke, not vertical. Draw it in the direction you want to throw."
-effect = "Hurl a bolt of blood for 30 damage."
+effect = "Hurl a bolt of blood."
 damage = "30 damage"
 effect_path = "res://scripts/spells/projectile.gd"

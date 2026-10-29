@@ -10,5 +10,5 @@ gesture = "tornado"
 targeting = "shape"
 cost = 30.0
 draw = "A coil going down: a tall, narrow spiral, like a drill bit. A spinning wind touches down under it."
-effect = "Fling anyone who walks into it up and away, and bat projectiles back for 6 seconds."
-damage = "flings foes"
+effect = "Summon a whirlwind that flings anything that walks into it."
+damage = "flings anything"

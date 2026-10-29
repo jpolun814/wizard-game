@@ -12,7 +12,6 @@ The downloads dir holds the unzipped packs, each in its own folder:
     purple-portal/              Purple Portal Sprite Sheet            (the portal: 8 x 3 grid of 64 px cells)
     icicles                     Kamioo, Pixel Icicles                 (rock spikes)
     x_clouds                    DustDFG, Pixel Art Clouds             (storm and snow clouds)
-    x_tinydungeon               Kenney, Tiny Dungeon                  (the wand and staff on the ground)
     creasta_tornado/            Creasta, Tornado pixel sprite sheet   (the tornado: mytronado.png, 5 x 12 frames)
     pixflame/                   zonked, Pixel Flame VFX (CC0)          (fire-a and fire-b: the breath, trail and wall of fire)
     books/foxel                 Foxel Games, Pixel Art Book           (the spellbook)
@@ -339,128 +338,8 @@ def build_atlas(spec, downloads, dst):
     atlas.save(dst, optimize=True)
 
 
-# --- The wizard holding a wand -----------------------------------------------------------------------------------
-# The Wizard Pack only draws its wizard with a staff. For the wand, each frame's staff is cut down to the short
-# piece in the wizard's hand, with the crystal moved to its tip: the staff's wood, outline and crystal have colours
-# of their own, so they can be found and erased.
-POLE = {(61, 35, 16)}
-CRYSTAL = {(51, 218, 255), (193, 255, 250)}
-DARK = {(30, 16, 6), (54, 30, 13), (72, 40, 17)}  # the staff's outline and shading, also used elsewhere
-SKIN = {(187, 143, 130), (154, 105, 91), (165, 113, 98)}
-KEEP = 9      # pole this close to the hand stays: the wand
-REACH = 3.0   # pixels this close to the staff's line are part of the staff
-
-
-def wandify(im):
-    im = im.copy()
-    px = im.load()
-    w, h = im.size
-    solid = lambda p: 0 <= p[0] < w and 0 <= p[1] < h and px[p][3] > 0
-    pole = [(x, y) for y in range(h) for x in range(w) if px[x, y][3] > 0 and px[x, y][:3] in POLE]
-    crystal = [(x, y) for y in range(h) for x in range(w) if px[x, y][3] > 0 and px[x, y][:3] in CRYSTAL]
-    if len(pole) < 6:
-        return im, False
-    # The staff's line: the straight line through the most pole pixels (so a stray pixel of the same colour
-    # elsewhere doesn't tilt it).
-    rnd = random.Random(1)
-    best = None
-    for _ in range(300):
-        a, b = rnd.sample(pole, 2)
-        if a == b:
-            continue
-        ang = math.atan2(b[1] - a[1], b[0] - a[0])
-        ux, uy = math.cos(ang), math.sin(ang)
-        inl = [p for p in pole if abs(-(p[0] - a[0]) * uy + (p[1] - a[1]) * ux) <= 1.5]
-        if best is None or len(inl) > len(best[0]):
-            best = (inl, ang)
-    inliers, angle = best
-    mx = sum(p[0] for p in inliers) / len(inliers)
-    my = sum(p[1] for p in inliers) / len(inliers)
-    # Refine the angle by least squares over the inliers.
-    sxx = sum((p[0] - mx) ** 2 for p in inliers)
-    syy = sum((p[1] - my) ** 2 for p in inliers)
-    sxy = sum((p[0] - mx) * (p[1] - my) for p in inliers)
-    angle = 0.5 * math.atan2(2 * sxy, sxx - syy)
-    pole = inliers
-    dx, dy = math.cos(angle), math.sin(angle)
-    along = lambda p: (p[0] - mx) * dx + (p[1] - my) * dy
-    across = lambda p: abs(-(p[0] - mx) * dy + (p[1] - my) * dx)
-    lo = min(along(p) for p in pole) - 2
-    hi = max(along(p) for p in pole) + 2
-    # The hand: skin touching the pole, nearest the middle of the pole.
-    touching = [p for p in pole for e in ((1, 0), (-1, 0), (0, 1), (0, -1))
-                if solid((p[0] + e[0], p[1] + e[1])) and px[p[0] + e[0], p[1] + e[1]][:3] in SKIN]
-    if touching:
-        grip = min(touching, key=lambda p: abs(along(p)))
-    else:
-        # No hand found on it: hold it at the pole pixel nearest the body's middle.
-        grip = min(pole, key=lambda p: abs(p[0] - w / 2) + abs(p[1] - h * 0.6))
-    # Which way the crystal end lies along the line.
-    tip_sign = 1.0
-    if crystal:
-        tip_sign = 1.0 if sum(along(p) for p in crystal) / len(crystal) > along(grip) else -1.0
-    kept = {}
-    for y in range(h):
-        for x in range(w):
-            p = (x, y)
-            if px[p][3] == 0:
-                continue
-            c = px[p][:3]
-            on_line = across(p) <= REACH and lo <= along(p) <= hi
-            if c in CRYSTAL or (on_line and (c in POLE or c in DARK)):
-                if on_line and abs(along(p) - along(grip)) <= KEEP and c not in CRYSTAL:
-                    kept[p] = px[p]
-                px[p] = (0, 0, 0, 0)
-    # Any staff wood left off the line (the staff isn't always drawn quite straight) goes, with its outline.
-    for y in range(h):
-        for x in range(w):
-            if px[x, y][3] > 0 and px[x, y][:3] in POLE and (x, y) not in kept:
-                px[x, y] = (0, 0, 0, 0)
-                for e in ((1, 0), (-1, 0), (0, 1), (0, -1), (1, 1), (-1, -1), (1, -1), (-1, 1)):
-                    r = (x + e[0], y + e[1])
-                    if solid(r) and px[r][:3] in DARK and r not in kept:
-                        px[r] = (0, 0, 0, 0)
-    for p, c in kept.items():
-        px[p] = c
-    # Bits of the staff left floating on their own (its carved head, a stray edge) go too.
-    seen = set()
-    for y in range(h):
-        for x in range(w):
-            if (x, y) in seen or px[x, y][3] == 0:
-                continue
-            group, stack = [], [(x, y)]
-            seen.add((x, y))
-            while stack:
-                q = stack.pop()
-                group.append(q)
-                for e in ((1, 0), (-1, 0), (0, 1), (0, -1), (1, 1), (-1, -1), (1, -1), (-1, 1)):
-                    r = (q[0] + e[0], q[1] + e[1])
-                    if r not in seen and solid(r):
-                        seen.add(r)
-                        stack.append(r)
-            staffish = all(px[q][:3] in POLE or px[q][:3] in DARK or px[q][:3] in CRYSTAL for q in group)
-            if staffish and len(group) < 40 and not any(q in kept for q in group):
-                for q in group:
-                    px[q] = (0, 0, 0, 0)
-    # A crystal on the tip of the wand.
-    if kept:
-        far = max(kept, key=lambda p: (along(p) - along(grip)) * tip_sign)
-        for (ex, ey, c) in [(0, 0, (51, 218, 255)), (0, -1, (193, 255, 250)), (1, 0, (51, 218, 255)),
-                            (-1, 0, (51, 218, 255)), (0, 1, (51, 218, 255))]:
-            q = (far[0] + ex, far[1] + ey)
-            if 0 <= q[0] < w and 0 <= q[1] < h:
-                px[q] = c + (255,)
-    return im, True
-
-
-
-
 def build_extras(dl, props, tiles):
-    """Pieces cut from sheets and recoloured: the wand and staff, rock spikes, clouds, ice and quicksand."""
-    tiny = Image.open(os.path.join(dl, "x_tinydungeon/Tilemap/tilemap_packed.png")).convert("RGBA")
-    for name, index in [("wand", 129), ("staff", 130)]:
-        cell = tiny.crop(((index % 12) * 16, (index // 12) * 16, (index % 12) * 16 + 16, (index // 12) * 16 + 16))
-        cell.crop(alpha_box(cell)).save(os.path.join(props, name + ".png"), optimize=True)
+    """Pieces cut from sheets and recoloured: rock spikes, clouds, ice and quicksand."""
     # Rock spikes for Fissure: the rising ice spikes, recoloured to stone.
     rocks = Image.open(os.path.join(dl, "icicles/icerocks_pixel.png")).convert("RGBA")
     rock_ramp = ("ramp", (34, 24, 20), (196, 170, 140))
@@ -520,11 +399,6 @@ def main():
         chars[name] = prepare_character(name, dl)
         print(name, chars[name])
 
-    wand_dir = os.path.join(ROOT, "art", "chars", "wizard_wand")
-    shutil.rmtree(wand_dir, ignore_errors=True)
-    os.makedirs(wand_dir)
-    for f in glob.glob(os.path.join(ROOT, "art", "chars", "wizard", "*.png")):
-        wandify(Image.open(f).convert("RGBA"))[0].save(os.path.join(wand_dir, os.path.basename(f)), optimize=True)
 
     tiles = os.path.join(ROOT, "art", "tiles")
     os.makedirs(tiles, exist_ok=True)

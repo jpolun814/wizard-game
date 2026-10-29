@@ -10,6 +10,6 @@ gesture = "icicles"
 targeting = "shape"
 cost = 16.0
 draw = "One or more Vs in a row. Each V hangs one icicle from the ceiling over it, so cast it under a ceiling."
-effect = "Grow icicles from the ceiling, 6 damage each."
+effect = "Grow icicles down from the ceiling."
 damage = "6 damage every half second"
 size_from = 8

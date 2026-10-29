@@ -10,5 +10,5 @@ gesture = "volcano"
 targeting = "shape"
 cost = 50.0
 draw = "A mountain: an upward-pointing triangle, drawn in one stroke."
-effect = "Erupt lava balls that set the ground alight."
+effect = "Conjure an erupting volcano."
 damage = "lava damage, sets ground on fire"

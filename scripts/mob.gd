@@ -809,6 +809,11 @@ func pull(force: Vector2, delta: float) -> void:
 	_drift += force * delta
 
 
+## The pull on this body right now, so a wizard steering itself can add it to its own walk.
+func pulled() -> Vector2:
+	return _drift
+
+
 func raise_shield(seconds: float) -> void:
 	if _bubble == null:
 		# The same pixel bubble as the player's Barrier, sized to the body.

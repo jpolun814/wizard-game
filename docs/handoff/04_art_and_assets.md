@@ -7,10 +7,10 @@
 - **Style rules:** no cartoon outlines, no bright saturated "mobile game" colour, no vector shapes, no
   painterly HD art.
 - **Shipped and approved by the owner:**
-  - Level 1: a blood-moon cemetery.
-  - Level 2: a haunted swamp with jack-o'-lantern trees.
-  - Level 3: a cathedral with skull pillars.
-  - Characters: a purple-hooded wizard, a looming shadow-flame dark wizard, skeletons, goblins and flying eyes.
+  - Biome: a blood-moon graveyard.
+  - Biome: a haunted swamp with jack-o'-lantern trees.
+  - Biome: a cathedral with skull pillars.
+  - Characters: four identical wizards, each with its own look (the purple-hooded player, the shadow-flame dark wizard, the pyre and bone wizards), plus skeletons, goblins and flying eyes.
 
 ## Pixel rules (hard)
 
@@ -48,7 +48,6 @@
 | Purple portal | Purple Portal Sprite Sheet (source to confirm) | art/fx/portal_purple |
 | Rock spikes | Kamioo, Pixel Icicles | kamioo.itch.io/pixel-icicles |
 | Clouds | DustDFG, Pixel Art Clouds | opengameart.org/node/159981 |
-| Wand and staff pickups | Asgaard42, Pixel Magic Staves Pack | asgaard42.itch.io/pixel-magic-staves-pack |
 | Giant | ansimuz, Gothicvania Legacy Collection (Ogre) | ansimuz.itch.io/gothicvania-patreon-collection |
 | Spellbook | Foxel Games, Pixel Art Book | foxeldev.itch.io/pixelbooks |
 | Fonts | Jersey 15 and Jacquard 24 (OFL) | fonts.google.com, via github.com/google/fonts raw files |
@@ -94,7 +93,7 @@
     (grids plus a recolour) all become one horizontal strip per effect in `art/fx`.
   - Frame sizes go to `PixelArt.FX`, and `PixelFx.frames(name)` builds the animation.
 - **Other outputs:** props, backgrounds, the church hall strip, the swamp woods strip, clouds, ice, quicksand,
-  `wand`/`staff`, the spellbook, and `wizard_wand` (the staff cut down to a wand; see `wandify`).
+  the spellbook.
 - **Re-running it:**
   1. Download every pack into one scratch folder with the folder names its docstring lists. Use
      `tools/itch_download.py` for itch pages, and curl for OpenGameArt files (`/sites/default/files/...`).

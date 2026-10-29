@@ -73,7 +73,7 @@ func _physics_process(delta: float) -> void:
 	_chime()
 	var wizard := get_tree().get_first_node_in_group("player") as Node2D
 	_hint.visible = is_underfoot()
-	_hint.text = "Press Tab to read" if wizard == null or not wizard.ledger.knows(page) else "Press Tab: already in your book"
+	_hint.text = "Press Tab to read" if wizard == null or not wizard.ledger.knows(page) else "Press Tab to read it again"
 	queue_redraw()
 
 

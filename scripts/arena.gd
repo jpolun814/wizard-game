@@ -1,6 +1,7 @@
 extends Node2D
 
-## Arena: the map, the player, foci to pick up,
+
+## Arena: the map, the player,
 ## fast spells, rituals and the spellbook.
 
 const GATEWAY_APART := 300.0  # the least distance between the two ends of a pair of portals
@@ -15,7 +16,6 @@ const MUZZLE_OFFSET := 26.0  # spawn directional spells just outside the caster'
 const BARRIER_SECONDS := 6.0
 const MISFIRE_COST := 10.0
 const OFFERING_GAIN := 30.0  # the temporary stamina an Offering gives, for the 20 most it costs
-const PICKUP_RANGE := 48.0
 const STEP_DAMAGE := 8
 const INSIGHT_REACH := 40.0  # how close the pointer must be to an enemy for Insight to show it
 const FLYER_HEIGHT := 150.0  # flyers arrive this far above the ground
@@ -38,7 +38,6 @@ var _marked := Vector2.INF  # where the Incantation of the Mark was spoken, unti
 var _cells: Variant = {}  # the generated arena's tiles: a Dictionary (see ArenaGen) or a TileGrid
 var _ground: Terrain
 var tiled_ground := false  # true when the ground is tiles all the way, as in a generated world; set by _build_map
-
 
 func _ready() -> void:
 	# A new random arena each run, in the level's land. Build it before anything that reads the terrain.
@@ -69,20 +68,17 @@ func _ready() -> void:
 	hud = preload("res://scenes/hud.tscn").instantiate()
 	hud.player = player
 	add_child(hud)
-	hud.restart_requested.connect(_restart_run)
 	_build_overlays()
 
 	caster = Caster.new()
 	add_child(caster)
 	caster.cast_resolved.connect(_on_cast_resolved)
-	caster.feedback.connect(_on_feedback)
 	caster.misfired.connect(_on_misfire)
 	caster.ground_check = _is_ground_at
 
 	ritual = RitualInput.new()
 	add_child(ritual)
 	ritual.finished.connect(_on_ritual_finished)
-	ritual.cancelled.connect(_on_ritual_cancelled)
 	player.damaged.connect(_on_player_damaged)
 	player.debuff_applied.connect(_on_debuff_applied)
 	player.died.connect(_on_player_died)
@@ -166,12 +162,6 @@ func _end_run() -> void:
 	hud.show_game_over()
 
 
-## A death ends the run; the next one starts again with the wand.
-func _restart_run() -> void:
-	FocusItem.held_focus = "wand"
-	get_tree().reload_current_scene()
-
-
 func _input(event: InputEvent) -> void:
 	var click := event as InputEventMouseButton
 	if click != null and click.pressed and click.double_click and event.is_action("school_left") and not ritual.visible and not hud.is_paused() and not player.dead:
@@ -187,8 +177,6 @@ func _input(event: InputEvent) -> void:
 		return
 	if event.is_action_pressed("start_ritual"):
 		_start_ritual()
-	elif event.is_action_pressed("swap_focus"):
-		_try_pickup()
 
 
 func _process(_delta: float) -> void:
@@ -202,7 +190,6 @@ func _process(_delta: float) -> void:
 	caster.hide_trail = player.is_blind()
 	player.casting = caster.is_drawing()  # the wizard holds the staff up while a stroke is drawn
 	player.cast_color = caster.drawing_color()  # and the crystal shows the school being drawn
-	caster.tolerance = FocusItem.FOCI[player.focus]["tolerance"]
 	_minimap.visible = _revealed["minimap"]
 	_update_insight()
 
@@ -237,7 +224,6 @@ func _on_hud_clicked(event: InputEvent, module: String) -> void:
 	if click == null or not click.pressed:
 		return
 	_revealed[module] = false
-	_on_feedback("Say the chant again to show the minimap.", Color.WHITE)
 
 
 ## The visible HUD modules on screen. The caster ignores presses that start over them.
@@ -254,7 +240,7 @@ func _visible_hud_rects() -> Array[Rect2]:
 func _on_cast_resolved(spell: String, targeting: String, origin: Vector2, aim: float, info: Dictionary) -> void:
 	player.play_cast_release()
 	if not player.ledger.knows_spell(spell):
-		_misfire_text()  # a spell whose page has not been found is a shape that matches nothing
+		_misfire_puff()  # a spell whose page has not been found is a shape that matches nothing
 		return
 	if spell == "Icicles" and _icicle_spots(info).is_empty():
 		FloatText.spawn(self, get_global_mouse_position() + Vector2(0, -22), "Aim under a ceiling", Color("#dff6ff"), 0.9)
@@ -264,12 +250,10 @@ func _on_cast_resolved(spell: String, targeting: String, origin: Vector2, aim: f
 		return
 	var label_at := get_global_mouse_position() + Vector2(0, -22)
 	if spell == "Faint" and _blood_target(spell, origin) == null:
-		FloatText.spawn(self, label_at, "Aim at a foe", Color("#ff9a9a"), 0.9)  # nothing is paid for a cut that finds no one
+		FloatText.spawn(self, label_at, "Aim at someone", Color("#ff9a9a"), 0.9)  # nothing is paid for a cut that finds no one
 		return
 	var spell_data: Spell = SpellData.SPELLS[spell]
 	var cost := spell_data.cost_for(info)
-	if player.focus == "staff":
-		cost *= 0.75  # a staff channels spells better: a quarter off every cast
 	var colour := spell_data.glow()
 	if spell_data.pays_max():
 		if not player.pay_max(cost):
@@ -277,7 +261,6 @@ func _on_cast_resolved(spell: String, targeting: String, origin: Vector2, aim: f
 			Sfx.play("misfire", player.center(), -6.0)
 			return
 	elif not player.spend(cost):
-		_on_feedback("Wait for stamina: %s costs %d" % [spell, cost], Color.ORANGE)
 		FloatText.spawn(self, label_at, "Too tired", Color("#ffb86b"), 0.9)
 		Sfx.play("misfire", player.center(), -6.0)
 		return
@@ -345,11 +328,10 @@ func spawn_spell(spell: String, targeting: String, origin: Vector2, aim: float, 
 			breath.reach = info.get("reach", 160.0)
 			add_child(breath)
 			return
-		"Abyss":
-			var abyss := Abyss.new()
-			abyss.reach = info.get("radius", 60.0) * 2.0
-			abyss.position = origin
-			add_child(abyss)
+		"Black Hole":
+			var hole := BlackHole.new()
+			hole.position = origin
+			add_child(hole)
 			return
 		"Flare":
 			# The flare hovers by the caster and follows them wherever it was drawn.
@@ -433,7 +415,7 @@ func spawn_spell(spell: String, targeting: String, origin: Vector2, aim: float, 
 		"Hex":
 			var cursed := Hex.nearest_under(get_tree(), origin)
 			if cursed == null:
-				FloatText.spawn(self, origin + Vector2(0, -20), "Aim at a foe", Color("#c8a8ff"), 0.9)
+				FloatText.spawn(self, origin + Vector2(0, -20), "Aim at someone", Color("#c8a8ff"), 0.9)
 				return
 			var hex := Hex.new()
 			hex.target = cursed
@@ -665,19 +647,19 @@ func _on_wizard_cast(spell: String, targeting: String, origin: Vector2, aim: flo
 
 func _on_misfire() -> void:
 	player.drain(MISFIRE_COST)
-	_misfire_text()
+	_misfire_puff()
 
 
-## What a shape or a chant that means nothing does: a puff, a sound and the word.
-func _misfire_text() -> void:
+## What a shape or a chant that means nothing does: a puff, a sound and one word, so a player with the sound off still knows.
+func _misfire_puff() -> void:
 	Sfx.play("misfire", player.center())
-	FloatText.spawn(self, get_global_mouse_position() + Vector2(0, -22), "Misfire", Color("#ff6b6b"), 0.9)
 	Fx.burst(self, get_global_mouse_position(), Color(0.6, 0.6, 0.65), 8, 80.0, 0.3)
+	FloatText.spawn(self, get_global_mouse_position() + Vector2(0, -22), "Misfire", Color(0.75, 0.75, 0.82), 0.9)  # for a player with the sound off
 
 
 func _start_ritual() -> void:
 	if player.is_muted():
-		_on_feedback("You are muted. Wait %.0f seconds to chant" % player.mute_time, Color.ORANGE)
+		_on_feedback("Wait for your voice to return.", Color.ORANGE)
 		return
 	if player.underwater():
 		_on_feedback("You can't chant under water.", Color.ORANGE)
@@ -690,14 +672,13 @@ func _start_ritual() -> void:
 func _on_ritual_finished(id: String, acc: float, unfinished: bool) -> void:
 	var data: Dictionary = RitualInput.RITUALS[id]
 	if not player.ledger.knows_chant(id):
-		_misfire_text()
+		_misfire_puff()
 		return
 	if player.underwater():
 		_on_feedback("You can't chant under water.", Color.ORANGE)
 		return
 	if unfinished:
 		# Stopping a chant partway lets the words fade harmlessly; only a garbled chant backfires.
-		_on_feedback("Finish the chant to cast it.", Color.GRAY)
 		return
 	if data["kind"] == "toggle":
 		_on_toggle_chant(data, acc)
@@ -708,16 +689,12 @@ func _on_ritual_finished(id: String, acc: float, unfinished: bool) -> void:
 		Sfx.play("misfire", player.center(), -6.0)
 		return
 	var power := RitualInput.power_for(acc)
-	var acc_text := "accuracy %d%%" % roundi(acc * 100.0)
 	if power <= 0.0:
 		player.take_damage(15)
 		Sfx.play("explosion", player.center())
 		Fx.impact(self, player.center(), Color("#ff4a4a"), 50.0)
-		_on_feedback("Backfired (%s). Say it again, more carefully" % acc_text, Color.RED)
 		return
 
-	var ritual_name: String = RitualInput.RITUALS[id]["name"]
-	var power_text := "%s, power %d%%" % [acc_text, roundi(power * 100.0)]
 	Sfx.play("ritual_ok", player.center())
 	Fx.pop(self, player.global_position + Vector2(0, -2), "magic_02", Color(1.0, 0.9, 0.6), 80.0, 0.8, 1.3, 2.0)
 	match id:
@@ -741,7 +718,6 @@ func _on_ritual_finished(id: String, acc: float, unfinished: bool) -> void:
 			add_child(fire)
 			fire.power = power
 			fire.global_position = _bonfire_spot()  # beside the wizard, not under them
-	_on_feedback("%s worked (%s)" % [ritual_name, acc_text], Color.GREEN)
 
 
 ## Where a bonfire is made: on the ground 80 px in front of the wizard, or behind them when there is a drop or a wall there.
@@ -765,11 +741,11 @@ func _mark_here() -> void:
 ## their own, and stay open for anyone to use. False when there is no mark, or it is too close to be worth a portal.
 func _open_gateways() -> bool:
 	if _marked == Vector2.INF:
-		_on_feedback("Nothing is marked.", Color.GRAY)
+		_on_feedback("Mark a place first.", Color.GRAY)
 		return false
 	var here := _ground_below(player.center())
 	if here.distance_to(_marked) < GATEWAY_APART:
-		_on_feedback("Too close to the mark.", Color.GRAY)
+		_on_feedback("Move farther from your mark.", Color.GRAY)
 		return false
 	# Each pair's hue is a golden-ratio step from the last, so any two pairs, however many, are as far apart in colour as can be.
 	_gateway_hue = fposmod(_gateway_hue + 0.618034, 1.0)
@@ -817,13 +793,7 @@ func _on_toggle_chant(data: Dictionary, acc: float) -> void:
 		return
 	var module: String = data["module"]
 	_revealed[module] = not _revealed[module]
-	var label: String = {"minimap": "Minimap", "insight": "Insight"}[module]
 	Sfx.play("ritual_ok", player.center(), -6.0)
-	_on_feedback("%s %s." % [label, "revealed" if _revealed[module] else "hidden"], Color.WHITE)
-
-
-func _on_ritual_cancelled() -> void:
-	_on_feedback("Interrupted. Chant again.", Color.ORANGE)
 
 
 func _on_player_damaged(_amount: int) -> void:
@@ -834,37 +804,7 @@ func _on_debuff_applied(kind: String) -> void:
 	match kind:
 		"mute":
 			ritual.cancel()
-			_on_feedback("Muted! Wait %.0f seconds before chanting." % player.mute_time, Color.ORANGE)
-		"root":
-			_on_feedback("Rooted! Wait a moment to move.", Color.ORANGE)
-		"blind":
-			_on_feedback("Blinded! Draw by feel.", Color.ORANGE)
-
-
-## Swap the held focus for the nearest one on the floor; the held one is dropped where you stand.
-func _try_pickup() -> void:
-	var nearest: FocusItem = null
-	for item in get_tree().get_nodes_in_group("items"):
-		if item.global_position.distance_to(player.global_position) < PICKUP_RANGE:
-			nearest = item
-			break
-	if nearest == null:
-		_on_feedback("Walk up to a focus to pick it up.", Color.GRAY)
-		return
-	var held: String = player.focus
-	player.focus = nearest.focus_id
-	FocusItem.held_focus = player.focus
-	nearest.queue_free()
-	_spawn_focus(held, _ground_below(player.center()))
-	Sfx.play("pickup", player.center())
-	_on_feedback("Picked up the %s. Dropped the %s." % [
-		FocusItem.FOCI[player.focus]["name"], FocusItem.FOCI[held]["name"]], Color.WHITE)
-
-
-func _spawn_focus(id: String, pos: Vector2) -> void:
-	var item := FocusItem.new()
-	add_child(item)
-	item.setup(id, pos)
+			_on_feedback("Wait for your voice to return.", Color.ORANGE)
 
 
 func _on_feedback(text: String, color: Color) -> void:
@@ -908,7 +848,7 @@ func _update_insight() -> void:
 	else:
 		var weak := _school_bb(data.weak) if data.weak != "" else "nothing"
 		var resist := _school_bb(data.resist) if data.resist != "" else "nothing"
-		_insight_text.text = "[b]%s[/b]   Health %d / %d\nWeak to %s\nResists %s\n[i]%s[/i]" % [
+		_insight_text.text = "[b]%s[/b]   Stamina %d / %d\nWeak to %s\nResists %s\n[i]%s[/i]" % [
 			data.display_name, mob.hp, mob.max_hp,
 			weak, resist, data.desc,
 		]

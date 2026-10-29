@@ -53,7 +53,6 @@ func _dig(heights: PackedFloat32Array, span: Vector2i, rows: float) -> void:
 func _begin_encounter(camera: Camera2D) -> void:
 	player.position = Vector2(ArenaGen.column_x(START_COL), ArenaGen.surface_y(_cells, START_COL))
 	camera.reset_smoothing()
-	player.focus = "wand"
 	player.grant_unlimited(1.0e7)  # nothing here costs stamina
 	player.damaged.connect(func(_amount: int) -> void: _since_hurt = 0.0)
 	ritual.seed_spoken.connect(_on_seed_spoken)
@@ -70,7 +69,8 @@ func _begin_encounter(camera: Camera2D) -> void:
 	_player_light.energy = 0.7
 	_player_light.enabled = false
 	player.add_child(_player_light)
-	hud.set_title("Waiting room")
+	hud.set_title("Waiting room
+Walk into the portal to start the game, or chant your seed")
 	_open_portal()  # the portal is open from the start
 
 
@@ -135,7 +135,6 @@ func _on_portal_entered(body: Node2D) -> void:
 		return
 	_leaving = true
 	Sfx.play("portal_enter")
-	FocusItem.held_focus = "wand"
 	var fade := create_tween()
 	fade.tween_property(player, "modulate:a", 0.0, 0.25)
 	# The world takes a few seconds to build, and the window cannot draw while it does: go dark first, so it reads as a wait and not a hang.
@@ -154,5 +153,5 @@ func _on_portal_entered(body: Node2D) -> void:
 ## Four words of a world's name, typed into the ritual box, tune the portal to that world.
 func _on_seed_spoken(text: String) -> void:
 	World.next_seed = Incantation.seed_of(text)
-	_on_feedback("Enter the portal for: %s" % Incantation.words_for(World.next_seed), Color("#c8a8ff"))
+	_on_feedback("Walk into the portal to enter that world.", Color("#c8a8ff"))
 	Sfx.play("ritual_ok", player.center(), -6.0)

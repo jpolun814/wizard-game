@@ -3,13 +3,12 @@ extends Node2D
 
 ## Casting input: hold a school mouse button, draw, release to resolve.
 ## Gesture origin is the cursor position when the button goes down.
-## Emits cast_resolved for world effects and feedback for the HUD.
+## Emits cast_resolved for world effects, and misfired when a stroke does not match a spell.
 
 signal cast_resolved(spell: String, targeting: String, origin: Vector2, aim: float, info: Dictionary)
-signal feedback(text: String, color: Color)
 signal misfired
 
-@export var tolerance := 0.80          # minimum $1 score to count as a cast
+@export var tolerance := 0.70          # minimum $1 score to count as a cast
 @export var min_stroke_length := 20.0  # shorter strokes are ignored as clicks
 @export var wall_tolerance_deg := 20.0  # straight strokes this close to vertical are walls
 const MIN_POINT_SPACING := 2.0
@@ -138,12 +137,7 @@ func _end() -> void:
 		relative.append(p - _origin)
 
 	if UnistrokeRecognizer.path_length(relative) < min_stroke_length:
-		var over_flare := false
-		for flare: Node2D in get_tree().get_nodes_in_group("flares"):
-			over_flare = over_flare or flare.global_position.distance_to(get_global_mouse_position()) < 60.0
-		if not over_flare:  # a click on a flare is only meant to snuff it
-			_report("Stroke too short", Color.GRAY)
-		return
+		return  # too short to be a spell: silent, since the stroke itself shows it was not one (a click on a flare snuffs it)
 
 	var options: Dictionary = _bindings.get(mask, {})
 	var result := recognizer.recognize(relative, _templates_for(options))
@@ -178,7 +172,7 @@ func _end() -> void:
 	var jaws := _w_shape(relative) if options.has("jaws") else PackedVector2Array()
 	var pads := _loop_row(relative) if options.has("pads") else PackedVector2Array()
 	if not spiral.is_empty():
-		# A spiral wound inward is an Abyss, centred where it ends up.
+		# A spiral wound inward is a Black Hole, centred where it ends up.
 		gesture = "spiral"
 		score = 1.0
 		info["radius"] = spiral["reach"]
@@ -259,10 +253,8 @@ func _end() -> void:
 	# Earth Fall's circle and drop are hard to draw cleanly, so it is read with a looser eye than the other shapes.
 	var needed := tolerance - 0.12 if gesture == "stonefall" or gesture == "flare" else tolerance
 	if score < needed:
-		_report("Misfire (%d%% match). Draw steadier, or use a wand." % roundi(score * 100.0), Color("#ff7a7a"))
 		misfired.emit()
 	elif entry == null:
-		_report("Misfire: no %s spell looks like that. Press Tab to open the spellbook." % SpellData.button_name(mask), Color("#ff7a7a"))
 		misfired.emit()
 	else:
 		var aim := 0.0
@@ -340,11 +332,6 @@ func _stroke_alpha() -> float:
 	if _active_mask != 0:
 		return 1.0
 	return clampf(1.0 - (Time.get_ticks_msec() - _ended_ms) / 450.0, 0.0, 1.0)
-
-
-## The message is coloured red or green, but the stroke itself keeps its school colour.
-func _report(text: String, color: Color) -> void:
-	feedback.emit(text, color)
 
 
 func _draw() -> void:

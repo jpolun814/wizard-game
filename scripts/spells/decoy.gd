@@ -36,7 +36,7 @@ func _ready() -> void:
 	add_to_group("decoys")
 	add_to_group("lasting")
 	_body = AnimatedSprite2D.new()
-	_body.sprite_frames = CharFrames.build("res://art/chars/wizard_wand", PLAYER.ANIMATIONS)
+	_body.sprite_frames = CharFrames.build("res://art/chars/wizard", PLAYER.ANIMATIONS)
 	_body.offset = Vector2(0, -PixelArt.CHARACTERS["wizard"]["size"].y * 0.5)
 	_body.modulate = Color(0.5, 0.35, 0.75, 0.0)
 	_body.play("idle")

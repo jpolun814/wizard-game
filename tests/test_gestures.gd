@@ -17,7 +17,6 @@ var _caster: Caster
 var _cast := ""
 var _failures := 0
 var _checks := 0
-var _last_feedback := ""
 var _aim := 0.0
 
 
@@ -27,7 +26,6 @@ func _initialize() -> void:
 	_caster.set_process(false)
 	_caster.ground_check = func(p: Vector2) -> bool: return p.y >= GROUND_Y - 16.0 and p.y <= GROUND_Y + 32.0
 	_caster.anchor = Vector2(-400, -40)
-	_caster.feedback.connect(func(t: String, _c: Color) -> void: _last_feedback = t)
 	_caster.cast_resolved.connect(func(spell: String, _t: String, _o: Vector2, a: float, _i: Dictionary) -> void:
 		_cast = spell
 		_aim = a)
@@ -97,7 +95,7 @@ func _check(spell_name: String, buttons: int, shape: PackedVector2Array, size: f
 	_caster.cast_stroke(buttons, world)
 	if _cast != spell_name:
 		_failures += 1
-		print("FAIL %s (size %.1f%s%s%s): cast %s" % [spell_name, size, ", shaky" if shaky else "", ", mirrored" if mirror else "", ", warped %s" % warp if warp != Transform2D.IDENTITY else "", _cast if _cast != "" else "nothing (" + _last_feedback + ")"])
+		print("FAIL %s (size %.1f%s%s%s): cast %s" % [spell_name, size, ", shaky" if shaky else "", ", mirrored" if mirror else "", ", warped %s" % warp if warp != Transform2D.IDENTITY else "", _cast if _cast != "" else "nothing"])
 
 
 ## The stroke with points every two pixels, as dense as one drawn with the mouse.

@@ -133,7 +133,7 @@ func think(delta: float) -> void:
 	_track_shots()
 	_foe = _nearest_foe()
 	if _foe == null:  # the last wizard standing
-		mob.velocity.x = 0.0
+		mob.velocity.x = mob.pulled().x
 		return
 	var foe: Node2D = _foe
 	var to_player: Vector2 = foe.center() - mob.center()
@@ -159,7 +159,7 @@ func think(delta: float) -> void:
 
 	# Footwork, or the journey.
 	var run := _footwork(delta, to_player, sees) if fighting else _travel(delta)  # (both may jump: the speed is written after they have)
-	mob.velocity.x = run
+	mob.velocity.x = run + mob.pulled().x  # a pull (a Black Hole's) carries the wizard whatever way it walks
 	if not fighting:
 		return
 
@@ -829,7 +829,7 @@ func _attack(to_player: Vector2, sees: bool) -> bool:
 		"Tornado": (0.6 + _pressure * 0.5) if gap < 260.0 else 0.2,
 		"Ice Prison": 1.3 if gap < 360.0 and not stuck else 0.0,
 		"Mudslide": 1.1 if grounded and not stuck else 0.0,
-		"Abyss": (0.4 + _pressure * 0.4) if gap < 300.0 else 0.0,
+		"Black Hole": (0.4 + _pressure * 0.4) if gap < 300.0 else 0.0,
 		"Firewall": 1.6 if closing and gap < 280.0 and gap > 90.0 else 0.0,
 		"Blizzard": 0.4 if grounded else 0.0,
 		"Fire Breath": 1.8 if gap < 240.0 else 0.0,
@@ -840,7 +840,7 @@ func _attack(to_player: Vector2, sees: bool) -> bool:
 		scores["Spark"] = 0.0
 	if not sees:
 		# Behind cover: only spells that come from above or along the ground reach you.
-		for spell_name in ["Ignite", "Frostbolt", "Ice Prison", "Abyss", "Firewall", "Fire Breath"]:
+		for spell_name in ["Ignite", "Frostbolt", "Ice Prison", "Black Hole", "Firewall", "Fire Breath"]:
 			scores[spell_name] = 0.0
 	for spell_name in scores.keys():
 		if not _knows(spell_name) or mob.stamina < SpellData.SPELLS[spell_name].cost:
@@ -907,13 +907,13 @@ func _attack_stroke(spell_name: String) -> PackedVector2Array:
 		"Mudslide":
 			var x := _predict(ATTACK_DRAW * 0.6).x
 			return _offset(GestureTemplates.preview_points("pit"), Vector2(x, feet.y - 60.0), 1.0)
-		"Abyss":
+		"Black Hole":
 			# Beyond you if you are close (it drags you away from it), between you if you keep shooting at it.
 			var spot: Vector2 = foe.center() + Vector2(facing * 80.0, 0.0)
 			if _pressure > 1.5:
 				spot = mob.center().lerp(foe.center(), 0.4)
 			var spiral := GestureTemplates.preview_points("spiral")
-			# The abyss forms where the spiral ends, so place the spiral's end on the spot.
+			# The black hole forms where the spiral ends, so place the spiral's end on the spot.
 			return _offset(spiral, spot - (spiral[spiral.size() - 1] - _centre_of(spiral)), 1.0)
 		"Firewall":
 			var x: float = lerpf(mob.global_position.x, foe.global_position.x, 0.5)

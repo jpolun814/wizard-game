@@ -69,6 +69,11 @@ func reflect(direction: Vector2) -> void:
 	Sfx.play("push", global_position, -4.0)
 
 
+## A steady pull, such as a Black Hole's. Call it every frame the pull lasts.
+func pull(force: Vector2, delta: float) -> void:
+	_velocity += force * delta
+
+
 ## Which way it is flying right now.
 func heading() -> Vector2:
 	return _velocity.normalized()

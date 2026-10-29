@@ -14,6 +14,7 @@ const CLEAR_CHECK_AFTER := 0.05  # the overlaps of a new shot are not known unti
 const FIREBALL_KNOCK := 420.0  # how hard a fireball pushes what it hits
 
 var aim := Vector2.RIGHT
+var _pulled := Vector2.ZERO  # a pull (a Black Hole's) bends the flight, on top of the aim
 var _spent := false
 var _clear := false  # it has flown out of its caster's body: from then on it can hit the caster too
 var _trail: CPUParticles2D
@@ -52,6 +53,11 @@ func velocity() -> Vector2:
 	return aim * STATS[spell]["speed"]
 
 
+## A steady pull, such as a Black Hole's. Call it every frame the pull lasts.
+func pull(force: Vector2, delta: float) -> void:
+	_pulled += force * delta
+
+
 ## Which way it is flying right now.
 func heading() -> Vector2:
 	return aim
@@ -60,7 +66,7 @@ func heading() -> Vector2:
 func _act(delta: float) -> void:
 	if _age >= CLEAR_CHECK_AFTER and not _clear and not get_overlapping_bodies().has(caster):
 		_clear = true
-	position += velocity() * delta
+	position += (velocity() + _pulled) * delta
 	rotation = aim.angle()
 
 

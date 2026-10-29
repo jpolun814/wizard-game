@@ -9,5 +9,5 @@ school = "Blood"
 gesture = "cross"
 cost = 20.0
 draw = "A cross in one stroke, like a mark of sacrifice."
-effect = "Give up some of your most stamina for extra stamina that is spent last and never returns."
+effect = "Give blood now, and draw on its strength once the rest is spent."
 damage = "-20 most, +30 stamina"

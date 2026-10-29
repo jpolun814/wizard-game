@@ -2,7 +2,7 @@
 
 ## Enemy kinds (`Mob.KINDS`, one `MobKind` resource each in `res://mobs/`)
 
-- **Naming:** `<school>_<role>`, plus `basic` and `dark_wizard`.
+- **Naming:** `<school>_<role>`, plus `basic` and `dark_wizard`. The files in `res://mobs/` still carry the old school names (`force_`, `ice_`, `storm_`, `earth_`, `fire_`). The schools in `spell_pool.md` are the current ones; the rename is not done.
 - **Roles and art:**
   - **melee:** skeleton. Walks to you, winds up for 0.3 s (leans, flashes in its school colour, plays its attack
     animation), then hits. If you moved away during the wind-up, it misses.
@@ -34,7 +34,7 @@ It's the owner's favourite part. It plays like a skilled human:
   interrupts the spell, and it says "Interrupted!".
 - **Reactions:**
   - It watches your projectiles and, after a reaction time (shorter the more skilled it is), picks one of:
-    jump, Force Wall reflect, Barrier, or blink aside.
+    jump, reflect the shot with a Gust, Barrier, or Shadow Step aside.
   - When you're too close it pushes you, blinks away, or uses Fire Breath.
   - It steps out of danger, using every spell's `danger_at`.
 - **Footwork:** keeps dueling range (190–330 px), strafes, never backs into walls or hazards, and jumps to get a
@@ -44,22 +44,21 @@ It's the owner's favourite part. It plays like a skilled human:
     close or far?
   - It avoids its last two spells and leads moving targets with `_predict`.
   - Strokes come from `GestureTemplates.preview_points`, placed in the world.
-- **Skill** grows with the level (0.5 + 0.15 per level). Level 3 has two dark wizards at once.
+- **Skill** is a number from 0 to 1 on each AI wizard (`skill`): it sets reaction time and aim.
 - **Art:** LuizMelo Evil Wizard 2 at 2x. It channels shadow while drawing and bursts when a spell fires.
 
 **When you add a spell,** teach the wizard to use it, and make sure it doesn't cast spells that can't work:
-- no Spark or Storm Cloud while you're sheltered;
+- no Spark while you're sheltered;
 - no line-of-sight spells when it can't see you.
 
 ## Where enemies come from
 
-There are no waves. Enemies are not placed in the world yet; the map comes first. Dying ends the run; R or a click starts a new one.
+There are no waves. The world holds no enemy mobs: the enemies are the other wizards. The lab holds dummies and a turret. A wizard at 0 stamina is out for the round and may spectate; the match ends when one is left.
 
 ## Improvement ideas the owner may like
 
-- A wizard personality per level: level 1 leans on fire, level 2 on ice and earth, level 3 on everything.
+- A personality for each AI wizard: one leans on fire, one on ice and earth, one on everything.
 - Mini-bosses using the 2x scale trick.
-- An enemy that steals or knocks away your focus.
 - A healer enemy that must be killed first.
 - An elite skeleton with a shield that blocks frontal projectiles. The skeleton art has a "Shield"
   animation that's unused.

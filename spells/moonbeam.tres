@@ -9,5 +9,5 @@ school = "Shadow"
 gesture = "wall"
 cost = 16.0
 draw = "A straight vertical line. A pale light falls along it."
-effect = "Call down a dim, pale light for 30 seconds."
+effect = "Call down a dim, pale moonbeam that lingers for a while."
 damage = "a dim light, harmless"

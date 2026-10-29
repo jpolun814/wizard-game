@@ -9,5 +9,5 @@ school = "Flora"
 gesture = "jaws"
 cost = 26.0
 draw = "Open jaws: a tall narrow W."
-effect = "Plant a trap that snaps shut on whatever steps on it."
+effect = "Plant a snapping flytrap on the ground."
 damage = "snaps shut on whoever steps in"

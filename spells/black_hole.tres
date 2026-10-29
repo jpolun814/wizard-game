@@ -4,10 +4,10 @@
 
 [resource]
 script = ExtResource("1_w6wbe")
-spell_name = "Abyss"
+spell_name = "Black Hole"
 school = "Shadow"
 gesture = "spiral"
-cost = 22.0
+cost = 80.0
 draw = "A spiral that starts wide and winds in to its middle, at least one and a half turns."
-effect = "Pull everything in for 2 seconds."
+effect = "Open a black hole that pulls everything toward it."
 damage = "pulls everything in"

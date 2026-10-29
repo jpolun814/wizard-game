@@ -29,7 +29,7 @@
   scene instead (the showcase does).
 - **Test timing.** In a SceneTree test, nodes' `_ready` hasn't run during `_initialize`. Do checks in `_process`.
 - **Private fields.** Don't read another script's `_underscore` variables, even though `node.get("_x")` works:
-  give the script a public property or method instead (see section 9 of `HANDOFF.md`).
+  give the script a public property or method instead (see section 9 of `CLAUDE.md`).
 - **New `class_name`.** A new global class isn't known until `godot --headless --path . --import` has run; until
   then other scripts fail to parse with "Identifier not declared".
 - **What `-s` scripts can load.** A `-s` test that preloads a script which mentions an autoload (even indirectly,
@@ -44,7 +44,7 @@
 
 - **One-way platforms** (layer 16) only stop motion from above. For "is this covered from the sky", raycast from
   the sky downward.
-- **Area2D defaults** to layer 1. A Force Wall with mask 1 sees shots (areas on layer 1) and terrain bodies.
+- **Area2D defaults** to layer 1. A Barrier with mask 1 sees shots (areas on layer 1) and terrain bodies.
 - **Flyers** have collision mask 0 and are moved by hand; check walls with raycasts.
 - **Rescaling an Area2D re-fires `area_entered`.** Changing a node's scale rebuilds its shapes, and anything already
   inside is reported as entering again. A melting icicle took two slices from one fireball until it remembered which

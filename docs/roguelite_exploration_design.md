@@ -1,8 +1,8 @@
 # Roguelite exploration: design
 
 Status: planning, with the spells built. Agreed in conversation with the owner on 2026-10-24. Built so far: the 33-spell pool
-(`spell_pool.md`) and the waiting room where it is tried. The first world generator slice is built too (`world_generation.md`). Not built: the stamina window, per-run books and pages, noticing
-enemies, the world generator and seeds.
+(`spell_pool.md`) and the waiting room where it is tried. The first world generator slice is built too (`world_generation.md`). Not built: the stamina window and gate tags, noticing
+enemies. Pages, the world generator and seeds are built since (`pvp_arena_design.md`, `world_generation.md`).
 
 The solo boss loop here has since been dropped for a last-wizard-standing race: see `pvp_arena_design.md`.
 
@@ -83,7 +83,6 @@ Spells are rolled first. Then the generator picks gates.
 ## Not now
 
 - Different casting focuses (a fire wand that boosts fire spells, a lightning staff that boosts storm). On hold.
-  The existing wand/staff only changes gesture tolerance.
 - Longer runs (about 30 minutes): scale the same systems up later.
 
 ## Build order

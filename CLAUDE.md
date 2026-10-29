@@ -1,3 +1,10 @@
+# Read this first, every session
+
+This is a Godot game built by one owner through many sessions. This file is the complete handoff for every agent that
+works on it. It holds everything you need: the owner's wording rules in section 0 (the number one priority), the game,
+the rules, the codebase, the testing and the known problems. Chapter files for particular jobs are in `docs/handoff/`;
+chapter 10 is the next job.
+
 # HANDOFF: read this before you touch anything
 
 This is the guide for any AI model picking up this game. It tells you what the game is, what the owner wants, how
@@ -18,20 +25,216 @@ trust the code and this file where they disagree.
 | `07_testing.md` | say anything is done |
 | `08_working_with_the_owner.md` | reply to the owner |
 | `09_godot_pitfalls.md` | debug something strange |
+| `10_unify_wizards.md` | **start here for the next job** (make every wizard the player character) |
 
 ---
 
+## 0. Player-facing words: THE NUMBER ONE PRIORITY
+
+**Read this section before writing, changing or reviewing any text a player can read.** It covers spell
+descriptions, spellbook pages, rituals, incantation names, tooltips, banners, prompts and button labels.
+Mistakes here have been the owner's most repeated complaint, and they are the easiest to make. Every line
+must pass every test below. A line that fails one test is not finished, however correct it looks.
+
+### The principle
+
+The game's text is a page in a world where magic is real. A reader in that world learns about a spell the
+way they would learn about a plant, a storm or a tool: what it is, what it brings about, and how it looks.
+The page never talks about the game. It has no numbers, no rules, no tips on how to use the spell, and no
+description of the system behind it.
+
+The player discovers a spell's strengths, weaknesses, counters, side effects and quirks by casting it and
+watching. The page does not hand them over. Withholding those things is deliberate. It is the point.
+
+### First, decide who is speaking and who is addressed
+
+Before any other check, answer two questions about the line: **who is speaking**, and **who is being spoken to**.
+The standard terms: text that exists inside the story world is **diegetic**; text outside it (interface, prompts)
+is **non-diegetic**. The one spoken to is the **addressee**. A text with a narrator inside it speaks to a
+**narratee**. Use these two questions and these words in review; do not invent others.
+
+**Diegetic: the world speaks to the wizard (the character).**
+- Where: the spellbook pages, spell names, chant names and incantations, mob descriptions, the names of pages.
+- The speaker is the world, or a scholar who wrote the tome. The addressee is the wizard, who is a person in a
+  world where magic is real and the game does not exist.
+- So: no key names, no buttons, no "player", no "spell" as a game object, no stamina bar, no numbers, no
+  rules and no tips. Read it as lore. "Hurl a bolt of fire." is a wizard reading about magic.
+- Verbs fit the thing named (a shadow is moved, not walked). The pronoun "this" points at the act the reader is
+  performing; "it" points at the nearest noun.
+
+**Non-diegetic: the game speaks to the human holding the controller.**
+- Where: the pause screen, the controls list, key prompts ("Press Tab to read"), the loading screen, banners and
+  the like.
+- The speaker is the game. The addressee is the human. These lines may name keys and mouse buttons and may use
+  plain words such as "pause", "page" and "world".
+- They still follow the rest of this section: imperative, short, no numbers, no rules, no tips.
+
+**Mixed text is the third case.** Floating words over a wizard ("Too tired", "Perfect"), the Insight tooltip and
+the chant failure lines sit between the two. Decide for each which side it is on and write it that way. If a
+single line seems to need both audiences, split it: the world part goes in the book, the key part goes in a prompt.
+
+**Most wording mistakes are a line written for one audience that landed in the other**: a key name in a spellbook
+page, or a piece of lore ("Walk your shadow") in a controls list. When a line feels off and no test says why,
+re-ask the two questions first.
+
+**A missing line is also a mistake.** If the player has done something and nothing in the world or the interface
+tells them what happened or what to do next, add the shortest non-diegetic line that fixes it, or a visible cue
+in the world. "On-screen text is a last resort" below says when that is allowed.
+
+**More patterns the owner has taught (apply them to every line):**
+- **The place decides the audience.** The waiting room is outside the story, so its lines are plain prompts
+  addressed to the human ("Walk into the portal to start the game"). The spellbook is inside it.
+- **A diegetic line says what the thing is, not how to use it.** "Gain deeper knowledge of those around you" is
+  right for Insight. "Look at a creature to learn what it is" is a how-to and is wrong.
+- **Never rely on sound alone.** A player may have the sound off. Any outcome the player cannot otherwise see (a
+  shape that matches nothing, a chant that fizzles) gets one short word on screen.
+- **One name for one thing, everywhere.** The bar and the tooltip both say "Stamina", for wizards and mobs alike.
+  Do not rename a thing between screens.
+- **The controls list holds only controls that always apply.** Leave out keys that matter only sometimes (a spell's
+  own control), and never say the same thing in both columns of a row.
+- **Intuitive actions need no text.** If the world already shows how to do something (grab a vine), say nothing.
+  Where a first-time player would be lost (the waiting room's portal), give one short prompt.
+
+### On-screen text is a last resort
+
+Words appear on screen only when the player could not learn the same thing from what the game already shows them.
+This is the rule for all on-screen text, not just spellbook pages. Apply it before any of the seven tests.
+
+- **Show it, don't say it.** If sight, sound or motion already tells the player something, add no words.
+  A blinded player is in the dark: no "Blinded!" line. A rooted player cannot move: no "Rooted!" line. A minimap
+  that appears is its own confirmation: no "Minimap revealed" line. A shot that fizzles still gets the one word "Misfire", because a player may have the sound off.
+  A stroke that is too short needs no "Stroke too short" line.
+- **Say it only when it is hidden.** Words are for information the player has no other way to get: a key they
+  must press, a state they cannot perceive, or an outcome they could not otherwise work out. A refused chant
+  whose words were wrong is hidden, so it gets a line. A chant that fails with no visible result gets a line.
+- **Keep what the game means to show.** Information the design deliberately gives the player (the accuracy of a
+  chant, the stats Insight reveals) is part of the design. It stays, and it is not "text to cut".
+- **Even then, keep it short and imperative**, and pass the seven tests below.
+
+### The seven tests (apply all of them to every line)
+
+**Test 1: Is it said to the reader, in the imperative?**
+Every line starts with a verb addressed to the reader: "Hurl a bolt of fire.", "Kindle a bonfire and heal
+your wounds.", "Press Tab to open the spellbook." Lines that describe the system fail, even when they are
+grammatical: "Tab opens the spellbook." "Fire does 12 damage." "Speed is increased." A reader is a person
+doing something, not an observer of a machine.
+
+**Test 2: Does it name the thing, rather than its effect on other things?**
+Say what the spell *is*, or what it brings about. Do not say what it does to whatever it touches.
+- Fails: "Slow anything in the snow." (a rule about targets)
+- Passes: "Cast a powerful snowstorm that slows people down." (the storm itself)
+- Passes: "Sprout thorny brambles from the ground." (names the thing growing; the thorns' damage is left to discover)
+- Passes: "Open a black hole that pulls everything toward it." (the hole is the thing)
+A quick check: would the line still make sense if the spell had no effect at all on anything? If the line
+collapses without its effect, it is describing the rule, not the spell.
+
+**Test 3: Are there no numbers?**
+No counts, durations, percentages, multipliers, distances, costs or damage figures. Not "for 10 seconds",
+not "50% more damage", not "1.6 times faster", not "6 damage each", not "two hits". Words such as "a little
+while" and "for a while" are fine; they are how a person speaks. The owner's example of what not to write:
+"move 1.6 times faster, allowing you to run past poison clouds without losing all max stamina". The right
+version is "Run faster." or "Surge with speed for a little while."
+
+**Test 4: Is there no meta information?**
+Meta information is anything about the game rather than the world: how to use a spell, when to use it, what
+counters it, what it combines with, how it interacts with the stamina bar, the cost, the maximum, the
+mechanics. Fails: "to draw attacks", "in the direction you draw", "costs no stamina", "lowers your maximum",
+"spent last", "walk slower", "the caster is spared" (state it as the spell's own effect instead, or leave it).
+Passes: "Burst a ring of blood outward, throwing back everything near you." A wizard in the world would know
+that from the spell itself.
+
+**Test 5: Is it written for a world where the spell is knowledge, not a weapon?**
+Most spells are things scholars have recorded: a storm, a bloom of thorns, a shadow, a wall. Their lines
+describe what they are and what they do in the world. Combat-manual language fails: "deal damage to foes",
+"stun the target", "counter enemy attacks", "aggro", "tank". Write as a lore book would, not as a game guide.
+
+**Test 6: Are team words absent?**
+Spells in this game have no sides. Never write "foes", "enemies", "allies", "rivals", "your team" or
+"opponents". Use "anyone", "anything", "whoever", "everything" or "the target". A shot cannot hit only the
+enemy, so the text must not imply it can.
+
+**Test 7: Would a real person say it, and would it be understood on first reading?**
+Read the line aloud as a sentence someone might actually speak. Fails: "Quicken your feet." (nobody says this),
+"Hold your breath for a while, even under water." (the phrase "even under water" implies water was not
+included, so the reader doubts the claim), "Offering" (a label, not an action).
+Passes: "Run faster for a while." "Hold your breath for a while." "Give blood now, and draw on its strength once
+the rest is spent." (confirmed by the owner). Pronouns must be clear: "Knock the target
+unconscious", not "Knock whoever is under it unconscious" (the reader cannot tell what "it" means).
+
+### Vocabulary that works
+
+- Use **conjure** for a summoned thing ("Conjure a shadow of yourself.", "Conjure an erupting volcano.").
+- Use **kindle** for fire ("Kindle a bonfire.").
+- Use **burst** for a blast ("Burst a ring of blood outward.").
+- Use **freeze** for ice ("Freeze the surface of a body of water.").
+- Use **sprout**, **grow**, **raise**, **summon** for things that come up out of the world.
+- Use **negate** rather than **catch**, **absorb** or **block** when a spell stops harm ("Wrap yourself in a veil
+  of blood that negates the next few blows.").
+- Use **a little while** or **for a while** instead of a number.
+- Use **the target** or **anyone** instead of **it**, **whoever** or **them** when the referent is unclear.
+
+### The owner's standing corrections (each one is a rule)
+
+- "Burst" lines: "everything near you", not "everything near". The reader needs to know whose surroundings.
+- Decoy: "Conjure a shadow of yourself." Not "to draw attacks", which explains why and how to use it.
+- Faint: "Knock the target unconscious." Not "Draw the strength out of whoever is under it".
+- Frost Bridge: "Freeze the surface of a body of water." Not "Freeze the water into a bridge of ice".
+- Great Oak: "Grow a great oak." Not "that comes crashing down". The falling is what happens; it is for the player to see.
+- Gust: "Blow a gust of wind." Not "in the direction you draw".
+- Hex: "Curse someone with a dark star: they take extra damage and cannot hide from you." The owner suggested this.
+- Ice Prison: "Freeze things in a block of solid ice." Not "Lock anything inside the circle".
+- Crimson Veil: "negates", not "catches".
+- Volcano: "Conjure an erupting volcano." Not "Erupt a volcano that spits lava".
+- Black Hole (formerly Abyss): name it Black Hole, and describe it as a black hole, not as a "knot of darkness".
+- Eclipse: the owner's described effect (the world goes dark around the player, with a dim ring) is a mechanic
+  to build, not a line to write yet. Do not describe the mechanic on the page.
+- Rituals: "Tear open a way to a random place. This can be devastating." (the owner dropped the "Warning:" label). "Gain deeper knowledge of those around you."
+  "Never tire for a while." "Jump again in mid-air for a while." "Hold your breath for a while."
+  "Open a long-lasting portal back to your mark." "Mark this place." "Show the land around you."
+- Bonfire: "Kindle a bonfire and heal your wounds." (confirmed by the owner). ("Wounds" is the
+  in-world word for what costs maximum stamina.)
+
+### The spellbook is a canon tome
+
+Decided by the owner: the spellbook is an in-world tome only. It holds the spell's name, its drawn picture, and
+one short line of what it is. It has no manual, no cost line, no counters, no numbers and no how-to. The reader
+learns the rest by casting. Do not add anything that makes the book a game guide, even if it would help a player.
+
+### What to do before you ship a line of text
+
+1. Write the line.
+2. Run all seven tests, in order, and say aloud which one it passes or fails.
+3. If it fails any test, rewrite it. Do not argue for it.
+4. Show the owner the full set of lines you changed, not just the one that prompted the change. The owner has
+   asked for the whole list to be shown every time, so the complete picture is visible.
+5. Do not present a line as final until the owner has confirmed it. Unconfirmed lines are drafts.
+
+### Known mistakes to avoid repeating
+
+- Picking a verb by analogy to a person or animal instead of by what the thing is. "Walk your decoy" sounds like
+  walking a dog; "Move your decoy around" fits a shadow. Ask what the object is, then use the plain verb for that.
+- Using "it" when the line is about the action the reader is performing. Say "this" ("This can be devastating."),
+  so the pronoun points at the act and not at the noun before it.
+
+- Writing grammatically correct lines that nobody would actually say.
+- Keeping numbers "because they are short".
+- Explaining the mechanic ("Lowers your maximum", "costs no stamina") instead of the thing.
+- Adding a combat slant to a spell whose lore is about the world.
+- Writing "foes" or "enemies" out of habit.
+- Explaining a line's purpose in the line ("to draw attacks").
+- Treating one correction as applying only to the spell it was about, rather than to every line with the same fault.
+
 ## 1. What the game is
 
-A 2D side-view arena roguelite built in Godot 4.7.2 and GDScript. You are a wizard, and you cast spells by
+A 2D side-view last-wizard-standing duel built in Godot 4.7.2 and GDScript. You are a wizard, and you cast spells by
 **actually doing magic**:
 
 - **Fast spells:** hold a school's mouse button(s) and draw a shape. The shape is read by a $1 recognizer
   plus hand-written shape detectors.
 - **Rituals:** press Enter and type a pseudo-Latin chant. Typing accuracy sets the ritual's power.
 
-A roguelite: you explore a big generated world for spellbook pages, then duel the **dark wizard** at the end, who casts the same
-spells you do, drawing them visibly. There are no waves.
+A match: four identical wizards (you and three AI wizards) race through a generated world for spellbook pages and fight each other. The last one standing wins. The AI wizards cast the same
+spells you do, drawing them visibly. There are no waves and no boss (see `docs/pvp_arena_design.md`).
 
 **The owner's taste, in their words:**
 - "sick as hell"
@@ -39,13 +242,16 @@ spells you do, drawing them visibly. There are no waves.
 - "that dark wizard was a lot of fun"
 
 **The look:** dark gothic pixel art.
-- **Levels:**
-  - Level 1: a blood-moon cemetery.
-  - Level 2: a haunted swamp.
-  - Level 3: a gothic cathedral interior.
+- **Biomes** (the look of each place):
+  - a blood-moon graveyard.
+  - a haunted swamp, plus mountains, tundra and ashlands in the open world.
+  - a ruined castle with a gothic church interior.
 - **Characters and art:** LuizMelo characters, Ansimuz GothicVania environments, and CC0 pixel effects.
 
 ## 2. The eleven rules that matter most
+
+*Where a rule below concerns player-facing text and differs from section 0, section 0 wins. In particular, section 0
+allows no numbers at all (not even damage), and the spellbook is a canon tome with no cost line.*
 
 1. **Spells must reflect something real, and must be counterable.** Fire Nova (a magic ring blast) was removed
    because it "doesn't seem to reflect anything in real life and is impossible to block."
@@ -54,7 +260,7 @@ spells you do, drawing them visibly. There are no waves.
    - Ground, stone walls, ice and platforms block things physically.
 2. **The gesture is a picture of the effect.**
    - Volcano is a mountain triangle. Fire Breath is a cone (`<`). Mudslide is a U (the pit of mud).
-   - Storm Cloud is a bumpy cloud top. Gravity Well is an inward spiral.
+   - Black Hole is an inward spiral. Blizzard is a star with a snow line.
    - Icicles are V shapes. Push is a circle (the area) plus a line out of it (the direction).
    - Never assign an arbitrary shape.
 3. **No code-drawn pictures.** "All the other code-drawn pictures stick out like sore thumbs; they absolutely
@@ -71,15 +277,15 @@ spells you do, drawing them visibly. There are no waves.
 5. **Don't make things solid or harmful unless the spell's real-world analogue would be.**
    - Firewall: anyone can pass through it ("I wanted the fire wall to be something anyone could pass
 	 through").
-   - Force Wall: only touches projectiles.
-   - Gravity Well: does no damage.
-   - Storm Cloud: hits everyone under it, including the caster.
+   - Barrier: only touches projectiles.
+   - Black Hole: does no damage.
+   - Stonefall: hits everyone beneath it, the caster included.
    - Lightning: cannot pass through platforms.
    - Stonefall: does not explode; it thuds.
 6. **Consistency within a role.** All melee enemies look the same (skeletons). The owner disliked the earth
    melee enemy looking different. Schools are shown by a coloured outline and tint, not by different creatures.
 7. **Never commit, push or delete the owner's files without being asked.**
-   - The working tree carries a very large uncommitted diff, all intentional. Never run `git checkout .`,
+   - Never run `git checkout .`,
      `git reset --hard` or `git clean`.
    - `art_source/enemies/` and `art/wizard_parts/` are the owner's original art, now unused. Keep them.
 8. **Test before you claim.**
@@ -87,8 +293,8 @@ spells you do, drawing them visibly. There are no waves.
    - Tell the owner what you could not verify (you cannot hear sounds or feel the controls).
 9. **Keep text short in game.** The owner disliked wordy spellbook entries, repeated "costs no stamina",
    explaining edge cases, and filler headings like "Incantations, continued."
-10. **Talk to the player, not about the game.** On-screen text is imperative and addressed to the player ("Press Tab to
-	open the spellbook", "Gives you endless stamina"), not a statement about the system ("Tab opens the spellbook"). A key
+10. **Talk to the player, not about the game.** Every sentence of on-screen text is imperative and addressed to the player ("Press Tab to
+	open the spellbook", "Gives you endless stamina"), never a statement about the system ("Tab opens the spellbook", "Snow slows everything under it"). A key
 	and action table may use short verb-first labels. No ALL-CAPS result lines ("The ritual backfired", not "RITUAL BACKFIRED").
     **Spellbook entries** follow nine more rules (owner-confirmed):
 	1. Start with a verb addressed to the player ("Hurl a bolt of fire").
@@ -102,6 +308,8 @@ spells you do, drawing them visibly. There are no waves.
     9. Never describe the stroke: the animation shows it.
 11. **Don't change what they didn't ask about.** When feedback names five things, fix those five, check
     nothing else broke, and report briefly.
+12. **Describe what the thing does to the player, never the numbers behind it.** No multipliers, percentages or comparisons: never "1.6 times faster", "50% more damage", "half damage" or "walks slower". Write "Run faster." The only numbers allowed are damage and durations in seconds. Don't list side effects, weaknesses or interactions (what burns it, what it stops, what it combines with): the player learns those by playing. One effect per spell, in one short line.
+13. **Name no team.** Spell and game text says "anyone", "anything" or "whoever", never "foes", "enemies", "allies" or "rivals" (spells have no teams, see section 5).
 
 ## 3. Run, test and look
 
@@ -109,7 +317,7 @@ spells you do, drawing them visibly. There are no waves.
 GODOT="/c/Users/Jordan Polun/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_console.exe"
 "$GODOT" --headless --path . --import                          # after adding or changing any asset
 "$GODOT" --headless --path . --quit-after 200                  # parse check: grep the output for "SCRIPT ERROR"
-"$GODOT" --headless -s tests/test_gestures.gd                  # must print "136 of 136" (or more, if you add checks)
+"$GODOT" --headless -s tests/test_gestures.gd                  # must print "461 of 461" (or more, if you add checks)
 "$GODOT" --headless -s tests/test_pages.gd                     # the pages each wizard is dealt and a ledger's rules
 "$GODOT" --headless --path . tests/intro_check.tscn            # the cut-scene (add `-- mode=skip`, or `-- out=DIR` for pictures, without --headless)
 "$GODOT" --headless --path . tests/flow_check.tscn             # lab, portal, cut-scene, loading, world
@@ -131,7 +339,7 @@ GODOT="/c/Users/Jordan Polun/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.
 ```
 
 - **Other scenarios:** `world`, `kinds`, `ui` (portal, spellbook pages, pause, game over), `wizard` (a dark-wizard
-  duel) and `brawl`.
+  duel), `brawl`, and the other scenarios named at the top of `tests/showcase.gd`.
 - **Screenshots need a window:** don't pass `--headless` for them.
 - **Looking at screenshots:**
   - Open the PNGs with your image-reading tool.
@@ -157,11 +365,11 @@ GODOT="/c/Users/Jordan Polun/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.
 | Left + Right | Earth school |
 | Left + Middle | Flora school |
 | Right + Middle | Shadow school |
+| Left + Right + Middle | Blood school |
 | W at a vine | Take hold of a Liana; W and S climb, Space or a sideways key lets go |
 | N / R (waiting room) | Night on and off / reset the room |
 | Tab | Spellbook (arrow keys turn pages) |
 | Enter | Incantation box |
-| E | Swap focus (wand or staff) |
 | M | Mute |
 | Esc | Pause and controls list |
 | F1 | Debug summon panel |
@@ -201,10 +409,10 @@ GODOT="/c/Users/Jordan Polun/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.
 | Shadow | Decoy | figure of eight | a shadow that draws enemies' attacks | it wears out |
 | Shadow | Eclipse | crescent | darkness: enemies inside see only what is close | Flare |
 | Shadow | Hex | pentagram (five-point star, one stroke) | a curse: 50% more damage | short time |
-| Shadow | Abyss | inward spiral | a dark knot that pulls everything in | walk out |
+| Shadow | Black Hole | inward spiral | a dark knot that pulls everything across the world toward it (walls still stop it) | walk out |
 | Shadow | Shadow Step | flick | slipping along the stroke | |
 
-The school and spell plan is in `docs/spell_pool.md`; the direction of the game (a last-wizard-standing page race, which replaced the
+**The spellbook is a canon tome only** (owner decision): in-world text and the drawn picture, no manual, no cost line. What a spell does, what counters it and how much it costs are learned in play. The table above is the first 32 spells. The other ten (the six Blood spells, Tide Surf, Obsidian Armor, Glowcap and Moonbeam) are in `spells/` and `docs/spell_pool.md`. The school and spell plan is in `docs/spell_pool.md`; the direction of the game (a last-wizard-standing page race, which replaced the
 boss and the solo roguelite loop of `docs/roguelite_exploration_design.md`) is in `docs/pvp_arena_design.md`. The waiting room (`scenes/lab.tscn`, `scripts/lab.gd`) is where every spell is tried; the portal there
 starts a run.
 
@@ -266,8 +474,6 @@ well. `scripts/spells/spell_targets.gd` decides who can be hurt.
   background colour.
 - **Character frames** are cut so the feet sit on the bottom edge and the body is centred, so flipping a frame
   never shifts the character.
-- **The wand:** the wizard art only has a staff. `wandify()` cuts the staff down to a wand in every frame,
-  creating `art/chars/wizard_wand`.
 
 ## 8. Godot pitfalls that already bit
 
@@ -326,13 +532,12 @@ clean. It was cleaned up once, without losing any behaviour. Keep it that way:
 ## 10. Known issues and ideas
 
 **Known issues:**
-- The wand frames keep a faint line in a couple of run frames.
 - The death animation still shows a staff.
 - Sounds are untested by ear.
 
 **Ideas the owner may like:**
 - Spells that combine: fire melts ice, storm plus water.
-- Give the dark wizard a personality per level.
+- Give each AI wizard its own personality.
 - A gesture tutorial room.
 - Music (CC0 dark ambient).
 

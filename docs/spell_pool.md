@@ -1,6 +1,6 @@
 # Spell pool (draft)
 
-Status: **all 43 spells are built** (the 33 below, plus Tide Surf, Obsidian Armor, Glowcap, Moonbeam and the six Blood spells) and can be tried in the waiting room (`scenes/lab.tscn`). Not built yet: stamina
+Status: **all 42 spells are built** (the 32 below, plus Tide Surf, Obsidian Armor, Glowcap, Moonbeam and the six Blood spells) and can be tried in the waiting room (`scenes/lab.tscn`). Not built yet: stamina
 ranges (every spell still costs one number, the midpoint of the range below), mastery, gate tags, the dark wizard casting
 from the pool, and real art for several spells (see "Placeholders"). Part of `roguelite_exploration_design.md`.
 
@@ -26,7 +26,7 @@ Wind Wall (the old Force Wall) is merged into Gust.
 Changes from today: Earth moves from Left + Middle to Left + Right. Ice becomes Water. Force becomes Air.
 Storm is gone: Spark joins Fire, Tornado and Blink go to Air and Shadow, Storm Cloud is cut.
 
-## The pool (33 spells)
+## The pool (32 spells)
 
 Stamina is a range: a clean, quick cast pays the low number and a sloppy or slow one the high number. Mastery
 lowers the whole window (see the main design doc). All numbers are provisional.
@@ -105,7 +105,7 @@ lowers the whole window (see the main design doc). All numbers are provisional.
 | Decoy | figure-eight | a dummy enemies notice instead of you | it takes hits and vanishes | bypass guards | 14-28 |
 | Eclipse | crescent moon | darkness that shrinks enemies' sight in an area | Flare cuts through it | bypass guards | 16-30 |
 | Hex | pentagram: a five-pointed star in one stroke | the marked foe takes extra damage from every spell | short time | | 14-26 |
-| Abyss | inward spiral, wide to narrow (the old Gravity Well) | a dark knot that pulls everything in and swallows shots | step away | | 18-34 |
+| Black Hole | inward spiral, wide to narrow (the old Gravity Well, then Abyss) | a dark knot that pulls everything across the world toward it for 5 seconds, and swallows shots; walls and ceilings still stop what it pulls | step away | | 80 (no range yet) |
 | Shadow Step | straight flick (the old Blink) | you vanish and surface along the stroke, up to 300 px | stops short of walls | cross gap | 4-12 |
 
 ### Shadow, newer
@@ -160,8 +160,8 @@ These work, but their pictures are stand-ins for pixel art from a free pack, whi
 
 - Water: Geyser (a closed triangle with a vent line) against Icicles (open Vs). Icicles also need a ceiling overhead, so the lab has a slab for them.
 - Flora: Liana (an almond, then a line up) against Great Oak (a trunk ending in a crown loop): separated by which comes first, the loop or the line. Also Flytrap (W) against Bramble (sawtooth): separate by count of peaks.
-- Shadow: Hex (a star that winds inward) against Abyss (spiral): a star is ruled out of the spiral detector first.
-- Air: Tornado (a tall coil) against Abyss (a spiral): the coil goes down and is narrow, the spiral winds inward.
+- Shadow: Hex (a star that winds inward) against Black Hole (spiral): a star is ruled out of the spiral detector first.
+- Air: Tornado (a tall coil) against Black Hole (a spiral): the coil goes down and is narrow, the spiral winds inward.
 
 ## Not decided
 

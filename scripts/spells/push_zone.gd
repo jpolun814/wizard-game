@@ -2,7 +2,7 @@ class_name PushZone
 extends SpellEffect
 
 ## Push: a circle of force. Everything inside it is shoved once along the line drawn out of the circle: foes, the
-## caster, dropped foci, loose rocks, and shots (which are turned back).
+## caster, loose rocks, and shots (which are turned back).
 
 const LIFE := 0.5
 const KNOCK_SPEED := 700.0
@@ -39,9 +39,6 @@ func _push_everything() -> void:
 			body.knock_back(aim * KNOCK_SPEED * 1.6)
 		else:
 			body.push(aim * KNOCK_SPEED * 1.6)  # lifts the caster well above a jump (a jump is about 140 px)
-	for item in get_tree().get_nodes_in_group("items"):
-		if _inside(item.global_position):
-			item.knock(aim * KNOCK_SPEED * 0.6)
 	for rock in get_tree().get_nodes_in_group("rocks"):
 		if _inside(rock.global_position):
 			rock.push(aim * KNOCK_SPEED * 1.6)

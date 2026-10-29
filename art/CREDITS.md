@@ -32,9 +32,7 @@ packed into atlases, effects into strips).
 | `art/fx/tornado` (born and loop, 60 frames cut from one sheet, scaled to 96 px) | [Tornado pixel sprite sheet](https://creasta.itch.io/tornado-pixel-sprite-sheet) by Creasta | **Licence not stated on the page.** The author's comment says it is free with no credit required. Owner approved its use; get written confirmation of the licence before release |
 | `art/props/rock_spike_*` (recoloured to stone) | [Pixel Icicles](https://kamioo.itch.io/pixel-icicles) by Kamioo | CC0 |
 | `art/props/cloud_storm_*`, `cloud_snow_*` (recoloured) | [Pixel Art Clouds](https://opengameart.org/node/159981) by DustDFG | CC0 |
-| `art/props/wand`, `staff` | [Pixel Magic Staves Pack](https://asgaard42.itch.io/pixel-magic-staves-pack) by Asgaard42 (the trident and mage staves) | CC0 1.0 |
 | `art/ui/book.png` (the spellbook) | [Pixel Art Book](https://foxeldev.itch.io/pixelbooks) by Foxel Games | CC0 1.0 |
-| `art/chars/wizard_wand/` | the Wizard Pack frames above, with the staff cut down to a wand by `prepare_gothic_art.py` | CC0 1.0 |
 | `art/tiles/ice`, `art/props/ice_fill` (church stone, recoloured), `art/props/quicksand` (swamp water, recoloured) | GothicVania Church and Swamp by ansimuz | CC0 1.0 |
 | `art/particles/` (soft glows, smoke and sparks behind the pixel effects) | [Kenney – Particle Pack](https://kenney.nl/assets/particle-pack) | CC0 1.0 |
 

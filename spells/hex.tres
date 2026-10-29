@@ -9,5 +9,5 @@ school = "Shadow"
 gesture = "pentagram"
 cost = 20.0
 draw = "A five-pointed star in one stroke, never lifting: point to point, straight lines, until it closes. Draw it over your target."
-effect = "Curse anyone inside to take 50% more damage for 30 seconds."
+effect = "Curse someone with a dark star: they take extra damage and cannot hide from you."
 damage = "the marked take 50% more damage"

@@ -14,9 +14,9 @@ signal seed_spoken(text: String)
 ## "kind" is "ritual" (has an effect) or "toggle" (shows or hides a HUD module). Neither costs stamina.
 const RITUALS := {
 	"minimap": {"kind": "toggle", "module": "minimap", "name": "Chant of the Land",
-		"text": "terram ostende", "shows": "Show a minimap of the area around you."},
+		"text": "terram ostende"},
 	"insight": {"kind": "toggle", "module": "insight", "name": "Chant of Insight",
-		"text": "hostes vide", "shows": "Hover over a foe to see information about it."},
+		"text": "hostes vide"},
 	"bonfire": {"kind": "ritual", "name": "Incantation of the Bonfire",
 		"text": "ignis ardeat in tenebris et calorem det mihi dum noctem semper expello"},
 	"boundless": {"kind": "ritual", "name": "Chant of Boundless Vigour",
@@ -37,7 +37,6 @@ const RITUALS := {
 const BACKFIRE_BELOW := 0.6  # accuracy under this misfires
 const FULL_POWER_AT := 0.9   # accuracy at or above this is full power
 
-var _prompt: Label
 var _line: LineEdit
 
 
@@ -61,9 +60,6 @@ func _ready() -> void:
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 8)
 	box.add_child(column)
-	_prompt = Label.new()
-	_prompt.text = "Speak an incantation."
-	column.add_child(_prompt)
 	_line = LineEdit.new()
 	_line.custom_minimum_size = Vector2(596, 32)
 	_line.placeholder_text = "incantation..."

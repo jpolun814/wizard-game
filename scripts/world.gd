@@ -151,7 +151,6 @@ func _begin_encounter(camera: Camera2D) -> void:
 	_ground.watch([player.position], true)  # the rock round the start is drawn before the first frame
 	camera.reset_smoothing()
 	_set_up_backdrops()
-	player.focus = "wand"
 	hud.set_title("")
 	hud.set_pause_note("World: " + Incantation.words_for(seed_value))
 	for entry in _ponds:
@@ -578,7 +577,7 @@ func _on_player_died() -> void:
 	player.collision_layer = 0
 	player.collision_mask = 0
 	player.hide()
-	hud.banner("You are out", "Click to watch another wizard")
+	hud.banner("", "Click to watch another wizard")
 
 
 ## The wizards still in the match, other than the player.
@@ -616,7 +615,6 @@ func _count_wizards(delta: float) -> void:
 		return
 	_since_count = 0.0
 	var standing := SpellTargets.wizards(get_tree())
-	hud.set_title("Wizards left: %d" % standing.size())
 	if standing.size() == 1 and standing[0] == player:
 		_won = true
 		hud.banner("Last wizard standing", "You win")

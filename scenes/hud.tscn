@@ -144,14 +144,6 @@ theme_override_font_sizes/font_size = 64
 text = "You have fallen"
 horizontal_alignment = 1
 
-[node name="Hint" type="Label" parent="GameOver/Box"]
-theme_type_variation = &"Outlined"
-layout_mode = 2
-theme_override_colors/font_color = Color(0.8, 0.75, 0.9, 1)
-theme_override_font_sizes/font_size = 18
-text = "Press R or click to begin a new run"
-horizontal_alignment = 1
-
 [node name="Pause" type="ColorRect" parent="."]
 visible = false
 anchors_preset = 15
@@ -171,14 +163,6 @@ offset_bottom = -20.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_constants/separation = 14
-
-[node name="Paused" type="Label" parent="Pause/Box"]
-layout_mode = 2
-theme_type_variation = &"Title"
-theme_override_constants/outline_size = 12
-theme_override_font_sizes/font_size = 48
-text = "Paused"
-horizontal_alignment = 1
 
 [node name="Controls" type="GridContainer" parent="Pause/Box"]
 layout_mode = 2
