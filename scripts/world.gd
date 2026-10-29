@@ -267,7 +267,22 @@ func _spawn_wizards() -> void:
 		if state.has("max"):
 			wizard.max_stamina = state["max"]
 			wizard.stamina = state["stamina"]
+		wizard.died.connect(_drop_pages.bind(wizard))
 		_rivals.append(wizard)
+
+
+## A wizard that has died leaves its whole book where it fell, for anyone to read.
+func _drop_pages(wizard: Wizard) -> void:
+	var held: Array[String] = []
+	for each: String in wizard.ledger.pages:
+		held.append(each)
+	if held.is_empty():
+		return
+	var pickup := PagePickup.new()
+	pickup.page = held[0]
+	pickup.spoils = held
+	pickup.position = _floor_under(wizard.global_position)
+	add_child(pickup)
 
 
 ## The world position of the floor of a tile, at its middle.
@@ -642,6 +657,7 @@ func _lay_pages() -> void:
 	ledgers = MatchState.ledgers if _carried else Pages.deal(seed_value + 31, WIZARDS)  # what each wizard starts with comes from the seed too
 	MatchState.ledgers = ledgers
 	player.ledger = ledgers[0]
+	player.died.connect(_drop_pages.bind(player))
 	spellbook.refresh()
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed_value + 7919  # the pages come from the seed, apart from the rest of the map

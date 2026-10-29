@@ -566,7 +566,7 @@ func _cover(post: Node2D) -> String:
 ## Reads the page it stands under, if it does not have it.
 func _read_page_underfoot() -> void:
 	for pickup: PagePickup in wizard.get_tree().get_nodes_in_group("pages"):
-		if not wizard.ledger.knows(pickup.page) and pickup.is_under(wizard):
+		if pickup.gives(wizard.ledger) and pickup.is_under(wizard):
 			pickup.take(wizard.ledger)
 			_replans = 0
 			_goal = ""
@@ -576,7 +576,7 @@ func _read_page_underfoot() -> void:
 
 ## The page it was going to has gone: someone else read it, or it has it already.
 func _goal_lost() -> bool:
-	return _goal == "page" and (not is_instance_valid(_goal_page) or wizard.ledger.knows(_goal_page.page))
+	return _goal == "page" and (not is_instance_valid(_goal_page) or not _goal_page.gives(wizard.ledger))
 
 
 ## Picks what to go for: the page nearest by the way it must walk, and when there is none to be had, the nearest wizard.
@@ -589,7 +589,7 @@ func _choose_goal() -> void:
 	var best_page: PagePickup = null
 	var best_path: Array[Vector2i] = []
 	for pickup: PagePickup in wizard.get_tree().get_nodes_in_group("pages"):
-		if wizard.ledger.knows(pickup.page) or _skip.has(pickup.get_instance_id()):
+		if not pickup.gives(wizard.ledger) or _skip.has(pickup.get_instance_id()):
 			continue
 		var tile := _tile_of(pickup.global_position)
 		var stand: Vector2i = wizard.nav.nearest(tile)

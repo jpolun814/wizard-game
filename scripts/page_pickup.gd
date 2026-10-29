@@ -15,6 +15,7 @@ const CHIME_NEAR := 500.0  # a page chimes once when the wizard comes this close
 const CHIME_FAR := 720.0   # and again only after they have gone this far from it
 
 var page := ""
+var spoils: Array[String] = []  # a dead wizard's whole book, lying together: reading it reads every page in it, and `page` is the first of them
 var _t := 0.0
 var _sprite: Sprite2D
 var _hint: Label
@@ -26,7 +27,7 @@ var _chimed := false
 func _ready() -> void:
 	add_to_group("pages")
 	z_index = 3
-	if SpellData.SPELLS.has(page):
+	if SpellData.SPELLS.has(page) and spoils.is_empty():
 		_glow = SpellData.SCHOOL_COLORS[SpellData.SPELLS[page].school]
 		_color = _glow.lightened(0.2)
 	_t = randf() * TAU
@@ -73,7 +74,7 @@ func _physics_process(delta: float) -> void:
 	_chime()
 	var wizard := get_tree().get_first_node_in_group("player") as Node2D
 	_hint.visible = is_underfoot()
-	_hint.text = "Press Tab to read" if wizard == null or not wizard.ledger.knows(page) else "Press Tab to read it again"
+	_hint.text = "Press Tab to read" if wizard == null or gives(wizard.ledger) else "Press Tab to read it again"
 	queue_redraw()
 
 
@@ -102,12 +103,30 @@ func is_under(wizard: Node2D) -> bool:
 	return absf(at.x - global_position.x) < REACH_X and at.y > global_position.y - REACH_Y and at.y < global_position.y + 30.0
 
 
-## Reads the page into a wizard's ledger and takes it off the ground, unless the book had it already. Returns its name.
+## The pages here that a ledger does not hold yet.
+func new_pages(ledger: Ledger) -> Array[String]:
+	var out: Array[String] = []
+	for each: String in (spoils if not spoils.is_empty() else [page]):
+		if not ledger.knows(each):
+			out.append(each)
+	return out
+
+
+## True when there is something here for the ledger to read.
+func gives(ledger: Ledger) -> bool:
+	return not new_pages(ledger).is_empty()
+
+
+## Reads the pages into a wizard's ledger and takes them off the ground, unless the book had them already. Returns the first page
+## that was new, or this one when none was.
 func take(ledger: Ledger) -> String:
-	if not ledger.knows(page):
-		ledger.learn(page)
+	var fresh := new_pages(ledger)
+	if not fresh.is_empty():
+		for each in fresh:
+			ledger.learn(each)
 		Fx.burst(get_parent(), global_position + Vector2(0, -FLOAT), _color, 14, 130.0, 0.5, true)
 		queue_free()
+		return fresh[0]
 	return page
 
 

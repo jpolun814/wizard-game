@@ -305,6 +305,10 @@ static func _coil_down() -> PackedVector2Array:
 
 
 ## A low row of sharp thorns: a sawtooth, drawn left to right.
+static func sawtooth(teeth: int, tooth_width: float, height: float) -> PackedVector2Array:
+	return _sawtooth(teeth, tooth_width, height)
+
+
 static func _sawtooth(teeth: int, tooth_width: float, height: float) -> PackedVector2Array:
 	var pts := PackedVector2Array()
 	var total := teeth * tooth_width

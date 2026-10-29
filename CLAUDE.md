@@ -317,7 +317,7 @@ allows no numbers at all (not even damage), and the spellbook is a canon tome wi
 GODOT="/c/Users/Jordan Polun/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_console.exe"
 "$GODOT" --headless --path . --import                          # after adding or changing any asset
 "$GODOT" --headless --path . --quit-after 200                  # parse check: grep the output for "SCRIPT ERROR"
-"$GODOT" --headless -s tests/test_gestures.gd                  # must print "461 of 461" (or more, if you add checks)
+"$GODOT" --headless -s tests/test_gestures.gd                  # must print "470 of 470" (or more, if you add checks)
 "$GODOT" --headless -s tests/test_pages.gd                     # the pages each wizard is dealt and a ledger's rules
 "$GODOT" --headless --path . tests/intro_check.tscn            # the cut-scene (add `-- mode=skip`, or `-- out=DIR` for pictures, without --headless)
 "$GODOT" --headless --path . tests/flow_check.tscn             # lab, portal, cut-scene, loading, world

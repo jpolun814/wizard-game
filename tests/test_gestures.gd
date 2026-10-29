@@ -52,6 +52,18 @@ func _process(_delta: float) -> bool:
 	for size in [0.7, 1.0, 1.6]:
 		for shaky in [false, true]:
 			_check("Icicles", SpellData.SPELLS["Icicles"].buttons, single_v, size, shaky, false)
+	# A Bramble row need not have five teeth: two, three or four are thorns too.
+	for teeth in [2, 3, 4]:
+		for size in [0.8, 1.0, 1.5]:
+			_checks += 1
+			var row := PackedVector2Array()
+			for p in GestureTemplates.sawtooth(teeth, 55.0, 24.0):
+				row.append(p * size + Vector2(0, -260))
+			_cast = ""
+			_caster.cast_stroke(SpellData.LEFT | SpellData.MIDDLE, _densify(row))
+			if _cast != "Bramble":
+				_failures += 1
+				print("FAIL Bramble with %d teeth at %.1f: cast %s" % [teeth, size, _cast])
 	# A Fire Breath cone can point any way, and the fire must go toward its open end.
 	for angle in [0.0, PI * 0.5, PI, -PI * 0.5, PI * 0.25]:
 		_checks += 1

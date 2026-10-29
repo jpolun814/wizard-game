@@ -751,7 +751,7 @@ func _sawtooth(points: PackedVector2Array) -> PackedVector2Array:
 		return PackedVector2Array()
 	if not _turning_points(points, 0, 14.0).is_empty() or _count_crossings(points) > 0:
 		return PackedVector2Array()  # it doubles back across itself: not a row of teeth
-	if _turning_points(points, 1, 8.0).size() < 5:
+	if _turning_points(points, 1, 8.0).size() < 3:  # two teeth are a row of them
 		return PackedVector2Array()
 	return points
 

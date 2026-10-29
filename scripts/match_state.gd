@@ -13,7 +13,7 @@ const STAGES := [
 	{"width": 360, "seconds": 0.0, "caves": false},
 ]
 const HEIGHT := 380  # every world is this deep, in tiles
-const WARNING := 6.0  # seconds of shaking and a warning before a world collapses
+const WARNING := 18.0 # seconds of shaking and a warning before a world collapses
 
 static var hurry := 1.0  # a test shortens the time in a world by this much
 static var stage := 0

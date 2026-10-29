@@ -196,7 +196,9 @@ func _process(_delta: float) -> void:
 	# Casting and movement pause while the ritual box is open, so typing doesn't move or cast.
 	# The spellbook doesn't pause anything, so it can stay open while you play.
 	var busy: bool = ritual.visible or player.dead or player.fainted
-	caster.set_casting_enabled(not busy)
+	if player.is_frozen():  # in a block of ice no spell is drawn and no chant is said
+		ritual.cancel()
+	caster.set_casting_enabled(not busy and not player.is_frozen())
 	player.movement_enabled = not busy
 	caster.anchor = player.center()
 	caster.blocked_rects = _visible_hud_rects()
@@ -272,7 +274,7 @@ func cast_by(spell: String, targeting: String, origin: Vector2, aim: float, info
 			FloatText.spawn(self, get_global_mouse_position() + Vector2(0, -22), "Aim under a ceiling", Color("#dff6ff"), 0.9)
 			Sfx.play("misfire", wizard.center(), -6.0)
 		return
-	if wizard.fainted:
+	if wizard.fainted or wizard.is_frozen():
 		return
 	var label_at := get_global_mouse_position() + Vector2(0, -22) if person else wizard.center() + Vector2(0, -60)
 	if spell == "Faint" and _blood_target(spell, origin) == null:
@@ -672,6 +674,8 @@ func _misfire_puff() -> void:
 
 
 func _start_ritual() -> void:
+	if player.is_frozen():
+		return
 	if player.is_muted():
 		_on_feedback("Wait for your voice to return.", Color.ORANGE)
 		return
@@ -743,7 +747,7 @@ func _grant_chant(speaker: Wizard, id: String) -> void:
 ## A brain's wizard says one of the chants that give a gift (the others make marks and portals, which have only the player's own).
 ## It says it perfectly. False when it does not know the chant, cannot speak or is under water.
 func chant_by(speaker: Wizard, id: String) -> bool:
-	if not is_instance_valid(speaker) or speaker.dead or not speaker.ledger.knows_chant(id) or speaker.is_muted() or speaker.underwater():
+	if not is_instance_valid(speaker) or speaker.dead or not speaker.ledger.knows_chant(id) or speaker.is_muted() or speaker.is_frozen() or speaker.underwater():
 		return false
 	Sfx.play("ritual_ok", speaker.center())
 	Fx.pop(self, speaker.global_position + Vector2(0, -2), "magic_02", Color(1.0, 0.9, 0.6), 80.0, 0.8, 1.3, 2.0)

@@ -785,8 +785,10 @@ func chant(id: String) -> bool:
 
 ## The brain's turn: a spell it is drawing goes off when the stroke is done, and then it decides what to do next.
 func _think(delta: float) -> void:
-	if fainted:
+	if fainted or is_frozen():  # down, or in a block of ice: nothing is drawn
 		_draw_time = 0.0
+		_stroke = PackedVector2Array()
+		casting = false
 		_walk = 0.0
 		return
 	if _draw_time > 0.0:

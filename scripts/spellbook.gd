@@ -277,7 +277,7 @@ func _input(event: InputEvent) -> void:
 
 ## Reads a page lying on the ground into the book, and opens the book at it.
 func _read(lying: PagePickup) -> void:
-	var fresh := not _ledger().knows(lying.page)
+	var fresh := lying.gives(_ledger())
 	var page := lying.take(_ledger())
 	var arena := get_parent()
 	if fresh and arena.has_method("on_page_found"):
