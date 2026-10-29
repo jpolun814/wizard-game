@@ -1,7 +1,10 @@
+class_name Wizard
 extends CharacterBody2D
 
-## The player's wizard: LuizMelo's hooded wizard (art/chars/wizard). Its origin is at its feet, so it stands exactly
-## on whatever is under it.
+## A wizard: the body every wizard in the game has, the player's and the three others'. It is driven either by a person (the keyboard
+## and the mouse) or by a WizardBrain, and from there it is the same body: the same walk, jump, stamina, wounds, shoves and status
+## effects, so a spell does the same to any of them. Its origin is at its feet, so it stands exactly on whatever is under it.
+## The player's is LuizMelo's hooded wizard (art/chars/wizard); the others wear one of the looks in res://mobs.
 
 signal damaged(amount: int)
 signal debuff_applied(kind: String)
@@ -25,6 +28,7 @@ const OBSIDIAN_SHOTS := 0.5     # and how much of a shot's damage gets through
 const SURF_SPEED := 470.0       # how fast a wave carries the wizard
 const GET_UP := 10.0            # a wizard who has fainted stands up again once this much stamina has come back
 const BODY_HEIGHT := 78.0     # from the feet to the top of the hood
+const BODY_WIDTH := 24.0      # and across the hood, as wide as the collision capsule
 const COYOTE_TIME := 0.1      # a jump still works this long after walking off a ledge
 const JUMP_BUFFER := 0.12     # a jump pressed this long before landing happens on landing
 const HURT_GRACE := 0.5       # after a hit, further hits are ignored this long
@@ -36,9 +40,36 @@ const ANIMATIONS := {
 	"release": {"fps": 18.0, "loop": false, "first": 0, "last": 4},  # thrust forward as the spell goes off
 	"hit": {"fps": 14.0, "loop": false}, "death": {"fps": 10.0, "loop": false},
 }
+## The other three looks name some of their frames differently: the staff is held up in "release" and thrust out in "cast".
+const LOOK_ANIMATIONS := {
+	"idle": {"fps": 8.0}, "run": {"fps": 12.0}, "jump": {"fps": 8.0, "loop": false}, "fall": {"fps": 8.0},
+	"cast": {"from": "release", "fps": 8.0, "first": 0, "last": 3},
+	"release": {"from": "cast", "fps": 16.0, "loop": false, "first": 3, "last": 5},
+	"hit": {"fps": 10.0, "loop": false}, "death": {"fps": 8.0, "loop": false},
+}
 const STAFF_HEAD := Vector2(-55, -115)  # where the staff's crystal is in the casting pose, facing right
+const DRAW_TIME := 0.8        # how long a brain's wizard takes to draw a spell
+const SPAWN_TIME := 0.7       # a wizard summoned into the world arrives out of a circle this long
+const FALL_LIMIT := 800.0     # a wizard below this has fallen off the map (in a world, the bottom of it)
+const ICE := preload("res://art/props/ice_fill.png")
 
 var gravity: float = ProjectSettings.get_setting("physics/2d/default_gravity")
+var look := "wizard"  # which wizard this is: the player's own, or the id of one of the others' looks (a MobKind in res://mobs)
+var brain: WizardBrain  # what plays this wizard; none while a person does
+var caster: Caster  # a brain's wizard draws its spells through this; a person's strokes are read by the arena's own
+var nav: WorldNav  # the ways about the world, for a wizard that walks it by itself; none in the waiting room
+var last_spell := ""
+var _walk := 0.0  # the speed a brain asks to walk at, left or right, in pixels a second
+var _jump_strength := 1.0  # how much of a full jump a brain asked for
+var climb_up := false  # what a brain asks of a vine; a person's keys say the same
+var climb_down := false
+var let_go := false
+var _stroke := PackedVector2Array()  # the spell a brain's wizard is drawing, and how far on it is
+var _stroke_colour := Color.WHITE
+var _draw_time := 0.0
+var _draw_total := DRAW_TIME
+var _on_drawn: Callable
+var _overlay: Node2D  # draws the ice, and the stroke a brain's wizard is drawing, over the sprite
 var stamina := MAX_STAMINA
 var max_stamina := MAX_STAMINA  # what stamina can reach for now. Hits and the Rift wear it down; you die when it is gone
 var ledger := Ledger.complete()  # the pages in the wizard's book: all of them in the waiting room, the ones found in a world
@@ -127,11 +158,31 @@ var _vine_cooldown := 0.0  # after letting go, a vine cannot be grabbed again fo
 
 func _ready() -> void:
 	add_child(_status)
+	_status.ended.connect(func(status: StringName) -> void:
+		if status == &"frozen":
+			Shatter.spawn(get_parent(), center(), Color("#cdeeff")))  # the ice gives way
 	floor_max_angle = deg_to_rad(50.0)  # a 45 degree slope, the steepest a tunnel climbs, still counts as floor
-	add_to_group("player")
-	_sprite.sprite_frames = CharFrames.build("res://art/chars/wizard", ANIMATIONS)
-	_sprite.offset = Vector2(0, -PixelArt.CHARACTERS["wizard"]["size"].y * 0.5)  # the frames' bottom edge is the feet
+	add_to_group("wizards")
+	var art := "wizard"
+	if brain == null:
+		add_to_group("player")  # the one wizard the camera, the book and the bar belong to
+	else:
+		var data: MobKind = Mob.KINDS[look]
+		art = data.art
+		_sprite.scale = Vector2.ONE * data.scale
+		$Camera2D.queue_free()
+		_make_caster()
+		_sprite.animation_finished.connect(_on_animation_finished)
+		Fx.pop(get_parent(), global_position + Vector2(0, -2), "magic_02", Color("#d8d0e8"), 70.0, SPAWN_TIME + 0.2, 1.2, 1.5)  # it arrives through a summoning circle
+		Sfx.play("summon", global_position)
+	_sprite.sprite_frames = CharFrames.build("res://art/chars/" + art, ANIMATIONS if brain == null else LOOK_ANIMATIONS)
+	_sprite.offset = Vector2(0, -PixelArt.CHARACTERS[art]["size"].y * 0.5)  # the frames' bottom edge is the feet
 	_sprite.play("idle")
+	_overlay = Node2D.new()
+	_overlay.z_index = 10
+	_overlay.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
+	_overlay.draw.connect(_draw_overlay)
+	add_child(_overlay)
 	_wet_material = ShaderMaterial.new()
 	_wet_material.shader = load("res://scripts/wet.gdshader")
 	_sprite.material = _wet_material
@@ -285,6 +336,8 @@ func take_damage(amount: int, grace_hit := true, projectile := false) -> void:
 	GameCamera.shake_scene(get_tree(), 0.35 + amount * 0.02)
 	FloatText.spawn(get_parent(), center() + Vector2(0, -24), "-%d" % amount, Color("#ff5a5a"), 1.1)
 	damaged.emit(amount)
+	if brain != null:
+		brain.on_hurt(amount)
 	_check_death()
 
 
@@ -293,7 +346,30 @@ func _check_death() -> void:
 		max_stamina = 0.0
 		dead = true
 		movement_enabled = false
+		_draw_time = 0.0
+		_stroke = PackedVector2Array()
+		casting = false
 		died.emit()
+		if brain != null:
+			_pass_away()
+
+
+## A wizard no person plays falls where it stands: spells pass through it, and it fades after its death tumble. (A person's wizard
+## stays, for the game-over screen and the camera.)
+func _pass_away() -> void:
+	set_deferred("collision_layer", 0)
+	Sfx.play("mob_die", center())
+	Fx.burst(get_parent(), center(), Color("#d8d0e8"), 18, 180.0, 0.6, true)
+	Fx.smoke(get_parent(), center(), Color(0.25, 0.2, 0.3, 0.6), 5, 30.0)
+	GameCamera.shake_scene(get_tree(), 0.18)
+
+
+func _on_animation_finished() -> void:
+	if dead and _sprite.animation == &"death":
+		var fade := create_tween()
+		fade.tween_interval(0.4)
+		fade.tween_property(self, "modulate:a", 0.0, 0.4)
+		fade.tween_callback(queue_free)
 
 
 ## Standing in water or lava: the part of the wizard below the surface takes its colour for a moment after each call, so
@@ -366,6 +442,8 @@ func faint() -> void:
 	temp_stamina = 0.0
 	_since_spend = 0.0
 	casting = false
+	_draw_time = 0.0
+	_stroke = PackedVector2Array()
 	Sfx.play("player_hurt", center())
 
 
@@ -474,6 +552,11 @@ func _draw_shield() -> void:
 
 
 func _physics_process(delta: float) -> void:
+	if brain != null and global_position.y > (ArenaGen.world_size.y * float(ArenaGen.TILE) if ArenaGen.world_size.y > 0 else FALL_LIMIT) and not dead:
+		max_stamina = 0.0  # off the bottom of the map
+		_check_death()
+	if brain != null and not dead:
+		_think(delta)
 	_grace -= delta
 	_veil_cool -= delta
 	_shield_emitter.emitting = _shield_time > 0.0
@@ -500,10 +583,10 @@ func _physics_process(delta: float) -> void:
 	if can_move and _climb():
 		return
 	if can_move:
-		if Input.is_action_just_pressed("jump"):
-			_jump_buffer = JUMP_BUFFER
+		if brain == null and Input.is_action_just_pressed("jump"):
+			request_jump()
 		if _jump_buffer > 0.0 and _coyote > 0.0 and sink_time <= 0.0 and tangle_time <= 0.0 and spend(JUMP_COST):
-			velocity.y = JUMP_VELOCITY
+			velocity.y = JUMP_VELOCITY * _jump_strength
 			_jump_buffer = 0.0
 			_coyote = 0.0
 			Sfx.play("jump", global_position)
@@ -514,11 +597,11 @@ func _physics_process(delta: float) -> void:
 			air_jump_ready = false
 			Sfx.play("jump", global_position)
 		# Letting go of jump early cuts the jump short, so small hops are easy.
-		if Input.is_action_just_released("jump") and velocity.y < JUMP_VELOCITY * 0.4:
+		if brain == null and Input.is_action_just_released("jump") and velocity.y < JUMP_VELOCITY * 0.4:
 			velocity.y = JUMP_VELOCITY * 0.4
 		# Walking is free; running drains stamina. With none left you still walk, at half speed.
 		var speed := (SPEED if stamina > 0.0 else SPEED * 0.5) * (0.5 if slow_time > 0.0 else 1.0) * (0.4 if sink_time > 0.0 else 1.0) * (0.3 if tangle_time > 0.0 else 1.0) * (HASTE if haste_time > 0.0 else 1.0) * (OBSIDIAN_SPEED if obsidian_time > 0.0 else 1.0)
-		velocity.x = Input.get_axis("move_left", "move_right") * speed
+		velocity.x = Input.get_axis("move_left", "move_right") * speed if brain == null else clampf(_walk, -speed, speed)
 		if is_on_floor() and absf(velocity.x) > 10.0 and stamina > 0.0:
 			drain(RUN_COST * delta)
 	else:
@@ -549,8 +632,12 @@ func _climb() -> bool:
 	var hands := global_position + Vector2(0, -20)
 	if _vine != null and (not is_instance_valid(_vine) or not _vine.can_grab(hands)):
 		_vine = null
+	var up := Input.is_action_pressed("move_up") if brain == null else climb_up
+	var down := Input.is_action_pressed("move_down") if brain == null else climb_down
+	var letting_go := Input.is_action_pressed("let_go") if brain == null else let_go
+	var sideways := Input.get_axis("move_left", "move_right") if brain == null else clampf(_walk / SPEED, -1.0, 1.0)
 	if _vine == null:
-		if _vine_cooldown > 0.0 or not Input.is_action_pressed("move_up"):
+		if _vine_cooldown > 0.0 or not up:
 			return false
 		for vine in get_tree().get_nodes_in_group("climbables"):
 			if vine.can_grab(hands):
@@ -558,12 +645,9 @@ func _climb() -> bool:
 				break
 		if _vine == null:
 			return false
-	var sideways := Input.get_axis("move_left", "move_right")
-	var up := Input.is_action_pressed("move_up")
-	var down := Input.is_action_pressed("move_down")
-	if Input.is_action_pressed("let_go") or absf(sideways) > 0.5:
+	if letting_go or absf(sideways) > 0.5:
 		# Let go: a hop off the vine in the way the wizard was leaning.
-		velocity = Vector2(sideways * SPEED, JUMP_VELOCITY * 0.6 if Input.is_action_pressed("let_go") else 0.0)
+		velocity = Vector2(sideways * SPEED, JUMP_VELOCITY * 0.6 if letting_go else 0.0)
 		_vine = null
 		_vine_cooldown = 0.3
 		return false
@@ -634,12 +718,13 @@ func _process(delta: float) -> void:
 		if _stuck_time <= 0.0:
 			unstick()
 	_animate(delta)
+	_overlay.queue_redraw()
 
 
 ## Picks the animation for what the wizard is doing, faces the way it is moving, and flashes when hit.
 func _animate(delta: float) -> void:
-	if absf(velocity.x) > 10.0 and not dead:
-		facing = signf(velocity.x)
+	if absf(velocity.x) > 10.0 and not dead and brain == null:
+		facing = signf(velocity.x)  # (a brain turns its wizard itself)
 	_releasing = maxf(_releasing - delta, 0.0)
 	_hurt_anim = maxf(_hurt_anim - delta, 0.0)
 	var wanted := "idle"
@@ -679,3 +764,109 @@ func _animate(delta: float) -> void:
 func play_cast_release() -> void:
 	_releasing = 0.3
 	_sprite.play("release")
+
+
+# --- A wizard that a brain plays -------------------------------------------------------------------------------
+
+
+## A brain's wizard casts from strokes of its own, never from the mouse: the arena reads them as it does yours.
+func _make_caster() -> void:
+	caster = Caster.new()
+	add_child(caster)
+	caster.set_process(false)
+	caster.ground_check = Callable(get_parent(), "_is_ground_at")
+	caster.cast_resolved.connect(Callable(get_parent(), "cast_by").bind(self))
+
+
+## A brain's wizard speaks a chant (see Arena.chant_by).
+func chant(id: String) -> bool:
+	return get_parent().chant_by(self, id)
+
+
+## The brain's turn: a spell it is drawing goes off when the stroke is done, and then it decides what to do next.
+func _think(delta: float) -> void:
+	if fainted:
+		_draw_time = 0.0
+		_walk = 0.0
+		return
+	if _draw_time > 0.0:
+		_draw_time -= delta
+		if _draw_time <= 0.0:
+			var stroke := _stroke
+			_stroke = PackedVector2Array()
+			casting = false
+			play_cast_release()
+			_on_drawn.call(stroke)
+	caster.anchor = center()
+	brain.think(delta)
+
+
+## A brain asks to walk at a speed, left (negative) or right: the body keeps to what it can do.
+func walk(speed: float) -> void:
+	_walk = speed
+
+
+## A jump, asked for as a person asks with the key: it happens if the wizard is on the ground (or just left it) and has the stamina.
+## A brain asks for a part of a full jump for a hop.
+func request_jump(strength := 1.0) -> void:
+	_jump_buffer = JUMP_BUFFER
+	_jump_strength = strength
+
+
+## Starts drawing a stroke in front of the wizard. After draw_time it calls on_done with the stroke.
+## Being hit hard while drawing breaks the spell (see WizardBrain.on_hurt).
+func start_drawing(points: PackedVector2Array, colour: Color, on_done: Callable, draw_time := DRAW_TIME) -> void:
+	_stroke = points
+	_stroke_colour = colour
+	cast_color = colour
+	_on_drawn = on_done
+	_draw_time = draw_time
+	_draw_total = draw_time
+	casting = true
+	Sfx.play("wizard_cast", center())
+
+
+func is_drawing() -> bool:
+	return _draw_time > 0.0
+
+
+## Drops the spell being drawn, with a puff of sparks so a rival can see it was broken.
+func interrupt_cast() -> void:
+	if _draw_time <= 0.0:
+		return
+	_draw_time = 0.0
+	_stroke = PackedVector2Array()
+	casting = false
+	Fx.burst(get_parent(), center() + Vector2(facing * 14.0, -16.0), _stroke_colour, 14, 140.0, 0.4, true)
+	FloatText.spawn(get_parent(), center() + Vector2(0, -44), "Interrupted!", Color("#d9b8ff"), 0.9)
+	Sfx.play("misfire", center())
+
+
+## Things drawn over the sprite: the block of ice a frozen wizard is in, and the stroke a brain's wizard is drawing, which
+## grows as the spell does so that it can be read and broken.
+func _draw_overlay() -> void:
+	if dead:
+		return
+	if is_frozen():
+		var body := Vector2(BODY_WIDTH, BODY_HEIGHT)
+		var box := Rect2((center_offset() - body * 0.5 - Vector2(6, 6)).floor(), (body + Vector2(12, 10)).floor())
+		_overlay.draw_texture_rect(ICE, box, true, Color(1, 1, 1, 0.6))
+	if _draw_time > 0.0 and _stroke.size() >= 2:
+		var progress := 1.0 - _draw_time / _draw_total
+		var count := clampi(int(_stroke.size() * progress), 2, _stroke.size())
+		var local := PackedVector2Array()
+		for i in count:
+			local.append(_stroke[i] - global_position)
+		var c := _stroke_colour
+		_overlay.draw_polyline(local, Color(c.r, c.g, c.b, 0.25), 7.0)
+		_overlay.draw_polyline(local, Color(c.r, c.g, c.b, 0.9), 3.0)
+		_overlay.draw_polyline(local, Color(1.0, 1.0, 1.0, 0.9), 1.0)
+		Fx.draw_glow(_overlay, local[local.size() - 1], 8.0, Color(c.r, c.g, c.b, 0.9))
+
+
+func is_rooted() -> bool:
+	return root_time > 0.0
+
+
+func is_slowed() -> bool:
+	return slow_time > 0.0

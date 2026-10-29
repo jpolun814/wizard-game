@@ -18,7 +18,7 @@ const PUFF_SPEED := 430.0
 const PUFF_RATE := 40.0    # flame puffs per second
 const DRAG := 1.2          # puffs slow as they spread out
 
-var caster_node: Node2D
+var caster_node: Wizard
 var aim := 0.0             # the drawn direction, for the way the caster faced when casting
 var spread := 0.8
 var reach := 160.0
@@ -34,7 +34,7 @@ func _ready() -> void:
 	add_to_group("fires")
 	spread = clampf(spread, MIN_SPREAD, MAX_SPREAD)
 	# A breath cast the other way turns the wizard round to face it.
-	if is_instance_valid(caster_node) and caster_node.is_in_group("player") and absf(cos(aim)) > 0.2:
+	if is_instance_valid(caster_node) and absf(cos(aim)) > 0.2:
 		caster_node.facing = signf(cos(aim))
 	reach = clampf(reach, MIN_REACH, MAX_REACH)
 	# Drawn as solid colour, not light, so the flames stay orange against any backdrop. The puffs live in world
@@ -67,11 +67,7 @@ func _physics_process(delta: float) -> void:
 
 
 func _caster_alive() -> bool:
-	if not is_instance_valid(caster_node):
-		return false
-	if caster_node.has_method("is_dead"):
-		return not caster_node.is_dead()
-	return not caster_node.get("dead")
+	return is_instance_valid(caster_node) and not caster_node.dead
 
 
 func _facing() -> float:
@@ -81,9 +77,7 @@ func _facing() -> float:
 
 
 func _mouth_position() -> Vector2:
-	if caster_node.has_method("mouth"):
-		return caster_node.mouth()
-	return SpellTargets.center_of(caster_node)
+	return caster_node.mouth()
 
 
 ## The way the fire leaves the mouth now: the drawn direction, read from the way the wizard faced when casting and

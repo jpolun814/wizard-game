@@ -65,7 +65,7 @@ func _ready() -> void:
 		if next != null:
 			await tree.create_timer(1.0).timeout
 			_verdict(next.player.dead and not next.hud.is_game_over(), "the player is still out in the next world, and watching")
-			var seen: Array[Mob] = next._living()
+			var seen: Array[Wizard] = next._living()
 			_verdict(seen.size() == 2 and next.player.global_position.distance_to(seen[0].global_position) < 40.0, "the camera follows a rival there (%d live)" % seen.size())
 		print("spectating works" if _failures == 0 else "%d FAILED" % _failures)
 		tree.quit(1 if _failures > 0 else 0)

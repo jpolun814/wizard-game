@@ -39,15 +39,15 @@ func _ready() -> void:
 			break
 	for page in tree.get_nodes_in_group("pages"):
 		page.queue_free()
-	var wizard: Mob = null
-	var rival: Mob = null
-	for mob in tree.get_nodes_in_group("mobs"):
-		if mob.kind == "dark_wizard":
-			wizard = mob
-		elif rival == null and Mob.KINDS[mob.kind].role == "wizard":
-			rival = mob  # it stands far off, so that the wizard has someone to be the last of
-	for mob in tree.get_nodes_in_group("mobs"):
-		if mob != wizard and mob != rival:
+	var wizard: Wizard = null
+	var rival: Wizard = null
+	for found: Wizard in tree.get_nodes_in_group("wizards"):
+		if found.look == "dark_wizard":
+			wizard = found
+		elif rival == null and found != world.player:
+			rival = found  # it stands far off, so that the wizard has someone to be the last of
+	for mob in tree.get_nodes_in_group("mobs") + tree.get_nodes_in_group("wizards"):
+		if mob != wizard and mob != rival and mob != world.player:
 			mob.set_physics_process(false)
 			mob.global_position = Vector2(-9000.0, -9000.0)
 	var crossing := {}
@@ -95,6 +95,7 @@ func _ready() -> void:
 				if way.any(func(t: Vector2i) -> bool: return world.nav.toll_at(t) == crossing["key"]):
 					start = tile + Vector2i(0, 1)
 	wizard.global_position = Vector2((start.x + 0.5) * 32.0, start.y * 32.0 - 2.0)
+	wizard.velocity = Vector2.ZERO  # it was walking where it was put down from
 	rival.global_position = Vector2(-9000.0, -9000.0)
 	rival.set_physics_process(false)
 	var page := PagePickup.new()
@@ -102,17 +103,17 @@ func _ready() -> void:
 	page.position = Vector2((far_tile.x + 0.5) * 32.0, (far_tile.y + 1) * 32.0 - 20.0)
 	world.add_child(page)
 	print("seed %d, %s gate at %s: the wizard at x %.0f, the page at x %.0f, holding %s" % [seed_value, kind, str(outside), wizard.global_position.x, page.position.x, str(spells)])
-	var before := wizard.hp
+	var before := wizard.max_stamina
 	wizard.ledger = Ledger.of(spells)
 	var passed := false
 	var time := 0.0
-	while time < SECONDS and not passed and not wizard.is_dead():
+	while time < SECONDS and not passed and not wizard.dead:
 		await tree.physics_frame
 		time += 1.0 / 60.0
 		wizard.stamina = maxf(wizard.stamina, 100.0)
 		passed = wizard.ledger.knows(page_name)
 	if not spells.is_empty():
-		_verdict(passed and not wizard.is_dead(), "the wizard has the page beyond by %.0f s, alive (x %.0f; hp %d of %d; %s)" % [time, wizard.global_position.x, wizard.hp, before, (wizard.brain as WizardBrain).status()])
+		_verdict(passed and not wizard.dead, "the wizard has the page beyond by %.0f s, alive (x %.0f; hp %d of %d; %s)" % [time, wizard.global_position.x, wizard.max_stamina, before, (wizard.brain as WizardBrain).status()])
 	else:
 		_verdict(not passed, "a wizard with no spell does not get the page beyond (x %.0f)" % wizard.global_position.x)
 	print("done" if _failures == 0 else "%d FAILED" % _failures)

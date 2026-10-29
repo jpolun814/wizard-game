@@ -31,6 +31,7 @@ const PIT_DEPTH := 2         # rows of the piranha pit: shallow, a wizard can wa
 const CHASM_LAVA_TOP := 2   # rows under the floor where the lava's surface lies, so the lava fills the deep part of the pit
 const WALL_HEIGHT := 8      # rows of a sheer wall in a passage: more than two jumps
 const WALL_WIDTH := 3       # columns thick
+const WALL_APPROACH := 2    # columns each side of a wall where the roof is opened up to the room over the wall
 const GAS_BANK := 8          # columns in each bank of it
 const SPIKE_WIDTH := 5       # columns in each strip of spikes
 const SPIKE_APART := 9       # columns from the start of one strip to the next
@@ -283,7 +284,7 @@ static func _make_gate(cells: TileGrid, tunnel: Dictionary, carved: Dictionary, 
 				if k < 6 or k > run - 6 - WALL_WIDTH:
 					continue
 				var shallow := false
-				for c in range(k, k + WALL_WIDTH):
+				for c in range(k - WALL_APPROACH, k + WALL_WIDTH + WALL_APPROACH):
 					var i: int = first + c - sky["xl"]
 					shallow = shallow or floors[c] - WALL_HEIGHT - 5 < sky["floor"][clampi(i, 0, sky["floor"].size() - 1)] + 4
 				if not shallow:
@@ -293,6 +294,13 @@ static func _make_gate(cells: TileGrid, tunnel: Dictionary, carved: Dictionary, 
 			span = Vector2i(k0, k0 + WALL_WIDTH)
 			out["at"] = Vector2i(first + k0, top)
 			out["columns"] = []
+			for c in range(k0 - WALL_APPROACH, k0 + WALL_WIDTH + WALL_APPROACH):  # the roof opened up beside the wall too, so that anyone thrown up its face has room to reach the top
+				if c >= k0 and c < k0 + WALL_WIDTH:
+					continue
+				var r := top - 5
+				while cells.has(Vector2i(first + c, r)):
+					cells.erase(Vector2i(first + c, r))
+					r += 1
 			for c in range(k0, k0 + WALL_WIDTH):
 				for r in range(top - 5, top):
 					cells.erase(Vector2i(first + c, r))
@@ -749,7 +757,7 @@ static func standing(cells: TileGrid, c: int, r: int, hazards := {}) -> bool:
 
 
 ## The gates that are crossed rather than cleared: a spell lets a wizard past, and the gate is as it was behind them.
-const CROSSINGS := ["chasm", "flood", "piranhas", "sentinel", "wall"]
+const CROSSINGS := ["chasm", "flood", "piranhas", "sentinel", "wall", "gas"]
 
 
 ## What a crossing is called on a wizard's list of what it has given up, and in the ways about the world.
@@ -773,6 +781,12 @@ static func shut(world: Dictionary, crossings := false) -> Dictionary:
 			var tiles: Array[Vector2i] = []
 			if gate["kind"] == "sentinel":
 				tiles.assign(gate["blocks"])
+			elif gate["kind"] == "gas":  # the gas stays as it is, and what is left of it is walked through, holding the breath
+				var per: int = gate.get("per", 0)
+				var gone: Array = gate.get("gone", [])
+				for k in gate["blocks"].size():
+					if not (per > 0 and gone.size() > k / per and gone[k / per]):
+						tiles.append(gate["blocks"][k])
 			elif gate["kind"] == "wall":  # the wall stands as rock, and the places to stand on top of it are the toll: a lift gets one up there
 				for cell: Vector2i in gate["blocks"]:
 					cells.put(cell, ArenaGen.GROUND)

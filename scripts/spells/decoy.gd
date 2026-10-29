@@ -10,7 +10,6 @@ const WALK := 170.0
 const FALL := 600.0
 const STEP := 18.0  # the highest step it walks up
 const HEALTH := 40
-const PLAYER := preload("res://scripts/player.gd")
 
 var hp := HEALTH
 var _age := 0.0
@@ -36,7 +35,7 @@ func _ready() -> void:
 	add_to_group("decoys")
 	add_to_group("lasting")
 	_body = AnimatedSprite2D.new()
-	_body.sprite_frames = CharFrames.build("res://art/chars/wizard", PLAYER.ANIMATIONS)
+	_body.sprite_frames = CharFrames.build("res://art/chars/wizard", Wizard.ANIMATIONS)
 	_body.offset = Vector2(0, -PixelArt.CHARACTERS["wizard"]["size"].y * 0.5)
 	_body.modulate = Color(0.5, 0.35, 0.75, 0.0)
 	_body.play("idle")
@@ -46,7 +45,7 @@ func _ready() -> void:
 
 
 func center() -> Vector2:
-	return global_position + Vector2(0, -PLAYER.BODY_HEIGHT * 0.5)
+	return global_position + Vector2(0, -Wizard.BODY_HEIGHT * 0.5)
 
 
 func is_dead() -> bool:

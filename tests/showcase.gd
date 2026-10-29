@@ -455,7 +455,8 @@ func _plan() -> void:
 				for i in kinds.size():
 					var mob := _summon_at(kinds[i], x + (i - 4.5) * 90.0)
 					mob.set_physics_process(false)
-					mob._spawn = 0.0
+					if mob is Mob:
+						mob._spawn = 0.0
 					mob.modulate.a = 1.0)
 			_at(1.5, func() -> void: _snap("standing"))
 			_at(1.6, func() -> void:
@@ -475,7 +476,8 @@ func _plan() -> void:
 					if Mob.KINDS[kind].role == "flyer":
 						continue
 					var mob := _summon_at(kind, x + i * 60.0)
-					mob._spawn = 0.0
+					if mob is Mob:
+						mob._spawn = 0.0
 					mob.modulate.a = 1.0
 					mob.set_physics_process(false)
 					print(kind, " ", mob._material.get_shader_parameter("school_color") if mob._material else "wizard")
@@ -970,7 +972,8 @@ func _plan_checks() -> void:
 		var thrower := _summon_at("ninja", x)
 		var friend := _summon_at("ninja", x + 120.0)
 		for mob in [thrower, friend]:
-			mob._spawn = 0.0
+			if mob is Mob:
+				mob._spawn = 0.0
 			mob.set_physics_process(false)
 		EnemyBolt.fire(_arena, thrower.center(), friend.center(), Color.WHITE, 5, 0.0, false, "ninja_star", thrower))
 	_at(34.4, func() -> void:
@@ -1026,7 +1029,8 @@ func _reset_room(col: int, spell_name: String) -> void:
 			slab["age"] = 999.0
 	_arena._add_targets()
 	for mob in _arena.get_tree().get_nodes_in_group("mobs"):
-		mob._spawn = 0.0
+		if mob is Mob:
+			mob._spawn = 0.0
 		mob.modulate.a = 1.0
 	var player: Node2D = _player()
 	player.global_position = _feet(col)

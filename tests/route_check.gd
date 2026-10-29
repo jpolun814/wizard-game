@@ -37,10 +37,10 @@ func _ready() -> void:
 	await get_tree().process_frame
 	_world.player.dead = true
 	_world.player.hide()
-	var body: Mob = null
-	for mob in get_tree().get_nodes_in_group("mobs"):
-		if mob.kind == look:
-			body = mob
+	var body: Wizard = null
+	for found: Wizard in get_tree().get_nodes_in_group("wizards"):
+		if found.look == look:
+			body = found
 	if body == null:
 		print("FAIL  no %s in the world" % look)
 		get_tree().quit(1)
@@ -50,7 +50,7 @@ func _ready() -> void:
 	await _run(body)
 
 
-func _run(body: Mob) -> void:
+func _run(body: Wizard) -> void:
 	var nav := _world.nav
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed_value
@@ -113,7 +113,7 @@ func _before(tile: Vector2i) -> Vector2i:
 
 
 ## Sets the body at the start of a move and sees whether the route takes it to the end.
-func _try(body: Mob, from: Vector2i, to: Vector2i, trace := false) -> bool:
+func _try(body: Wizard, from: Vector2i, to: Vector2i, trace := false) -> bool:
 	var route := WizardRoute.new()
 	body.velocity = Vector2.ZERO
 	var before := _before(from)  # it comes to the start of the move as a wizard does: along the way, not set down on the spot

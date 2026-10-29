@@ -10,7 +10,7 @@ const CAP := preload("res://art/props/glowcap.png")
 const HAT_HEIGHT := 73.0  # the top of the hat, over the wizard's feet
 const GREEN := Color(0.55, 1.0, 0.65)
 
-var caster_node: Node2D  # set by the arena before it enters the tree
+var caster_node: Wizard  # set by the arena before it enters the tree
 var light_radius := LIGHT_RADIUS
 var _age := 0.0
 var _sprite: Sprite2D
@@ -44,7 +44,7 @@ func _ready() -> void:
 ## Where the mushroom sits: on the top of the hat.
 func _rest_spot() -> Vector2:
 	var at: Vector2 = caster_node.global_position
-	var facing: float = caster_node.facing if "facing" in caster_node else 1.0
+	var facing: float = caster_node.facing
 	return at + Vector2(2.0 * facing, -HAT_HEIGHT)
 
 
@@ -55,7 +55,7 @@ func _follow() -> void:
 
 func _physics_process(delta: float) -> void:
 	_age += delta
-	if not is_instance_valid(caster_node) or ("dead" in caster_node and caster_node.dead) or _age >= SECONDS:
+	if not is_instance_valid(caster_node) or caster_node.dead or _age >= SECONDS:
 		queue_free()
 		return
 	_follow()

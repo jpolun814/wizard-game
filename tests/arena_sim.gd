@@ -13,7 +13,7 @@ var seconds := 240.0
 var report := 30.0
 var keep_player := false
 var _world: World
-var _wizards: Array[Mob] = []
+var _wizards: Array[Wizard] = []
 var _clock := 0.0
 var _next_report := 0.0
 var _first_page := {}  # wizard -> game seconds when it read its first page
@@ -59,14 +59,14 @@ func _ready() -> void:
 	if not keep_player:
 		_world.player.dead = true  # a wizard that is down is no one's target
 		_world.player.hide()
-	for mob in get_tree().get_nodes_in_group("mobs"):
-		if Mob.KINDS[mob.kind].role == "wizard":
-			_wizards.append(mob)
+	for wizard: Wizard in get_tree().get_nodes_in_group("wizards"):
+		if wizard != _world.player:
+			_wizards.append(wizard)
 	_set_up = true
 	print("seed %d: %d wizards in a world of %s tiles; the player stands at %s" % [seed_value, _wizards.size(), str(ArenaGen.world_size), str(_world.player.global_position)])
 	for wizard in _wizards:
-		_seen.append({"kind": wizard.kind, "pages": wizard.ledger.count()})
-		print("   %s at %s holds %d pages" % [wizard.kind, str(wizard.global_position), wizard.ledger.count()])
+		_seen.append({"kind": wizard.look, "pages": wizard.ledger.count()})
+		print("   %s at %s holds %d pages" % [wizard.look, str(wizard.global_position), wizard.ledger.count()])
 
 
 func _physics_process(delta: float) -> void:
@@ -81,19 +81,19 @@ func _physics_process(delta: float) -> void:
 		_shot = ""
 	for i in _wizards.size():
 		var wizard := _wizards[i]
-		if is_instance_valid(wizard) and not wizard.is_dead():
+		if is_instance_valid(wizard) and not wizard.dead:
 			_seen[i]["pages"] = wizard.ledger.count()
 			if not _first_page.has(wizard) and wizard.ledger.count() > 5:
 				_first_page[wizard] = _clock
 			if wizard.global_position.y > ArenaGen.world_size.y * 32.0:
-				print("FAIL  %s has fallen out of the world" % wizard.kind)
+				print("FAIL  %s has fallen out of the world" % wizard.look)
 				_failed = true
 		elif not _beaten.has(wizard):
 			_beaten[wizard] = _clock
 	if _clock >= _next_report:
 		_next_report += report
 		_print_state()
-	var standing := _wizards.filter(func(w) -> bool: return is_instance_valid(w) and not w.is_dead())
+	var standing := _wizards.filter(func(w) -> bool: return is_instance_valid(w) and not w.dead)
 	if _clock >= seconds or standing.size() <= (0 if keep_player else 1):
 		_finish(standing.size())
 
@@ -108,11 +108,11 @@ func _print_state() -> void:
 	print("%5.0fs  %d pages still lie on the map" % [_clock, pages])
 	for i in _wizards.size():
 		var wizard := _wizards[i]
-		if not is_instance_valid(wizard) or wizard.is_dead():
+		if not is_instance_valid(wizard) or wizard.dead:
 			print("        %-12s beaten at %.0fs" % [_seen[i]["kind"], _beaten.get(wizard, _clock)])
 			continue
 		var brain: WizardBrain = wizard.brain
-		print("        %-12s at tile (%d, %d)  %3d pages  hp %3d  stamina %3d  going for: %s  [%s%s v(%d,%d)]" % [wizard.kind, wizard.global_position.x / 32.0, wizard.global_position.y / 32.0, wizard.ledger.count(), wizard.hp, wizard.stamina, brain.status(), "floor " if wizard.is_on_floor() else "air ", "wall %s" % _hit(wizard) if wizard.is_on_wall() else "", wizard.velocity.x, wizard.velocity.y])
+		print("        %-12s at tile (%d, %d)  %3d pages  max %3d  stamina %3d  going for: %s  [%s%s v(%d,%d)]" % [wizard.look, wizard.global_position.x / 32.0, wizard.global_position.y / 32.0, wizard.ledger.count(), wizard.max_stamina, wizard.stamina, brain.status(), "floor " if wizard.is_on_floor() else "air ", "wall %s" % _hit(wizard) if wizard.is_on_wall() else "", wizard.velocity.x, wizard.velocity.y])
 
 
 func _finish(standing: int) -> void:
@@ -120,7 +120,7 @@ func _finish(standing: int) -> void:
 	print("--- after %.0f seconds: %d of %d wizards standing" % [_clock, standing, _wizards.size()])
 	for i in _wizards.size():
 		var wizard := _wizards[i]
-		var alive := is_instance_valid(wizard) and not wizard.is_dead()
+		var alive := is_instance_valid(wizard) and not wizard.dead
 		var info: Dictionary = _seen[i]
 		var got: int = info["pages"] - 5
 		print("    %-12s %s, read %d pages%s" % [info["kind"], "standing" if alive else "beaten at %.0fs" % _beaten.get(wizard, 0.0), got, ", the first at %.0fs" % _first_page[wizard] if _first_page.has(wizard) else ", none at all"])
@@ -138,7 +138,7 @@ func _finish(standing: int) -> void:
 
 
 ## What a wizard that is against a wall has run into.
-func _hit(wizard: Mob) -> String:
+func _hit(wizard: Wizard) -> String:
 	var out := ""
 	for k in wizard.get_slide_collision_count():
 		var hit := wizard.get_slide_collision(k)

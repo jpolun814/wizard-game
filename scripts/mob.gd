@@ -1,10 +1,10 @@
 class_name Mob
 extends CharacterBody2D
 
-## An enemy. Each one has a role (melee walker, ranged shooter, flyer, or wizard) and a school. The school sets its
+## An enemy. Each one has a role (melee walker, ranged shooter or flyer) and a school. The school sets its
 ## colour and what it is weak or resistant to. Some schools also give their enemies a particular trick.
-## The creatures are LuizMelo's skeleton, goblin, mushroom and flying eye, and the dark wizard is his Evil Wizard
-## (art/mobs, art/chars). Each keeps its own colours with an outline in its school's colour. "scale" draws a
+## The creatures are LuizMelo's skeleton, goblin, mushroom and flying eye (art/mobs). Each keeps its own colours with an
+## outline in its school's colour. (The wizards are not mobs: see Wizard.) "scale" draws a
 ## creature bigger, always at a whole number of pixels so the pixel art stays sharp.
 ## A walker's origin is at its feet, so it stands exactly on the ground; a flyer's is the middle of its body.
 ## Every attack is telegraphed: walkers wind up, shooters charge a glow, flyers hover before they dive.
@@ -56,49 +56,22 @@ const FLY_SPEED := 120.0        # how fast a flyer drifts while it patrols
 const DIVE_SPEED := 340.0       # how fast a flyer dives at you
 const RETREAT_SPEED := 240.0    # how fast it flies away after a dive
 const FROST_TRAIL_INTERVAL := 0.8
-const WIZARD_RULES := preload("res://scripts/player.gd")  # a wizard that is not the player spends and regains stamina by the player's own rules
 const GET_UP := 10.0           # a fainted enemy stands up when its stamina is this high again
+const STAMINA_CAP := 100.0     # the most stamina an enemy has
 const SPAWN_TIME := 0.7         # enemies fade in over a summoning circle and cannot act until it is done
 const PATROL := 0
 const DIVE := 1
 const RETREAT := 2
 const HOVER := 3
-const DRAW_TIME := 0.8          # how long the dark wizard takes to draw a spell
 const CREATURE_ANIMATIONS := {
 	"idle": {"fps": 8.0}, "walk": {"fps": 10.0}, "attack": {"fps": 14.0, "loop": false},
 	"hit": {"fps": 12.0, "loop": false}, "death": {"fps": 8.0, "loop": false},
 }
-## The dark wizard holds its staff's shadow up while it draws, and throws a burst of shadow when the spell goes off.
-const WIZARD_ANIMATIONS := {
-	"idle": {"fps": 8.0}, "walk": {"from": "run", "fps": 12.0}, "jump": {"fps": 8.0, "loop": false},
-	"fall": {"fps": 8.0}, "channel": {"from": "release", "fps": 8.0, "first": 0, "last": 3},
-	"burst": {"from": "cast", "fps": 16.0, "loop": false, "first": 3, "last": 5},
-	"hit": {"fps": 10.0, "loop": false}, "death": {"fps": 8.0, "loop": false},
-}
-## The dark wizard's hooded body, at its drawn size: its staff and the shadow flame on it are not part of the target.
-const WIZARD_RADIUS := 12.0  # the player's own body: a capsule this wide and this tall
-const WIZARD_HEIGHT := 74.0
-
 var kind := "basic"  # set before the mob enters the tree
 var player: Node2D
 var hp := 30
 var max_hp := 30
-var caster: Caster  # only the dark wizard has one: it casts from its own strokes
-var brain: WizardBrain
-var stamina := 100.0      # a wizard spends stamina on spells, and it regenerates like yours: after a second without spending, and never past its health
-var ledger := Ledger.complete()  # the pages a wizard holds: the spells it can cast
-var nav: WorldNav  # the ways about the world, for a wizard that walks it; none in the waiting room
-var _since_spend := 0.0
-var last_spell := ""
-var _bursting := 0.0  # time left of the dark wizard's burst of shadow as a spell goes off
-var _draw_time := 0.0
-var _draw_total := DRAW_TIME
-var _stroke := PackedVector2Array()
-var _stroke_colour := Color.WHITE
-var _on_drawn: Callable
-var _shield_time: float:
-	get: return _status.left(&"shield")
-	set(seconds): _status.set_left(&"shield", seconds)
+var stamina := 100.0      # a Faint takes all of it; it comes back as a wizard's does, and the enemy stands up when there is enough
 var _cooldown := 0.0
 var _since_hit := 0.0  # seconds since this enemy was last hurt; a dummy heals once it has been left alone
 var _slow_time: float:
@@ -153,7 +126,6 @@ var _body_center := Vector2(0, -20)
 var _overlay: Node2D               # draws health bar, ice, shield and charge glows on top of the sprite
 var _material: ShaderMaterial
 @onready var _visual: AnimatedSprite2D = $Visual
-var _bubble: AnimatedSprite2D  # the Barrier round the dark wizard
 const ICE := preload("res://art/props/ice_fill.png")
 
 
@@ -169,17 +141,12 @@ func _ready() -> void:
 		_set_alight()
 	max_hp = data.hp
 	hp = max_hp
-	if data.role == "wizard":
-		stamina = float(max_hp)
 	_overlay = Node2D.new()
 	_overlay.z_index = 10
 	_overlay.draw.connect(_draw_overlay)
 	_overlay.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
 	add_child(_overlay)
-	if data.role == "wizard":
-		_build_wizard()
-	else:
-		_build_creature(data)
+	_build_creature(data)
 	if data.role == "flyer":
 		collision_mask = 0  # flyers pass through the terrain; they reach you from above
 		_fly_goal_x = global_position.x
@@ -230,18 +197,6 @@ func _set_walker_body(size: Vector2) -> void:
 	hitbox.shape = rect
 	_body_size = size
 	_body_center = Vector2(0, -size.y * 0.5)
-	hitbox.position = _body_center
-
-
-## A wizard has the player's body, whatever it looks like: the same height, and a rounded one that goes where the player's does.
-func _set_wizard_body() -> void:
-	var capsule := CapsuleShape2D.new()
-	capsule.radius = WIZARD_RADIUS
-	capsule.height = WIZARD_HEIGHT
-	var hitbox: CollisionShape2D = $CollisionShape2D
-	hitbox.shape = capsule
-	_body_size = Vector2(WIZARD_RADIUS * 2.0, WIZARD_HEIGHT)
-	_body_center = Vector2(0, -WIZARD_HEIGHT * 0.5)
 	hitbox.position = _body_center
 
 
@@ -310,7 +265,7 @@ func _physics_process(delta: float) -> void:
 		_charge = 0.0
 		_since_stamina += delta
 		if _since_stamina >= 1.0:
-			stamina = minf(_stamina_cap(), stamina + WIZARD_RULES.STAMINA_REGEN * delta)
+			stamina = minf(STAMINA_CAP, stamina + Wizard.STAMINA_REGEN * delta)
 		if stamina >= GET_UP:
 			_fainted = false
 			if _visual.sprite_frames.has_animation("idle"):
@@ -324,8 +279,6 @@ func _physics_process(delta: float) -> void:
 	if KINDS[kind].effect == "ninja":
 		_ninja_strike(delta)
 	match KINDS[kind].role:
-		"wizard":
-			_wizard(delta)
 		"flyer":
 			_fly(delta)
 		_:
@@ -652,9 +605,6 @@ func _sees(target: Node2D) -> bool:
 func take_damage(amount: int, school := "", shot := false) -> void:
 	if _dead or _spawn > 0.0:
 		return
-	if shot and _shield_time > 0.0:
-		FloatText.spawn(get_parent(), center() + Vector2(0, -_body_size.y * 0.5), "Blocked", Color(0.8, 0.7, 1.0), 0.8)
-		return
 	var data: MobKind = KINDS[kind]
 	var dealt := amount
 	if school != "" and school == data.resist:
@@ -673,15 +623,11 @@ func take_damage(amount: int, school := "", shot := false) -> void:
 		return
 	hp -= dealt
 	_since_hit = 0.0
-	if data.role == "wizard":
-		stamina = minf(stamina, float(maxi(hp, 0)))  # as with the player, a wound lowers what can be spent
 	if data.effect == "dummy" and hp <= 0:
 		hp = max_hp  # a dummy is never beaten: it stands up again
 	_flash = 1.0
 	var weak := dealt > amount
 	FloatText.spawn(get_parent(), text_at, "%d%s" % [dealt, "!" if weak else ""], Color("#ff9a3a") if weak else Color("#fff0a0"), 1.25 if weak else 1.0)
-	if data.role == "wizard" and brain:
-		brain.on_hurt(dealt)
 	# Sparks take the spell's colour, not the enemy's.
 	var spark: Color = SpellData.SCHOOL_COLORS.get(school, _school_colour())
 	Fx.burst(get_parent(), center(), spark, 8, 120.0, 0.3, true)
@@ -689,7 +635,7 @@ func take_damage(amount: int, school := "", shot := false) -> void:
 		_die()
 	else:
 		Sfx.play("mob_hurt", center())
-		if _visual.sprite_frames.has_animation("hit") and _windup <= 0.0 and _charge <= 0.0 and not is_drawing():
+		if _visual.sprite_frames.has_animation("hit") and _windup <= 0.0 and _charge <= 0.0:
 			_visual.play("hit")
 
 
@@ -724,7 +670,7 @@ func _on_animation_finished() -> void:
 		tween.tween_interval(0.4)
 		tween.tween_property(self, "modulate:a", 0.0, 0.4)
 		tween.tween_callback(queue_free)
-	elif not _dead and _visual.animation in ["hit", "attack", "burst"]:
+	elif not _dead and _visual.animation in ["hit", "attack"]:
 		_visual.play("idle")
 
 
@@ -741,8 +687,6 @@ func faint() -> void:
 	_since_stamina = 0.0
 	_windup = 0.0
 	_charge = 0.0
-	_draw_time = 0.0
-	_stroke = PackedVector2Array()
 	FloatText.spawn(get_parent(), center() + Vector2(0, -_body_size.y * 0.5 - 6.0), "Fainted", Color("#c4162f"), 1.0)
 	Sfx.play("mob_hurt", center())
 
@@ -809,28 +753,6 @@ func pull(force: Vector2, delta: float) -> void:
 	_drift += force * delta
 
 
-## The pull on this body right now, so a wizard steering itself can add it to its own walk.
-func pulled() -> Vector2:
-	return _drift
-
-
-func raise_shield(seconds: float) -> void:
-	if _bubble == null:
-		# The same pixel bubble as the player's Barrier, sized to the body.
-		_bubble = PixelFx.sprite("shield", 10.0)
-		_bubble.scale = Vector2.ONE * maxf(2.0, ceilf(maxf(_body_size.x, _body_size.y) / 40.0))
-		_bubble.position = _body_center
-		_bubble.material = Fx.additive()
-		_bubble.z_index = 9
-		add_child(_bubble)
-	_shield_time = maxf(_shield_time, seconds)
-	Sfx.play("barrier", center())
-
-
-func has_shield() -> bool:
-	return _shield_time > 0.0
-
-
 ## An enemy hits the player. Its effect (knockback, or an explosion) comes after the damage.
 func _attack() -> void:
 	var data: MobKind = KINDS[kind]
@@ -882,9 +804,8 @@ func _process(delta: float) -> void:
 ## flyer's dive), flinching, walking or idling, and faces where it is going. Flyers bob as they hover.
 func _animate(delta: float) -> void:
 	var flying := _flies()
-	var wizard: bool = KINDS[kind].role == "wizard"
 	if player and not _dead and _frozen_time <= 0.0:
-		if flying or wizard or _windup > 0.0 or _charge > 0.0 or absf(velocity.x) < 5.0:
+		if flying or _windup > 0.0 or _charge > 0.0 or absf(velocity.x) < 5.0:
 			facing = signf(player.global_position.x - global_position.x) if player.global_position.x != global_position.x else facing
 		else:
 			facing = signf(velocity.x)
@@ -892,7 +813,6 @@ func _animate(delta: float) -> void:
 	if _lunge > 0.0:
 		lunge = roundf(sin(_lunge * PI) * 8.0) * facing
 		_lunge = maxf(_lunge - delta * 3.0, 0.0)
-	_bursting = maxf(_bursting - delta, 0.0)
 	var shake := Vector2.ZERO
 	if flying and _fly_state == HOVER:
 		shake = Vector2(randi_range(-1, 1), randi_range(-1, 1))
@@ -900,21 +820,12 @@ func _animate(delta: float) -> void:
 	var wanted := "idle"
 	if _fainted and _visual.sprite_frames.has_animation("death"):
 		wanted = "death"
-	elif wizard:
-		if _bursting > 0.0:
-			wanted = "burst"
-		elif is_drawing():
-			wanted = "channel"
-		elif not is_on_floor():
-			wanted = "jump" if velocity.y < 0.0 else "fall"
-		elif moving:
-			wanted = "walk"
 	elif _windup > 0.0 or _charge > 0.0 or (flying and _fly_state == DIVE):
 		wanted = "attack"
 	elif moving and _visual.sprite_frames.has_animation("walk"):
 		wanted = "walk"
 	var busy: bool = _visual.animation == "hit" or (_visual.animation == "attack" and _visual.is_playing())
-	if not _dead and _visual.animation != wanted and not (busy and wanted != "attack" and wanted != "burst"):
+	if not _dead and _visual.animation != wanted and not (busy and wanted != "attack"):
 		_visual.play(wanted)
 	_visual.speed_scale = 0.0 if _frozen_time > 0.0 else 1.0
 	var bob := roundf(sin(_idle_t * 3.0) * 2.0) if flying else 0.0
@@ -948,8 +859,7 @@ func _draw() -> void:
 	draw_colored_polygon(points, Color(0, 0, 0, 0.3 * fade))
 
 
-## Things drawn over the sprite: the shot charging, the ice block, the shield, the health bar (not a wizard's) and the stroke the
-## dark wizard is drawing.
+## Things drawn over the sprite: the shot charging, the ice block and the health bar.
 func _draw_overlay() -> void:
 	if _dead:
 		return
@@ -968,26 +878,12 @@ func _draw_overlay() -> void:
 		# Encased in a block of pixel-art ice, seen through.
 		var box := Rect2((_body_center - _body_size * 0.5 - Vector2(6, 6)).floor(), (_body_size + Vector2(12, 10)).floor())
 		o.draw_texture_rect(ICE, box, true, Color(1, 1, 1, 0.6))
-	if _bubble:
-		_bubble.visible = _shield_time > 0.0
-		_bubble.modulate = Color(0.85, 0.93, 1.0, 0.3 * clampf(_shield_time / 0.4, 0.0, 1.0))
-	if hp < max_hp and KINDS[kind].role != "wizard":  # a rival wizard's health is for the Insight incantation to show
+	if hp < max_hp:
 		var width := 28.0
 		var top := _body_center.y - _body_size.y * 0.5 - 9.0
 		var bar := Rect2(Vector2(-width * 0.5, top), Vector2(width, 4.0))
 		o.draw_rect(bar.grow(1.0), Color(0.05, 0.03, 0.08, 0.85))
 		o.draw_rect(Rect2(bar.position, Vector2(width * clampf(float(hp) / max_hp, 0.0, 1.0), 4.0)), Color("#e84a5f"))
-	if _draw_time > 0.0 and _stroke.size() >= 2:
-		var progress := 1.0 - _draw_time / _draw_total
-		var count := clampi(int(_stroke.size() * progress), 2, _stroke.size())
-		var local := PackedVector2Array()
-		for i in count:
-			local.append(_stroke[i] - global_position)
-		var c := _stroke_colour
-		o.draw_polyline(local, Color(c.r, c.g, c.b, 0.25), 7.0)
-		o.draw_polyline(local, Color(c.r, c.g, c.b, 0.9), 3.0)
-		o.draw_polyline(local, Color(1.0, 1.0, 1.0, 0.9), 1.0)
-		Fx.draw_glow(o, local[local.size() - 1], 8.0, Color(c.r, c.g, c.b, 0.9))
 
 
 ## An ice enemy leaves snow falling behind it for a few seconds: a passing blizzard, with no pile.
@@ -1004,98 +900,6 @@ func _hits_terrain(from: Vector2, to: Vector2) -> bool:
 	var query := PhysicsRayQueryParameters2D.create(from, to)
 	query.collision_mask = 1
 	return not get_world_2d().direct_space_state.intersect_ray(query).is_empty()
-
-
-# --- The dark wizard ------------------------------------------------------------------------------------------
-
-
-## The dark wizard: a hooded figure with a staff wreathed in shadow, the same size as the player. Its hitbox is the
-## hooded body, not the staff.
-func _build_wizard() -> void:
-	_visual.sprite_frames = CharFrames.build("res://art/chars/" + str(KINDS[kind].art), WIZARD_ANIMATIONS)
-	_base_scale = KINDS[kind].scale
-	_visual.offset = Vector2(0, -PixelArt.CHARACTERS[KINDS[kind].art]["size"].y * 0.5)
-	_set_wizard_body()
-	_start_animating()
-	# Dark wisps rising off the robes.
-	var wisps := Fx.trail(Color(0.45, 0.2, 0.6, 0.55), 18, 0.9, 30.0, Vector2(0, -40), "smoke_04", 14.0)
-	wisps.material = null
-	wisps.position = Vector2(0, -10)
-	wisps.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
-	wisps.emission_rect_extents = Vector2(14, 6)
-	add_child(wisps)
-	move_child(wisps, 0)
-	caster = Caster.new()
-	add_child(caster)
-	caster.set_process(false)  # it casts from its own strokes only, never from the mouse
-	caster.ground_check = Callable(get_parent(), "_is_ground_at")
-	caster.cast_resolved.connect(Callable(get_parent(), "_on_wizard_cast").bind(self))
-	brain = WizardBrain.new(self)
-
-
-## Where the dark wizard's mouth would be under its hood, for Fire Breath.
-func mouth() -> Vector2:
-	return global_position + Vector2(6.0 * facing * _base_scale, -_body_size.y * 0.85)
-
-
-## The dark wizard's turn: its brain moves it and decides when to cast.
-func _wizard(delta: float) -> void:
-	_fall(delta)
-	_since_spend += delta
-	if _since_spend >= WIZARD_RULES.REGEN_DELAY:
-		stamina = minf(_stamina_cap(), stamina + WIZARD_RULES.STAMINA_REGEN * delta)
-	if _draw_time > 0.0:
-		_draw_time -= delta
-		if _draw_time <= 0.0:
-			var stroke := _stroke
-			_stroke = PackedVector2Array()
-			_bursting = 0.35
-			_visual.play("burst")
-			_on_drawn.call(stroke)
-	caster.anchor = center()
-	brain.think(delta)
-	velocity.x += _knock_x + _drift.x
-	if _root_time > 0.0:
-		velocity.x = _knock_x
-	move_and_slide()
-	global_position.x = clampf(global_position.x, ArenaGen.left_edge() + 12.0, ArenaGen.right_edge() - 12.0)
-
-
-## What a wizard's stamina can reach: its health, as with the player; any other enemy's stamina tops out at 100.
-func _stamina_cap() -> float:
-	return float(maxi(hp, 0)) if KINDS[kind].role == "wizard" else 100.0
-
-
-## A wizard pays for a spell.
-func spend(cost: float) -> void:
-	stamina -= cost
-	_since_spend = 0.0
-
-
-## Starts drawing a stroke in front of the dark wizard. After DRAW_TIME it calls on_done with the stroke.
-## Being hit hard while drawing breaks the spell (see WizardBrain.on_hurt).
-func start_drawing(points: PackedVector2Array, colour: Color, on_done: Callable, draw_time := DRAW_TIME) -> void:
-	_stroke = points
-	_stroke_colour = colour
-	_on_drawn = on_done
-	_draw_time = draw_time
-	_draw_total = draw_time
-	Sfx.play("wizard_cast", center())
-
-
-func is_drawing() -> bool:
-	return _draw_time > 0.0
-
-
-## Drops the spell being drawn, with a puff of sparks so the player can see they broke it.
-func interrupt_cast() -> void:
-	if _draw_time <= 0.0:
-		return
-	_draw_time = 0.0
-	_stroke = PackedVector2Array()
-	Fx.burst(get_parent(), center() + Vector2(facing * 14.0, -16.0), _stroke_colour, 14, 140.0, 0.4, true)
-	FloatText.spawn(get_parent(), center() + Vector2(0, -44), "Interrupted!", Color("#d9b8ff"), 0.9)
-	Sfx.play("misfire", center())
 
 
 func _burns() -> bool:

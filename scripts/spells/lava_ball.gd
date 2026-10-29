@@ -67,7 +67,7 @@ func _physics_process(delta: float) -> void:
 func _on_body(body: Node2D) -> void:
 	if _spent or not SpellTargets.affects(body):
 		return
-	if body.has_shield():
+	if body.is_in_group("wizards") and body.has_shield():
 		reflect(Vector2.from_angle(randf() * TAU))  # a Barrier sends it off in a random direction
 		return
 	_land(SpellTargets.ground_below(get_world_2d(), global_position), global_position)

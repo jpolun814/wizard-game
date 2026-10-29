@@ -24,7 +24,7 @@ func _begin(origin: Vector2, _aim_angle: float) -> void:
 		var share := 1.0 - 0.5 * gap / RADIUS
 		if body.is_in_group("mobs"):
 			body.knock_back(Vector2(away.x * KNOCK * share, minf(away.y * KNOCK * share, LIFT * share)))  # thrown first: the blow may be its last
-		elif body.is_in_group("player"):
+		else:
 			body.push(Vector2(away.x * KNOCK * share * 0.6, minf(away.y * KNOCK * share * 0.6, LIFT * share)))
 		SpellTargets.hurt(body, DAMAGE, "Blood")
 	for shot in tree.get_nodes_in_group("shots"):

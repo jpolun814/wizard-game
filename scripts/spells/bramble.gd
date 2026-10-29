@@ -71,7 +71,7 @@ func _physics_process(delta: float) -> void:
 			_stride[body] = _stride.get(body, STEP * 0.5) + delta
 			if _stride[body] >= STEP:
 				_stride[body] = 0.0
-				if body.is_in_group("player"):
+				if body.is_in_group("wizards"):
 					body.take_damage(DAMAGE, false)  # every footfall counts: the wizard's pause after a hit would let some through
 				else:
 					SpellTargets.hurt(body, DAMAGE, "Flora")

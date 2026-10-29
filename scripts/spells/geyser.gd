@@ -8,7 +8,7 @@ extends Node2D
 const WARNING := 0.7
 const LIFE := 1.8
 const WIDTH := 46.0
-const PLAYER_LAUNCH := 1000.0
+const WIZARD_LAUNCH := 1000.0
 const MOB_LAUNCH := 820.0
 const COLUMN_HEIGHT := 190.0
 const RISE := 0.2   # how fast the column shoots up
@@ -141,7 +141,7 @@ func _erupt() -> void:
 			if body.is_in_group("mobs"):
 				body.knock_back(Vector2(0.0, -MOB_LAUNCH))
 			else:
-				body.push(Vector2(0.0, -PLAYER_LAUNCH))
+				body.push(Vector2(0.0, -WIZARD_LAUNCH))
 
 
 ## True for a body whose feet are on the geyser's spot, on the ground (a flyer overhead is not).

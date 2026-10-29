@@ -9,6 +9,7 @@ const RIFT_WEAR := 50.0  # what a Rift takes off the most stamina you can have
 const RIFT_LEAST := 20.0  # the least stamina a Rift can be cast with, and the least it leaves as the most
 const PERFECT_CAST := 0.95  # accuracy a cast needs for the flourish
 const MOB_SCENE := preload("res://scenes/mob.tscn")
+const WIZARD_SCENE := preload("res://scenes/wizard.tscn")
 const TILE := ArenaGen.TILE
 const ICICLE_REACH := 420.0  # a ceiling this far above a V can hang its icicle
 const ICICLE_MAX := 240.0    # the longest an icicle grows
@@ -20,7 +21,7 @@ const STEP_DAMAGE := 8
 const INSIGHT_REACH := 40.0  # how close the pointer must be to an enemy for Insight to show it
 const FLYER_HEIGHT := 150.0  # flyers arrive this far above the ground
 
-@onready var player: CharacterBody2D = $Player
+@onready var player: Wizard = $Player
 
 var caster: Caster
 var ritual: RitualInput
@@ -143,12 +144,24 @@ func _begin_encounter(_camera: Camera2D) -> void:
 
 
 func _add_mob(kind: String, feet: Vector2) -> Node2D:
+	if Mob.KINDS[kind].role == "wizard":
+		return _add_wizard(kind, feet)
 	var mob := MOB_SCENE.instantiate()
 	mob.kind = kind
 	mob.player = player
 	mob.position = feet - Vector2(0, FLYER_HEIGHT if Mob.KINDS[kind].role == "flyer" else 0.0)
 	add_child(mob)
 	return mob
+
+
+## A wizard that a brain plays, in one of the looks in res://mobs, standing at a point on the ground.
+func _add_wizard(look: String, feet: Vector2) -> Wizard:
+	var wizard: Wizard = WIZARD_SCENE.instantiate()
+	wizard.look = look
+	wizard.brain = WizardBrain.new(wizard)
+	wizard.position = feet
+	add_child(wizard)
+	return wizard
 
 
 func _on_player_died() -> void:
@@ -237,37 +250,53 @@ func _visible_hud_rects() -> Array[Rect2]:
 	return rects
 
 
+## The player's stroke has been read.
 func _on_cast_resolved(spell: String, targeting: String, origin: Vector2, aim: float, info: Dictionary) -> void:
-	player.play_cast_release()
+	cast_by(spell, targeting, origin, aim, info, player)
 	if not player.ledger.knows_spell(spell):
 		_misfire_puff()  # a spell whose page has not been found is a shape that matches nothing
+
+
+## A wizard's stroke has been read, the player's or a brain's: the same rules for both. It pays for the spell first. What tells a
+## person that a cast came to nothing is said at the pointer; a rival's wizard has nobody to tell.
+func cast_by(spell: String, targeting: String, origin: Vector2, aim: float, info: Dictionary, wizard: Wizard) -> void:
+	if not is_instance_valid(wizard) or wizard.dead:
+		return
+	var person := wizard == player
+	if person:
+		wizard.play_cast_release()
+	if not wizard.ledger.knows_spell(spell):
 		return
 	if spell == "Icicles" and _icicle_spots(info).is_empty():
-		FloatText.spawn(self, get_global_mouse_position() + Vector2(0, -22), "Aim under a ceiling", Color("#dff6ff"), 0.9)
-		Sfx.play("misfire", player.center(), -6.0)
+		if person:
+			FloatText.spawn(self, get_global_mouse_position() + Vector2(0, -22), "Aim under a ceiling", Color("#dff6ff"), 0.9)
+			Sfx.play("misfire", wizard.center(), -6.0)
 		return
-	if player.fainted:
+	if wizard.fainted:
 		return
-	var label_at := get_global_mouse_position() + Vector2(0, -22)
+	var label_at := get_global_mouse_position() + Vector2(0, -22) if person else wizard.center() + Vector2(0, -60)
 	if spell == "Faint" and _blood_target(spell, origin) == null:
-		FloatText.spawn(self, label_at, "Aim at someone", Color("#ff9a9a"), 0.9)  # nothing is paid for a cut that finds no one
+		if person:
+			FloatText.spawn(self, label_at, "Aim at someone", Color("#ff9a9a"), 0.9)  # nothing is paid for a cut that finds no one
 		return
 	var spell_data: Spell = SpellData.SPELLS[spell]
 	var cost := spell_data.cost_for(info)
 	var colour := spell_data.glow()
 	if spell_data.pays_max():
-		if not player.pay_max(cost):
+		if not wizard.pay_max(cost):
 			FloatText.spawn(self, label_at, "Too weak", Color("#ff9a9a"), 0.9)  # blood is never spent to the last drop
-			Sfx.play("misfire", player.center(), -6.0)
+			Sfx.play("misfire", wizard.center(), -6.0)
 			return
-	elif not player.spend(cost):
+	elif not wizard.spend(cost):
 		FloatText.spawn(self, label_at, "Too tired", Color("#ffb86b"), 0.9)
-		Sfx.play("misfire", player.center(), -6.0)
+		Sfx.play("misfire", wizard.center(), -6.0)
 		return
-	FloatText.spawn(self, label_at, spell, colour.lightened(0.25), 0.9)
-	if info.get("accuracy", 0.0) >= PERFECT_CAST:
-		_flourish(colour)
-	spawn_spell(spell, targeting, origin, aim, info, player)
+	wizard.last_spell = spell
+	if person:
+		FloatText.spawn(self, label_at, spell, colour.lightened(0.25), 0.9)
+		if info.get("accuracy", 0.0) >= PERFECT_CAST:
+			_flourish(colour)
+	spawn_spell(spell, targeting, origin, aim, info, wizard)
 
 
 ## A perfect cast: a ring of the school's light opens round the wizard, sparks fly off it and a gold "Perfect" rises.
@@ -296,9 +325,8 @@ func _earth_texture() -> Texture2D:
 	return _ground.earth_texture
 
 
-## Makes a spell take effect in the world. The player's spells and the dark wizard's both come through here.
-## caster is whoever cast it: the player or a dark wizard.
-func spawn_spell(spell: String, targeting: String, origin: Vector2, aim: float, info: Dictionary, caster_node: Node2D) -> void:
+## Makes a spell take effect in the world. Every wizard's spells come through here, whoever plays them.
+func spawn_spell(spell: String, targeting: String, origin: Vector2, aim: float, info: Dictionary, caster_node: Wizard) -> void:
 	var from: Vector2 = caster_node.center()
 	var school: String = SpellData.SPELLS[spell].school if SpellData.SPELLS.has(spell) else ""
 	if (school == "Water" or school == "Air") and spell != "Barrier":
@@ -309,7 +337,9 @@ func spawn_spell(spell: String, targeting: String, origin: Vector2, aim: float, 
 			Flare.snuff_near(get_tree(), origin, 30.0)  # only where the spell lands
 	match spell:
 		"Earthquake":
-			add_child(Earthquake.new())
+			var quake := Earthquake.new()
+			quake.caster = caster_node
+			add_child(quake)
 			return
 		"Barrier":
 			# Barrier wraps the caster rather than appearing somewhere in the world.
@@ -376,34 +406,29 @@ func spawn_spell(spell: String, targeting: String, origin: Vector2, aim: float, 
 			add_child(beam)
 			return
 		"Tide Surf":
-			if caster_node.is_in_group("player"):
-				var surf := TideSurf.new()
-				surf.caster_node = caster_node
-				surf.direction = 1.0 if cos(aim) >= 0.0 else -1.0
-				add_child(surf)
+			var surf := TideSurf.new()
+			surf.caster_node = caster_node
+			surf.direction = 1.0 if cos(aim) >= 0.0 else -1.0
+			add_child(surf)
 			return
 		"Obsidian Armor":
-			if caster_node.has_method("raise_obsidian"):
-				caster_node.raise_obsidian(20.0)
-				Fx.burst(self, caster_node.center(), Color(0.45, 0.4, 0.6), 16, 120.0, 0.5, true)
-				Sfx.play("glass", caster_node.center())
+			caster_node.raise_obsidian(20.0)
+			Fx.burst(self, caster_node.center(), Color(0.45, 0.4, 0.6), 16, 120.0, 0.5, true)
+			Sfx.play("glass", caster_node.center())
 			return
 		"Adrenaline":
-			if caster_node.has_method("grant_adrenaline"):
-				caster_node.grant_adrenaline(10.0)
-				Fx.burst(self, caster_node.center(), SpellData.SCHOOL_COLORS["Blood"], 14, 150.0, 0.5, true)
-				Sfx.play("heartbeat", caster_node.center())
+			caster_node.grant_adrenaline(10.0)
+			Fx.burst(self, caster_node.center(), SpellData.SCHOOL_COLORS["Blood"], 14, 150.0, 0.5, true)
+			Sfx.play("heartbeat", caster_node.center())
 			return
 		"Crimson Veil":
-			if caster_node.has_method("gain_temp_stamina"):
-				caster_node.veil = 2
-				Fx.burst(self, caster_node.center(), SpellData.SCHOOL_COLORS["Blood"], 16, 120.0, 0.5, true)
-				Sfx.play("blood_cast", caster_node.center(), -4.0)
+			caster_node.veil = 2
+			Fx.burst(self, caster_node.center(), SpellData.SCHOOL_COLORS["Blood"], 16, 120.0, 0.5, true)
+			Sfx.play("blood_cast", caster_node.center(), -4.0)
 			return
 		"Offering":
-			if caster_node.has_method("gain_temp_stamina"):
-				caster_node.gain_temp_stamina(OFFERING_GAIN)
-				_offer(caster_node)
+			caster_node.gain_temp_stamina(OFFERING_GAIN)
+			_offer(caster_node)
 			return
 		"Faint":
 			var down := _blood_target(spell, origin)
@@ -507,7 +532,7 @@ func _out_of_rock(start: Vector2, end: Vector2) -> Vector2:
 
 ## Shadow Step: the caster slips along the stroke, stopping short of walls. Whoever is in the way takes damage, the
 ## caster aside.
-func _shadow_step(caster_node: Node2D, aim: float, length: float) -> void:
+func _shadow_step(caster_node: Wizard, aim: float, length: float) -> void:
 	var dir := Vector2.from_angle(aim)
 	var start: Vector2 = caster_node.global_position
 	var end := start + dir * minf(length, SpellData.STEP_MAX)
@@ -528,12 +553,10 @@ func _shadow_step(caster_node: Node2D, aim: float, length: float) -> void:
 	var colour: Color = SpellData.SCHOOL_COLORS["Shadow"]
 	Fx.pop(self, start + Vector2(0, -24), "twirl_02", colour, 60.0, 0.3, 0.3, 8.0)
 	Fx.burst(self, start + Vector2(0, -24), colour, 12, 120.0, 0.25, true)
-	if caster_node.has_method("free_from_ground"):
-		caster_node.free_from_ground()  # a blink moves you out of the ground too
+	caster_node.free_from_ground()  # a blink moves you out of the ground too
 	caster_node.global_position = end
 	caster_node.reset_physics_interpolation()
-	if caster_node is CharacterBody2D:
-		caster_node.velocity = Vector2.ZERO
+	caster_node.velocity = Vector2.ZERO
 	Fx.pop(self, end + Vector2(0, -24), "twirl_02", colour, 24.0, 0.3, 2.4, -8.0)
 	Fx.burst(self, end + Vector2(0, -24), colour, 12, 120.0, 0.25, true)
 	Sfx.play("gravity", end, -2.0)  # a low whoosh like the other Shadow spells
@@ -636,15 +659,6 @@ func _place_shapes(spell: String, info: Dictionary) -> void:
 			add_child(prison)
 
 
-## A dark wizard's spell resolves here, placed from the wizard rather than the player. It pays for it first.
-func _on_wizard_cast(spell: String, targeting: String, origin: Vector2, aim: float, info: Dictionary, wizard: Node2D) -> void:
-	if not is_instance_valid(wizard) or wizard.is_dead():
-		return
-	wizard.spend(SpellData.SPELLS[spell].cost_for(info))
-	wizard.last_spell = spell
-	spawn_spell(spell, targeting, origin, aim, info, wizard)
-
-
 func _on_misfire() -> void:
 	player.drain(MISFIRE_COST)
 	_misfire_puff()
@@ -697,15 +711,8 @@ func _on_ritual_finished(id: String, acc: float, unfinished: bool) -> void:
 
 	Sfx.play("ritual_ok", player.center())
 	Fx.pop(self, player.global_position + Vector2(0, -2), "magic_02", Color(1.0, 0.9, 0.6), 80.0, 0.8, 1.3, 2.0)
+	_grant_chant(player, id)
 	match id:
-		"boundless":
-			player.grant_unlimited(20.0)
-		"double_jump":
-			player.grant_air_jump(20.0)
-		"haste":
-			player.grant_haste(20.0)
-		"deep_breath":
-			player.grant_deep_breath(player.DEEP_BREATH)
 		"mark":
 			_mark_here()
 		"recall":
@@ -718,6 +725,30 @@ func _on_ritual_finished(id: String, acc: float, unfinished: bool) -> void:
 			add_child(fire)
 			fire.power = power
 			fire.global_position = _bonfire_spot()  # beside the wizard, not under them
+
+
+## The chants that give their speaker something for a while.
+func _grant_chant(speaker: Wizard, id: String) -> void:
+	match id:
+		"boundless":
+			speaker.grant_unlimited(20.0)
+		"double_jump":
+			speaker.grant_air_jump(20.0)
+		"haste":
+			speaker.grant_haste(20.0)
+		"deep_breath":
+			speaker.grant_deep_breath(speaker.DEEP_BREATH)
+
+
+## A brain's wizard says one of the chants that give a gift (the others make marks and portals, which have only the player's own).
+## It says it perfectly. False when it does not know the chant, cannot speak or is under water.
+func chant_by(speaker: Wizard, id: String) -> bool:
+	if not is_instance_valid(speaker) or speaker.dead or not speaker.ledger.knows_chant(id) or speaker.is_muted() or speaker.underwater():
+		return false
+	Sfx.play("ritual_ok", speaker.center())
+	Fx.pop(self, speaker.global_position + Vector2(0, -2), "magic_02", Color(1.0, 0.9, 0.6), 80.0, 0.8, 1.3, 2.0)
+	_grant_chant(speaker, id)
+	return true
 
 
 ## Where a bonfire is made: on the ground 80 px in front of the wizard, or behind them when there is a drop or a wall there.
@@ -830,25 +861,35 @@ func _is_ground_at(point: Vector2) -> bool:
 	return false
 
 
-## While Insight is on, hovering an enemy shows its health, weaknesses and resistances in a small tooltip.
+## While Insight is on, hovering an enemy or a wizard shows its health, weaknesses and resistances in a small tooltip.
 func _update_insight() -> void:
-	var mob: Node2D = _mob_under_pointer() if _revealed["insight"] else null
-	_insight_tip.visible = mob != null
-	if mob == null:
+	var body: Node2D = _body_under_pointer() if _revealed["insight"] else null
+	_insight_tip.visible = body != null
+	if body == null:
 		return
-	var data: MobKind = Mob.KINDS[mob.kind]
-	if data.role == "wizard":  # a rival wizard's stamina is shown nowhere else, and the spells it has pages for, each in the colour of its school
-		_insight_text.text = "[b]%s[/b]   Stamina %d / %d\n[i]%s[/i]" % [data.display_name, mob.stamina, mob.hp, data.desc]
+	if body is Wizard:  # a rival wizard's stamina is shown nowhere else, and the spells it has pages for, each in the colour of its school
+		var wizard: Wizard = body
+		var data: MobKind = Mob.KINDS[wizard.look]
+		_insight_text.text = "[b]%s[/b]   Stamina %d / %d
+[i]%s[/i]" % [data.display_name, wizard.stamina, wizard.max_stamina, data.desc]
 		var lines := ""
 		for spell_name: String in SpellData.SPELLS:
-			if mob.ledger.knows_spell(spell_name):
+			if wizard.ledger.knows_spell(spell_name):
 				var colour: Color = SpellData.SCHOOL_COLORS[SpellData.SPELLS[spell_name].school]
-				lines += "\n[color=#%s]%s[/color]" % [colour.lightened(0.15).to_html(false), spell_name]
-		_insight_text.text += "\n\nKnows:" + lines
+				lines += "
+[color=#%s]%s[/color]" % [colour.lightened(0.15).to_html(false), spell_name]
+		_insight_text.text += "
+
+Knows:" + lines
 	else:
+		var mob: Mob = body
+		var data: MobKind = Mob.KINDS[mob.kind]
 		var weak := _school_bb(data.weak) if data.weak != "" else "nothing"
 		var resist := _school_bb(data.resist) if data.resist != "" else "nothing"
-		_insight_text.text = "[b]%s[/b]   Stamina %d / %d\nWeak to %s\nResists %s\n[i]%s[/i]" % [
+		_insight_text.text = "[b]%s[/b]   Stamina %d / %d
+Weak to %s
+Resists %s
+[i]%s[/i]" % [
 			data.display_name, mob.hp, mob.max_hp,
 			weak, resist, data.desc,
 		]
@@ -857,16 +898,18 @@ func _update_insight() -> void:
 	_insight_tip.position = (get_viewport().get_mouse_position() + Vector2(18, 18)).min(screen - tip_size - Vector2(8, 8)).max(Vector2(8, 8))  # kept on the screen, even with a long list
 
 
-## The enemy closest to the pointer, if it is within reach.
-func _mob_under_pointer() -> Node2D:
+## The enemy or the other wizard closest to the pointer, if it is within reach.
+func _body_under_pointer() -> Node2D:
 	var pointer := get_global_mouse_position()
 	var best: Node2D = null
 	var best_distance := INSIGHT_REACH
-	for mob in get_tree().get_nodes_in_group("mobs"):
-		var distance: float = mob.center().distance_to(pointer)
+	for body: Node2D in get_tree().get_nodes_in_group("mobs") + get_tree().get_nodes_in_group("wizards"):
+		if body == player:
+			continue
+		var distance: float = body.center().distance_to(pointer)
 		if distance < best_distance:
 			best_distance = distance
-			best = mob
+			best = body
 	return best
 
 
@@ -892,3 +935,6 @@ func summon_far_side(kind: String) -> void:
 func clear_enemies() -> void:
 	for mob in get_tree().get_nodes_in_group("mobs"):
 		mob.take_damage(9999)
+	for wizard: Wizard in get_tree().get_nodes_in_group("wizards"):
+		if wizard != player:
+			wizard.take_damage(9999)

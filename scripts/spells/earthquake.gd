@@ -12,6 +12,7 @@ const AIM_DEGREES := 6.0
 const QUAKE_REACH := 500.0  # how near the wizard a wall or a plug of ice has to be to be shaken
 const QUAKE_BLOW := 12.0     # what each beat takes off it
 
+var caster: Wizard  # who cast it: the wall or the plug of ice near them is the one shaken
 var _age := 0.0
 var _beat := 0.0
 var _side := 1.0
@@ -38,12 +39,12 @@ func _physics_process(delta: float) -> void:
 		for mob in get_tree().get_nodes_in_group("mobs"):
 			if not mob.is_dead() and mob.KINDS[mob.kind].role != "flyer":
 				mob.knock_back(Vector2(_side * KNOCK, 0.0))
-		var player := get_tree().get_first_node_in_group("player")
-		if player != null:  # a quake brings down the wall or the plug of ice near the wizard
+		if is_instance_valid(caster):  # a quake brings down the wall or the plug of ice near the wizard who made it
 			for thing in get_tree().get_nodes_in_group("breakables"):
 				if thing is IcePlug or thing is RockWall:
-					thing.shake(player.global_position, QUAKE_REACH, QUAKE_BLOW)
-		if player and not player.dead and player.is_on_floor():
-			player.push(Vector2(_side * KNOCK, 0.0))
+					thing.shake(caster.global_position, QUAKE_REACH, QUAKE_BLOW)
+		for wizard: Wizard in get_tree().get_nodes_in_group("wizards"):
+			if not wizard.dead and wizard.is_on_floor():
+				wizard.push(Vector2(_side * KNOCK, 0.0))
 	if _age >= SECONDS:
 		queue_free()

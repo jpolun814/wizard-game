@@ -17,7 +17,7 @@ const BODY_SCALE := 1.6
 const BODY_TILE := 48.0 * BODY_SCALE
 const FOAM := Color(0.92, 0.98, 1.0, 0.9)
 
-var caster_node: Node2D  # set by the arena before it enters the tree
+var caster_node: Wizard  # set by the arena before it enters the tree
 var direction := 1.0
 var _age := 0.0
 var _frame_time := 0.0

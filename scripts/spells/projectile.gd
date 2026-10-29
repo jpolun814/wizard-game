@@ -93,10 +93,12 @@ func _make_trail() -> CPUParticles2D:
 func _on_hit(body: Node2D) -> void:
 	if _spent or (body == caster and not _clear):
 		return  # the one who cast it is safe from it until it has flown clear of them
-	if (body.is_in_group("player") or body.is_in_group("mobs")) and body.has_shield():
+	if body.is_in_group("wizards") and body.has_shield():
 		reflect(Vector2.from_angle(randf() * TAU))  # a Barrier sends it off in a random direction
 		return
-	if body.is_in_group("player"):
+	if body.is_in_group("wizards"):
+		if body.dead:
+			return
 		_spent = true
 		body.take_damage(damage(), true, true)
 		if spell == "Frostbolt":

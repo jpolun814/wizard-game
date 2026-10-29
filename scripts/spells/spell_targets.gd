@@ -5,25 +5,25 @@ extends RefCounted
 ## allies included. The few shots that pass their caster by are handled by the shot itself (see Projectile).
 
 
-## True when a spell can hurt the body: the player, or an enemy still standing.
+## True when a spell can hurt the body: a wizard, or an enemy, still standing.
 static func affects(body: Node) -> bool:
 	if body == null or not is_instance_valid(body):
 		return false
-	if body.is_in_group("player"):
-		return true
+	if body.is_in_group("wizards"):
+		return not body.dead
 	return body.is_in_group("mobs") and not body.is_dead()
 
 
-## Hurts the body. Enemies take school damage (weak, resisted); the player takes it plain. A shot's hurt (shot true)
-## is stopped by the player's Barrier, as every shot is.
+## Hurts the body. Enemies take school damage (weak, resisted); a wizard, whoever plays it, takes it plain. A shot's hurt
+## (shot true) is stopped by a wizard's Barrier, as every shot is.
 static func hurt(body: Node, amount: int, school: String, shot := false, lava := false) -> void:
 	if not affects(body):
 		return
 	if lava and body.has_method("lava_proof") and body.lava_proof():
 		return  # black glass: the lava runs off it
-	if body.is_in_group("player"):
+	if body.is_in_group("wizards"):
 		if school in ["Air", "Earth"] and body.is_frozen():
-			amount = roundi(amount * 1.5)  # a frozen player is shattered out of the ice, as a frozen enemy is
+			amount = roundi(amount * 1.5)  # a frozen wizard is shattered out of the ice, as a frozen enemy is
 			body.thaw()
 			Shatter.spawn(body.get_parent(), body.center(), Color("#cdeeff"))
 			Sfx.play("ice_shatter", body.center())
@@ -32,25 +32,20 @@ static func hurt(body: Node, amount: int, school: String, shot := false, lava :=
 		body.take_damage(amount, school, shot)
 
 
-## Every body a spell can reach: every enemy, and the player while alive.
+## Every body a spell can reach: every enemy, and every wizard while alive.
 static func all(tree: SceneTree) -> Array:
 	var out := []
 	out.append_array(tree.get_nodes_in_group("mobs"))
-	var player := tree.get_first_node_in_group("player")
-	if player and not player.dead:
-		out.append(player)
+	out.append_array(wizards(tree))
 	return out
 
 
 ## The wizards still standing: the player, and every other wizard that is not beaten.
 static func wizards(tree: SceneTree) -> Array:
 	var out := []
-	var player := tree.get_first_node_in_group("player")
-	if player and not player.dead:
-		out.append(player)
-	for mob in tree.get_nodes_in_group("mobs"):
-		if not mob.is_dead() and Mob.KINDS[mob.kind].role == "wizard":
-			out.append(mob)
+	for wizard: Wizard in tree.get_nodes_in_group("wizards"):
+		if not wizard.dead:
+			out.append(wizard)
 	return out
 
 

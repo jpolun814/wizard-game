@@ -17,37 +17,36 @@ func _ready() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 	var feet: Vector2 = world.player.global_position  # the open ground at the start
-	var rival: Mob = null
-	for mob: Mob in get_tree().get_nodes_in_group("mobs").duplicate():
-		if Mob.KINDS[mob.kind].role == "wizard":
-			rival = mob
-		else:
-			mob.queue_free()
-	for mob: Mob in get_tree().get_nodes_in_group("mobs"):
-		if mob != rival:
-			mob.set_physics_process(false)
-			mob.global_position = Vector2(-9000.0, -9000.0)
-	world.player.remove_from_group("player")  # the sentinel has only the rival to go for
-	world.player.global_position = Vector2(-9000.0, -9000.0)
+	var rival: Wizard = null
+	for mob in get_tree().get_nodes_in_group("mobs").duplicate():
+		mob.queue_free()
+	for found: Wizard in get_tree().get_nodes_in_group("wizards"):
+		if found != world.player and rival == null:
+			rival = found
+	for found: Wizard in get_tree().get_nodes_in_group("wizards"):
+		if found != rival:
+			found.set_physics_process(false)
+			found.global_position = Vector2(-9000.0, -9000.0)  # the sentinel has only the rival to go for
+			found.remove_from_group("wizards")
 	rival.global_position = feet
 	rival.velocity = Vector2.ZERO
 	var post := Sentinel.new()
 	world.add_child(post)
 	post.global_position = feet + Vector2(-1500.0, 0.0)
-	var before := rival.hp
+	var before := rival.max_stamina
 	await _hold(rival, feet)
-	_verdict(rival.hp == before, "a rival out of the sentinel's range is not hurt (%d of %d hp left)" % [rival.hp, before])
+	_verdict(rival.max_stamina == before, "a rival out of the sentinel's range is not hurt (%d of %d left)" % [rival.max_stamina, before])
 	post.global_position = feet + Vector2(-250.0, 0.0)
 	await _hold(rival, feet)
-	_verdict(rival.hp < before, "a rival in range is shot (%d of %d hp left)" % [rival.hp, before])
+	_verdict(rival.max_stamina < before, "a rival in range is shot (%d of %d left)" % [rival.max_stamina, before])
 	print("sentinels shoot any wizard" if _failures == 0 else "%d FAILED" % _failures)
 	get_tree().quit(1 if _failures > 0 else 0)
 
 
 ## Keeps the rival standing where it is for four seconds.
-func _hold(rival: Mob, at: Vector2) -> void:
+func _hold(rival: Wizard, at: Vector2) -> void:
 	for i in 240:
-		if rival.is_dead():
+		if rival.dead:
 			return
 		rival.global_position = at
 		await get_tree().physics_frame

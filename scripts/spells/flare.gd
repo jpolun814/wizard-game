@@ -8,7 +8,7 @@ const LIGHT_RADIUS := 380.0
 const FOLLOW := 16.0  # how quickly it catches up with the caster: quick enough to keep in front at a run
 const GRAB := 40.0  # how near a click or a gust has to be to reach it
 
-var caster_node: Node2D  # set by the arena before the flare enters the tree
+var caster_node: Wizard  # set by the arena before the flare enters the tree
 var _age := 0.0
 var _flame: AnimatedSprite2D
 
@@ -43,7 +43,7 @@ func _rest_spot() -> Vector2:
 	if not is_instance_valid(caster_node):
 		return global_position
 	var bob := sin(_age * 3.0) * 4.0
-	var lead: float = caster_node.velocity.x * 0.12 if "velocity" in caster_node else 0.0  # a little ahead of a runner, so it is not left behind
+	var lead: float = caster_node.velocity.x * 0.12  # a little ahead of a runner, so it is not left behind
 	return SpellTargets.center_of(caster_node) + Vector2(34.0 * caster_node.facing + lead, -30.0 + bob)
 
 
@@ -51,7 +51,7 @@ func _physics_process(delta: float) -> void:
 	_age += delta
 	global_position = global_position.lerp(_rest_spot(), clampf(FOLLOW * delta, 0.0, 1.0))
 	queue_redraw()
-	if (is_instance_valid(caster_node) and "dead" in caster_node and caster_node.dead):
+	if (is_instance_valid(caster_node) and caster_node.dead):
 		queue_free()
 	for pond: Pond in get_tree().get_nodes_in_group("ponds"):
 		if not pond.lava and Rect2(pond.global_position, Vector2(pond.width, pond.depth)).has_point(global_position):

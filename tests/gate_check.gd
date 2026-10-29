@@ -34,13 +34,13 @@ func _ready() -> void:
 	world.player.take_damage(100000)  # the player stands down
 	for page in tree.get_nodes_in_group("pages"):
 		page.queue_free()
-	var wizard: Mob = null
-	for mob in tree.get_nodes_in_group("mobs"):
-		if mob.kind == "dark_wizard":
-			wizard = mob
+	var wizard: Wizard = null
+	for found: Wizard in tree.get_nodes_in_group("wizards"):
+		if found.look == "dark_wizard":
+			wizard = found
 	wizard.ledger = Ledger.of(spells)
-	for mob in tree.get_nodes_in_group("mobs"):
-		if mob != wizard:
+	for mob in tree.get_nodes_in_group("mobs") + tree.get_nodes_in_group("wizards"):
+		if mob != wizard and mob != world.player:
 			mob.set_physics_process(false)  # the others stand still, far off (the wizard does nothing with no one else in play)
 			mob.global_position = Vector2(-9000.0, -9000.0)
 	var gates := world.closed_gates()
@@ -55,7 +55,7 @@ func _ready() -> void:
 	var version := world.nav.version
 	var time := 0.0
 	var done := {}
-	while time < SECONDS and done.size() < wanted.size() and not wizard.is_dead():
+	while time < SECONDS and done.size() < wanted.size() and not wizard.dead:
 		await tree.physics_frame
 		time += 1.0 / 60.0
 		wizard.stamina = maxf(wizard.stamina, 100.0)  # the cost of a spell is not what is tried here
@@ -73,14 +73,14 @@ func _ready() -> void:
 			print("NOTE  the %s gate at %s cannot be got to on foot (it lies behind another gate)" % [gate["kind"], str(gate["outside"])])
 			continue
 		_verdict(false, "the %s gate at %s is not cleared in %.0f s" % [gate["kind"], str(gate["outside"]), SECONDS])
-		print("   the wizard: %s, at tile %s, stamina %.0f, dead %s" % [(wizard.brain as WizardBrain).status(), str(_tile_of(wizard)), wizard.stamina, wizard.is_dead()])
+		print("   the wizard: %s, at tile %s, stamina %.0f, dead %s" % [(wizard.brain as WizardBrain).status(), str(_tile_of(wizard)), wizard.stamina, wizard.dead])
 	_verdict(wanted.is_empty() or world.nav.version > version, "the ways are built again after a gate goes")
-	_verdict(not wizard.is_dead(), "the wizard lived")
+	_verdict(not wizard.dead, "the wizard lived")
 	print("gates are cleared" if _failures == 0 else "%d FAILED" % _failures)
 	tree.quit(1 if _failures > 0 else 0)
 
 
-func _tile_of(wizard: Mob) -> Vector2i:
+func _tile_of(wizard: Wizard) -> Vector2i:
 	return Vector2i(floori(wizard.global_position.x / 32.0), floori((wizard.global_position.y - 1.0) / 32.0))
 
 

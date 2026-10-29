@@ -9,7 +9,6 @@ signal finished  # the scene is over, and the next one is about to load
 
 const LOADING := "res://scenes/loading.tscn"
 const PAGE := preload("res://art/props/page.png")
-const PLAYER_FRAMES := preload("res://scripts/player.gd")
 const FLOOR_Y := float(ArenaGen.GROUND_Y)
 const PILE_X := -150.0
 const PORTAL_X := 250.0
@@ -147,13 +146,12 @@ func _build_wizards() -> void:
 		var sprite := AnimatedSprite2D.new()
 		var art: String = entry["art"]
 		var player := art.begins_with("wizard")
-		sprite.sprite_frames = CharFrames.build("res://art/chars/" + art, PLAYER_FRAMES.ANIMATIONS if player else Mob.WIZARD_ANIMATIONS)
+		sprite.sprite_frames = CharFrames.build("res://art/chars/" + art, Wizard.ANIMATIONS if player else Wizard.LOOK_ANIMATIONS)
 		var look: String = "wizard" if player else art
 		sprite.offset = Vector2(0.0, -PixelArt.CHARACTERS[look]["size"].y * 0.5)
 		sprite.scale = Vector2.ONE * (1.0 if player else float(Mob.KINDS[art].scale))
 		sprite.flip_h = entry["from"] > PILE_X
 		sprite.play("idle")
-		sprite.set_meta("player", player)
 		body.add_child(sprite)
 		add_child(body)
 		_wizards.append(body)
@@ -230,21 +228,10 @@ func _fade(to: float, seconds: float) -> void:
 	create_tween().tween_property(_black, "color:a", to, seconds)
 
 
-## A wizard's frames, by what it is doing: the player's wizard and the others name some of their animations differently.
-func _anim(wizard: Node2D, what: String) -> String:
-	var player: bool = wizard.get_child(0).get_meta("player")
-	match what:
-		"run":
-			return "run" if player else "walk"
-		"grab":
-			return "release" if player else "burst"
-	return what
-
-
 func _play(wizard: Node2D, what: String, facing: float) -> void:
 	var sprite: AnimatedSprite2D = wizard.get_child(0)
 	sprite.flip_h = facing < 0.0
-	sprite.play(_anim(wizard, what))
+	sprite.play("release" if what == "grab" else what)  # (grabbing is the thrust of the staff)
 
 
 ## Runs a wizard to a spot on the floor at a speed, then stands it facing a way.

@@ -58,7 +58,7 @@ func _physics_process(_delta: float) -> void:
 ## A walker or the player it bumps takes damage in proportion to how fast it was moving, your own boulder included. The first time it touches the
 ## ground, it hurts whoever is under it.
 func _on_contact(body: Node) -> void:
-	if body.is_in_group("mobs") or body.is_in_group("player"):
+	if body.is_in_group("mobs") or body.is_in_group("wizards"):
 		var now := Time.get_ticks_msec()
 		if _speed < 120.0 or now - int(_last_bump.get(body, -10000)) < 600:
 			return

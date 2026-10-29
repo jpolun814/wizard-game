@@ -144,10 +144,10 @@ func _crush() -> void:
 		if local.y <= 20.0 and local.y >= -HEIGHT and absf(local.x) <= WIDTH:
 			_crushed[body] = true
 			SpellTargets.hurt(body, CRUSH_DAMAGE, "Flora")
-			if body.is_in_group("player"):
-				body.push(Vector2(_lean * 360.0, 0.0))
-			else:
+			if body.is_in_group("mobs"):
 				body.knock_back(Vector2(_lean * 360.0, -120.0))  # an enemy the fall just killed has left its group
+			else:
+				body.push(Vector2(_lean * 360.0, 0.0))
 
 
 func _land() -> void:

@@ -19,7 +19,7 @@ const DRAG := 1.4           # they slow quickly, then hang in the air
 const LIFE := 4.5           # how long one puff lives
 const FADE := 0.7           # how long it takes to thin away when the wind takes it
 
-var caster_node: Node2D
+var caster_node: Wizard
 var aim := 0.0
 var spread := 0.8
 var reach := 160.0
@@ -42,7 +42,7 @@ func _ready() -> void:
 	spread = clampf(spread, MIN_SPREAD, MAX_SPREAD)
 	reach = clampf(reach, MIN_REACH, MAX_REACH)
 	_texture = Fx.tex("smoke_01")
-	if is_instance_valid(caster_node) and caster_node.is_in_group("player") and absf(cos(aim)) > 0.2:
+	if is_instance_valid(caster_node) and absf(cos(aim)) > 0.2:
 		caster_node.facing = signf(cos(aim))
 	_cast_facing = _facing()
 	_mouth = _mouth_position()
@@ -75,11 +75,7 @@ func _physics_process(delta: float) -> void:
 
 
 func _caster_alive() -> bool:
-	if not is_instance_valid(caster_node):
-		return false
-	if caster_node.has_method("is_dead"):
-		return not caster_node.is_dead()
-	return not caster_node.get("dead")
+	return is_instance_valid(caster_node) and not caster_node.dead
 
 
 func _facing() -> float:
@@ -89,9 +85,7 @@ func _facing() -> float:
 
 
 func _mouth_position() -> Vector2:
-	if is_instance_valid(caster_node) and caster_node.has_method("mouth"):
-		return caster_node.mouth()
-	return SpellTargets.center_of(caster_node) if is_instance_valid(caster_node) else _mouth
+	return caster_node.mouth() if is_instance_valid(caster_node) else _mouth
 
 
 ## The way the spores leave the mouth now, mirrored to face wherever the wizard faces, as Fire Breath does.

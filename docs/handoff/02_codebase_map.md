@@ -9,9 +9,10 @@ The viewport is 1280x720, with stretch mode `canvas_items`.
 Arena (scripts/arena.gd)            the base of the waiting room and the world: the player, spells, rituals, HUD
  ├─ Backdrop                         parallax scenery (CanvasLayer -20 sky + Parallax2D layers)
  ├─ Terrain                          tiles, collision strips, props
- ├─ Player (scenes/player.tscn)      CharacterBody2D, origin at the feet; Camera2D (zoom 1.5) inside
+ ├─ Player (scenes/wizard.tscn)      the human wizard: CharacterBody2D, origin at the feet; Camera2D (zoom 1.5) inside
  ├─ Caster                           reads mouse strokes and emits cast_resolved
- ├─ Mobs (scenes/mob.tscn)           enemies, including dark wizards (each with its own Caster + WizardBrain)
+ ├─ Wizards (scenes/wizard.tscn)     the three rivals: the same body, driven by a WizardBrain, each with its own Caster
+ ├─ Mobs (scenes/mob.tscn)           enemies (no wizards)
  ├─ spell nodes                      SpellEffect, FireBreath, Volcano, StormCloud... added as children of Arena
  ├─ Hud (CanvasLayer 3), Spellbook (5), RitualInput (10), DebugPanel (20), Minimap
 ```
@@ -51,13 +52,13 @@ never block each other.
 ### Core flow
 - **`arena.gd`:** builds the map (the waiting room and the world override `_build_map` and `_begin_encounter`), wires
   every signal, and routes spells: `spawn_spell` and `_place_shapes`. It also handles the wizard's casts
-  (`_on_wizard_cast`), rituals (`_on_ritual_finished`), death and restart, pause, debug summons and
+  (`cast_by`, one path for every wizard), rituals (`_on_ritual_finished`), death and restart, pause, debug summons and
   the Insight tooltip. `_is_ground_at` decides where a Stone Wall may start: the ground, a platform, or another
   stone wall.
 - **`arena_gen.gd`:** chunk-based map generation and the `BIOMES` table (tiles, backdrop, props per level).
 
 ### Player
-- **`player.gd`:** movement (coyote time, jump buffer, variable jump height, S drop-through), stamina, HP,
+- **`wizard.gd`** (`class_name Wizard`, groups `"wizards"`, and `"player"` for the human only): movement (coyote time, jump buffer, variable jump height, S drop-through), stamina, HP,
   debuffs (mute, root, blind, slow), Barrier (a pixel bubble) and animation.
   - **Animations** (`ANIMATIONS`): idle, run, jump, fall, cast (staff held up while drawing), release
     (a thrust), hit, death.

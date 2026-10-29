@@ -1,4 +1,13 @@
-# 10. Make every wizard the player character (the next job)
+# 10. Make every wizard the player character (DONE; kept for the reasons it gives)
+
+**Status: built.** `scripts/player.gd` is now `scripts/wizard.gd` (`class_name Wizard`, scene `scenes/wizard.tscn`). One body is
+driven either by a person (`brain == null`, group `"player"` as well) or by a `WizardBrain` (`brain != null`); all four are in
+group `"wizards"`. `mob.gd` holds no wizard code any more; spells branch `mobs` against everything else, so a wizard takes the
+former player path whoever drives it. The lifts over a wall (Geyser, Push, Liana; `WizardBrain._lifting`), Obsidian Armor over lava, Deep Breath through gas and the Eclipse screen veil are built; the stone stair, Great Oak, Tornado and thorns are not (`docs/pvp_arena_design.md` says why). Eclipse darkens the
+screen of whoever watches from inside it. Parity is tested by `tests/parity_check.tscn`. The text below is the plan as it was
+written, and the survey tables describe the code before the change. What the owner should know changed: rivals die, freeze,
+tangle and are shoved exactly as the player is; they pay stamina for jumps and running (and rest when it runs low); they can
+drown; a fireball no longer knocks them back; a frozen rival can still act, as the player can.
 
 Read this if you are the agent who takes over after the "AI wizards use every way a player has past a gate" work
 (commit `6c72f13` on `main`). It says what to do and why.

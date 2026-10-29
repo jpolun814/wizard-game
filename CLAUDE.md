@@ -187,7 +187,7 @@ unconscious", not "Knock whoever is under it unconscious" (the reader cannot tel
 - Volcano: "Conjure an erupting volcano." Not "Erupt a volcano that spits lava".
 - Black Hole (formerly Abyss): name it Black Hole, and describe it as a black hole, not as a "knot of darkness".
 - Eclipse: the owner's described effect (the world goes dark around the player, with a dim ring) is a mechanic
-  to build, not a line to write yet. Do not describe the mechanic on the page.
+  (built: `Eclipse` darkens the watcher's screen), not a line to write yet. Do not describe the mechanic on the page.
 - Rituals: "Tear open a way to a random place. This can be devastating." (the owner dropped the "Warning:" label). "Gain deeper knowledge of those around you."
   "Never tire for a while." "Jump again in mid-air for a while." "Hold your breath for a while."
   "Open a long-lasting portal back to your mark." "Mark this place." "Show the land around you."
@@ -329,8 +329,10 @@ GODOT="/c/Users/Jordan Polun/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.
 "$GODOT" --headless --fixed-fps 60 --path . tests/spectate_check.tscn  # the player falls and watches a rival (add `-- collapse` to follow into the next world)
 "$GODOT" --headless --fixed-fps 60 --path . tests/pull_check.tscn  # the portal tears open at the top and sucks the wizards in (add `-- out=DIR` for pictures, needs a window)
 "$GODOT" --headless --fixed-fps 60 --path . tests/spark_check.tscn  # Spark Strike lands on the ground under open sky
+"$GODOT" --headless --fixed-fps 60 --path . tests/parity_check.tscn  # Push, Geyser, Burst, Tornado, Tide Surf and a shot do the same to a person's wizard and the brain's
+"$GODOT" --path . tests/eclipse_check.tscn  # an Eclipse darkens the screen of the one inside it (add `-- out=DIR` for pictures)
 "$GODOT" --headless --fixed-fps 60 --path . tests/sentinel_check.tscn  # a sentinel shoots a rival wizard in range, not one out of range
-"$GODOT" --headless --fixed-fps 60 --path . tests/cross_check.tscn -- seed=4 kind=flood spells=Frost%Bridge  # a wizard crosses a gate with a spell (kind=chasm, flood, piranhas or sentinel; no spells= and it stays put)
+"$GODOT" --headless --fixed-fps 60 --path . tests/cross_check.tscn -- seed=4 kind=flood spells=Frost%Bridge  # a wizard crosses a gate with a spell (kind=chasm, flood, piranhas, sentinel, wall or gas; spells=chant:deep_breath for a chant; no spells= and it stays put)
 "$GODOT" --headless --fixed-fps 60 --path . tests/route_check.tscn -- seed=3 moves=500  # every kind of move works in real physics (`trace=X,Y,TX,TY` follows one)
 "$GODOT" --headless --fixed-fps 60 --path . tests/arena_sim.tscn -- seed=7 seconds=300 report=60  # AI wizards alone in a world: pages read, who is beaten, where they were held up
 "$GODOT" --path . tests/showcase.tscn -- scenario=spells out=C:/some/dir          # a screenshot of every spell

@@ -109,9 +109,11 @@ func _tile(id: int) -> Vector2i:
 
 
 ## The tile to stand on that is nearest a point given in tiles, or (-1, -1) when the map is empty.
-func nearest(tile: Vector2i) -> Vector2i:
+func nearest(tile: Vector2i, standing := false) -> Vector2i:
 	if _astar.get_point_count() == 0:
 		return Vector2i(-1, -1)
+	if standing and _toll_at.has(_id(tile)) and _astar.has_point(_id(tile)):  # `standing`: the tile is where a wizard is, and it is on a crossing already (on top of a wall it was lifted over): that is where it stands
+		return tile
 	return _tile(_astar.get_closest_point(Vector2(tile)))
 
 

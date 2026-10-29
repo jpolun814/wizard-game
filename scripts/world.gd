@@ -91,7 +91,7 @@ var _carried := false      # the match goes on from a world that collapsed: its 
 var _stage_time := 0.0     # seconds in this world
 var _leaving := false      # the portal has given way
 var _collapse_in := -1.0   # seconds until the portal gives way, once it has begun to
-var _rivals: Array[Mob] = []  # the other wizards, in the order of LOOKS; one is null where a wizard was beaten in an earlier world
+var _rivals: Array[Wizard] = []  # the other wizards, in the order of LOOKS; one is null where a wizard was beaten in an earlier world
 var _backdrops := {}  # place -> Backdrop
 
 
@@ -261,11 +261,11 @@ func _spawn_wizards() -> void:
 		if not state["alive"]:
 			_rivals.append(null)
 			continue
-		var wizard := _add_mob(LOOKS[i], _stand_at(places[i]))
+		var wizard := _add_wizard(LOOKS[i], _stand_at(places[i]))
 		wizard.ledger = ledgers[i + 1]
 		wizard.nav = nav
 		if state.has("max"):
-			wizard.hp = int(state["max"])
+			wizard.max_stamina = state["max"]
 			wizard.stamina = state["stamina"]
 		_rivals.append(wizard)
 
@@ -454,8 +454,8 @@ func _collapse() -> void:
 	_leaving = true
 	var state: Array[Dictionary] = [{"alive": not player.dead, "max": player.max_stamina, "stamina": player.stamina}]
 	for rival in _rivals:
-		if is_instance_valid(rival) and not rival.is_dead():
-			state.append({"alive": true, "max": float(rival.hp), "stamina": rival.stamina})
+		if is_instance_valid(rival) and not rival.dead:
+			state.append({"alive": true, "max": rival.max_stamina, "stamina": rival.stamina})
 		else:
 			state.append({"alive": false})
 	next_seed = MatchState.advance(ledgers, state, Incantation.seed_count())
@@ -508,7 +508,7 @@ func closed_gates() -> Array[Dictionary]:
 	return out
 
 
-## The gates that a spell lets a wizard past, and does not clear: {"kind", "key" (see WorldNav.toll_at), "span": the top of a pit in pixels, "post": a sentinel}.
+## The gates that a spell lets a wizard past, and does not clear: {"kind", "key" (see WorldNav.toll_at), "span": the top of a pit, a wall or a stretch of gas in pixels, "post": a sentinel}.
 func crossings() -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
 	for entry in _gates:
@@ -518,6 +518,10 @@ func crossings() -> Array[Dictionary]:
 		if entry.has("pit") or entry["kind"] in ["chasm", "flood"]:
 			var rect: Rect2i = entry["solve"][0]["rect"]
 			found["span"] = Rect2(Vector2(rect.position * TILE), Vector2(rect.size * TILE))
+		elif entry["kind"] == "gas":
+			var stretch: Array = entry["blocks"]
+			var first_tile: Vector2i = stretch[0]
+			found["span"] = Rect2(Vector2(first_tile * TILE), Vector2(stretch.size() * TILE, TILE))
 		elif entry["kind"] == "wall":
 			var columns: Array = entry["columns"]
 			found["span"] = Rect2(Vector2(columns[0]["x"] * TILE, columns[0]["top"] * TILE), Vector2(columns.size() * TILE, (columns[0]["bottom"] - columns[0]["top"]) * TILE))
@@ -581,10 +585,10 @@ func _on_player_died() -> void:
 
 
 ## The wizards still in the match, other than the player.
-func _living() -> Array[Mob]:
-	var out: Array[Mob] = []
+func _living() -> Array[Wizard]:
+	var out: Array[Wizard] = []
 	for rival in _rivals:
-		if is_instance_valid(rival) and not rival.is_dead():
+		if is_instance_valid(rival) and not rival.dead:
 			out.append(rival)
 	return out
 
