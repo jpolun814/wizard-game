@@ -1,0 +1,59 @@
+# Builds the Windows game on GitHub's own machines and publishes it as the "latest" release, so there is always one plain download
+# link for the newest version: https://github.com/jpolun814/wizard-game/releases/latest
+# Runs on every push to main, and from the Actions tab ("Run workflow").
+
+name: Build Windows game
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write  # to publish the release
+
+concurrency:
+  group: build
+  cancel-in-progress: true  # a newer push makes an older build pointless
+
+env:
+  GODOT_VERSION: 4.7.2
+
+jobs:
+  windows:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get Godot and its export templates
+        run: |
+          base="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable"
+          curl -fsSL -o godot.zip "$base/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          curl -fsSL -o templates.tpz "$base/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+          unzip -q godot.zip
+          mv "Godot_v${GODOT_VERSION}-stable_linux.x86_64" godot
+          templates="$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
+          mkdir -p "$templates"
+          unzip -q templates.tpz
+          mv templates/* "$templates/"
+          rm -rf godot.zip templates.tpz templates
+
+      - name: Import the assets
+        run: ./godot --headless --path . --import
+
+      - name: Export the game
+        run: |
+          mkdir -p build
+          ./godot --headless --path . --export-release "Windows Desktop" build/WizardGame.exe
+          test -f build/WizardGame.exe
+          cd build && zip -q WizardGame-windows.zip WizardGame.exe
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete latest --cleanup-tag --yes || true
+          gh release create latest build/WizardGame-windows.zip \
+            --target "$GITHUB_SHA" \
+            --title "Latest build" \
+            --notes "Built from ${GITHUB_SHA::7}. Unzip and run WizardGame.exe. Windows may say it protected your PC: click More info, then Run anyway."
