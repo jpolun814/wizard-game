@@ -70,8 +70,11 @@ so its waits end before the other copy has answered. The waiting-room test with 
 
 ## Known limits (tell the owner; fix when asked)
 
-- **Tested only on one computer, over localhost.** Two machines on a home network and the internet are untested. The first time a
-  copy hosts, Windows asks whether to let it through the firewall: allow it on private networks.
+- **Works on a home network** (two computers, tested by the owner on 2026-10-29); the internet is untested. **The hosting computer
+  must let UDP 24565 in.** On the owner's PC the network was marked Public and no rule existed, so joins failed until the network was
+  set to Private and this was run in an administrator PowerShell:
+  `New-NetFirewallRule -DisplayName "Wizard Game" -Direction Inbound -Protocol UDP -LocalPort 24565 -Action Allow -Profile Private`.
+  Only the host needs it; joining goes out, which Windows allows.
 - **Hazards and gates run on every machine.** Sentinels, piranhas, thorns, gas and spells' own objects (stone walls, trees, ice) are
   simulated by each machine for itself, so in a close call they can disagree for a moment. Gates follow the host's (a piece gone there
   is removed everywhere), but a piece gone on a client and not on the host stays gone on that client only.

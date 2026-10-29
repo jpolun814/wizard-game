@@ -25,7 +25,6 @@ trust the code and this file where they disagree.
 | `07_testing.md` | say anything is done |
 | `08_working_with_the_owner.md` | reply to the owner |
 | `09_godot_pitfalls.md` | debug something strange |
-| `10_unify_wizards.md` | touch the wizard body or the brains (done: every wizard is the player character) |
 | `11_network_play.md` | touch anything a second machine must see: wizards, spells, pages, gates, the match (done: host and join over a network) |
 
 ---
