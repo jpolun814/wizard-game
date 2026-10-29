@@ -67,9 +67,9 @@ func _set_waiting(waiting: bool) -> void:
 	_join.text = "Joining..." if waiting else "Join"
 
 
-## The host has given this machine a seat: into the waiting room.
+## The host has given this machine a seat: into the waiting room. (Hosting goes there from _on_host: the roster it makes is not an answer.)
 func _on_roster_changed() -> void:
-	if Net.online() and Net.seat_of(Net.my_id()) >= 0:
+	if Net.online() and not Net.is_host() and Net.seat_of(Net.my_id()) >= 0:
 		get_tree().change_scene_to_file(WAITING_ROOM)
 
 
