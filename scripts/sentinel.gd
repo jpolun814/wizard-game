@@ -59,19 +59,20 @@ func _physics_process(delta: float) -> void:
 ## Who it shoots at: a decoy it can see, otherwise the nearest wizard it can see, otherwise no one.
 func _target() -> Node2D:
 	for decoy: Decoy in get_tree().get_nodes_in_group("decoys"):
-		if not decoy.is_dead() and _sees(decoy.center()):
+		if not decoy.is_dead() and sees(decoy.center()):
 			return decoy
 	var nearest: Node2D = null
 	var best := INF
 	for wizard: Node2D in SpellTargets.wizards(get_tree()):
 		var away := center().distance_to(wizard.center())
-		if away < best and _sees(wizard.center()):
+		if away < best and sees(wizard.center()):
 			nearest = wizard
 			best = away
 	return nearest
 
 
-func _sees(point: Vector2) -> bool:
+## Whether it can see a point: within its range, in the open air, and not through smoke.
+func sees(point: Vector2) -> bool:
 	if center().distance_to(point) > RANGE:
 		return false
 	var query := PhysicsRayQueryParameters2D.create(center(), point)

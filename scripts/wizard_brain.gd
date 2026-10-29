@@ -35,6 +35,18 @@ const CLEARS := {  # the gates a wizard clears, and the spells that do it, best 
 	"ice": ["Fire Breath", "Ignite", "Stonefall", "Earthquake"],
 	"wall": ["Stonefall", "Earthquake"],
 }
+const BRIDGES := {  # the spells that make a way over a pit of water, and for how long it lasts, seconds (Frost Bridge ice melts after 30)
+	"Frost Bridge": 25.0,
+	"Lily Pads": 6.0,
+}
+const BRIDGES_OVER := {  # which of them serve for each kind of pit: the pads are too few and too far apart to cross a pit as long as the piranhas'
+	"flood": ["Frost Bridge", "Lily Pads"],
+	"piranhas": ["Frost Bridge"],
+}
+const COVERS := ["Smoke Screen", "Barrier", "Decoy"]  # the spells that keep a sentinel from hitting it, best first
+const SENTINEL_LOOKOUT := 40  # tiles of the way it looks ahead along for a sentinel
+const COVER_RANGE := 780.0    # it draws its cover when it is this close to a sentinel, a little before the sentinel sees it (700)
+const COVER_LASTS := {"Smoke Screen": 11.0, "Barrier": 5.0, "Decoy": 3.0}  # seconds the way past is safe
 const CLEAR_TRIES := 14       # casts at one gate before it gives up on it for a while
 const STRIKE_REACH := {"Fire Breath": 5, "Ignite": 12, "Stonefall": 10, "Earthquake": 10}  # tiles: how far off a spell strikes a gate
 const STRIKE_STAND := 4       # tiles: and it steps up to this far from it
@@ -66,6 +78,7 @@ var stuck_at: Array[String] = []  # where it has been held up, for a report
 var _goal_gate := {}              # the gate it is going to clear: {"kind", "outside", "target", "entry"}
 var _gate_tries := 0
 var _nav_version := -1           # which build of the ways its list of pages it cannot reach belongs to
+var _bridged := {}               # crossing (by key) -> seconds more that the way over it, which this wizard made, will last
 var _replans := 0                # times in a row it has had to find its way again
 
 
@@ -96,6 +109,10 @@ func think(delta: float) -> void:
 		_skip[id] -= delta
 		if _skip[id] <= 0.0:
 			_skip.erase(id)
+	for key in _bridged.keys():
+		_bridged[key] -= delta
+		if _bridged[key] <= 0.0:
+			_bridged.erase(key)
 	if mob.nav != null and mob.nav.version != _nav_version:
 		_nav_version = mob.nav.version
 		_skip.clear()  # a gate has been cleared: pages that could not be reached may be reachable now
@@ -121,6 +138,8 @@ func think(delta: float) -> void:
 			_plan(_choose_defence(shot["eta"]), _reaction_time())
 		elif _in_danger(mob.global_position + Vector2(0, -6)) or _in_danger(mob.center()):
 			_plan("escape", _reaction_time() * 0.6)
+		elif _defend_cooldown <= 0.0 and not _watchers().is_empty():
+			_plan("cover", _reaction_time())
 		elif fighting and to_player.length() < TOO_CLOSE and _defend_cooldown <= 0.0:
 			_plan(_choose_repel(), _reaction_time())
 
@@ -207,6 +226,10 @@ func _travel(delta: float) -> float:
 		elif _route.done():
 			_work_gate()
 			return 0.0
+	if _goal != "" and not _route.done():
+		var crossing := _crossing_ahead()
+		if not crossing.is_empty() and _cross(crossing):
+			return 0.0
 	if (_goal == "" and _goal_timer <= 0.0) or _goal_lost() or (_goal == "foe" and (_goal_timer <= 0.0 or _route.done())):
 		_choose_goal()
 	var steer := _route.steer(mob, delta)
@@ -216,6 +239,84 @@ func _travel(delta: float) -> float:
 	if steer["jump"] and mob.is_on_floor():
 		mob.velocity.y = JUMP
 	return steer["dir"] * steer["speed"]
+
+
+## The crossing the way goes over soon, if the way over it is not made: {"kind", "key", "span", "post"}. A pit counts when it is the next few tiles
+## off, a sentinel from much farther, for it sees a long way.
+func _crossing_ahead() -> Dictionary:
+	var world := mob.get_tree().get_first_node_in_group(&"world")
+	for moves in SENTINEL_LOOKOUT:
+		var key: String = mob.nav.toll_at(_route.ahead(moves))
+		if key == "" or _bridged.has(key):
+			continue
+		for crossing: Dictionary in world.crossings():
+			if crossing["key"] == key and (moves < 4 or crossing["kind"] == "sentinel"):
+				return crossing
+	return {}
+
+
+## Makes the way over a crossing, a stroke at a time. True while it is at it and must stand; false when it may walk on (a sentinel too
+## far off to see it yet, or nothing it can do).
+func _cross(crossing: Dictionary) -> bool:
+	if mob.is_drawing() or _react > 0.0:
+		return true
+	if crossing["kind"] == "sentinel":
+		if mob.center().distance_to(crossing["post"].center()) > COVER_RANGE:
+			return false
+		var used := _cover(crossing["post"])
+		if used == "":
+			return false
+		_bridged[crossing["key"]] = COVER_LASTS[used]
+		return true
+	var spell_name := ""
+	for candidate: String in BRIDGES_OVER[crossing["kind"]]:
+		if _knows(candidate):
+			spell_name = candidate
+			break
+	if spell_name == "":
+		return false
+	if mob.stamina < SpellData.SPELLS[spell_name].cost:
+		return true  # it waits for the strength to cast
+	var span: Rect2 = crossing["span"]
+	_begin_cast(spell_name, _bridge_stroke(spell_name, span), ATTACK_DRAW)
+	_bridged[crossing["key"]] = BRIDGES[spell_name]
+	return true
+
+
+## The stroke that makes a way over a pit of water, along the width of it at its surface: a wave for Frost Bridge, a row of loops for Lily Pads.
+func _bridge_stroke(spell_name: String, span: Rect2) -> PackedVector2Array:
+	var level := span.position.y
+	var out := PackedVector2Array()
+	if spell_name == "Frost Bridge":
+		var steps := 80
+		for i in steps + 1:
+			var x := span.size.x * i / steps
+			out.append(Vector2(span.position.x + x, level + 14.0 * sin(x / 22.0)))
+	else:
+		var loops := clampi(roundi(span.size.x / 90.0), 2, 8)
+		var steps := loops * 24
+		for i in steps + 1:
+			var angle := TAU * loops * i / steps
+			out.append(Vector2(span.position.x + span.size.x * i / steps - 26.0 * sin(angle), level - 26.0 * cos(angle)))
+	return _densify(out)
+
+
+## Draws what keeps a sentinel from hitting it: smoke over the statue, or a Barrier, or a Decoy. The name of the spell, or "" when it can do none.
+func _cover(post: Node2D) -> String:
+	for spell_name: String in COVERS:
+		if not _knows(spell_name) or mob.stamina < SpellData.SPELLS[spell_name].cost:
+			continue
+		var around: Vector2 = mob.center()
+		match spell_name:
+			"Smoke Screen":
+				var base: Vector2 = post.center()
+				_begin_cast(spell_name, _offset(GestureTemplates.preview_points("smoke"), base + Vector2(0, -30.0), 0.9), QUICK_DRAW)
+			"Barrier":
+				_begin_cast(spell_name, _offset(GestureTemplates.preview_points("circle"), around, 0.8), QUICK_DRAW)
+			"Decoy":
+				_begin_cast(spell_name, _offset(GestureTemplates.preview_points("eight"), around + Vector2(-40.0 * signf(post.center().x - around.x), 0.0), 0.7), QUICK_DRAW)
+		return spell_name
+	return ""
 
 
 ## Reads the page it stands under, if it does not have it.
@@ -250,7 +351,7 @@ func _choose_goal() -> void:
 		var stand: Vector2i = mob.nav.nearest(tile)
 		var path: Array[Vector2i] = []
 		if absi(stand.x - tile.x) + absi(stand.y - tile.y) <= PAGE_REACH:
-			path = mob.nav.path(start, stand)
+			path = _path(start, stand)
 		if path.is_empty():
 			_skip[pickup.get_instance_id()] = GIVE_UP  # no way there that a wizard can walk
 			continue
@@ -265,7 +366,7 @@ func _choose_goal() -> void:
 	if _choose_gate(start):
 		return
 	if _foe != null:
-		var path: Array[Vector2i] = mob.nav.path(start, mob.nav.nearest(_tile_of(_foe.global_position)))
+		var path: Array[Vector2i] = _path(start, mob.nav.nearest(_tile_of(_foe.global_position)))
 		if not path.is_empty():
 			_goal = "foe"
 			_route.set_path(path)
@@ -285,7 +386,7 @@ func _choose_gate(start: Vector2i) -> bool:
 		var stand: Vector2i = mob.nav.nearest(floor_tile)
 		var path: Array[Vector2i] = []
 		if absi(stand.x - floor_tile.x) + absi(stand.y - floor_tile.y) <= 3:
-			path = mob.nav.path(start, stand)
+			path = _path(start, stand)
 		if path.is_empty():
 			_skip[_gate_key(gate)] = GIVE_UP
 			continue
@@ -299,6 +400,27 @@ func _choose_gate(start: Vector2i) -> bool:
 	_gate_tries = 0
 	_route.set_path(best_path)
 	return true
+
+
+## The way from one tile to another that it can walk: not over a crossing it holds no spell for.
+func _path(from: Vector2i, to: Vector2i) -> Array[Vector2i]:
+	var shut := []
+	var world := mob.get_tree().get_first_node_in_group(&"world")
+	if world != null:
+		for crossing: Dictionary in world.crossings():
+			if not _can_cross(crossing["kind"]):
+				shut.append(crossing["key"])
+	return mob.nav.path(from, to, shut)
+
+
+## Whether it holds a page for crossing this kind of gate. (Nothing it knows takes a wizard over lava.)
+func _can_cross(kind: String) -> bool:
+	match kind:
+		"flood", "piranhas":
+			return BRIDGES_OVER[kind].any(_knows)
+		"sentinel":
+			return COVERS.any(_knows)
+	return false
 
 
 ## What a gate is called on the list of what it has given up.
@@ -318,7 +440,7 @@ func _work_gate() -> void:
 	var side := -1 if across > 0.0 else 1  # it stands on the side it came by
 	var tile := _tile_of(target)
 	var stand: Vector2i = mob.nav.nearest(Vector2i(tile.x + side * STRIKE_STAND, tile.y))
-	var path: Array[Vector2i] = mob.nav.path(mob.nav.nearest(_tile_of(mob.global_position)), stand)
+	var path: Array[Vector2i] = _path(mob.nav.nearest(_tile_of(mob.global_position)), stand)
 	if path.is_empty() or absi(stand.x - tile.x) > reach + 2 or absi(stand.y - tile.y) > 6:
 		_skip[_gate_key(_goal_gate)] = GIVE_UP
 		_goal = ""
@@ -374,7 +496,7 @@ func _stuck_on_goal() -> void:
 		_choose_goal()
 		return
 	var start: Vector2i = mob.nav.nearest(_tile_of(mob.global_position))
-	var path: Array[Vector2i] = mob.nav.path(start, _route.goal())
+	var path: Array[Vector2i] = _path(start, _route.goal())
 	if path.is_empty():
 		_goal = ""
 	else:
@@ -405,6 +527,17 @@ func _incoming_shot() -> Dictionary:
 		if eta < 0.9 and miss < 28.0 and (best.is_empty() or eta < best["eta"]):
 			best = {"eta": eta, "dir": velocity.normalized()}
 	return best
+
+
+## The sentinels that have it in sight, when it holds a spell to meet them with.
+func _watchers() -> Array:
+	var out := []
+	if not COVERS.any(_knows):
+		return out
+	for post: Sentinel in mob.get_tree().get_nodes_in_group("sentinels"):
+		if post.sees(mob.center()):
+			out.append(post)
+	return out
 
 
 ## Counts how many shots you have thrown lately, so it knows when to put up walls.
@@ -453,6 +586,11 @@ func _act(reaction: String) -> void:
 			var start: Vector2 = mob.center() - _threat_dir * 20.0
 			_begin_cast("Gust", _line(start, start - _threat_dir * 90.0), QUICK_DRAW)
 			_defend_cooldown = 1.4
+		"cover":
+			var watchers := _watchers()
+			if not watchers.is_empty():
+				_cover(watchers[0])
+			_defend_cooldown = 4.0
 		"shield":
 			_begin_cast("Barrier", _offset(GestureTemplates.preview_points("circle"), mob.center(), 0.8), QUICK_DRAW)
 			_defend_cooldown = 2.5

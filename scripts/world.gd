@@ -70,9 +70,9 @@ func _build_map() -> Variant:
 	_spawn_tiles = built["spawns"]
 	if random_start:
 		_start_tile = _spawn_tiles[randi() % _spawn_tiles.size()]  # not seeded, so the same world starts you somewhere new
-	var shut := WorldBuilder.shut(built)
+	var shut := WorldBuilder.shut(built, true)
 	nav = WorldNav.new()
-	nav.build(shut["cells"], built["size"].y, shut["barred"], _spawn_tiles[0])
+	nav.build(shut["cells"], built["size"].y, shut["barred"], _spawn_tiles[0], shut["tolls"])
 	return built["cells"]
 
 
@@ -195,6 +195,7 @@ func _begin_encounter(camera: Camera2D) -> void:
 				var statue := Sentinel.new()
 				statue.position = Vector2(Vector2i(entry["stands"]) * TILE) + Vector2(TILE * 0.5, 0)
 				add_child(statue)
+				entry["post"] = statue
 			"piranhas":
 				var shoal := Piranhas.new()
 				var pit: Rect2i = entry["pit"]
@@ -493,8 +494,8 @@ func _watch_gates(delta: float) -> void:
 		if not gone.has(false):
 			entry["open"] = true
 	if changed:
-		var shut := WorldBuilder.shut(_built)
-		nav.build(shut["cells"], _built["size"].y, shut["barred"], _spawn_tiles[0])
+		var shut := WorldBuilder.shut(_built, true)
+		nav.build(shut["cells"], _built["size"].y, shut["barred"], _spawn_tiles[0], shut["tolls"])
 
 
 ## The gates that spells can clear and have not yet: {"kind", "outside": a floor tile just short of it, "target": a point in pixels to strike}.
@@ -504,6 +505,20 @@ func closed_gates() -> Array[Dictionary]:
 		if entry.get("open", false) or not entry.has("nodes"):
 			continue
 		out.append({"kind": entry["kind"], "outside": entry["outside"], "target": gate_target(entry), "entry": entry})
+	return out
+
+
+## The gates that a spell lets a wizard past, and does not clear: {"kind", "key" (see WorldNav.toll_at), "span": the top of a pit in pixels, "post": a sentinel}.
+func crossings() -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for entry in _gates:
+		if entry["kind"] not in WorldBuilder.CROSSINGS:
+			continue
+		var found := {"kind": entry["kind"], "key": WorldBuilder.toll_key(entry), "post": entry.get("post")}
+		if entry.has("pit") or entry["kind"] in ["chasm", "flood"]:
+			var rect: Rect2i = entry["solve"][0]["rect"]
+			found["span"] = Rect2(Vector2(rect.position * TILE), Vector2(rect.size * TILE))
+		out.append(found)
 	return out
 
 

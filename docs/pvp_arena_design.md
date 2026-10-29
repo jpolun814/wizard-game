@@ -50,14 +50,15 @@ single-run loop in `docs/roguelite_exploration_design.md`; the spells, the world
 - **AI wizards clear gates.** When no page is to be had, a wizard goes to the nearest gate that a spell it holds can clear (`WizardBrain.CLEARS`: Ignite or Fire Breath for
   thorns, gas and ice, Stonefall or Earthquake for a wall and for ice), steps up to what is left of it and strikes until it is gone. `World._watch_gates` sees ice, wall, thorns or gas
   go (a thicket or a bank at a time), marks the gate open and builds the ways again (`WorldNav.version` tells the wizards to think again about the pages they gave up). A human who
-  clears a gate opens it for the AI too. The dark stretch needs no spell: the ways about the world bar only its spike strips (`WorldBuilder.shut`), and a wizard jumps them (`tests/dark_check.tscn`). Chasms, floods, piranha pits
-  and sentinels are not passed by the AI yet: it treats them as walls. Test: `tests/gate_check.tscn`.
+  clears a gate opens it for the AI too. The dark stretch needs no spell: the ways about the world bar only its spike strips (`WorldBuilder.shut`), and a wizard jumps them (`tests/dark_check.tscn`). Chasms are not crossed by the AI yet (nothing it can hold takes a wizard over lava and out of a pit with a sheer far side): it treats them as walls.
+- **AI wizards cross floods, piranha pits and sentinels.** `WorldBuilder.shut(world, true)` leaves these gates open in the ways about the world and lists the tiles that cross each
+  (`tolls`, by `toll_key`); `WorldNav.path(from, to, shut)` goes round the crossings a wizard holds no spell for (`WizardBrain._can_cross`). A wizard whose way runs onto one
+  stands at the edge and draws a Frost Bridge (a wave along the water; the ice lasts 30 s) or, over a flood, Lily Pads (a row of loops; they sink after 8 s), then walks over (the piranhas' pit is too long for the pads). At a sentinel it draws Smoke Screen
+  over the statue, or a Barrier, or a Decoy, once it is within 780 px, and again when they run out; any wizard a sentinel can see and that holds one of them answers the same way. Tests: `tests/cross_check.tscn`, `tests/sentinel_check.tscn`, `tests/gate_check.tscn`.
 - **No boss left in the code.** `WorldGraph` has no boss hall, guard or boss lock (`deepest` is just the farthest hall); every locked area may hold a page and a Rift may land anywhere open.
 
 ## Planned
 
-1. Teach the AI wizards to get past the last gates. Chasm, flood and piranha pit need a crossing spell (Frost Bridge for water, Liana, Lily Pads, Shadow Step) and a way for the ways about
-   the world to take in a bridge that appears and later goes. The sentinel shoots the nearest wizard it sees, the AI's included (`Sentinel._target`, `tests/sentinel_check.tscn`); the AI would answer it
-   with Decoy, Smoke Screen or Barrier.
+1. Teach the AI wizards to cross a lava chasm: it needs something that carries a wizard over lava and up the sheer far side (Obsidian Armor wades lava; a Liana or a Stone Wall might climb out).
 2. Balance is checked by `tests/arena_sim.gd` (`stage=3` plays the final world, three AIs, the player standing down). The three looks share one set of stats; the start between the
    other two was the weakest, so which look starts where is now drawn from the seed (`World._spawn_wizards`): over 16 seeds the survivors were 6, 7 and 8 for the three looks.

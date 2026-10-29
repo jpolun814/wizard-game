@@ -41,6 +41,11 @@ func clear() -> void:
 	_next = 0
 
 
+## The tile a number of moves on from the one it is going to (0 is that one), or (-1, -1) when the path is not so long.
+func ahead(moves: int) -> Vector2i:
+	return _path[_next + moves] if _next + moves < _path.size() else Vector2i(-1, -1)
+
+
 ## True when there is no path, or the wizard has come to the end of it.
 func done() -> bool:
 	return _next >= _path.size()

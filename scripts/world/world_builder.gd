@@ -748,14 +748,38 @@ static func standing(cells: TileGrid, c: int, r: int, hazards := {}) -> bool:
 	return clear(cells, c, r) and supported(cells, c, r) and not hazards.has(Vector2i(c, r))
 
 
+## The gates that are crossed rather than cleared: a spell lets a wizard past, and the gate is as it was behind them.
+const CROSSINGS := ["chasm", "flood", "piranhas", "sentinel"]
+
+
+## What a crossing is called on a wizard's list of what it has given up, and in the ways about the world.
+static func toll_key(gate: Dictionary) -> String:
+	return "gate %s" % str(gate["outside"])
+
+
 ## The world as it is before any gate is opened, for a wizard to find its way about: {"cells": a TileGrid in which ice and walls are as solid as rock,
-## "barred": the tiles no one stands in or walks through (lava, thorns, the stretch a trap covers)}. Takes what build() returns.
-static func shut(world: Dictionary) -> Dictionary:
+## "barred": the tiles no one stands in or walks through (lava, thorns, the stretch a trap covers), "tolls": with `crossings`, the tiles one
+## stands on to cross each of those gates, by toll_key}. Takes what build() returns. With `crossings` a pit is bridged and a sentinel's passage is
+## open in the map, for a wizard to say which of them it can pass (see WorldNav.path); without it they bar the way.
+static func shut(world: Dictionary, crossings := false) -> Dictionary:
 	var cells: TileGrid = world["cells"].duplicate()
 	var barred: Dictionary = world["hazards"].duplicate()
+	var tolls := {}
 	for gate in world["gates"]:
 		if gate.get("open", false):
 			continue  # a gate that has been cleared bars nothing
+		if crossings and gate["kind"] in CROSSINGS:
+			var tiles: Array[Vector2i] = []
+			if gate["kind"] == "sentinel":
+				tiles.assign(gate["blocks"])
+			else:
+				for step: Dictionary in gate["solve"]:
+					var rect: Rect2i = step["rect"]
+					cells.fill_rect(rect, step["with"])
+					for x in range(rect.position.x, rect.end.x):
+						tiles.append(Vector2i(x, rect.position.y - 1))
+			tolls[toll_key(gate)] = tiles
+			continue
 		var per: int = gate.get("per", 0)  # a gate of thorns or gas is cleared a piece at a time: this many columns each
 		var gone: Array = gate.get("gone", [])
 		if gate["kind"] == "dark":  # only the strips bar the way: they are narrow, and a wizard jumps them
@@ -773,7 +797,7 @@ static func shut(world: Dictionary) -> Dictionary:
 					cells.put(cell, ArenaGen.GROUND)
 				else:
 					barred[cell] = true
-	return {"cells": cells, "barred": barred}
+	return {"cells": cells, "barred": barred, "tolls": tolls}
 
 
 ## Every tile the wizard can stand on that can be reached from a starting tile by walking, stepping up one tile, falling

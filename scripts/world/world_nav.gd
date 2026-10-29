@@ -8,12 +8,16 @@ var _ways: Walkways
 var _astar := AStar2D.new()
 var _width := 0
 var version := 0  # counts the times the map has been built, so that a wizard can tell the ways have changed
+var _tolls := {}  # key -> the ids of the tiles that cross a gate a wizard needs a spell to pass
+var _toll_at := {}  # id -> key
 
 
 ## Builds the map of the ways. blocked is {Vector2i: true}: tiles that bar the way (lava, a gate), which no path goes through. Only the tiles that can
 ## be left as well as come to, from the tile the map is anchored on, are kept: a wizard that drops into a pit with no way out would be there for good.
-func build(cells: TileGrid, bottom: int, blocked := {}, anchor := Vector2i(-1, -1)) -> void:
+func build(cells: TileGrid, bottom: int, blocked := {}, anchor := Vector2i(-1, -1), tolls := {}) -> void:
 	_astar.clear()
+	_tolls.clear()
+	_toll_at.clear()
 	version += 1
 	_width = cells.size.x
 	_ways = Walkways.new(cells, bottom, blocked)
@@ -50,6 +54,13 @@ func build(cells: TileGrid, bottom: int, blocked := {}, anchor := Vector2i(-1, -
 		for to in out[id]:
 			if keep.has(to):
 				_astar.connect_points(id, to, false)
+	for key: String in tolls:
+		_tolls[key] = PackedInt32Array()
+		for tile: Vector2i in tolls[key]:
+			if _astar.has_point(_id(tile)):
+				_tolls[key].append(_id(tile))
+				_toll_at[_id(tile)] = key
+				_astar.set_point_disabled(_id(tile), true)  # (a crossing is walked only when a path is asked for it: see path)
 
 
 ## Every id that can be got to from one, along these links.
@@ -85,14 +96,26 @@ func nearest(tile: Vector2i) -> Vector2i:
 	return _tile(_astar.get_closest_point(Vector2(tile)))
 
 
-## The tiles to go through, from one tile to another, the first being where it starts; empty when there is no way.
-func path(from: Vector2i, to: Vector2i) -> Array[Vector2i]:
+## The tiles to go through, from one tile to another, the first being where it starts; empty when there is no way. `shut` lists the
+## crossings (by key) that the one asking cannot pass: the way does not go over them, and nearest() never lands on one.
+func path(from: Vector2i, to: Vector2i, shut := []) -> Array[Vector2i]:
 	var out: Array[Vector2i] = []
 	if not _astar.has_point(_id(from)) or not _astar.has_point(_id(to)):
 		return out
+	for key: String in _tolls:
+		for id in _tolls[key]:
+			_astar.set_point_disabled(id, shut.has(key))
 	for id in _astar.get_id_path(_id(from), _id(to)):
 		out.append(_tile(id))
+	for key: String in _tolls:
+		for id in _tolls[key]:
+			_astar.set_point_disabled(id, true)
 	return out
+
+
+## The key of the crossing a tile lies on, or "".
+func toll_at(tile: Vector2i) -> String:
+	return _toll_at.get(_id(tile), "")
 
 
 ## The tiles one can get to from a tile in one move.

@@ -122,6 +122,7 @@ GODOT="/c/Users/Jordan Polun/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.
 "$GODOT" --headless --fixed-fps 60 --path . tests/pull_check.tscn  # the portal tears open at the top and sucks the wizards in (add `-- out=DIR` for pictures, needs a window)
 "$GODOT" --headless --fixed-fps 60 --path . tests/spark_check.tscn  # Spark Strike lands on the ground under open sky
 "$GODOT" --headless --fixed-fps 60 --path . tests/sentinel_check.tscn  # a sentinel shoots a rival wizard in range, not one out of range
+"$GODOT" --headless --fixed-fps 60 --path . tests/cross_check.tscn -- seed=4 kind=flood spells=Frost%Bridge  # a wizard crosses a gate with a spell (kind=flood, piranhas or sentinel; no spells= and it stays put)
 "$GODOT" --headless --fixed-fps 60 --path . tests/route_check.tscn -- seed=3 moves=500  # every kind of move works in real physics (`trace=X,Y,TX,TY` follows one)
 "$GODOT" --headless --fixed-fps 60 --path . tests/arena_sim.tscn -- seed=7 seconds=300 report=60  # AI wizards alone in a world: pages read, who is beaten, where they were held up
 "$GODOT" --path . tests/showcase.tscn -- scenario=spells out=C:/some/dir          # a screenshot of every spell
