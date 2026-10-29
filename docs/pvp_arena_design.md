@@ -57,7 +57,7 @@ single-run loop in `docs/roguelite_exploration_design.md`; the spells, the world
 ## Planned
 
 1. Teach the AI wizards to get past the last gates. Chasm, flood and piranha pit need a crossing spell (Frost Bridge for water, Liana, Lily Pads, Shadow Step) and a way for the ways about
-   the world to take in a bridge that appears and later goes. The sentinel only shoots the player today (`Sentinel._target`); it should shoot any wizard, and the AI would answer it
+   the world to take in a bridge that appears and later goes. The sentinel shoots the nearest wizard it sees, the AI's included (`Sentinel._target`, `tests/sentinel_check.tscn`); the AI would answer it
    with Decoy, Smoke Screen or Barrier.
 2. Balance is checked by `tests/arena_sim.gd` (`stage=3` plays the final world, three AIs, the player standing down). The three looks share one set of stats; the start between the
    other two was the weakest, so which look starts where is now drawn from the seed (`World._spawn_wizards`): over 16 seeds the survivors were 6, 7 and 8 for the three looks.

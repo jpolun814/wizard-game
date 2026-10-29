@@ -1,7 +1,7 @@
 class_name Sentinel
 extends Node2D
 
-## A hooded statue that stands in a passage and shoots whoever it sees. It sees what stands in the open air within its
+## A hooded statue that stands in a passage and shoots whichever wizard it sees. It sees what stands in the open air within its
 ## range: not through rock, not through smoke or an eclipse. It goes for a decoy it sees before it goes for the wizard,
 ## and wears the decoy down. Its shots are lasers, far too fast to outrun or dodge, and aimed ahead of whoever is moving; but they are like
 ## any other shot: rock and a Barrier stop them, and they hurt anyone they cross.
@@ -56,15 +56,19 @@ func _physics_process(delta: float) -> void:
 		laser.scale = Vector2(3.0, 0.8)  # long and thin, and too long to slip through a body between two frames
 
 
-## Who it shoots at: a decoy it can see, otherwise the wizard if it can see them, otherwise no one.
+## Who it shoots at: a decoy it can see, otherwise the nearest wizard it can see, otherwise no one.
 func _target() -> Node2D:
 	for decoy: Decoy in get_tree().get_nodes_in_group("decoys"):
 		if not decoy.is_dead() and _sees(decoy.center()):
 			return decoy
-	var wizard := get_tree().get_first_node_in_group("player")
-	if wizard != null and not wizard.dead and _sees(wizard.center()):
-		return wizard
-	return null
+	var nearest: Node2D = null
+	var best := INF
+	for wizard: Node2D in SpellTargets.wizards(get_tree()):
+		var away := center().distance_to(wizard.center())
+		if away < best and _sees(wizard.center()):
+			nearest = wizard
+			best = away
+	return nearest
 
 
 func _sees(point: Vector2) -> bool:
