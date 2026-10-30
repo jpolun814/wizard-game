@@ -120,7 +120,7 @@ and are no longer drawn by the game.
 
 - The stone hearth (seen from the side) cut from "Campfire pixel art animated" by ArlanTR (opengameart.org/content/campfire-pixel-art-animated), CC0 (`tools/prepare_bonfire.py`).
 
-- Piranhas (`art/mobs/piranha/`): "Cute Fish Sprites" by chips8688, https://opengameart.org/content/cute-fish-sprites, OGA-BY 3.0 (credit required). The red fish, swim row, darkened (`tools/prepare_piranha.py`).
+- Piranhas (`art/mobs/piranha_small/ (halved from the tool's output)`): "Cute Fish Sprites" by chips8688, https://opengameart.org/content/cute-fish-sprites, OGA-BY 3.0 (credit required). The red fish, swim row, darkened (`tools/prepare_piranha.py`).
 
 - Jungle vines and rope (`art/props/rope_ladder.png`): "Rope Ladder" by AntumDeluge (Jordan Irwin), https://opengameart.org/content/rope-ladder, CC-BY 3.0 / OGA-BY 3.0 (credit required). Darkened (`tools/prepare_ladder.py`).
 - Tide Surf wave (`art/fx/surf_crest.png`, `art/fx/surf_body.png`): "Tsunami animation" by mkwong98, https://opengameart.org/content/tsunami-animation, CC0. Recoloured from blue to dark teal (`tools/prepare_wave.py`).
