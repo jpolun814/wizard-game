@@ -22,8 +22,8 @@ func _initialize() -> void:
 	for s in range(first, first + seeds):
 		var rng := RandomNumberGenerator.new()
 		rng.seed = s
-		var graph := WorldGraph.build(rng)
-		var world := WorldBuilder.build(graph, rng)
+		var world := WorldBuilder.make(rng, SurfaceGen.BIOMES[s % SurfaceGen.BIOMES.size()], true)
+		var graph: WorldGraph = world["graph"]
 		var shut := WorldBuilder.shut(world)
 		var cells: TileGrid = shut["cells"]
 		var bottom: int = world["size"].y

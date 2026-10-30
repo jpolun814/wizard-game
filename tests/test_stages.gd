@@ -1,6 +1,6 @@
 extends SceneTree
 
-## Checks the smaller worlds a match collapses into (see MatchState): each is built, its ground can be walked from every starting place to every hall
+## Checks every world a match plays through (see MatchState), in every biome: each is built, its ground can be walked from every starting place to every hall
 ## that no gate shuts off, the starting places are well apart, and every page the wizards do not hold has a place to lie.
 ##
 ##     godot --headless --path . -s tests/test_stages.gd -- seeds=6 first=0
@@ -17,15 +17,17 @@ func _initialize() -> void:
 			seeds = int(arg.substr(6))
 		elif arg.begins_with("first="):
 			first = int(arg.substr(6))
-	for stage in range(1, MatchState.STAGES.size()):
+	for stage in MatchState.STAGES.size():
 		var plan: Dictionary = MatchState.STAGES[stage]
 		WorldGraph.size = Vector2i(plan["width"], MatchState.HEIGHT)
 		for s in range(first, first + seeds):
 			var rng := RandomNumberGenerator.new()
 			rng.seed = s * 31 + stage
 			var started := Time.get_ticks_msec()
-			var graph := WorldGraph.build(rng) if plan["caves"] else WorldGraph.build_open(rng)
-			var world := WorldBuilder.build(graph, rng)
+			var pool: Array = SurfaceGen.BIOMES if plan["caves"] else SurfaceGen.OPEN_BIOMES  # the last world is all open sky
+			var biome: String = pool[(stage + s) % pool.size()]  # every biome gets its turn
+			var world := WorldBuilder.make(rng, biome, plan["caves"])
+			var graph: WorldGraph = world["graph"]
 			var seconds := (Time.get_ticks_msec() - started) / 1000.0
 			var label := "stage %d seed %d" % [stage, s]
 			_check(world["size"].x == plan["width"], "%s: %s tiles wide" % [label, world["size"]])
@@ -48,7 +50,9 @@ func _initialize() -> void:
 					unreached += 1
 			_check(unreached == 0, "%s: %d halls outside every locked area cannot be walked to" % [label, unreached])
 			if not plan["caves"]:
-				_check(graph.rooms.size() == 1 and world["castle"] == -1 and world["gates"].is_empty(), "%s: not all open sky" % label)
+				_check(graph.rooms.size() == 1 and world["castles"].is_empty() and world["gates"].is_empty(), "%s: not all open sky" % label)
+			_check(world["castles"].is_empty() != (biome == "castle"), "%s: %d castles in the %s" % [label, world["castles"].size(), biome])
+			_check(world["roofed"] == (biome == "underground"), "%s: roofed is %s in the %s" % [label, world["roofed"], biome])
 			var dealt := Pages.deal(s, 4)
 			var layout := Pages.plan(graph, rng, dealt)
 			var known := {}

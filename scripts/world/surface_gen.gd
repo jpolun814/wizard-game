@@ -1,10 +1,9 @@
 class_name SurfaceGen
 extends RefCounted
 
-## The ground above the caves: a long landscape cut into biomes, side by side. The graveyard (with the ruined castle)
-## is in the middle, where you start; on either side, two of mountains, swamp, tundra and ashlands, in an order the
-## seed picks. Heights are rows of tiles (a lower number is higher ground). Neighbouring columns never differ by more
-## than a row, so all of it can be walked. Nothing here uses randomness except the rng it is given.
+## The ground above the caves. Each world is one biome: the whole surface is that biome, from end to end (the seed picks
+## which, see MatchState). Heights are rows of tiles (a lower number is higher ground). Neighbouring columns never differ by
+## more than a row, so all of it can be walked. Nothing here uses randomness except the rng it is given.
 
 const BASE_ROW := 110       # the ground line of the plains
 const MARGIN := 4           # columns at each end of the world that are left alone
@@ -13,104 +12,33 @@ const CASTLE_WIDTH := 136   # the same as WorldBuilder's
 const POOL_PAD := 3         # columns of level shore each side of a pool
 const START_FLAT := 8       # columns each side of the middle that are level, to start on
 const LEDGE := 3            # the most a ledge on a mountain climbs in one column: a jump (the wizard clears three rows)
-const OTHERS := ["mountains", "swamp", "tundra", "ashlands"]
+const BIOMES := ["graveyard", "mountains", "swamp", "ashlands", "castle", "underground"]  # one of these is the whole of a world
+const OPEN_BIOMES := ["graveyard", "mountains", "swamp", "ashlands"]  # those with open sky and room to spare: the last world of a match is one of them
 
 ## What each biome looks like: the tiles of its grassy top, the backdrop, the colour its daylight is tinted, and the
 ## things standing about on it.
 const LOOKS := {
 	"graveyard": {"title": "The Graveyard", "tiles": "cemetery", "backdrop": "cemetery", "tint": Color(1.0, 1.0, 1.0)},
-	"mountains": {"title": "The Mountains", "tiles": "stone", "snow": 26, "weather": ["snow"], "backdrop": "mountains", "tint": Color(0.82, 0.86, 0.98)},
+	"mountains": {"title": "The Snowy Peaks", "tiles": "stone", "snow": 26, "weather": ["snow", "blizzard"], "backdrop": "mountains", "tint": Color(0.82, 0.86, 0.98)},
 	"swamp": {"title": "The Swamp", "tiles": "swamp", "weather": ["spores"], "backdrop": "swamp", "tint": Color(0.86, 1.0, 0.9)},
-	"tundra": {"title": "The Tundra", "tiles": "snow", "weather": ["blizzard"], "backdrop": "tundra", "tint": Color(0.8, 0.95, 1.12)},
-	"ashlands": {"title": "The Ashlands", "tiles": "cemetery", "weather": ["ash", "embers"], "backdrop": "ashlands", "tint": Color(1.12, 0.78, 0.7)},
+	"ashlands": {"title": "The Ashlands", "tiles": "ash", "weather": ["ash", "embers"], "backdrop": "ashlands", "tint": Color(1.12, 0.78, 0.7)},
+	"castle": {"title": "The Castle", "tiles": "church", "backdrop": "cemetery", "tint": Color(0.9, 0.92, 1.08)},
+	"underground": {"title": "The Deep", "tiles": "stone", "backdrop": "cemetery", "tint": Color(0.42, 0.4, 0.55)},  # under a roof of rock: no sky shows
 }
 
 
-## Returns {"floor": the first solid row in each column, "biomes": [{"name", "a", "b"}: the columns each takes],
-## "ponds": [{"a", "b", "surface", "depth", "lava"}], "castle": the castle's first column, "start": the column to start on}.
-static func build(width: int, rng: RandomNumberGenerator) -> Dictionary:
-	var others: Array = OTHERS.duplicate()
-	for i in others.size():
-		others.append(others.pop_at(rng.randi() % others.size()))
-	var middle := width / 2
-	var graveyard := Vector2i(middle - GRAVEYARD_WIDTH / 2, middle + GRAVEYARD_WIDTH / 2 - 1)
-	var left_room := graveyard.x - MARGIN
-	var right_room := width - MARGIN - (graveyard.y + 1)
-	var first := left_room / 2 + rng.randi_range(-14, 14)
-	var third := right_room / 2 + rng.randi_range(-14, 14)
-	var biomes := [
-		{"name": others[0], "a": MARGIN, "b": MARGIN + first - 1},
-		{"name": others[1], "a": MARGIN + first, "b": graveyard.x - 1},
-		{"name": "graveyard", "a": graveyard.x, "b": graveyard.y},
-		{"name": others[2], "a": graveyard.y + 1, "b": graveyard.y + third},
-		{"name": others[3], "a": graveyard.y + third + 1, "b": width - MARGIN - 1},
-	]
-	var floor_row := PackedInt32Array()
-	floor_row.resize(width)
-	floor_row.fill(BASE_ROW)
-	var ponds := []
-	var limits := PackedByteArray()  # the most a column may differ from the one before it: one row, or a ledge on a mountain
-	limits.resize(width)
-	limits.fill(1)
-	for biome in biomes:
-		var n: int = biome["b"] - biome["a"] + 1
-		var offset := _offsets(biome["name"], n, rng)
-		for i in n:
-			floor_row[biome["a"] + i] = BASE_ROW + roundi(offset[i])
-		if biome["name"] == "mountains":
-			for c in range(biome["a"] + 1, biome["b"] + 1):
-				var step := floor_row[c] - floor_row[c - 1]
-				if absi(step) > 1:
-					limits[c] = mini(absi(step), LEDGE)
-					floor_row[c] = floor_row[c - 1] + signi(step) * mini(absi(step), LEDGE)
-	# The start: level ground in the middle. The castle stands on level ground to one side of it.
-	for c in range(middle - START_FLAT, middle + START_FLAT + 1):
-		floor_row[c] = BASE_ROW
-	var castle := middle + 25 + rng.randi_range(0, 12) if rng.randf() < 0.5 else middle - 25 - CASTLE_WIDTH - rng.randi_range(0, 12)
-	for c in range(castle - 3, castle + CASTLE_WIDTH + 4):
-		floor_row[c] = BASE_ROW
-	var pinned := PackedByteArray()
-	pinned.resize(width)
-	for c in range(middle - START_FLAT, middle + START_FLAT + 1):
-		pinned[c] = 1
-	for c in range(castle - 3, castle + CASTLE_WIDTH + 4):
-		pinned[c] = 1
-	_relax(floor_row, pinned, limits)
-	# Pools, after the ground is smooth: each is dug into a level stretch of its own, far enough from any other level ground
-	# that the ground between can slope from one to the other.
-	for biome in biomes:
-		var wants := _pools_for(biome["name"], rng)
-		var pools: int = wants[0]
-		var lava: bool = wants[1]
-		for k in pools:
-			for attempt in 24:
-				var pool_width := rng.randi_range(18, 34) if lava or biome["name"] == "tundra" else rng.randi_range(14, 28)
-				var a := rng.randi_range(biome["a"] + 14, biome["b"] - pool_width - 14)
-				var level := floor_row[a - 1]
-				if not _room_to_slope(floor_row, pinned, a - POOL_PAD, a + pool_width - 1 + POOL_PAD, level):
-					continue
-				var depth := 4 if lava else rng.randi_range(3, 4)
-				for c in range(a - POOL_PAD, a + pool_width + POOL_PAD):
-					floor_row[c] = level
-					pinned[c] = 1
-				for c in range(a, a + pool_width):
-					floor_row[c] = level + mini(mini(c - a + 1, a + pool_width - c), depth)
-				ponds.append({"a": a, "b": a + pool_width - 1, "surface": level, "depth": depth, "lava": lava})
-				break
-	_relax(floor_row, pinned, limits)
-	return {"limits": limits, "floor": floor_row, "biomes": biomes, "ponds": ponds, "castle": castle, "start": middle}
-
-
-## The ground of a world with no caves and no castle, for the last of the worlds: one biome, all of it open sky, with level ground to start on
-## in the middle. Returns the same as build().
-static func open(width: int, rng: RandomNumberGenerator) -> Dictionary:
-	var biome: String = OTHERS[rng.randi() % OTHERS.size()]
+## The ground of one world: one biome over the whole width, with open sky, level ground to start on in the middle and the
+## biome's pools. Returns {"floor": the first solid row in each column, "limits": the most each column may step from the one
+## before it, "biomes": [{"name", "a", "b"}], "ponds": [{"a", "b", "surface", "depth", "lava"}], "castles": the first column of each castle
+## on the ground (only the castle world has any), "castle": the first of those or -1, "roofed": true when a roof of rock covers the surface
+## (the underground), "start": the column to start on}.
+static func build(width: int, biome: String, rng: RandomNumberGenerator) -> Dictionary:
 	var n := width - MARGIN * 2
 	var offset := _offsets(biome, n, rng)
 	var floor_row := PackedInt32Array()
 	floor_row.resize(width)
 	floor_row.fill(BASE_ROW)
-	var limits := PackedByteArray()
+	var limits := PackedByteArray()  # the most a column may differ from the one before it: one row, or a ledge on a mountain
 	limits.resize(width)
 	limits.fill(1)
 	for i in n:
@@ -121,14 +49,46 @@ static func open(width: int, rng: RandomNumberGenerator) -> Dictionary:
 			if absi(step) > 1:
 				limits[c] = mini(absi(step), LEDGE)
 				floor_row[c] = floor_row[c - 1] + signi(step) * mini(absi(step), LEDGE)
+	# The start: level ground in the middle, pinned so the smoothing leaves it alone.
 	var middle := width / 2
 	var pinned := PackedByteArray()
 	pinned.resize(width)
 	for c in range(middle - START_FLAT, middle + START_FLAT + 1):
 		floor_row[c] = BASE_ROW
 		pinned[c] = 1
+	var castles: Array[int] = []
+	if biome == "castle":  # castles stand in a row on level ground, an even number of them so the start falls between two
+		var count := maxi(2, width / 250 / 2 * 2)
+		var segment := (width - MARGIN * 2) / count
+		for k in count:
+			var x := MARGIN + k * segment + (segment - CASTLE_WIDTH) / 2
+			castles.append(x)
+			for c in range(x - 3, x + CASTLE_WIDTH + 4):
+				floor_row[c] = BASE_ROW
+				pinned[c] = 1
 	_relax(floor_row, pinned, limits)
-	return {"limits": limits, "floor": floor_row, "biomes": [{"name": biome, "a": MARGIN, "b": width - MARGIN - 1}], "ponds": [], "castle": -1, "start": middle}
+	# Pools, after the ground is smooth: each is dug into a level stretch of its own, far enough from any other level ground
+	# that the ground between can slope from one to the other.
+	var ponds := []
+	var wants := _pools_for(biome, rng)
+	var lava: bool = wants[1]
+	for k in wants[0]:
+		for attempt in 24:
+			var pool_width := rng.randi_range(18, 34) if lava else rng.randi_range(14, 28)
+			var a := rng.randi_range(MARGIN + 14, width - MARGIN - 1 - pool_width - 14)
+			var level := floor_row[a - 1]
+			if not _room_to_slope(floor_row, pinned, a - POOL_PAD, a + pool_width - 1 + POOL_PAD, level):
+				continue
+			var depth := 4 if lava else rng.randi_range(3, 4)
+			for c in range(a - POOL_PAD, a + pool_width + POOL_PAD):
+				floor_row[c] = level
+				pinned[c] = 1
+			for c in range(a, a + pool_width):
+				floor_row[c] = level + mini(mini(c - a + 1, a + pool_width - c), depth)
+			ponds.append({"a": a, "b": a + pool_width - 1, "surface": level, "depth": depth, "lava": lava})
+			break
+	_relax(floor_row, pinned, limits)
+	return {"limits": limits, "floor": floor_row, "biomes": [{"name": biome, "a": MARGIN, "b": width - MARGIN - 1}], "ponds": ponds, "castles": castles, "castle": castles[0] if not castles.is_empty() else -1, "roofed": biome == "underground", "start": middle}
 
 
 ## How many pools a biome has, and whether they are lava.
@@ -136,8 +96,6 @@ static func _pools_for(biome: String, rng: RandomNumberGenerator) -> Array:
 	match biome:
 		"swamp":
 			return [rng.randi_range(3, 4), false]
-		"tundra":
-			return [rng.randi_range(1, 2), false]
 		"ashlands":
 			return [rng.randi_range(2, 3), true]
 	return [0, false]
@@ -186,9 +144,12 @@ static func _offsets(biome: String, n: int, rng: RandomNumberGenerator) -> Packe
 		"swamp":
 			for k in n:
 				out[k] = 2.0 + 1.4 * sin(k / 9.0 + phase1) + 0.8 * sin(k / 4.0 + phase2)
-		"tundra":
+		"castle":
 			for k in n:
-				out[k] = -4.0 + 6.0 * sin(k / 14.0 + phase1) + 2.5 * sin(k / 5.5 + phase2)
+				out[k] = 1.5 * sin(k / 19.0 + phase1)
+		"underground":
+			for k in n:
+				out[k] = 4.0 * sin(k / 13.0 + phase1) + 1.6 * sin(k / 5.0 + phase2)
 		"ashlands":
 			for k in n:
 				out[k] = 4.0 * sin(k / 11.0 + phase1) + 1.6 * sin(k / 4.5 + phase2)

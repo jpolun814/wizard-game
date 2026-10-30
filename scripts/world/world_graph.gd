@@ -60,14 +60,14 @@ var _reserved: Array[Dictionary] = []  # {"rect": Rect2i, "owners": [room ids]}:
 
 
 ## Tries again from scratch until a world has enough halls, a gate and a deep hall; the best of a few tries if none does.
-static func build(rng: RandomNumberGenerator) -> WorldGraph:
+static func build(rng: RandomNumberGenerator, biome: String) -> WorldGraph:
 	var wanted_mouths := _scaled(8, 3)
 	var wanted_locks := 2 if size.x >= 800 else 1
 	var wanted_depth := 3 if size.x >= 800 else 2
 	var best: WorldGraph = null
 	var best_score := -1
 	for attempt in 60:
-		var graph := _grow(rng)
+		var graph := _grow(rng, biome)
 		var mouths: int = graph.rooms[0]["mouths"].size()
 		var score := graph.rooms.size() + mouths * 3 + mini(graph.links.size() - graph.rooms.size(), 4) * 4 + (6 if graph.locks.size() >= wanted_locks else 0) + (4 if graph.rooms[graph.deepest]["depth"] >= wanted_depth else 0) + (0 if graph._spawns_apart() else -40)
 		if score > best_score:
@@ -84,9 +84,9 @@ static func _scaled(count: int, least: int) -> int:
 
 
 ## A world with no caves: only the surface, with the players' places spread along it. The last world of a match, with nowhere to hide.
-static func build_open(rng: RandomNumberGenerator) -> WorldGraph:
+static func build_open(rng: RandomNumberGenerator, biome: String) -> WorldGraph:
 	var graph := WorldGraph.new()
-	graph.surface = SurfaceGen.open(size.x, rng)
+	graph.surface = SurfaceGen.build(size.x, biome, rng)
 	graph._add_room({"cx": size.x / 2, "cy": SURFACE_ROW, "hw": size.x / 2 - 4, "air": SURFACE_ROW - 3, "surface": true,
 			"tunnel_1": true, "tunnel_-1": true, "mouths": [], "role": "surface", "cluster": -1})
 	graph._classify(rng)
@@ -100,8 +100,6 @@ static func build_open(rng: RandomNumberGenerator) -> WorldGraph:
 ## True when each biome of the surface has at least one way down.
 func _every_biome_has_a_way_down() -> bool:
 	for biome in surface["biomes"]:
-		if biome["name"] == "graveyard":
-			continue  # the castle stands there
 		var inside := 0
 		for column in rooms[0]["mouths"]:
 			if column >= biome["a"] and column <= biome["b"]:
@@ -120,9 +118,9 @@ func _spawns_apart() -> bool:
 	return true
 
 
-static func _grow(rng: RandomNumberGenerator) -> WorldGraph:
+static func _grow(rng: RandomNumberGenerator, surface_biome: String) -> WorldGraph:
 	var graph := WorldGraph.new()
-	graph.surface = SurfaceGen.build(size.x, rng)
+	graph.surface = SurfaceGen.build(size.x, surface_biome, rng)
 	var count := rng.randi_range(_scaled(MIN_ROOMS, 8), _scaled(MAX_ROOMS, 10))
 	graph._add_room({"cx": size.x / 2, "cy": SURFACE_ROW, "hw": size.x / 2 - 4, "air": SURFACE_ROW - 3, "surface": true,
 			"tunnel_1": true, "tunnel_-1": true, "mouths": [], "role": "surface", "cluster": -1})
@@ -278,8 +276,9 @@ func _under_surface(a: Vector2i, b: Vector2i, slope: float, open_start: bool) ->
 func _clear_ground(x: int) -> bool:
 	var floor_row: PackedInt32Array = surface["floor"]
 	var level := floor_row[x]
-	var spots: Array = [[size.x / 2 - SurfaceGen.START_FLAT, size.x / 2 + SurfaceGen.START_FLAT, SurfaceGen.BASE_ROW],
-			[surface["castle"] - 3, surface["castle"] + SurfaceGen.CASTLE_WIDTH + 3, SurfaceGen.BASE_ROW]]
+	var spots: Array = [[size.x / 2 - SurfaceGen.START_FLAT, size.x / 2 + SurfaceGen.START_FLAT, SurfaceGen.BASE_ROW]]
+	for castle: int in surface["castles"]:
+		spots.append([castle - 3, castle + SurfaceGen.CASTLE_WIDTH + 3, SurfaceGen.BASE_ROW])
 	for pond in surface["ponds"]:
 		spots.append([pond["a"] - SurfaceGen.POOL_PAD, pond["b"] + SurfaceGen.POOL_PAD, pond["surface"]])
 	for other in rooms[0]["mouths"]:
@@ -451,7 +450,9 @@ func _open_ground_far_from_spawns() -> int:
 	var best := -1
 	var best_gap := -1
 	for column in range(SurfaceGen.MARGIN + 20, size.x - SurfaceGen.MARGIN - 20, 4):
-		var clear: bool = column < surface["castle"] - 8 or column > surface["castle"] + SurfaceGen.CASTLE_WIDTH + 8
+		var clear := true
+		for castle: int in surface["castles"]:
+			clear = clear and (column < castle - 8 or column > castle + SurfaceGen.CASTLE_WIDTH + 8)
 		for pond: Dictionary in surface["ponds"]:
 			clear = clear and (column < pond["a"] - 6 or column > pond["b"] + 6)
 		for mouth: int in rooms[0]["mouths"]:

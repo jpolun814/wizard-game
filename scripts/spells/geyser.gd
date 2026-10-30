@@ -3,10 +3,11 @@ extends Node2D
 
 ## Geyser: a jet of water bursts from the ground under the middle of the peak you drew. The ground bubbles first, so there is
 ## time to step off; whoever is standing on it when it bursts is thrown high into the air. That is anyone: you
-## included. It does no damage itself.
+## included. It does no damage itself. Then it sinks, rests, bubbles and bursts again, for as long as the world lasts.
 
 const WARNING := 0.7
-const LIFE := 1.8
+const LIFE := 1.8  # one burst, from the first bubble to the column gone
+const REST := 1.2  # the quiet before the ground starts to bubble again
 const WIDTH := 46.0
 const WIZARD_LAUNCH := 1000.0
 const MOB_LAUNCH := 820.0
@@ -34,6 +35,7 @@ func _ready() -> void:
 	_bubbles.modulate = Color(0.8, 0.95, 1.0, 0.9)
 	_bubbles.scale = Vector2(0.6, 0.6)
 	add_child(_bubbles)
+	_bubbles.visible = false
 	# Small jets hiss up out of the cracking ground, and a splash pulses at the foot.
 	_hiss = CPUParticles2D.new()
 	_hiss.amount = 16
@@ -50,18 +52,35 @@ func _ready() -> void:
 	_hiss.scale_amount_max = 0.6
 	_hiss.color_ramp = Fx.fade_ramp(Color(0.8, 0.95, 1.0, 0.9))
 	add_child(_hiss)
-	_hiss.emitting = true
 	_base = PixelFx.sprite("splash", 9.0)
 	_base.scale = Vector2(2.0, 2.0)
 	_base.offset = Vector2(0, -PixelArt.FX["splash"]["size"].y * 0.5)  # it stands on the ground
 	_base.modulate.a = 0.75
 	add_child(_base)
+	_begin_cycle()
+
+
+## The ground starts to bubble again.
+func _begin_cycle() -> void:
+	_age = 0.0
+	_burst = false
+	if _crown != null:
+		_crown.queue_free()
+		_crown = null
+	_bubbles.visible = true
+	_hiss.emitting = true
+	_base.modulate.a = 0.75
 	Sfx.play("snow", global_position, 2.0)
 
 
 func _physics_process(delta: float) -> void:
 	_age += delta
 	queue_redraw()
+	if _age >= LIFE + REST:
+		_begin_cycle()
+	if _age >= LIFE:
+		_base.modulate.a = 0.0  # resting: nothing shows
+		return
 	if not _burst:
 		_hiss.amount = 16 + int(40.0 * _age / WARNING)  # the hissing grows as the burst nears
 		_base.scale = Vector2.ONE * (2.0 + _age / WARNING)
@@ -70,7 +89,7 @@ func _physics_process(delta: float) -> void:
 		_crown.modulate.a = clampf((LIFE - _age) / 0.5, 0.0, 1.0)
 	if not _burst and _age >= WARNING:
 		_burst = true
-		_bubbles.queue_free()
+		_bubbles.visible = false
 		_hiss.emitting = false
 		_base.scale = Vector2(3.0, 3.0)
 		_base.modulate.a = 1.0
@@ -82,8 +101,6 @@ func _physics_process(delta: float) -> void:
 	if _burst:
 		_base.modulate.a = clampf((LIFE - _age) / 0.5, 0.0, 1.0)
 		GameCamera.shake_scene(get_tree(), 0.05 if _age < DROP else 0.0)
-	if _age >= LIFE:
-		queue_free()
 
 
 ## How high the column stands now: it shoots up, holds, and sinks.
@@ -153,6 +170,8 @@ func _on_the_spot(body: Node2D) -> bool:
 
 
 func danger_at(point: Vector2) -> bool:
+	if _age >= DROP:
+		return false  # sinking or resting: the spot is safe until it bubbles again
 	return absf(point.x - global_position.x) < WIDTH * 0.5 + 6.0 and point.y > global_position.y - COLUMN_HEIGHT and point.y < global_position.y + 10.0
 
 

@@ -14,6 +14,7 @@ var _world_clock := 0.0
 var _last: World
 var _total_pages := 0
 var _held_at_start := 0
+var _biomes_seen: Array[String] = []
 
 
 func _ready() -> void:
@@ -53,6 +54,10 @@ func _arrived(world: World) -> void:
 	_verdict(MatchState.stage == stage, "world %d is stage %d (%d)" % [stage + 1, stage, MatchState.stage])
 	_verdict(ArenaGen.world_size.x == plan["width"], "world %d is %d tiles wide (%d)" % [stage + 1, plan["width"], ArenaGen.world_size.x])
 	_verdict(world.graph.rooms.size() > 1 or not plan["caves"] == true or stage == 0, "world %d has halls (%d)" % [stage + 1, world.graph.rooms.size()])
+	var biome: String = world.graph.surface["biomes"][0]["name"]
+	_verdict(biome == MatchState.biome_of(stage), "world %d is the %s the seed picked (%s)" % [stage + 1, MatchState.biome_of(stage), biome])
+	_verdict(not _biomes_seen.has(biome), "no biome comes up twice (%s)" % biome)
+	_biomes_seen.append(biome)
 	if not plan["caves"]:
 		_verdict(world.graph.rooms.size() == 1 and world.castle_x == -1 and world._gates.is_empty(), "the last world is all open sky: no halls, no castle, no gates (%d halls)" % world.graph.rooms.size())
 	var known := {}  # every page some wizard holds: wizards start with some in common

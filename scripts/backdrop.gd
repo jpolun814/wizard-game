@@ -28,10 +28,6 @@ const PLACES := {
 		["res://art/backgrounds/mountains/far.png", Vector2(0.22, 1.0), 218.0, 0.0, false, 1.7],
 		["res://art/backgrounds/mountains/near.png", Vector2(0.4, 1.0), 222.0, 0.0, false, 1.2],
 	]},
-	"tundra": {"sky": "res://art/backgrounds/tundra/sky.png", "fill": Color("#123a4a"), "layers": [
-		["res://art/backgrounds/tundra/far.png", Vector2(0.10, 1.0), 214.0, 0.0, false, 1.9],
-		["res://art/backgrounds/tundra/near.png", Vector2(0.35, 1.0), 222.0, 0.0, false, 1.2],
-	]},
 	"ashlands": {"sky": "res://art/backgrounds/ashlands/sky.png", "fill": Color("#1a0606"), "layers": [
 		["res://art/backgrounds/ashlands/far.png", Vector2(0.10, 1.0), 214.0, 0.0, false, 2.1],
 		["res://art/backgrounds/ashlands/near.png", Vector2(0.35, 1.0), 222.0, 0.0, false, 1.2],

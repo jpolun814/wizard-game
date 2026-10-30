@@ -168,10 +168,7 @@ func _initialize() -> void:
 func _make(seed_value: int) -> Dictionary:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed_value
-	var graph := WorldGraph.build(rng)
-	var world := WorldBuilder.build(graph, rng)
-	world["graph"] = graph
-	return world
+	return WorldBuilder.make(rng, SurfaceGen.BIOMES[seed_value % SurfaceGen.BIOMES.size()], true)
 
 
 ## The world is a sprawl, not a single path: many ways down, systems of halls joined by more than one route, and four starting

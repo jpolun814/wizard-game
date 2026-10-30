@@ -244,8 +244,9 @@ spells you do, drawing them visibly. There are no waves and no boss (see `docs/p
 **The look:** dark gothic pixel art.
 - **Biomes** (the look of each place):
   - a blood-moon graveyard.
-  - a haunted swamp, plus mountains, tundra and ashlands in the open world.
-  - a ruined castle with a gothic church interior.
+  - a haunted swamp, snowy peaks and ashlands (embers and lava over dark basalt).
+  - a castle (a row of ruined castles with gothic church interiors) and the underground (a great cavern under a roof of rock, no sky).
+  - Each world of a match is one of these six, in an order the seed picks; the last, small world is all open sky, one of the first four.
 - **Characters and art:** LuizMelo characters, Ansimuz GothicVania environments, and CC0 pixel effects.
 
 ## 2. The eleven rules that matter most

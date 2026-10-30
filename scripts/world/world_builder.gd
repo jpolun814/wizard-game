@@ -18,6 +18,7 @@ const CASTLE_DOOR := 4  # rows tall a doorway is
 const CASTLE_TOWER := 30  # rows the gate tower and the back tower stand above the ground
 const CASTLE_KEEP := 38  # rows the keep stands above the ground
 const CASTLE_WIDTH := 136  # columns the castle takes on the surface (SurfaceGen keeps the same)
+const ROOF_AIR := 28        # rows of air over the ground of the underground world, before its roof of rock
 const EXIT_FLAT := 10       # columns of flat floor inside a hall at a tunnel mouth
 const LID_SPAN := 16        # columns of flat floor past a ramp that starts in the middle of a floor
 const LID_GAP := 7          # columns of that ramp that are open pit: the floor above carries on past it, a jump across
@@ -83,7 +84,7 @@ static func build(graph: WorldGraph, rng: RandomNumberGenerator) -> Dictionary:
 	var ponds := []
 	var hazards := {}
 	var profiles := {}
-	var castle_x: int = graph.surface["castle"]
+	var castles: Array = graph.surface["castles"]
 	plans[0]["pins"].append(Vector3i(graph.rooms[0]["cx"] - SurfaceGen.START_FLAT, graph.rooms[0]["cx"] + SurfaceGen.START_FLAT, graph.rooms[0]["cx"]))  # level ground to start on
 	for room in graph.rooms:
 		profiles[room["id"]] = _surface_profile(graph, plans[0]) if room.has("surface") else _profile(plans[room["id"]], rng)
@@ -116,11 +117,11 @@ static func build(graph: WorldGraph, rng: RandomNumberGenerator) -> Dictionary:
 	var hall: Array = []
 	var doors: Array = []
 	var ladders: Array = []
-	if castle_x >= 0:
+	for castle_x: int in castles:
 		var castle := _castle(cells, graph.rooms[0]["cy"], castle_x)
-		hall = castle["hall"]
-		doors = castle["doors"]
-		ladders = castle["ladders"]
+		hall.append_array(castle["hall"])
+		doors.append_array(castle["doors"])
+		ladders.append_array(castle["ladders"])
 	# What bars each gated tunnel is made in it: a lava chasm, a stretch of thorns or a sheer wall.
 	var gates := []
 	for k in tunnels.size():
@@ -129,7 +130,7 @@ static func build(graph: WorldGraph, rng: RandomNumberGenerator) -> Dictionary:
 			gate["lock"] = tunnels[k]["lock"]
 			gates.append(gate)
 	return {"cells": cells, "size": size, "markers": markers, "start": markers[graph.start], "ponds": ponds,
-			"hazards": hazards, "castle": castle_x, "hall": hall, "doors": doors, "ladders": ladders, "profiles": profiles, "sky": {"xl": profiles[0]["xl"], "floor": profiles[0]["floor"]},
+			"hazards": hazards, "castle": castles[0] if not castles.is_empty() else -1, "castles": castles, "roofed": graph.surface["roofed"], "hall": hall, "doors": doors, "ladders": ladders, "profiles": profiles, "sky": {"xl": profiles[0]["xl"], "floor": profiles[0]["floor"]},
 			"surface": graph.surface, "gates": gates, "spawns": spawns}
 
 
@@ -147,8 +148,8 @@ static func _surface_profile(graph: WorldGraph, plan: Dictionary) -> Dictionary:
 	for pond in graph.surface["ponds"]:
 		for c in range(pond["a"] - SurfaceGen.POOL_PAD, pond["b"] + SurfaceGen.POOL_PAD + 1):
 			pinned[c - xl] = 1
-	if graph.surface["castle"] >= 0:
-		for c in range(graph.surface["castle"] - 3, graph.surface["castle"] + CASTLE_WIDTH + 4):
+	for castle_x: int in graph.surface["castles"]:
+		for c in range(castle_x - 3, castle_x + CASTLE_WIDTH + 4):
 			pinned[c - xl] = 1
 	for pin: Vector3i in plan["pins"]:
 		var level := floor_row[pin.z - xl]  # a mouth is level for a stretch, at the height of the mouth itself
@@ -159,6 +160,9 @@ static func _surface_profile(graph: WorldGraph, plan: Dictionary) -> Dictionary:
 	var ceiling := PackedInt32Array()
 	ceiling.resize(n)
 	ceiling.fill(0)
+	if graph.surface["roofed"]:  # a roof of rock over the whole of it: the surface is a great cavern, and no sky shows
+		for i in n:
+			ceiling[i] = floor_row[i] - ROOF_AIR - roundi(5.0 * sin((xl + i) / 17.0))
 	return {"xl": xl, "floor": floor_row, "ceiling": ceiling, "ponds": graph.surface["ponds"], "cy": room["cy"]}
 
 
@@ -835,3 +839,38 @@ static func reachable(cells: TileGrid, start: Vector2i, bottom: int, hazards := 
 				seen[next] = true
 				queue.append(next)
 	return seen
+
+
+const ATTEMPTS := 8  # worlds tried before an unsound one is accepted anyway
+
+
+## A whole world for a surface biome: the graph of its halls, built into tiles, with "graph" added to what build() returns. A world is thrown
+## away if it is not sound (see sound) and the next is built from the rng as it stands, so the same seed still gives the same world.
+static func make(rng: RandomNumberGenerator, biome: String, caves: bool) -> Dictionary:
+	var built := {}
+	for attempt in ATTEMPTS:
+		var graph := WorldGraph.build(rng, biome) if caves else WorldGraph.build_open(rng, biome)
+		built = build(graph, rng)
+		built["graph"] = graph
+		if sound(built, graph):
+			break
+	return built
+
+
+## True when the tiles are what the graph says they are. The graph is made of halls joined by tunnels, but two tunnels can be cut through each
+## other, and then two things go wrong that only the tiles show: a locked area can be walked into with every gate in place (there is a way round
+## the gate), and a hall can be dropped into with no way back out (the wizards' map, which keeps only the ways one can return by, leaves it out).
+static func sound(built: Dictionary, graph: WorldGraph) -> bool:
+	var closed := shut(built)
+	var seen := reachable(closed["cells"], built["start"], built["size"].y, closed["barred"])
+	for lock in graph.locks:
+		for id in lock["rooms"]:
+			if seen.has(built["markers"][id]):
+				return false
+	var spawns: Array[Vector2i] = built["spawns"]
+	var nav := WorldNav.new()
+	nav.build(closed["cells"], built["size"].y, closed["barred"], spawns[0])
+	for room in graph.rooms:
+		if room["lock"] == -1 and not nav.can_stand(built["markers"][room["id"]]):
+			return false
+	return true

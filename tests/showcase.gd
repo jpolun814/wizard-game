@@ -510,6 +510,8 @@ func _plan() -> void:
 			_at(2.0, func() -> void: _arena.spellbook._turn(1))
 			_at(2.08, func() -> void: _snap("book_turning"))
 			_at(2.4, func() -> void: _snap("book_second_spread"))
+			_at(2.6, func() -> void: _arena.spellbook.show_page("chant:" + String(RitualInput.RITUALS.keys()[0])))
+			_at(3.0, func() -> void: _snap("book_incantation"))
 			_at(3.5, func() -> void:
 				_arena.spellbook.visible = false
 				_arena.hud.toggle_pause())

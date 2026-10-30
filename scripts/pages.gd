@@ -81,10 +81,13 @@ static func plan(graph: WorldGraph, rng: RandomNumberGenerator, dealt: Array[Led
 	for column in _surface_columns(graph, mini(ON_SURFACE, rest.size())):  # late in a match few pages are left
 		placed.append({"page": rest.pop_back(), "room": 0, "x": column})  # room 0 is the surface
 		spots.append(Vector2(column, 0))
-	if graph.surface["castle"] >= 0:
-		for spot in CASTLE_SPOTS.slice(0, mini(IN_CASTLE, rest.size())):
-			placed.append({"page": rest.pop_back(), "room": 0, "castle": spot})
-			spots.append(Vector2(graph.surface["castle"] + spot.x, 0))
+	var castles: Array = graph.surface["castles"]
+	if not castles.is_empty():  # the pages up in the castles are shared out among them, one to a castle before any has a second
+		for k in mini(IN_CASTLE, rest.size()):
+			var castle_at: int = castles[k % castles.size()]
+			var spot: Vector2i = CASTLE_SPOTS[(k / castles.size()) % CASTLE_SPOTS.size()]
+			placed.append({"page": rest.pop_back(), "room": 0, "castle": spot, "castle_x": castle_at})
+			spots.append(Vector2(castle_at + spot.x, 0))
 	# The locked areas: only pages that open no gate lie in them, one to a room, as the reward for getting in.
 	var inner_rooms := []
 	for lock: Dictionary in graph.locks:
@@ -139,10 +142,12 @@ static func _farthest(graph: WorldGraph, candidates: Array, spots: Array[Vector2
 static func _surface_columns(graph: WorldGraph, count: int) -> Array[int]:
 	var out: Array[int] = []
 	var start: int = graph.surface["start"]
-	var castle: int = graph.surface["castle"]
+	var castles: Array = graph.surface["castles"]
 	for step in 40:
 		var column := start + (step / 2 + 1) * 28 * (1 if step % 2 == 0 else -1)
-		var clear: bool = column < castle - 6 or column > castle + SurfaceGen.CASTLE_WIDTH + 6
+		var clear := true
+		for castle: int in castles:
+			clear = clear and (column < castle - 6 or column > castle + SurfaceGen.CASTLE_WIDTH + 6)
 		for pond: Dictionary in graph.surface["ponds"]:
 			clear = clear and (column < pond["a"] - 4 or column > pond["b"] + 4)
 		if clear:

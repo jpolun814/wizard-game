@@ -101,6 +101,7 @@ class MouseIcon extends Control:
 ## A keyboard key, drawn as a keycap on the book's parchment, the way a mouse button is drawn on a spell's page.
 class KeyCap extends PanelContainer:
 	func _init(key_name: String) -> void:
+		size_flags_vertical = Control.SIZE_SHRINK_CENTER  # a cap, not a bar as tall as the heading beside it
 		var cap := StyleBoxFlat.new()
 		cap.bg_color = Color("#e9d7bb")  # parchment-toned, like the mouse
 		cap.border_color = Color(0.08, 0.04, 0.08)

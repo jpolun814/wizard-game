@@ -6,10 +6,11 @@ extends RefCounted
 ## has found lie on in the new world; each wizard keeps their own pages and what is left of their stamina.
 
 ## Each world of a match: how wide it is in tiles, how long the wizards have in it before it collapses (0: it does not), and whether it has caves.
+## Each world is one biome (see biome_of): the first three take three of the six biomes in an order the seed picks, and the last is open sky.
 const STAGES := [
-	{"width": 1200, "seconds": 180.0, "caves": true},
-	{"width": 800, "seconds": 180.0, "caves": true},
-	{"width": 560, "seconds": 180.0, "caves": true},
+	{"width": 1000, "seconds": 180.0, "caves": true},
+	{"width": 720, "seconds": 180.0, "caves": true},
+	{"width": 520, "seconds": 180.0, "caves": true},
 	{"width": 360, "seconds": 0.0, "caves": false},
 ]
 const HEIGHT := 380  # every world is this deep, in tiles
@@ -32,9 +33,33 @@ static func begin(seed_value: int) -> void:
 	vitals = []
 
 
-## What the world being built is like.
+## What the world being built is like: its size and time from STAGES, and its biome.
 static func plan() -> Dictionary:
-	return STAGES[stage]
+	return STAGES[stage].merged({"biome": biome_of(stage)})
+
+
+## The biome of a stage of this match: the biomes shuffled by the match's seed, so every machine in a match gets the same order and no
+## biome comes up twice. The last world is all open sky, so it is one of the biomes that have sky and that the match has not been in.
+static func biome_of(at: int) -> String:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed_base
+	var order := _shuffled(SurfaceGen.BIOMES, rng)
+	if at < STAGES.size() - 1:
+		return order[at]
+	for biome: String in _shuffled(SurfaceGen.OPEN_BIOMES, rng):
+		if not order.slice(0, at).has(biome):
+			return biome
+	return SurfaceGen.OPEN_BIOMES[0]
+
+
+static func _shuffled(list: Array, rng: RandomNumberGenerator) -> Array:
+	var out := list.duplicate()
+	for i in range(out.size() - 1, 0, -1):
+		var j := rng.randi_range(0, i)
+		var held: String = out[i]
+		out[i] = out[j]
+		out[j] = held
+	return out
 
 
 ## True when the world being built is the last of the match.

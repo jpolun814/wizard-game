@@ -126,3 +126,7 @@ and are no longer drawn by the game.
 - Tide Surf wave (`art/fx/surf_crest.png`, `art/fx/surf_body.png`): "Tsunami animation" by mkwong98, https://opengameart.org/content/tsunami-animation, CC0. Recoloured from blue to dark teal (`tools/prepare_wave.py`).
 - Glowcap mushroom (`art/props/glowcap.png`): "Mushroom Sprite Pack" by Peter Field, https://opengameart.org/content/mushroom-pixel-art-pack-32x32 (also listed as node 178614), free to use, credit appreciated, CC0 on its page. The purple mushroom, recoloured to green (`tools/prepare_glowcap.py`).
 - Mouse icon (`art/ui/mouse/`): "Input Prompts" by Kenney, https://kenney.nl/assets/input-prompts, CC0. The plain mouse, plus the lit part of its left, right and scroll versions as masks, tinted in code.
+
+## Ash ground (art/tiles/ash.png)
+
+- Derived from the Gothicvania Cemetery tiles by ansimuz, CC0 (art/tiles/cemetery.png), turned to ember crust over basalt by tools/prepare_ash_tiles.py.

@@ -30,7 +30,7 @@ const BLACKEN_ROWS := 110.0  # and for the dark to become total
 
 var _dark: CanvasModulate
 static var random_start := true  # the player starts at any one of the starting places; the showcase and tests turn this off to see the same place each time
-var castle_x := -1  # the first column of the castle on the surface, or -1 when there is none
+var castle_x := -1  # the first column of the first castle on the surface, or -1 when there is none
 
 
 ## The world's tiles, built from the seed. Everything the generator decides comes from this one rng.
@@ -45,8 +45,8 @@ func _build_map() -> Variant:
 	WorldGraph.size = Vector2i(stage["width"], MatchState.HEIGHT)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed_value
-	graph = WorldGraph.build(rng) if stage["caves"] else WorldGraph.build_open(rng)
-	var built := WorldBuilder.build(graph, rng)
+	var built := WorldBuilder.make(rng, stage["biome"], stage["caves"])
+	graph = built["graph"]
 	_markers = built["markers"]
 	_ponds = built["ponds"]
 	_gates = built["gates"]
@@ -55,7 +55,7 @@ func _build_map() -> Variant:
 	castle_x = built["castle"]
 	ArenaGen.world_size = built["size"]
 	ArenaGen.sky_xl = built["sky"]["xl"]
-	ArenaGen.sky_floor = built["sky"]["floor"]
+	ArenaGen.sky_floor = built["sky"]["floor"] if not built["roofed"] else PackedInt32Array()  # under a roof there is no sky
 	ArenaGen.biome_spans = []
 	for biome in graph.surface["biomes"]:
 		var span := {"a": biome["a"], "b": biome["b"], "tiles": SurfaceGen.LOOKS[biome["name"]]["tiles"]}
@@ -104,7 +104,7 @@ func _set_up_backdrops() -> void:
 		if child is Backdrop:
 			child.queue_free()  # the one the arena made, which has no ground of its own to stand on
 	var ground_y := float(SurfaceGen.BASE_ROW * TILE)
-	for place in ["cemetery", "swamp", "mountains", "tundra", "ashlands"]:
+	for place in ["cemetery", "swamp", "mountains", "ashlands"]:
 		var backdrop := Backdrop.new()
 		add_child(backdrop)
 		move_child(backdrop, 0)
@@ -829,7 +829,8 @@ func _lay_pages() -> void:
 		pickup.page = entry["page"]
 		if entry.has("castle"):  # up in the castle: a column from its west end, and the floor's height in rows
 			var spot: Vector2i = entry["castle"]
-			pickup.position = Vector2((castle_x + spot.x + 0.5) * TILE, (WorldGraph.SURFACE_ROW - spot.y) * TILE)
+			var castle_at: int = entry["castle_x"]
+			pickup.position = Vector2((castle_at + spot.x + 0.5) * TILE, (WorldGraph.SURFACE_ROW - spot.y) * TILE)
 			add_child(pickup)
 			continue
 		if entry.has("x"):  # out on the surface, near the start

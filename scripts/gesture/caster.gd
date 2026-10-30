@@ -13,6 +13,7 @@ signal misfired
 @export var wall_tolerance_deg := 20.0  # straight strokes this close to vertical are walls
 const MIN_POINT_SPACING := 2.0
 const ICICLE_TURN := 30.0  # a stroke must zig or zag this far vertically to count as a V tip
+const ICICLE_BACK := 0.22  # and a row of them may go back across at most this share of its width
 
 ## Where the caster's character is, so a flick drawn toward it can be told from one drawn away.
 var anchor := Vector2.ZERO
@@ -468,7 +469,7 @@ func _mean_distance(points: PackedVector2Array, centre: Vector2) -> float:
 func _icicle_triangles(points: PackedVector2Array) -> Array:
 	var turns := _turning_points(points)
 	var triangles: Array = []
-	if turns.is_empty():
+	if turns.is_empty() or not _goes_one_way(points, turns):
 		return triangles
 	var want_bottoms := true  # only Vs: icicles hang down, and an upside-down V is left for other shapes
 	for k in turns.size():
@@ -491,6 +492,23 @@ func _icicle_triangles(points: PackedVector2Array) -> Array:
 			continue  # an apex wider than 50 degrees is a triangle, not an icicle
 		triangles.append(PackedVector2Array([left, apex, right]))
 	return triangles
+
+
+## True when a stroke's turns move on across in one direction, never back over themselves, as a row of icicles does. A star drawn in one
+## stroke zigzags up and down just as a row of Vs does, but it doubles back across itself, so it is not a row.
+func _goes_one_way(points: PackedVector2Array, turns: Array) -> bool:
+	var direction := signf(points[points.size() - 1].x - points[0].x)
+	if direction == 0.0:
+		return false  # it ends where it began: a loop, not a row
+	var back_most := ICICLE_BACK * _extent(points).x + 3.0  # a little give: a hand drifts back a pixel or two
+	var along: Array[float] = [points[0].x]
+	for turn: Array in turns:
+		along.append(points[turn[0]].x)
+	along.append(points[points.size() - 1].x)
+	for k in along.size() - 1:
+		if (along[k + 1] - along[k]) * direction < -back_most:
+			return false
+	return true
 
 
 ## Where a stroke turns vertically by a real amount. Each entry is [point index, true for a bottom

@@ -35,7 +35,7 @@ single-run loop in `docs/roguelite_exploration_design.md`; the spells, the world
 - Tests: `tests/test_nav.gd`, `tests/route_check.tscn` (each kind of move, tried in the real physics), `tests/arena_sim.tscn` (AI-only
   matches).
 
-- The collapsing worlds (`scripts/match_state.gd`, `World._watch_portal` and `_collapse`). A match is four worlds: 1200 tiles wide, 800, 560, then a last open one 360 wide with no caves, no castle and no gates that does not
+- The collapsing worlds (`scripts/match_state.gd`, `World._watch_portal` and `_collapse`). A match is four worlds: 1000 tiles wide, 720, 520, then a last open one 360 wide with no caves, no castle and no gates that does not
   collapse. Each of the first three lasts 3 minutes. Six seconds before a world gives way the screen shakes, the banner reads "The portal is
   growing unstable", and `scripts/portal_collapse.gd` tears a portal open in the middle of the top of the world and sucks every wizard up into it; then the loading screen shows black (no words, no seed) and the next world is built from a seed of its own (`MatchState.seed_for`). Each wizard keeps their ledger and their
   stamina; every page no one holds is laid again in the new world (`Pages.plan` skips what a ledger holds); a wizard already beaten is not
