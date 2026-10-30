@@ -12,7 +12,7 @@ const MAX_WIDTH := 240.0
 const DEPTH := 18.0  # how far above the surface feet can be and still be caught
 
 var width := 100.0
-var planted_ground := PackedFloat32Array()  # for a pit the world digs (the swamp's): the ground's height at SAMPLES points across it, relative to its middle, so it need not look at the ground
+var planted_ground := PackedFloat32Array()  # for a pit the world digs (the jungle's): the ground's height at SAMPLES points across it, relative to its middle, so it need not look at the ground
 var _age := 0.0
 var _tick := 0.0
 var _surface := PackedFloat32Array()  # the ground's height under the pit, sampled across it, relative to the pit

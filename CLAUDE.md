@@ -244,12 +244,12 @@ spells you do, drawing them visibly. There are no waves and no boss (see `docs/p
 **The look:** dark gothic pixel art.
 - **Biomes** (the look of each place):
   - a blood-moon graveyard.
-  - a haunted swamp, snowy peaks and ashlands (embers and lava over dark basalt).
+  - a jungle (rain, great trees with vines hanging from them), snowy peaks and ashlands (embers and lava over dark basalt).
   - a castle (a row of ruined castles with gothic church interiors) and the underground (a great cavern under a roof of rock, no sky).
   - Each world of a match is one of these six, in an order the seed picks; the last, small world is all open sky, one of the first four.
   - **Each biome has landmarks of its own, not just a reskin; only the underground has tunnels.** The graveyard is dark with rain and fog, and its skeletons roam
     (`Mob.roams`). The ashlands have volcanoes that erupt now and then (`Eruption`) and pits of lava. The snowy peaks are mountains to climb, with a page on each
-    summit. The swamp has pits of mud (`Mudslide`, dug by the world) and thickets of thorns (`Bramble`). The castle is a row of castles with five floors: a cellar down a
+    summit. The jungle has pits of mud (`Mudslide`, dug by the world), thickets of thorns (`Bramble`) and great trees (`JungleTree`: a branch to stand on and a vine to climb to it). Its art is still named for the swamp it was cut from. The castle is a row of castles with five floors: a cellar down a
     stair, the ground floor, the first, and the second and third under the keep (see `docs/world_generation.md`).
 - **Characters and art:** LuizMelo characters, Ansimuz GothicVania environments, and CC0 pixel effects.
 

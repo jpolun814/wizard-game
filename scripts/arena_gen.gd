@@ -47,7 +47,7 @@ static var biome_spans: Array = []  # a world's biomes, left to right: {"a", "b"
 ## the ground (art/props, drawn at their own pixel size).
 const BIOMES := {
 	"cemetery": {"tiles": "cemetery", "backdrop": "cemetery", "props": ["grave_1", "grave_2", "grave_3", "grave_4", "bush_small", "bush_large", "dead_tree_1", "statue"]},
-	"swamp": {"tiles": "swamp", "backdrop": "swamp", "props": ["swamp_grass", "swamp_fern", "swamp_vine", "swamp_grass", "dead_tree_2"]},
+	"jungle": {"tiles": "swamp", "backdrop": "jungle", "props": ["swamp_grass", "swamp_fern", "swamp_vine", "swamp_grass", "dead_tree_2"]},
 	"church": {"tiles": "church", "backdrop": "church", "props": ["balustrade", "church_column", "statue", "barrel"]},
 }
 

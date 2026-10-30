@@ -109,7 +109,7 @@ func _set_up_backdrops() -> void:
 		if child is Backdrop:
 			child.queue_free()  # the one the arena made, which has no ground of its own to stand on
 	var ground_y := float(SurfaceGen.BASE_ROW * TILE)
-	for place in ["cemetery", "swamp", "mountains", "ashlands"]:
+	for place in ["cemetery", "jungle", "mountains", "ashlands"]:
 		var backdrop := Backdrop.new()
 		add_child(backdrop)
 		move_child(backdrop, 0)
@@ -171,6 +171,7 @@ func _begin_encounter(camera: Camera2D) -> void:
 	_lay_landmarks()
 	_raise_the_dead()
 	_plant_graves()
+	_grow_trees()
 	_wash_out_the_colour()
 	for entry: Dictionary in _castle_doors:
 		var door := CastleDoor.new()
@@ -234,7 +235,7 @@ func _begin_encounter(camera: Camera2D) -> void:
 	get_tree().node_added.connect(_on_node_added)
 
 
-## The landmarks of an open biome: the craters of the ashlands' volcanoes, the swamp's pits of mud and thickets of thorns.
+## The landmarks of an open biome: the craters of the ashlands' volcanoes, the jungle's pits of mud and thickets of thorns.
 func _lay_landmarks() -> void:
 	var t := float(TILE)
 	var floors: PackedInt32Array = graph.surface["floor"]
@@ -253,7 +254,7 @@ func _lay_landmarks() -> void:
 			var column := clampi(pit["a"] + roundi(float(pit["b"] - pit["a"]) * i / (Mudslide.SAMPLES - 1)), 0, floors.size() - 1)
 			heights.append(floors[column] * t - mud.position.y)
 		mud.planted_ground = heights
-		mud.modulate = Color(0.5, 0.44, 0.36)  # dark swamp mud, not the sand of the spell
+		mud.modulate = Color(0.5, 0.44, 0.36)  # dark jungle mud, not the sand of the spell
 		add_child(mud)
 	for thicket: Dictionary in graph.surface["thorns"]:
 		_grow_thorns({"floors": floors.slice(thicket["a"], thicket["b"] + 1), "first": thicket["a"]})
@@ -280,6 +281,37 @@ func _plant_graves() -> void:
 		grave.z_index = -1
 		add_child(grave)
 		column += rng.randi_range(3, 9)
+
+
+## The jungle's great trees: one now and then along the ground, from the seed, where it is level and clear of the pits, the pools and the
+## places the wizards start from. The large ones have a branch with a vine to climb to it.
+func _grow_trees() -> void:
+	if SurfaceGen.biome_at(graph.surface, graph.surface["start"]) != "jungle":
+		return
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed_value + 3571
+	var floors: PackedInt32Array = graph.surface["floor"]
+	var avoid := []  # [first, last] columns
+	for kind in ["mud", "thorns", "ponds"]:
+		for entry: Dictionary in graph.surface[kind]:
+			avoid.append([entry["a"] - 8, entry["b"] + 8])
+	for column: int in graph.surface["starts"]:
+		avoid.append([column - 12, column + 12])
+	var column := SurfaceGen.MARGIN + 8
+	while column < floors.size() - SurfaceGen.MARGIN - 16:
+		var clear := absi(floors[column + 8] - floors[column]) <= 2 and absi(floors[column + 4] - floors[column]) <= 1
+		for span: Array in avoid:
+			if column + 8 >= span[0] and column <= span[1]:
+				clear = false
+		if not clear:
+			column += 3
+			continue
+		var tree := JungleTree.new()
+		tree.big = rng.randf() < 0.6
+		tree.vine_ground = float(floors[column + 6] - floors[column]) * TILE
+		tree.position = Vector2((column + 0.5) * TILE, floors[column] * float(TILE) + 2.0)
+		add_child(tree)
+		column += rng.randi_range(14, 30)
 
 
 ## The graveyard is seen in grey: a layer over the world, under the interface, that takes the colour out of it.

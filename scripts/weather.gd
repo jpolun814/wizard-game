@@ -2,7 +2,7 @@ class_name Weather
 extends CPUParticles2D
 
 ## What hangs in the air of a biome on the surface: snow and a blizzard on the peaks, ash and embers in the ashlands, spores over the
-## swamp, rain and a low fog in the graveyard. It rides on the camera and fills the view. It fades out when the wizard goes under the ground
+## jungle, rain and a low fog in the graveyard. It rides on the camera and fills the view. It fades out when the wizard goes under the ground
 ## or into another biome, and the new weather fades in.
 
 const KINDS := {

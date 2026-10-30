@@ -2,7 +2,7 @@ class_name Backdrop
 extends Node2D
 
 ## The scenery behind the arena, from ansimuz's GothicVania packs (see tools/prepare_gothic_art.py): a blood-moon
-## sky over crags and a graveyard, a haunted swamp under a dark canopy, or the inside of a cathedral. Each layer
+## sky over crags and a graveyard, a jungle under a dark canopy, or the inside of a cathedral. Each layer
 ## slides past slower the farther away it is. Where a layer's picture ends, its edge colour carries on, so a high
 ## jump or a fall never shows a gap.
 
@@ -16,7 +16,7 @@ const PLACES := {
 		["res://art/backgrounds/cemetery/far.png", Vector2(0.12, 1.0), 214.0, 0.0, false, 1.0],
 		["res://art/backgrounds/cemetery/near.png", Vector2(0.35, 1.0), 222.0, 0.0, false, 1.0],
 	]},
-	"swamp": {"sky": "", "fill": Color("#1b6642"), "layers": [
+	"jungle": {"sky": "", "fill": Color("#1b6642"), "layers": [
 		["res://art/backgrounds/swamp/sky.png", Vector2(0.05, 1.0), 200.0, 0.0, true, 2.0],
 		["res://art/backgrounds/swamp/woods.png", Vector2(0.22, 1.0), 290.0, 0.0, false, 2.0],
 		["res://art/backgrounds/swamp/near.png", Vector2(0.45, 1.0), 260.0, 0.0, false, 2.0],

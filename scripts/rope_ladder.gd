@@ -8,6 +8,7 @@ const GRAB_WIDTH := 22.0
 const TEXTURE := preload("res://art/props/rope_ladder.png")
 
 var height := 352.0  # from the lower floor up to the upper one
+var texture: Texture2D = TEXTURE  # what it is made of: rope, or a jungle's vine
 
 var _top := Vector2.ZERO
 var _bottom := Vector2.ZERO
@@ -17,12 +18,12 @@ func _ready() -> void:
 	add_to_group("climbables")
 	z_index = 1
 	var sprite := Sprite2D.new()
-	sprite.texture = TEXTURE
+	sprite.texture = texture
 	sprite.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
 	sprite.region_enabled = true
-	sprite.region_rect = Rect2(0, 0, TEXTURE.get_width(), height + 56.0)
+	sprite.region_rect = Rect2(0, 0, texture.get_width(), height + 56.0)
 	sprite.centered = false
-	sprite.position = Vector2(-TEXTURE.get_width() * 0.5, -height - 56.0)
+	sprite.position = Vector2(-texture.get_width() * 0.5, -height - 56.0)
 	add_child(sprite)
 	_top = global_position + Vector2(0, -height - 24.0)  # the climber lets go with their feet just over the upper floor
 	_bottom = global_position

@@ -14,8 +14,8 @@ const START_FLAT := 8       # columns each side of the middle that are level, to
 const LEDGE := 3            # the most a ledge on a mountain climbs in one column: a jump (the wizard clears three rows)
 const RIM := 11             # columns each side of a volcano's middle that are level: the rim round its crater
 const CRATER_WIDTH := 16    # the lava lake in a volcano's top
-const BIOMES := ["graveyard", "mountains", "swamp", "ashlands", "castle", "underground"]  # one of these is the whole of a world
-const OPEN_BIOMES := ["graveyard", "mountains", "swamp", "ashlands"]  # those with open sky and room to spare: the last world of a match is one of them
+const BIOMES := ["graveyard", "mountains", "jungle", "ashlands", "castle", "underground"]  # one of these is the whole of a world
+const OPEN_BIOMES := ["graveyard", "mountains", "jungle", "ashlands"]  # those with open sky and room to spare: the last world of a match is one of them
 
 ## True for the biome with halls under the ground (the deep's caves). The rest have no tunnels: each has its own landmarks on the
 ## surface in place of them (the castle's are its floors and its cellar, in the castles themselves).
@@ -28,7 +28,7 @@ static func has_halls(biome: String) -> bool:
 const LOOKS := {
 	"graveyard": {"title": "The Graveyard", "tiles": "cemetery", "weather": ["rain", "fog"], "backdrop": "cemetery", "tint": Color(0.6, 0.62, 0.68)},  # dark, with rain and a fog
 	"mountains": {"title": "The Snowy Peaks", "tiles": "stone", "snow": 26, "weather": ["snow", "blizzard"], "backdrop": "mountains", "tint": Color(0.82, 0.86, 0.98)},
-	"swamp": {"title": "The Swamp", "tiles": "swamp", "weather": ["spores"], "backdrop": "swamp", "tint": Color(0.86, 1.0, 0.9)},
+	"jungle": {"title": "The Jungle", "tiles": "swamp", "weather": ["spores", "rain"], "backdrop": "jungle", "tint": Color(0.8, 1.0, 0.82)},
 	"ashlands": {"title": "The Ashlands", "tiles": "ash", "weather": ["ash", "embers"], "backdrop": "ashlands", "tint": Color(1.12, 0.78, 0.7)},
 	"castle": {"title": "The Castle", "tiles": "church", "backdrop": "cemetery", "tint": Color(0.9, 0.92, 1.08)},
 	"underground": {"title": "The Deep", "tiles": "stone", "backdrop": "cemetery", "tint": Color(0.42, 0.4, 0.55)},  # under a roof of rock: no sky shows
@@ -40,7 +40,7 @@ const LOOKS := {
 ## before it, "biomes": [{"name", "a", "b"}], "ponds": [{"a", "b", "surface", "depth", "lava"}], "castles": the first column of each castle
 ## on the ground (only the castle world has any), "castle": the first of those or -1, "roofed": true when a roof of rock covers the surface
 ## (the underground), "start": the column to start on, "craters": the volcanoes of the ashlands [{"x": the column of the middle, "row": the
-## rim's row}], "mud" and "thorns": the swamp's pits of mud and thickets of thorns [{"a", "b"}: first and last column], "landmarks": columns
+## rim's row}], "mud" and "thorns": the jungle's pits of mud and thickets of thorns [{"a", "b"}: first and last column], "landmarks": columns
 ## of level ground at a place worth going to (the rim of a volcano, a mountain's top), where pages are laid first}.
 static func build(width: int, biome: String, rng: RandomNumberGenerator) -> Dictionary:
 	var n := width - MARGIN * 2
@@ -126,8 +126,8 @@ static func build(width: int, biome: String, rng: RandomNumberGenerator) -> Dict
 	_relax(floor_row, pinned, limits)
 	var mud := []
 	var thorns := []
-	if biome == "swamp":
-		_lay_swamp_hazards(width, ponds, mud, thorns, rng)
+	if biome == "jungle":
+		_lay_jungle_hazards(width, ponds, mud, thorns, rng)
 	return {"limits": limits, "floor": floor_row, "biomes": [{"name": biome, "a": MARGIN, "b": width - MARGIN - 1}], "ponds": ponds, "castles": castles, "castle": castles[0] if not castles.is_empty() else -1, "roofed": biome == "underground", "start": middle,
 			"craters": craters, "mud": mud, "thorns": thorns, "landmarks": _landmarks(biome, floor_row, craters), "starts": starts}
 
@@ -186,9 +186,9 @@ static func _on_a_volcano(craters: Array, from: int, to: int) -> bool:
 	return false
 
 
-## Where the swamp's pits of mud and thickets of thorns lie: a handful of each, on separate stretches of ground, away from the pools,
+## Where the jungle's pits of mud and thickets of thorns lie: a handful of each, on separate stretches of ground, away from the pools,
 ## the start and the places the others start from.
-static func _lay_swamp_hazards(width: int, ponds: Array, mud: Array, thorns: Array, rng: RandomNumberGenerator) -> void:
+static func _lay_jungle_hazards(width: int, ponds: Array, mud: Array, thorns: Array, rng: RandomNumberGenerator) -> void:
 	var taken := []  # [first, last] columns
 	for pond in ponds:
 		taken.append([pond["a"] - 4, pond["b"] + 4])
@@ -241,7 +241,7 @@ static func _lava_floor(k: int, level: int, depth: int) -> int:
 ## How many pools a biome has, and whether they are lava.
 static func _pools_for(biome: String, rng: RandomNumberGenerator) -> Array:
 	match biome:
-		"swamp":
+		"jungle":
 			return [rng.randi_range(3, 4), false]
 		"ashlands":
 			return [rng.randi_range(2, 3), true]
@@ -288,7 +288,7 @@ static func _offsets(biome: String, n: int, rng: RandomNumberGenerator) -> Packe
 					var terraced := float(LEDGE) * floorf(h / LEDGE) + LEDGE * clampf((fposmod(h, LEDGE) / LEDGE - 0.4) / 0.2, 0.0, 1.0)
 					h = lerpf(h, terraced, smoothstep(0.2, 0.8, 0.5 + 0.5 * sin(k / 29.0 + phase2)))
 				out[k] = -maxf(h, 0.0)
-		"swamp":
+		"jungle":
 			for k in n:
 				out[k] = 2.0 + 1.4 * sin(k / 9.0 + phase1) + 0.8 * sin(k / 4.0 + phase2)
 		"castle":

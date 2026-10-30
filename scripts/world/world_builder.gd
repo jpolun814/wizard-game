@@ -97,7 +97,7 @@ static func build(graph: WorldGraph, rng: RandomNumberGenerator) -> Dictionary:
 				for c in range(pond["a"], pond["b"] + 1):
 					for r in range(pond["surface"], pond["surface"] + pond["depth"] + 1):
 						hazards[Vector2i(c, r)] = true
-	for thicket: Dictionary in graph.surface["thorns"]:  # the swamp's thickets are jumped, not waded: the wizards' ways do not go through them
+	for thicket: Dictionary in graph.surface["thorns"]:  # the jungle's thickets are jumped, not waded: the wizards' ways do not go through them
 		for c in range(thicket["a"], thicket["b"] + 1):
 			hazards[Vector2i(c, profiles[0]["floor"][c - profiles[0]["xl"]] - 1)] = true
 	var carved := []
