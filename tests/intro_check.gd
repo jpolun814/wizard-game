@@ -1,7 +1,7 @@
 extends Node
 
-## Plays the opening cut-scene and checks it: four wizards, a pile of pages that is knocked into the portal, a page kept by each wizard,
-## and the hand-over when it ends or is skipped. Pass `-- mode=skip` to press a key part-way through; `out=DIR` saves pictures (they need
+## Plays the opening cut-scene and checks it: four wizards who square up round a pile of pages, shoot each other, have
+## every loose page knocked into the portal, and are pulled in after them; and the hand-over when it ends or is skipped. Pass `-- mode=skip` to press a key part-way through; `out=DIR` saves pictures (they need
 ## a window, so leave off --headless).
 ##
 ##     godot --path . tests/intro_check.tscn -- out=C:/some/dir
@@ -14,7 +14,7 @@ var _mode := "full"
 var _failures := 0
 var _done_at := -1.0
 var _clock := 0.0
-var _shots := [0.6, 1.6, 3.3, 3.8, 4.3, 5.1, 6.0, 7.2, 8.6, 9.7]
+var _shots := [1.0, 2.5, 4.0, 5.0, 5.8, 6.8, 7.6, 8.4, 9.2, 9.8, 10.5, 11.2]
 var _checks := {}  # seconds -> Callable
 
 
@@ -30,9 +30,10 @@ func _ready() -> void:
 	add_child(_intro)
 	_checks = {
 		1.5: _check_set,
-		3.4: _check_pile_still_there,
-		6.2: _check_pile_gone,
-		9.75: _check_all_in,
+		5.2: _check_ring,
+		6.2: _check_pile_still_there,
+		11.6: _check_pile_gone,
+		11.7: _check_all_in,
 	}
 	if _mode == "skip":
 		_shots = []
@@ -58,7 +59,7 @@ func _process(delta: float) -> void:
 		Input.parse_input_event(key)
 	if _done_at >= 0.0 and _clock >= _done_at + 0.2:
 		_finish()
-	elif _clock > 16.0:
+	elif _clock > 18.0:
 		_verdict(false, "the scene never ended")
 		_finish()
 
@@ -97,25 +98,24 @@ func _check_set() -> void:
 	_verdict(_pages_in_view().size() == Intro.PAGES_IN_PILE, "a pile of %d pages lies on the floor (%d)" % [Intro.PAGES_IN_PILE, _pages_in_view().size()])
 
 
+## In the ring: each wizard at their own place, and the pile still on the floor.
+func _check_ring() -> void:
+	for i in _intro._wizards.size():
+		_verdict(absf(_intro._wizards[i].position.x - float(Intro.WIZARDS[i]["to"])) < 6.0, "wizard %d has taken their place in the ring (x %.0f)" % [i, _intro._wizards[i].position.x])
+	_verdict(_pages_in_view().size() == Intro.PAGES_IN_PILE, "the pile is untouched until the shooting (%d pages)" % _pages_in_view().size())
+
+
 func _check_pile_still_there() -> void:
-	_verdict(_pages_in_view().size() == Intro.PAGES_IN_PILE, "the pile is untouched until the scuffle (%d pages)" % _pages_in_view().size())
-	for wizard in _intro._wizards:
-		_verdict(absf(wizard.position.x - Intro.PILE_X) < 100.0, "a wizard has run to the pile (x %.0f)" % wizard.position.x)
+	_verdict(_intro._pile.size() == Intro.PAGES_IN_PILE, "the pile has not gone into the portal yet (%d)" % _intro._pile.size())
 
 
 func _check_pile_gone() -> void:
-	var kept := 0
-	for wizard in _intro._wizards:
-		for child in wizard.get_children():
-			if child is Sprite2D and child.texture == Intro.PAGE:
-				kept += 1
-	_verdict(kept == Intro.KEPT, "each wizard holds one page (%d held)" % kept)
-	_verdict(_pages_in_view().is_empty(), "no loose page is left in the hall once they are through the portal (%d)" % _pages_in_view().size())
+	_verdict(_pages_in_view().is_empty(), "no loose page is left in the hall once they have all gone through the portal (%d)" % _pages_in_view().size())
 
 
 func _check_all_in() -> void:
 	for wizard in _intro._wizards:
-		_verdict(wizard.position.x > Intro.PORTAL_X - 40.0, "a wizard has reached the portal (x %.0f)" % wizard.position.x)
+		_verdict(absf(wizard.position.x - Intro.PORTAL_X) < 60.0 and wizard.position.y < Intro.FLOOR_Y - Intro.PORTAL_HEIGHT + 100.0, "a wizard has been pulled up into the portal (%.0f, %.0f)" % [wizard.position.x, wizard.position.y])
 
 
 func _snap(t: float) -> void:

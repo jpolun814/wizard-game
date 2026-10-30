@@ -81,6 +81,7 @@ func _dress() -> void:
 		frames.add_frame("idle", load("res://art/chars/wizard/idle_%d.png" % k))
 	_wizard.sprite_frames = frames
 	_wizard.scale = Vector2(PIXEL + 1, PIXEL + 1)
+	_wizard.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST  # whole pixels, sharp, not smoothed up
 	add_child(_wizard)
 	_wizard.play("idle")
 	_embers = CPUParticles2D.new()
