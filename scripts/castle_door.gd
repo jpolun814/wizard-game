@@ -3,8 +3,8 @@ extends Node2D
 
 ## A wooden door in a doorway of the castle. It swings open when anyone comes near, and shuts again when they have gone by. Shut, it is as
 ## solid as the wall: no one walks through it and no shot or spell passes. Its origin is the middle of the doorway, on the floor.
-## It swings away from whoever opens it: the hinge is on the far side from them, and opening, the door is drawn narrower and narrower
-## toward the hinge, as a door turning edge-on to the eye.
+## It swings away from whoever opens it: the hinge is on their side of the doorway, so the free edge swings off to the far side and the
+## door ends up standing open edge-on, behind whoever walks through.
 
 const HEIGHT := 128.0
 const WIDTH := 64.0      # the wall's thickness: the doorway
@@ -55,7 +55,7 @@ func _physics_process(delta: float) -> void:
 	_alone = 0.0 if close else _alone + delta
 	var want := 1.0 if (_alone < SHUT_AFTER or in_the_way) else 0.0
 	if _swing <= 0.01 and want > 0.0 and from_side != 0.0:
-		_hinge = -from_side  # it opens away from the one at it
+		_hinge = from_side  # the hinge is on the near side, so it swings away from the one at it
 	_swing = move_toward(_swing, want, SWING * delta)
 	_set_swing()
 	_shape.set_deferred("disabled", _swing > 0.2)
@@ -64,8 +64,9 @@ func _physics_process(delta: float) -> void:
 func _set_swing() -> void:
 	var texture: Texture2D = _sprite.texture
 	var eased := smoothstep(0.0, 1.0, _swing)
-	var width := lerpf(OPEN_WIDTH, 1.0, eased)  # how much of its width shows: edge-on when it starts, swinging wider as it opens
+	var width := lerpf(1.0, OPEN_WIDTH, eased)  # how much of its width shows: all of it shut, edge-on when it has swung open
 	_sprite.scale = Vector2(WIDTH / texture.get_width() * width, HEIGHT / texture.get_height())
 	_sprite.position.x = -WIDTH * 0.5 if _hinge < 0.0 else WIDTH * 0.5 - WIDTH * width  # the door stays fixed at its hinge
-	var shade := lerpf(0.65, 1.0, eased)  # the face turns to the light as it opens
+	var shade := lerpf(1.0, 0.65, eased)  # its face turns from the light as it opens
+	z_index = 1 if _swing < 0.2 else -1  # open, it stands behind whoever walks through
 	_sprite.modulate = Color(shade, shade, shade)

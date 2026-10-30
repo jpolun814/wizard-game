@@ -18,8 +18,10 @@ const CHANTS := ["chant:bonfire", "chant:rift"]
 const LOCKABLE := ["Frostbolt", "Icicles", "Ice Prison", "Blizzard", "Stonefall", "Mudslide", "Earthquake", "Bramble", "Spore Puff",
 		"Flytrap", "Hex", "Black Hole", "Tide Surf", "Blood Bolt", "Offering", "Burst", "Crimson Veil", "Adrenaline", "Faint", "chant:boundless", "chant:double_jump", "chant:haste"]
 const ON_SURFACE := 3  # pages that lie out in the open near the start, so the first one is found within a minute
-const IN_CASTLE := 2   # and pages in the castle, up on its second floor: not one to a room, only a reward for the climb
-const CASTLE_SPOTS := [Vector2i(52, 22), Vector2i(90, 22)]  # where: a column from the castle's west end, and the height of the floor in rows
+const IN_CASTLE := 11  # and pages in the castles, on every floor from the cellar to the keep's top: not one to a room, only a reward for the climb
+## Where in a castle they lie: a column from its west end, and the height of the floor in rows (the cellar's is below the ground, so negative).
+## Deepest and highest first, then the middle floors, so the few of a small match go to the places hardest to reach.
+const CASTLE_SPOTS := [Vector2i(70, 34), Vector2i(38, -11), Vector2i(92, 34), Vector2i(98, -11), Vector2i(48, 34), Vector2i(58, -11), Vector2i(50, 22), Vector2i(90, 22), Vector2i(78, -11), Vector2i(26, 11), Vector2i(104, 11)]
 
 ## Deals each wizard their starting pages, the same way for the same seed. Wizards are given different spells where the lists are long enough
 ## (a list shorter than the wizards repeats), so a wizard's starter spell is theirs alone, with no page of it on the map for another to find.
@@ -108,7 +110,10 @@ static func plan(graph: WorldGraph, rng: RandomNumberGenerator, dealt: Array[Led
 	for room in graph.rooms:
 		if room["lock"] == -1 and not room.has("surface"):
 			free.append(room["id"])
-	if free.is_empty():  # a world with no caves: the rest lie out in the open, spread along it
+	if free.is_empty():  # a world with no caves: some lie at the landmarks (a volcano's rim, a mountain's top), the rest out in the open, spread along it
+		var landmarks: Array = graph.surface["landmarks"]
+		for k in mini(landmarks.size(), rest.size() / 2):
+			placed.append({"page": rest.pop_back(), "room": 0, "x": landmarks[k]})
 		for column in _spread_columns(graph, rest.size()):
 			placed.append({"page": rest.pop_back(), "room": 0, "x": column})
 		return placed
@@ -148,8 +153,7 @@ static func _surface_columns(graph: WorldGraph, count: int) -> Array[int]:
 		var clear := true
 		for castle: int in castles:
 			clear = clear and (column < castle - 6 or column > castle + SurfaceGen.CASTLE_WIDTH + 6)
-		for pond: Dictionary in graph.surface["ponds"]:
-			clear = clear and (column < pond["a"] - 4 or column > pond["b"] + 4)
+		clear = clear and not _in_the_way(graph, column)
 		if clear:
 			out.append(column)
 			if out.size() == count:
@@ -167,8 +171,25 @@ static func _spread_columns(graph: WorldGraph, count: int) -> Array[int]:
 		for pond: Dictionary in graph.surface["ponds"]:
 			if column >= pond["a"] - 4 and column <= pond["b"] + 4:
 				column = pond["b"] + 5
+		for castle: int in graph.surface["castles"]:  # not in the stone: on whichever side of the castle is the nearer
+			if column >= castle - 4 and column <= castle + SurfaceGen.CASTLE_WIDTH + 4:
+				column = castle - 5 if column - castle < SurfaceGen.CASTLE_WIDTH / 2 else castle + SurfaceGen.CASTLE_WIDTH + 5
+		for pit: Dictionary in graph.surface["mud"] + graph.surface["thorns"]:
+			if column >= pit["a"] - 2 and column <= pit["b"] + 2:
+				column = pit["b"] + 3
 		out.append(column)
 	return out
+
+
+## True when a page could not lie at the column: in a pool, or in a pit of mud or a thicket.
+static func _in_the_way(graph: WorldGraph, column: int) -> bool:
+	for span: Dictionary in graph.surface["ponds"]:
+		if column >= span["a"] - 4 and column <= span["b"] + 4:
+			return true
+	for span: Dictionary in graph.surface["mud"] + graph.surface["thorns"]:
+		if column >= span["a"] - 2 and column <= span["b"] + 2:
+			return true
+	return false
 
 
 static func _shuffle(list: Array, rng: RandomNumberGenerator) -> void:

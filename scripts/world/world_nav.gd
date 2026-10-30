@@ -14,7 +14,7 @@ var _toll_at := {}  # id -> key
 
 ## Builds the map of the ways. blocked is {Vector2i: true}: tiles that bar the way (lava, a gate), which no path goes through. Only the tiles that can
 ## be left as well as come to, from the tile the map is anchored on, are kept: a wizard that drops into a pit with no way out would be there for good.
-func build(cells: TileGrid, bottom: int, blocked := {}, anchor := Vector2i(-1, -1), tolls := {}, links := []) -> void:
+func build(cells: TileGrid, bottom: int, blocked := {}, anchor := Vector2i(-1, -1), tolls := {}, links := [], climbs := []) -> void:
 	_astar.clear()
 	_tolls.clear()
 	_toll_at.clear()
@@ -52,6 +52,12 @@ func build(cells: TileGrid, bottom: int, blocked := {}, anchor := Vector2i(-1, -
 				out[_id(top)].append(_id(floor_tile))
 				back[_id(top)].append(_id(floor_tile))
 				back[_id(floor_tile)].append(_id(top))
+	for climb: Dictionary in climbs:  # up a rope ladder (down again is a fall through its hatch, which the moves already hold)
+		if standing.has(climb["from"]) and standing.has(climb["to"]):
+			out[_id(climb["from"])].append(_id(climb["to"]))
+			if not back.has(_id(climb["to"])):
+				back[_id(climb["to"])] = PackedInt32Array()
+			back[_id(climb["to"])].append(_id(climb["from"]))
 	var keep := {}
 	if anchor.x >= 0 and not tiles.is_empty():
 		var start := tiles[0]  # the place to stand that is nearest the anchor

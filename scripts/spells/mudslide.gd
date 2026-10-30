@@ -12,6 +12,7 @@ const MAX_WIDTH := 240.0
 const DEPTH := 18.0  # how far above the surface feet can be and still be caught
 
 var width := 100.0
+var planted_ground := PackedFloat32Array()  # for a pit the world digs (the swamp's): the ground's height at SAMPLES points across it, relative to its middle, so it need not look at the ground
 var _age := 0.0
 var _tick := 0.0
 var _surface := PackedFloat32Array()  # the ground's height under the pit, sampled across it, relative to the pit
@@ -22,17 +23,23 @@ const SINK_DEPTH := 14.0  # how deep the mud is drawn under its surface
 
 func _ready() -> void:
 	width = clampf(width, MIN_WIDTH, MAX_WIDTH)
-	global_position = SpellTargets.surface_over(get_world_2d(), global_position)
-	_surface.resize(SAMPLES)
-	for i in SAMPLES:
-		var x := lerpf(-width * 0.5, width * 0.5, float(i) / (SAMPLES - 1))
-		_surface[i] = SpellTargets.solid_below(get_world_2d(), global_position + Vector2(x, -40)).y - global_position.y
+	var dug := not planted_ground.is_empty()
+	if dug:
+		_surface = planted_ground
+		_age = 1.0  # already there: no growing in
+	else:
+		global_position = SpellTargets.surface_over(get_world_2d(), global_position)
+		_surface.resize(SAMPLES)
+		for i in SAMPLES:
+			var x := lerpf(-width * 0.5, width * 0.5, float(i) / (SAMPLES - 1))
+			_surface[i] = SpellTargets.solid_below(get_world_2d(), global_position + Vector2(x, -40)).y - global_position.y
 	add_to_group("danger")
 	add_to_group("lasting")
 	z_index = 1
 	texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
-	Sfx.play("quicksand", global_position, -4.0)
-	Fx.debris(get_parent(), global_position, Color("#c8a46a"), 10, 160.0)
+	if not dug:
+		Sfx.play("quicksand", global_position, -4.0)
+		Fx.debris(get_parent(), global_position, Color("#c8a46a"), 10, 160.0)
 	# Grains of sand bubbling up from the pit.
 	var p := CPUParticles2D.new()
 	p.amount = int(width / 6.0)

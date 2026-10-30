@@ -6,6 +6,7 @@ extends CanvasLayer
 
 var arena: Node
 var panel: PanelContainer
+var _world_buttons: Array[Button] = []
 
 
 func _ready() -> void:
@@ -53,6 +54,23 @@ func _ready() -> void:
 		column.add_child(gates)
 		for kind: String in arena.gate_kinds():
 			gates.add_child(_button(kind.capitalize(), arena.go_to_gate.bind(kind)))
+	if arena.has_method("go_to_stage") and not Net.online():  # in a network game the host's clock moves everyone together
+		var heading := Label.new()
+		heading.text = "Go to a world of the match"
+		heading.add_theme_font_size_override("font_size", 13)
+		column.add_child(heading)
+		var worlds := GridContainer.new()
+		worlds.columns = 2
+		worlds.add_theme_constant_override("h_separation", 4)
+		worlds.add_theme_constant_override("v_separation", 4)
+		column.add_child(worlds)
+		for stage in MatchState.STAGES.size():
+			var button := _button("", arena.go_to_stage.bind(stage))
+			button.custom_minimum_size = Vector2(160, 0)
+			worlds.add_child(button)
+			_world_buttons.append(button)
+		visibility_changed.connect(_name_worlds)
+		_name_worlds()
 
 
 func _button(text: String, action: Callable) -> Button:
@@ -63,6 +81,12 @@ func _button(text: String, action: Callable) -> Button:
 	button.focus_mode = Control.FOCUS_NONE  # so Space or Enter cannot fire the same button again
 	button.pressed.connect(action)
 	return button
+
+
+## The buttons that go to a world say which it is: its number and its biome, which the match's seed decides.
+func _name_worlds() -> void:
+	for stage in _world_buttons.size():
+		_world_buttons[stage].text = "%d: %s" % [stage + 1, SurfaceGen.LOOKS[MatchState.biome_of(stage)]["title"]]
 
 
 func _summon(kind: String) -> void:

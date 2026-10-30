@@ -24,9 +24,11 @@ func _initialize() -> void:
 			var rng := RandomNumberGenerator.new()
 			rng.seed = s * 31 + stage
 			var started := Time.get_ticks_msec()
-			var pool: Array = SurfaceGen.BIOMES if plan["caves"] else SurfaceGen.OPEN_BIOMES  # the last world is all open sky
+			var last: bool = stage == MatchState.STAGES.size() - 1
+			var pool: Array = SurfaceGen.OPEN_BIOMES if last else SurfaceGen.BIOMES  # the last world is all open sky
 			var biome: String = pool[(stage + s) % pool.size()]  # every biome gets its turn
-			var world := WorldBuilder.make(rng, biome, plan["caves"])
+			var halls: bool = SurfaceGen.has_halls(biome)
+			var world := WorldBuilder.make(rng, biome, halls)
 			var graph: WorldGraph = world["graph"]
 			var seconds := (Time.get_ticks_msec() - started) / 1000.0
 			var label := "stage %d seed %d" % [stage, s]
@@ -49,8 +51,8 @@ func _initialize() -> void:
 				if room["lock"] == -1 and not nav.can_stand(world["markers"][room["id"]]):
 					unreached += 1
 			_check(unreached == 0, "%s: %d halls outside every locked area cannot be walked to" % [label, unreached])
-			if not plan["caves"]:
-				_check(graph.rooms.size() == 1 and world["castles"].is_empty() and world["gates"].is_empty(), "%s: not all open sky" % label)
+			if not halls:
+				_check(graph.rooms.size() == 1 and world["gates"].is_empty(), "%s: the %s is not all open sky" % [label, biome])
 			_check(world["castles"].is_empty() != (biome == "castle"), "%s: %d castles in the %s" % [label, world["castles"].size(), biome])
 			_check(world["roofed"] == (biome == "underground"), "%s: roofed is %s in the %s" % [label, world["roofed"], biome])
 			var dealt := Pages.deal(s, 4)

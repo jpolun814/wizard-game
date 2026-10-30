@@ -49,6 +49,7 @@ const MOB_JUMP := -420.0      # enough to clear two blocks
 const MOB_JUMP_HIGH := -560.0 # enough to reach a platform when the player is up on one
 const BURST_DAMAGE := 6       # a Stormrunner's explosion hurts everything close by this much
 const BURST_RADIUS := 60.0
+const ROAM_NOTICE := 560.0     # a roaming enemy notices the player this close, and loses them again past a little farther
 const DECOY_NOTICE := 520.0    # a decoy this close is noticed, and attacked instead of the player
 const SPIT_RANGE := 480.0       # a ranged enemy fires from this far away
 const SPIT_STAND_RANGE := 300.0 # and stops walking once it is this close
@@ -69,6 +70,14 @@ const CREATURE_ANIMATIONS := {
 }
 var kind := "basic"  # set before the mob enters the tree
 var player: Node2D
+var roams := false  # one the world left wandering (the graveyard's dead): it ambles about until a wizard comes near, then gives chase
+var puppet := false  # in a network game, a roamer on a machine that is not the host: it shows what the host's one does and decides nothing
+var net_position := Vector2.ZERO  # where the host says it is, while it is a puppet
+var net_facing := 1.0
+var net_swing := false  # the host's is drawing back to strike
+var _prey_time := 0.0
+var _wander := 0.0
+var _wander_time := 0.0
 var hp := 30
 var max_hp := 30
 var stamina := 100.0      # a Faint takes all of it; it comes back as a wizard's does, and the enemy stands up when there is enough
@@ -233,6 +242,11 @@ func center() -> Vector2:
 
 
 func _physics_process(delta: float) -> void:
+	if puppet:
+		_glide(delta)
+		return
+	if roams:
+		_pick_prey(delta)
 	if global_position.y > (ArenaGen.world_size.y * float(ArenaGen.TILE) if ArenaGen.world_size.y > 0 else FALL_LIMIT):
 		queue_free()
 		return
@@ -316,6 +330,9 @@ func _walk(delta: float) -> void:
 	var shooter: bool = data.role == "ranged"
 	var sees := target != null and _sees(target)
 	var stands_to_shoot: bool = shooter and distance < SPIT_STAND_RANGE and sees and data.effect != "ninja"
+	if roams and distance > ROAM_NOTICE:
+		_amble(delta, speed)
+		return
 	var close := absf(to_player.x) < 18.0  # right on top of the player: stop instead of walking through
 	var moving := target != null and speed > 0.0 and not stands_to_shoot and _root_time <= 0.0 and _windup <= 0.0 and _charge <= 0.0 and not close
 	velocity.x = (signf(to_player.x) * speed if moving else 0.0) + _knock_x + _drift.x
@@ -343,6 +360,54 @@ func _walk(delta: float) -> void:
 		_update_shooter(delta, distance, sees, data.shot)
 	if data.role == "melee" and target and data.effect != "dummy":
 		_update_melee(delta, distance)
+
+
+## A puppet follows the host's mob: it glides to where it is, walking when it moves, and draws back when the host's does.
+func _glide(delta: float) -> void:
+	if _dead:
+		return
+	var step := net_position - global_position
+	global_position = net_position if step.length() > 160.0 else global_position + step * minf(1.0, delta * 14.0)
+	velocity.x = step.x * 14.0
+	facing = net_facing
+	_windup = 0.2 if net_swing else 0.0
+
+
+## A roamer goes after the nearest wizard who is still standing, whoever's they are (looked for a few times a second).
+func _pick_prey(delta: float) -> void:
+	_prey_time -= delta
+	if _prey_time > 0.0:
+		return
+	_prey_time = 0.4
+	player = null
+	var nearest := INF
+	for wizard: Wizard in get_tree().get_nodes_in_group("wizards"):
+		var gap := wizard.global_position.distance_squared_to(global_position)
+		if not wizard.dead and gap < nearest:
+			nearest = gap
+			player = wizard
+
+
+## Hits a wizard for a mob. A wizard another machine drives is told to take the blow, since only its own machine can.
+func _strike(target: Node2D, amount: int, impulse := Vector2.ZERO) -> void:
+	if target is Wizard and target.is_likeness():
+		target.rpc_id(target.get_multiplayer_authority(), &"_struck_by_a_mob", amount, impulse)
+		return
+	target.take_damage(amount)
+	if impulse != Vector2.ZERO:
+		target.push(impulse)
+
+
+## A roaming enemy that has not noticed anyone: it stands about, or shuffles a little way one direction or the other.
+func _amble(delta: float, speed: float) -> void:
+	_wander_time -= delta
+	if _wander_time <= 0.0:
+		_wander_time = randf_range(1.5, 4.0)
+		_wander = [-1.0, 0.0, 1.0][randi() % 3]
+	if is_on_wall():
+		_wander = -_wander
+	velocity.x = _wander * speed * 0.35 + _knock_x + _drift.x
+	move_and_slide()
 
 
 ## A walker that is close enough draws back, then lunges. If the player moved away during the wind-up, it misses.
@@ -603,7 +668,7 @@ func _sees(target: Node2D) -> bool:
 ## A frozen enemy hit by force or earth shatters out of the ice and takes extra.
 ## A Barrier negates only a projectile (shot true); anything else gets through it.
 func take_damage(amount: int, school := "", shot := false) -> void:
-	if _dead or _spawn > 0.0:
+	if _dead or _spawn > 0.0 or puppet:
 		return
 	var data: MobKind = KINDS[kind]
 	var dealt := amount
@@ -642,6 +707,8 @@ func take_damage(amount: int, school := "", shot := false) -> void:
 ## A defeated enemy bursts into smoke and its school's sparks, plays its death tumble, then disappears.
 func _die() -> void:
 	_dead = true
+	if roams and not puppet:
+		Net.send(self, &"_fell")  # the others' puppets of it fall too
 	remove_from_group("mobs")
 	set_physics_process(false)
 	# Shots and spells pass through a body that is already falling over.
@@ -664,6 +731,12 @@ func _die() -> void:
 		tween.tween_callback(queue_free)
 
 
+@rpc("authority", "call_remote", "reliable")
+func _fell() -> void:
+	if not _dead:
+		_die()
+
+
 func _on_animation_finished() -> void:
 	if _dead and _visual.animation == "death":
 		var tween := create_tween()
@@ -676,6 +749,11 @@ func _on_animation_finished() -> void:
 
 func is_dead() -> bool:
 	return _dead
+
+
+## True while it draws back to strike.
+func is_drawing_back() -> bool:
+	return _windup > 0.0
 
 
 ## A Faint: all the stamina goes and the enemy drops to the ground, until its stamina is back to GET_UP.
@@ -765,13 +843,14 @@ func _attack() -> void:
 		target.take_damage(data.damage)  # a decoy takes the blow
 		Sfx.play("push", target.center(), -6.0)
 		return
-	player.take_damage(data.damage)
-	Sfx.play("stones" if data.school == "Earth" else "fire_hit" if data.school == "Fire" else "push", player.center(), -6.0)
+	var impulse := Vector2.ZERO
 	match data.effect:
 		"knockback":
-			player.push(Vector2(signf(player.global_position.x - global_position.x) * 420.0, -160.0))
+			impulse = Vector2(signf(player.global_position.x - global_position.x) * 420.0, -160.0)
 		"big_knockback":
-			player.push(Vector2(signf(player.global_position.x - global_position.x) * 900.0, -220.0))
+			impulse = Vector2(signf(player.global_position.x - global_position.x) * 900.0, -220.0)
+	_strike(player, data.damage, impulse)
+	Sfx.play("stones" if data.school == "Earth" else "fire_hit" if data.school == "Fire" else "push", player.center(), -6.0)
 
 
 func _explode() -> void:

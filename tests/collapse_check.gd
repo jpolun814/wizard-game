@@ -50,15 +50,15 @@ func _arrived(world: World) -> void:
 	_world_clock = 0.0
 	var stage := _worlds_seen
 	_worlds_seen += 1
-	var plan: Dictionary = MatchState.STAGES[stage]
+	var plan: Dictionary = MatchState.plan_of(stage)
 	_verdict(MatchState.stage == stage, "world %d is stage %d (%d)" % [stage + 1, stage, MatchState.stage])
 	_verdict(ArenaGen.world_size.x == plan["width"], "world %d is %d tiles wide (%d)" % [stage + 1, plan["width"], ArenaGen.world_size.x])
-	_verdict(world.graph.rooms.size() > 1 or not plan["caves"] == true or stage == 0, "world %d has halls (%d)" % [stage + 1, world.graph.rooms.size()])
+	_verdict(world.graph.rooms.size() > 1 or not plan["caves"] or stage == 0, "world %d has halls (%d)" % [stage + 1, world.graph.rooms.size()])
 	var biome: String = world.graph.surface["biomes"][0]["name"]
 	_verdict(biome == MatchState.biome_of(stage), "world %d is the %s the seed picked (%s)" % [stage + 1, MatchState.biome_of(stage), biome])
 	_verdict(not _biomes_seen.has(biome), "no biome comes up twice (%s)" % biome)
 	_biomes_seen.append(biome)
-	if not plan["caves"]:
+	if stage == MatchState.STAGES.size() - 1:
 		_verdict(world.graph.rooms.size() == 1 and world.castle_x == -1 and world._gates.is_empty(), "the last world is all open sky: no halls, no castle, no gates (%d halls)" % world.graph.rooms.size())
 	var known := {}  # every page some wizard holds: wizards start with some in common
 	for ledger in world.ledgers:

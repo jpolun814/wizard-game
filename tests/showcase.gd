@@ -35,8 +35,8 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS  # keeps running while the game is paused
 	DirAccess.make_dir_recursive_absolute(out_dir)
 	# The spells are tried in the waiting room, where there is a pond, a gap and dummies for each of them.
-	var scene := "world" if scenario in ["cave", "gates", "castle", "pages", "tornado", "extras"] else "lab"
-	if scenario in ["cave", "gates", "castle", "pages", "tornado", "extras"]:
+	var scene := "world" if scenario in ["cave", "gates", "castle", "pages", "tornado", "extras", "biome"] else "lab"
+	if scenario in ["cave", "gates", "castle", "pages", "tornado", "extras", "biome"]:
 		World.random_start = false
 		World.next_seed = int(OS.get_environment("WORLD_SEED")) if OS.get_environment("WORLD_SEED") != "" else 11  # the same world each time
 	_arena = load("res://scenes/%s.tscn" % scene).instantiate()
@@ -123,11 +123,39 @@ func _plan() -> void:
 	match scenario:
 		"gates":
 			_plan_gates()
+		"biome":  # a look at the landmarks of an open biome: the start, each volcano, pit of mud and thicket, then the whole world from far off
+			var tile := float(ArenaGen.TILE)
+			var surface: Dictionary = _arena.graph.surface
+			var views := [["start", surface["start"], 1.0]]
+			for crater: Dictionary in surface["craters"]:
+				views.append(["crater", crater["x"] - 4, 1.0])
+			for pit: Dictionary in surface["mud"].slice(0, 2):
+				views.append(["mud", pit["a"], 1.0])
+			for thicket: Dictionary in surface["thorns"].slice(0, 2):
+				views.append(["thorns", thicket["a"], 1.0])
+			for mark: int in surface["landmarks"].slice(0, 3):
+				views.append(["landmark", mark, 0.8])
+			views.append(["whole", surface["start"], 0.12])
+			var t := 0.6
+			for view: Array in views:
+				var column: int = view[1]
+				var at := Vector2((column + 0.5) * tile, surface["floor"][column] * tile - 60.0)
+				var name: String = view[0]
+				var zoom: float = view[2]
+				_at(t, func() -> void:
+					_player().global_position = at
+					_player().velocity = Vector2.ZERO
+					_arena._dark.hide()
+					_arena._ground.watch([at] as Array[Vector2], true)
+					_arena.get_node("Player/Camera2D").zoom = Vector2(zoom, zoom)
+					_arena.get_node("Player/Camera2D").reset_smoothing())
+				_at(t + 2.4, func() -> void: _snap(name))
+				t += 3.0
 		"castle":
 			var tile := float(ArenaGen.TILE)
 			var ground_y := WorldGraph.SURFACE_ROW * tile
 			var views := [["gate", -8.0, 0.0, 1.0], ["entry", 8.0, 0.0, 1.0], ["hall", 26.0, 0.0, 1.0], ["first", 26.0, 11.0, 1.0], ["first2", 66.0, 11.0, 1.0],
-					["great", 50.0, 22.0, 1.0], ["great2", 90.0, 22.0, 1.0], ["back", 126.0, 0.0, 1.0], ["whole", 68.0, 20.0, 0.2], ["roofwest", 22.0, 24.0, 0.6]]
+					["great", 50.0, 22.0, 1.0], ["great2", 90.0, 22.0, 1.0], ["back", 126.0, 0.0, 1.0], ["whole", 68.0, 20.0, 0.2], ["roofwest", 22.0, 24.0, 0.6], ["cellar", 26.0, -11.0, 1.0], ["stairs", 24.0, -4.0, 0.8], ["third", 70.0, 34.0, 1.0], ["wholetall", 68.0, 10.0, 0.14]]
 			var t := 0.6
 			for view: Array in views:
 				var at := Vector2((_arena.castle_x + view[1]) * tile, ground_y - (view[2] + 1.0) * tile)

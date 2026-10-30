@@ -309,6 +309,16 @@ func _build_contour() -> void:
 		bricks.earth = load("res://art/tiles/castle_brick.png")
 		bricks.loops = stone_loops
 		add_child(bricks)
+	if not ArenaGen.castle_steps.is_empty():
+		var steps := TileGrid.new(cells.size)  # the brick under a stair is only drawn: the stair itself is a slope, which can be dropped through
+		for tile: Vector2i in ArenaGen.castle_steps:
+			steps.put(tile, ArenaGen.STONE)
+		var under := CaveDraw.new()
+		under.z_index = 0
+		under.kind = "solid"
+		under.earth = load("res://art/tiles/castle_brick.png")
+		under.loops = Contour.trace(steps, true)
+		add_child(under)
 
 
 ## Draws the rock round these world positions, and frees what is far from all of them. at_once makes it all now.

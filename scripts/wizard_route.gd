@@ -15,6 +15,7 @@ const LEAN := 10.0          # pixels past the middle of a tile that a jump aims 
 const ARRIVE_X := 18.0      # how close to the middle of a tile counts as being at it
 const ARRIVE_Y := 28.0
 const STUCK_AFTER := 2.0    # seconds without getting closer before the route gives up
+const CLIMB_ROWS := 8        # a move up this many rows is a ladder
 const HOP_GAP := 0.6        # seconds between hops over a step that blocks the way
 
 var _path: Array[Vector2i] = []
@@ -65,7 +66,7 @@ func goal() -> Vector2i:
 
 ## What the body should do this frame: {"dir": -1, 0 or 1, "speed", "jump": leave the ground now, "replan": it is getting nowhere}.
 func steer(body: CharacterBody2D, delta: float) -> Dictionary:
-	var out := {"dir": 0.0, "speed": WALK, "jump": false, "replan": false}
+	var out := {"dir": 0.0, "speed": WALK, "jump": false, "replan": false, "climb": false, "let_go": false}
 	_hop = maxf(_hop - delta, 0.0)
 	var feet := body.global_position
 	var grounded := body.is_on_floor()
@@ -80,6 +81,9 @@ func steer(body: CharacterBody2D, delta: float) -> Dictionary:
 	var from := _path[_next - 1]
 	var across := absi(goal_tile.x - from.x)
 	var down := goal_tile.y - from.y
+	if -down >= CLIMB_ROWS and across <= 2:
+		_climb(feet, grounded, from, goal_tile, out)
+		return _track(out, feet, goal_tile, delta)
 	var leaps := across >= 2 or down <= -2  # not a step, a slope or a fall
 	var goal_x := (goal_tile.x + 0.5) * TILE
 	if leaps:
@@ -98,6 +102,25 @@ func steer(body: CharacterBody2D, delta: float) -> Dictionary:
 	elif grounded and not leaps and body.is_on_wall() and down < 0 and _hop <= 0.0:
 		out["jump"] = true  # a step up that is a little too sheer to walk
 		_hop = HOP_GAP
+	return _track(out, feet, goal_tile, delta)
+
+
+## Up a rope ladder: walk to its foot, climb until the feet are near the floor above, then hop off onto it.
+func _climb(feet: Vector2, grounded: bool, from: Vector2i, goal_tile: Vector2i, out: Dictionary) -> void:
+	var ladder_x := float(from.x + (1 if goal_tile.x < from.x else 0)) * TILE
+	var floor_y := float(goal_tile.y + 1) * TILE
+	if feet.y <= floor_y + 12.0:  # near the top: a hop off the ladder, sideways onto the floor
+		out["dir"] = signf((goal_tile.x + 0.5) * TILE - feet.x)
+		out["let_go"] = not grounded
+	elif grounded and absf(ladder_x - feet.x) > 8.0:
+		out["dir"] = signf(ladder_x - feet.x)
+	else:
+		out["climb"] = true
+
+
+## Notes whether the wizard is getting closer to the tile it is going to, and says so when it is not.
+func _track(out: Dictionary, feet: Vector2, goal_tile: Vector2i, delta: float) -> Dictionary:
+	var gap := (goal_tile.x + 0.5) * TILE - feet.x
 	var progress := absf(gap) + absf(feet.y - (goal_tile.y + 1) * TILE) * 0.5
 	if progress < _best - 3.0:
 		_best = progress

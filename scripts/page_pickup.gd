@@ -9,6 +9,7 @@ const REACH_X := 36.0
 const REACH_Y := 220.0
 const FLOAT := 112.0  # how high it floats over the floor
 const PAGE := preload("res://art/props/page.png")  # a page of the spellbook
+const BOOK := preload("res://art/props/spellbook.png")  # the whole book, closed: what a fallen wizard leaves
 const OUTLINE := preload("res://scripts/page_outline.gdshader")
 const CHANT_COLOR := Color("#ffe9a0")
 const CHIME_NEAR := 500.0  # a page chimes once when the wizard comes this close
@@ -32,7 +33,7 @@ func _ready() -> void:
 		_color = _glow.lightened(0.2)
 	_t = randf() * TAU
 	_sprite = Sprite2D.new()
-	_sprite.texture = PAGE
+	_sprite.texture = PAGE if spoils.is_empty() else BOOK
 	var outline := ShaderMaterial.new()
 	outline.shader = OUTLINE
 	outline.set_shader_parameter("outline_color", _color)

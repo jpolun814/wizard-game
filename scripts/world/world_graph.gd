@@ -90,8 +90,7 @@ static func build_open(rng: RandomNumberGenerator, biome: String) -> WorldGraph:
 	graph._add_room({"cx": size.x / 2, "cy": SURFACE_ROW, "hw": size.x / 2 - 4, "air": SURFACE_ROW - 3, "surface": true,
 			"tunnel_1": true, "tunnel_-1": true, "mouths": [], "role": "surface", "cluster": -1})
 	graph._classify(rng)
-	for k in PLAYERS:  # the middle is level, for the first to start on; the others are spread along the rest, away from it
-		var column := roundi(size.x * (k + 0.5) / PLAYERS)
+	for column: int in graph.surface["starts"]:  # on level ground, well apart (see SurfaceGen._starts)
 		graph.spawns.append({"x": column, "room": 0, "side": 0})
 	graph.locks = []
 	return graph

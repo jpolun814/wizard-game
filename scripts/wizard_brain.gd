@@ -284,6 +284,8 @@ func _travel(delta: float) -> float:
 		_stuck_on_goal()
 	if steer["jump"] and wizard.is_on_floor():
 		wizard.request_jump()
+	wizard.climb_up = steer["climb"]  # at the foot of a rope ladder, the way up it
+	wizard.let_go = steer["let_go"]  # and the hop off it at the top
 	return steer["dir"] * steer["speed"]
 
 

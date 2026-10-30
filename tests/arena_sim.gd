@@ -90,6 +90,8 @@ func _physics_process(delta: float) -> void:
 				_failed = true
 		elif not _beaten.has(wizard):
 			_beaten[wizard] = _clock
+			if is_instance_valid(wizard):
+				print("        %s fell at tile (%d, %d)" % [wizard.look, wizard.global_position.x / 32.0, wizard.global_position.y / 32.0])
 	if _clock >= _next_report:
 		_next_report += report
 		_print_state()

@@ -20,6 +20,7 @@ var _gates := []
 var _built: Dictionary  # what the generator made, kept to build the ways again when a gate is cleared
 var _since_gates := 0.0
 var _castle_doors := []  # [{"x", "floor"}]: where the castle's wooden doors stand
+var _castle_stairs := []  # [{"from", "to": the ends of the slope in pixels, "under"}]: its stairs to the cellars
 var _castle_ladders := []  # [{"x", "bottom", "top"}]: its rope ladders, by the first column of the hatch and the rows of the floors
 var _weather: Array[Weather] = []
 var _gates_open := false
@@ -63,8 +64,12 @@ func _build_map() -> Variant:
 			span["snow"] = SurfaceGen.LOOKS[biome["name"]]["snow"]  # above this many rows over the plains, the ground is snow
 		ArenaGen.biome_spans.append(span)
 	ArenaGen.castle_hall = built["hall"]
+	ArenaGen.castle_steps = []
+	for run: Dictionary in built["stairs"]:
+		ArenaGen.castle_steps.append_array(run["under"])
 	_castle_doors = built["doors"]
 	_castle_ladders = built["ladders"]
+	_castle_stairs = built["stairs"]
 	tiled_ground = true
 	_start_tile = built["start"]
 	_spawn_tiles = built["spawns"]
@@ -72,7 +77,7 @@ func _build_map() -> Variant:
 		_start_tile = _spawn_tiles[randi() % _spawn_tiles.size()]  # not seeded, so the same world starts you somewhere new
 	var shut := WorldBuilder.shut(built, true)
 	nav = WorldNav.new()
-	nav.build(shut["cells"], built["size"].y, shut["barred"], _spawn_tiles[0], shut["tolls"], shut["links"])
+	nav.build(shut["cells"], built["size"].y, shut["barred"], _spawn_tiles[0], shut["tolls"], shut["links"], shut["climbs"])
 	return built["cells"]
 
 
@@ -163,10 +168,28 @@ func _begin_encounter(camera: Camera2D) -> void:
 		pond.position = Vector2(entry["a"] * float(TILE), entry["surface"] * float(TILE))
 		pond.clip = _ground.air_loops
 		add_child(pond)
+	_lay_landmarks()
+	_raise_the_dead()
+	_plant_graves()
+	_wash_out_the_colour()
 	for entry: Dictionary in _castle_doors:
 		var door := CastleDoor.new()
 		door.position = Vector2(entry["x"] * float(TILE), entry["floor"] * float(TILE))
 		add_child(door)
+	if not _castle_stairs.is_empty():
+		var slopes := StaticBody2D.new()
+		slopes.collision_layer = 16  # a one-way platform: walk up it, land on top, and S drops through
+		slopes.collision_mask = 0
+		for entry: Dictionary in _castle_stairs:
+			var slope := CollisionShape2D.new()
+			var line := SegmentShape2D.new()
+			line.a = entry["from"]
+			line.b = entry["to"]
+			slope.shape = line
+			slope.one_way_collision = true
+			slope.one_way_collision_margin = 6.0
+			slopes.add_child(slope)
+		add_child(slopes)
 	for entry: Dictionary in _castle_ladders:
 		var ladder := RopeLadder.new()
 		ladder.height = float(entry["bottom"] - entry["top"]) * float(TILE)
@@ -209,6 +232,126 @@ func _begin_encounter(camera: Camera2D) -> void:
 	_dark.add_to_group("darkness")
 	add_child(_dark)
 	get_tree().node_added.connect(_on_node_added)
+
+
+## The landmarks of an open biome: the craters of the ashlands' volcanoes, the swamp's pits of mud and thickets of thorns.
+func _lay_landmarks() -> void:
+	var t := float(TILE)
+	var floors: PackedInt32Array = graph.surface["floor"]
+	for crater: Dictionary in graph.surface["craters"]:
+		var eruption := Eruption.new()
+		eruption.name = "Crater%d" % crater["x"]  # the same on every machine, so the host can tell the others when it wakes
+		eruption.position = Vector2((crater["x"] + 0.5) * t, crater["row"] * t)
+		add_child(eruption)
+	for pit: Dictionary in graph.surface["mud"]:
+		var mud := Mudslide.new()
+		var middle: int = (pit["a"] + pit["b"]) / 2
+		mud.width = (pit["b"] - pit["a"] + 1) * t
+		mud.position = Vector2((pit["a"] + pit["b"] + 1) * 0.5 * t, floors[middle] * t)
+		var heights := PackedFloat32Array()
+		for i in Mudslide.SAMPLES:
+			var column := clampi(pit["a"] + roundi(float(pit["b"] - pit["a"]) * i / (Mudslide.SAMPLES - 1)), 0, floors.size() - 1)
+			heights.append(floors[column] * t - mud.position.y)
+		mud.planted_ground = heights
+		mud.modulate = Color(0.5, 0.44, 0.36)  # dark swamp mud, not the sand of the spell
+		add_child(mud)
+	for thicket: Dictionary in graph.surface["thorns"]:
+		_grow_thorns({"floors": floors.slice(thicket["a"], thicket["b"] + 1), "first": thicket["a"]})
+
+
+var _dead: Array[Mob] = []  # the graveyard's roaming dead, in the order the seed raised them: the host's move, the others' show
+var _dead_sent := 0.0
+const GRAVES := ["grave_1", "grave_2", "grave_3", "grave_4"]
+## The graveyard's tombstones: one now and then along the whole ground, from the seed, leaning a little. They are only to be seen.
+func _plant_graves() -> void:
+	if SurfaceGen.biome_at(graph.surface, graph.surface["start"]) != "graveyard":
+		return
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed_value + 1291
+	var floors: PackedInt32Array = graph.surface["floor"]
+	var column := SurfaceGen.MARGIN + 6
+	while column < floors.size() - SurfaceGen.MARGIN - 6:
+		var grave := Sprite2D.new()
+		grave.texture = load("res://art/props/%s.png" % GRAVES[rng.randi() % GRAVES.size()])
+		grave.offset = Vector2(0, -grave.texture.get_height() * 0.5 + 3.0)  # it stands on the ground
+		grave.flip_h = rng.randf() < 0.5
+		grave.rotation = rng.randf_range(-0.06, 0.06)
+		grave.position = Vector2((column + 0.5) * TILE, floors[column] * float(TILE) + 2.0)
+		grave.z_index = -1
+		add_child(grave)
+		column += rng.randi_range(3, 9)
+
+
+## The graveyard is seen in grey: a layer over the world, under the interface, that takes the colour out of it.
+func _wash_out_the_colour() -> void:
+	if SurfaceGen.biome_at(graph.surface, graph.surface["start"]) != "graveyard":
+		return
+	var layer := CanvasLayer.new()
+	layer.layer = 2
+	var wash := ColorRect.new()
+	wash.set_anchors_preset(Control.PRESET_FULL_RECT)
+	wash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var material := ShaderMaterial.new()
+	material.shader = preload("res://scripts/grayscale.gdshader")
+	wash.material = material
+	layer.add_child(wash)
+	add_child(layer)
+
+
+const DEAD_PER_COLUMNS := 90  # the graveyard has a skeleton for this many columns of its width
+const DEAD_KEEP_AWAY := 45    # columns from every starting place that none rise
+## On the host, tells the others a few times a second where each of the dead is, which way it faces and whether it is drawing back to strike.
+func _share_the_dead(delta: float) -> void:
+	if _dead.is_empty() or not Net.online() or not Net.is_host():
+		return
+	_dead_sent += delta
+	if _dead_sent < 0.05:
+		return
+	_dead_sent = 0.0
+	var places := PackedVector2Array()
+	var faces := PackedFloat32Array()
+	var swings := PackedByteArray()
+	for mob in _dead:
+		var here := is_instance_valid(mob) and not mob.is_dead()
+		places.append(mob.global_position if here else Vector2.ZERO)
+		faces.append(mob.facing if here else 1.0)
+		swings.append(1 if here and mob.is_drawing_back() else 0)
+	Net.send(self, &"_dead_at", [places, faces, swings])
+
+
+@rpc("authority", "call_remote", "unreliable")
+func _dead_at(places: PackedVector2Array, faces: PackedFloat32Array, swings: PackedByteArray) -> void:
+	for k in mini(places.size(), _dead.size()):
+		var mob := _dead[k]
+		if is_instance_valid(mob) and not mob.is_dead():
+			mob.net_position = places[k]
+			mob.net_facing = faces[k]
+			mob.net_swing = swings[k] == 1
+
+
+## The graveyard's dead walk it: skeletons that amble about until the player comes near, then give chase. They rise from the ground at
+## places the seed picks, and (like all of a world's mobs) only trouble the player of the machine they stand on.
+func _raise_the_dead() -> void:
+	if SurfaceGen.biome_at(graph.surface, graph.surface["start"]) != "graveyard":
+		return
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed_value + 4409
+	var wanted := WorldGraph.size.x / DEAD_PER_COLUMNS
+	var tries := 0
+	while wanted > 0 and tries < 200:
+		tries += 1
+		var column := rng.randi_range(SurfaceGen.MARGIN + 10, WorldGraph.size.x - SurfaceGen.MARGIN - 10)
+		var near := false
+		for spawn in _spawn_tiles:
+			near = near or absi(spawn.x - column) < DEAD_KEEP_AWAY
+		if near:
+			continue
+		var mob: Mob = _add_mob("basic", _floor_under(Vector2((column + 0.5) * TILE, graph.surface["floor"][column] * TILE - 40.0)))
+		mob.name = "Dead%d" % _dead.size()  # the same on every machine, so the host's can tell the others' puppets what it does
+		mob.roams = true
+		mob.puppet = not Net.is_host()
+		_dead.append(mob)
+		wanted -= 1
 
 
 ## Thorns over a stretch of a passage's floor, grown in thickets a few tiles long, so fire burns one thicket at a time and a way
@@ -442,6 +585,7 @@ func _process(delta: float) -> void:
 	var day: Color = SurfaceGen.LOOKS[SurfaceGen.biome_at(graph.surface, column + ArenaGen.sky_xl)]["tint"]
 	_dark.color = day.lerp(DEEP, depth).lerp(BLACK, far)
 	_update_weather(under)
+	_share_the_dead(delta)
 	_count_wizards(delta)
 	if Net.is_host():
 		_watch_falls()
@@ -565,6 +709,14 @@ func _begin_collapse() -> void:
 
 
 ## The portal gives way: everyone who is left is thrown into the next world, smaller than this one.
+## For the F1 panel: leaves for a world of the match now, as the collapse would (the one stood in too: it is built again).
+func go_to_stage(at: int) -> void:
+	if _leaving:
+		return
+	MatchState.stage = at - 1  # the collapse moves on to the next
+	_collapse()
+
+
 func _collapse() -> void:
 	_leaving = true
 	var state: Array[Dictionary] = []
@@ -613,7 +765,7 @@ func _watch_gates(delta: float) -> void:
 			entry["open"] = true
 	if changed:
 		var shut := WorldBuilder.shut(_built, true)
-		nav.build(shut["cells"], _built["size"].y, shut["barred"], _spawn_tiles[0], shut["tolls"], shut["links"])
+		nav.build(shut["cells"], _built["size"].y, shut["barred"], _spawn_tiles[0], shut["tolls"], shut["links"], shut["climbs"])
 		if Net.online() and Net.is_host():
 			Net.send(self, &"_gates_cleared", [_cleared_gate_names()])
 

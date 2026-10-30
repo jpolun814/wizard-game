@@ -1,8 +1,8 @@
 class_name Weather
 extends CPUParticles2D
 
-## What hangs in the air of a biome on the surface: snow on the mountains, a blizzard on the tundra, ash and embers in the
-## ashlands, spores over the swamp. It rides on the camera and fills the view. It fades out when the wizard goes under the ground
+## What hangs in the air of a biome on the surface: snow and a blizzard on the peaks, ash and embers in the ashlands, spores over the
+## swamp, rain and a low fog in the graveyard. It rides on the camera and fills the view. It fades out when the wizard goes under the ground
 ## or into another biome, and the new weather fades in.
 
 const KINDS := {
@@ -14,6 +14,10 @@ const KINDS := {
 		"gravity": Vector2(10, 4), "texture": "circle_02", "size": Vector2(6, 11), "colour": Color(0.7, 0.64, 0.62, 0.8)},
 	"embers": {"amount": 60, "life": 5.0, "box": Vector2(720, 6), "at": Vector2(0, 380), "dir": Vector2(0.1, -1), "spread": 25.0, "speed": Vector2(40, 90),
 		"gravity": Vector2(8, -10), "texture": "circle_05", "size": Vector2(5, 9), "colour": Color(1.0, 0.6, 0.25, 1.0), "glow": true},
+	"rain": {"amount": 240, "life": 1.3, "box": Vector2(780, 6), "at": Vector2(80, -400), "dir": Vector2(-0.22, 1), "spread": 2.0, "speed": Vector2(560, 660),
+		"gravity": Vector2.ZERO, "texture": "rain_streak", "size": Vector2(55, 85), "colour": Color(0.72, 0.82, 1.0, 0.6), "align": true},
+	"fog": {"amount": 70, "life": 14.0, "box": Vector2(780, 240), "at": Vector2(0, 20), "dir": Vector2(1, 0), "spread": 15.0, "speed": Vector2(8, 18),
+		"gravity": Vector2.ZERO, "texture": "smoke_01", "size": Vector2(300, 520), "colour": Color(0.78, 0.8, 0.85, 0.34)},
 	"spores": {"amount": 46, "life": 10.0, "box": Vector2(680, 360), "at": Vector2.ZERO, "dir": Vector2(0, -1), "spread": 180.0, "speed": Vector2(5, 16),
 		"gravity": Vector2(0, -2), "texture": "light_01", "size": Vector2(10, 20), "colour": Color(0.7, 1.0, 0.5, 0.5), "glow": true},
 }
@@ -58,6 +62,7 @@ func _apply(kind: String) -> void:
 	initial_velocity_min = look["speed"].x
 	initial_velocity_max = look["speed"].y
 	gravity = look["gravity"]
+	particle_flag_align_y = look.get("align", false)  # a streak of rain points the way it falls
 	texture = Fx.tex(look["texture"])
 	scale_amount_min = look["size"].x / Fx.TEX_SIZE
 	scale_amount_max = look["size"].y / Fx.TEX_SIZE

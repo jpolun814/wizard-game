@@ -51,6 +51,8 @@ have the nodes yet. A machine says it is leaving (`_leave_network_scene`) as its
 over (`_back_to_room`, ten seconds after one wizard is left). Everything that follows from the seed (the world, the pages, who holds
 what, where each seat starts) every machine works out for itself.
 
+**The world's own hazards and mobs are the same for everyone.** Landmarks that follow from the seed (pools, mud, thorns, volcano cones) every machine builds for itself. Two things move, so the host runs them: a volcano (`Eruption`, named `Crater<column>`) counts down its sleep only on the host, which wakes it with an rpc carrying a seed, so every machine rumbles, erupts and throws the same lava balls together; and the graveyard's roaming skeletons (`Dead<k>`, `Mob.roams`) are walked and fought only by the host (they go after the nearest standing wizard, a person's or a brain's). On the other machines they are puppets (`Mob.puppet`): `World._share_the_dead` sends their places, facing and wind-up every 0.05 s, `Mob._fell` makes one fall everywhere, and a blow on a person's wizard is sent to that machine (`Wizard._struck_by_a_mob`), since only it can feel it. `tests/net_hazard_check.tscn` (`seed=1` graveyard, `seed=5` ashlands) prints each copy's view to be set side by side.
+
 **Seats.** A person's seat is their place in `Net.roster`; seats are 0 to 3 and give the look (`Net.LOOKS`: hooded, dark, pyre,
 bone), the ledger and the starting place. Someone who leaves mid-match leaves a 0 in their seat (their wizard falls and drops its
 book); the waiting room closes the gaps. Playing alone, the player is seat 0 and nothing changed.

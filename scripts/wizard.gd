@@ -158,6 +158,7 @@ var _shield: Node2D
 var _bubble: AnimatedSprite2D
 var _swirl: Sprite2D  # the wind turning round the Barrier
 var _vine: Node2D  # the vine (Liana) the wizard is hanging on, if any
+var _drop_time := 0.0          # while above zero, wooden platforms and stairs let the wizard through
 var _vine_cooldown := 0.0  # after letting go, a vine cannot be grabbed again for a moment
 
 # --- What the other machines of a network game see of this wizard (see share and Net) -------------------------------------
@@ -632,6 +633,10 @@ func _physics_process(delta: float) -> void:
 
 	var can_move := movement_enabled and root_time <= 0.0 and not dead and not fainted
 	_vine_cooldown -= delta
+	if brain == null and can_move and is_on_floor() and Input.is_action_pressed("move_down"):
+		_drop_time = 0.3
+	_drop_time -= delta
+	set_collision_mask_value(5, _drop_time <= 0.0)
 	if can_move and _climb():
 		return
 	if can_move:
@@ -1043,6 +1048,16 @@ func abandon() -> void:
 
 
 ## The machine that drives this wizard says it was hurt: the flash, the cry and the number, as there.
+## A mob on the host's machine struck this wizard, which only the machine that drives it can feel.
+@rpc("any_peer", "call_remote", "reliable")
+func _struck_by_a_mob(amount: int, impulse: Vector2) -> void:
+	if not is_multiplayer_authority():
+		return
+	take_damage(amount)
+	if impulse != Vector2.ZERO:
+		push(impulse)
+
+
 @rpc("authority", "call_remote", "unreliable_ordered")
 func _show_hurt(amount: int) -> void:
 	_flash = 0.3

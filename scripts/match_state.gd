@@ -5,13 +5,14 @@ extends RefCounted
 ## who are left are thrown into a new world, smaller than the last; the last is a small open one with nowhere to hide. The pages no one
 ## has found lie on in the new world; each wizard keeps their own pages and what is left of their stamina.
 
-## Each world of a match: how wide it is in tiles, how long the wizards have in it before it collapses (0: it does not), and whether it has caves.
+## Each world of a match: how wide it is in tiles and how long the wizards have in it before it collapses (0: it does not).
 ## Each world is one biome (see biome_of): the first three take three of the six biomes in an order the seed picks, and the last is open sky.
+## Whether it has halls underground depends on the biome (SurfaceGen.has_halls): only the castle and the underground do.
 const STAGES := [
-	{"width": 1000, "seconds": 180.0, "caves": true},
-	{"width": 720, "seconds": 180.0, "caves": true},
-	{"width": 520, "seconds": 180.0, "caves": true},
-	{"width": 360, "seconds": 0.0, "caves": false},
+	{"width": 1000, "seconds": 180.0},
+	{"width": 720, "seconds": 180.0},
+	{"width": 520, "seconds": 180.0},
+	{"width": 360, "seconds": 0.0},
 ]
 const HEIGHT := 380  # every world is this deep, in tiles
 const WARNING := 18.0 # seconds of shaking and a warning before a world collapses
@@ -33,9 +34,16 @@ static func begin(seed_value: int) -> void:
 	vitals = []
 
 
-## What the world being built is like: its size and time from STAGES, and its biome.
+## What the world being built is like: its size and time from STAGES, its biome, and whether it has halls ("caves").
 static func plan() -> Dictionary:
-	return STAGES[stage].merged({"biome": biome_of(stage)})
+	return plan_of(stage)
+
+
+## The same for any stage of this match.
+static func plan_of(at: int) -> Dictionary:
+	var biome := biome_of(at)
+	var halls := SurfaceGen.has_halls(biome) and at < STAGES.size() - 1  # the last world is all open sky
+	return STAGES[at].merged({"biome": biome, "caves": halls})
 
 
 ## The biome of a stage of this match: the biomes shuffled by the match's seed, so every machine in a match gets the same order and no

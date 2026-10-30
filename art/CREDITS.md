@@ -130,3 +130,7 @@ and are no longer drawn by the game.
 ## Ash ground (art/tiles/ash.png)
 
 - Derived from the Gothicvania Cemetery tiles by ansimuz, CC0 (art/tiles/cemetery.png), turned to ember crust over basalt by tools/prepare_ash_tiles.py.
+
+## Rain (art/particles/rain_streak.png)
+
+- Drawn by tools/prepare_rain.py: a few pixel squares, no outside source.
