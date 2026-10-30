@@ -22,7 +22,7 @@ func _initialize() -> void:
 	for s in range(first, first + seeds):
 		var rng := RandomNumberGenerator.new()
 		rng.seed = s
-		var world := WorldBuilder.make(rng, SurfaceGen.BIOMES[s % SurfaceGen.BIOMES.size()], true)
+		var world := WorldBuilder.make(rng, SurfaceGen.BIOMES[s % SurfaceGen.BIOMES.size()], SurfaceGen.BIOMES[s % SurfaceGen.BIOMES.size()] != "castle")  # the castle world has no halls under it
 		var graph: WorldGraph = world["graph"]
 		var shut := WorldBuilder.shut(world)
 		var cells: TileGrid = shut["cells"]
@@ -64,7 +64,7 @@ func _initialize() -> void:
 			print("   spawn %s reaches %d tiles; the longest path tried has %d steps; %d unreachable tiles tried" % [spawn, keys.size(), longest, unreachable])
 		# Anchored on a spawn, the map keeps only what can be left as well as come to: no pit with no way out.
 		var anchored := WorldNav.new()
-		anchored.build(cells, bottom, shut["barred"], spawns[0])
+		anchored.build(cells, bottom, shut["barred"], spawns[0], shut["tolls"], shut["links"], shut["climbs"])
 		var home := anchored.nearest(spawns[0])
 		_check(anchored.size() > 1000 and anchored.size() <= nav.size(), "seed %d: the anchored map has %d tiles, of %d" % [s, anchored.size(), nav.size()])
 		for spawn in spawns:

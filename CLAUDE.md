@@ -245,11 +245,11 @@ spells you do, drawing them visibly. There are no waves and no boss (see `docs/p
 - **Biomes** (the look of each place):
   - a blood-moon graveyard.
   - a jungle (rain, great trees with vines hanging from them), snowy peaks and ashlands (embers and lava over dark basalt).
-  - a castle (a row of ruined castles with gothic church interiors) and the underground (a great cavern under a roof of rock, no sky).
+  - a castle (the whole world is castles side by side, with gothic church interiors, doorways tall enough for a giant, and a giant roaming the ground floors) and the underground (a great cavern under a roof of rock, no sky).
   - Each world of a match is one of these six, in an order the seed picks; the last, small world is all open sky, one of the first four.
   - **Each biome has landmarks of its own, not just a reskin; only the underground has tunnels.** The graveyard is dark with rain and fog, and its skeletons roam
-    (`Mob.roams`). The ashlands have volcanoes that erupt now and then (`Eruption`) and pits of lava. The snowy peaks are mountains to climb, with a page on each
-    summit. The jungle has pits of mud (`Mudslide`, dug by the world), thickets of thorns (`Bramble`) and great trees (`JungleTree`: a branch to stand on and a vine to climb to it). Its art is still named for the swamp it was cut from. The castle is a row of castles with five floors: a cellar down a
+    (`Mob.roams`). The ashlands have volcanoes that erupt now and then (`Eruption`) and pits of lava. The snowy peaks are mountains to climb (`MountainGale`: wind that grows toward the summits and pushes a wizard without the run animation, seen as streaks; `SnowCloud`: clouds that drift past in front of whoever is in them), with a page on each
+    summit. The jungle has pits of mud (`Mudslide`, dug by the world), thickets of thorns (`Bramble`) and great trees (`JungleTree`: dense, in three sizes and mirrored or not, each large one with the oak's ledges to hop between and a vine to climb to the high one, where most of the pages lie; the AI climbs the vines; the ponds are full of `Piranhas`). Its art is still named for the swamp it was cut from. The castle is a row of castles with five floors: a cellar down a
     stair, the ground floor, the first, and the second and third under the keep (see `docs/world_generation.md`).
 - **Characters and art:** LuizMelo characters, Ansimuz GothicVania environments, and CC0 pixel effects.
 
@@ -334,7 +334,7 @@ GODOT="/c/Users/Jordan Polun/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.
 "$GODOT" --headless --fixed-fps 60 --path . tests/spectate_check.tscn  # the player falls and watches a rival (add `-- collapse` to follow into the next world)
 "$GODOT" --headless --fixed-fps 60 --path . tests/pull_check.tscn  # the portal tears open at the top and sucks the wizards in (add `-- out=DIR` for pictures, needs a window)
 "$GODOT" --headless --fixed-fps 60 --path . tests/spark_check.tscn  # Spark Strike lands on the ground under open sky
-"$GODOT" --headless --fixed-fps 60 --path . tests/stairs_check.tscn  # a castle stair to the cellar is walked down and dropped through with S
+"$GODOT" --headless --fixed-fps 60 --path . tests/stairs_check.tscn  # a castle stair to the cellar is walked down and dropped through with S (stairs are hollow, and the only way between floors: no ladders, no doors)
 "$GODOT" --headless --fixed-fps 60 --path . tests/parity_check.tscn  # Push, Geyser, Burst, Tornado, Tide Surf and a shot do the same to a person's wizard and the brain's
 "$GODOT" --path . tests/eclipse_check.tscn  # an Eclipse darkens the screen of the one inside it (add `-- out=DIR` for pictures)
 "$GODOT" --headless --fixed-fps 60 --path . tests/sentinel_check.tscn  # a sentinel shoots a rival wizard in range, not one out of range

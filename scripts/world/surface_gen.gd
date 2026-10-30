@@ -9,6 +9,8 @@ const BASE_ROW := 110       # the ground line of the plains
 const MARGIN := 4           # columns at each end of the world that are left alone
 const GRAVEYARD_WIDTH := 270
 const CASTLE_WIDTH := 136   # the same as WorldBuilder's
+const CASTLE_START_WEST := 25    # columns from a castle's west end to a place to start on its ground floor, in the second room
+const CASTLE_START_EAST := 105   # and in the sixth
 const POOL_PAD := 3         # columns of level shore each side of a pool
 const START_FLAT := 8       # columns each side of the middle that are level, to start on
 const LEDGE := 3            # the most a ledge on a mountain climbs in one column: a jump (the wizard clears three rows)
@@ -40,7 +42,7 @@ const LOOKS := {
 ## before it, "biomes": [{"name", "a", "b"}], "ponds": [{"a", "b", "surface", "depth", "lava"}], "castles": the first column of each castle
 ## on the ground (only the castle world has any), "castle": the first of those or -1, "roofed": true when a roof of rock covers the surface
 ## (the underground), "start": the column to start on, "craters": the volcanoes of the ashlands [{"x": the column of the middle, "row": the
-## rim's row}], "mud" and "thorns": the jungle's pits of mud and thickets of thorns [{"a", "b"}: first and last column], "landmarks": columns
+## rim's row}], "mud" and "thorns": the jungle's pits of mud and thickets of thorns [{"a", "b"}: first and last column], "trees": [{"column", "size", "mirror"}], "landmarks": columns
 ## of level ground at a place worth going to (the rim of a volcano, a mountain's top), where pages are laid first}.
 static func build(width: int, biome: String, rng: RandomNumberGenerator) -> Dictionary:
 	var n := width - MARGIN * 2
@@ -79,15 +81,14 @@ static func build(width: int, biome: String, rng: RandomNumberGenerator) -> Dict
 			pinned[c] = 1
 		craters.append({"x": middle_column, "row": rim_row})
 	var castles: Array[int] = []
-	if biome == "castle":  # castles stand in a row on level ground, an even number of them so the start falls between two
-		var count := maxi(2, width / 250 / 2 * 2)
-		var segment := (width - MARGIN * 2) / count
+	if biome == "castle":  # the whole world is castle: castles stand side by side from end to end, with a solid wall of the same height at each end where there is room left over
+		var count := (width - MARGIN * 2) / CASTLE_WIDTH
+		var first := MARGIN + ((width - MARGIN * 2) - count * CASTLE_WIDTH) / 2
 		for k in count:
-			var x := MARGIN + k * segment + (segment - CASTLE_WIDTH) / 2
-			castles.append(x)
-			for c in range(x - 3, x + CASTLE_WIDTH + 4):
-				floor_row[c] = BASE_ROW
-				pinned[c] = 1
+			castles.append(first + k * CASTLE_WIDTH)
+		for c in range(0, width):
+			floor_row[c] = BASE_ROW
+			pinned[c] = 1
 	var starts := _starts(width, castles)
 	if castles.is_empty():  # a world that is all surface starts its wizards a quarter of the way apart, each on a level shelf cut into whatever ground is there
 		for spot in starts:
@@ -126,31 +127,26 @@ static func build(width: int, biome: String, rng: RandomNumberGenerator) -> Dict
 	_relax(floor_row, pinned, limits)
 	var mud := []
 	var thorns := []
+	var trees := []
 	if biome == "jungle":
 		_lay_jungle_hazards(width, ponds, mud, thorns, rng)
+		trees = _plant_trees(floor_row, [ponds, mud, thorns], starts, rng)
 	return {"limits": limits, "floor": floor_row, "biomes": [{"name": biome, "a": MARGIN, "b": width - MARGIN - 1}], "ponds": ponds, "castles": castles, "castle": castles[0] if not castles.is_empty() else -1, "roofed": biome == "underground", "start": middle,
-			"craters": craters, "mud": mud, "thorns": thorns, "landmarks": _landmarks(biome, floor_row, craters), "starts": starts}
+			"craters": craters, "mud": mud, "thorns": thorns, "trees": trees, "landmarks": _landmarks(biome, floor_row, craters, trees), "starts": starts}
 
 
-## The columns four wizards start from in a world that is all surface: a quarter of the way along it, each time over; or, with castles
-## standing in it, spread over the courtyards between them (two to a courtyard when there are too few).
+## The columns four wizards start from in a world that is all surface: a quarter of the way along it, each time over; or, in the castle
+## world, inside the castles, on the ground floor, spread along the row.
 static func _starts(width: int, castles: Array[int]) -> Array[int]:
 	var out: Array[int] = []
 	if castles.is_empty():
 		for k in 4:
 			out.append(roundi(width * (k + 0.5) / 4.0))
 		return out
-	var left: Array[int] = [MARGIN]
-	var right: Array[int] = []
-	for castle in castles:
-		right.append(castle)
-		left.append(castle + CASTLE_WIDTH)
-	right.append(width - MARGIN)
 	var spots: Array[int] = []
-	for k in left.size():
-		var middle := (left[k] + right[k]) / 2
-		spots.append(middle - (right[k] - left[k]) / 4)
-		spots.append(middle + (right[k] - left[k]) / 4)
+	for castle in castles:
+		spots.append(castle + CASTLE_START_WEST)
+		spots.append(castle + CASTLE_START_EAST)
 	for j in 4:
 		out.append(spots[roundi(j * (spots.size() - 1) / 3.0)])
 	return out
@@ -212,9 +208,40 @@ static func _lay_jungle_hazards(width: int, ponds: Array, mud: Array, thorns: Ar
 				break
 
 
+## The jungle's great trees, one now and then along the ground where it is level and clear of the pits, the pools and the places the
+## wizards start from: [{"column", "size": 1, 2 or 3 times the picture, "mirror"}]. The large ones have a branch with a vine to climb to it.
+static func _plant_trees(floor_row: PackedInt32Array, hazards: Array, starts: Array, rng: RandomNumberGenerator) -> Array:
+	var avoid := []  # [first, last] columns
+	for list: Array in hazards:
+		for entry: Dictionary in list:
+			avoid.append([entry["a"] - 8, entry["b"] + 8])
+	for column: int in starts:
+		avoid.append([column - 12, column + 12])
+	var out := []
+	var column := MARGIN + 14
+	while column < floor_row.size() - MARGIN - 14:
+		var roll := rng.randf()
+		var tree_size := 1 if roll < 0.2 else (2 if roll < 0.65 else 3)  # some small, some large, some larger still
+		var mirror := rng.randf() < 0.5
+		var spot := JungleTree.layout(tree_size, mirror)
+		var clear: bool = absi(floor_row[column + spot["vine"]] - floor_row[column]) <= 2 and absi(floor_row[column + spot["vine"] / 2] - floor_row[column]) <= 1
+		for span: Array in avoid:
+			if column + 11 >= span[0] and column - 11 <= span[1]:
+				clear = false
+		if not clear:
+			column += 3
+			continue
+		out.append({"column": column, "size": tree_size, "mirror": mirror})
+		column += rng.randi_range(6, 11)
+	return out
+
+
 ## Columns of level ground worth going to: the rim of each volcano, and the top of each mountain peak.
-static func _landmarks(biome: String, floor_row: PackedInt32Array, craters: Array) -> Array[int]:
+static func _landmarks(biome: String, floor_row: PackedInt32Array, craters: Array, trees: Array) -> Array[int]:
 	var out: Array[int] = []
+	for tree: Dictionary in trees:
+		if tree["size"] >= 2:
+			out.append(tree["column"])  # a page lies on the branch of each large tree
 	for crater in craters:
 		out.append(crater["x"] - RIM + 1)
 		out.append(crater["x"] + RIM - 1)

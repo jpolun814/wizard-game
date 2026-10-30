@@ -18,10 +18,9 @@ const CHANTS := ["chant:bonfire", "chant:rift"]
 const LOCKABLE := ["Frostbolt", "Icicles", "Ice Prison", "Blizzard", "Stonefall", "Mudslide", "Earthquake", "Bramble", "Spore Puff",
 		"Flytrap", "Hex", "Black Hole", "Tide Surf", "Blood Bolt", "Offering", "Burst", "Crimson Veil", "Adrenaline", "Faint", "chant:boundless", "chant:double_jump", "chant:haste"]
 const ON_SURFACE := 3  # pages that lie out in the open near the start, so the first one is found within a minute
-const IN_CASTLE := 11  # and pages in the castles, on every floor from the cellar to the keep's top: not one to a room, only a reward for the climb
 ## Where in a castle they lie: a column from its west end, and the height of the floor in rows (the cellar's is below the ground, so negative).
 ## Deepest and highest first, then the middle floors, so the few of a small match go to the places hardest to reach.
-const CASTLE_SPOTS := [Vector2i(70, 34), Vector2i(38, -11), Vector2i(92, 34), Vector2i(98, -11), Vector2i(48, 34), Vector2i(58, -11), Vector2i(50, 22), Vector2i(90, 22), Vector2i(78, -11), Vector2i(26, 11), Vector2i(104, 11)]
+const CASTLE_SPOTS := [Vector2i(62, 34), Vector2i(38, -11), Vector2i(92, 34), Vector2i(98, -11), Vector2i(48, 34), Vector2i(58, -11), Vector2i(55, 22), Vector2i(96, 22), Vector2i(78, -11), Vector2i(18, 11), Vector2i(97, 11)]
 
 ## Deals each wizard their starting pages, the same way for the same seed. Wizards are given different spells where the lists are long enough
 ## (a list shorter than the wizards repeats), so a wizard's starter spell is theirs alone, with no page of it on the map for another to find.
@@ -80,12 +79,15 @@ static func plan(graph: WorldGraph, rng: RandomNumberGenerator, dealt: Array[Led
 	var spots: Array[Vector2] = []  # where pages already lie, in tiles, so the next one goes as far from them as it can
 	var rest: Array[String] = open + lockable
 	_shuffle(rest, rng)
-	for column in _surface_columns(graph, mini(ON_SURFACE, rest.size())):  # late in a match few pages are left
+	var castles: Array = graph.surface["castles"]
+	var outdoors: Array[int] = []  # none lie out of doors in the castle world, which has no out of doors
+	if castles.is_empty():
+		outdoors = _surface_columns(graph, mini(ON_SURFACE, rest.size()))  # late in a match few pages are left
+	for column in outdoors:
 		placed.append({"page": rest.pop_back(), "room": 0, "x": column})  # room 0 is the surface
 		spots.append(Vector2(column, 0))
-	var castles: Array = graph.surface["castles"]
-	if not castles.is_empty():  # the pages up in the castles are shared out among them, one to a castle before any has a second
-		for k in mini(IN_CASTLE, rest.size()):
+	if not castles.is_empty():  # the pages up in the castles are shared out among them, one to a castle before any has a second; in the castle world they all lie there
+		for k in rest.size():
 			var castle_at: int = castles[k % castles.size()]
 			var spot: Vector2i = CASTLE_SPOTS[(k / castles.size()) % CASTLE_SPOTS.size()]
 			placed.append({"page": rest.pop_back(), "room": 0, "castle": spot, "castle_x": castle_at})
@@ -112,8 +114,10 @@ static func plan(graph: WorldGraph, rng: RandomNumberGenerator, dealt: Array[Led
 			free.append(room["id"])
 	if free.is_empty():  # a world with no caves: some lie at the landmarks (a volcano's rim, a mountain's top), the rest out in the open, spread along it
 		var landmarks: Array = graph.surface["landmarks"]
-		for k in mini(landmarks.size(), rest.size() / 2):
-			placed.append({"page": rest.pop_back(), "room": 0, "x": landmarks[k]})
+		var in_trees: bool = not graph.surface["trees"].is_empty()  # the jungle's pages are nearly all up in its trees, spread along them
+		var wanted := mini(landmarks.size(), rest.size() * 3 / 4 if in_trees else rest.size() / 2)
+		for k in wanted:
+			placed.append({"page": rest.pop_back(), "room": 0, "x": landmarks[k * landmarks.size() / wanted] if in_trees else landmarks[k]})
 		for column in _spread_columns(graph, rest.size()):
 			placed.append({"page": rest.pop_back(), "room": 0, "x": column})
 		return placed

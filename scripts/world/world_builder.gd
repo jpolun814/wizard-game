@@ -14,7 +14,9 @@ extends RefCounted
 const FORMATION_STEP := 2   # rows between the steps of a rock formation, so a jump from a slope still reaches
 const CASTLE_AIR := 9  # rows of air in a hall or a room
 const CASTLE_SLAB := 2  # rows of stone between the storeys
-const CASTLE_DOOR := 4  # rows tall a doorway is
+const CASTLE_DOOR := 8  # rows tall a doorway is: tall enough for a giant to walk through
+const CASTLE_STAIR_HEAD := 5  # rows of air over a stair's slope
+const CASTLE_STAIR_GAP := 6  # columns of the floor above that are cut away over a stair, from its landing; past them the floor goes on over it, so a stair never cuts a floor in two (the gap is a jump)
 const CASTLE_TOWER := 30  # rows the gate tower and the back tower stand above the ground
 const CASTLE_KEEP := 46  # rows the keep stands above the ground
 const CASTLE_WIDTH := 136  # columns the castle takes on the surface (SurfaceGen keeps the same)
@@ -118,15 +120,16 @@ static func build(graph: WorldGraph, rng: RandomNumberGenerator) -> Dictionary:
 		var x: int = spawn["x"] - spawn["side"] * 5  # on the flat ground behind the way down, not in its trench
 		spawns.append(Vector2i(x, sky_floor[x - profiles[0]["xl"]] - 1))
 	var hall: Array = []
-	var doors: Array = []
-	var ladders: Array = []
 	var stairs: Array = []
-	for castle_x: int in castles:
-		var castle := _castle(cells, graph.rooms[0]["cy"], castle_x)
+	for k in castles.size():
+		var castle := _castle(cells, graph.rooms[0]["cy"], castles[k], k > 0, k < castles.size() - 1)
 		hall.append_array(castle["hall"])
-		doors.append_array(castle["doors"])
-		ladders.append_array(castle["ladders"])
 		stairs.append_array(castle["stairs"])
+	if not castles.is_empty():  # what is left over at either end of the row is wall, as tall as the towers
+		var ground: int = graph.rooms[0]["cy"]
+		for c in range(0, castles[0]) + range(castles[castles.size() - 1] + CASTLE_WIDTH, graph.surface["floor"].size()):
+			for h in CASTLE_TOWER + (2 if (c / 2) % 2 == 0 else 0):  # with merlons, as the towers have
+				cells.put(Vector2i(c, ground - 1 - h), ArenaGen.STONE)
 	# What bars each gated tunnel is made in it: a lava chasm, a stretch of thorns or a sheer wall.
 	var gates := []
 	for k in tunnels.size():
@@ -135,7 +138,7 @@ static func build(graph: WorldGraph, rng: RandomNumberGenerator) -> Dictionary:
 			gate["lock"] = tunnels[k]["lock"]
 			gates.append(gate)
 	return {"cells": cells, "size": size, "markers": markers, "start": markers[graph.start], "ponds": ponds,
-			"hazards": hazards, "castle": castles[0] if not castles.is_empty() else -1, "castles": castles, "roofed": graph.surface["roofed"], "hall": hall, "doors": doors, "ladders": ladders, "stairs": stairs, "profiles": profiles, "sky": {"xl": profiles[0]["xl"], "floor": profiles[0]["floor"]},
+			"hazards": hazards, "castle": castles[0] if not castles.is_empty() else -1, "castles": castles, "roofed": graph.surface["roofed"], "hall": hall, "stairs": stairs, "profiles": profiles, "sky": {"xl": profiles[0]["xl"], "floor": profiles[0]["floor"]},
 			"surface": graph.surface, "gates": gates, "spawns": spawns}
 
 
@@ -640,19 +643,15 @@ static func _open_above(cells: TileGrid, profile: Dictionary, plan: Dictionary, 
 
 ## A castle on level ground, in stone, with battlements, and rooms on five floors inside it: a cellar under the ground, the ground floor, the
 ## first floor over it, and the second and third under the keep. Everything is carved out of solid stone, so
-## nothing floats: floors and ceilings are stone, and walls stand between the rooms of a floor with a wooden door in each (see CastleDoor).
+## nothing floats: floors and ceilings are stone, and walls stand between the rooms of a floor with a doorway in each, tall enough for a giant.
 ## The floors lie one over another, a whole way through the castle: the ground floor is seven rooms in a row from the gate to the back
 ## door, the first floor is the same seven over them, under the keep the second floor and the third have three more each, and under all of it the
-## cellar is the same seven again, dug into the rock, with a stair down to each of its five middle rooms. A rope ladder (see RopeLadder)
-## rises through a hatch in the ceiling of each room to the room above it, so there are many ways through: along any floor, or up and down
+## cellar is the same seven again, dug into the rock. Stairs join the floors (down to the cellar, and up through every storey to the third), so there are many ways through: along any floor, or up and down
 ## between them. The towers and the keep are stone with small windows, and only there to be seen.
 ## Returns {"hall": the rooms inside, as one rectangle of tiles per column, so they can be painted as the inside of a building,
-## "doors": [{"x": the column the door stands on the edge of, "floor": the row its floor starts on}],
-## "ladders": [{"x": the first of the two columns of the hatch, "bottom": the row of the floor it climbs from, "top": the row of the floor it reaches}]}.
-static func _castle(cells: TileGrid, ground: int, x: int) -> Dictionary:
+## "stairs": [{"from", "to": the ends of each slope in pixels, "under": the tiles of its brick band, "top", "base": the tiles at its ends}]}.
+static func _castle(cells: TileGrid, ground: int, x: int, gate := true, back := true) -> Dictionary:
 	var hall: Array = []
-	var doors: Array = []
-	var ladders: Array = []
 	var stair_runs: Array = []
 	var floor_1 := CASTLE_AIR + CASTLE_SLAB  # height of the first floor's floor
 	var top_1 := floor_1 + CASTLE_AIR - 1  # the highest row of air on the first floor
@@ -681,29 +680,29 @@ static func _castle(cells: TileGrid, ground: int, x: int) -> Dictionary:
 	var room := func(first: int, last: int, floor_h: int, high: int) -> void:
 		for i in range(first, last + 1):
 			carve.call(i, floor_h, high)
-	# A wall between two rooms, two columns thick, with a doorway in it and a wooden door in the doorway.
+	# A wall between two rooms, two columns thick, with a doorway through it.
 	var door := func(i: int, floor_h: int) -> void:
 		for k in 2:
 			carve.call(i + k, floor_h, floor_h + CASTLE_DOOR - 1)
-		doors.append({"x": x + i + 1, "floor": ground - floor_h})
-	# A hatch two columns wide through the ceiling of the room whose floor is low_floor, to the room whose floor is up_floor, and a ladder in it.
-	var hatch := func(i: int, low_floor: int, up_floor: int) -> void:
-		for k in 2:
-			carve.call(i + k, low_floor + CASTLE_AIR, up_floor - 1)
-		ladders.append({"x": x + i, "bottom": ground - low_floor, "top": ground - up_floor})
-	# A stair from the floor of a room down to the cellar under it, a row a column, climbed and descended on foot: the way a wizard
-	# gets in and out of the cellar. The slab over it is cut away, and the steps are a thin slope that can be dropped through (the open
-	# space under it is the cellar's). The tiles under the slope are listed apart, for the wizards' map of the ways, which treats them as stone.
-	var stairs := func(i: int) -> void:
-		var under: Array[Vector2i] = []
-		for s in range(1, -floor_cellar + 1):
-			carve.call(i + s, floor_cellar, -s + CASTLE_DOOR + 1)
-			for h in range(floor_cellar, -s):
-				under.append(Vector2i(x + i + s, ground - 1 - h))
-		var from := Vector2((x + i) * ArenaGen.TILE + ArenaGen.TILE * 0.5, ground * ArenaGen.TILE)
-		stair_runs.append({"from": from, "to": from + Vector2(1, 1) * float(-floor_cellar * ArenaGen.TILE), "under": under})
-	# The gate: a door in the outer wall, where the outside gives way to the inside, and a porch behind it.
-	door.call(0, 0)
+	# A stair from the floor of one room down to the floor of the room under it, a row a column, climbed and descended on foot. Its first
+	# column is the landing on the upper floor, which is at height up_floor; the slab is cut away over the first of the steps, and the floor
+	# carries on over the rest, which are under it. The steps are a thin slope that can be dropped through. It is hollow: the way under it
+	# stays open, so it never cuts a room in two. The tiles of its brick
+	# band are listed for the picture, and its two ends for the wizards' map of the ways, which is given the stair as a move between them.
+	var stairs := func(i: int, low_floor: int, up_floor: int) -> void:
+		var band: Array[Vector2i] = []
+		var rise := up_floor - low_floor
+		for s in range(1, rise + 1):
+			if s < CASTLE_STAIR_GAP:
+				carve.call(i + s, low_floor, up_floor - s + CASTLE_STAIR_HEAD)
+			band.append(Vector2i(x + i + s, ground - 1 - (up_floor - s - 1)))
+			band.append(Vector2i(x + i + s, ground - 1 - (up_floor - s - 2)))
+		var from := Vector2((x + i) * ArenaGen.TILE + ArenaGen.TILE * 0.5, (ground - up_floor) * ArenaGen.TILE)
+		stair_runs.append({"from": from, "to": from + Vector2(1, 1) * float(rise * ArenaGen.TILE), "under": band,
+				"top": Vector2i(x + i, ground - 1 - up_floor), "base": Vector2i(x + i + rise, ground - 1 - low_floor)})
+	# The gate: a doorway in the outer wall, which opens on the next castle's back door (the first has none: nothing is outside it), and a porch behind it.
+	if gate:
+		door.call(0, 0)
 	carve.call(2, 0, CASTLE_AIR - 1)
 	carve.call(3, 0, CASTLE_AIR - 1)
 	# The rooms of a floor, as the first and last column of each; the walls between them take the two columns after each room.
@@ -714,31 +713,32 @@ static func _castle(cells: TileGrid, ground: int, x: int) -> Dictionary:
 		if k + 1 < rows.size():
 			door.call(rows[k].y + 1, 0)
 			door.call(rows[k].y + 1, floor_1)
-		hatch.call(rows[k].x + 3, 0, floor_1)
+		if k % 2 == 1:
+			stairs.call(rows[k].x + 3, 0, floor_1)  # up to the first floor
 		room.call(rows[k].x, rows[k].y, floor_cellar, floor_cellar + CASTLE_AIR - 1)  # the cellar, under it
 		if k + 1 < rows.size():
 			door.call(rows[k].y + 1, floor_cellar)
-		if k > 0 and k + 1 < rows.size():
-			stairs.call(rows[k].x + 5)
+		if k == 2 or k == 4:
+			stairs.call(rows[k].x + 5, floor_cellar, 0)  # down to the cellar
 	door.call(126, 0)  # the back door
 	room.call(128, 131, 0, CASTLE_AIR - 1)
 	carve.call(132, 0, CASTLE_AIR - 1)
 	carve.call(133, 0, CASTLE_AIR - 1)
-	door.call(134, 0)  # and the door in the outer wall at the back
+	if back:
+		door.call(134, 0)  # and the door in the outer wall at the back
 	# The second floor, under the keep.
 	var great: Array[Vector2i] = [Vector2i(40, 57), Vector2i(60, 77), Vector2i(80, 101)]
 	for k in great.size():
 		room.call(great[k].x, great[k].y, floor_2, top_2)
 		if k + 1 < great.size():
 			door.call(great[k].y + 1, floor_2)
-	for i in [44, 66, 86]:
-		hatch.call(i, floor_1, floor_2)
+	stairs.call(41, floor_1, floor_2)  # the first floor up to the second, under the keep: two of them
+	stairs.call(81, floor_1, floor_2)
 	for k in great.size():  # the third floor, over the second
 		room.call(great[k].x, great[k].y, floor_3, top_3)
 		if k + 1 < great.size():
 			door.call(great[k].y + 1, floor_3)
-	for i in [50, 72, 94]:
-		hatch.call(i, floor_2, floor_3)
+	stairs.call(65, floor_2, floor_3)  # and the second up to the third
 	# Windows: pockets of air in the solid stone of the towers and the keep, seen from outside as dark slits.
 	var windows: Array[Vector3i] = []
 	for i in [5, 9, 12, CASTLE_WIDTH - 9, CASTLE_WIDTH - 6, CASTLE_WIDTH - 3]:
@@ -749,7 +749,7 @@ static func _castle(cells: TileGrid, ground: int, x: int) -> Dictionary:
 	for spot in windows:
 		for h in range(spot.y, spot.y + spot.z):
 			cells.erase(Vector2i(x + spot.x, ground - 1 - h))
-	return {"hall": hall, "doors": doors, "ladders": ladders, "stairs": stair_runs}
+	return {"hall": hall, "stairs": stair_runs}
 
 
 ## The tile a hall's marker stands on: the flat floor column nearest the middle that has headroom, clear of holes and basins.
@@ -809,9 +809,13 @@ static func toll_key(gate: Dictionary) -> String:
 ## open in the map, for a wizard to say which of them it can pass (see WorldNav.path); without it they bar the way.
 static func shut(world: Dictionary, crossings := false) -> Dictionary:
 	var cells: TileGrid = world["cells"].duplicate()
-	for run: Dictionary in world["stairs"]:  # a stair is a slope to walk on, which the map of the ways takes for stone
-		for tile: Vector2i in run["under"]:
-			cells.put(tile, ArenaGen.STONE)
+	var trees: Array = world["graph"].surface["trees"]
+	var floors: PackedInt32Array = world["graph"].surface["floor"]
+	for tree: Dictionary in trees:  # the high ledge of a large jungle tree is stone to stand on, as far as the map of the ways goes
+		if tree["size"] >= 2:
+			var spot := JungleTree.layout(tree["size"], tree["mirror"])
+			for k in range(spot["first"], spot["last"] + 1):
+				cells.put(Vector2i(tree["column"] + k, floors[tree["column"]] - spot["rows"]), ArenaGen.STONE)
 	var barred: Dictionary = world["hazards"].duplicate()
 	var tolls := {}
 	var links := []  # {"key", "left", "right", "top_left", "top_right"}: where a wizard lifted over a wall goes up from, and comes down to
@@ -861,10 +865,17 @@ static func shut(world: Dictionary, crossings := false) -> Dictionary:
 					cells.put(cell, ArenaGen.GROUND)
 				else:
 					barred[cell] = true
-	var climbs := []  # {"from", "to"}: up a rope ladder, from the floor under its hatch to the floor beside the hatch above
-	for ladder: Dictionary in world["ladders"]:
-		climbs.append({"from": Vector2i(ladder["x"], ladder["bottom"] - 1), "to": Vector2i(ladder["x"] - 1, ladder["top"] - 1)})
-		climbs.append({"from": Vector2i(ladder["x"] + 1, ladder["bottom"] - 1), "to": Vector2i(ladder["x"] + 2, ladder["top"] - 1)})
+	var climbs := []  # {"from", "to"}: up a vine, from the ground under it to the ledge it hangs from
+	for run: Dictionary in world["stairs"]:  # a stair is a move up (or down) between its two ends
+		climbs.append({"from": run["base"], "to": run["top"]})
+		climbs.append({"from": run["top"], "to": run["base"]})
+	for tree: Dictionary in trees:  # up a vine to the ledge: from the ground under it to two columns in along the ledge (two columns across, which marks it as a vine)
+		if tree["size"] >= 2:
+			var at: int = tree["column"]
+			var spot := JungleTree.layout(tree["size"], tree["mirror"])
+			var vine: int = at + spot["vine"]
+			var in_along: int = vine + (2 if tree["mirror"] else -2)
+			climbs.append({"from": Vector2i(vine, floors[vine] - 1), "to": Vector2i(in_along, floors[at] - spot["rows"] - 1)})
 	return {"cells": cells, "barred": barred, "tolls": tolls, "links": links, "climbs": climbs}
 
 

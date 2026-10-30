@@ -1,7 +1,7 @@
 class_name Decoy
 extends Node2D
 
-## Decoy: a shadow of the wizard, standing where the eight was drawn. Enemies that can see it go for it instead of the
+## Decoy: a shadow of the wizard, standing where the eight was drawn (its caster sees a violet ghost, to tell it from themself; anyone else sees a plain wizard). Enemies that can see it go for it instead of the
 ## wizard. It takes the hits meant for you until it is worn through or its time runs out. The left and right arrow keys walk it
 ## about, so it can be made to look alive, or lead whatever watches it away.
 
@@ -12,6 +12,7 @@ const STEP := 18.0  # the highest step it walks up
 const HEALTH := 40
 
 var hp := HEALTH
+var mine := false  # true on the machine of the wizard who cast it: only they see it as a ghost, the rest see a wizard
 var _age := 0.0
 var _dead := false
 var _body: AnimatedSprite2D
@@ -68,7 +69,10 @@ func _physics_process(delta: float) -> void:
 	_flash = maxf(_flash - delta, 0.0)
 	_walk(delta)
 	var alpha := clampf(_age / 0.3, 0.0, 1.0) * clampf((SECONDS - _age) / 0.8, 0.0, 1.0)
-	_body.modulate = Color(1.0, 1.0, 1.0, 0.9) if _flash > 0.0 else Color(0.5, 0.35, 0.75, 0.75 * alpha)
+	if not mine:
+		_body.modulate = Color.WHITE  # to everyone else it is a wizard like any other
+	else:
+		_body.modulate = Color(1.0, 1.0, 1.0, 0.9) if _flash > 0.0 else Color(0.5, 0.35, 0.75, 0.75 * alpha)
 	if _age >= SECONDS:
 		_vanish()
 

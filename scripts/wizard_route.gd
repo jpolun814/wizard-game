@@ -15,7 +15,7 @@ const LEAN := 10.0          # pixels past the middle of a tile that a jump aims 
 const ARRIVE_X := 18.0      # how close to the middle of a tile counts as being at it
 const ARRIVE_Y := 28.0
 const STUCK_AFTER := 2.0    # seconds without getting closer before the route gives up
-const CLIMB_ROWS := 8        # a move up this many rows is a ladder
+const CLIMB_ROWS := 8        # a move up this many rows is a vine, or a stair if it goes as far across
 const HOP_GAP := 0.6        # seconds between hops over a step that blocks the way
 
 var _path: Array[Vector2i] = []
@@ -84,6 +84,9 @@ func steer(body: CharacterBody2D, delta: float) -> Dictionary:
 	if -down >= CLIMB_ROWS and across <= 2:
 		_climb(feet, grounded, from, goal_tile, out)
 		return _track(out, feet, goal_tile, delta)
+	if absi(down) >= CLIMB_ROWS and across == absi(down):  # a stair: walk its slope
+		out["dir"] = signf((goal_tile.x + 0.5) * TILE - feet.x)
+		return _track(out, feet, goal_tile, delta)
 	var leaps := across >= 2 or down <= -2  # not a step, a slope or a fall
 	var goal_x := (goal_tile.x + 0.5) * TILE
 	if leaps:
@@ -105,9 +108,11 @@ func steer(body: CharacterBody2D, delta: float) -> Dictionary:
 	return _track(out, feet, goal_tile, delta)
 
 
-## Up a rope ladder: walk to its foot, climb until the feet are near the floor above, then hop off onto it.
+## Up a rope ladder or a jungle vine: walk to its foot, climb until the feet are near the floor above, then hop off onto it.
 func _climb(feet: Vector2, grounded: bool, from: Vector2i, goal_tile: Vector2i, out: Dictionary) -> void:
-	var ladder_x := float(from.x + (1 if goal_tile.x < from.x else 0)) * TILE
+	var ladder_x := float(from.x + (1 if goal_tile.x < from.x else 0)) * TILE  # a rope ladder hangs on the edge between two columns
+	if absi(goal_tile.x - from.x) == 2:
+		ladder_x = (from.x + 0.5) * TILE  # a vine hangs in the middle of its column
 	var floor_y := float(goal_tile.y + 1) * TILE
 	if feet.y <= floor_y + 12.0:  # near the top: a hop off the ladder, sideways onto the floor
 		out["dir"] = signf((goal_tile.x + 0.5) * TILE - feet.x)

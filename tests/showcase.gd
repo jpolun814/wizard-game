@@ -170,44 +170,6 @@ func _plan() -> void:
 					_arena.get_node("Player/Camera2D").reset_smoothing())
 				_at(t + 1.2, func() -> void: _snap(name))
 				t += 1.8
-			# The rope ladders: climb the first (ground to first floor) and the last (first to second floor).
-			var ladders: Array = _arena._castle_ladders
-			var press := func(code: Key, down: bool) -> void:
-				var event := InputEventKey.new()
-				event.keycode = code
-				event.physical_keycode = code
-				event.pressed = down
-				Input.parse_input_event(event)
-			for pick in [0, ladders.size() - 1]:
-				var entry: Dictionary = ladders[pick]
-				_at(t, func() -> void:
-					var at := Vector2((entry["x"] + 1) * tile, entry["bottom"] * tile - 4.0)
-					_player().global_position = at
-					_player().velocity = Vector2.ZERO
-					_arena._ground.watch([at] as Array[Vector2], true)
-					_arena._dark.hide()
-					_arena.get_node("Player/Camera2D").reset_smoothing()
-					press.call(KEY_W, true))
-				_at(t + 4.0, func() -> void:
-					var feet: float = _player().global_position.y
-					var top_y: float = entry["top"] * tile
-					var ok: bool = feet < top_y + 6.0
-					print("%s  the rope ladder lifts the wizard to the floor above (feet %d, floor %d)" % ["PASS" if ok else "FAIL", int(feet), int(top_y)])
-					if not ok:
-						_exit_code = 1
-					_snap("ladder")
-					press.call(KEY_W, false)
-					Input.action_press("move_right"))
-				_at(t + 4.6, func() -> void:
-					Input.action_release("move_right"))
-				_at(t + 6.0, func() -> void:
-					var feet: float = _player().global_position.y
-					var top_y: float = entry["top"] * tile
-					var ok: bool = absf(feet - top_y) < 6.0 and _player().is_on_floor()
-					print("%s  and steps off onto it (feet %d, floor %d)" % ["PASS" if ok else "FAIL", int(feet), int(top_y)])
-					if not ok:
-						_exit_code = 1)
-				t += 7.0
 		"tornado":
 			var flung := {"up": 0.0, "side": []}
 			for k in 4:
@@ -229,9 +191,8 @@ func _plan() -> void:
 				if not ok:
 					_exit_code = 1)
 		"extras":
-			# The castle door, a steered decoy, the F1 gate teleports, a flare in water, the bonfire and the Insight list.
+			# A steered decoy, the F1 gate teleports, a flare in water, the bonfire and the Insight list.
 			var tile := float(ArenaGen.TILE)
-			var box := []  # the westmost door, once the world is built
 			var key := func(code: Key, down: bool) -> void:
 				var event := InputEventKey.new()
 				event.keycode = code
@@ -246,34 +207,10 @@ func _plan() -> void:
 				_arena._dark.hide()
 				_arena.get_node("Player/Camera2D").zoom = Vector2(1.0, 1.0)
 				_arena.get_node("Player/Camera2D").reset_smoothing()
-			var west := func() -> Vector2:  # on the ground west of the castle gate
-				var x: float = box[0].global_position.x - 330.0
-				return SpellTargets.solid_below(_arena.get_world_2d(), Vector2(x, box[0].global_position.y - 700.0), 1400.0) + Vector2(0, -4)
 			var verdict := func(ok: bool, text: String) -> void:
 				print("%s  %s" % ["PASS" if ok else "FAIL", text])
 				if not ok:
 					_exit_code = 1
-			_at(0.3, func() -> void:
-				var doors: Array = []
-				for node in _arena.get_children():
-					if node is CastleDoor:
-						doors.append(node)
-				doors.sort_custom(func(a: Node2D, b: Node2D) -> bool: return a.global_position.x < b.global_position.x)
-				box.append(doors[0]))
-			_at(0.5, func() -> void: put.call(west.call()))
-			_at(1.5, func() -> void:
-				verdict.call(box[0]._swing < 0.05, "the door is shut with no one near it (%.2f)" % box[0]._swing)
-				verdict.call(not box[0]._shape.disabled, "and it is solid")
-				_snap("door_shut")
-				put.call(box[0].global_position + Vector2(-90, -10)))
-			_at(1.85, func() -> void: _snap("door_swinging"))
-			_at(3.0, func() -> void:
-				verdict.call(box[0]._swing > 0.95, "the door is wide open with someone at it (%.2f)" % box[0]._swing)
-				verdict.call(box[0]._shape.disabled, "and it lets them through")
-				_snap("door_open")
-				put.call(west.call()))
-			_at(6.5, func() -> void:
-				verdict.call(box[0]._swing < 0.05 and not box[0]._shape.disabled, "the door shuts again when they have gone (%.2f)" % box[0]._swing))
 			# The decoy walks with the arrow keys.
 			var decoy := []
 			_at(7.0, func() -> void:
@@ -366,8 +303,7 @@ func _plan() -> void:
 				verdict.call(not is_instance_valid(flare[0]) or flare[0].is_queued_for_deletion(), "a flare goes out in water"))
 			t += 2.5
 			# The bonfire stands beside the wizard, on logs, not under them.
-			_at(t, func() -> void:
-				put.call(west.call()))
+			_at(t, func() -> void: _player().velocity = Vector2.ZERO)
 			_at(t + 1.0, func() -> void: _arena._on_ritual_finished("bonfire", 1.0, false))
 			_at(t + 2.2, func() -> void:
 				var fire: Node2D = null

@@ -19,6 +19,7 @@ var _surface := PackedFloat32Array()  # the ground's height under the pit, sampl
 const SAND := preload("res://art/props/quicksand.png")
 const SAMPLES := 17  # ground heights taken across the pit, so the mud follows the slope
 const SINK_DEPTH := 14.0  # how deep the mud is drawn under its surface
+const DUG_SINK_DEPTH := 30.0  # and how deep in a pit the world has dug, which fades into the dark of the ground
 
 
 func _ready() -> void:
@@ -124,12 +125,18 @@ func _draw() -> void:
 		var y := _surface_at(x) - 1.0
 		top.append(Vector2(x, y))
 		uvs.append(Vector2((x + scroll) / SAND.get_width(), 0.0))
+	var sink := DUG_SINK_DEPTH if not planted_ground.is_empty() else SINK_DEPTH
 	var bottom := PackedVector2Array()
 	var bottom_uvs := PackedVector2Array()
 	for i in range(SAMPLES - 1, -1, -1):
-		var p := top[i] + Vector2(0, SINK_DEPTH)
+		var p := top[i] + Vector2(0, sink)
 		bottom.append(p)
-		bottom_uvs.append(Vector2(uvs[i].x, SINK_DEPTH / SAND.get_height()))
+		bottom_uvs.append(Vector2(uvs[i].x, minf(sink, SAND.get_height()) / SAND.get_height()))
 	edge = top + bottom
 	var all_uvs := uvs + bottom_uvs
-	draw_polygon(edge, PackedColorArray([Color(1, 1, 1, fade)]), all_uvs, SAND)
+	var shade := PackedColorArray()  # a dug pit is deep: lit on top, and sinking into darkness
+	for i in SAMPLES:
+		shade.append(Color(1, 1, 1, fade))
+	for i in SAMPLES:
+		shade.append(Color(0.35, 0.3, 0.25, fade) if sink > SINK_DEPTH else Color(1, 1, 1, fade))
+	draw_polygon(edge, shade, all_uvs, SAND)

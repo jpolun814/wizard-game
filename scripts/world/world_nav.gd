@@ -52,7 +52,7 @@ func build(cells: TileGrid, bottom: int, blocked := {}, anchor := Vector2i(-1, -
 				out[_id(top)].append(_id(floor_tile))
 				back[_id(top)].append(_id(floor_tile))
 				back[_id(floor_tile)].append(_id(top))
-	for climb: Dictionary in climbs:  # up a rope ladder (down again is a fall through its hatch, which the moves already hold)
+	for climb: Dictionary in climbs:  # up a vine, or up or down a stair (a fall from a vine's ledge is a move the walking already holds)
 		if standing.has(climb["from"]) and standing.has(climb["to"]):
 			out[_id(climb["from"])].append(_id(climb["to"]))
 			if not back.has(_id(climb["to"])):

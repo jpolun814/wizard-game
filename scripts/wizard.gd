@@ -116,6 +116,7 @@ var veil := 0  # hits a Crimson Veil will still turn away
 var _veil_cool := 0.0  # a moment after one is turned away, in which a burn or a second blow is turned away with it
 var fainted := false  # knocked out by a Faint: down on the ground until the stamina comes back
 var air_jump_ready := false  # the air jump is spent by one use, and comes back when the wizard lands
+var wind := 0.0  # the push of the air along the ground, set every frame by the world that has wind (the snowy peaks)
 var _shove := Vector2.ZERO  # a Push on the caster: slides them for a moment, then fades
 var mute_time: float: # no rituals while above zero
 	get: return _status.left(&"mute")
@@ -665,7 +666,7 @@ func _physics_process(delta: float) -> void:
 		velocity.x = 0.0
 	if surf_time > 0.0 and not dead and not fainted:
 		velocity.x = surf_dir * SURF_SPEED  # a wave does not wait for the wizard
-	velocity.x += _shove.x
+	velocity.x += _shove.x + wind
 	if _shove.y < 0.0:
 		velocity.y = minf(velocity.y, _shove.y)
 	_shove = _shove.move_toward(Vector2.ZERO, 1500.0 * delta)
@@ -808,7 +809,7 @@ func _animate(delta: float) -> void:
 		wanted = "cast"
 	elif not is_on_floor():
 		wanted = "jump" if velocity.y < 0.0 else "fall"
-	elif absf(velocity.x) > 10.0:
+	elif absf(velocity.x - wind) > 10.0:  # the wind can push a wizard along without a step
 		wanted = "run"
 	if _sprite.animation != wanted:
 		_sprite.play(wanted)

@@ -16,6 +16,9 @@ func _ready() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 	var run: Dictionary = world._castle_stairs[0]
+	for candidate: Dictionary in world._castle_stairs:  # the stair down to the cellar: the one that ends lowest
+		if candidate["to"].y > run["to"].y:
+			run = candidate
 	var from: Vector2 = run["from"]
 	var cellar_floor: float = run["to"].y
 	var player: Wizard = world.player

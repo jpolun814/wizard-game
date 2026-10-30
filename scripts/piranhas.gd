@@ -13,19 +13,38 @@ const CHASE := 190.0
 const SHOCK_REACH := 150.0  # how far along the water a lightning strike kills
 
 var water := Rect2()  # the pit's water, in world pixels
+var bed := PackedInt32Array()  # for a pond dug in sloping ground: the row of the ground under each of its columns, so the fish keep to the water
+var bed_x := 0.0  # the left edge of the first of those columns, in world pixels
 var count := 5
 var _fish: Array[Dictionary] = []  # each {"sprite", "dir", "phase", "bite"}
 var _t := 0.0
 
 
+const DEEP_ENOUGH := 40.0  # how much water there must be over a column of the bed for a fish to be in it
+var _swim_from := 0.0
+var _swim_to := 0.0
+
+
 func _ready() -> void:
 	add_to_group("shoals")
+	_swim_from = water.position.x
+	_swim_to = water.end.x
+	if not bed.is_empty():  # only the stretch that is deep enough: the basin's slopes are not water a fish can swim in
+		_swim_from = INF
+		_swim_to = -INF
+		for k in bed.size():
+			if bed[k] * float(ArenaGen.TILE) - water.position.y >= DEEP_ENOUGH:
+				_swim_from = minf(_swim_from, bed_x + k * float(ArenaGen.TILE))
+				_swim_to = maxf(_swim_to, bed_x + (k + 1) * float(ArenaGen.TILE))
+		if _swim_from >= _swim_to:
+			_swim_from = water.position.x
+			_swim_to = water.end.x
 	z_index = 0
 	var frames := SpriteFrames.new()
 	frames.add_animation("swim")
 	frames.set_animation_speed("swim", 6.0)
 	for i in FRAMES:
-		frames.add_frame("swim", load("res://art/mobs/piranha/frame_%d.png" % i))
+		frames.add_frame("swim", load("res://art/mobs/piranha_small/frame_%d.png" % i))
 	var rng := RandomNumberGenerator.new()
 	rng.seed = int(water.position.x)
 	for k in count:
@@ -33,7 +52,7 @@ func _ready() -> void:
 		sprite.sprite_frames = frames
 		sprite.scale = Vector2.ONE  # drawn as it is, so the pixels stay put
 		sprite.modulate = Color(1, 1, 1, 0.9)
-		sprite.position = Vector2(water.position.x + water.size.x * (k + 0.5) / count, water.position.y + water.size.y * rng.randf_range(0.5, 0.85))
+		sprite.position = _confine(Vector2(_swim_from + (_swim_to - _swim_from) * (k + 0.5) / count, water.position.y + water.size.y * rng.randf_range(0.5, 0.85)))
 		sprite.play("swim")
 		sprite.frame = k % FRAMES.size()
 		add_child(sprite)
@@ -72,15 +91,25 @@ func _physics_process(delta: float) -> void:
 		else:
 			pos.x += fish["dir"] * SWIM * delta
 			pos.y += sin(_t * 1.6 + fish["phase"]) * 10.0 * delta
-			if pos.x < water.position.x + 24.0:
+			if pos.x < _swim_from + 16.0:
 				fish["dir"] = 1.0
-			elif pos.x > water.end.x - 24.0:
+			elif pos.x > _swim_to - 16.0:
 				fish["dir"] = -1.0
-		pos.x = clampf(pos.x, water.position.x + 16.0, water.end.x - 16.0)
-		pos.y = clampf(pos.y, water.position.y + 28.0, water.end.y - 14.0)
+		pos = _confine(pos)
 		fish["pos"] = pos
 		sprite.position = pos.round()  # drawn on whole pixels, so it does not shimmer
 		sprite.flip_h = fish["dir"] < 0.0
+
+
+## A place in the water, nearest to a point: inside the stretch the fish can swim, and above the ground under it.
+func _confine(pos: Vector2) -> Vector2:
+	pos.x = clampf(pos.x, _swim_from + 12.0, _swim_to - 12.0)
+	var floor_y := water.end.y - 10.0
+	if not bed.is_empty():
+		var k := clampi(int((pos.x - bed_x) / float(ArenaGen.TILE)), 0, bed.size() - 1)
+		floor_y = minf(floor_y, bed[k] * float(ArenaGen.TILE) - 10.0)
+	pos.y = clampf(pos.y, water.position.y + 16.0, maxf(floor_y, water.position.y + 16.0))
+	return pos
 
 
 ## Whoever is in the water, and so within the fishes' reach: the body's middle is under the surface.

@@ -505,6 +505,7 @@ func spawn_spell(spell: String, targeting: String, origin: Vector2, aim: float, 
 		"Decoy":
 			var decoy := Decoy.new()
 			decoy.position = _ground_below(origin)
+			decoy.mine = caster_node == player
 			add_child(decoy)
 			return
 		"Glowcap":

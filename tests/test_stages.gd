@@ -42,7 +42,7 @@ func _initialize() -> void:
 			_check(apart >= plan["width"] / 10, "%s: starting places only %d columns apart" % [label, apart])
 			var shut := WorldBuilder.shut(world)
 			var nav := WorldNav.new()
-			nav.build(shut["cells"], world["size"].y, shut["barred"], spawns[0])
+			nav.build(shut["cells"], world["size"].y, shut["barred"], spawns[0], shut["tolls"], shut["links"], shut["climbs"])
 			for spawn in spawns:
 				var at := nav.nearest(spawn)
 				_check(nav.can_stand(at) and not nav.path(nav.nearest(spawns[0]), at).is_empty() and not nav.path(at, nav.nearest(spawns[0])).is_empty(), "%s: the starting place %s is not joined both ways to the first" % [label, spawn])
@@ -50,7 +50,7 @@ func _initialize() -> void:
 			for room in graph.rooms:
 				if room["lock"] == -1 and not nav.can_stand(world["markers"][room["id"]]):
 					unreached += 1
-			_check(unreached == 0, "%s: %d halls outside every locked area cannot be walked to" % [label, unreached])
+			_check(unreached == 0, "%s (%s): %d halls outside every locked area cannot be walked to" % [label, biome, unreached])
 			if not halls:
 				_check(graph.rooms.size() == 1 and world["gates"].is_empty(), "%s: the %s is not all open sky" % [label, biome])
 			_check(world["castles"].is_empty() != (biome == "castle"), "%s: %d castles in the %s" % [label, world["castles"].size(), biome])

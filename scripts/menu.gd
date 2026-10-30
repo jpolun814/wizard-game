@@ -112,7 +112,7 @@ func _dress() -> void:
 	_plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_plate)
 	_title = Label.new()
-	_title.text = "Last Wizard Standing"
+	_title.text = "Wizard Game"
 	_title.add_theme_font_override("font", TITLE_FONT)
 	_title.add_theme_font_size_override("font_size", 96)
 	_title.add_theme_color_override("font_color", Color(0.9, 0.8, 1.0))
