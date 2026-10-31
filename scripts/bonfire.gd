@@ -51,6 +51,11 @@ func _process(delta: float) -> void:
 		queue_free()
 
 
+## Put out by water or cold.
+func quench() -> void:
+	queue_free()
+
+
 func _fade() -> float:
 	return clampf((LIFE - _age) / 1.5, 0.0, 1.0)
 
@@ -59,11 +64,12 @@ func _draw_flames() -> void:
 	var fade := _fade()
 	var warm := 1.0 + 0.08 * sin(_age * 5.0)
 	# A warm halo that breathes, behind the flames.
-	_flames.draw_circle(Vector2(0, -28), 64.0 * warm, Color(1.0, 0.45, 0.12, 0.05 * fade))
-	_flames.draw_circle(Vector2(0, -28), 40.0 * warm, Color(1.0, 0.55, 0.18, 0.08 * fade))
+	Fx.draw_glow(_flames, Vector2(0, -28), 64.0 * warm, Color(1.0, 0.45, 0.12, 0.05 * fade))
+	Fx.draw_glow(_flames, Vector2(0, -28), 40.0 * warm, Color(1.0, 0.55, 0.18, 0.08 * fade))
 	# Embers rising off the fire and fading as they climb.
 	for i in 9:
 		var k := fmod(_age * 0.55 + i / 9.0, 1.0)
 		var drift := sin(i * 2.3 + _age * 2.0) * 12.0 * k
-		_flames.draw_circle(Vector2(drift, -34.0 - k * 50.0), 1.5 * (1.0 - k) + 0.5, Color(1.0, 0.7, 0.3, 0.9 * (1.0 - k) * fade))
+		var ember := roundf(2.0 * (1.0 - k)) + 1.0  # a pixel square, smaller as it climbs
+		_flames.draw_rect(Rect2(Vector2(roundf(drift), roundf(-34.0 - k * 50.0)), Vector2(ember, ember)), Color(1.0, 0.7, 0.3, 0.9 * (1.0 - k) * fade))
 

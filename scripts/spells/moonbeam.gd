@@ -9,9 +9,11 @@ const LIGHT_RADIUS := 230.0  # dimmer and narrower than a flare's
 const BEAM_HEIGHT := 520.0
 const BEAM_WIDTH := 64.0
 const PALE := Color(0.72, 0.82, 1.0)
+const BEAM := preload("res://art/fx/moon_beam.png")  # the column of light, soft and feathered, made for the game (tools/make_marks.py)
 
 var light_radius := LIGHT_RADIUS
 var _age := 0.0
+var _column: Sprite2D
 
 
 func _ready() -> void:
@@ -28,6 +30,12 @@ func _ready() -> void:
 		light.shadow_enabled = false
 		light.position = Vector2(0, -30)
 		add_child(light)
+	_column = Sprite2D.new()
+	_column.texture = BEAM
+	_column.material = Fx.additive()  # light adds to what it falls on
+	_column.scale = Vector2(BEAM_HEIGHT / BEAM.get_height(), BEAM_HEIGHT / BEAM.get_height())
+	_column.offset = Vector2(0, -BEAM.get_height() * 0.5)  # its foot is on the ground
+	add_child(_column)
 	# Motes of dust drifting down in the beam.
 	var motes := CPUParticles2D.new()
 	motes.amount = 16
@@ -57,14 +65,9 @@ func _physics_process(delta: float) -> void:
 	queue_redraw()
 
 
-## A column of pale light, brightest where it meets the ground and thinning toward the sky, with a pool of light at its foot.
+## The column of light fades in and out and shimmers, with a pool of light at its foot.
 func _draw() -> void:
 	var fade := clampf(_age / 0.6, 0.0, 1.0) * clampf((SECONDS - _age) / 1.5, 0.0, 1.0)
 	var shimmer := 0.9 + 0.1 * sin(_age * 2.0)
-	var clear := Color(PALE.r, PALE.g, PALE.b, 0.0)
-	for layer in 6:  # nested columns, each narrower and a little brighter, so the beam has no hard edge
-		var share := 1.0 - layer / 6.0
-		var half := BEAM_WIDTH * 0.5 * share
-		var strong := Color(PALE.r, PALE.g, PALE.b, 0.05 * fade * shimmer)
-		draw_polygon(PackedVector2Array([Vector2(-half * 0.6, -BEAM_HEIGHT * (0.5 + 0.5 * share)), Vector2(half * 0.6, -BEAM_HEIGHT * (0.5 + 0.5 * share)), Vector2(half, 0), Vector2(-half, 0)]), PackedColorArray([clear, clear, strong, strong]))
+	_column.modulate.a = fade * shimmer
 	Fx.draw_glow(self, Vector2(0, -6), light_radius * 0.45, Color(PALE.r, PALE.g, PALE.b, 0.16 * fade * shimmer))

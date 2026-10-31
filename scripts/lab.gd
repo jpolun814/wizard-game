@@ -87,6 +87,7 @@ func _add_ponds() -> void:
 		pond.width = (span.y - span.x + 1) * float(ArenaGen.TILE)
 		pond.depth = PIT_ROWS * ArenaGen.TILE + 16.0
 		pond.position = Vector2(span.x * float(ArenaGen.TILE), ArenaGen.GROUND_Y)
+		pond.ground = _ground
 		add_child(pond)
 
 

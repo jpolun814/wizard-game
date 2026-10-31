@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="Spell" format=3]
+
+[ext_resource type="Script" path="res://scripts/spell.gd" id="1_fof"]
+
+[resource]
+script = ExtResource("1_fof")
+spell_name = "Fight or Flight"
+school = "Blood"
+gesture = "question"
+cost = 30.0
+effect = "Stir the blood of someone to fight or to flee."
+damage = ""

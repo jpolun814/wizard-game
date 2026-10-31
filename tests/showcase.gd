@@ -563,24 +563,6 @@ func _plan_new_spells() -> void:
 				kept = true
 		wizard.infinite_time = 0.0
 	_arena._since_hurt = -100000.0  # the waiting room heals a wizard after a few seconds; here the damage has to stay
-	# Blood Bolt: 30 damage, paid for in maximum stamina.
-	_at(0.5, func() -> void:
-		reset.call(15, "Blood Bolt")
-		wizard.max_stamina = 200.0
-		wizard.stamina = 200.0
-		dummy.call().global_position = _feet(19)
-		memo["hp"] = dummy.call().hp)
-	_at(0.8, func() -> void: _cast("Blood Bolt", line.call(_feet(15) + Vector2(0, -40), _feet(15) + Vector2(100, -40))))
-	_at(1.5, func() -> void:
-		check.call("a Blood Bolt costs 12 of the maximum stamina (max %d)" % wizard.max_stamina, absf(wizard.max_stamina - 188.0) < 0.5)
-		check.call("a Blood Bolt does 30 damage (hp %d -> %d)" % [memo["hp"], dummy.call().hp], memo["hp"] - dummy.call().hp == 30)
-		_snap("blood_bolt"))
-	# A spent wizard cannot pay: blood is never spent to the last drop.
-	_at(2.0, func() -> void:
-		wizard.max_stamina = 9.0
-		wizard.stamina = 9.0)
-	_at(2.1, func() -> void: _cast("Blood Bolt", line.call(_feet(15) + Vector2(0, -40), _feet(15) + Vector2(100, -40))))
-	_at(2.3, func() -> void: check.call("a wizard with too little maximum stamina is refused (max %d)" % wizard.max_stamina, wizard.max_stamina == 9.0))
 	# Burst: everyone near is hurt and thrown away from the middle, the caster too, and a shot in the air is turned back.
 	_at(2.6, func() -> void:
 		reset.call(15, "Burst")
@@ -772,9 +754,8 @@ func _plan_spells() -> void:
 		["Gust", 14, func(f: Vector2) -> PackedVector2Array: return line.call(f + Vector2(0, -45), f + Vector2(120, -45)), [0.25, 0.5]],
 		["Stonefall", 14, func(f: Vector2) -> PackedVector2Array: return _stroke("stonefall", f + Vector2(110, -150), 0.9), [0.9]],
 		["Stone Wall", 14, func(f: Vector2) -> PackedVector2Array: return line.call(f + Vector2(80, -2), f + Vector2(150, -90)), [0.4]],
-		["Mudslide", 14, func(f: Vector2) -> PackedVector2Array: return _stroke("pit", f + Vector2(110, -50), 1.2), [0.5]],
+		["Mudslide", 14, func(f: Vector2) -> PackedVector2Array: return _stroke("wave", f + Vector2(110, -50), 1.0), [0.5]],
 		["Earthquake", 14, func(f: Vector2) -> PackedVector2Array: return _stroke("earthquake", f + Vector2(0, -120)), [0.8]],
-		["Volcano", 14, func(f: Vector2) -> PackedVector2Array: return _stroke("volcano", f + Vector2(150, -60), 0.9), [1.4]],
 		["Bramble", 14, func(f: Vector2) -> PackedVector2Array: return _stroke("bramble", f + Vector2(110, -10), 1.2), [0.8]],
 		["Spore Puff", 14, func(f: Vector2) -> PackedVector2Array: return _stroke("cone", f + Vector2(60, -26)), [1.0]],
 		["Liana", 14, func(f: Vector2) -> PackedVector2Array: return _stroke("vine", f + Vector2(60, -110)), [0.9]],
@@ -784,6 +765,7 @@ func _plan_spells() -> void:
 		["Decoy", 14, func(f: Vector2) -> PackedVector2Array: return _stroke("eight", f + Vector2(90, -50), 0.8), [0.6]],
 		["Eclipse", 14, func(f: Vector2) -> PackedVector2Array: return _stroke("crescent", f + Vector2(110, -60), 1.2), [1.0]],
 		["Hex", 14, func(f: Vector2) -> PackedVector2Array: return _stroke("pentagram", Vector2(ArenaGen.column_x(16), f.y - 40.0), 0.8), [0.7]],
+		["Vacuum", 14, func(f: Vector2) -> PackedVector2Array: return _stroke("lungs", Vector2(ArenaGen.column_x(16), f.y - 40.0), 0.8), [0.7, 2.0]],
 		["Black Hole", 14, func(f: Vector2) -> PackedVector2Array: return _stroke("spiral", f + Vector2(110, -40), 1.2), [0.9]],
 		["Shadow Step", 14, func(f: Vector2) -> PackedVector2Array: return line.call(f + Vector2(0, -20), f + Vector2(140, -20)), [0.1, 0.3]],
 	]
@@ -991,7 +973,7 @@ func _reset_room(col: int, spell_name: String) -> void:
 			if not node is Pond:
 				node.queue_free()
 	for node in _arena.get_children():
-		if node is SpellEffect or node is Tornado or node is Volcano or node is Hazard or node is Mudslide or node is IcePrison or node is BlackHole or node is FireBreath or node is Earthquake:
+		if node is SpellEffect or node is Tornado or node is Hazard or node is Mudslide or node is IcePrison or node is BlackHole or node is FireBreath or node is Earthquake:
 			node.queue_free()
 	for pond in _arena.get_tree().get_nodes_in_group("ponds"):
 		for slab in pond._slabs:

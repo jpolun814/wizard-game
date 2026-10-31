@@ -6,34 +6,35 @@ class_name GestureTemplates
 
 ## Recognizer template name -> gesture name. Several templates can share a gesture. A circle counts the same
 ## whichever way round it is drawn.
-const ALIASES := {"line": "flick", "zig_tall": "zigzag", "mountain": "volcano",
+const ALIASES := {"line": "flick", "zig_tall": "zigzag",
 	"circle_cw": "circle", "circle_ccw": "circle", "flame_cw": "flare", "flame_ccw": "flare",
 	"eight_top_cw": "eight", "eight_top_ccw": "eight", "eight_mid_cw": "eight", "eight_mid_ccw": "eight",
-	"geyser_peak": "geyser", "geyser_peak_r": "geyser", "vine_cw": "vine", "vine_ccw": "vine",
+	"vine_cw": "vine", "vine_ccw": "vine",
 	"star_0": "pentagram", "star_1": "pentagram", "star_2": "pentagram", "star_3": "pentagram", "star_4": "pentagram",
 	"star_0r": "pentagram", "star_1r": "pentagram", "star_2r": "pentagram", "star_3r": "pentagram", "star_4r": "pentagram",
-	"crescent_cw": "crescent", "crescent_ccw": "crescent"}
+	"crescent_cw": "crescent", "crescent_ccw": "crescent",
+	"lungs_a": "lungs", "lungs_b": "lungs", "lungs_c": "lungs", "lungs_d": "lungs", "lungs_e": "lungs", "lungs_f": "lungs",
+	"silence_cw": "silence", "silence_ccw": "silence", "question_r": "question", "earthquake_r": "earthquake", "arrow_r2": "arrow", "arrow_l": "arrow", "arrow_l2": "arrow"}
 
 
 ## Templates for the $1 recognizer.
 static func recognizer_templates() -> Dictionary:
 	return {
 		"line": PackedVector2Array([Vector2(0, 0), Vector2(100, 0)]),
-		"earthquake": _three_peaks(),
+		"earthquake": _double_arrow(false),
+		"earthquake_r": _double_arrow(true),
 		"circle_cw": _ring(false),
 		"circle_ccw": _ring(true),
 		"zig_tall": PackedVector2Array([Vector2(0, 0), Vector2(-40, 40), Vector2(0, 80), Vector2(-40, 120)]),
 		"stonefall": _circle_and_drop(),
 		"cross": PackedVector2Array([Vector2(0, 0), Vector2(100, 100), Vector2(50, 50), Vector2(100, 0), Vector2(0, 100)]),
-		"mountain": PackedVector2Array([Vector2(-50, 40), Vector2(0, -50), Vector2(50, 40), Vector2(0, 40), Vector2(0, -50)]),  # a peak, its base, and the vent up through its middle
 		"flame_cw": _flame(false),
 		"flame_ccw": _flame(true),
 		"eight_top_cw": _eight(0.0, false),
 		"eight_top_ccw": _eight(0.0, true),
 		"eight_mid_cw": _eight(PI * 0.5, false),
 		"eight_mid_ccw": _eight(PI * 0.5, true),
-		"geyser_peak": PackedVector2Array([Vector2(-50, 40), Vector2(0, -50), Vector2(50, 40), Vector2(0, 40), Vector2(0, -50)]),  # a volcano's shape, drawn with the water button
-		"geyser_peak_r": PackedVector2Array([Vector2(50, 40), Vector2(0, -50), Vector2(-50, 40), Vector2(0, 40), Vector2(0, -50)]),
+		"geyser": _arrow_up(),  # the jet going up, drawn with the water button
 		"vine_cw": _leaf_and_stem(false),
 		"vine_ccw": _leaf_and_stem(true),
 		"star_0": _pentagram(0, false),
@@ -48,6 +49,21 @@ static func recognizer_templates() -> Dictionary:
 		"star_4r": _pentagram(4, true),
 		"crescent_cw": _crescent(false),
 		"crescent_ccw": _crescent(true),
+		"updraft": _arrow_up(),
+		"question": _question(false),
+		"question_r": _question(true),
+		"arrow": _arrow_side(false, false),
+		"arrow_r2": _arrow_side(false, true),
+		"arrow_l": _arrow_side(true, false),
+		"arrow_l2": _arrow_side(true, true),
+		"silence_cw": _slashed_ring(false),
+		"silence_ccw": _slashed_ring(true),
+		"lungs_a": _lungs(false, 0.0),
+		"lungs_b": _lungs(true, 0.0),
+		"lungs_c": _lungs(false, PI * 0.25),
+		"lungs_d": _lungs(true, PI * 0.25),
+		"lungs_e": _lungs(false, -PI * 0.25),
+		"lungs_f": _lungs(true, -PI * 0.25),
 	}
 
 
@@ -70,8 +86,8 @@ static func preview_points(gesture: String) -> PackedVector2Array:
 			return recognizer_templates()["stonefall"]
 		"tornado":
 			return _coil_down()
-		"volcano":
-			return recognizer_templates()["mountain"]
+		"stalagmite":
+			return PackedVector2Array([Vector2(-40, 30), Vector2(-20, -40), Vector2(0, 30), Vector2(20, -40), Vector2(40, 30)])
 		"icicles":
 			return PackedVector2Array([Vector2(-40, -30), Vector2(-20, 40), Vector2(0, -30), Vector2(20, 40), Vector2(40, -30)])
 		"snowfall":
@@ -87,7 +103,7 @@ static func preview_points(gesture: String) -> PackedVector2Array:
 		"cloud":
 			return _cloud(4, 160.0, 26.0)
 		"earthquake":
-			return _three_peaks()
+			return _double_arrow(false)
 		"pit":
 			return _pit(90.0, 60.0)
 		"cone":
@@ -99,7 +115,7 @@ static func preview_points(gesture: String) -> PackedVector2Array:
 		"wave":
 			return _sine(180.0, 12.0, 3.0)
 		"geyser":
-			return recognizer_templates()["geyser_peak"]
+			return _arrow_up()
 		"vine":
 			return _leaf_and_stem(false)
 		"tsunami":
@@ -118,6 +134,16 @@ static func preview_points(gesture: String) -> PackedVector2Array:
 			return _crescent(false)
 		"pentagram":
 			return _pentagram(0, false)
+		"lungs":
+			return _lungs(false, 0.0)
+		"updraft":
+			return _arrow_up()
+		"question":
+			return _question(false)
+		"arrow":
+			return _arrow_side(false, false)
+		"silence":
+			return _slashed_ring(false)
 	return PackedVector2Array()
 
 
@@ -204,9 +230,13 @@ static func _pit(width: float, depth: float) -> PackedVector2Array:
 	return pts
 
 
-## Three mountain peaks along the ground: up and down, three times.
-static func _three_peaks() -> PackedVector2Array:
-	return PackedVector2Array([Vector2(-60, 0), Vector2(-45, -30), Vector2(-30, 0), Vector2(-15, -30), Vector2(0, 0), Vector2(15, -30), Vector2(30, 0), Vector2(45, -30), Vector2(60, 0)])
+## An arrow with a head at both ends, in one stroke: the head at the left, the shaft across, then the head at the right. reversed starts at the
+## right-hand head. The ground pulled both ways.
+static func _double_arrow(reversed: bool) -> PackedVector2Array:
+	var pts := PackedVector2Array([Vector2(-30, -22), Vector2(-60, 0), Vector2(-30, 22), Vector2(-60, 0), Vector2(60, 0), Vector2(30, -22), Vector2(60, 0), Vector2(30, 22)])
+	if reversed:
+		pts = PackedVector2Array([Vector2(30, -22), Vector2(60, 0), Vector2(30, 22), Vector2(60, 0), Vector2(-60, 0), Vector2(-30, -22), Vector2(-60, 0), Vector2(-30, 22)])
+	return pts
 
 
 ## A teardrop with its point at the top: a flame. Drawn from the tip, down one side and round.
@@ -226,6 +256,58 @@ static func _eight(start: float, ccw: bool) -> PackedVector2Array:
 		var u := start + TAU * i / 48.0
 		var x := 35.0 * sin(2.0 * u)
 		pts.append(Vector2(-x if ccw else x, -50.0 * cos(u)))
+	return pts
+
+
+## An arrow pointing up, in one stroke: the shaft from the bottom to the tip, then down one side of the head and back, and down the other.
+static func _arrow_up() -> PackedVector2Array:
+	return PackedVector2Array([Vector2(0, 60), Vector2(0, -60), Vector2(-30, -26), Vector2(0, -60), Vector2(30, -26)])
+
+
+## The top of a question mark, in one stroke: up and over in a hook, then down toward the middle. mirror is the same hook the other way round.
+static func _question(mirror: bool) -> PackedVector2Array:
+	var side := -1.0 if mirror else 1.0
+	var pts := PackedVector2Array()
+	for i in 13:
+		var angle := PI + PI * 1.25 * i / 12.0
+		pts.append(Vector2(cos(angle) * 30.0 * side, -20.0 + sin(angle) * 30.0))
+	for tail in [Vector2(9, 14), Vector2(0, 26), Vector2(0, 46)]:
+		pts.append(Vector2(tail.x * side, tail.y))
+	return pts
+
+
+## An arrow pointing sideways, in one stroke: the shaft to the tip, then back along one side of the head and back, and along the other.
+static func _arrow_side(left: bool, up_first: bool) -> PackedVector2Array:
+	var d := -1.0 if left else 1.0
+	var side := -32.0 if up_first else 32.0
+	return PackedVector2Array([Vector2(-60.0 * d, 0), Vector2(60.0 * d, 0), Vector2(20.0 * d, side), Vector2(60.0 * d, 0), Vector2(20.0 * d, -side)])
+
+
+## A ring with a slash through it, the sign for "do not enter": round once, then straight across the middle and out the far side.
+static func _slashed_ring(ccw: bool) -> PackedVector2Array:
+	var pts := PackedVector2Array()
+	var direction := -1.0 if ccw else 1.0
+	var start := -PI * 0.75
+	for i in 33:
+		pts.append(Vector2.from_angle(start + direction * TAU * i / 32.0) * 45.0)
+	var through := Vector2.from_angle(start)
+	for i in range(1, 9):
+		pts.append(through * 45.0 - through * 100.0 * i / 8.0)
+	return pts
+
+
+## Two lungs: an infinity sign lying on its side, drawn in one stroke back to where it began. mirror starts on the left loop instead of the right,
+## and start is how far round the sign it begins (0 is the outer edge of a loop; the crossing in the middle makes a poor place to start, since
+## the recognizer turns a stroke by the line from its start to its middle). Starting downward instead of upward, or going the other way
+## round, is this shape turned half way round.
+static func _lungs(mirror: bool, start: float) -> PackedVector2Array:
+	var pts := PackedVector2Array()
+	var steps := 60
+	for i in steps + 1:
+		var t := start + TAU * i / steps
+		var x := 45.0 * cos(t)
+		var y := 56.0 * sin(t) * cos(t)
+		pts.append(Vector2(-x if mirror else x, y))
 	return pts
 
 

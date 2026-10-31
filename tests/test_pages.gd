@@ -50,6 +50,9 @@ func _initialize() -> void:
 	ledgers[0].learn("chant:mark")
 	_check(ledgers[0].knows_chant("recall") and ledgers[0].knows_chant("mark"), "the Return does not share the Mark's page")
 	_check(not ledgers[1].knows_chant("recall"), "a wizard who lacks the Mark casts the Return")
+	ledgers[0].settle("haste")
+	ledgers[0].settle("rift")
+	_check(ledgers[0].is_settled("haste") and not ledgers[0].is_settled("rift") and not ledgers[1].is_settled("haste"), "a chant that lasts is not settled for one wizard only, or a chant that does not last is")
 	ledgers[0].learn_all()
 	_check(ledgers[0].count() == Pages.every().size(), "learn_all does not give every page")
 	# The waiting room: every page, with nothing to find.

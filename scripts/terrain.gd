@@ -38,6 +38,9 @@ const DEEP_SINGLE := Vector2i(3, 4)
 ## True for a generated world. Its rock is drawn and made solid by following the edges of the tiles smoothly (see
 ## _build_contour), so a staircase of tiles is a slope, rather than the arena's one smooth surface over a row of heights.
 var tiled := false
+## The ground is about to change in a rectangle (a pit is being dug), and then has changed. Pools listen, so they can flow into the new hollow.
+signal about_to_change(area: Rect2)
+signal changed(area: Rect2)
 var air_loops: Array = []  # the traced outlines of the open air, in world pixels; pools are drawn only inside them
 var cells: Variant = {}  # a Dictionary of cells (the waiting room) or a TileGrid (a world)
 var biome := "cemetery"
@@ -185,6 +188,7 @@ func _build_collision() -> void:
 	var solid := StaticBody2D.new()
 	solid.collision_layer = 1
 	add_child(solid)
+	_solid = solid
 	var bottom := (ArenaGen.GROUND_ROW + ArenaGen.DEPTH + 1) * float(ArenaGen.TILE)
 	for k in range(_edges.size() - 1):
 		var x0 := (ArenaGen.FIRST_COL + k) * float(ArenaGen.TILE)
@@ -261,6 +265,9 @@ const BLEED := 14.0  # how far the painting of a room runs under the stone round
 const HALL_TILES := 9  # rows the hall's picture is stretched over: the hall's full height
 
 var _rock_world: RockWorld
+var _tile_state := {}  # tile -> 1 if it and all its neighbours are rock, 0 if all are air, 2 if an outline runs near it (see solid_at)
+var _changed: Array[Rect2] = []  # where pits have been dug, so the tiles no longer tell what is ground there
+var _solid: StaticBody2D  # the waiting room's solid ground, made again when a pit is dug
 
 
 ## Turns the world's solid tiles into rock with smooth edges, the way the waiting room ground is one smooth line: the
@@ -319,6 +326,70 @@ func _build_contour() -> void:
 		under.earth = load("res://art/tiles/castle_brick.png")
 		under.loops = Contour.trace(steps, true)
 		add_child(under)
+
+
+## Digs a pit into the open ground at a point (see RockWorld.dig). False when this ground cannot be dug.
+func dig(at: Vector2, half_width: float, depth: float) -> bool:
+	var area := Rect2(at - Vector2(half_width + 16.0, 48.0), Vector2(half_width * 2.0 + 32.0, depth + 112.0))
+	if tiled:
+		if _rock_world == null:
+			return false
+		about_to_change.emit(area)
+		var dug := _rock_world.dig(at, half_width, depth)
+		if dug:
+			_changed.append(area)
+			changed.emit(area)
+		return dug
+	if _edges.is_empty() or absf(at.y - _ground_y(at.x)) > 48.0:
+		return false
+	about_to_change.emit(area)
+	# The waiting room's ground is one line of heights: sink the columns under the pit, steep at the sides and flat at the bottom.
+	var bottom := (ArenaGen.GROUND_ROW + ArenaGen.DEPTH) * float(ArenaGen.TILE) - 64.0
+	for k in _edges.size():
+		var u := ((ArenaGen.FIRST_COL + k) * float(ArenaGen.TILE) - (at.x - half_width)) / (half_width * 2.0)
+		if u < 0.0 or u > 1.0:
+			continue
+		_edges[k] = minf(_edges[k] + depth * clampf(minf(u, 1.0 - u) * 5.0, 0.0, 1.0), bottom)
+	_solid.queue_free()
+	_build_collision()
+	queue_redraw()
+	changed.emit(area)
+	return true
+
+
+## The outlines of open air that come near a rectangle of the world, or none where the ground has no outlines of its own (the waiting room).
+func air_in(area: Rect2) -> Array:
+	return _rock_world.air_in(area) if tiled and _rock_world != null else []
+
+
+## True where a point is inside the ground (or stone), whatever the ground is made of. Liquid asks this to know where it can flow.
+func solid_at(point: Vector2) -> bool:
+	if tiled:
+		if _rock_world == null:
+			return false
+		# Far from any outline the tiles say it at once; only a point beside an edge needs the smoothed outlines.
+		var grid: TileGrid = cells
+		var tile := Vector2i(floori(point.x / ArenaGen.TILE), floori(point.y / ArenaGen.TILE))
+		if not grid.inside(tile - Vector2i.ONE) or not grid.inside(tile + Vector2i.ONE):
+			return _rock_world.solid_at(point)
+		for area: Rect2 in _changed:
+			if area.has_point(point):
+				return _rock_world.solid_at(point)
+		var state: int = _tile_state.get(tile, -1)
+		if state < 0:
+			var solid_tiles := 0
+			for dy in range(-1, 2):
+				for dx in range(-1, 2):
+					if grid.has(tile + Vector2i(dx, dy)):
+						solid_tiles += 1
+			state = 1 if solid_tiles == 9 else (0 if solid_tiles == 0 else 2)
+			_tile_state[tile] = state
+		if state == 2:
+			return _rock_world.solid_at(point)
+		return state == 1
+	if not _edges.is_empty() and point.y > _ground_y(point.x):
+		return true
+	return cells.get(Vector2i(floori(point.x / ArenaGen.TILE), floori(point.y / ArenaGen.TILE)), -1) == ArenaGen.STONE
 
 
 ## Draws the rock round these world positions, and frees what is far from all of them. at_once makes it all now.

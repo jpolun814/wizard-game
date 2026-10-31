@@ -47,7 +47,7 @@ single-run loop in `docs/roguelite_exploration_design.md`; the spells, the world
   wizard (`World._follow_watched`), a click picks the next, and the player stays out in later worlds (`World._stay_out`). The game-over screen
   comes only when no rival is left. Test: `tests/spectate_check.tscn` (add `-- collapse` to follow it into the next world).
 
-- **AI wizards clear gates.** When no page is to be had, a wizard goes to the nearest gate that a spell it holds can clear (`WizardBrain.CLEARS`: Ignite, Fire Breath, Firewall or Volcano for
+- **AI wizards clear gates.** When no page is to be had, a wizard goes to the nearest gate that a spell it holds can clear (`WizardBrain.CLEARS`: Ignite, Fire Breath or Firewall for
   thorns, gas and ice, Stonefall or Earthquake for a wall and for ice), steps up to what is left of it and strikes until it is gone. `World._watch_gates` sees ice, wall, thorns or gas
   go (a thicket or a bank at a time), marks the gate open and builds the ways again (`WorldNav.version` tells the wizards to think again about the pages they gave up). A human who
   clears a gate opens it for the AI too. The dark stretch needs no spell: the ways about the world bar only its spike strips (`WorldBuilder.shut`), and a wizard jumps them (`tests/dark_check.tscn`).

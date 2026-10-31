@@ -11,7 +11,7 @@ extends SceneTree
 const GROUND_Y := 0.0  # in this test the ground is the line y = 0; everything below it is solid
 ## The gestures that mean the same drawn backwards or mirrored.
 const MIRRORED := ["circle", "flick", "pit", "icicles", "spiral", "cone", "smoke", "flare", "wave", "geyser",
-	"vine", "tsunami", "tornado", "bramble", "jaws", "pads", "tree", "eight", "crescent", "pentagram"]
+	"vine", "tsunami", "tornado", "bramble", "jaws", "pads", "tree", "eight", "crescent", "pentagram", "lungs", "silence", "question", "arrow", "earthquake"]
 
 var _caster: Caster
 var _cast := ""
@@ -52,6 +52,62 @@ func _process(_delta: float) -> bool:
 	for size in [0.7, 1.0, 1.6]:
 		for shaky in [false, true]:
 			_check("Icicles", SpellData.SPELLS["Icicles"].buttons, single_v, size, shaky, false)
+	# Lungs (an infinity sign) can be started at an edge or a little way round, either loop first, and turned half way round: all are a Vacuum.
+	for template_name: String in GestureTemplates.recognizer_templates():
+		if template_name.begins_with("lungs_"):
+			for size in [0.8, 1.2]:
+				for warp in [Transform2D.IDENTITY, Transform2D(Vector2(1, 0), Vector2(0, -1), Vector2.ZERO), Transform2D(Vector2(-1, 0), Vector2(0, 1), Vector2.ZERO)]:
+					_check("Vacuum", SpellData.SPELLS["Vacuum"].buttons, GestureTemplates.recognizer_templates()[template_name], size, true, false, warp)
+	# Silence (a ring with a slash through it) and Black Hole (a spiral wound inward) share a button pair and both wind round: whichever way round,
+	# wherever started and however long the slash, each must come out as itself.
+	for start in [-135.0, -90.0, -45.0, 0.0, 90.0, 180.0]:
+		for direction in [1.0, -1.0]:
+			for slash in [70.0, 100.0, 130.0]:
+				var sign_stroke := PackedVector2Array()
+				for i in 33:
+					sign_stroke.append(Vector2.from_angle(deg_to_rad(start) + direction * TAU * i / 32.0) * 45.0)
+				var inward := -sign_stroke[sign_stroke.size() - 1].normalized()
+				for i in range(1, 9):
+					sign_stroke.append(sign_stroke[32] + inward * slash * i / 8.0)
+				_check("Silence", SpellData.SPELLS["Silence"].buttons, sign_stroke, 1.0, false, false)
+	for turns in [2.0, 2.5, 3.0]:
+		for start in [-90.0, 0.0, 90.0, 180.0]:
+			for direction in [1.0, -1.0]:
+				var winding := PackedVector2Array()
+				var steps := int(turns * 32.0)
+				for i in steps + 1:
+					var t := float(i) / steps
+					winding.append(Vector2.from_angle(deg_to_rad(start) + direction * t * turns * TAU) * 60.0 * (1.0 - t * 0.8))
+				_check("Black Hole", SpellData.SPELLS["Black Hole"].buttons, winding, 1.0, false, false)
+	# Strokes that wind but are not a spiral wound in twice must not be a Black Hole: a ring, a loop and a half, two rings of one size, and a ring
+	# with a line to its middle.
+	var not_spirals := {}
+	var ring := PackedVector2Array()
+	for i in 33:
+		ring.append(Vector2.from_angle(TAU * i / 32.0) * 50.0)
+	not_spirals["a ring"] = ring
+	var loop_and_half := PackedVector2Array()
+	for i in 49:
+		loop_and_half.append(Vector2.from_angle(TAU * 1.5 * i / 48.0) * 60.0 * (1.0 - 0.6 * i / 48.0))
+	not_spirals["a loop and a half"] = loop_and_half
+	var two_rings := PackedVector2Array()
+	for i in 65:
+		two_rings.append(Vector2.from_angle(TAU * 2.0 * i / 64.0) * 50.0)
+	not_spirals["two rings of one size"] = two_rings
+	var ring_to_middle := ring.duplicate()
+	for i in range(1, 9):
+		ring_to_middle.append(ring[32].lerp(Vector2.ZERO, i / 8.0))
+	not_spirals["a ring with a line to its middle"] = ring_to_middle
+	for label: String in not_spirals:
+		_checks += 1
+		var drawn := PackedVector2Array()
+		for p in _densify(not_spirals[label]):
+			drawn.append(p + Vector2(0, -260))
+		_cast = ""
+		_caster.cast_stroke(SpellData.RIGHT | SpellData.MIDDLE, drawn)
+		if _cast == "Black Hole":
+			_failures += 1
+			print("FAIL %s was read as a Black Hole" % label)
 	# A Bramble row need not have five teeth: two, three or four are thorns too.
 	for teeth in [2, 3, 4]:
 		for size in [0.8, 1.0, 1.5]:

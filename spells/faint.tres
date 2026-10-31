@@ -8,6 +8,5 @@ spell_name = "Faint"
 school = "Blood"
 gesture = "spiral"
 cost = 30.0
-draw = "A spiral that starts wide and winds in to its middle, drawn over the one who will fall."
 effect = "Knock the target unconscious."
 damage = "drops anyone until their stamina returns"

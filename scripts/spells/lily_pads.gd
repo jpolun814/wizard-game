@@ -8,6 +8,7 @@ extends FloraSpell
 const SECONDS := 8.0
 const SINK_SECONDS := 1.0
 const PAD_WIDTH := 52.0
+const PAD_FLOAT_REACH := 100.0  # how far from the drawn line a pool's surface can be for the leaf to settle on it
 const LEAF := preload("res://art/props/swamp_vine.png")
 
 var line := PackedVector2Array()  # the drawn line, in world points; set before the pads enter the tree
@@ -27,6 +28,9 @@ func _ready() -> void:
 	for i in count:
 		var x := span.position.x + (i + 0.5) * span.size.x / count
 		var y := _line_height_at(x)
+		var water := Pond.surface_near(get_tree(), x, y, PAD_FLOAT_REACH)
+		if water < INF:
+			y = water - 2.0  # a leaf floats on the water as it is now, not at the height it was drawn
 		low = maxf(low, y)
 		high = minf(high, y)
 		var pad := Node2D.new()

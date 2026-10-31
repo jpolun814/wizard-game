@@ -14,7 +14,7 @@ packed into atlases, effects into strips).
 | `art/chars/wizard/` (the player) | [Wizard Pack](https://luizmelo.itch.io/wizard-pack) by LuizMelo | CC0 1.0 |
 | `art/chars/dark_wizard/` | [Evil Wizard 2](https://luizmelo.itch.io/evil-wizard-2) by LuizMelo | CC0 1.0 |
 | `art/mobs/` (skeleton, goblin, flying eye), the eye's and goblin's shots | [Monsters Creatures Fantasy](https://luizmelo.itch.io/monsters-creatures-fantasy) by LuizMelo | CC0 1.0 |
-| `art/tiles/cemetery`, cemetery props, `art/backgrounds/cemetery/`, the volcano's mound | [GothicVania Cemetery](https://ansimuz.itch.io/gothicvania-cemetery) by ansimuz | CC0 1.0 |
+| `art/tiles/cemetery`, cemetery props, `art/backgrounds/cemetery/` | [GothicVania Cemetery](https://ansimuz.itch.io/gothicvania-cemetery) by ansimuz | CC0 1.0 |
 | `art/tiles/swamp`, swamp props, `art/backgrounds/swamp/` | [GothicVania Swamp](https://opengameart.org/content/gotthicvania-swamp) by ansimuz | CC0 1.0 |
 | `art/tiles/church`, `art/tiles/stone`, church props, `art/backgrounds/church/` | [GothicVania Church](https://opengameart.org/content/gothicvania-church-pack) by ansimuz | CC0 1.0 |
 | the wooden walkway planks, crate, barrel, street lamp | [GothicVania Town](https://ansimuz.itch.io/gothicvania-town) by ansimuz | CC0 1.0 |
@@ -86,9 +86,6 @@ and are no longer drawn by the game.
 
 - `art/fx/fire_wall.png` (fire-b), `art/fx/fire_puff.png` (fire-a) and `art/fx/fire_band.png` (made from fire-d): [Pixel Flame VFX](https://opengameart.org/node/108106) by zonked, CC0.
 
-## Volcano
-
-- `art/props/volcano_mound.png`: [2D Platformer Volcano Pack 1.1](https://opengameart.org/content/2d-platformer-volcano-pack-11) by Tio Aimar, CC0 (volcano_pack_68).
 
 ## Giant (art/mobs/giant)
 
@@ -138,3 +135,4 @@ and are no longer drawn by the game.
 ## Bats, birds and cave crystals (art/props/bat_*.png, bird_*.png, crystal_*.png)
 
 - Drawn by tools/prepare_biome_critters.py: a few pixels each, no outside source (own work, CC0). Stand-ins until a real pack is chosen.
+- Hex, Fight or Flight and Moonbeam marks (`art/fx/hex_mark.png`, `question_mark.png`, `moon_beam.png`): made for this game, pixel by pixel, by `tools/make_marks.py`. No outside source.

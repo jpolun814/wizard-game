@@ -58,7 +58,7 @@ Spells are rolled first. Then the generator picks gates.
 
 - Each spell carries **capability tags**: cross a gap, break stone, burn growth, freeze water, reach height, and
   so on. A spell can have several tags and several spells share one.
-- A gate needs a **tag**, not a spell. Thorns need "burn growth", which Ignite, Fire Breath and Volcano all have.
+- A gate needs a **tag**, not a spell. Thorns need "burn growth", which Ignite, Fire Breath and Firewall all have.
 - The generator only uses tags the player is guaranteed to hold before that gate, and puts the solving page
   somewhere reachable earlier.
 - A gate looks like what it needs, so players can work out the answer from the picture.

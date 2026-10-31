@@ -8,7 +8,6 @@ spell_name = "Ignite"
 gesture = "flick"
 targeting = "directional"
 cost = 15.0
-draw = "Straight stroke, not vertical. Draw it in the direction you want to throw."
 effect = "Hurl a bolt of fire."
 damage = "12 damage"
 effect_path = "res://scripts/spells/projectile.gd"

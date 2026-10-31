@@ -9,11 +9,13 @@ const LIFE := 99999.0  # the mud stays
 const TICK := 0.5
 const MIN_WIDTH := 60.0
 const MAX_WIDTH := 240.0
+const DRY_SECONDS := 2.5  # fire beside the pit this long bakes it dry
 const DEPTH := 18.0  # how far above the surface feet can be and still be caught
 
 var width := 100.0
 var planted_ground := PackedFloat32Array()  # for a pit the world digs (the jungle's): the ground's height at SAMPLES points across it, relative to its middle, so it need not look at the ground
 var _age := 0.0
+var _dried := 0.0
 var _tick := 0.0
 var _surface := PackedFloat32Array()  # the ground's height under the pit, sampled across it, relative to the pit
 const SAND := preload("res://art/props/quicksand.png")
@@ -68,6 +70,12 @@ func _ready() -> void:
 
 func _physics_process(delta: float) -> void:
 	_age += delta
+	if SpellTargets.fire_heat_near(get_tree(), Rect2(global_position + Vector2(-width * 0.5, -DEPTH), Vector2(width, DEPTH * 2.0)), 10.0) > 0.0:
+		_dried += delta  # fire bakes the mud hard
+		if _dried >= DRY_SECONDS:
+			Fx.smoke(get_parent(), global_position, Color(0.75, 0.62, 0.42, 0.6), 6, 26.0, 40.0)
+			queue_free()
+			return
 	_tick -= delta
 	queue_redraw()
 	var hurt_tick := _tick <= 0.0

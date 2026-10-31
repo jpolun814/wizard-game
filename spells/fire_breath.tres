@@ -8,7 +8,6 @@ spell_name = "Fire Breath"
 gesture = "cone"
 targeting = "cone"
 cost = 16.0
-draw = "A cone, like <: down one side to its point, then back out the other. The point is you; fire sprays out toward the open end."
 effect = "Breathe a cone of fire."
 damage = "3 damage every 0.2 s while in the cone"
 size_from = 2

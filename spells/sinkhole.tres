@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="Spell" format=3]
+
+[ext_resource type="Script" path="res://scripts/spell.gd" id="1_sink"]
+
+[resource]
+script = ExtResource("1_sink")
+spell_name = "Sinkhole"
+school = "Earth"
+gesture = "pit"
+targeting = "shape"
+cost = 40.0
+effect = "Open a sinkhole in the ground."
+damage = ""

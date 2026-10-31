@@ -13,6 +13,7 @@ const WIZARD_SCENE := preload("res://scenes/wizard.tscn")
 const TILE := ArenaGen.TILE
 const ICICLE_REACH := 420.0  # a ceiling this far above a V can hang its icicle
 const ICICLE_MAX := 240.0    # the longest an icicle grows
+const STALAGMITE_MAX := 200.0  # and the tallest a stalagmite rises
 const MUZZLE_OFFSET := 26.0  # spawn directional spells just outside the caster's body
 const BARRIER_SECONDS := 6.0
 const MISFIRE_COST := 10.0
@@ -277,7 +278,7 @@ func _process(_delta: float) -> void:
 	var busy: bool = ritual.visible or player.dead or player.fainted or hud.is_paused()
 	if player.is_frozen():  # in a block of ice no spell is drawn and no chant is said
 		ritual.cancel()
-	caster.set_casting_enabled(not busy and not player.is_frozen())
+	caster.set_casting_enabled(not busy and not player.is_frozen() and not player.silenced() and player.rage_time <= 0.0)
 	player.movement_enabled = not busy
 	caster.anchor = player.center()
 	caster.blocked_rects = _visible_hud_rects()
@@ -286,6 +287,8 @@ func _process(_delta: float) -> void:
 	player.cast_color = caster.drawing_color()  # and the crystal shows the school being drawn
 	if Net.online():
 		player.shown_stroke = _thinned(caster.stroke())  # the others see the stroke being drawn, as you see theirs
+	for module: String in _revealed:
+		_revealed[module] = _revealed[module] or player.ledger.is_settled(module)  # a later world of the match keeps what was said in an earlier one
 	_minimap.visible = _revealed["minimap"]
 	_update_insight()
 
@@ -440,6 +443,8 @@ func _earth_texture() -> Texture2D:
 ## Makes a spell take effect in the world. Every wizard's spells come through here, whoever plays them.
 func spawn_spell(spell: String, targeting: String, origin: Vector2, aim: float, info: Dictionary, caster_node: Wizard) -> void:
 	var from: Vector2 = caster_node.center()
+	if spell != "Vacuum":
+		Vacuum.release(get_tree(), caster_node)  # a caster who casts something else lets go of whoever they were smothering
 	var school: String = SpellData.SPELLS[spell].school if SpellData.SPELLS.has(spell) else ""
 	if (school == "Water" or school == "Air") and spell != "Barrier":
 		# Water and wind put a flare out, but only one the spell actually reaches.
@@ -521,8 +526,25 @@ func spawn_spell(spell: String, targeting: String, origin: Vector2, aim: float, 
 		"Tide Surf":
 			var surf := TideSurf.new()
 			surf.caster_node = caster_node
+			surf.ground = _ground
 			surf.direction = 1.0 if cos(aim) >= 0.0 else -1.0
 			add_child(surf)
+			return
+		"Sneak":
+			caster_node.fade_from_sight(20.0)
+			Fx.burst(self, caster_node.center(), SpellData.SCHOOL_COLORS["Shadow"], 14, 90.0, 0.5, true)
+			return
+		"Hunter's Mark":
+			if caster_node != player:
+				return  # only the one who cast it follows the scent
+			if HuntersMark.nearest_other(get_tree(), player.center(), player) == null:
+				return
+			for old in get_tree().get_nodes_in_group("hunts"):
+				old.queue_free()
+			var hunt := HuntersMark.new()
+			hunt.caster = player
+			add_child(hunt)
+			Sfx.play("heartbeat", player.center(), -4.0)
 			return
 		"Obsidian Armor":
 			caster_node.raise_obsidian(20.0)
@@ -549,6 +571,48 @@ func spawn_spell(spell: String, targeting: String, origin: Vector2, aim: float, 
 				down.faint()
 				Fx.burst(self, SpellTargets.center_of(down), Color(0.55, 0.1, 0.2), 14, 100.0, 0.6, true)
 				Sfx.play("faint", SpellTargets.center_of(down))
+			return
+		"Fight or Flight":
+			var stirred := FightOrFlight.nearest_under(get_tree(), origin)
+			if stirred == null:
+				FloatText.spawn(self, origin + Vector2(0, -20), "Aim at someone", Color("#ff9a9a"), 0.9)
+				return
+			var stir := FightOrFlight.new()
+			stir.target = stirred
+			stir.caster = caster_node
+			add_child(stir)
+			return
+		"Sinkhole":
+			var hole := Sinkhole.new()
+			var drawn: PackedVector2Array = info.get("line", PackedVector2Array())
+			var spot := origin
+			if drawn.size() > 1:  # the pit opens under the middle of the U, as wide as it was drawn
+				var box := GestureTemplates.bounds(drawn)
+				spot = Vector2(box.get_center().x, box.end.y)
+				hole.half_width = clampf(box.size.x * 0.5, Sinkhole.LEAST, Sinkhole.MOST)
+			hole.global_position = SpellTargets.surface_over(get_world_2d(), spot)
+			hole.ground = _ground
+			add_child(hole)
+			return
+		"Silence":
+			var silence := Silence.new()
+			silence.global_position = origin
+			add_child(silence)
+			return
+		"Updraft":
+			var updraft := Updraft.new()
+			updraft.global_position = origin
+			add_child(updraft)
+			return
+		"Vacuum":
+			var smothered := Vacuum.nearest_under(get_tree(), origin)
+			if smothered == null:
+				FloatText.spawn(self, origin + Vector2(0, -20), "Aim at someone", Color("#a8d8ff"), 0.9)
+				return
+			var vacuum := Vacuum.new()
+			vacuum.target = smothered
+			vacuum.caster = caster_node
+			add_child(vacuum)
 			return
 		"Hex":
 			var cursed := Hex.nearest_under(get_tree(), origin)
@@ -698,6 +762,27 @@ func _icicle_spots(info: Dictionary) -> Array:
 	return spots
 
 
+## A stalagmite rises from the ground under the tip of each peak that was drawn, as tall as the peak was drawn, up to STALAGMITE_MAX.
+func _stalagmite_spots(info: Dictionary) -> Array:
+	var spots := []
+	for tri in info.get("shapes", []):
+		var hit := {}
+		for lift in [0.0, 24.0, 48.0, 72.0]:  # a tip drawn a little way into the ground rises from the surface above it
+			var from := Vector2(tri[1].x, tri[1].y - lift)
+			var query := PhysicsRayQueryParameters2D.create(from, from + Vector2(0.0, ICICLE_REACH + lift))
+			query.collision_mask = 1
+			hit = get_world_2d().direct_space_state.intersect_ray(query)
+			if not hit.is_empty() and hit["normal"].y < -0.3:  # the top of the ground, not a ceiling
+				break
+			hit = {}
+		if hit.is_empty():
+			continue
+		var height := clampf(hit["position"].y - tri[1].y, 40.0, STALAGMITE_MAX)
+		var width := clampf(absf(tri[2].x - tri[0].x), 14.0, height * 0.6)
+		spots.append({"base": hit["position"] + Vector2(0.0, 6.0), "width": width, "height": height})
+	return spots
+
+
 ## The spells whose shape says where they go: icicles stand as the triangles they were drawn as, snow falls over
 ## the drawn line, a tornado or volcano forms under the middle of the drawing, a storm cloud hangs along its line,
 ## quicksand opens under the U, and an ice
@@ -715,14 +800,18 @@ func _place_shapes(spell: String, info: Dictionary) -> void:
 				icicle.polygon = PackedVector2Array([Vector2(-half, 0.0), Vector2(half, 0.0), Vector2(0.0, spot["length"])])
 				add_child(icicle)
 				icicle.setup(spell, spot["base"], 0.0)  # the base sits just inside the ceiling, hidden by it
+		"Stalagmite":
+			for spot in _stalagmite_spots(info):
+				var spike := Stalagmite.new()
+				var half: float = spot["width"] * 0.5
+				spike.polygon = PackedVector2Array([Vector2(-half, 0.0), Vector2(half, 0.0), Vector2(0.0, -spot["height"])])
+				spike.rock = _earth_texture()
+				add_child(spike)
+				spike.setup(spell, spot["base"], 0.0)
 		"Tornado":
 			var tornado := Tornado.new()
 			tornado.position = centre
 			add_child(tornado)
-		"Volcano":
-			var volcano := Volcano.new()
-			volcano.position = _surface_under(centre)  # always on the surface, never under it
-			add_child(volcano)
 		"Blizzard":
 			var left := line[0].x
 			var right := line[0].x
@@ -744,6 +833,7 @@ func _place_shapes(spell: String, info: Dictionary) -> void:
 		"Geyser":
 			var geyser := Geyser.new()
 			geyser.position = _surface_under(centre)  # under the middle of the peak, on the surface
+			geyser.ground = _ground
 			add_child(geyser)
 		"Bramble":
 			var thorns := Bramble.new()
@@ -790,9 +880,8 @@ func _start_ritual() -> void:
 	if player.is_muted():
 		_on_feedback("Wait for your voice to return.", Color.ORANGE)
 		return
-	if player.underwater():
-		_on_feedback("You can't chant under water.", Color.ORANGE)
-		return
+	if player.holding_breath():
+		return  # the bubbles over the head say why
 	ritual.open()
 	# Stop this key press from also reaching the text box it just opened.
 	get_viewport().set_input_as_handled()
@@ -803,8 +892,7 @@ func _on_ritual_finished(id: String, acc: float, unfinished: bool) -> void:
 	if not player.ledger.knows_chant(id):
 		_misfire_puff()
 		return
-	if player.underwater():
-		_on_feedback("You can't chant under water.", Color.ORANGE)
+	if player.holding_breath():
 		return
 	if unfinished:
 		# Stopping a chant partway lets the words fade harmlessly; only a garbled chant backfires.
@@ -835,10 +923,26 @@ func _on_ritual_finished(id: String, acc: float, unfinished: bool) -> void:
 				return
 		"rift":
 			_rift()
+		"scrying":
+			_scry()
 		"bonfire":
 			var spot := _bonfire_spot()  # beside the wizard, not under them
 			_kindle(spot, power)
 			Net.send(self, &"_kindle", [spot, power])
+
+
+## The Chant of Scrying: an arrow points to the nearest page the player has not read, until they read it. Chanting again looks for another.
+func _scry() -> void:
+	for old in get_tree().get_nodes_in_group("scryings"):
+		old.queue_free()
+	var page := Scrying.nearest_unread(get_tree(), player.center(), player.ledger)
+	if page == null:
+		_on_feedback("Nothing left to find.", Color("#ffe9a0"))
+		return
+	var scrying := Scrying.new()
+	scrying.target = page
+	scrying.ledger = player.ledger
+	add_child(scrying)
 
 
 ## A bonfire burns at a spot, on every machine of a network game.
@@ -850,8 +954,9 @@ func _kindle(spot: Vector2, power: float) -> void:
 	fire.global_position = spot
 
 
-## The chants that give their speaker something for a while.
+## The chants that give their speaker something, for a while or (see Ledger.LASTING) for the rest of the match.
 func _grant_chant(speaker: Wizard, id: String) -> void:
+	speaker.ledger.settle(id)
 	match id:
 		"boundless":
 			speaker.grant_unlimited(20.0)
@@ -866,7 +971,7 @@ func _grant_chant(speaker: Wizard, id: String) -> void:
 ## A brain's wizard says one of the chants that give a gift (the others make marks and portals, which have only the player's own).
 ## It says it perfectly. False when it does not know the chant, cannot speak or is under water.
 func chant_by(speaker: Wizard, id: String) -> bool:
-	if not is_instance_valid(speaker) or speaker.dead or not speaker.ledger.knows_chant(id) or speaker.is_muted() or speaker.is_frozen() or speaker.underwater():
+	if not is_instance_valid(speaker) or speaker.dead or not speaker.ledger.knows_chant(id) or speaker.is_muted() or speaker.is_frozen() or speaker.holding_breath():
 		return false
 	_show_chant(String(speaker.name))
 	Net.send(self, &"_show_chant", [String(speaker.name)])
@@ -963,7 +1068,8 @@ func _on_toggle_chant(data: Dictionary, acc: float) -> void:
 		_on_feedback("Check the words and try again.", Color.GRAY)
 		return
 	var module: String = data["module"]
-	_revealed[module] = not _revealed[module]
+	_revealed[module] = true  # said once, it holds for the rest of the match
+	player.ledger.settle(module)
 	Sfx.play("ritual_ok", player.center(), -6.0)
 
 

@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="Spell" format=3]
+
+[ext_resource type="Script" path="res://scripts/spell.gd" id="1_vacuum"]
+
+[resource]
+script = ExtResource("1_vacuum")
+spell_name = "Vacuum"
+school = "Air"
+gesture = "lungs"
+cost = 30.0
+effect = "Draw the air out of someone's lungs."
+damage = ""

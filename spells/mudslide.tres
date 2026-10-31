@@ -6,10 +6,9 @@
 script = ExtResource("1_e7vnv")
 spell_name = "Mudslide"
 school = "Earth"
-gesture = "pit"
+gesture = "wave"
 targeting = "shape"
 cost = 36.0
-draw = "A U: down, round the bottom and up again, over the ground. The mud opens on the ground below it."
 effect = "Turn the ground to sticky mud."
 damage = "slows, stops jumping"
 size_from = 3

@@ -95,12 +95,13 @@ var tangle_time: float: # caught in thorns: nearly stopped, and unable to jump w
 var deep_breath_time: float: # the Chant of the Deep Breath: the breath is held while this lasts, under water or not
 	get: return _status.left(&"deep_breath")
 	set(seconds): _status.set_left(&"deep_breath", seconds)
-var breath := BREATH  # seconds of air left under water
+var breath := BREATH  # seconds of air left while the breath is held without the Chant of the Deep Breath
+var smothered := false  # the air is drawn out of the wizard's lungs (Vacuum sets and clears this)
 var haste_time: float: # the Chant of Swift Feet: faster on foot while this lasts
-	get: return _status.left(&"haste")
+	get: return _status.left(&"haste") if not ledger.is_settled("haste") else 1.0e9
 	set(seconds): _status.set_left(&"haste", seconds)
 var air_jump_time: float: # the Chant of the Second Leap: a jump in the air is allowed while this lasts
-	get: return _status.left(&"air_jump")
+	get: return _status.left(&"air_jump") if not ledger.is_settled("double_jump") else 1.0e9
 	set(seconds): _status.set_left(&"air_jump", seconds)
 var adrenaline_time: float: # Adrenaline: stamina comes back quicker and the wizard is hasted while this lasts
 	get: return _status.left(&"adrenaline")
@@ -111,6 +112,9 @@ var obsidian_time: float: # Obsidian Armor: shots do half, lava does nothing, an
 var surf_time: float: # Tide Surf: a wave carries the wizard along surf_dir while this lasts
 	get: return _status.left(&"surf")
 	set(seconds): _status.set_left(&"surf", seconds)
+var fade_time: float: # Sneak: the wizard shows only faintly while this lasts
+	get: return _status.left(&"fade")
+	set(seconds): _status.set_left(&"fade", seconds)
 var surf_dir := 1.0
 var temp_stamina := 0.0  # stamina from an Offering: spent once the usual stamina is gone, never comes back by itself, and may pass the most
 var veil := 0  # hits a Crimson Veil will still turn away
@@ -123,6 +127,9 @@ var _shove := Vector2.ZERO  # a Push on the caster: slides them for a moment, th
 var mute_time: float: # no rituals while above zero
 	get: return _status.left(&"mute")
 	set(seconds): _status.set_left(&"mute", seconds)
+var rage_time := 0.0    # Fight or Flight, fighting: the game casts for the wizard while above zero, and the wizard casts nothing of their own
+var fear_time := 0.0    # Fight or Flight, fleeing: the wizard cannot move toward afraid_of while above zero
+var afraid_of: Wizard
 var root_time: float: # no walking or jumping while above zero
 	get: return _status.left(&"root")
 	set(seconds): _status.set_left(&"root", seconds)
@@ -174,6 +181,8 @@ const STUCK := 8
 const GROUNDED := 16
 const ROOTED := 32
 const SLOWED := 64
+const FADED := 128
+const FADE_ALPHA := 0.35  # how much of a veiled wizard shows
 var peer := 0  # the machine that drives this wizard, as a peer id; 0 for this machine. Set before the wizard enters the tree
 var human := true  # a person plays this wizard, here or on another machine; false for one a brain plays (on the host)
 var net_position := Vector2.ZERO  # where the driving machine has the wizard; a likeness glides there
@@ -438,9 +447,15 @@ func underwater() -> bool:
 	return _liquid_time > 0.0 and not _in_lava and global_position.y - BODY_HEIGHT + 10.0 > _liquid_y
 
 
-## True while the wizard holds their breath: no air is used up under water, and gas does no harm.
+## True while the wizard holds their breath, for any reason: under water, in the Chant of the Deep Breath, or with the air drawn out of them.
+## Gas does no harm to anyone holding their breath, and nobody can chant.
 func holding_breath() -> bool:
-	return deep_breath_time > 0.0
+	return underwater() or smothered or deep_breath_time > 0.0
+
+
+## The air is drawn out of the wizard's lungs, or let back in. They hold their breath as they do under water, with what air they have.
+func smother(on: bool) -> void:
+	smothered = on
 
 
 ## The chant cannot be said under water, so the lungs are full when it takes hold, and breathing starts again, full, when it ends.
@@ -469,7 +484,12 @@ func apply_debuff(kind: String, seconds: float) -> void:
 
 
 func is_muted() -> bool:
-	return mute_time > 0.0 or fainted
+	return mute_time > 0.0 or fainted or silenced()
+
+
+## True while the wizard stands in a ring of Silence: they can cast nothing.
+func silenced() -> bool:
+	return Silence.covers(get_tree(), center())
 
 
 ## Pays for a spell in maximum stamina, which only healing brings back. Never takes the last of it: false, and nothing paid, if the
@@ -502,6 +522,16 @@ func faint() -> void:
 func grant_adrenaline(seconds: float) -> void:
 	adrenaline_time = maxf(adrenaline_time, seconds)
 	haste_time = maxf(haste_time, seconds)
+
+
+func fade_from_sight(seconds: float) -> void:
+	fade_time = maxf(fade_time, seconds)
+	Sfx.play("faint", center(), -6.0)
+
+
+## True while the wizard is faded from sight.
+func is_faded() -> bool:
+	return marks & FADED != 0 if is_likeness() else fade_time > 0.0
 
 
 func raise_obsidian(seconds: float) -> void:
@@ -547,9 +577,9 @@ func _draw_breath() -> void:
 	if dead or is_likeness():
 		return
 	var bubble := Fx.tex("circle_05")
-	if not holding_breath() and not underwater() and breath >= BREATH:
+	if not holding_breath() and breath >= BREATH:
 		return  # the bar shows while the breath is held, under water, and while the lungs fill again
-	var left := deep_breath_time if holding_breath() else breath  # the held breath, when there is one, in place of the air
+	var left := deep_breath_time if deep_breath_time > 0.0 else breath  # the chant's held breath, when there is one, in place of the air
 	var count := ceili(maxf(left, 0.0))
 	var width := minf(14.0, 160.0 / maxf(count, 1.0))
 	var size := minf(10.0, width - 1.0)
@@ -560,14 +590,14 @@ func _draw_breath() -> void:
 		draw_texture_rect(bubble, Rect2(Vector2(-6, -BODY_HEIGHT - 26.0), Vector2(12, 12)), false, Color(1.0, 0.4, 0.4, 0.9))
 
 
-## Under water the air runs down, and once it is gone the most stamina does too, until the wizard surfaces. That loss is
-## only made good the usual ways.
+## While the breath is held (under water, or with the air drawn out) the air runs down, and once it is gone the most stamina does too,
+## until the wizard breathes again. That loss is only made good the usual ways. The Chant of the Deep Breath holds the breath without using the air.
 func _breathe(delta: float) -> void:
 	if dead:
 		return
-	if holding_breath():
+	if deep_breath_time > 0.0:
 		breath = BREATH
-	elif underwater():
+	elif underwater() or smothered:
 		if breath > 0.0:
 			breath = maxf(breath - delta, 0.0)
 		else:
@@ -619,6 +649,8 @@ func _physics_process(delta: float) -> void:
 	if fainted and stamina >= GET_UP:
 		fainted = false  # the stamina is back: up again
 	_breathe(delta)
+	rage_time = maxf(rage_time - delta, 0.0)
+	fear_time = maxf(fear_time - delta, 0.0)
 	if is_on_floor():
 		air_jump_ready = true
 	if infinite_time > 0.0:
@@ -673,6 +705,9 @@ func _physics_process(delta: float) -> void:
 		velocity.x = _slide
 	else:
 		_slide = velocity.x
+	if fear_time > 0.0 and is_instance_valid(afraid_of) and signf(velocity.x) == signf(afraid_of.global_position.x - global_position.x):
+		velocity.x = 0.0  # they will not go toward the one they flee
+		_slide = 0.0
 	velocity.x += _shove.x + wind
 	if _shove.y < 0.0:
 		velocity.y = minf(velocity.y, _shove.y)
@@ -833,7 +868,7 @@ func _animate(delta: float) -> void:
 	var wet := _liquid_time > 0.0
 	_wet_material.set_shader_parameter("water_y", _liquid_y if wet else 1000000.0)
 	_wet_material.set_shader_parameter("water_tint", _liquid)
-	_sprite.modulate = Color(1.0, 0.45, 0.45) if _flash > 0.0 else Color(1.0, 1.0, 1.0, 0.55 if blink else 1.0)
+	_sprite.modulate = Color(1.0, 0.45, 0.45) if _flash > 0.0 else Color(1.0, 1.0, 1.0, 0.55 if blink else (FADE_ALPHA if is_faded() else 1.0))
 	if (marks & OBSIDIAN != 0 if is_likeness() else obsidian_time > 0.0) and _flash <= 0.0:
 		var glint := 0.5 + 0.08 * sin(Time.get_ticks_msec() * 0.006)
 		_sprite.modulate = Color(glint, glint * 0.92, glint * 1.2, _sprite.modulate.a)  # black glass, with a violet shine
@@ -855,6 +890,14 @@ func _make_caster() -> void:
 	caster.set_process(false)
 	caster.ground_check = Callable(get_parent(), "_is_ground_at")
 	caster.cast_resolved.connect(Callable(get_parent(), "cast_by").bind(self))
+
+
+## The caster that reads a stroke into a spell: a brain's wizard has one always, and a person's is made when something other than their own hand
+## has to cast for them (Fight or Flight).
+func ensure_caster() -> Caster:
+	if caster == null:
+		_make_caster()
+	return caster
 
 
 ## A brain's wizard speaks a chant (see Arena.chant_by).
@@ -1005,7 +1048,7 @@ func share() -> void:
 ## On the machine that drives the wizard: what the others are sent (see share).
 func _tell_others() -> void:
 	net_position = global_position
-	marks = (FROZEN if is_frozen() else 0) | (SHIELDED if has_shield() else 0) | (OBSIDIAN if obsidian_time > 0.0 else 0) | (STUCK if _stuck_time > 0.0 else 0) 			| (GROUNDED if is_on_floor() else 0) | (ROOTED if is_rooted() else 0) | (SLOWED if is_slowed() else 0)
+	marks = (FROZEN if is_frozen() else 0) | (SHIELDED if has_shield() else 0) | (OBSIDIAN if obsidian_time > 0.0 else 0) | (STUCK if _stuck_time > 0.0 else 0) 			| (GROUNDED if is_on_floor() else 0) | (ROOTED if is_rooted() else 0) | (SLOWED if is_slowed() else 0) | (FADED if fade_time > 0.0 else 0)
 	if brain != null:
 		shown_stroke = _drawn_so_far()
 
@@ -1068,6 +1111,7 @@ func _struck_by_a_mob(amount: int, impulse: Vector2) -> void:
 
 @rpc("authority", "call_remote", "unreliable_ordered")
 func _show_hurt(amount: int) -> void:
+	damaged.emit(amount)  # (a Vacuum let go of when its caster is hurt listens to this, on every machine)
 	_flash = 0.3
 	Sfx.play("player_hurt", center())
 	FloatText.spawn(get_parent(), center() + Vector2(0, -24), "-%d" % amount, Color("#ff5a5a"), 1.1)

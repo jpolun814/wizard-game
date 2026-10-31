@@ -9,6 +9,5 @@ school = "Flora"
 gesture = "vine"
 targeting = "shape"
 cost = 18.0
-draw = "A leaf, then a line up: an almond standing on its point, drawn round and back to the point, then a straight line up from there."
 effect = "Grow a climbable vine."
 damage = "a vine you can climb"

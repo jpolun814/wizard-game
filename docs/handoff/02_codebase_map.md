@@ -15,7 +15,7 @@ Arena (scripts/arena.gd)            the base of the waiting room and the world: 
  ├─ Caster                           reads mouse strokes and emits cast_resolved
  ├─ Wizards (scenes/wizard.tscn)     the three rivals: the same body, driven by a WizardBrain, each with its own Caster
  ├─ Mobs (scenes/mob.tscn)           enemies (no wizards)
- ├─ spell nodes                      SpellEffect, FireBreath, Volcano, StormCloud... added as children of Arena
+ ├─ spell nodes                      SpellEffect, FireBreath, StormCloud... added as children of Arena
  ├─ Hud (CanvasLayer 3), Spellbook (5), RitualInput (10), DebugPanel (20), Minimap
 ```
 
@@ -100,12 +100,12 @@ never block each other.
     life timer, and calls `_begin` (start), `_act` (each physics frame) and `_finish` (end) on its subclasses.
   - Its subclasses: `projectile.gd` (Ignite, Frostbolt), `firewall.gd`, `icicle.gd`, `blizzard.gd`,
     `push_zone.gd`, `gust.gd`, `stone_wall.gd`, `spark_strike.gd`. The arena picks one in `_new_effect`.
-  - Standalone effects: `fire_breath.gd`, `volcano.gd`, `tornado.gd`, `ice_prison.gd`, `abyss.gd`, `mudslide.gd`,
-    `boulder.gd` (Stonefall's rock), `lava_ball.gd` (a volcano's shots), `earthquake.gd`, `smoke_screen.gd`, `flare.gd`,
+  - Standalone effects: `fire_breath.gd`, `tornado.gd`, `ice_prison.gd`, `abyss.gd`, `mudslide.gd`,
+    `boulder.gd` (Stonefall's rock), `lava_ball.gd` (a volcano's shots; the ashlands' `Eruption` throws them), `earthquake.gd`, `smoke_screen.gd`, `flare.gd`,
     `frost_bridge.gd`, `geyser.gd`, `tsunami.gd`, `spore_puff.gd`, `eclipse.gd`, `hex.gd`, `decoy.gd`.
   - **Plants** extend `flora_spell.gd` (`FloraSpell`), which gives them fire damage: `bramble.gd`, `liana.gd`,
     `great_oak.gd`, `flytrap.gd`, `lily_pads.gd`. Fire touching one (`SpellTargets.fire_touching`) burns it away.
-  - **Ponds** (`scripts/pond.gd`): water or lava sunk in the ground, which Frost Bridge freezes and Lily Pads float on. Drawn behind the ground so only the hollow shows; a water pond puts out fire shots (`shots` + `fires`) that fall in.
+  - **Ponds** (`scripts/pond.gd`): water or lava sunk in the ground, which Frost Bridge freezes and Lily Pads float on. Drawn behind the ground so only the hollow shows; a water pond puts out fire shots (`shots` + `fires`) that fall in. Its liquid really flows (`scripts/liquid_grid.gd`, chapter 12): a pit dug beside it fills from it. Piranhas, ice and the wizards' map of the ways follow it, and Geyser and Tide Surf lift, carry and spill real water (chapter 12).
 - **`spell_targets.gd`:** who can be hurt (`affects`, `hurt`, `all`, `hurt_within`; no sides), the ground (`ground_below`,
   `solid_below`, `surface_over`), fire (`fire_points`, `fire_heat_near`) and `shot_damage`.
 - **Conventions:**

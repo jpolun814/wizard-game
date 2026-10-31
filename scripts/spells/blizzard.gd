@@ -47,6 +47,10 @@ func _begin(origin: Vector2, _aim_angle: float) -> void:
 func _act(delta: float) -> void:
 	if lasting:
 		_grow_pile(delta)
+	_tick -= delta
+	if _tick <= 0.0:
+		_tick = 0.5
+		SpellTargets.douse(get_tree(), global_position + Vector2(_width() * 0.5, 60.0), _width() * 0.5 + 20.0)  # snow puts out flames beneath it
 	for body in get_overlapping_bodies():
 		if not SpellTargets.affects(body):
 			continue

@@ -154,15 +154,17 @@ func _end() -> void:
 	var info := {"radius": 0.0, "pieces": 1, "shapes": [], "line": PackedVector2Array(), "rect": Rect2()}
 	# A star drawn in one stroke winds inward like a spiral, so it must be ruled out first.
 	var star := gesture == "pentagram" and score >= tolerance
-	var spiral := _inward_spiral(relative) if options.has("spiral") and not star else {}
+	var slashed := options.has("silence") and _is_slashed_ring(relative)
+	var spiral := _inward_spiral(relative) if options.has("spiral") and not star and not slashed else {}
 	var ring_split := _ring_then_line_split(relative) if options.has("circle_push") and spiral.is_empty() else -1
 	var ring_centre := Vector2.ZERO
 	# Icicles are open V strokes. A closed loop (a circle, a crystal) is never an icicle.
 	var extent := _extent(relative)
 	var closed := relative[0].distance_to(relative[relative.size() - 1]) < 0.3 * maxf(extent.x, extent.y)
-	# A volcano-shaped peak drawn with the water button is a Geyser, not a row of icicles.
+	# An arrow pointing up drawn with the water button is a Geyser, not a row of icicles.
 	var peak := gesture == "geyser" and score >= tolerance
 	var icicles: Array = _icicle_triangles(relative) if options.has("icicles") and not closed and not peak else []
+	var spikes: Array = _icicle_triangles(relative, false) if options.has("stalagmite") and not closed and not (score >= tolerance - 0.12 and gesture in ["stonefall", "earthquake"]) else []  # a circle and a drop, and a double arrow, also have peaks in them
 	var snow_line := _snowfall_line(relative) if options.has("snowfall") else PackedVector2Array()
 	var cloud := _cloud_line(relative) if options.has("cloud") else PackedVector2Array()
 	var pit := _pit_stroke(relative) if options.has("pit") else PackedVector2Array()
@@ -183,6 +185,9 @@ func _end() -> void:
 		score = 1.0
 		info["radius"] = spiral["reach"]
 		info["center"] = _origin + spiral["center"]
+	elif slashed:
+		gesture = "silence"
+		score = 1.0
 	elif ring_split >= 0:
 		# A closed ring with a straight line out of it is a Push. The line can point any way.
 		gesture = "circle_push"
@@ -236,6 +241,12 @@ func _end() -> void:
 		gesture = "cone"
 		score = 1.0
 		info.merge(cone)
+	elif not spikes.is_empty():
+		gesture = "stalagmite"
+		score = 1.0
+		info["pieces"] = spikes.size()
+		for tri in spikes:
+			info["shapes"].append(_to_world(tri))
 	elif not icicles.is_empty():
 		gesture = "icicles"
 		score = 1.0
@@ -402,6 +413,21 @@ func _ring_then_line_split(points: PackedVector2Array) -> int:
 	return -1
 
 
+## Silence: a ring with a slash through it, as on a "do not enter" sign. The ring closes on itself, and a straight line then runs from it right
+## across the middle and out the far side. A line that stops at the middle makes a spiral instead, which is why this is read before a Black Hole.
+func _is_slashed_ring(points: PackedVector2Array) -> bool:
+	var split := _ring_then_line_split(points)
+	if split < 0:
+		return false
+	var ring := points.slice(0, split)
+	var centre := _relative_centroid(ring)
+	var radius := _mean_distance(ring, centre)
+	var tail := points.slice(split)
+	var tip := tail[tail.size() - 1]
+	var line := Geometry2D.get_closest_point_to_segment(centre, tail[0], tip)
+	return radius > 12.0 and tail[0].distance_to(tip) >= radius * 1.4 and line.distance_to(centre) <= radius * 0.5
+
+
 ## A cone drawn as <: two straight arms of similar length meeting at a point. Returns {"aim": the way from the
 ## point out through the open end, "spread": the angle between the arms, "reach": how far the fire goes}, or {} when
 ## the stroke isn't one. A closed triangle (a volcano) or a hooked line is not a cone.
@@ -466,12 +492,12 @@ func _mean_distance(points: PackedVector2Array, centre: Vector2) -> float:
 
 ## One or more Vs (point down) in a stroke; upside-down Vs do not count. Each tip is one icicle, and its triangle is
 ## the space between the tip and the two arm ends. Returns the triangles in stroke space.
-func _icicle_triangles(points: PackedVector2Array) -> Array:
+func _icicle_triangles(points: PackedVector2Array, want_bottoms := true) -> Array:
 	var turns := _turning_points(points)
 	var triangles: Array = []
 	if turns.is_empty() or not _goes_one_way(points, turns):
 		return triangles
-	var want_bottoms := true  # only Vs: icicles hang down, and an upside-down V is left for other shapes
+	# want_bottoms: only Vs for icicles, which hang down; only upside-down Vs (peaks) for stalagmites, which stand up
 	for k in turns.size():
 		var turn: Array = turns[k]
 		if turn[1] != want_bottoms:
@@ -588,17 +614,24 @@ func _to_world(points: PackedVector2Array) -> PackedVector2Array:
 	return out
 
 
-## Gravity Well: a spiral wound inward, turning at least one and a half times while it closes in on its middle.
-## Returns {"center", "reach"} in stroke space, or nothing.
+## Black Hole: a spiral wound inward, turning very nearly twice round while it closes in on its middle, a little tighter each time. A ring, a ring
+## and a line, a loop and a half, or two rings of the same size are not one. Returns {"center", "reach"} in stroke space, or nothing.
 func _inward_spiral(points: PackedVector2Array) -> Dictionary:
-	if points.size() < 16 or absf(_total_turning(points)) < deg_to_rad(500.0):
+	if points.size() < 16 or absf(_total_turning(points)) < deg_to_rad(650.0):
 		return {}
 	# The middle is where the stroke ends up: the average of its last few points.
 	var tail := points.slice(int(points.size() * 0.85))
 	var centre := _relative_centroid(tail)
 	var reach := points[0].distance_to(centre)
-	var halfway := points[points.size() / 2].distance_to(centre)
-	if reach < 25.0 or halfway > reach * 0.8:
+	if reach < 30.0:
+		return {}
+	# Its distance from the middle must fall away: on average the second half is a good deal nearer than the first, and the last third than the
+	# first third. (Averages, since a hand-drawn spiral is never an even one.) It must also begin on the outside, not the middle of an outward one.
+	var third := points.size() / 3
+	var half := points.size() / 2
+	if _mean_distance(points.slice(half), centre) > _mean_distance(points.slice(0, half), centre) * 0.75:
+		return {}
+	if _mean_distance(points.slice(points.size() - third), centre) > _mean_distance(points.slice(0, third), centre) * 0.62:
 		return {}
 	return {"center": centre, "reach": reach}
 

@@ -54,7 +54,7 @@ func _physics_process(delta: float) -> void:
 	if (is_instance_valid(caster_node) and caster_node.dead):
 		queue_free()
 	for pond: Pond in get_tree().get_nodes_in_group("ponds"):
-		if not pond.lava and Rect2(pond.global_position, Vector2(pond.width, pond.depth)).has_point(global_position):
+		if not pond.lava and pond.wet_at(global_position):
 			snuff()  # water puts a flame out
 			return
 

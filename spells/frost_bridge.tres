@@ -9,7 +9,6 @@ school = "Water"
 gesture = "wave"
 targeting = "shape"
 cost = 18.0
-draw = "A wavy line, drawn across the water you want to freeze."
 effect = "Freeze the surface of a body of water."
 damage = "freezes water into ice"
 size_from = 4

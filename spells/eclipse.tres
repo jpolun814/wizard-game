@@ -8,6 +8,5 @@ spell_name = "Eclipse"
 school = "Shadow"
 gesture = "crescent"
 cost = 22.0
-draw = "A crescent moon: a curve like a C."
 effect = "Plunge the world around you into darkness."
 damage = "blinds what is inside"

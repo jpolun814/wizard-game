@@ -17,6 +17,9 @@ var graph: WorldGraph
 var _markers := {}
 var _ponds := []
 var _gates := []
+const NAV_DELAY := 0.4  # seconds after a pit is dug before the wizards' map of the ways is made again
+var _nav_waiting := false
+var _dug_tiles := {}  # the tiles of the ground that pits have taken away, so the map of the ways can be made again without them
 var _built: Dictionary  # what the generator made, kept to build the ways again when a gate is cleared
 var _since_gates := 0.0
 var _castle_stairs := []  # [{"from", "to": the ends of the slope in pixels, "under"}]: its stairs to the cellars
@@ -174,6 +177,7 @@ func _begin_encounter(camera: Camera2D) -> void:
 	_set_up_backdrops()
 	hud.set_title("")
 	hud.set_pause_note("World: " + Incantation.words_for(seed_value))
+	_ground.changed.connect(_on_ground_dug)
 	for entry in _ponds:
 		var pond := Pond.new()
 		pond.lava = entry["lava"]
@@ -181,10 +185,12 @@ func _begin_encounter(camera: Camera2D) -> void:
 		pond.depth = entry["depth"] * float(TILE) + 16.0
 		pond.position = Vector2(entry["a"] * float(TILE), entry["surface"] * float(TILE))
 		pond.clip = _ground.air_loops
+		pond.ground = _ground
 		add_child(pond)
 		if not entry["lava"] and SurfaceGen.biome_at(graph.surface, graph.surface["start"]) == "jungle":  # the jungle's water is full of piranhas
 			var shoal := Piranhas.new()
 			shoal.water = Rect2(pond.position, Vector2(pond.width, pond.depth))
+			shoal.pond = pond
 			shoal.count = maxi(2, int(pond.width / (TILE * 4.0)))
 			shoal.bed = graph.surface["floor"].slice(entry["a"], entry["b"] + 1)
 			shoal.bed_x = entry["a"] * float(TILE)
@@ -256,6 +262,7 @@ func _lay_landmarks() -> void:
 	var floors: PackedInt32Array = graph.surface["floor"]
 	for crater: Dictionary in graph.surface["craters"]:
 		var eruption := Eruption.new()
+		eruption.ground = _ground
 		eruption.name = "Crater%d" % crater["x"]  # the same on every machine, so the host can tell the others when it wakes
 		eruption.position = Vector2((crater["x"] + 0.5) * t, crater["row"] * t)
 		add_child(eruption)
@@ -935,10 +942,42 @@ func _watch_gates(delta: float) -> void:
 		if not gone.has(false):
 			entry["open"] = true
 	if changed:
-		var shut := WorldBuilder.shut(_built, true)
-		nav.build(shut["cells"], _built["size"].y, shut["barred"], _spawn_tiles[0], shut["tolls"], shut["links"], shut["climbs"])
+		_build_nav()
 		if Net.online() and Net.is_host():
 			Net.send(self, &"_gates_cleared", [_cleared_gate_names()])
+
+
+## The wizards' map of the ways, built again from the world as it is now: the gates that are still shut, and the ground as it has been dug.
+func _build_nav() -> void:
+	var shut := WorldBuilder.shut(_built, true)
+	var cells: TileGrid = shut["cells"]
+	for tile: Vector2i in _dug_tiles:
+		cells.erase(tile)
+	nav.build(cells, _built["size"].y, shut["barred"], _spawn_tiles[0], shut["tolls"], shut["links"], shut["climbs"])
+
+
+## The ground has been dug (a Sinkhole): the tiles it took away are open air to the wizards' map, which is made again.
+func _on_ground_dug(area: Rect2) -> void:
+	var tile_size := float(TILE)
+	var cells: TileGrid = _built["cells"]
+	var lost := false
+	for ty in range(floori(area.position.y / tile_size), ceili(area.end.y / tile_size)):
+		for tx in range(floori(area.position.x / tile_size), ceili(area.end.x / tile_size)):
+			var tile := Vector2i(tx, ty)
+			if _dug_tiles.has(tile) or not cells.has(tile):
+				continue
+			var corner := Vector2(tile) * tile_size
+			var open := true
+			for offset in [Vector2(2, 2), Vector2(tile_size - 2.0, 2), Vector2(2, tile_size - 2.0), Vector2(tile_size - 2.0, tile_size - 2.0), Vector2(tile_size * 0.5, tile_size * 0.5)]:
+				open = open and not _ground.solid_at(corner + offset)
+			if open:
+				_dug_tiles[tile] = true
+				lost = true
+	if lost and not _nav_waiting:  # a moment later, and once for pits dug together: making the map takes a tenth of a second
+		_nav_waiting = true
+		get_tree().create_timer(NAV_DELAY).timeout.connect(func() -> void:
+			_nav_waiting = false
+			_build_nav())
 
 
 ## Every piece of a gate has the same name on every machine, so the host can say which are gone.

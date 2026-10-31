@@ -8,7 +8,6 @@ spell_name = "Smoke Screen"
 gesture = "smoke"
 targeting = "shape"
 cost = 18.0
-draw = "A wavy line going up. The smoke billows along it."
 effect = "Hide behind a bank of smoke."
 damage = "hides what is behind it"
 size_from = 4

@@ -506,15 +506,17 @@ func _ritual_effect(ritual_id: String) -> String:
 		"boundless":
 			return "Never tire for a while."
 		"double_jump":
-			return "Jump again in mid-air for a while."
+			return "Jump again in mid-air."
 		"rift":
 			return "Tear open a way to a random place. This can be devastating."
 		"haste":
-			return "Run faster for a while."
+			return "Run faster."
 		"deep_breath":
 			return "Hold your breath for a while."
 		"mark":
 			return "Mark this place."
+		"scrying":
+			return "Show the way to the nearest page you have not read."
 		"recall":
 			return "Open a long-lasting portal back to your mark."
 	return ""

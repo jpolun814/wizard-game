@@ -31,6 +31,8 @@ const RITUALS := {
 		"text": "sub aqua spiro"},
 	"mark": {"kind": "ritual", "name": "Incantation of the Mark",
 		"text": "hunc locum signo mihi"},
+	"scrying": {"kind": "ritual", "name": "Chant of Scrying",
+		"text": "paginam quaero"},
 	"recall": {"kind": "ritual", "name": "Incantation of the Return",
 		"text": "illum locum peto mihi"},
 }

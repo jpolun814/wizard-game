@@ -8,6 +8,5 @@ spell_name = "Adrenaline"
 school = "Blood"
 gesture = "zigzag"
 cost = 15.0
-draw = "A tall zigzag going down, like a pulse."
 effect = "Surge with speed for a little while."
 damage = "faster, quicker recovery"

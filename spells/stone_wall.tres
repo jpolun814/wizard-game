@@ -9,7 +9,6 @@ school = "Earth"
 gesture = "stone_wall"
 targeting = "directional"
 cost = 30.0
-draw = "A straight stroke that starts on the ground or another stone wall. It cannot be drawn in mid-air: the wall grows out of whatever solid thing the stroke starts on."
 effect = "Raise a wall of stone."
 damage = "solid · must start on solid ground"
 size_from = 5

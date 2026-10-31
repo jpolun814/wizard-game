@@ -15,7 +15,7 @@ const POOL_PAD := 3         # columns of level shore each side of a pool
 const START_FLAT := 8       # columns each side of the middle that are level, to start on
 const LEDGE := 3            # the most a ledge on a mountain climbs in one column: a jump (the wizard clears three rows)
 const RIM := 11             # columns each side of a volcano's middle that are level: the rim round its crater
-const CRATER_WIDTH := 16    # the lava lake in a volcano's top
+const CRATER_WIDTH := 16    # the bowl in a volcano's top
 const BIOMES := ["graveyard", "mountains", "jungle", "ashlands", "castle", "underground"]  # one of these is the whole of a world
 const OPEN_BIOMES := ["graveyard", "mountains", "jungle", "ashlands"]  # those with open sky and room to spare: the last world of a match is one of them
 
@@ -101,11 +101,10 @@ static func build(width: int, biome: String, rng: RandomNumberGenerator) -> Dict
 	# Pools, after the ground is smooth: each is dug into a level stretch of its own, far enough from any other level ground
 	# that the ground between can slope from one to the other.
 	var ponds := []
-	for crater in craters:  # the lava lake in the top of each volcano
+	for crater in craters:  # the dry bowl in the top of each volcano: lava fills it only when the volcano erupts (see Eruption)
 		var a: int = crater["x"] - CRATER_WIDTH / 2
 		for c in range(a, a + CRATER_WIDTH):
-			floor_row[c] = _lava_floor(c - a, crater["row"], 1)
-		ponds.append({"a": a, "b": a + CRATER_WIDTH - 1, "surface": crater["row"], "depth": 1, "lava": true, "islands": true})
+			floor_row[c] = crater["row"] + 1
 	var wants := _pools_for(biome, rng)
 	var lava: bool = wants[1]
 	for k in wants[0]:

@@ -8,6 +8,5 @@ spell_name = "Earthquake"
 school = "Earth"
 gesture = "earthquake"
 cost = 75.0
-draw = "Three mountain peaks, drawn in the air."
 effect = "Shake the world for a little while."
 damage = "shakes the ground"

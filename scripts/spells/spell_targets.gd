@@ -117,9 +117,31 @@ static func fire_points(tree: SceneTree) -> Array:
 				fires.append({"at": point, "heat": 1.0, "size": -10.0, "shot": false})
 		elif node is Pond:
 			fires.append({"at": node.global_position + Vector2(node.width * 0.5, 0), "heat": 1.0, "size": node.width * 0.5, "shot": false})
+		elif node is Tornado:
+			for point in node.flame_points():
+				fires.append({"at": point, "heat": 1.0, "size": 30.0, "shot": false})
+		elif node is SparkStrike:
+			fires.append({"at": node.landing, "heat": 3.0, "size": 14.0, "shot": true})
 		elif node is Bonfire:
 			fires.append({"at": node.global_position + Vector2(0, -20), "heat": 1.0, "size": 24.0, "shot": false})
 	return fires
+
+
+## Cold and water put fire out: every fire with a `quench` that has a flame within `radius` of the point goes out in a puff of steam.
+## Returns true when something was put out.
+static func douse(tree: SceneTree, at: Vector2, radius: float) -> bool:
+	var out := false
+	for node: Node2D in tree.get_nodes_in_group("fires"):
+		if not node.has_method("quench"):
+			continue
+		var points: Array = node.flame_points() if node.has_method("flame_points") else [node.global_position]
+		for point: Vector2 in points:
+			if point.distance_to(at) < radius:
+				Fx.smoke(node.get_parent(), point, Color(0.88, 0.92, 0.96, 0.7), 6, 24.0, 60.0)
+				node.quench()
+				out = true
+				break
+	return out
 
 
 ## True when any fire, a fireball in flight included, touches a box in the world. Plants burn from it.

@@ -33,7 +33,7 @@ func _ready() -> void:
 	await tree.process_frame
 	world.player.take_damage(100000)
 	var page_name := ""
-	for candidate in ["Volcano", "Tornado", "Eclipse"]:  # a page it does not hold
+	for candidate in ["Tornado", "Eclipse"]:  # a page it does not hold
 		if not spells.has(candidate):
 			page_name = candidate
 			break

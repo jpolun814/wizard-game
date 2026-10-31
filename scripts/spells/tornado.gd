@@ -10,6 +10,8 @@ const LIFE := 6.0
 const FLING_UP := 800.0   # how hard anyone who walks into it is thrown up
 const FLING_SIDE := 560.0 # and to one side or the other, by chance
 const FLING_GAP := 1.2    # seconds before it can throw the same one again
+const WHIRL_TICK := 0.5   # a fire whirl burns this often
+const WHIRL_DAMAGE := 4
 const TIP := 135.0  # the funnel's narrow end is this far below its middle
 const DIE_TIME := 1.1  # the last moments: the birth played backwards, the funnel sinks back into the ground
 
@@ -17,6 +19,8 @@ var _age := 0.0
 var _flung := {}  # who it has thrown lately -> seconds until it can again
 var _funnel: AnimatedSprite2D
 var _dying := false
+var ablaze := false  # a funnel that has drawn up a fire is a fire whirl: it burns, and sets plants alight
+var _scorch := 0.0
 var _shots := {}  # a shot that entered the funnel -> where it came in, or null once it has been turned
 
 
@@ -76,6 +80,14 @@ func _physics_process(delta: float) -> void:
 		_dying = true
 		_funnel.sprite_frames = PixelFx.frames("tornado", 14.0, false, 0, 15)
 		_funnel.play_backwards("default")
+	if not ablaze and _age > 0.4 and SpellTargets.fire_heat_near(get_tree(), Rect2(global_position + Vector2(-70.0, -110.0), Vector2(140.0, 240.0)), 10.0) > 0.0:
+		_catch_fire()
+	if ablaze:
+		_scorch -= delta
+		if _scorch <= 0.0:
+			_scorch = WHIRL_TICK
+			for body in get_overlapping_bodies():
+				SpellTargets.hurt(body, WHIRL_DAMAGE, "Fire")
 	for body in _flung.keys():
 		_flung[body] -= delta
 		if _flung[body] <= 0.0 or not is_instance_valid(body):
@@ -93,6 +105,27 @@ func _physics_process(delta: float) -> void:
 	_blow_clouds(delta)
 	if _age >= LIFE:
 		queue_free()
+
+
+## Wind that meets fire carries it up: the funnel glows and burns whoever it holds.
+func _catch_fire() -> void:
+	ablaze = true
+	add_to_group("fires")
+	_funnel.self_modulate = Color(1.7, 0.8, 0.35)
+	var embers := Fx.trail(Color(1.0, 0.55, 0.2), 30, 0.9, 40.0, Vector2(0, -80), "spark_01", 6.0)
+	embers.texture = PixelFx.ember()
+	embers.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
+	embers.emission_rect_extents = Vector2(40, 90)
+	embers.position = Vector2(0, 20)
+	add_child(embers)
+
+
+## Points up the funnel, for the flames of a fire whirl.
+func flame_points() -> PackedVector2Array:
+	var points := PackedVector2Array()
+	for k in 4:
+		points.append(global_position + Vector2(0.0, -90.0 + k * 70.0))
+	return points
 
 
 ## A shot that enters the funnel keeps going until it reaches the far side, and only then is turned back the way it

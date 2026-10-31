@@ -7,7 +7,7 @@
 2. **On release** (`Caster._end`):
    - **Too short:** a stroke shorter than `min_stroke_length` (20 px) is ignored.
    - **Recognizer:** the $1 recognizer scores the stroke against **only the templates bound to that button
-     combination** (`_templates_for`). This restriction is why a Volcano can't come out as a Tornado.
+     combination** (`_templates_for`). This restriction is why a Stonefall can't come out as a Tornado.
    - **Shape detectors** then run for shapes $1 handles badly: `_inward_spiral`, `_ring_then_line_split` (Push),
      `_box`, `_snowfall_line`, `_funnel_stroke`, `_cloud_line` (also Frost Bridge's wave), `_pit_stroke`, `_cone`,
      `_icicle_triangles`, `_rising_wave` (Smoke Screen), `_stem_and_arc` (a stroke that sets off upward and curls: Liana,
@@ -107,6 +107,18 @@ where it makes sense for both, and two spells on one button combination never sh
 - **Push and hazards:** pushing an enemy into Mudslide or fire makes those hazards a combo.
 - **Wind and fire:** Tornado carries fire patches, becoming a fire whirl.
 - **Force and ice:** a frozen enemy shatters with Force or Earth. This already exists; keep the pattern.
+- **Built (`tests/interaction_check.tscn`):** cold and water put fire out (`SpellTargets.douse`: a Frostbolt's shatter, a Geyser, Blizzard snow put out a Firewall, burning ground or a Bonfire; each has a `quench`); fire bakes a Mudslide dry; Spark sets plants alight and, landing in a pool, shocks whoever stands in it; a Tornado that meets a fire becomes a fire whirl (`Tornado.ablaze`). A new fire joins the `"fires"` group, gets a `quench` if water should stop it, and a branch in `SpellTargets.fire_points`.
+
+## Spells added later (gestures chosen with the owner)
+
+- **Vacuum** (Air, lungs: an infinity sign on its side, `Wizard.smother`): the air is drawn out of one wizard's lungs. It breaks when the caster casts again or is hurt.
+- **Updraft** (Air, arrow up): a lasting column; any number; lifts by adding to `velocity.y`.
+- **Silence** (Shadow, slashed circle): a ring in which `Wizard.silenced()` is true, so the player's caster is disabled, a brain will not start a cast and chants are refused (`is_muted`).
+- **Fight or Flight** (Blood, question mark): by a coin flip (the cast's own seeded dice) the target either fights (`rage_time`: the game casts random known spells for them through `Wizard.ensure_caster`, and their own casts are blocked) or flees (`fear_time`, `afraid_of`: cannot walk toward the caster).
+- **Sinkhole** (Earth, a U; the pit is as wide as the U, between 50 and 130 px to a side): `RockWorld.dig` changes the outline the rock is cut from and cuts the world again. Permanent. Only works on a tiled world with open ground; a castle floor or the waiting room does nothing. The AI does not know about pits: a wizard may walk into one.
+- **Sneak** (Shadow, wave): the wizard shows at a third of their strength for a while (`Wizard.fade_time`, mark `FADED`, so other machines see it). Nothing is coded for the dark: a faint sprite is simply hard to see there.
+- **Hunter's Mark** (Blood, arrow): `HuntersMark` keeps an edge arrow (group `"hunts"`) on the nearest other wizard for a while; only the caster's machine shows it.
+- None of these five is known to the AI wizards yet (`WizardBrain` has no score or stroke for them).
 
 ## The spell pool
 
@@ -116,6 +128,9 @@ each new spell with the checklist in `CLAUDE.md` §6, and expect the owner to ve
 
 ## Rituals (typed)
 
+- **Said once, kept for the match:** Land, Insight, the Second Leap and Swift Feet (`Ledger.LASTING`, `Ledger.settle`): the gift stays through every world once the chant works. The others (Bonfire, Boundless Vigour, Rift, Deep Breath, Mark, Return) are cast again each time.
+- **Chanting needs breath:** nobody can chant while `Wizard.holding_breath()` (under water, in the Chant of the Deep Breath, or `smothered` by Vacuum). New ways to hold the breath set that, and need no check of their own. While held without the chant, the air (`breath`) runs down and then the wizard suffocates.
+- **Scrying** (`Scrying`, `EdgeArrows` group `"scryings"`): the chant fixes an arrow at the screen edge on the nearest page the speaker has not read; it goes when that page is read, and chanting again looks for another.
 - **Existing:** the `RITUALS` table in `scripts/ritual_input.gd` holds them: Land (minimap), Insight (enemy info), Bonfire (a healing fire), Boundless Vigour (endless stamina), Second Leap, Rift, Swift Feet, Deep Breath, Mark and Return.
 - **Chants are Latin-ish and grammatical-sounding.** Longer chants are for stronger effects.
 - **Accuracy sets power.** Stopping partway does nothing; garbling backfires.

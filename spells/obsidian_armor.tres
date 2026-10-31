@@ -8,6 +8,5 @@ spell_name = "Obsidian Armor"
 school = "Earth"
 gesture = "circle"
 cost = 40.0
-draw = "A circle, either way round. The glass grows over you."
 effect = "Turn your body to black glass."
 damage = "half damage from shots, lava is harmless, slower"

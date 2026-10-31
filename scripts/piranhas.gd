@@ -13,13 +13,17 @@ const CHASE := 190.0
 const SHOCK_REACH := 150.0  # how far along the water a lightning strike kills
 
 var water := Rect2()  # the pit's water, in world pixels
+var pond: Pond  # the pool the shoal lives in, when it is one: once its liquid flows, the fish keep to the liquid as it is now
 var bed := PackedInt32Array()  # for a pond dug in sloping ground: the row of the ground under each of its columns, so the fish keep to the water
 var bed_x := 0.0  # the left edge of the first of those columns, in world pixels
 var count := 5
 var _fish: Array[Dictionary] = []  # each {"sprite", "dir", "phase", "bite"}
 var _t := 0.0
+var _dry := 0.0     # seconds the pool has had no water deep enough to swim in
+var _look := 0.0    # seconds until the stretch the fish can swim in is worked out again
 
 
+const STRANDED := 3.0  # seconds without water deep enough, and the fish are left on dry ground
 const DEEP_ENOUGH := 40.0  # how much water there must be over a column of the bed for a fish to be in it
 var _swim_from := 0.0
 var _swim_to := 0.0
@@ -61,6 +65,18 @@ func _ready() -> void:
 
 func _physics_process(delta: float) -> void:
 	_t += delta
+	if _follows_liquid():
+		_look -= delta
+		if _look <= 0.0:
+			_look = 0.4
+			_find_swimming_water()
+		if _swim_from >= _swim_to:  # the water has drained away from under them
+			_dry += delta
+			if _dry > STRANDED:
+				_strand()
+				return
+		else:
+			_dry = 0.0
 	var prey := _prey()
 	for fish in _fish:
 		var sprite: AnimatedSprite2D = fish["sprite"]
@@ -101,8 +117,58 @@ func _physics_process(delta: float) -> void:
 		sprite.flip_h = fish["dir"] < 0.0
 
 
+## True once the pool's liquid is flowing, so the water is wherever the liquid is rather than the rectangle the pool began as.
+func _follows_liquid() -> bool:
+	return pond != null and is_instance_valid(pond) and pond.grid != null
+
+
+## The stretch of water the fish can swim in now: the unbroken run of columns where the liquid is deep enough, that the fish are in (or, failing
+## that, the widest).
+func _find_swimming_water() -> void:
+	var mean := 0.0
+	for fish in _fish:
+		mean += fish["pos"].x
+	mean /= maxf(_fish.size(), 1.0)
+	var best := Vector2.ZERO
+	var run_from := -1.0
+	var x := pond.region().position.x
+	var end := pond.region().end.x
+	while x <= end + 8.0:
+		var span := pond.wet_span(x) if x < end else Vector2.ZERO
+		if span.y - span.x >= DEEP_ENOUGH:
+			if run_from < 0.0:
+				run_from = x
+		elif run_from >= 0.0:
+			var run := Vector2(run_from, x)
+			if mean >= run.x - 16.0 and mean <= run.y + 16.0:
+				best = run
+				break
+			if run.y - run.x > best.y - best.x:
+				best = run
+			run_from = -1.0
+		x += 8.0
+	_swim_from = best.x
+	_swim_to = best.y
+
+
+## The water is gone: the fish die where they lie.
+func _strand() -> void:
+	for fish in _fish:
+		var sprite: AnimatedSprite2D = fish["sprite"]
+		Fx.burst(get_parent(), sprite.global_position, Color("#a8c8d8"), 4, 60.0, 0.3)
+	queue_free()
+
+
 ## A place in the water, nearest to a point: inside the stretch the fish can swim, and above the ground under it.
 func _confine(pos: Vector2) -> Vector2:
+	if _follows_liquid():
+		if _swim_from >= _swim_to:
+			return pos
+		pos.x = clampf(pos.x, _swim_from + 12.0, maxf(_swim_to - 12.0, _swim_from + 12.0))
+		var span := pond.wet_span(pos.x)
+		if span.y > span.x:
+			pos.y = clampf(pos.y, span.x + 16.0, maxf(span.y - 10.0, span.x + 16.0))
+		return pos
 	pos.x = clampf(pos.x, _swim_from + 12.0, _swim_to - 12.0)
 	var floor_y := water.end.y - 10.0
 	if not bed.is_empty():
@@ -119,7 +185,10 @@ func _prey() -> Array:
 		if not SpellTargets.affects(body):
 			continue
 		var at: Vector2 = SpellTargets.center_of(body)
-		if at.x > water.position.x and at.x < water.end.x and at.y > water.position.y + 8.0 and at.y < water.end.y + 40.0:
+		if _follows_liquid():
+			if pond.wet_at(at + Vector2(0.0, 8.0)):
+				out.append(body)
+		elif at.x > water.position.x and at.x < water.end.x and at.y > water.position.y + 8.0 and at.y < water.end.y + 40.0:
 			out.append(body)
 	return out
 
@@ -143,7 +212,10 @@ func fish_x_near(x: float) -> float:
 
 ## A bolt of lightning strikes the water at this point: every fish within reach along the water dies.
 func shock(point: Vector2) -> void:
-	if not water.grow(8.0).has_point(point):
+	if _follows_liquid():
+		if not pond.wet_at(point) and not pond.wet_at(point + Vector2(0.0, 12.0)):
+			return
+	elif not water.grow(8.0).has_point(point):
 		return
 	for fish in _fish.duplicate():
 		var sprite: AnimatedSprite2D = fish["sprite"]

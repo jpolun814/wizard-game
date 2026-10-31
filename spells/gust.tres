@@ -9,7 +9,6 @@ school = "Air"
 gesture = "flick"
 targeting = "directional"
 cost = 14.0
-draw = "A straight stroke. The wind blows the way you draw it."
 effect = "Blow a gust of wind."
 damage = "blows light things along"
 effect_path = "res://scripts/spells/gust.gd"

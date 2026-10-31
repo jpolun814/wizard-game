@@ -13,7 +13,6 @@ enum Size { NONE, RADIUS, REACH, LINE_WIDTH, LINE_SPAN, LENGTH, STEP_LENGTH, ARE
 @export var gesture := ""
 @export_enum("directional", "positional", "shape", "cone", "angled") var targeting := "positional"
 @export var cost := 10.0
-@export_multiline var draw := ""    ## how to draw it, for the spellbook
 @export_multiline var effect := ""  ## what it does, for the spellbook
 @export var damage := ""            ## a short figure for the spellbook
 @export var preview := ""           ## a gesture to draw in the spellbook instead of `gesture`, when they differ

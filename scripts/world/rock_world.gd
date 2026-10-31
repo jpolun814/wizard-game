@@ -10,6 +10,7 @@ const CHUNK := 32         # tiles along a chunk's side
 const NEAR := 2           # chunks round a watcher that are drawn
 const FAR := 4            # chunks round a watcher that are kept; farther ones are freed
 const PER_FRAME := 2      # chunks made in a frame, past the ones right beside a watcher
+const THIN_WALL := 56.0  # a wall of rock between two pits thinner than this is dug away
 const BAND := 24.0        # how deep the grass along a surface is, in pixels
 const RIM := Color("#0d0916")
 const WALL := Color("#3a2e50")
@@ -30,10 +31,13 @@ var _built := {}          # chunk -> [nodes]
 var _wanted: Array[Vector2i] = []  # chunks to make, nearest first
 var _watchers: Array[Vector2i] = []
 var _sky_low := 0.0
+var _loops: Array = []  # the outlines the world was cut from, kept so a pit can be dug in one and the world cut again
+var _body: StaticBody2D  # the rock's collision
 
 
 ## Cuts the outlines up. Call once, after adding to the tree.
 func setup(loops: Array) -> void:
+	_loops = loops
 	texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
 	for point in sky:
 		_sky_low = maxf(_sky_low, point.y)
@@ -49,6 +53,28 @@ func setup(loops: Array) -> void:
 				_segments[piece[2]].append(piece[1])
 		_find_grass(points, _grass_back if is_air else _grass_front)
 	_build_collision()
+
+
+## The outlines of open air that come near a rectangle of the world, as they are now (a pit dug since the world was made is in them).
+func air_in(area: Rect2) -> Array:
+	var out := []
+	for entry: Dictionary in _air:
+		if (entry["box"] as Rect2).intersects(area):
+			out.append(entry["points"])
+	return out
+
+
+## True where a point is inside rock. The edge of the world counts as rock (see Contour), so outside every outline is rock, inside a cave's outline
+## is air, and inside an outline of rock standing in that air is rock again: each outline the point is inside turns it over.
+func solid_at(point: Vector2) -> bool:
+	var inside := true
+	for entry: Dictionary in _islands:
+		if entry["box"].has_point(point) and Geometry2D.is_point_in_polygon(point, entry["points"]):
+			inside = not inside
+	for entry: Dictionary in _air:
+		if entry["box"].has_point(point) and Geometry2D.is_point_in_polygon(point, entry["points"]):
+			inside = not inside
+	return inside
 
 
 func _bounds(points: PackedVector2Array) -> Rect2:
@@ -81,15 +107,135 @@ func _cut(from: Vector2, to: Vector2) -> Array:
 
 
 func _build_collision() -> void:
-	var body := StaticBody2D.new()
-	body.collision_layer = 1
-	add_child(body)
+	_body = StaticBody2D.new()
+	_body.collision_layer = 1
+	add_child(_body)
 	for key: Vector2i in _segments:
 		var shape := ConcavePolygonShape2D.new()
 		shape.segments = _segments[key]
 		var holder := CollisionShape2D.new()
 		holder.shape = shape
-		body.add_child(holder)
+		_body.add_child(holder)
+
+
+## Digs a pit into the open ground at a point: the stretch of the surface within `half_width` of it sinks to a bowl `depth` deep. The outline
+## the rock is cut from is changed and the world is cut again from it, so the ground is drawn and solid as the pit. False when there is no
+## open ground there to dig.
+func dig(at: Vector2, half_width: float, depth: float) -> bool:
+	# Rock too thin to stand between this pit and another one beside it goes too: the pit reaches across to the other.
+	var left := at.x - half_width
+	var right := at.x + half_width
+	for step in range(0, int(THIN_WALL), 4):
+		if not solid_at(Vector2(at.x - half_width, at.y + 8.0)):
+			break
+		if not solid_at(Vector2(at.x - half_width - step, at.y + 8.0)):
+			left = at.x - half_width - step - 10.0
+			break
+	for step in range(0, int(THIN_WALL), 4):
+		if not solid_at(Vector2(at.x + half_width, at.y + 8.0)):
+			break
+		if not solid_at(Vector2(at.x + half_width + step, at.y + 8.0)):
+			right = at.x + half_width + step + 10.0
+			break
+	at.x = (left + right) * 0.5
+	half_width = (right - left) * 0.5
+	var best_loop := -1
+	var best_distance := 48.0
+	for l in _loops.size():
+		var outline: PackedVector2Array = _loops[l]
+		for k in outline.size():
+			var distance := Geometry2D.get_closest_point_to_segment(at, outline[k], outline[(k + 1) % outline.size()]).distance_to(at)
+			if distance < best_distance:
+				best_distance = distance
+				best_loop = l
+	if best_loop < 0:
+		return false
+	var points := _densified(_loops[best_loop], 8.0)  # long straight runs have only their ends, and a pit is narrower than that
+	var count := points.size()
+	var best_index := 0
+	best_distance = INF
+	for k in count:
+		var distance := points[k].distance_to(at)
+		if distance < best_distance:
+			best_distance = distance
+			best_index = k
+	# The run of the outline along the surface, either side of the point, that lies within the pit's width.
+	var first := best_index
+	while first - 1 >= 0 and absf(points[first - 1].x - at.x) <= half_width and absf(points[first - 1].y - at.y) <= 40.0 and best_index - first < 40:
+		first -= 1
+	var last := best_index
+	while last + 1 < count and absf(points[last + 1].x - at.x) <= half_width and absf(points[last + 1].y - at.y) <= 40.0 and last - best_index < 40:
+		last += 1
+	if last - first < 4:
+		return false
+	var a := points[first]
+	var b := points[last]
+	var left_to_right := a.x <= b.x
+	var near := a if left_to_right else b
+	var far := b if left_to_right else a
+	var bowl := PackedVector2Array()
+	var steps := 8
+	for s in steps + 1:
+		var u := float(s) / steps
+		var surface := near.lerp(far, u)
+		var sink := depth * clampf(minf(u, 1.0 - u) * 5.0, 0.0, 1.0)  # steep walls and a flat floor
+		bowl.append(surface + Vector2(0.0, sink))
+	if not left_to_right:
+		bowl.reverse()
+	# The pit is joined to the outline as a shape, not spliced in along the surface: a pit beside another one then runs into it, and no thin wall is
+	# left standing between them.
+	var up := Vector2(0.0, -40.0)
+	var pit := PackedVector2Array([bowl[0] + up])
+	pit.append_array(bowl)
+	pit.append(bowl[bowl.size() - 1] + up)
+	var outline: PackedVector2Array = _loops[best_loop]
+	var is_air := Contour.area(outline) < 0.0
+	var pieces := Geometry2D.merge_polygons(outline, pit) if is_air else Geometry2D.clip_polygons(outline, pit)
+	if pieces.is_empty():
+		return false
+	_loops.remove_at(best_loop)
+	for piece: PackedVector2Array in pieces:
+		var hole := Geometry2D.is_polygon_clockwise(piece) if is_air else false
+		var wanted_air := is_air != hole  # a hole in air is rock standing in it, and the other way round
+		if (Contour.area(piece) < 0.0) != wanted_air:
+			piece.reverse()
+		_loops.append(piece)
+	_rebuild()
+	return true
+
+
+## An outline with a point at least every `step` pixels, along the same lines.
+func _densified(points: PackedVector2Array, step: float) -> PackedVector2Array:
+	var out := PackedVector2Array()
+	for k in points.size():
+		var from := points[k]
+		var to := points[(k + 1) % points.size()]
+		var pieces := maxi(1, ceili(from.distance_to(to) / step))
+		for piece in pieces:
+			out.append(from.lerp(to, float(piece) / pieces))
+	return out
+
+
+## Cuts the world again from its outlines, and makes again the chunks that are shown.
+func _rebuild() -> void:
+	_air.clear()
+	_islands.clear()
+	_segments.clear()
+	_grass_back.clear()
+	_grass_front.clear()
+	for key in _built.keys():
+		for node: Node in _built[key]:
+			node.queue_free()
+	_built.clear()
+	_body.queue_free()
+	var loops := _loops
+	setup(loops)
+	var watchers := _watchers.duplicate()
+	_watchers = []
+	var seen: Array[Vector2] = []
+	for watcher: Vector2i in watchers:
+		seen.append((Vector2(watcher) + Vector2(0.5, 0.5)) * _px)
+	watch(seen, true)
 
 
 ## The stretches of an outline that face up, where the air is above the rock, cut into bands by chunk. The grass texture runs

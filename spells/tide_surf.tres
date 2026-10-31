@@ -9,6 +9,5 @@ school = "Water"
 gesture = "tsunami"
 targeting = "directional"
 cost = 30.0
-draw = "A wave: a line that rises and curls over at its crest. The wave runs the way the crest leans."
 effect = "Ride a wave along the ground, shoving anyone aside."
 damage = "carries you, shoves anyone"

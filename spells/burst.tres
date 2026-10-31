@@ -8,7 +8,6 @@ spell_name = "Burst"
 school = "Blood"
 gesture = "circle"
 cost = 25.0
-draw = "A circle, drawn where it will burst."
 effect = "Burst a ring of blood outward, throwing back everything near you."
 damage = "40 damage"
 effect_path = "res://scripts/spells/burst.gd"

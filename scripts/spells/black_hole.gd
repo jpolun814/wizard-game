@@ -1,13 +1,13 @@
 class_name BlackHole
 extends Node2D
 
-## Black Hole: a spiral drawn inward to its middle. A dark knot opens there and pulls everything in the world toward it,
-## from across the map, for as long as it lasts. Walls, ceilings and platforms still stop what it pulls. Shots that come
+## Black Hole: a spiral drawn inward to its middle. A dark knot opens there and pulls everything toward it, hard close in and
+## faintly from a long way off, for as long as it lasts. Walls, ceilings and platforms still stop what it pulls. Shots that come
 ## near are swallowed. It does no harm itself: it gathers everything up for your other spells.
 
 const LIFE := 5.0
-const REACH := 40000.0        # the whole world: every body is pulled, however far off
-const PULL := 3000.0          # pull strength at the middle; it weakens with distance, but not by much
+const REACH := 2600.0         # how far the pull reaches: a few screens, and it fades to nothing at the edge
+const PULL := 4500.0          # pull strength at the middle; it falls off steeply, so it is fierce close in and a faint tug from far off
 const SWALLOW_RADIUS := 120.0 # shots this close are swallowed
 const DANGER_RADIUS := 200.0  # the AI wizards keep this far from the middle
 const SHOW_RADIUS := 140.0    # the size of the knot and its swirl of motes, which is all the eye can take in
@@ -78,7 +78,7 @@ func _force_at(point: Vector2) -> Vector2:
 	var distance := to_middle.length()
 	if distance > REACH or distance < 4.0:
 		return Vector2.ZERO
-	return to_middle.normalized() * PULL * (1.0 - distance / REACH * 0.5)
+	return to_middle.normalized() * PULL * pow(1.0 - distance / REACH, 3.0)
 
 
 ## Any shot that comes close spirals in and is gone.

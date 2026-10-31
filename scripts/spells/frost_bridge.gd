@@ -12,7 +12,8 @@ func _ready() -> void:
 	var frozen := 0
 	for pond in get_tree().get_nodes_in_group("ponds"):
 		# The line must be drawn near the pond's surface: on it, or a little above or below.
-		if box.end.y < pond.global_position.y - 120.0 or box.position.y > pond.global_position.y + pond.depth:
+		var level: float = pond.surface_at(box.get_center().x)
+		if box.end.y < level - 120.0 or box.position.y > level + pond.depth:
 			continue
 		if pond.freeze_span(box.position.x, box.end.x):
 			frozen += 1

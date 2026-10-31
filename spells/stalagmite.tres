@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="Spell" format=3]
+
+[ext_resource type="Script" path="res://scripts/spell.gd" id="1_stal"]
+
+[resource]
+script = ExtResource("1_stal")
+spell_name = "Stalagmite"
+school = "Earth"
+gesture = "stalagmite"
+targeting = "shape"
+cost = 20.0
+effect = "Raise spikes of stone from the ground."
+damage = ""

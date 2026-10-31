@@ -9,7 +9,6 @@ school = "Flora"
 gesture = "pads"
 targeting = "shape"
 cost = 18.0
-draw = "A row of flat ovals, drawn as a chain of low loops."
 effect = "Lay lily pads across the water."
 damage = "floating leaves to walk on"
 size_from = 4

@@ -8,6 +8,8 @@ const SECONDS := 30.0
 const BONUS := 1.5
 const REACH := 70.0  # how close to the star's middle someone must be to be marked
 
+const MARK := preload("res://art/fx/hex_mark.png")  # a pentagram in pixels, made for the game (tools/make_marks.py)
+
 var target: Node2D  # set by the arena, which finds who is under the star
 var _age := 0.0
 
@@ -36,6 +38,11 @@ func _ready() -> void:
 	add_to_group("hexes")
 	add_to_group("lasting")
 	z_index = 9
+	var mark := Sprite2D.new()
+	mark.texture = MARK
+	mark.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	mark.scale = Vector2(2.0, 2.0)
+	add_child(mark)
 	Sfx.play("gravity", global_position, -6.0)
 	Fx.burst(get_parent(), global_position, Color("#a070e0"), 12, 100.0, 0.5, true)
 
@@ -51,12 +58,7 @@ func _physics_process(delta: float) -> void:
 	queue_redraw()
 
 
-## A glowing pentagram, a violet star with a bright centre.
+## The violet glow behind the star.
 func _draw() -> void:
 	var glow := Color(0.65, 0.4, 1.0)
 	Fx.draw_glow(self, Vector2.ZERO, 24.0, Color(glow.r, glow.g, glow.b, 0.5))
-	var star := PackedVector2Array()
-	for step in 6:
-		star.append(Vector2.from_angle(-PI / 2.0 + TAU * ((step * 2) % 5) / 5.0) * 12.0)
-	draw_polyline(star, Color(0.9, 0.8, 1.0), 1.5)
-	draw_circle(Vector2.ZERO, 2.0, Color(0.95, 0.85, 1.0))

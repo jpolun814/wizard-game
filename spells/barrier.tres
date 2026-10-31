@@ -8,6 +8,5 @@ spell_name = "Barrier"
 school = "Air"
 gesture = "circle"
 cost = 35.0
-draw = "A circle, either way round. The shield wraps around you."
 effect = "Raise a shell of air around yourself."
 damage = "redirects projectiles, keeps gas off"

@@ -7,6 +7,10 @@ extends RefCounted
 
 var everything := false  # the waiting room: no page is missing
 var pages := {}          # page -> true
+var settled := {}        # chant id -> true, for the chants that, once said, hold for the rest of the match (see Ledger.LASTING)
+
+## The chants that are said once: the gift stays, through every world of the match.
+const LASTING := ["minimap", "insight", "double_jump", "haste"]
 
 
 ## A ledger that holds every page, for the waiting room.
@@ -36,6 +40,16 @@ func knows_spell(spell: String) -> bool:
 ## A chant, by its id.
 func knows_chant(ritual_id: String) -> bool:
 	return knows("chant:" + ("mark" if ritual_id == "recall" else ritual_id))
+
+
+## A chant of the LASTING kind has been said: its gift stays from now on.
+func settle(ritual_id: String) -> void:
+	if LASTING.has(ritual_id):
+		settled[ritual_id] = true
+
+
+func is_settled(ritual_id: String) -> bool:
+	return settled.has(ritual_id)
 
 
 func learn(page: String) -> void:

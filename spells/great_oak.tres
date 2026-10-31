@@ -9,6 +9,5 @@ school = "Flora"
 gesture = "tree"
 targeting = "shape"
 cost = 52.0
-draw = "A tree: a trunk drawn up from the ground, ending in a big round crown."
 effect = "Grow a great oak."
 damage = "a tree that falls, 35 damage"

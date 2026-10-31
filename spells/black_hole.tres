@@ -8,6 +8,5 @@ spell_name = "Black Hole"
 school = "Shadow"
 gesture = "spiral"
 cost = 80.0
-draw = "A spiral that starts wide and winds in to its middle, at least one and a half turns."
 effect = "Open a black hole that pulls everything toward it."
 damage = "pulls everything in"

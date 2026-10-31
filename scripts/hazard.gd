@@ -61,6 +61,11 @@ func _physics_process(delta: float) -> void:
 		queue_free()
 
 
+## Put out by water or cold.
+func quench() -> void:
+	queue_free()
+
+
 func danger_at(point: Vector2) -> bool:
 	return absf(point.x - global_position.x) < width * 0.5 + 8.0 and absf(point.y - global_position.y) < 30.0
 

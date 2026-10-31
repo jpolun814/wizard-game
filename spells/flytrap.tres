@@ -8,6 +8,5 @@ spell_name = "Flytrap"
 school = "Flora"
 gesture = "jaws"
 cost = 26.0
-draw = "Open jaws: a tall narrow W."
 effect = "Plant a snapping flytrap on the ground."
 damage = "snaps shut on whoever steps in"

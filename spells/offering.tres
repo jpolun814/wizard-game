@@ -8,6 +8,5 @@ spell_name = "Offering"
 school = "Blood"
 gesture = "cross"
 cost = 20.0
-draw = "A cross in one stroke, like a mark of sacrifice."
 effect = "Give blood now, and draw on its strength once the rest is spent."
 damage = "-20 most, +30 stamina"

@@ -9,7 +9,6 @@ school = "Flora"
 gesture = "cone"
 targeting = "cone"
 cost = 20.0
-draw = "A cone, like <, just as for Fire Breath. The point is you; spores sprays out toward the open end."
 effect = "Breathe out a cloud of poison spores."
 damage = "poison, 2 damage per half second"
 size_from = 2

@@ -9,6 +9,5 @@ school = "Water"
 gesture = "geyser"
 targeting = "shape"
 cost = 20.0
-draw = "A mountain: an upward-pointing triangle with a line up through its middle, the same shape as a Volcano. Draw it on the ground."
 effect = "Burst a jet of water up from the ground."
 damage = "launches what stands on it"

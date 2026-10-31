@@ -9,7 +9,6 @@ school = "Shadow"
 gesture = "flick"
 targeting = "directional"
 cost = 6.0
-draw = "A straight stroke. You slip along it, through anything in your way."
 effect = "Vanish into shadow and reappear ahead of you."
 damage = "8 damage to anything in the way"
 size_from = 6

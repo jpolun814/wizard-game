@@ -4,26 +4,24 @@ extends Node2D
 ## Tide Surf: a wave rises under the caster and carries them along the ground the way the crest leans, for a few seconds. They can jump
 ## off it, but cannot stop or turn back. Whoever stands in the front of it is shoved aside, and it washes out flares and burning ground.
 ## It does no damage. Its origin is the caster's feet.
+## The water is real (see LiquidGrid): the wave takes up what water lies at the caster's feet, or, where there is none, brings some up from below,
+## and spills it where the ride ends.
 
+const WATER := 2.0           # how much liquid the wave carries (a cell holds 1)
 const SECONDS := 4.0
 const LENGTH := 150.0        # how far the wave reaches behind its crest
 const FRONT := 80.0          # how far ahead of the caster it shoves
 const SHOVE := Vector2(620.0, -260.0)
 const SHOVE_GAP := 0.8       # seconds before it shoves the same one again
-const CREST := preload("res://art/fx/surf_crest.png")  # a wave rising and curling over; CC0, see art/CREDITS.md
-const BODY := preload("res://art/fx/surf_body.png")    # and the rolling swell behind it
-const CREST_SCALE := 2.2
-const BODY_SCALE := 1.6
-const BODY_TILE := 48.0 * BODY_SCALE
+const HEIGHT := 44.0         # how tall the crest stands
 const FOAM := Color(0.92, 0.98, 1.0, 0.9)
 
 var caster_node: Wizard  # set by the arena before it enters the tree
+var ground: Terrain      # the ground the water will run over when the ride ends
+var _carried := 0.0
 var direction := 1.0
 var _age := 0.0
-var _frame_time := 0.0
 var _shoved := {}  # who it has shoved lately -> seconds until it can again
-var _crest: Sprite2D
-var _body: Array[Sprite2D] = []
 var _spray: CPUParticles2D
 
 
@@ -31,11 +29,6 @@ func _ready() -> void:
 	add_to_group("lasting")
 	z_index = 6
 	caster_node.start_surf(direction, SECONDS)
-	_crest = _strip(CREST, 4, CREST_SCALE, Vector2(direction * (FRONT * 0.5 + 10.0), 4.0))
-	for k in 3:  # the swell the wizard rides: tiles of rolling water behind the crest, each a step out of time with the next
-		var tile := _strip(BODY, 9, BODY_SCALE, Vector2(direction * (FRONT * 0.5 - 40.0 - k * BODY_TILE), 4.0))
-		tile.frame = k * 3
-		_body.append(tile)
 	_spray = CPUParticles2D.new()
 	_spray.amount = 40
 	_spray.lifetime = 0.5
@@ -53,6 +46,7 @@ func _ready() -> void:
 	add_child(_spray)
 	_spray.emitting = true
 	global_position = caster_node.global_position
+	_carried = _take_up()
 	Sfx.play("surf", global_position)
 
 
@@ -62,11 +56,7 @@ func _physics_process(delta: float) -> void:
 		_end()
 		return
 	global_position = caster_node.global_position
-	_frame_time += delta
-	_crest.frame = mini(3, int(_frame_time / 0.12))  # it rises and curls over, then holds
-	_crest.position.y = 4.0 + 2.0 * sin(_age * 8.0)
-	for tile in _body:
-		tile.frame = (int(_frame_time * 10.0) + tile.get_index() * 3) % 9
+	queue_redraw()
 	for body in _shoved.keys():
 		_shoved[body] -= delta
 		if _shoved[body] <= 0.0 or not is_instance_valid(body):
@@ -89,7 +79,20 @@ func _physics_process(delta: float) -> void:
 			fire.queue_free()  # a wave over burning ground puts it out
 
 
+## The wave takes up the water at the caster's feet, and makes up what is missing from below.
+func _take_up() -> float:
+	var area := Rect2(global_position + Vector2(-LENGTH * 0.5, -40.0), Vector2(LENGTH, 60.0))
+	var got := 0.0
+	for pond: Pond in get_tree().get_nodes_in_group("ponds"):
+		if not pond.lava and pond.grid != null and pond.region().intersects(area):
+			got += pond.draw_off(area, WATER - got)
+	return maxf(got, WATER)
+
+
 func _end() -> void:
+	if _carried > 0.0 and ground != null:
+		Pond.spill(get_parent(), ground, global_position + Vector2(0.0, -6.0), _carried)
+		_carried = 0.0
 	if is_instance_valid(caster_node):
 		caster_node.surf_time = 0.0
 	_spray.emitting = false
@@ -99,15 +102,38 @@ func _end() -> void:
 	fade.tween_callback(queue_free)
 
 
-## A strip of animation frames laid out side by side, standing on the caster's feet and facing the way the wave runs.
-func _strip(texture: Texture2D, frames: int, factor: float, at: Vector2) -> Sprite2D:
-	var sprite := Sprite2D.new()
-	sprite.texture = texture
-	sprite.hframes = frames
-	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	sprite.scale = Vector2(factor, factor)
-	sprite.flip_h = direction < 0.0
-	sprite.offset = Vector2(0, -16)  # the frame's bottom edge sits on the feet
-	sprite.position = at
-	add_child(sprite)
-	return sprite
+## The wave, drawn the way the ponds draw their water (see Pond): a swell that rises behind the wizard to a crest that leans over ahead of
+## them, shaded from light at the top to dark below, with a bright edge along the top. It rises as the ride begins.
+func _draw() -> void:
+	var rise := clampf(_age / 0.25, 0.0, 1.0)
+	var fade := clampf((SECONDS - _age) / 0.4, 0.0, 1.0)
+	var tip := FRONT * 0.5 + 24.0  # where the crest ends
+	var top := PackedVector2Array()
+	var steps := 24
+	for i in steps + 1:
+		var u := lerpf(-LENGTH, tip, float(i) / steps)
+		var swell := 10.0 + (HEIGHT - 10.0) * smoothstep(-LENGTH, tip - 20.0, u)
+		if u > tip - 20.0:
+			swell = lerpf(HEIGHT, HEIGHT * 0.55, smoothstep(tip - 20.0, tip, u))  # the crest curls over and drops away
+		swell += sin(_age * 9.0 + u * 0.12) * 2.5
+		top.append(Vector2(u * direction, 6.0 - swell * rise))
+	var points := PackedVector2Array()
+	var colours := PackedColorArray()
+	for point in top:
+		points.append(point)
+		colours.append(Pond.WATER_TOP.lerp(Pond.WATER_RIM, clampf((6.0 - point.y) / HEIGHT, 0.0, 1.0) * 0.25))
+	var foot := Vector2(top[top.size() - 1].x, 6.0)
+	points.append(foot)
+	colours.append(Pond.WATER_BOTTOM)
+	points.append(Vector2(top[0].x, 6.0))
+	colours.append(Pond.WATER_BOTTOM)
+	for c in colours.size():
+		colours[c].a = fade
+	draw_polygon(points, colours)
+	var edge := Pond.WATER_RIM
+	edge.a = fade
+	draw_polyline(top, edge, 2.0)
+	# Foam on the crest.
+	var foam := FOAM
+	foam.a = fade
+	draw_polyline(top.slice(top.size() - 7), foam, 3.0)

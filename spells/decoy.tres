@@ -8,6 +8,5 @@ spell_name = "Decoy"
 school = "Shadow"
 gesture = "eight"
 cost = 20.0
-draw = "A figure of eight."
 effect = "Conjure a shadow of yourself."
 damage = "draws attacks to itself"

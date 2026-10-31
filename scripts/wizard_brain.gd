@@ -29,9 +29,9 @@ const ATTACK_DRAW := 0.8      # attacks take longer, which is your chance to int
 const ATTACK_RANGE := 460.0   # it only casts at you from about a screen away, never across the map
 const SHOT_SPEED := 650.0     # roughly how fast its bolts fly, for leading a moving target
 const CLEARS := {  # the gates a wizard clears, and the spells that do it, best first: any fire burns growth and gas and melts ice, wind thins gas, stone breaks ice and walls
-	"brambles": ["Ignite", "Fire Breath", "Firewall", "Volcano"],
-	"gas": ["Ignite", "Fire Breath", "Firewall", "Gust", "Tornado", "Volcano"],
-	"ice": ["Fire Breath", "Firewall", "Ignite", "Stonefall", "Earthquake", "Volcano"],
+	"brambles": ["Ignite", "Fire Breath", "Firewall"],
+	"gas": ["Ignite", "Fire Breath", "Firewall", "Gust", "Tornado"],
+	"ice": ["Fire Breath", "Firewall", "Ignite", "Stonefall", "Earthquake"],
 	"wall": ["Stonefall", "Earthquake"],
 	"piranhas": ["Spark"],
 }
@@ -55,7 +55,7 @@ const LEAP_DRAW := 0.15       # seconds to draw one: it falls the while
 const SENTINEL_LOOKOUT := 40  # tiles of the way it looks ahead along for a sentinel
 const COVER_RANGE := 780.0    # it draws its cover when it is this close to a sentinel, a little before the sentinel sees it (700)
 const CLEAR_TRIES := 14       # casts at one gate before it gives up on it for a while
-const STRIKE_REACH := {"Fire Breath": 5, "Ignite": 12, "Stonefall": 10, "Earthquake": 10, "Firewall": 8, "Volcano": 8, "Gust": 7, "Tornado": 6, "Spark": 40}  # tiles: how far off a spell strikes a gate
+const STRIKE_REACH := {"Fire Breath": 5, "Ignite": 12, "Stonefall": 10, "Earthquake": 10, "Firewall": 8, "Gust": 7, "Tornado": 6, "Spark": 40}  # tiles: how far off a spell strikes a gate
 const LIFT_WAIT := 1.6         # seconds it stands on a Geyser it has drawn, waiting to be thrown, before it takes it for a miss
 const SHOVE_WAIT := 1.0         # seconds it waits to be off the ground after shoving itself up, before it takes it for a miss
 const VINE_SCALE := 2.4          # how much bigger than its picture it draws a vine, to grow it taller than a wall
@@ -374,8 +374,8 @@ func _cross(crossing: Dictionary) -> bool:
 			var edge := span.position.x if dir > 0 else span.end.x
 			if (edge - wizard.global_position.x) * dir > BREATH_AHEAD:
 				_cross_run = dir * WALK_SPEED
-			elif wizard.holding_breath() or wizard.chant(spell_name.substr(6)):
-				_bridged[crossing["key"]] = minf(wizard.deep_breath_time, GAS_WALK) if wizard.holding_breath() else GAS_WALK
+			elif wizard.deep_breath_time > 0.0 or wizard.chant(spell_name.substr(6)):
+				_bridged[crossing["key"]] = minf(wizard.deep_breath_time, GAS_WALK) if wizard.deep_breath_time > 0.0 else GAS_WALK
 				_settle = SETTLE
 			else:
 				_cannot[crossing["key"]] = GIVE_UP
@@ -754,8 +754,6 @@ func _gate_stroke(spell_name: String, point: Vector2) -> PackedVector2Array:
 		"Firewall":
 			var ground := _ground_under(point)
 			return _line(Vector2(point.x, ground - 110.0), Vector2(point.x, ground - 20.0))
-		"Volcano":
-			return _offset(GestureTemplates.preview_points("volcano"), Vector2(point.x, _ground_under(point) - 60.0), 0.8)
 		"Tornado":
 			return _offset(GestureTemplates.preview_points("tornado"), Vector2(point.x, _ground_under(point) - 90.0), 0.9)
 		"Spark":
@@ -1012,7 +1010,6 @@ func _attack(to_player: Vector2, sees: bool) -> bool:
 		"Spark": 2.2 if still or stuck else 1.0,
 		"Stonefall": 3.0 if stuck else (1.8 if still else 0.5),
 		"Icicles": 0.0,  # they need a ceiling, and the arenas have none yet
-		"Volcano": 1.2 if gap > 160.0 and grounded else 0.2,
 		"Tornado": (0.6 + _pressure * 0.5) if gap < 260.0 else 0.2,
 		"Ice Prison": 1.3 if gap < 360.0 and not stuck else 0.0,
 		"Mudslide": 1.1 if grounded and not stuck else 0.0,
@@ -1080,9 +1077,6 @@ func _attack_stroke(spell_name: String) -> PackedVector2Array:
 		"Stonefall":
 			var x := _predict(ATTACK_DRAW + 0.6).x
 			return _offset(GestureTemplates.preview_points("stonefall"), Vector2(x, foe.center().y - 130.0), 0.8)
-		"Volcano":
-			var x := _predict(ATTACK_DRAW).x
-			return _offset(GestureTemplates.preview_points("volcano"), Vector2(x, feet.y - 60.0), 0.8)
 		"Tornado":
 			var x: float = lerpf(wizard.global_position.x, foe.global_position.x, 0.45)
 			return _offset(GestureTemplates.preview_points("tornado"), Vector2(x, feet.y - 90.0), 0.9)
@@ -1093,7 +1087,7 @@ func _attack_stroke(spell_name: String) -> PackedVector2Array:
 			return _offset(GestureTemplates.preview_points("earthquake"), Vector2(_predict(ATTACK_DRAW * 0.6).x, foe.center().y - 120.0), 1.0)
 		"Mudslide":
 			var x := _predict(ATTACK_DRAW * 0.6).x
-			return _offset(GestureTemplates.preview_points("pit"), Vector2(x, feet.y - 60.0), 1.0)
+			return _offset(GestureTemplates.preview_points("wave"), Vector2(x, feet.y - 60.0), 1.0)
 		"Black Hole":
 			# Beyond you if you are close (it drags you away from it), between you if you keep shooting at it.
 			var spot: Vector2 = foe.center() + Vector2(facing * 80.0, 0.0)
@@ -1138,7 +1132,7 @@ func _push_stroke(around: Vector2, away: Vector2) -> PackedVector2Array:
 
 ## Starts the wizard drawing a spell's gesture. The spell happens when the drawing is done, if nothing breaks it.
 func _begin_cast(spell_name: String, stroke: PackedVector2Array, draw_time: float) -> void:
-	if stroke.size() < 2:
+	if stroke.size() < 2 or wizard.silenced() or wizard.rage_time > 0.0:
 		return
 	var data: Spell = SpellData.SPELLS[spell_name]
 	var mask: int = data.buttons

@@ -4,6 +4,8 @@ extends Node2D
 ## Geyser: a jet of water bursts from the ground under the middle of the peak you drew. The ground bubbles first, so there is
 ## time to step off; whoever is standing on it when it bursts is thrown high into the air. That is anyone: you
 ## included. It does no damage itself. Then it sinks, rests, bubbles and bursts again, for as long as the world lasts.
+## The water is real (see LiquidGrid): a burst lifts what water there is at its foot, and it falls back as the column sinks. On dry ground the
+## first burst brings a little up from below, which then runs over the ground and is lifted again.
 
 const WARNING := 0.7
 const LIFE := 1.8  # one burst, from the first bubble to the column gone
@@ -14,13 +16,15 @@ const MOB_LAUNCH := 820.0
 const COLUMN_HEIGHT := 190.0
 const RISE := 0.2   # how fast the column shoots up
 const DROP := WARNING + 1.0  # when the column starts to sink
+const LIFT := 1.6     # how much liquid a burst lifts (a cell holds 1)
+const SPRING := 1.6   # and how much comes up from below the first time, where there was none
 const DROPLET := preload("res://art/fx/water_drop.png")  # DevWizard's water orb, one frame
 
+var ground: Terrain  # the ground the geyser stands in; the water it spills runs over it
 var _age := 0.0
 var _burst := false
-var _bubbles: AnimatedSprite2D
-var _crown: AnimatedSprite2D
-var _base: AnimatedSprite2D
+var _lifted := 0.0   # water in the column, on its way back down
+var _sprung := false # true once water has come up from below
 var _hiss: CPUParticles2D
 
 
@@ -29,14 +33,7 @@ func _ready() -> void:
 	add_to_group("lasting")
 	add_to_group("danger")
 	z_index = 3
-	# The ground bubbles where it is about to burst.
-	_bubbles = PixelFx.sprite("bubbles", 24.0)
-	_bubbles.offset = Vector2(0, -PixelArt.FX["bubbles"]["size"].y * 0.5)
-	_bubbles.modulate = Color(0.8, 0.95, 1.0, 0.9)
-	_bubbles.scale = Vector2(0.6, 0.6)
-	add_child(_bubbles)
-	_bubbles.visible = false
-	# Small jets hiss up out of the cracking ground, and a splash pulses at the foot.
+	# Small jets hiss up out of the cracking ground.
 	_hiss = CPUParticles2D.new()
 	_hiss.amount = 16
 	_hiss.lifetime = 0.45
@@ -52,11 +49,6 @@ func _ready() -> void:
 	_hiss.scale_amount_max = 0.6
 	_hiss.color_ramp = Fx.fade_ramp(Color(0.8, 0.95, 1.0, 0.9))
 	add_child(_hiss)
-	_base = PixelFx.sprite("splash", 9.0)
-	_base.scale = Vector2(2.0, 2.0)
-	_base.offset = Vector2(0, -PixelArt.FX["splash"]["size"].y * 0.5)  # it stands on the ground
-	_base.modulate.a = 0.75
-	add_child(_base)
 	_begin_cycle()
 
 
@@ -64,12 +56,7 @@ func _ready() -> void:
 func _begin_cycle() -> void:
 	_age = 0.0
 	_burst = false
-	if _crown != null:
-		_crown.queue_free()
-		_crown = null
-	_bubbles.visible = true
 	_hiss.emitting = true
-	_base.modulate.a = 0.75
 	Sfx.play("snow", global_position, 2.0)
 
 
@@ -78,28 +65,21 @@ func _physics_process(delta: float) -> void:
 	queue_redraw()
 	if _age >= LIFE + REST:
 		_begin_cycle()
+	if _lifted > 0.0 and _age >= LIFE:
+		_let_fall()  # (a column cut short still lets the water go)
 	if _age >= LIFE:
-		_base.modulate.a = 0.0  # resting: nothing shows
-		return
+		return  # resting: nothing shows
 	if not _burst:
 		_hiss.amount = 16 + int(40.0 * _age / WARNING)  # the hissing grows as the burst nears
-		_base.scale = Vector2.ONE * (2.0 + _age / WARNING)
-	if _crown != null:
-		_crown.position = Vector2(0.0, -_height())
-		_crown.modulate.a = clampf((LIFE - _age) / 0.5, 0.0, 1.0)
+	if _burst:
+		_douse_shots()
+		if _lifted > 0.0 and _age >= DROP:
+			_let_fall()
 	if not _burst and _age >= WARNING:
 		_burst = true
-		_bubbles.visible = false
 		_hiss.emitting = false
-		_base.scale = Vector2(3.0, 3.0)
-		_base.modulate.a = 1.0
-		_crown = PixelFx.sprite("splash", 12.0)
-		_crown.scale = Vector2(2.0, 2.0)
-		_crown.offset = Vector2(0, -PixelArt.FX["splash"]["size"].y * 0.5)
-		add_child(_crown)
 		_erupt()
 	if _burst:
-		_base.modulate.a = clampf((LIFE - _age) / 0.5, 0.0, 1.0)
 		GameCamera.shake_scene(get_tree(), 0.05 if _age < DROP else 0.0)
 
 
@@ -112,7 +92,40 @@ func _height() -> float:
 	return COLUMN_HEIGHT * (1.0 - pow(1.0 - rise, 3.0)) * (1.0 - sink * sink)
 
 
+## A fire shot that flies through the rising water goes out in a puff of steam.
+func _douse_shots() -> void:
+	var column := Rect2(global_position + Vector2(-WIDTH * 0.5, -_height()), Vector2(WIDTH, _height()))
+	for shot in get_tree().get_nodes_in_group("shots"):
+		if shot.is_in_group("fires") and column.has_point(shot.global_position):
+			Fx.smoke(get_parent(), shot.global_position, Color(0.9, 0.95, 1.0, 0.6), 4, 24.0, 40.0)
+			Sfx.play("freeze", shot.global_position, -6.0)
+			if shot.has_method("_finish"):
+				shot._finish()
+			else:
+				shot.queue_free()
+
+
+## The burst lifts the water at its foot: from a pool, or, the first time on dry ground, from below.
+func _lift() -> void:
+	var area := Rect2(global_position + Vector2(-WIDTH * 0.5 - 16.0, -96.0), Vector2(WIDTH + 32.0, 112.0))
+	for pond: Pond in get_tree().get_nodes_in_group("ponds"):
+		if not pond.lava and pond.grid != null and pond.region().intersects(area):
+			_lifted += pond.draw_off(area, LIFT - _lifted)
+	if _lifted < LIFT * 0.5 and not _sprung:
+		_sprung = true
+		_lifted += SPRING
+
+
+## The column sinks and the water falls back at its foot.
+func _let_fall() -> void:
+	if ground != null:
+		Pond.spill(get_parent(), ground, global_position + Vector2(0.0, -6.0), _lifted)
+	_lifted = 0.0
+
+
 func _erupt() -> void:
+	_lift()
+	SpellTargets.douse(get_tree(), global_position, 110.0)
 	Sfx.play("push", global_position, -2.0)
 	GameCamera.shake_scene(get_tree(), 0.25)
 	# Water thrown up the middle that falls back on both sides, like a fountain.
@@ -175,9 +188,14 @@ func danger_at(point: Vector2) -> bool:
 	return absf(point.x - global_position.x) < WIDTH * 0.5 + 6.0 and point.y > global_position.y - COLUMN_HEIGHT and point.y < global_position.y + 10.0
 
 
-## The column of water: wide at the foot and narrower above, its edges rippling, lighter towards the top, with bright
-## streaks racing up it.
+## The water, drawn the way the ponds draw theirs (see Pond): shaded from light at the top to dark below, with a bright edge. First the
+## ground wells up in a swelling mound, then the column stands on it, wide at the foot and narrower above, its edges rippling.
 func _draw() -> void:
+	if _age >= LIFE:
+		return
+	var fade := clampf((LIFE - _age) / 0.5, 0.0, 1.0)
+	var swell := clampf(_age / WARNING, 0.0, 1.0)
+	_draw_mound(WIDTH * (0.6 + 0.5 * swell), 3.0 + 9.0 * swell, fade)
 	var height := _height()
 	if height < 4.0:
 		return
@@ -186,32 +204,76 @@ func _draw() -> void:
 	var steps := 14
 	for i in steps + 1:
 		var t := float(i) / steps
-		var y := -height * t
 		var half := WIDTH * 0.5 * lerpf(1.0, 0.55, t) + sin(_age * 22.0 + t * 9.0) * 2.5
-		left.append(Vector2(-half, y))
-		right.append(Vector2(half, y))
+		left.append(Vector2(-half, -height * t))
+		right.append(Vector2(half, -height * t))
 	var body := PackedVector2Array()
 	var colours := PackedColorArray()
 	for i in left.size():
 		body.append(left[i])
-		colours.append(_shade(float(i) / steps))
+		colours.append(_shade(float(i) / steps, fade))
 	for i in range(right.size() - 1, -1, -1):
 		body.append(right[i])
-		colours.append(_shade(float(i) / steps))
+		colours.append(_shade(float(i) / steps, fade))
 	draw_polygon(body, colours)
-	var edge := Color(0.95, 1.0, 1.0, 0.9)
+	var edge := Pond.WATER_RIM
+	edge.a = fade
 	draw_polyline(left, edge, 2.0)
 	draw_polyline(right, edge, 2.0)
-	# Streaks of foam racing up the column.
+	_draw_crest(Vector2(0.0, -height), left[steps].x * -1.0, fade)
+	# Streaks of bright water racing up the column.
 	for k in 3:
 		var x := (k - 1) * WIDTH * 0.2
-		var offset := fmod(_age * 520.0 + k * 31.0, 38.0)
-		var y := -offset
+		var y := -fmod(_age * 520.0 + k * 31.0, 38.0)
 		while y > -height + 6.0:
-			draw_line(Vector2(x, y), Vector2(x, maxf(y - 16.0, -height + 4.0)), Color(1, 1, 1, 0.65), 3.0)
+			draw_line(Vector2(x, y), Vector2(x, maxf(y - 16.0, -height + 4.0)), Color(edge.r, edge.g, edge.b, 0.5 * fade), 3.0)
 			y -= 38.0
 
 
-## The colour of the water at a point up the column (0 at the foot, 1 at the top): deep blue below, white foam above.
-func _shade(t: float) -> Color:
-	return Color(0.3, 0.6, 0.92, 0.82).lerp(Color(0.88, 0.97, 1.0, 0.9), t)
+## The top of the column: the water spreads and curls over like the head of a fountain, so the column does not just stop. It is much wider
+## than the column and rounded above and below, lighter, with a bright edge.
+func _draw_crest(top: Vector2, column_half: float, fade: float) -> void:
+	var half := column_half * 2.8
+	var ring := PackedVector2Array()
+	var colours := PackedColorArray()
+	var steps := 28
+	for i in steps:
+		var angle := TAU * float(i) / steps  # round the whole outline, from the right edge over the top, down the left, and back under
+		var up := sin(angle)
+		var reach := cos(angle)
+		var wobble := sin(_age * 18.0 + reach * 6.0) * 1.0
+		var y := -up * (18.0 if up > 0.0 else 9.0)  # a high dome above, a shallower round belly below
+		ring.append(top + Vector2(reach * half, y + wobble + 4.0))
+		colours.append(Pond.WATER_TOP.lerp(Pond.WATER_RIM, clampf(0.25 + 0.5 * up, 0.0, 1.0)))
+	for c in colours.size():
+		colours[c].a = fade
+	draw_polygon(ring, colours)
+	var edge := Pond.WATER_RIM
+	edge.a = fade
+	ring.append(ring[0])
+	draw_polyline(ring, edge, 2.0)
+
+
+## Water welling up on the ground: a low mound, shaded like the pond, with a rippling bright edge.
+func _draw_mound(width: float, height: float, fade: float) -> void:
+	var top := PackedVector2Array()
+	for i in 13:
+		var t := float(i) / 12.0
+		var x := lerpf(-width * 0.5, width * 0.5, t)
+		top.append(Vector2(x, -height * sin(t * PI) - sin(_age * 14.0 + t * 10.0) * 0.8))
+	var colours := PackedColorArray()
+	for point in top:
+		colours.append(Pond.WATER_TOP.lerp(Pond.WATER_BOTTOM, clampf(1.0 + point.y / maxf(height, 1.0), 0.0, 1.0) * 0.6))
+	var rim := Pond.WATER_RIM
+	rim.a = fade
+	for c in colours.size():
+		colours[c].a = fade
+	draw_polygon(top, colours)
+	draw_polyline(top, rim, 2.0)
+
+
+## Water in the column: lighter the higher it is.
+func _shade(t: float, fade: float) -> Color:
+	var colour := Pond.WATER_TOP.lerp(Pond.WATER_RIM, t * 0.7)
+	colour.a = fade
+	return colour

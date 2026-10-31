@@ -6,8 +6,10 @@ extends SpellEffect
 
 const LIFE := 0.35
 const DAMAGE := 20
+const SHOCK := 14  # what the water gives to those standing in it
 const SKY := 420.0  # the strike starts this far above where it lands
 
+var landing := Vector2.ZERO  # where it comes down, for the flames it lights
 var _struck := false
 
 
@@ -34,9 +36,24 @@ func _begin(origin: Vector2, _aim_angle: float) -> void:
 	Fx.impact(get_parent(), ground, Color("#ffe85a"), 50.0)
 	Fx.burst(get_parent(), ground, Color("#ffe85a"), 20, 240.0, 0.4, true, "spark_04")
 	Sfx.play("spark", ground)
+	landing = ground
+	add_to_group("fires")  # lightning sets plants alight
+	_shock_pond(ground)
 	for shoal: Piranhas in get_tree().get_nodes_in_group("shoals"):
 		shoal.shock(ground - Vector2(0, 20))  # lightning in the water kills the fish
 	GameCamera.shake_scene(get_tree(), 0.25)
+
+
+## Lightning that lands in a pool runs through the water: whoever stands in it is shocked.
+func _shock_pond(ground: Vector2) -> void:
+	for pond: Pond in get_tree().get_nodes_in_group("ponds"):
+		if pond.lava or ground.x < pond.global_position.x or ground.x > pond.global_position.x + pond.width or ground.y < pond.global_position.y - 10.0:
+			continue
+		for body in pond.get_overlapping_bodies():
+			if not pond.holds(body):
+				continue
+			SpellTargets.hurt(body, SHOCK, "Fire")
+			Fx.burst(get_parent(), SpellTargets.center_of(body), Color("#ffe85a"), 8, 160.0, 0.3, true, "spark_04")
 
 
 func _act(_delta: float) -> void:

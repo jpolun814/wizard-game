@@ -9,7 +9,6 @@ school = "Water"
 gesture = "snowfall"
 targeting = "shape"
 cost = 20.0
-draw = "A five-pointed star drawn in one swift stroke, then a horizontal line. Snow falls along the line."
 effect = "Cast a powerful snowstorm that slows people down."
 damage = "slows what is inside"
 size_from = 3

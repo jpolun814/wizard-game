@@ -25,6 +25,7 @@ trust the code and this file where they disagree.
 | `07_testing.md` | say anything is done |
 | `08_working_with_the_owner.md` | reply to the owner |
 | `09_godot_pitfalls.md` | debug something strange |
+| `12_liquids.md` | touch water or lava: pools are a flowing grid now (`LiquidGrid`, `Pond`), and a Sinkhole dug beside one fills from it |
 | `11_network_play.md` | touch anything a second machine must see: wizards, spells, pages, gates, the match (done: host and join over a network) |
 
 ---
@@ -163,7 +164,7 @@ unconscious", not "Knock whoever is under it unconscious" (the reader cannot tel
 
 ### Vocabulary that works
 
-- Use **conjure** for a summoned thing ("Conjure a shadow of yourself.", "Conjure an erupting volcano.").
+- Use **conjure** for a summoned thing ("Conjure a shadow of yourself.").
 - Use **kindle** for fire ("Kindle a bonfire.").
 - Use **burst** for a blast ("Burst a ring of blood outward.").
 - Use **freeze** for ice ("Freeze the surface of a body of water.").
@@ -184,7 +185,6 @@ unconscious", not "Knock whoever is under it unconscious" (the reader cannot tel
 - Hex: "Curse someone with a dark star: they take extra damage and cannot hide from you." The owner suggested this.
 - Ice Prison: "Freeze things in a block of solid ice." Not "Lock anything inside the circle".
 - Crimson Veil: "negates", not "catches".
-- Volcano: "Conjure an erupting volcano." Not "Erupt a volcano that spits lava".
 - Black Hole (formerly Abyss): name it Black Hole, and describe it as a black hole, not as a "knot of darkness".
 - Eclipse: the owner's described effect (the world goes dark around the player, with a dim ring) is a mechanic
   (built: `Eclipse` darkens the watcher's screen), not a line to write yet. Do not describe the mechanic on the page.
@@ -246,7 +246,7 @@ spells you do, drawing them visibly. There are no waves and no boss (see `docs/p
   - a blood-moon graveyard.
   - a jungle (rain, great trees with vines hanging from them), snowy peaks and ashlands (embers and lava over dark basalt).
   - a castle (the whole world is castles side by side, with gothic church interiors, doorways tall enough for a giant, and a giant roaming the ground floors) and the underground (a great cavern under a roof of rock, no sky).
-  - **Living scenery** (`World._raise_biome_life`, `docs/handoff/02_codebase_map.md`): the graveyard has low mist (`MistBank`), bats (`CritterFlock`) and crypts (`Crypt`, each with a page and a skeleton guard); the jungle has rope bridges between neighbouring great trees (`CanopyBridge`), light shafts, fireflies, swaying vines, birds that burst away and downpours (`Squall`); the peaks have avalanches (`Avalanche`), sheets of ice that make a wizard slide (`IceSheet`) and an aurora; the ashlands have lava lakes that swell (`LavaSurge`), ash storms with falling embers (`EmberRain`) and volcanoes that spit before they erupt; the underground has glowing crystals, drips, stalactites that fall on whoever walks under (`FallingRock`) and cave-ins (`CaveLife`). Storms, avalanches, swells and cave-ins follow the world's age, so every machine of a match sees them at the same time. Run `tests/showcase.tscn -- scenario=life` with `WORLD_SEED` (0 jungle, 1 graveyard, 4 mountains, 5 ashlands, 13 underground).
+  - **Living scenery** (`World._raise_biome_life`, `docs/handoff/02_codebase_map.md`): the graveyard has low mist (`MistBank`), bats (`CritterFlock`) and crypts (`Crypt`, each with a page and a skeleton guard); the jungle has rope bridges between neighbouring great trees (`CanopyBridge`), light shafts, fireflies, swaying vines, birds that burst away and downpours (`Squall`); the peaks have avalanches (`Avalanche`), sheets of ice that make a wizard slide (`IceSheet`) and an aurora; the ashlands have lava lakes that swell (`LavaSurge`), ash storms with falling embers (`EmberRain`) and volcanoes that rumble and shake the world, send up a plume of smoke (`SmokePlume`: no one sees through more than a little of it; on a person's own screen `SmokeVeil` hides what lies past it behind a paler haze, so the dark column and the haze are told apart) and pour lava over the rim that cools to a crust and goes (`Eruption`); the underground has glowing crystals, drips, stalactites that fall on whoever walks under (`FallingRock`) and cave-ins (`CaveLife`). Storms, avalanches, swells and cave-ins follow the world's age, so every machine of a match sees them at the same time. Run `tests/showcase.tscn -- scenario=life` with `WORLD_SEED` (0 jungle, 1 graveyard, 4 mountains, 5 ashlands, 13 underground).
   - Each world of a match is one of these six, in an order the seed picks; the last, small world is all open sky, one of the first four.
   - **Each biome has landmarks of its own, not just a reskin; only the underground has tunnels.** The graveyard is dark with rain and fog, and its skeletons roam
     (`Mob.roams`). The ashlands have volcanoes that erupt now and then (`Eruption`) and pits of lava. The snowy peaks are mountains to climb (`MountainGale`: wind that grows toward the summits and pushes a wizard without the run animation, seen as streaks; `SnowCloud`: clouds that drift past in front of whoever is in them), with a page on each
@@ -265,7 +265,7 @@ allows no numbers at all (not even damage), and the spellbook is a canon tome wi
    - Every spell needs a counterplay: block it, dodge it, or take cover.
    - Ground, stone walls, ice and platforms block things physically.
 2. **The gesture is a picture of the effect.**
-   - Volcano is a mountain triangle. Fire Breath is a cone (`<`). Mudslide is a U (the pit of mud).
+   - Fire Breath is a cone (`<`). Mudslide is a wavy line (the Frost Bridge shape, on the Earth buttons); Earthquake is an arrow with a head at both ends (the ground pulled both ways); Stalagmite is one or more peaks (^) drawn over the ground; Sinkhole is a U (the pit).
    - Black Hole is an inward spiral. Blizzard is a star with a snow line.
    - Icicles are V shapes. Push is a circle (the area) plus a line out of it (the direction).
    - Never assign an arbitrary shape.
@@ -331,6 +331,17 @@ GODOT="/c/Users/Jordan Polun/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.
 "$GODOT" --headless -s tests/test_stages.gd -- seeds=6         # the smaller worlds a match collapses into: walkable, spread starts, every page placed
 "$GODOT" --headless --fixed-fps 60 --path . tests/collapse_check.tscn  # a whole match through its collapses (time shortened)
 "$GODOT" --headless --fixed-fps 60 --path . tests/gate_check.tscn -- seed=8 only=ice  # a wizard clears gates with spells (without only= it walks to them: minutes)
+"$GODOT" --headless --fixed-fps 60 --path . tests/interaction_check.tscn  # spells that meet: water puts out fire, fire dries mud, lightning lights plants and shocks pools, a tornado over fire
+"$GODOT" --headless --fixed-fps 60 --path . tests/follow_check.tscn -- seed=0  # piranhas, ice and a Geyser follow a pool's liquid as it flows
+"$GODOT" --headless --fixed-fps 60 --path . tests/geyser_check.tscn  # a Geyser's and a Tide Surf's water is real liquid, not made over and over
+"$GODOT" --path . tests/water_look.tscn -- out=DIR             # pictures of a Geyser and a Tide Surf by the waiting-room pond (needs a window)
+"$GODOT" --path . tests/marks_look.tscn -- out=DIR             # pictures of the Hex, Fight or Flight and Moonbeam marks (needs a window)
+"$GODOT" --path . tests/minimap_check.tscn  # the minimap stays in the top right corner as the window is resized
+"$GODOT" --headless --fixed-fps 60 --path . tests/eruption_check.tscn -- seed=5  # an ashlands volcano erupts: a smoke plume, lava over the rim that cools and goes (add `out=DIR` for pictures, needs a window)
+"$GODOT" --headless --fixed-fps 60 --path . tests/stalagmite_check.tscn  # a Stalagmite rises from the ground under the tip of a drawn peak (add `-- out=DIR` for a picture, needs a window)
+"$GODOT" --headless --fixed-fps 60 --path . tests/sinkhole_check.tscn  # a Sinkhole lowers the ground under it and leaves the ground beside it (add `-- out=DIR` for a picture, needs a window)
+"$GODOT" --headless -s tests/test_liquid.gd                      # the flowing liquid on its own: falls, levels, fills a pit, keeps its liquid, is quick
+"$GODOT" --headless --fixed-fps 60 --path . tests/liquid_world_check.tscn -- seed=3  # a world's pools and a pit dug beside one (seeds 3, 5, 7, 12 have pools)
 "$GODOT" --headless --fixed-fps 60 --path . tests/dark_check.tscn  # a wizard walks across a stretch of spike strips
 "$GODOT" --headless --fixed-fps 60 --path . tests/spectate_check.tscn  # the player falls and watches a rival (add `-- collapse` to follow into the next world)
 "$GODOT" --headless --fixed-fps 60 --path . tests/pull_check.tscn  # the portal tears open at the top and sucks the wizards in (add `-- out=DIR` for pictures, needs a window)
@@ -401,16 +412,19 @@ GODOT="/c/Users/Jordan Polun/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.
 | Water | Ice Prison | circle | freezing whoever is inside solid | Push or Earth shatter; Barrier |
 | Water | Blizzard | star then a level line | snow cloud | leave the area |
 | Water | Frost Bridge | wavy line across water | freezing a pond so you can cross | fire melts it |
-| Water | Geyser | mountain: a triangle with a line up its middle (as Volcano) | a jet of water that throws what stands on it | step off while it bubbles |
+| Water | Geyser | an arrow pointing up | a jet of water that throws what stands on it | step off while it bubbles |
 | Air | Push | circle then a line out | a shove of air; the only spell that lifts you | positioning |
 | Air | Barrier | circle | a shield bubble | wait it out |
 | Air | Tornado | tall narrow coil going down | a whirlwind | avoid it |
+| Air | Vacuum | infinity sign on its side (lungs), drawn over a wizard | the air drawn out of someone's lungs: they hold their breath (no chanting) and then suffocate | it lets go when the caster casts again or is hurt; step out of sight to cast, or hit the caster |
+| Air | Updraft | arrow pointing up | a column of rising air that stays for the rest of the world; any number can be raised | none; it lifts anyone |
 | Air | Gust | straight flick | wind along the stroke: turns shots, sweeps flyers, smoke and you sideways | heavy foes resist |
 | Earth | Stonefall | circle with a line down | a dropped boulder | watch the shadow |
 | Earth | Stone Wall | line starting on the ground, a platform or another stone wall | a raised slab | Earthquake, Stonefall, shots wear it down |
-| Earth | Mudslide | U | a pit of mud: slows, no jumping; flyers pass over | walk out |
-| Earth | Earthquake | three peaks | the ground shakes | flyers unaffected |
-| Earth | Volcano | triangle mountain | eruption | stay out of the arc |
+| Earth | Mudslide | wavy line (as Frost Bridge) | a pit of mud: slows, no jumping; flyers pass over | walk out |
+| Earth | Stalagmite | one or more peaks (^) over the ground | spikes of rock that rise from the ground and hurt whatever touches them | step around |
+| Earth | Earthquake | arrow with a head at both ends | the ground shakes | flyers unaffected |
+| Earth | Sinkhole | U | the ground opens: `Terrain.dig` cuts a pit in the open ground and the rock is cut again (permanent) | jump out, fly |
 | Flora | Bramble | low sawtooth | a thicket of thorns: slows and pricks | jump it; fire |
 | Flora | Spore Puff | cone `<` (as Fire Breath) | poison spores poured from your mouth | wind, water |
 | Flora | Liana | leaf and line: an almond on its point, then a line up | a vine to climb | fire |
@@ -420,10 +434,11 @@ GODOT="/c/Users/Jordan Polun/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.
 | Shadow | Decoy | figure of eight | a shadow that draws enemies' attacks | it wears out |
 | Shadow | Eclipse | crescent | darkness: enemies inside see only what is close | Flare |
 | Shadow | Hex | pentagram (five-point star, one stroke) | a curse: 50% more damage | short time |
-| Shadow | Black Hole | inward spiral | a dark knot that pulls everything across the world toward it (walls still stop it) | walk out |
+| Shadow | Silence | circle with a line struck through it | a ring where nothing can be cast, spell or chant (`Wizard.silenced`) | step out; it fades |
+| Shadow | Black Hole | inward spiral | a dark knot that pulls everything toward it, fiercely close in and faintly from far off (walls still stop it) | walk out |
 | Shadow | Shadow Step | flick | slipping along the stroke | |
 
-**The spellbook is a canon tome only** (owner decision): in-world text and the drawn picture, no manual, no cost line. What a spell does, what counters it and how much it costs are learned in play. The table above is the first 32 spells. The other ten (the six Blood spells, Tide Surf, Obsidian Armor, Glowcap and Moonbeam) are in `spells/` and `docs/spell_pool.md`. The school and spell plan is in `docs/spell_pool.md`; the direction of the game (a last-wizard-standing page race, which replaced the
+**The spellbook is a canon tome only** (owner decision): in-world text and the drawn picture, no manual, no cost line. What a spell does, what counters it and how much it costs are learned in play. The table above is the first 32 spells. The others (Vacuum, Updraft, Sinkhole, Stalagmite, Silence, Fight or Flight, Sneak, Hunter's Mark, the Blood spells, Tide Surf, Obsidian Armor, Glowcap and Moonbeam) are in `spells/` and `docs/spell_pool.md`. The school and spell plan is in `docs/spell_pool.md`; the direction of the game (a last-wizard-standing page race, which replaced the
 boss and the solo roguelite loop of `docs/roguelite_exploration_design.md`) is in `docs/pvp_arena_design.md`. The waiting room (`scenes/lab.tscn`, `scripts/lab.gd`) is where every spell is tried; the portal there
 starts a run.
 
@@ -547,8 +562,7 @@ clean. It was cleaned up once, without losing any behaviour. Keep it that way:
 - Sounds are untested by ear.
 
 **Ideas the owner may like:**
-- Spells that combine: fire melts ice, storm plus water.
-- Give each AI wizard its own personality.
+- More spells that combine (fire melting ice, water putting out fire, lightning in pools and a fire whirl are built).
 - A gesture tutorial room.
 - Music (CC0 dark ambient).
 

@@ -57,7 +57,6 @@ There are no waves. The world holds no enemy mobs: the enemies are the other wiz
 
 ## Improvement ideas the owner may like
 
-- A personality for each AI wizard: one leans on fire, one on ice and earth, one on everything.
 - Mini-bosses using the 2x scale trick.
 - A healer enemy that must be killed first.
 - An elite skeleton with a shield that blocks frontal projectiles. The skeleton art has a "Shield"

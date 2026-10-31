@@ -58,6 +58,12 @@ func _ready() -> void:
 	_cell = minf(MAX_CELL, MAX_WIDTH / cols)
 	custom_minimum_size = Vector2(cols * _cell, rows * _cell)
 	size = custom_minimum_size
+	_place()
+	get_viewport().size_changed.connect(_place)  # a window that is resized or made full screen keeps the map in the top right corner
+
+
+## Puts the map in the top right corner of whatever the window is now.
+func _place() -> void:
 	position = Vector2(get_viewport_rect().size.x - size.x - MARGIN, MARGIN + 60.0)
 
 

@@ -48,6 +48,11 @@ func _act(delta: float) -> void:
 		_damage_overlapping(DAMAGE)
 
 
+## Put out by water or cold: the wall dies at once.
+func quench() -> void:
+	_finish()
+
+
 ## The light the firewall throws on what's behind it; the flames themselves are sprites.
 func _draw() -> void:
 	Fx.draw_glow(self, Vector2(0, 10), HEIGHT * 0.55, Color(1.0, 0.4, 0.1, 0.3 * _fade()))

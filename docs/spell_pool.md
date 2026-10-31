@@ -1,6 +1,6 @@
 # Spell pool (draft)
 
-Status: **all 42 spells are built** (the 32 below, plus Tide Surf, Obsidian Armor, Glowcap, Moonbeam and the six Blood spells) and can be tried in the waiting room (`scenes/lab.tscn`). Not built yet: stamina
+Status: **all 42 spells are built** (the 32 below, plus Tide Surf, Obsidian Armor, Glowcap, Moonbeam and the Blood spells) and can be tried in the waiting room (`scenes/lab.tscn`). Not built yet: stamina
 ranges (every spell still costs one number, the midpoint of the range below), mastery, gate tags, the dark wizard casting
 from the pool, and real art for several spells (see "Placeholders"). Part of `roguelite_exploration_design.md`.
 
@@ -51,7 +51,7 @@ lowers the whole window (see the main design doc). All numbers are provisional.
 | Ice Prison | circle drawn round the target | freezes foes solid | Push or Earth shatters them | | 8-18 |
 | Blizzard | five-point star in one stroke, then a horizontal line | snowfall over the line | fire melts it | slow | 12-26 |
 | Frost Bridge | wavy line across water | freezing a pond | fire melts it | freeze water, cross gap | 12-24 |
-| Geyser | mountain: a triangle with a line up its middle (the Volcano's shape, on the water button) | a water jet that launches what stands on it | step off | reach height | 14-26 |
+| Geyser | an arrow pointing up | a water jet that launches what stands on it | step off | reach height | 14-26 |
 
 ### Air (Middle)
 
@@ -73,9 +73,9 @@ lowers the whole window (see the main design doc). All numbers are provisional.
 |---|---|---|---|---|---|
 | Stonefall | circle, then a line down from its top | a boulder dropped on a spot | watch the warning | break stone | 14-30 |
 | Stone Wall | straight stroke that starts on solid ground | a solid wall | broken by Earthquake, Stonefall and lava, not by Push | block path | 15-36 |
-| Mudslide | U | ground turned to mud; slows, stops jumping | flyers pass over | | 20-44 |
-| Earthquake | three peaks | the ground shakes | flyers unaffected | break stone | 45-85 |
-| Volcano | upward triangle (a mountain) | lava erupts and sets ground on fire | (nothing yet) | burn, damage | 30-58 |
+| Mudslide | wavy line (as Frost Bridge) | ground turned to mud; slows, stops jumping | flyers pass over | | 20-44 |
+| Earthquake | arrow with a head at both ends |
+| Stalagmite | one or more peaks (^) drawn over the ground | spikes of rock that rise from the ground | step around | block path | 16-30 | the ground shakes | flyers unaffected | break stone | 45-85 |
 
 ### Earth, newer
 | Spell | Shape | Pictures | Counter | Tags | Stamina |
@@ -120,7 +120,6 @@ nothing is paid for a Faint that finds no one. There is no bleeding. Blood is mo
 
 | Spell | Shape | Pictures | Counter | Max cost |
 |---|---|---|---|---|
-| Blood Bolt | straight flick | a dark red bolt for 30 damage (Ignite does 12) | dodge, Barrier | 12 |
 | Offering | a cross in one stroke | gives up 20 of the most stamina for 30 **temporary** stamina on top of the bar (it may pass 200): spent after the usual stamina, and never comes back | it is only spent | 20 |
 | Burst | circle | 40 blood damage in a ring, throws away everyone and everything in it but the caster, and turns shots back | stay out of it | 25 |
 | Crimson Veil | vertical line | the next two times you would take damage, you take none | it is only two hits | 5 |
@@ -132,7 +131,7 @@ nothing is paid for a Faint that finds no one. There is no bleeding. Blood is mo
 - **cross gap:** Frost Bridge, Gust, Liana, Lily Pads, Shadow Step
 - **reach height:** Push, Geyser, Liana, Great Oak
 - **break stone:** Stonefall, Earthquake
-- **burn growth:** Ignite, Firewall, Fire Breath (and Volcano's fire)
+- **burn growth:** Ignite, Firewall, Fire Breath 
 - **freeze water:** Frost Bridge
 - **light darkness:** Flare, Glowcap, Moonbeam (dimmer)
 - **bypass guards:** Decoy, Eclipse, Smoke Screen (conceal)

@@ -9,7 +9,6 @@ school = "Water"
 gesture = "circle"
 targeting = "shape"
 cost = 14.0
-draw = "A circle, drawn round your target and closed where you started. The circle fills with ice."
 effect = "Freeze things in a block of solid ice."
 damage = "freezes solid"
 size_from = 7
