@@ -22,6 +22,8 @@ var _since_gates := 0.0
 var _castle_stairs := []  # [{"from", "to": the ends of the slope in pixels, "under"}]: its stairs to the cellars
 var _weather: Array[Weather] = []
 var _gale: MountainGale  # the snowy peaks' wind, when this world has it
+var _squall: Squall  # the jungle's downpours or the ashlands' ash storms, when this world has them
+var _timed: Array[Node] = []  # the avalanche and the lava lakes' swells: each is told the world's age every frame
 var _gates_open := false
 const DEEP := Color(0.3, 0.27, 0.42)  # the colour of everything unlit, just under the ground
 const BLACK := Color(0.015, 0.015, 0.03)  # and far down: nothing shows without a light
@@ -128,6 +130,14 @@ func _update_weather(under: float) -> void:
 	var strength := clampf(1.0 - (under + 2.0 * TILE) / (6.0 * TILE), 0.0, 1.0)
 	if SurfaceGen.biome_at(graph.surface, column) == "mountains" and MountainGale.altitude(player.global_position.y) > 0.45:
 		kinds = ["blizzard"]  # up near the summits the snow is a blizzard
+	if _squall != null:
+		_squall.seconds = _stage_time
+		if _squall.level() > 0.05 and not kinds.is_empty():
+			kinds = kinds.duplicate()
+			kinds[0] = "downpour" if SurfaceGen.biome_at(graph.surface, column) == "jungle" else "ash_storm"  # the storm is what falls, in place of the usual
+			strength = maxf(strength, 0.0) * _squall.level()
+	for node in _timed:
+		node.seconds = _stage_time
 	if _gale != null and SurfaceGen.biome_at(graph.surface, column) == "mountains":
 		var push := MountainGale.push_at(player.global_position.y, _gale.seconds)
 		if absf(push) > 12.0:  # and the wind is seen: streaks of snow blown along, the way it blows
@@ -185,6 +195,7 @@ func _begin_encounter(camera: Camera2D) -> void:
 	_plant_graves()
 	_grow_trees()
 	_raise_the_gale()
+	_raise_biome_life()
 	_wash_out_the_colour()
 	if not _castle_stairs.is_empty():
 		var slopes := StaticBody2D.new()
@@ -317,6 +328,118 @@ func _raise_the_gale() -> void:
 		cloud.left = -300.0
 		cloud.right = width + 300.0
 		add_child(cloud)
+
+
+## What lives in each biome besides the landmarks: the graveyard's low mist, bats and crypts; the jungle's rope bridges, light and birds,
+## and its downpours; the peaks' avalanches and sheets of ice; the ashlands' swelling lava, ash storms and falling embers.
+func _raise_biome_life() -> void:
+	var biome := SurfaceGen.biome_at(graph.surface, graph.surface["start"])
+	var floors: PackedInt32Array = graph.surface["floor"]
+	var tile := float(TILE)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed_value + 8101
+	match biome:
+		"graveyard":
+			var mist := MistBank.new()
+			mist.floors = floors
+			mist.seed_value = seed_value + 17
+			add_child(mist)
+			var bats := CritterFlock.new()
+			bats.bats = true
+			bats.span = Vector2(SurfaceGen.MARGIN * tile, (WorldGraph.size.x - SurfaceGen.MARGIN) * tile)
+			bats.sky = SurfaceGen.BASE_ROW * tile
+			bats.seed_value = seed_value + 23
+			add_child(bats)
+			for column: int in graph.surface["crypts"]:
+				var crypt := Crypt.new()
+				crypt.position = Vector2((column + 0.5) * tile, floors[column] * tile + 2.0)
+				add_child(crypt)
+				var guard: Mob = _add_mob("basic", _floor_under(Vector2((column + 4.5) * tile, floors[column] * tile - 40.0)))
+				guard.name = "Dead%d" % _dead.size()  # kept in step across the network like the roaming dead
+				guard.puppet = not Net.is_host()
+				_dead.append(guard)
+		"jungle":
+			var perches: Array[Vector2] = []
+			var trees: Array = graph.surface["trees"]
+			for k in trees.size():
+				var tree: Dictionary = trees[k]
+				var column: int = tree["column"]
+				perches.append(Vector2((column + 0.5) * tile, floors[column] * tile - 230.0 * tree["size"] * 0.9))
+				if k % 3 == 1:
+					var shaft := LightShaft.new()
+					shaft.position = Vector2((column + 0.5) * tile + 70.0, floors[column] * tile - 260.0)
+					shaft.phase = k
+					add_child(shaft)
+			var birds := CritterFlock.new()
+			birds.perches = perches
+			birds.seed_value = seed_value + 29
+			add_child(birds)
+			for bridge: Dictionary in JungleTree.bridges(trees, floors):
+				var span := CanopyBridge.new()
+				span.width = (bridge["last"] - bridge["first"] + 1) * tile
+				span.position = Vector2(bridge["first"] * tile, floors[bridge["tree"]] * tile + 2.0 - JungleTree.LEDGES[JungleTree.VINE_LEDGE][0] * float(trees[0]["size"] if false else _tree_size(bridge["tree"])))
+				add_child(span)
+			_squall = Squall.new()
+			_squall.period = 75.0
+			_squall.length = 20.0
+			_squall.delay = 28.0
+			_squall.tint = Color(0.02, 0.06, 0.08)
+			_squall.strength = 0.45
+			add_child(_squall)
+		"mountains":
+			var slide := Avalanche.new()
+			slide.floors = floors
+			slide.seed_value = seed_value + 41
+			add_child(slide)
+			_timed.append(slide)
+			var column := SurfaceGen.MARGIN + 20
+			while column < floors.size() - SurfaceGen.MARGIN - 20:  # sheets of ice on the level stretches
+				var run := 1
+				while column + run < floors.size() and floors[column + run] == floors[column]:
+					run += 1
+				if run >= 8 and rng.randf() < 0.6:
+					var sheet := IceSheet.new()
+					sheet.width = (run - 2) * tile
+					sheet.position = Vector2((column + 1) * tile, floors[column] * tile)
+					add_child(sheet)
+				column += run
+		"underground":
+			var cave := CaveLife.new()
+			cave.floors = floors  # (a roofed world keeps no sky of its own: its roof is worked out from the ground)
+			cave.seed_value = seed_value + 61
+			cave.player = player
+			add_child(cave)
+			_timed.append(cave)
+		"ashlands":
+			_squall = Squall.new()
+			_squall.period = 70.0
+			_squall.length = 18.0
+			_squall.delay = 30.0
+			_squall.tint = Color(0.1, 0.05, 0.03)
+			_squall.strength = 0.38
+			add_child(_squall)
+			var embers := EmberRain.new()
+			embers.squall = _squall
+			embers.seed_value = seed_value + 53
+			embers.player = player
+			embers.floors = floors
+			add_child(embers)
+			for pond: Node in get_children():
+				if pond is Pond and pond.lava:
+					var surge := LavaSurge.new()
+					surge.width = pond.width
+					surge.phase = fmod(pond.position.x * 0.013, 13.0)
+					surge.position = pond.position
+					add_child(surge)
+					_timed.append(surge)
+
+
+## How large the great tree standing in a column is (1 to 3 times its picture).
+func _tree_size(column: int) -> int:
+	for tree: Dictionary in graph.surface["trees"]:
+		if tree["column"] == column:
+			return tree["size"]
+	return 2
 
 
 ## The graveyard is seen in grey: a layer over the world, under the interface, that takes the colour out of it.

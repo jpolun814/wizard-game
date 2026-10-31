@@ -17,6 +17,7 @@ var _arena: Node
 var _t := 0.0
 var _steps: Array = []  # [time, Callable]
 var _next := 0
+var _start_x := 0.0
 var _shot := 0
 var _exit_code := 0  # what the run exits with: the checks scenario sets it to 1 when one fails
 
@@ -35,8 +36,8 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS  # keeps running while the game is paused
 	DirAccess.make_dir_recursive_absolute(out_dir)
 	# The spells are tried in the waiting room, where there is a pond, a gap and dummies for each of them.
-	var scene := "world" if scenario in ["cave", "gates", "castle", "pages", "tornado", "extras", "biome"] else "lab"
-	if scenario in ["cave", "gates", "castle", "pages", "tornado", "extras", "biome"]:
+	var scene := "world" if scenario in ["cave", "gates", "castle", "pages", "tornado", "extras", "biome", "life"] else "lab"
+	if scenario in ["cave", "gates", "castle", "pages", "tornado", "extras", "biome", "life"]:
 		World.random_start = false
 		World.next_seed = int(OS.get_environment("WORLD_SEED")) if OS.get_environment("WORLD_SEED") != "" else 11  # the same world each time
 	_arena = load("res://scenes/%s.tscn" % scene).instantiate()
@@ -123,6 +124,8 @@ func _plan() -> void:
 	match scenario:
 		"gates":
 			_plan_gates()
+		"life":
+			_plan_life()
 		"biome":  # a look at the landmarks of an open biome: the start, each volcano, pit of mud and thicket, then the whole world from far off
 			var tile := float(ArenaGen.TILE)
 			var surface: Dictionary = _arena.graph.surface
@@ -1535,3 +1538,135 @@ func _plan_gates() -> void:
 			_arena.get_node("Player/Camera2D").reset_smoothing())
 		_at(t + 11.4, func() -> void: _snap("spikes_lit"))
 		t += 12.0
+
+
+## The living scenery of a biome (see World._raise_biome_life): each feature is brought on by setting the world's clock and standing the
+## player by it, and a picture is taken. The checks print PASS or FAIL.
+func _plan_life() -> void:
+	var tile := float(ArenaGen.TILE)
+	var surface: Dictionary = _arena.graph.surface
+	var floors: PackedInt32Array = surface["floor"]
+	var biome: String = surface["biomes"][0]["name"]
+	print("life in the ", biome)
+	var go := func(point: Vector2) -> void:
+		_player().global_position = point
+		_player().velocity = Vector2.ZERO
+		_arena.get_node("Player/Camera2D").reset_smoothing()
+	match biome:
+		"jungle":
+			var bridges := JungleTree.bridges(surface["trees"], floors)
+			print("%s  the jungle has rope bridges (%d)" % ["PASS" if not bridges.is_empty() else "FAIL", bridges.size()])
+			if not bridges.is_empty():
+				var bridge: Dictionary = bridges[0]
+				var at := Vector2((bridge["first"] + 2) * tile, (bridge["row"] - 2) * tile)
+				_at(1.0, func() -> void: go.call(at))
+				_at(2.2, func() -> void: _snap("bridge"))
+				_at(2.3, func() -> void:
+					var found := 0
+					for node in _arena.get_children():
+						found += 1 if node is CanopyBridge else 0
+					print("%s  every bridge is in the world (%d of %d)" % ["PASS" if found == bridges.size() else "FAIL", found, bridges.size()]))
+			var tree: Dictionary = surface["trees"][surface["trees"].size() / 2]
+			_at(3.0, func() -> void: go.call(Vector2((tree["column"] + 0.5) * tile - 250.0, (floors[tree["column"]] - 3) * tile)))
+			_at(4.4, func() -> void: _snap("trees"))
+			var birds: CritterFlock = null
+			for node in _arena.get_children():
+				if node is CritterFlock and not node.bats:
+					birds = node
+			_at(4.5, func() -> void:
+				var perch: Vector2 = birds.perches[0]
+				go.call(perch + Vector2(60.0, 40.0)))
+			_at(4.7, func() -> void: _snap("birds_before"))
+			_at(5.4, func() -> void:
+				var fled := 0
+				for critter in birds._critters:
+					fled += 1 if critter["state"] != "perched" else 0
+				print("%s  the birds burst away when a wizard comes near (%d of %d)" % ["PASS" if fled > 0 else "FAIL", fled, birds._critters.size()])
+				_snap("birds_after"))
+			_at(5.6, func() -> void: _arena._stage_time = 28.0 + 8.0)
+			_at(9.0, func() -> void:
+				print("%s  the downpour has come (%.2f)" % ["PASS" if _arena._squall.level() > 0.9 else "FAIL", _arena._squall.level()])
+				_snap("downpour"))
+		"mountains":
+			var sheets := get_tree().get_nodes_in_group("slick")
+			print("%s  the peaks have sheets of ice (%d)" % ["PASS" if not sheets.is_empty() else "FAIL", sheets.size()])
+			if not sheets.is_empty():
+				var sheet: IceSheet = sheets[0]
+				_at(1.0, func() -> void:
+					go.call(sheet.global_position + Vector2(20.0, -30.0))
+					_player().stamina = 9999.0)
+				_at(1.8, func() -> void:
+					print("%s  a wizard stands on the ice" % ["PASS" if IceSheet.under(get_tree(), _player().global_position + Vector2(0.0, 0.0)) else "FAIL"])
+					_snap("ice"))
+			_at(3.0, func() -> void: _arena._stage_time = Avalanche.FIRST + 1.0)
+			_at(3.3, func() -> void:
+				var slide: Avalanche = _arena._timed[0]
+				go.call(Vector2((slide._from + 0.5) * tile + slide._way * 160.0, (floors[slide._from] - 4) * tile))
+				_snap("rumble"))
+			_at(5.0, func() -> void:
+				_arena._stage_time = Avalanche.FIRST + Avalanche.WARNING + 1.2
+				var slide: Avalanche = _arena._timed[0]
+				var travelled := 1.2 * Avalanche.SPEED
+				var column := clampi(slide._from + slide._way * int(travelled / tile), 0, floors.size() - 1)
+				_start_x = _player().global_position.x
+				go.call(Vector2((slide._from + 0.5) * tile + slide._way * travelled, (floors[column] - 1) * tile)))
+			_at(5.4, func() -> void: _snap("avalanche"))
+			_at(5.6, func() -> void: print("%s  the avalanche carried the wizard (moved %.0f px)" % ["PASS" if absf(_player().global_position.x - _start_x) > 40.0 else "FAIL", _player().global_position.x - _start_x]))
+		"ashlands":
+			_at(1.0, func() -> void: _arena._stage_time = 30.0 + 8.0)
+			_at(5.0, func() -> void:
+				print("%s  the ash storm has come (%.2f)" % ["PASS" if _arena._squall.level() > 0.9 else "FAIL", _arena._squall.level()])
+				var balls := 0
+				for node in get_tree().get_nodes_in_group("shots"):
+					balls += 1 if node is LavaBall else 0
+				print("%s  embers are falling (%d lava balls in the air)" % ["PASS" if balls > 0 else "FAIL", balls])
+				_snap("storm"))
+			var lake: LavaSurge = null
+			for node in _arena._timed:
+				lake = node
+				break
+			if lake != null:
+				_at(6.0, func() -> void:
+					_arena._stage_time = 13.0 * 3.0 - lake.phase + LavaSurge.BUBBLING + 1.0
+					go.call(lake.global_position + Vector2(lake.width * 0.5, -60.0)))
+				_at(7.2, func() -> void:
+					print("%s  the lava swells (rise %.2f)" % ["PASS" if lake.rise() > 0.5 else "FAIL", lake.rise()])
+					_snap("surge"))
+		"underground":
+			var cave: CaveLife = _arena._timed[0]
+			var spot := Vector2((surface["start"] + 0.5) * tile, (floors[surface["start"]] - 3) * tile)
+			_at(1.0, func() -> void: go.call(spot + Vector2(-300.0, 0.0)))
+			_at(2.0, func() -> void: _snap("crystals"))
+			_at(2.05, func() -> void:
+				var c: int = surface["start"]
+				var column_x := (c + 0.5) * tile
+				var probe := ""
+				for rows_up in [0, 3, 10, 20, 26, 28, 30, 34]:
+					probe += " %d:%s" % [rows_up, str(_arena._in_rock(Vector2(column_x, (floors[c] - rows_up) * tile)))]
+				print("ground row %d, roof row %.1f; in rock rows above the ground:%s" % [floors[c], cave.roof_y(c) / tile, probe]))
+			_at(2.1, func() -> void:
+				var hung := 0
+				for hanger in cave._hangers:
+					hung += 1
+				print("%s  the cavern has stalactites (%d)" % ["PASS" if hung > 0 else "FAIL", hung]))
+			_at(2.5, func() -> void:
+				var hanger: Dictionary = cave._hangers[0]
+				for h in cave._hangers:
+					if absf(h["home"].x - _player().global_position.x) < 500.0:
+						hanger = h
+						break
+				go.call(Vector2(hanger["home"].x, hanger["home"].y + 140.0)))
+			_at(3.1, func() -> void: _snap("stalactite"))
+			_at(4.6, func() -> void:
+				var fallen := 0
+				for hanger in cave._hangers:
+					fallen += 1 if hanger["state"] == "gone" else 0
+				print("%s  a stalactite shook loose and fell when a wizard walked under it (%d fell)" % ["PASS" if fallen > 0 else "FAIL", fallen]))
+			_at(5.0, func() -> void: _arena._stage_time = CaveLife.CAVE_IN_FIRST + CaveLife.CAVE_IN_WARNING - 0.4)
+			_at(6.2, func() -> void: _snap("cavein"))
+		"graveyard":
+			var crypts: Array = surface["crypts"]
+			print("%s  the graveyard has crypts (%d)" % ["PASS" if not crypts.is_empty() else "FAIL", crypts.size()])
+			if not crypts.is_empty():
+				_at(1.0, func() -> void: go.call(Vector2((crypts[0] + 0.5) * tile - 60.0, (floors[crypts[0]] - 3) * tile)))
+				_at(2.5, func() -> void: _snap("crypt"))

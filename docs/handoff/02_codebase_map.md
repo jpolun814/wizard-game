@@ -167,7 +167,7 @@ The PvP match (see `docs/pvp_arena_design.md`) runs on these. `World` extends `A
 - **World generation:** `scripts/world/`. `world_graph.gd` (halls, tunnels, gates), `world_builder.gd` (carves rock, castle and gates; `make` builds a whole world and throws away one that is not `sound`), `surface_gen.gd` (the surface: one biome to a world; `BIOMES` lists them), `tile_grid.gd` (one byte per tile), `rock_world.gd` and `contour.gd` (chunked drawing and collision), `incantation.gd` (the seed words).
 - **Walking:** `walkways.gd` (where a wizard can stand, and the moves between), `world_nav.gd` (path finder over those), `wizard_route.gd` (follows a path), `wizard_brain.gd` (what the AI wizard goes for, when it fights, what it casts).
 - **Pages:** `pages.gd` (deals the starting pages and lays the rest), `ledger.gd` (one wizard's pages), `page_pickup.gd` (a page on the map).
-- **Gates:** `ice_plug.gd`, `rock_wall.gd`, `spike_bed.gd`, `gas_bank.gd`, `piranhas.gd`, `sentinel.gd`, `rope_ladder.gd` (the jungle's vines now; the castle has stairs), `jungle_tree.gd`, `mountain_gale.gd` and `snow_cloud.gd` (the snowy peaks' wind and drifting clouds).
+- **Gates:** `ice_plug.gd`, `rock_wall.gd`, `spike_bed.gd`, `gas_bank.gd`, `piranhas.gd`, `sentinel.gd`, `rope_ladder.gd` (the jungle's vines now; the castle has stairs), `jungle_tree.gd`, `canopy_bridge.gd`, `critter_flock.gd`, `mist_bank.gd`, `light_shaft.gd`, `squall.gd`, `avalanche.gd`, `ice_sheet.gd`, `lava_surge.gd`, `ember_rain.gd`, `crypt.gd`, `cave_life.gd`, `falling_rock.gd` (the biomes' living scenery: see `World._raise_biome_life`), `mountain_gale.gd` and `snow_cloud.gd` (the snowy peaks' wind and drifting clouds).
 - **Other:** `intro.gd` (the cut-scene), `weather.gd`.
 
 ## Tests (`tests/`)

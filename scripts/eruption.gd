@@ -48,6 +48,7 @@ func _physics_process(delta: float) -> void:
 		"rumbling":
 			if fmod(_age, 0.4) < delta:
 				Fx.smoke(get_parent(), global_position + Vector2(0, -16), Color(0.2, 0.17, 0.17, 0.6), 1, 24.0, 40.0)
+				LavaBall.throw(get_parent(), global_position + Vector2(0, -24), Vector2(_rng.randf_range(-90.0, 90.0), _rng.randf_range(-300.0, -220.0)))  # spits before it blows
 			if _phase <= 0.0:
 				_state = "erupting"
 				_phase = ERUPT_SECONDS

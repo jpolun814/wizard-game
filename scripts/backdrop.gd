@@ -120,3 +120,25 @@ func _build_sky(spec: Dictionary) -> void:
 	sky.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	sky_layer.add_child(sky)
 	_sky_parts.append(sky)
+	if place == "mountains":
+		_hang_aurora(sky_layer)
+
+
+## Ribbons of green and violet light that sway and brighten across the top of the sky of the snowy peaks.
+func _hang_aurora(sky_layer: CanvasLayer) -> void:
+	var colours := [Color(0.3, 1.0, 0.6, 0.0), Color(0.5, 0.9, 1.0, 0.0), Color(0.7, 0.4, 1.0, 0.0)]
+	for k in colours.size():
+		var ribbon := TextureRect.new()
+		ribbon.texture = Fx.tex("smoke_01")
+		ribbon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		ribbon.stretch_mode = TextureRect.STRETCH_SCALE
+		ribbon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		ribbon.material = Fx.additive()
+		ribbon.size = Vector2(900.0, 120.0)
+		ribbon.position = Vector2(-120.0 + k * 330.0, 20.0 + k * 22.0)
+		ribbon.self_modulate = Color(colours[k], 0.3)  # (the fade between places is on modulate)
+		sky_layer.add_child(ribbon)
+		_sky_parts.append(ribbon)
+		var sway := create_tween().set_loops()
+		sway.tween_property(ribbon, "position:x", ribbon.position.x + 160.0, 9.0 + k * 2.0).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+		sway.tween_property(ribbon, "position:x", ribbon.position.x - 40.0, 9.0 + k * 2.0).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)

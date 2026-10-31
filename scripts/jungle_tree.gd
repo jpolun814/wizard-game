@@ -12,6 +12,7 @@ const TILE := 32
 ## cut to whole columns, so that a wizard walking off either end clears it.
 const LEDGES := [[30.0, -36.0, -10.0], [112.0, -44.0, -12.0], [156.0, 40.0, 88.0], [212.0, -26.0, 44.0]]
 const VINE_LEDGE := 2
+const MAX_BRIDGE := 9  # the most columns a rope bridge spans
 const TRUNK_SHIFT := 12.0  # the trunk's base is this far left of the middle of the picture, at the picture's own size
 
 var size := 2  # how many times the size of its picture: 1 is only to be seen, 2 and 3 have the oak's ledges and a vine
@@ -36,6 +37,24 @@ static func layout(tree_size: int, mirrored: bool) -> Dictionary:
 		last = floori((TILE * 0.5 - ledge[1] * scale_up) / TILE) - 1
 		vine = first - 1
 	return {"first": first, "last": last, "vine": vine, "rows": ceili((ledge[0] * scale_up - 2.0) / TILE)}
+
+
+## The rope bridges between neighbouring large trees of the same size on level ground: [{"first", "last": the columns the bridge covers,
+## "row": the row its planks lie on (the same as the two ledges it joins)}]. A bridge runs from the end of one tree's high ledge to the start of the next's.
+static func bridges(trees: Array, floors: PackedInt32Array) -> Array:
+	var out := []
+	for k in range(trees.size() - 1):
+		var left: Dictionary = trees[k]
+		var right: Dictionary = trees[k + 1]
+		if left["size"] < 2 or left["size"] != right["size"] or floors[left["column"]] != floors[right["column"]]:
+			continue
+		var a := layout(left["size"], left["mirror"])
+		var b := layout(right["size"], right["mirror"])
+		var first: int = left["column"] + a["last"] + 1
+		var last: int = right["column"] + b["first"] - 1
+		if last - first + 1 >= 1 and last - first + 1 <= MAX_BRIDGE:
+			out.append({"first": first, "last": last, "row": floors[left["column"]] - a["rows"], "tree": left["column"]})
+	return out
 
 
 ## The middle of the vine's ledge, from the foot of the trunk: where a page lies.
@@ -81,6 +100,7 @@ func _ready() -> void:
 	add_child(ledges)
 	var vine := RopeLadder.new()  # the vine, climbed like a rope ladder: it hangs from the outer end of the high ledge
 	vine.texture = VINE
+	vine.sway = true
 	vine.modulate = Color(0.75, 1.0, 0.65)
 	vine.height = LEDGES[VINE_LEDGE][0] * scale_up + vine_ground
 	vine.position = Vector2(spot["vine"] * TILE, vine_ground)

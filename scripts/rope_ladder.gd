@@ -10,6 +10,9 @@ const TEXTURE := preload("res://art/props/rope_ladder.png")
 var height := 352.0  # from the lower floor up to the upper one
 var texture: Texture2D = TEXTURE  # what it is made of: rope, or a jungle's vine
 
+var sway := false  # a jungle vine swings a little in the wind
+var _sprite: Sprite2D
+var _t := randf() * TAU
 var _top := Vector2.ZERO
 var _bottom := Vector2.ZERO
 
@@ -25,8 +28,15 @@ func _ready() -> void:
 	sprite.centered = false
 	sprite.position = Vector2(-texture.get_width() * 0.5, -height - 56.0)
 	add_child(sprite)
+	_sprite = sprite
+	set_process(sway)
 	_top = global_position + Vector2(0, -height - 24.0)  # the climber lets go with their feet just over the upper floor
 	_bottom = global_position
+
+
+func _process(delta: float) -> void:
+	_t += delta
+	_sprite.skew = sin(_t * 0.9) * 0.025  # the picture hangs from its top, so the foot of it swings
 
 
 ## True when a point (the climber's hands) is on the ladder: close enough across, and between its top and the lower floor.

@@ -134,3 +134,7 @@ and are no longer drawn by the game.
 ## Rain (art/particles/rain_streak.png)
 
 - Drawn by tools/prepare_rain.py: a few pixel squares, no outside source.
+
+## Bats, birds and cave crystals (art/props/bat_*.png, bird_*.png, crystal_*.png)
+
+- Drawn by tools/prepare_biome_critters.py: a few pixels each, no outside source (own work, CC0). Stand-ins until a real pack is chosen.

@@ -816,6 +816,9 @@ static func shut(world: Dictionary, crossings := false) -> Dictionary:
 			var spot := JungleTree.layout(tree["size"], tree["mirror"])
 			for k in range(spot["first"], spot["last"] + 1):
 				cells.put(Vector2i(tree["column"] + k, floors[tree["column"]] - spot["rows"]), ArenaGen.STONE)
+	for bridge: Dictionary in JungleTree.bridges(trees, floors):  # and the rope bridges between them
+		for column in range(bridge["first"], bridge["last"] + 1):
+			cells.put(Vector2i(column, bridge["row"]), ArenaGen.STONE)
 	var barred: Dictionary = world["hazards"].duplicate()
 	var tolls := {}
 	var links := []  # {"key", "left", "right", "top_left", "top_right"}: where a wizard lifted over a wall goes up from, and comes down to

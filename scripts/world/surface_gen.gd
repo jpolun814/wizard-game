@@ -27,10 +27,11 @@ static func has_halls(biome: String) -> bool:
 
 ## What each biome looks like: the tiles of its grassy top, the backdrop, the colour its daylight is tinted, and the
 ## things standing about on it.
+const CRYPT_SPACING := 80  # columns between one crypt and the next
 const LOOKS := {
 	"graveyard": {"title": "The Graveyard", "tiles": "cemetery", "weather": ["rain", "fog"], "backdrop": "cemetery", "tint": Color(0.6, 0.62, 0.68)},  # dark, with rain and a fog
 	"mountains": {"title": "The Snowy Peaks", "tiles": "stone", "snow": 26, "weather": ["snow", "blizzard"], "backdrop": "mountains", "tint": Color(0.82, 0.86, 0.98)},
-	"jungle": {"title": "The Jungle", "tiles": "swamp", "weather": ["spores", "rain"], "backdrop": "jungle", "tint": Color(0.8, 1.0, 0.82)},
+	"jungle": {"title": "The Jungle", "tiles": "swamp", "weather": ["fireflies", "rain"], "backdrop": "jungle", "tint": Color(0.8, 1.0, 0.82)},
 	"ashlands": {"title": "The Ashlands", "tiles": "ash", "weather": ["ash", "embers"], "backdrop": "ashlands", "tint": Color(1.12, 0.78, 0.7)},
 	"castle": {"title": "The Castle", "tiles": "church", "backdrop": "cemetery", "tint": Color(0.9, 0.92, 1.08)},
 	"underground": {"title": "The Deep", "tiles": "stone", "backdrop": "cemetery", "tint": Color(0.42, 0.4, 0.55)},  # under a roof of rock: no sky shows
@@ -42,7 +43,7 @@ const LOOKS := {
 ## before it, "biomes": [{"name", "a", "b"}], "ponds": [{"a", "b", "surface", "depth", "lava"}], "castles": the first column of each castle
 ## on the ground (only the castle world has any), "castle": the first of those or -1, "roofed": true when a roof of rock covers the surface
 ## (the underground), "start": the column to start on, "craters": the volcanoes of the ashlands [{"x": the column of the middle, "row": the
-## rim's row}], "mud" and "thorns": the jungle's pits of mud and thickets of thorns [{"a", "b"}: first and last column], "trees": [{"column", "size", "mirror"}], "landmarks": columns
+## rim's row}], "mud" and "thorns": the jungle's pits of mud and thickets of thorns [{"a", "b"}: first and last column], "trees": [{"column", "size", "mirror"}], "crypts": the columns of the graveyard's crypts, "landmarks": columns
 ## of level ground at a place worth going to (the rim of a volcano, a mountain's top), where pages are laid first}.
 static func build(width: int, biome: String, rng: RandomNumberGenerator) -> Dictionary:
 	var n := width - MARGIN * 2
@@ -131,8 +132,9 @@ static func build(width: int, biome: String, rng: RandomNumberGenerator) -> Dict
 	if biome == "jungle":
 		_lay_jungle_hazards(width, ponds, mud, thorns, rng)
 		trees = _plant_trees(floor_row, [ponds, mud, thorns], starts, rng)
+	var crypts := _place_crypts(floor_row, [ponds], starts) if biome == "graveyard" else []
 	return {"limits": limits, "floor": floor_row, "biomes": [{"name": biome, "a": MARGIN, "b": width - MARGIN - 1}], "ponds": ponds, "castles": castles, "castle": castles[0] if not castles.is_empty() else -1, "roofed": biome == "underground", "start": middle,
-			"craters": craters, "mud": mud, "thorns": thorns, "trees": trees, "landmarks": _landmarks(biome, floor_row, craters, trees), "starts": starts}
+			"craters": craters, "mud": mud, "thorns": thorns, "trees": trees, "crypts": crypts, "landmarks": _landmarks(biome, floor_row, craters, trees, crypts), "starts": starts}
 
 
 ## The columns four wizards start from in a world that is all surface: a quarter of the way along it, each time over; or, in the castle
@@ -236,9 +238,32 @@ static func _plant_trees(floor_row: PackedInt32Array, hazards: Array, starts: Ar
 	return out
 
 
+## The graveyard's crypts: columns of level ground, spread along the world and well clear of the pools and the places the wizards start from.
+static func _place_crypts(floor_row: PackedInt32Array, hazards: Array, starts: Array) -> Array:
+	var out := []
+	var column := MARGIN + 30
+	while column < floor_row.size() - MARGIN - 30:
+		var level := true
+		for d in range(-5, 6):
+			level = level and floor_row[column + d] == floor_row[column]
+		for start: int in starts:
+			level = level and absi(start - column) > 18
+		for list: Array in hazards:
+			for entry: Dictionary in list:
+				level = level and (column < entry["a"] - 10 or column > entry["b"] + 10)
+		if level:
+			out.append(column)
+			column += CRYPT_SPACING
+		else:
+			column += 1
+	return out
+
+
 ## Columns of level ground worth going to: the rim of each volcano, and the top of each mountain peak.
-static func _landmarks(biome: String, floor_row: PackedInt32Array, craters: Array, trees: Array) -> Array[int]:
+static func _landmarks(biome: String, floor_row: PackedInt32Array, craters: Array, trees: Array, crypts: Array) -> Array[int]:
 	var out: Array[int] = []
+	for column: int in crypts:
+		out.append(column)  # a page lies in each crypt
 	for tree: Dictionary in trees:
 		if tree["size"] >= 2:
 			out.append(tree["column"])  # a page lies on the branch of each large tree

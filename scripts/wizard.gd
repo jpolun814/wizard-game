@@ -23,6 +23,7 @@ const STAMINA_REGEN := 20.0   # per second
 const REGEN_DELAY := 1.0      # seconds without spending before regen starts
 const SHIELD_RADIUS := 50.0
 const ADRENALINE_REGEN := 3.0   # how many times faster stamina comes back under Adrenaline
+const ICE_GRIP := 650.0         # how fast a wizard on ice can change speed, in pixels a second each second
 const OBSIDIAN_SPEED := 0.75    # how fast the wizard walks in black glass
 const OBSIDIAN_SHOTS := 0.5     # and how much of a shot's damage gets through
 const SURF_SPEED := 470.0       # how fast a wave carries the wizard
@@ -117,6 +118,7 @@ var _veil_cool := 0.0  # a moment after one is turned away, in which a burn or a
 var fainted := false  # knocked out by a Faint: down on the ground until the stamina comes back
 var air_jump_ready := false  # the air jump is spent by one use, and comes back when the wizard lands
 var wind := 0.0  # the push of the air along the ground, set every frame by the world that has wind (the snowy peaks)
+var _slide := 0.0  # the sideways speed carried over on ice
 var _shove := Vector2.ZERO  # a Push on the caster: slides them for a moment, then fades
 var mute_time: float: # no rituals while above zero
 	get: return _status.left(&"mute")
@@ -666,6 +668,11 @@ func _physics_process(delta: float) -> void:
 		velocity.x = 0.0
 	if surf_time > 0.0 and not dead and not fainted:
 		velocity.x = surf_dir * SURF_SPEED  # a wave does not wait for the wizard
+	if is_on_floor() and can_move and IceSheet.under(get_tree(), global_position):
+		_slide = move_toward(_slide, velocity.x, ICE_GRIP * delta)  # on ice a wizard cannot stop or turn quickly
+		velocity.x = _slide
+	else:
+		_slide = velocity.x
 	velocity.x += _shove.x + wind
 	if _shove.y < 0.0:
 		velocity.y = minf(velocity.y, _shove.y)
