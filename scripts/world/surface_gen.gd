@@ -16,8 +16,8 @@ const START_FLAT := 8       # columns each side of the middle that are level, to
 const LEDGE := 3            # the most a ledge on a mountain climbs in one column: a jump (the wizard clears three rows)
 const RIM := 11             # columns each side of a volcano's middle that are level: the rim round its crater
 const CRATER_WIDTH := 16    # the bowl in a volcano's top
-const BIOMES := ["graveyard", "mountains", "jungle", "ashlands", "castle", "underground"]  # one of these is the whole of a world
-const OPEN_BIOMES := ["graveyard", "mountains", "jungle", "ashlands"]  # those with open sky and room to spare: the last world of a match is one of them
+const BIOMES := ["graveyard", "mountains", "jungle", "ashlands", "castle", "underground", "portals"]  # one of these is the whole of a world
+const OPEN_BIOMES := ["graveyard", "mountains", "jungle", "ashlands", "portals"]  # those with open sky and room to spare: the last world of a match is one of them
 
 ## True for the biome with halls under the ground (the deep's caves). The rest have no tunnels: each has its own landmarks on the
 ## surface in place of them (the castle's are its floors and its cellar, in the castles themselves).
@@ -34,6 +34,7 @@ const LOOKS := {
 	"jungle": {"title": "The Jungle", "tiles": "swamp", "weather": ["fireflies", "rain"], "backdrop": "jungle", "tint": Color(0.8, 1.0, 0.82)},
 	"ashlands": {"title": "The Ashlands", "tiles": "ash", "weather": ["ash", "embers"], "backdrop": "ashlands", "tint": Color(1.12, 0.78, 0.7)},
 	"castle": {"title": "The Castle", "tiles": "church", "backdrop": "cemetery", "tint": Color(0.9, 0.92, 1.08)},
+	"portals": {"title": "The Portal Fields", "tiles": "cemetery", "backdrop": "cemetery", "tint": Color(0.72, 0.66, 0.9)},  # level and quiet: the portals are the whole of it
 	"underground": {"title": "The Deep", "tiles": "stone", "backdrop": "cemetery", "tint": Color(0.42, 0.4, 0.55)},  # under a roof of rock: no sky shows
 }
 

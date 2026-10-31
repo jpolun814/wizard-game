@@ -51,7 +51,10 @@ static func plan_of(at: int) -> Dictionary:
 static func biome_of(at: int) -> String:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed_base
-	var order := _shuffled(SurfaceGen.BIOMES, rng)
+	var rest := SurfaceGen.BIOMES.duplicate()
+	rest.erase("portals")
+	var order := _shuffled(rest, rng)
+	order.insert(rng.randi_range(0, order.size()), "portals")  # dealt in at any place, after the rest are shuffled, so the seeds that were already in use keep most of their worlds
 	if at < STAGES.size() - 1:
 		return order[at]
 	for biome: String in _shuffled(SurfaceGen.OPEN_BIOMES, rng):

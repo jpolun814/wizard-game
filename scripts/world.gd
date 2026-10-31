@@ -410,6 +410,14 @@ func _raise_biome_life() -> void:
 					sheet.position = Vector2((column + 1) * tile, floors[column] * tile)
 					add_child(sheet)
 				column += run
+		"portals":
+			var field := PortalField.new()
+			field.seed_value = seed_value + 71
+			field.floors = floors
+			field.tile = tile
+			field.margin = SurfaceGen.MARGIN + 12
+			add_child(field)
+			_timed.append(field)
 		"underground":
 			var cave := CaveLife.new()
 			cave.floors = floors  # (a roofed world keeps no sky of its own: its roof is worked out from the ground)

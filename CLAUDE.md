@@ -26,6 +26,7 @@ trust the code and this file where they disagree.
 | `08_working_with_the_owner.md` | reply to the owner |
 | `09_godot_pitfalls.md` | debug something strange |
 | `12_liquids.md` | touch water or lava: pools are a flowing grid now (`LiquidGrid`, `Pond`), and a Sinkhole dug beside one fills from it |
+| `13_portal_world.md` | touch the portal world: a biome where portals open every few seconds, each a colour of its own, and carry you to another |
 | `11_network_play.md` | touch anything a second machine must see: wizards, spells, pages, gates, the match (done: host and join over a network) |
 
 ---

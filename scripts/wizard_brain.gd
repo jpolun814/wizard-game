@@ -19,6 +19,8 @@ const WALK_SPEED := 170.0
 const ENGAGE := 620.0         # a wizard this close, and in sight, is a fight; farther off, it is a journey
 const PAGE_REACH := 4          # tiles: a page further than this from any place to stand is not one it can get
 const GOAL_EVERY := 4.0       # seconds between looking for a nearer page
+const PORTAL_LEFT := 5.0        # seconds: a portal with less than this left open is not worth the walk
+const PORTAL_CHANCE := 0.4      # how often it takes a portal that is nearer than the page it was after
 const GIVE_UP := 45.0         # seconds a page it could not reach stays off its list
 const NEAR := 190.0           # closer than this it backs away
 const FAR := 330.0            # farther than this it closes in
@@ -88,6 +90,8 @@ var _foe: Wizard                 # the wizard it is dealing with: the nearest of
 var _route := WizardRoute.new()
 var _goal := ""                  # what it is travelling to: "page", "foe", or "" for nothing
 var _goal_page: PagePickup
+var _goal_portal: FieldPortal
+var _last_feet := Vector2.INF
 var _goal_timer := 0.0
 var _skip := {}                  # a page (its instance id) or a gate (its name) -> seconds it stays off the list, for one that could not be had
 var stuck_at: Array[String] = []  # where it has been held up, for a report
@@ -260,6 +264,14 @@ func _travel(delta: float) -> float:
 	if wizard.nav == null:
 		return 0.0
 	_read_page_underfoot()
+	if _last_feet.distance_to(wizard.global_position) > 250.0 and _last_feet != Vector2.INF:  # a portal has carried it off: the way it was going is no use
+		_goal = ""
+		_goal_timer = 0.0
+	_last_feet = wizard.global_position
+	if _goal == "portal" and _route.done():  # it has come to the portal and nothing came of it
+		_skip[_goal_portal.get_instance_id()] = GIVE_UP
+		_goal = ""
+		_goal_timer = 0.0
 	if _goal == "page" and _route.done() and not _goal_lost():  # it has come to the place, and the page is not to be had from there
 		_skip[_goal_page.get_instance_id()] = GIVE_UP
 		_goal = ""
@@ -578,6 +590,8 @@ func _read_page_underfoot() -> void:
 
 ## The page it was going to has gone: someone else read it, or it has it already.
 func _goal_lost() -> bool:
+	if _goal == "portal":
+		return not is_instance_valid(_goal_portal) or _goal_portal.is_closing() or _goal_portal.remaining() < PORTAL_LEFT * 0.5
 	return _goal == "page" and (not is_instance_valid(_goal_page) or not _goal_page.gives(wizard.ledger))
 
 
@@ -604,6 +618,12 @@ func _choose_goal() -> void:
 		if best_page == null or path.size() < best_path.size():
 			best_page = pickup
 			best_path = path
+	var portal := _nearest_portal(start)
+	if portal.has("portal") and (best_page == null or (portal["path"].size() < best_path.size() and _rng.randf() < PORTAL_CHANCE)):
+		_goal = "portal"
+		_goal_portal = portal["portal"]
+		_route.set_path(portal["path"])
+		return
 	if best_page != null:
 		_goal = "page"
 		_goal_page = best_page
@@ -616,6 +636,21 @@ func _choose_goal() -> void:
 		if not path.is_empty():
 			_goal = "foe"
 			_route.set_path(path)
+
+
+## The open portal nearest by the way it must walk, as {"portal", "path"}, or nothing when fewer than two are open (one leads nowhere).
+func _nearest_portal(start: Vector2i) -> Dictionary:
+	var open: Array = wizard.get_tree().get_nodes_in_group("field_portals").filter(func(p: FieldPortal) -> bool: return not p.is_closing())
+	var best := {}
+	if open.size() < 2:
+		return best
+	for portal: FieldPortal in open:
+		if portal.remaining() < PORTAL_LEFT or _skip.has(portal.get_instance_id()):
+			continue
+		var path: Array[Vector2i] = _path(start, wizard.nav.nearest(_tile_of(portal.global_position + Vector2(0.0, Portal.RY))))
+		if not path.is_empty() and (best.is_empty() or path.size() < best["path"].size()):
+			best = {"portal": portal, "path": path}
+	return best
 
 
 ## When no page is to be had, the nearest gate that it holds a spell for: it goes to the place short of it. True when it has set out.
@@ -781,6 +816,11 @@ func _ground_under(point: Vector2) -> float:
 ## It is getting nowhere on its way: find the way again, and after a few tries give the page up for a while.
 func _stuck_on_goal() -> void:
 	_replans += 1
+	if _goal == "portal" and _replans >= 3 and is_instance_valid(_goal_portal):
+		_skip[_goal_portal.get_instance_id()] = GIVE_UP
+		_replans = 0
+		_choose_goal()
+		return
 	if _goal == "page" and _replans >= 3 and is_instance_valid(_goal_page):
 		_skip[_goal_page.get_instance_id()] = GIVE_UP
 		_replans = 0

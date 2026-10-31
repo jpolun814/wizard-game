@@ -35,7 +35,7 @@ func open() -> void:
 
 
 func _on_animation_finished() -> void:
-	if _ring.animation == "opening":
+	if _ring.animation == "opening" or _ring.animation == "appearing":
 		_ring.play("open")
 
 
@@ -48,6 +48,8 @@ static func _states() -> SpriteFrames:
 	_add_run(out, "closed", strip, 8, 8, false)
 	_add_run(out, "opening", strip, 8, 15, false)
 	_add_run(out, "open", strip, 0, 7, true)
+	_add_run(out, "closing", strip, 16, 23, false)  # the ring shuts to a line and a puff of dust
+	_add_run(out, "appearing", strip, 23, 16, false)  # and that played backwards: the dust gathers and the ring opens
 	return out
 
 
@@ -55,7 +57,8 @@ static func _add_run(out: SpriteFrames, name: String, strip: SpriteFrames, first
 	out.add_animation(name)
 	out.set_animation_speed(name, 12.0)
 	out.set_animation_loop(name, loop)
-	for i in range(first, last + 1):
+	var step := 1 if last >= first else -1
+	for i in range(first, last + step, step):
 		out.add_frame(name, strip.get_frame_texture("default", i))
 
 
