@@ -60,7 +60,7 @@ func _build_map() -> Variant:
 	castle_x = built["castle"]
 	ArenaGen.world_size = built["size"]
 	ArenaGen.sky_xl = built["sky"]["xl"]
-	ArenaGen.sky_floor = built["sky"]["floor"] if not built["roofed"] else PackedInt32Array()  # under a roof there is no sky
+	ArenaGen.sky_floor = built["sky"]["roof_top"] if built["roofed"] else built["sky"]["floor"]  # over the great cavern lies the sky, past its roof
 	ArenaGen.biome_spans = []
 	for biome in graph.surface["biomes"]:
 		var span := {"a": biome["a"], "b": biome["b"], "tiles": SurfaceGen.LOOKS[biome["name"]]["tiles"]}
@@ -1189,7 +1189,13 @@ func _lay_pages() -> void:
 	spellbook.refresh()
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed_value + 7919  # the pages come from the seed, apart from the rest of the map
-	var layout := Pages.plan(graph, rng, ledgers)
+	var gate_kinds := []
+	for entry in _gates:
+		if not gate_kinds.has(entry["kind"]):
+			gate_kinds.append(entry["kind"])
+	var biome := SurfaceGen.biome_at(graph.surface, graph.surface["start"])
+	# What lies in a world comes from the seed alone, not from what the wizards hold: the starting pages the seed deals are left out, the rest are drawn.
+	var layout := Pages.plan(graph, rng, Pages.deal(seed_value + 31, WIZARDS), Pages.count_for(biome, WorldGraph.size.x), gate_kinds)
 	var count := {}
 	for index in layout.size():
 		var entry: Dictionary = layout[index]

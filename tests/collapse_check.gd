@@ -66,7 +66,7 @@ func _arrived(world: World) -> void:
 			known[page] = true
 	var held := known.size()
 	var lying := get_tree().get_nodes_in_group("pages").size()
-	_verdict(held + lying == _total_pages, "every page is held or lies on the map (%d held + %d lying = %d of %d)" % [held, lying, held + lying, _total_pages])
+	_verdict(lying <= Pages.count_for(MatchState.biome_of(stage), WorldGraph.size.x) + 2, "a world lays no more pages than it is meant to (%d lying, %d held)" % [lying, held])
 	if stage == 0:
 		_held_at_start = held
 	else:

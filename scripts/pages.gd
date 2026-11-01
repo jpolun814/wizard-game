@@ -17,10 +17,50 @@ const CHANTS := ["chant:bonfire", "chant:rift"]
 ## Spells that open no gate, and chants that do not: the ones that may lie in a locked area.
 const LOCKABLE := ["Frostbolt", "Icicles", "Ice Prison", "Blizzard", "Stonefall", "Mudslide", "Earthquake", "Stalagmite", "Bramble", "Spore Puff",
 		"Flytrap", "Hex", "Black Hole", "Tide Surf", "Offering", "Burst", "Crimson Veil", "Adrenaline", "Faint", "Vacuum", "Fight or Flight", "Sneak", "Hunter's Mark", "chant:boundless", "chant:double_jump", "chant:haste", "chant:scrying"]
+## How many pages lie in a world of each biome, in a world 1000 tiles wide: the ones with little height to spread through (a volcano's
+## slopes, the portal fields) hold fewer than those with room to climb or dig. Smaller worlds hold fewer (see count_for). The pages that
+## are not laid are simply not in that world: nothing carries over, and each world's pages come from its seed alone (not from who holds what).
+const PER_WORLD := {"graveyard": 16, "mountains": 16, "jungle": 18, "ashlands": 12, "castle": 18, "underground": 20, "portals": 10}
+const LEAST := 6  # however small the world
 const ON_SURFACE := 3  # pages that lie out in the open near the start, so the first one is found within a minute
 ## Where in a castle they lie: a column from its west end, and the height of the floor in rows (the cellar's is below the ground, so negative).
 ## Deepest and highest first, then the middle floors, so the few of a small match go to the places hardest to reach.
 const CASTLE_SPOTS := [Vector2i(62, 34), Vector2i(38, -11), Vector2i(92, 34), Vector2i(98, -11), Vector2i(48, 34), Vector2i(58, -11), Vector2i(55, 22), Vector2i(96, 22), Vector2i(78, -11), Vector2i(18, 11), Vector2i(97, 11)]
+
+## How many pages lie in a world of this biome and width in tiles.
+static func count_for(biome: String, width: int) -> int:
+	var base: int = PER_WORLD.get(biome, 14)
+	return maxi(LEAST, roundi(base * (0.4 + 0.6 * clampf(width / 1000.0, 0.0, 1.0))))
+
+
+## The pages that open a kind of gate, wherever the spells that do it are listed (the AI's own lists say which ones).
+static func openers_of(kind: String) -> Array:
+	var out: Array = []
+	for list: Dictionary in [WizardBrain.CLEARS, WizardBrain.WAYS]:
+		for page: String in list.get(kind, []):
+			out.append(page)
+	return out
+
+
+## Picks the pages that lie in a world from those no one holds, `count` of them, drawn by chance; a kind of gate the world has always
+## keeps a page that opens it, unless a wizard holds one already.
+static func choose(unheld: Array[String], held: Array[Ledger], count: int, gate_kinds: Array, rng: RandomNumberGenerator) -> Array[String]:
+	var pool := unheld.duplicate()
+	_shuffle(pool, rng)
+	var kept: Array[String] = []
+	for page: String in pool.slice(0, mini(count, pool.size())):
+		kept.append(page)
+	for kind: String in gate_kinds:
+		var wanted := openers_of(kind)
+		if wanted.is_empty() or kept.any(func(p: String) -> bool: return wanted.has(p)) or held.any(func(l: Ledger) -> bool: return wanted.any(func(p: String) -> bool: return l.knows(p))):
+			continue
+		var spare: Array = pool.filter(func(p: String) -> bool: return wanted.has(p) and not kept.has(p))
+		if spare.is_empty() or kept.is_empty():
+			continue
+		kept.pop_back()  # the last of the draw gives way
+		kept.append(spare[0])
+	return kept
+
 
 ## Deals each wizard their starting pages, the same way for the same seed. Wizards are given different spells where the lists are long enough
 ## (a list shorter than the wizards repeats), so a wizard's starter spell is theirs alone, with no page of it on the map for another to find.
@@ -61,11 +101,13 @@ static func title_of(page: String) -> String:
 
 
 ## Where each page lies: [{"page", "room": a room's id}], from the graph and a rng. The pages the wizards start with are left off the map.
-static func plan(graph: WorldGraph, rng: RandomNumberGenerator, dealt: Array[Ledger]) -> Array:
+static func plan(graph: WorldGraph, rng: RandomNumberGenerator, dealt: Array[Ledger], count := -1, gate_kinds := []) -> Array:
 	var items: Array[String] = []
 	for page in every():
 		if not dealt.any(func(ledger: Ledger) -> bool: return ledger.knows(page)):
 			items.append(page)
+	if count >= 0 and count < items.size():
+		items = choose(items, dealt, count, gate_kinds, rng)
 	var lockable: Array[String] = []
 	var open: Array[String] = []
 	for page in items:

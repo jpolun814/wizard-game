@@ -2,8 +2,9 @@ class_name Sinkhole
 extends Node2D
 
 ## Sinkhole: the ground opens where a U was drawn. A pit is dug into the open ground (Terrain.dig), as wide as the U and deeper
-## than a wizard is tall, and whoever stands over it drops in. It does not close again. It does nothing under a roof or on the bare stone
-## of a castle floor, where there is no ground to give way.
+## than a wizard is tall, and whoever stands over it drops in. It does not close again. Drawn at the underside of a roof it digs
+## up instead, into the rock above, and a roof thin enough lets the sky in. It does nothing on the bare stone of a castle floor, where
+## there is no ground to give way.
 
 const HALF_WIDTH := 80.0  # the width of a pit drawn with no U to go by
 const LEAST := 50.0       # and the narrowest and widest a drawn U can make it

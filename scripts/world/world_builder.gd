@@ -20,6 +20,7 @@ const CASTLE_STAIR_GAP := 6  # columns of the floor above that are cut away over
 const CASTLE_TOWER := 30  # rows the gate tower and the back tower stand above the ground
 const CASTLE_KEEP := 46  # rows the keep stands above the ground
 const CASTLE_WIDTH := 136  # columns the castle takes on the surface (SurfaceGen keeps the same)
+const ROOF_THICK := 2      # rows of rock between the great cavern and the sky above it: thin enough to dig through
 const ROOF_AIR := 28        # rows of air over the ground of the underground world, before its roof of rock
 const EXIT_FLAT := 10       # columns of flat floor inside a hall at a tunnel mouth
 const LID_SPAN := 16        # columns of flat floor past a ramp that starts in the middle of a floor
@@ -92,6 +93,10 @@ static func build(graph: WorldGraph, rng: RandomNumberGenerator) -> Dictionary:
 		profiles[room["id"]] = _surface_profile(graph, plans[0]) if room.has("surface") else _profile(plans[room["id"]], rng)
 	for room in graph.rooms:
 		_carve_hall(cells, profiles[room["id"]])
+		if room.has("surface") and graph.surface["roofed"]:  # over the roof of the cavern lies open sky, for a wizard to see and to dig out to
+			for i in profiles[room["id"]]["floor"].size():
+				for r in range(0, profiles[room["id"]]["ceiling"][i] - ROOF_THICK):
+					cells.erase(Vector2i(profiles[room["id"]]["xl"] + i, r))
 		for pond in profiles[room["id"]]["ponds"]:
 			ponds.append(pond)
 			if pond["lava"] and not pond.get("islands", false):  # a lake of the surface has its islands in the ground itself
@@ -138,8 +143,17 @@ static func build(graph: WorldGraph, rng: RandomNumberGenerator) -> Dictionary:
 			gate["lock"] = tunnels[k]["lock"]
 			gates.append(gate)
 	return {"cells": cells, "size": size, "markers": markers, "start": markers[graph.start], "ponds": ponds,
-			"hazards": hazards, "castle": castles[0] if not castles.is_empty() else -1, "castles": castles, "roofed": graph.surface["roofed"], "hall": hall, "stairs": stairs, "profiles": profiles, "sky": {"xl": profiles[0]["xl"], "floor": profiles[0]["floor"]},
+			"hazards": hazards, "castle": castles[0] if not castles.is_empty() else -1, "castles": castles, "roofed": graph.surface["roofed"], "hall": hall, "stairs": stairs, "profiles": profiles, "sky": {"xl": profiles[0]["xl"], "floor": profiles[0]["floor"], "roof_top": _roof_top(profiles[0])},
 			"surface": graph.surface, "gates": gates, "spawns": spawns}
+
+
+## The first row of the roof of the great cavern in each column (the ground of the world above it), or none where the world has no roof.
+static func _roof_top(profile: Dictionary) -> PackedInt32Array:
+	var out := PackedInt32Array()
+	var ceiling: PackedInt32Array = profile["ceiling"]
+	for i in ceiling.size():
+		out.append(ceiling[i] - ROOF_THICK if ceiling[i] > 0 else profile["floor"][i])
+	return out
 
 
 ## The ground of the surface: the biomes' heights, made level round every mouth, with the pools dug into it.

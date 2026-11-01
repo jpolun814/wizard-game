@@ -59,6 +59,24 @@ func _initialize() -> void:
 	var room := Ledger.complete()
 	_check(room.knows("Glowcap") and room.knows_chant("rift") and room.knows_chant("recall"), "the waiting room lacks a page")
 	_check(room.count() == Pages.every().size(), "the waiting room's count is not every page")
+	# A world lays only so many pages: more in a big world, fewer where there is little room, never fewer than the least, and a kind of gate
+	# the world has always keeps a page that opens it.
+	_check(Pages.count_for("underground", 1000) > Pages.count_for("ashlands", 1000), "the volcano world holds as many pages as the underground")
+	_check(Pages.count_for("portals", 1000) < Pages.count_for("graveyard", 1000), "the portal world holds as many pages as a graveyard")
+	_check(Pages.count_for("graveyard", 360) < Pages.count_for("graveyard", 1000) and Pages.count_for("portals", 360) >= Pages.LEAST, "a smaller world is not held to a smaller count")
+	for seed_value in 100:
+		var rng := RandomNumberGenerator.new()
+		rng.seed = seed_value
+		var dealt := Pages.deal(seed_value, 4)
+		var unheld: Array[String] = []
+		for every_page in Pages.every():
+			if not dealt.any(func(l: Ledger) -> bool: return l.knows(every_page)):
+				unheld.append(every_page)
+		for kind in ["gas", "wall", "piranhas", "sentinel"]:
+			var kept := Pages.choose(unheld, dealt, 8, [kind], rng)
+			var wanted := Pages.openers_of(kind)
+			_check(kept.size() == 8, "seed %d: %d pages are chosen, not 8" % [seed_value, kept.size()])
+			_check(kept.any(func(p: String) -> bool: return wanted.has(p)) or dealt.any(func(l: Ledger) -> bool: return wanted.any(func(p: String) -> bool: return l.knows(p))), "seed %d: nothing opens a %s gate" % [seed_value, kind])
 	print("%d checks" % _checks)
 	print("all page checks passed" if _failures == 0 else "%d FAILED" % _failures)
 	quit(1 if _failures > 0 else 0)

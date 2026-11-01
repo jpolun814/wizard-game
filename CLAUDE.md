@@ -443,6 +443,8 @@ GODOT="/c/Users/Jordan Polun/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.
 boss and the solo roguelite loop of `docs/roguelite_exploration_design.md`) is in `docs/pvp_arena_design.md`. The waiting room (`scenes/lab.tscn`, `scripts/lab.gd`) is where every spell is tried; the portal there
 starts a run.
 
+**Pages per world:** each world lays only `Pages.count_for(biome, width)` pages (graveyard 16, peaks 16, jungle 18, ashlands 12, castle 18, underground 20, portal fields 10, at 1000 tiles wide, fewer in the smaller worlds, never under 6), drawn from the seed alone (not from who holds what; only the starting pages the seed deals are left out). Pages not laid do not carry over. A kind of gate the world has always keeps a page that opens it (`Pages.choose`).
+
 **Targeting types:** `directional`, `positional`, `angled`, `shape` and `cone`. The caster's `cast_resolved`
 signal passes `info` (radius, line, rect, shapes, aim, spread, reach), and `arena.spawn_spell` routes it.
 **No sides:** once a spell is cast it has no team. It hurts whoever it touches: enemies, the player, the dark

@@ -122,19 +122,20 @@ func _build_collision() -> void:
 ## the rock is cut from is changed and the world is cut again from it, so the ground is drawn and solid as the pit. False when there is no
 ## open ground there to dig.
 func dig(at: Vector2, half_width: float, depth: float) -> bool:
+	var way := -1.0 if _faces_down_near(at) else 1.0  # a pit sinks into the ground below; under a roof it is dug up into the rock above
 	# Rock too thin to stand between this pit and another one beside it goes too: the pit reaches across to the other.
 	var left := at.x - half_width
 	var right := at.x + half_width
 	for step in range(0, int(THIN_WALL), 4):
-		if not solid_at(Vector2(at.x - half_width, at.y + 8.0)):
+		if not solid_at(Vector2(at.x - half_width, at.y + 8.0 * way)):
 			break
-		if not solid_at(Vector2(at.x - half_width - step, at.y + 8.0)):
+		if not solid_at(Vector2(at.x - half_width - step, at.y + 8.0 * way)):
 			left = at.x - half_width - step - 10.0
 			break
 	for step in range(0, int(THIN_WALL), 4):
-		if not solid_at(Vector2(at.x + half_width, at.y + 8.0)):
+		if not solid_at(Vector2(at.x + half_width, at.y + 8.0 * way)):
 			break
-		if not solid_at(Vector2(at.x + half_width + step, at.y + 8.0)):
+		if not solid_at(Vector2(at.x + half_width + step, at.y + 8.0 * way)):
 			right = at.x + half_width + step + 10.0
 			break
 	at.x = (left + right) * 0.5
@@ -179,12 +180,12 @@ func dig(at: Vector2, half_width: float, depth: float) -> bool:
 		var u := float(s) / steps
 		var surface := near.lerp(far, u)
 		var sink := depth * clampf(minf(u, 1.0 - u) * 5.0, 0.0, 1.0)  # steep walls and a flat floor
-		bowl.append(surface + Vector2(0.0, sink))
+		bowl.append(surface + Vector2(0.0, sink * way))
 	if not left_to_right:
 		bowl.reverse()
 	# The pit is joined to the outline as a shape, not spliced in along the surface: a pit beside another one then runs into it, and no thin wall is
 	# left standing between them.
-	var up := Vector2(0.0, -40.0)
+	var up := Vector2(0.0, -40.0 * way)
 	var pit := PackedVector2Array([bowl[0] + up])
 	pit.append_array(bowl)
 	pit.append(bowl[bowl.size() - 1] + up)
@@ -194,6 +195,8 @@ func dig(at: Vector2, half_width: float, depth: float) -> bool:
 	if pieces.is_empty():
 		return false
 	_loops.remove_at(best_loop)
+	if is_air and way < 0.0:
+		pieces = _joined_to_other_air(pieces)  # a pit dug up through a roof opens into the air beyond it
 	for piece: PackedVector2Array in pieces:
 		var hole := Geometry2D.is_polygon_clockwise(piece) if is_air else false
 		var wanted_air := is_air != hole  # a hole in air is rock standing in it, and the other way round
@@ -202,6 +205,45 @@ func dig(at: Vector2, half_width: float, depth: float) -> bool:
 		_loops.append(piece)
 	_rebuild()
 	return true
+
+
+## True when the outline nearest a point, within reach, has its air below it there: the underside of a roof.
+func _faces_down_near(at: Vector2) -> bool:
+	var best := 48.0
+	var down := false
+	for outline: PackedVector2Array in _loops:
+		var sign_of_air := 1.0 if Contour.area(outline) < 0.0 else -1.0  # the air is on the left of an air outline, the right of an island's
+		for k in outline.size():
+			var to := outline[(k + 1) % outline.size()]
+			var distance := Geometry2D.get_closest_point_to_segment(at, outline[k], to).distance_to(at)
+			if distance < best:
+				best = distance
+				down = (to.x - outline[k].x) * sign_of_air < -0.3 * outline[k].distance_to(to)
+	return down
+
+
+## Pieces of air with every other body of air they touch joined in, so that two outlines never cross.
+func _joined_to_other_air(pieces: Array) -> Array:
+	var out := pieces.duplicate()
+	var joined := true
+	while joined:
+		joined = false
+		for l in range(_loops.size() - 1, -1, -1):
+			var other: PackedVector2Array = _loops[l]
+			if Contour.area(other) >= 0.0:
+				continue
+			for k in out.size():
+				if Geometry2D.intersect_polygons(out[k], other).is_empty():
+					continue
+				var merged := Geometry2D.merge_polygons(out[k], other)
+				if merged.size() == 1:
+					out[k] = merged[0]
+					_loops.remove_at(l)
+					joined = true
+					break
+			if joined:
+				break
+	return out
 
 
 ## An outline with a point at least every `step` pixels, along the same lines.
