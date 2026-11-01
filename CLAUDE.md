@@ -353,7 +353,9 @@ GODOT="/c/Users/Jordan Polun/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.
 "$GODOT" --headless --fixed-fps 60 --path . tests/spectate_check.tscn  # the player falls and watches a rival (add `-- collapse` to follow into the next world)
 "$GODOT" --headless --fixed-fps 60 --path . tests/pull_check.tscn  # the portal tears open at the top and sucks the wizards in (add `-- out=DIR` for pictures, needs a window)
 "$GODOT" --headless --fixed-fps 60 --path . tests/spark_check.tscn  # Spark Strike lands on the ground under open sky
-"$GODOT" --headless --fixed-fps 60 --path . tests/stairs_check.tscn  # a castle stair to the cellar is walked down and dropped through with S (stairs are hollow, and the only way between floors: no ladders, no doors)
+"$GODOT" --headless --fixed-fps 60 --path . tests/stairs_check.tscn  # a swinging stair is a one-way platform: a wizard stands on it and holding S drops them through
+"$GODOT" --headless --fixed-fps 60 --path . tests/stairwell_check.tscn  # the castle has thirteen swinging stairs (`SwingStair`) in five stairwells, each swinging among landings on other floors; a wizard waits for one, crosses it and is carried (add `-- out=DIR` for pictures, needs a window)
+"$GODOT" --headless --fixed-fps 60 --path . tests/biome_jump_check.tscn  # the F1 panel goes to a world of any biome, whatever the seed deals
 "$GODOT" --headless --fixed-fps 60 --path . tests/parity_check.tscn  # Push, Geyser, Burst, Tornado, Tide Surf and a shot do the same to a person's wizard and the brain's
 "$GODOT" --path . tests/eclipse_check.tscn  # an Eclipse darkens the screen of the one inside it (add `-- out=DIR` for pictures)
 "$GODOT" --headless --fixed-fps 60 --path . tests/sentinel_check.tscn  # a sentinel shoots a rival wizard in range, not one out of range

@@ -71,6 +71,19 @@ func _ready() -> void:
 			_world_buttons.append(button)
 		visibility_changed.connect(_name_worlds)
 		_name_worlds()
+		var any := Label.new()
+		any.text = "Go to any biome"
+		any.add_theme_font_size_override("font_size", 13)
+		column.add_child(any)
+		var biomes := GridContainer.new()
+		biomes.columns = 2
+		biomes.add_theme_constant_override("h_separation", 4)
+		biomes.add_theme_constant_override("v_separation", 4)
+		column.add_child(biomes)
+		for biome: String in SurfaceGen.BIOMES:
+			var button := _button(SurfaceGen.LOOKS[biome]["title"], arena.go_to_biome.bind(biome))
+			button.custom_minimum_size = Vector2(160, 0)
+			biomes.add_child(button)
 
 
 func _button(text: String, action: Callable) -> Button:

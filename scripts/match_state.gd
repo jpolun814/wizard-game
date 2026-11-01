@@ -20,6 +20,7 @@ const WARNING := 18.0 # seconds of shaking and a warning before a world collapse
 static var hurry := 1.0  # a test shortens the time in a world by this much
 static var stage := 0
 static var seed_base := 0
+static var forced_biome := ""  # the F1 panel's choice of biome for the world being built, whatever the seed would deal (empty: the seed's own)
 static var pending := false  # the next world to load carries a match on, rather than starting one
 static var ledgers: Array[Ledger] = []  # the pages each wizard holds, the player's first
 static var vitals: Array[Dictionary] = []  # each wizard's, in the same order: {"alive", "max", "stamina"}
@@ -30,6 +31,7 @@ static func begin(seed_value: int) -> void:
 	stage = 0
 	seed_base = seed_value
 	pending = false
+	forced_biome = ""
 	ledgers = []
 	vitals = []
 
@@ -41,7 +43,7 @@ static func plan() -> Dictionary:
 
 ## The same for any stage of this match.
 static func plan_of(at: int) -> Dictionary:
-	var biome := biome_of(at)
+	var biome := forced_biome if forced_biome != "" and at == stage else biome_of(at)
 	var halls := SurfaceGen.has_halls(biome) and at < STAGES.size() - 1  # the last world is all open sky
 	return STAGES[at].merged({"biome": biome, "caves": halls})
 
@@ -86,6 +88,7 @@ static func seed_for(at: int, count: int) -> int:
 ## The collapse: the next world is the one after this, with these ledgers and vitals, built from a seed of its own. Returns that seed.
 static func advance(held: Array[Ledger], state: Array[Dictionary], count: int) -> int:
 	stage += 1
+	forced_biome = ""
 	pending = true
 	ledgers = held
 	vitals = state

@@ -41,7 +41,7 @@ func _initialize() -> void:
 			var from := nav.nearest(spawn)
 			var reach := WorldBuilder.reachable(cells, from, bottom, shut["barred"])
 			var keys: Array = reach.keys()
-			_check(keys.size() > 500, "seed %d: a spawn at %s reaches only %d tiles" % [s, spawn, keys.size()])
+			_check(keys.size() > 100, "seed %d: a spawn at %s reaches only %d tiles" % [s, spawn, keys.size()])  # on foot alone: the castle's floors are cut by stairwells, which only swinging stairs cross (the anchored map below has them)
 			var longest := 0
 			for k in 120:
 				var to: Vector2i = keys[picker.randi() % keys.size()]

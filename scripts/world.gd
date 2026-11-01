@@ -22,7 +22,7 @@ var _nav_waiting := false
 var _dug_tiles := {}  # the tiles of the ground that pits have taken away, so the map of the ways can be made again without them
 var _built: Dictionary  # what the generator made, kept to build the ways again when a gate is cleared
 var _since_gates := 0.0
-var _castle_stairs := []  # [{"from", "to": the ends of the slope in pixels, "under"}]: its stairs to the cellars
+var _planks := []  # the castle's swinging stairs: [{"hinge", "ends", "ways"}]
 var _weather: Array[Weather] = []
 var _gale: MountainGale  # the snowy peaks' wind, when this world has it
 var _squall: Squall  # the jungle's downpours or the ashlands' ash storms, when this world has them
@@ -69,10 +69,7 @@ func _build_map() -> Variant:
 			span["snow"] = SurfaceGen.LOOKS[biome["name"]]["snow"]  # above this many rows over the plains, the ground is snow
 		ArenaGen.biome_spans.append(span)
 	ArenaGen.castle_hall = built["hall"]
-	ArenaGen.castle_steps = []
-	for run: Dictionary in built["stairs"]:
-		ArenaGen.castle_steps.append_array(run["under"])
-	_castle_stairs = built["stairs"]
+	_planks = built["planks"]
 	tiled_ground = true
 	_start_tile = built["start"]
 	_spawn_tiles = built["spawns"]
@@ -205,20 +202,13 @@ func _begin_encounter(camera: Camera2D) -> void:
 	_raise_biome_life()
 	_wash_out_the_colour()
 	add_child(Grade.for_biome(SurfaceGen.biome_at(graph.surface, graph.surface["start"])))
-	if not _castle_stairs.is_empty():
-		var slopes := StaticBody2D.new()
-		slopes.collision_layer = 16  # a one-way platform: walk up it, land on top, and S drops through
-		slopes.collision_mask = 0
-		for entry: Dictionary in _castle_stairs:
-			var slope := CollisionShape2D.new()
-			var line := SegmentShape2D.new()
-			line.a = entry["from"]
-			line.b = entry["to"]
-			slope.shape = line
-			slope.one_way_collision = true
-			slope.one_way_collision_margin = 6.0
-			slopes.add_child(slope)
-		add_child(slopes)
+	for index in _planks.size():
+		var swing := SwingStair.new()
+		swing.hinge = _planks[index]["hinge"]
+		swing.ends.assign(_planks[index]["ends"])
+		swing.ways = _planks[index]["ways"]
+		swing.seed_value = seed_value + 71 + index
+		add_child(swing)
 	for entry in _gates:
 		match entry["kind"]:
 			"brambles":
@@ -918,6 +908,14 @@ func go_to_stage(at: int) -> void:
 		return
 	MatchState.stage = at - 1  # the collapse moves on to the next
 	_collapse()
+
+
+## For the F1 panel: leaves for a world of any biome now, whether or not this match's seed would deal it, keeping this world's place in the match.
+func go_to_biome(biome: String) -> void:
+	if _leaving:
+		return
+	go_to_stage(MatchState.stage)
+	MatchState.forced_biome = biome
 
 
 func _collapse() -> void:

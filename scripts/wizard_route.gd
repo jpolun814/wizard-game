@@ -16,6 +16,7 @@ const ARRIVE_X := 18.0      # how close to the middle of a tile counts as being 
 const ARRIVE_Y := 28.0
 const STUCK_AFTER := 2.0    # seconds without getting closer before the route gives up
 const CLIMB_ROWS := 8        # a move up this many rows is a vine, or a stair if it goes as far across
+const CROSSING_MARGIN := 0.5  # seconds more than the walk across that a swinging stair must stay put for a wizard to start across it
 const HOP_GAP := 0.6        # seconds between hops over a step that blocks the way
 
 var _path: Array[Vector2i] = []
@@ -25,6 +26,8 @@ var _best := INF
 var _air_speed := WALK
 var _jumped := false  # this move's jump has been made, and the wizard is not down yet
 var _hop := 0.0
+var _ride := Vector2i(-1, -1)  # the landing it is crossing a swinging stair to: once begun, it is carried through whatever else the wizard decides
+var _ride_from := 0           # the row it began from
 var _gravity: float = ProjectSettings.get_setting("physics/2d/default_gravity")
 
 
@@ -70,6 +73,12 @@ func steer(body: CharacterBody2D, delta: float) -> Dictionary:
 	_hop = maxf(_hop - delta, 0.0)
 	var feet := body.global_position
 	var grounded := body.is_on_floor()
+	if _ride.x >= 0:  # across a swinging stair: walk to the far landing, whatever has been decided since
+		out["dir"] = signf((_ride.x + 0.5) * TILE - feet.x)
+		if _reached(feet, _ride) or feet.y > float(maxi(_ride_from, _ride.y) + 4) * TILE:  # arrived, or thrown off
+			_ride = Vector2i(-1, -1)
+		_stuck = 0.0
+		return out
 	while _next < _path.size() and (grounded or not _jumped) and _reached(feet, _path[_next]):  # after a jump, it has to be down
 		_next += 1
 		_stuck = 0.0
@@ -81,6 +90,15 @@ func steer(body: CharacterBody2D, delta: float) -> Dictionary:
 	var from := _path[_next - 1]
 	var across := absi(goal_tile.x - from.x)
 	var down := goal_tile.y - from.y
+	if SwingStair.is_a_way(body.get_tree(), from, goal_tile):  # a stair that swings: wait at the landing until it has come, then walk across it
+		var at_landing := absf(feet.x - (from.x + 0.5) * TILE) < TILE * 2.5 and absf(feet.y - (from.y + 1) * TILE) < TILE * 1.5
+		if not at_landing:
+			out["replan"] = true  # it is somewhere else, and has to find its way back to the landing
+		elif SwingStair.is_joined(body.get_tree(), from, goal_tile, Vector2(goal_tile - from).length() * TILE / WALK + CROSSING_MARGIN):
+			_ride = goal_tile
+			_ride_from = from.y
+		_stuck = 0.0  # waiting is not being stuck
+		return out
 	if -down >= CLIMB_ROWS and across <= 2:
 		_climb(feet, grounded, from, goal_tile, out)
 		return _track(out, feet, goal_tile, delta)
