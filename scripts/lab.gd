@@ -31,7 +31,7 @@ var _player_light: PointLight2D
 ## The ground: flat, with a pit for lava, a gap, a pond's bed and a hill, each with gentle sides so it can be walked out of.
 func _build_map() -> Variant:
 	var heights := PackedFloat32Array()
-	heights.resize(ArenaGen.RIGHT_WALL - ArenaGen.FIRST_COL)
+	heights.resize(ArenaGen.right_wall - ArenaGen.FIRST_COL)
 	_dig(heights, LAVA, PIT_ROWS)
 	_dig(heights, GAP, GAP_ROWS)
 	_dig(heights, POND, PIT_ROWS)
@@ -126,7 +126,7 @@ func _input(event: InputEvent) -> void:
 func _open_portal() -> void:
 	_portal = Portal.new()
 	var far_right: bool = player.global_position.x < 0.0
-	var col := ArenaGen.RIGHT_WALL - 3 if far_right else ArenaGen.LEFT_WALL + 3
+	var col := ArenaGen.right_wall - 3 if far_right else ArenaGen.LEFT_WALL + 3
 	_portal.position = Vector2(ArenaGen.column_x(col), ArenaGen.surface_y(_cells, col) - Portal.RY - 4.0)
 	_portal.body_entered.connect(_on_portal_entered)
 	add_child(_portal)

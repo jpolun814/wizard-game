@@ -23,6 +23,7 @@ var direction := 1.0
 var _age := 0.0
 var _shoved := {}  # who it has shoved lately -> seconds until it can again
 var _spray: CPUParticles2D
+var _sound: AudioStreamPlayer2D  # the sea, heard for as long as the ride lasts
 
 
 func _ready() -> void:
@@ -47,7 +48,7 @@ func _ready() -> void:
 	_spray.emitting = true
 	global_position = caster_node.global_position
 	_carried = _take_up()
-	Sfx.play("surf", global_position)
+	_start_sound()
 
 
 func _physics_process(delta: float) -> void:
@@ -89,7 +90,24 @@ func _take_up() -> float:
 	return maxf(got, WATER)
 
 
+## The recording swells and then holds the sea at its fullest for longer than a ride lasts, and is faded out when the ride ends.
+func _start_sound() -> void:
+	if Sfx.muted:
+		return
+	_sound = AudioStreamPlayer2D.new()
+	_sound.stream = load("res://audio/surf.ogg")
+	_sound.bus = Sfx.BUS
+	_sound.volume_db = Sfx.VOLUME["surf"]
+	_sound.max_distance = Sfx.MAX_DISTANCE
+	_sound.attenuation = 0.6
+	add_child(_sound)
+	_sound.play()
+
+
 func _end() -> void:
+	if _sound != null:
+		var quiet := create_tween()
+		quiet.tween_property(_sound, "volume_db", -40.0, 0.4)
 	if _carried > 0.0 and ground != null:
 		Pond.spill(get_parent(), ground, global_position + Vector2(0.0, -6.0), _carried)
 		_carried = 0.0

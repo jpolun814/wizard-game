@@ -1,16 +1,23 @@
 extends Control
 
-## The first screen: play alone, host a game for friends, or join a friend's game by its address. Hosting and joining both lead to
-## the waiting room, which everyone in the game then shares (see Net).
+## The first screen: single player (play, or the tutorial), multiplayer (host a game for friends, or join a friend's game by its address), and
+## the library. Playing, hosting and joining all lead to the waiting room, which everyone in the game then shares (see Net).
 
 const WAITING_ROOM := "res://scenes/lab.tscn"
+const TUTORIAL := "res://scenes/tutorial.tscn"
+const LIBRARY := "res://scenes/library.tscn"
 const SETTINGS := "user://settings.cfg"  # remembers the last address typed, so a friend's game is one click away next time
 
-@onready var _alone: Button = $Box/Alone
-@onready var _host: Button = $Box/Host
-@onready var _address: LineEdit = $Box/JoinRow/Address
-@onready var _join: Button = $Box/JoinRow/Join
+@onready var _main: VBoxContainer = $Box/Main
+@onready var _single: VBoxContainer = $Box/Single
+@onready var _multi: VBoxContainer = $Box/Multi
+@onready var _alone: Button = $Box/Single/Play
+@onready var _host: Button = $Box/Multi/Host
+@onready var _address: LineEdit = $Box/Multi/JoinRow/Address
+@onready var _join: Button = $Box/Multi/JoinRow/Join
 @onready var _status: Label = $Box/Status
+@onready var _tutorial: Button = $Box/Single/Tutorial
+@onready var _library: Button = $Box/Main/Library
 
 const SCENERY := "res://art/backgrounds/cemetery/"
 const PIXEL := 3  # whole-number scale for the pixel art
@@ -35,10 +42,20 @@ func _ready() -> void:
 	_alone.pressed.connect(_on_alone)
 	_host.pressed.connect(_on_host)
 	_join.pressed.connect(_on_join)
+	_tutorial.pressed.connect(func() -> void:
+		Sfx.play("ui_click")
+		get_tree().change_scene_to_file(TUTORIAL))
+	_library.pressed.connect(func() -> void:
+		Sfx.play("ui_click")
+		get_tree().change_scene_to_file(LIBRARY))
+	$Box/Main/SinglePlayer.pressed.connect(_show_page.bind(_single, _alone))
+	$Box/Main/Multiplayer.pressed.connect(_show_page.bind(_multi, _host))
+	$Box/Single/SingleBack.pressed.connect(_show_page.bind(_main, $Box/Main/SinglePlayer))
+	$Box/Multi/MultiBack.pressed.connect(_show_page.bind(_main, $Box/Main/Multiplayer))
 	_address.text_submitted.connect(func(_text: String) -> void: _on_join())
 	Net.roster_changed.connect(_on_roster_changed)
 	Net.disconnected.connect(_on_disconnected)
-	_alone.grab_focus.call_deferred()
+	$Box/Main/SinglePlayer.grab_focus.call_deferred()
 	_dress()
 	resized.connect(_lay_out)
 	_lay_out()
@@ -144,6 +161,22 @@ func _lay_out() -> void:
 	_plate.size = box.size
 
 
+func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("pause") and not _main.visible:
+		_show_page(_main, $Box/Main/SinglePlayer if _single.visible else $Box/Main/Multiplayer)  # Esc goes back a page
+
+
+## Shows one page of buttons (the main ones, single player's or multiplayer's), with the keyboard on one of its buttons.
+func _show_page(page: VBoxContainer, focus: Button) -> void:
+	Sfx.play("ui_click")
+	_main.visible = page == _main
+	_single.visible = page == _single
+	_multi.visible = page == _multi
+	_status.text = ""
+	focus.grab_focus.call_deferred()
+	_lay_out.call_deferred()  # the plate behind the buttons fits the page
+
+
 func _on_alone() -> void:
 	Sfx.play("ui_click")
 	get_tree().change_scene_to_file(WAITING_ROOM)
@@ -175,7 +208,7 @@ func _on_join() -> void:
 
 ## While joining, the buttons wait for the answer.
 func _set_waiting(waiting: bool) -> void:
-	for button: Button in [_alone, _host, _join]:
+	for button: Button in [_alone, _host, _join, _tutorial, _library, $Box/Main/SinglePlayer, $Box/Main/Multiplayer, $Box/Single/SingleBack, $Box/Multi/MultiBack]:
 		button.disabled = waiting
 	_address.editable = not waiting
 	_join.text = "Joining..." if waiting else "Join"

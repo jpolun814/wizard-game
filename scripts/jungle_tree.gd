@@ -13,10 +13,13 @@ const TILE := 32
 const LEDGES := [[30.0, -36.0, -10.0], [112.0, -44.0, -12.0], [156.0, 40.0, 88.0], [212.0, -26.0, 44.0]]
 const VINE_LEDGE := 2
 const MAX_BRIDGE := 9  # the most columns a rope bridge spans
+const SINK := 2.0  # how far the picture is let down into the ground, at its own size, so that no edge of it shows at the surface (a little: the ledges stay where the picture draws them)
+const FOOTPRINT := 6  # columns either side of the trunk that its roots spread over
 const TRUNK_SHIFT := 12.0  # the trunk's base is this far left of the middle of the picture, at the picture's own size
 
 var size := 2  # how many times the size of its picture: 2 and 3 (every tree has the oak's ledges and a vine)
 var mirror := false  # the picture turned about, ledges, vine and all
+var drop := 0.0  # how far the ground falls away under the roots, on the lowest side: the roots are drawn on down that far
 var vine_ground := 0.0  # how far below the foot of the trunk the ground is where the vine hangs (it is a little to the side)
 
 
@@ -64,16 +67,26 @@ static func perch(tree_size: int, mirrored: bool) -> Vector2:
 
 
 func _ready() -> void:
-	z_index = -1
+	z_index = -12  # behind the rock of the ground (which is at -11), so that the foot of the trunk is hidden by it and never ends in a hard line
 	var scale_up := float(size)
 	var way := -1.0 if mirror else 1.0
 	var sprite := Sprite2D.new()
 	sprite.texture = PICTURE
 	sprite.scale = Vector2.ONE * scale_up
 	sprite.flip_h = mirror
-	sprite.position = Vector2(TRUNK_SHIFT * way, -PICTURE.get_height() * 0.5) * scale_up
+	sprite.position = Vector2(TRUNK_SHIFT * way, -PICTURE.get_height() * 0.5 + SINK) * scale_up
 	sprite.modulate = Color(1.18, 1.1, 1.12)  # a touch brighter than the trunks painted into the distance, so a tree to climb stands out from them
 	add_child(sprite)
+	if drop > 0.0:  # the lowest strip of the picture, drawn down as far as the ground falls away, so that no flat foot hangs over a slope
+		var strip := Sprite2D.new()
+		strip.texture = PICTURE
+		strip.region_enabled = true
+		strip.region_rect = Rect2(0.0, PICTURE.get_height() - 4.0, PICTURE.get_width(), 4.0)
+		strip.flip_h = mirror
+		strip.scale = Vector2(scale_up, drop / 4.0)
+		strip.position = Vector2(TRUNK_SHIFT * way * scale_up, SINK * scale_up + drop * 0.5)
+		strip.modulate = sprite.modulate
+		add_child(strip)
 	var ledges := StaticBody2D.new()  # the oak's ledges, as the spell's own tree has: one-way, jump up through, land on top
 	ledges.collision_layer = 16
 	ledges.collision_mask = 0
@@ -104,3 +117,4 @@ func _ready() -> void:
 	vine.height = LEDGES[VINE_LEDGE][0] * scale_up + vine_ground
 	vine.position = Vector2(spot["vine"] * TILE, vine_ground)
 	add_child(vine)
+	vine.z_index = 12  # (the tree is far behind the ground, but the vine is climbed, so it stays in front of everything)

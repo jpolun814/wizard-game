@@ -19,6 +19,7 @@ config/icon="res://icon.svg"
 
 Sfx="*res://scripts/sfx.gd"
 Net="*res://scripts/net.gd"
+WandCursor="*res://scripts/wand_cursor.gd"
 
 [debug]
 
@@ -30,6 +31,8 @@ window/size/viewport_width=1280
 window/size/viewport_height=720
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
+mouse_cursor/custom_image="res://art/ui/wand_cursor.png"
+mouse_cursor/custom_image_hotspot=Vector2(4, 4)
 
 [gui]
 

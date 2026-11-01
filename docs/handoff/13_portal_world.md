@@ -6,7 +6,8 @@ Its ground is gentle and bare (graveyard tiles and backdrop, a violet tint, fog)
 `PortalField` (`scripts/portal_field.gd`, raised in `World._raise_biome_life`) opens the portals. It is told the world's age each frame
 (`_timed`) and works out which portals should be open from the seed and the age alone, so every machine of a match sees the same ones.
 
-- Every `INTERVAL` (5 s) a wave opens. The first wave is two or three portals; every later wave is none to eight.
+- Every `INTERVAL` (5 s) a wave opens. The first wave is two or three portals; every later wave is none to eight. A wave's portals each get a stretch of the world, in an order the seed shuffles, so they open from one end of the world to the other and not only in the middle.
+- A shot (`"shots"` group: a fireball, an ice spear, an enemy bolt, a lava ball) that flies into a portal comes out of another, flying the same way (`PortalField._physics_process`).
 - Some portals hang in the air (`lift`, up to `HIGHEST`); the first of every wave stands on the ground and some of the rest hang no higher than `JUMPABLE`, so one can always be reached by walking or jumping. The AI only goes to ones on the ground. Each ring has a dark copy under it, so that it is solid and not see-through.
 - A portal stays `LIFETIME` (15 s, three intervals), closing with the sheet's closing frames (it opens with the same frames run backwards).
 - Later portals that would open within `SPACING` of an older one are dropped. The first wave gets a stretch of the world each.

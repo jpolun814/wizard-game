@@ -31,6 +31,12 @@ func _ready() -> void:
 	var line_y := from.y + (player.global_position.x - from.x)
 	_verdict(player.global_position.x > from.x + 40.0, "the wizard walks down the stair (x %.0f from %.0f)" % [player.global_position.x, from.x])
 	_verdict(absf(player.global_position.y - minf(line_y, cellar_floor)) < 20.0, "and stands on it or the cellar floor (y %.0f, slope %.0f, floor %.0f)" % [player.global_position.y, line_y, cellar_floor])
+	for argument in OS.get_cmdline_user_args():
+		if argument.begins_with("out="):
+			player.global_position = from + Vector2(96.0, 96.0 - 30.0)
+			player.velocity = Vector2.ZERO
+			await _frames(30)
+			get_viewport().get_texture().get_image().save_png(argument.trim_prefix("out=") + "/stair.png")
 	var mid := from + Vector2(5.0, 5.0) * 32.0
 	player.global_position = mid + Vector2(0.0, -20.0)
 	player.velocity = Vector2.ZERO

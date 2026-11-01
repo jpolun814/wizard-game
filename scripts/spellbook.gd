@@ -489,7 +489,7 @@ func _page_incantation(column: VBoxContainer, ritual_id: String) -> void:
 	top.add_child(KeyCap.new("Enter"))
 	column.add_child(top)
 	column.add_child(_ink("“%s”" % r["text"], 26, TEXT_INK))
-	column.add_child(_ink(_ritual_effect(ritual_id), 20, SUBTLE))
+	column.add_child(_ink(ritual_effect(ritual_id), 20, SUBTLE))
 	if ritual_id == "mark":
 		var back: Dictionary = RitualInput.RITUALS["recall"]
 		var back_top := HBoxContainer.new()
@@ -500,10 +500,10 @@ func _page_incantation(column: VBoxContainer, ritual_id: String) -> void:
 		back_top.add_child(KeyCap.new("Enter"))
 		column.add_child(back_top)
 		column.add_child(_ink("“%s”" % back["text"], 26, TEXT_INK))
-		column.add_child(_ink(_ritual_effect("recall"), 20, SUBTLE))
+		column.add_child(_ink(ritual_effect("recall"), 20, SUBTLE))
 
 
-func _ritual_effect(ritual_id: String) -> String:
+static func ritual_effect(ritual_id: String) -> String:
 	match ritual_id:
 		"minimap":
 			return "Show the land around you."

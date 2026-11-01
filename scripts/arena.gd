@@ -70,7 +70,7 @@ func _ready() -> void:
 		camera.limit_bottom = ArenaGen.world_size.y * TILE
 	else:
 		camera.limit_left = ArenaGen.LEFT_WALL * TILE + TILE / 2
-		camera.limit_right = (ArenaGen.RIGHT_WALL + 1) * TILE - TILE / 2
+		camera.limit_right = (ArenaGen.right_wall + 1) * TILE - TILE / 2
 		camera.limit_bottom = (ArenaGen.GROUND_ROW + ArenaGen.DEPTH) * TILE  # the ground ends here; never look below it
 
 	hud = preload("res://scenes/hud.tscn").instantiate()
@@ -104,6 +104,7 @@ func _ready() -> void:
 
 
 func _exit_tree() -> void:
+	Library.flush()
 	_leave_network_scene()
 
 
@@ -442,6 +443,9 @@ func _earth_texture() -> Texture2D:
 
 ## Makes a spell take effect in the world. Every wizard's spells come through here, whoever plays them.
 func spawn_spell(spell: String, targeting: String, origin: Vector2, aim: float, info: Dictionary, caster_node: Wizard) -> void:
+	caster_node.casts_made += 1
+	if caster_node == player and is_in_group(&"world"):
+		Library.record_cast(spell)  # only matches count, not the waiting room
 	var from: Vector2 = caster_node.center()
 	if spell != "Sneak":
 		caster_node.break_sneak()
@@ -588,14 +592,16 @@ func spawn_spell(spell: String, targeting: String, origin: Vector2, aim: float, 
 		"Sinkhole":
 			var hole := Sinkhole.new()
 			var drawn: PackedVector2Array = info.get("line", PackedVector2Array())
-			var spot := origin
-			if drawn.size() > 1:  # the pit opens under the middle of the U, as wide as it was drawn
-				var box := GestureTemplates.bounds(drawn)
-				spot = Vector2(box.get_center().x, box.end.y)
-				hole.half_width = clampf(box.size.x * 0.5, Sinkhole.LEAST, Sinkhole.MOST)
-				hole.depth = clampf(box.size.y * hole.half_width / maxf(box.size.x * 0.5, 1.0), Sinkhole.SHALLOWEST, Sinkhole.DEEPEST)
-				hole.profile = Sinkhole.profile_of(drawn, 17)
-			hole.global_position = SpellTargets.surface_over(get_world_2d(), spot)
+			if drawn.size() > 1:  # the pit opens under the middle of the U, the shape of the line where it was drawn
+				var ridges: MountainRidges = get_tree().get_first_node_in_group("ridges") as MountainRidges
+				var fit := Sinkhole.fit(get_world_2d(), drawn, 17, ridges)
+				hole.ridge = fit["ridge"]
+				hole.half_width = fit["half_width"]
+				hole.depth = fit["depth"]
+				hole.profile = fit["profile"]
+				hole.global_position = fit["spot"]
+			else:
+				hole.global_position = SpellTargets.surface_over(get_world_2d(), origin)
 			hole.ground = _ground
 			add_child(hole)
 			return

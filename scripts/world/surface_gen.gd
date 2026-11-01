@@ -28,6 +28,8 @@ static func has_halls(biome: String) -> bool:
 ## What each biome looks like: the tiles of its grassy top, the backdrop, the colour its daylight is tinted, and the
 ## things standing about on it.
 const CRYPT_SPACING := 80  # columns between one crypt and the next
+const TREE_GAP_LEAST := 3   # columns between one great tree and the next: a thick wood, where the crowns and ledges run into each other
+const TREE_GAP_MOST := 5
 const LOOKS := {
 	"graveyard": {"title": "The Graveyard", "tiles": "cemetery", "weather": ["rain", "fog"], "backdrop": "cemetery", "tint": Color(0.6, 0.62, 0.68)},  # dark, with rain and a fog
 	"mountains": {"title": "The Snowy Peaks", "tiles": "stone", "snow": 26, "weather": ["snow", "blizzard"], "backdrop": "mountains", "tint": Color(0.82, 0.86, 0.98)},
@@ -210,15 +212,16 @@ static func _lay_jungle_hazards(width: int, ponds: Array, mud: Array, thorns: Ar
 				break
 
 
-## The jungle's great trees, one now and then along the ground where it is level and clear of the pits, the pools and the places the
+## The jungle's great trees, a wood of them along the ground where it is level and clear of the pits, the pools and the places the
 ## wizards start from: [{"column", "size": 2 or 3 times the picture, "mirror"}]. The large ones have a branch with a vine to climb to it.
 static func _plant_trees(floor_row: PackedInt32Array, hazards: Array, starts: Array, rng: RandomNumberGenerator) -> Array:
-	var avoid := []  # [first, last] columns
+	var avoid := []  # [first, last] columns that the foot of a trunk and its vine keep out of
 	for list: Array in hazards:
 		for entry: Dictionary in list:
-			avoid.append([entry["a"] - 8, entry["b"] + 8])
+			avoid.append([entry["a"] - 2, entry["b"] + 2])  # a tree may stand close to a pit or a pool: only its roots and vine need the ground
+	var open_starts := []  # and the places the wizards start from are kept clear all round
 	for column: int in starts:
-		avoid.append([column - 12, column + 12])
+		open_starts.append([column - 12, column + 12])
 	var out := []
 	var column := MARGIN + 14
 	while column < floor_row.size() - MARGIN - 14:
@@ -226,15 +229,20 @@ static func _plant_trees(floor_row: PackedInt32Array, hazards: Array, starts: Ar
 		var tree_size := 2 if roll < 0.55 else 3  # large, or larger still: every tree has ledges to hop up and a vine to climb
 		var mirror := rng.randf() < 0.5
 		var spot := JungleTree.layout(tree_size, mirror)
-		var clear: bool = absi(floor_row[column + spot["vine"]] - floor_row[column]) <= 2 and absi(floor_row[column + spot["vine"] / 2] - floor_row[column]) <= 1
+		var clear: bool = absi(floor_row[column + spot["vine"]] - floor_row[column]) <= 3 and absi(floor_row[column + spot["vine"] / 2] - floor_row[column]) <= 2
+		for c in range(column - JungleTree.FOOTPRINT, column + JungleTree.FOOTPRINT + 1):
+			clear = clear and floor_row[c] - floor_row[column] <= 4  # the roots do not hang more than a few rows over a drop
 		for span: Array in avoid:
+			if (column + 1 >= span[0] and column - 1 <= span[1]) or (column + spot["vine"] >= span[0] and column + spot["vine"] <= span[1]):
+				clear = false
+		for span: Array in open_starts:
 			if column + 11 >= span[0] and column - 11 <= span[1]:
 				clear = false
 		if not clear:
-			column += 3
+			column += 1
 			continue
 		out.append({"column": column, "size": tree_size, "mirror": mirror})
-		column += rng.randi_range(6, 11)
+		column += rng.randi_range(TREE_GAP_LEAST, TREE_GAP_MOST)
 	return out
 
 

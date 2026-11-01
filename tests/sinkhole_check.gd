@@ -38,6 +38,22 @@ func _ready() -> void:
 		await get_tree().physics_frame
 	var pit_floor := Vector2i(floori(spot.x / float(ArenaGen.TILE)), floori((before + Sinkhole.DEPTH - 6.0) / float(ArenaGen.TILE)))
 	_verdict(not world.nav.can_stand(pit_floor), "(before the pit the wizards cannot stand where its floor will be)")
+	# The pit follows the line as it lies on the world: a U drawn down into the ground is as deep as it goes below the surface, and one drawn in
+	# the air is let down onto the ground.
+	var sunk := PackedVector2Array()
+	var hung := PackedVector2Array()
+	for k in 25:
+		var u := float(k) / 24.0
+		var dip := 1.0 - pow(absf(2.0 * u - 1.0), 2.0)
+		sunk.append(Vector2(spot.x - 70.0 + 140.0 * u, before - 20.0 + 90.0 * dip))
+		hung.append(Vector2(spot.x - 70.0 + 140.0 * u, before - 200.0 + 100.0 * dip))
+	var into := Sinkhole.fit(space, sunk)
+	_verdict(absf(float(into["depth"]) - 70.0) < 10.0 and absf(float(into["spot"].x) - spot.x) < 4.0, "a U drawn into the ground makes a pit as deep as it goes (%.0f px, drawn 70 below the surface)" % float(into["depth"]))
+	var middle: float = into["profile"][8]
+	var edge: float = into["profile"][0]
+	_verdict(middle > 0.95 and edge < middle - 0.2, "and it is deepest in the middle, shallower at the edge (%.2f, %.2f)" % [middle, edge])
+	var above := Sinkhole.fit(space, hung)
+	_verdict(absf(float(above["depth"]) - 100.0) < 10.0, "a U drawn in the open air is let down onto the ground, as deep as it is tall (%.0f px, drawn 100 tall)" % float(above["depth"]))
 	var began := Time.get_ticks_msec()
 	world.spawn_spell("Sinkhole", "positional", spot + Vector2(0.0, -20.0), 0.0, {}, world.player)
 	for k in int(Sinkhole.WARNING * 60.0) + 10:

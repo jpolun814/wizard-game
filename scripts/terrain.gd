@@ -47,7 +47,8 @@ var biome := "cemetery"
 var _textures := {}  # material -> atlas texture
 const SNOW_FADE := 640.0  # pixels over which snow thins out below the snow line
 const GRASS_BAND := 24.0  # how deep the grass along the top of the ground is, in world pixels
-var _edges := PackedFloat32Array()  # the ground's top edge height at each column boundary, left to right
+const EDGE_STEP := 8.0  # pixels between two of the waiting room's ground heights: fine enough for a pit to keep the shape that was drawn
+var _edges := PackedFloat32Array()  # the ground's top edge height every EDGE_STEP pixels, left to right
 var earth_tiles := "cemetery"  # the tile set of the world's first biome, which names its earth and its grassy lip
 var snow_lip: Texture2D   # the snow along the ridges of the high ground
 var snow_pack: Texture2D  # and the snow over its rock
@@ -85,11 +86,17 @@ func _build_edges() -> void:
 	var heights := PackedFloat32Array()
 	for h in ArenaGen.column_heights:
 		heights.append((ArenaGen.GROUND_ROW + h) * float(ArenaGen.TILE))  # the smooth heights, not the rounded ones
-	_edges.clear()
-	_edges.append(heights[0])
+	var corners := PackedFloat32Array()  # one height at each column boundary
+	corners.append(heights[0])
 	for k in range(1, heights.size()):
-		_edges.append((heights[k - 1] + heights[k]) * 0.5)
-	_edges.append(heights[heights.size() - 1])
+		corners.append((heights[k - 1] + heights[k]) * 0.5)
+	corners.append(heights[heights.size() - 1])
+	var per_tile := roundi(ArenaGen.TILE / EDGE_STEP)
+	_edges.clear()
+	for k in range(corners.size() - 1):
+		for s in per_tile:
+			_edges.append(lerpf(corners[k], corners[k + 1], float(s) / per_tile))
+	_edges.append(corners[corners.size() - 1])
 
 
 ## A repeating texture cut from one piece of the biome's atlas.
@@ -150,7 +157,7 @@ func _piece_for(cell: Vector2i, material: int) -> Vector2i:
 	# The ground runs off the bottom of the map, and the side walls run off the top, so those edges never round off.
 	if material == ArenaGen.GROUND and cell.y >= ArenaGen.GROUND_ROW + ArenaGen.DEPTH:
 		down = true
-	if cell.x == ArenaGen.LEFT_WALL or cell.x == ArenaGen.RIGHT_WALL:
+	if cell.x == ArenaGen.LEFT_WALL or cell.x == ArenaGen.right_wall:
 		up = up or cell.y == ArenaGen.WALL_TOP
 		down = true
 		left = true
@@ -191,7 +198,7 @@ func _same(cell: Vector2i, material: int) -> bool:
 func _draw_ground() -> void:
 	var top := PackedVector2Array()
 	for k in _edges.size():
-		top.append(Vector2((ArenaGen.FIRST_COL + k) * ArenaGen.TILE, _edges[k]))
+		top.append(Vector2(ArenaGen.FIRST_COL * ArenaGen.TILE + k * EDGE_STEP, _edges[k]))
 	var bottom := (ArenaGen.GROUND_ROW + ArenaGen.DEPTH + 1) * float(ArenaGen.TILE)
 	var fill := PackedVector2Array(top)
 	fill.append(Vector2(top[top.size() - 1].x, bottom))
@@ -222,8 +229,8 @@ func _build_collision() -> void:
 	_solid = solid
 	var bottom := (ArenaGen.GROUND_ROW + ArenaGen.DEPTH + 1) * float(ArenaGen.TILE)
 	for k in range(_edges.size() - 1):
-		var x0 := (ArenaGen.FIRST_COL + k) * float(ArenaGen.TILE)
-		var x1 := x0 + ArenaGen.TILE
+		var x0 := ArenaGen.FIRST_COL * float(ArenaGen.TILE) + k * EDGE_STEP
+		var x1 := x0 + EDGE_STEP
 		var block := ConvexPolygonShape2D.new()
 		block.points = PackedVector2Array([Vector2(x0, _edges[k]), Vector2(x1, _edges[k + 1]), Vector2(x1, bottom), Vector2(x0, bottom)])
 		var shape := CollisionShape2D.new()
@@ -283,7 +290,7 @@ func _scatter_props(rng: RandomNumberGenerator) -> void:
 
 ## The height of the smooth ground at an x position, as the terrain draws it.
 func _ground_y(x: float) -> float:
-	var k := x / float(ArenaGen.TILE) - ArenaGen.FIRST_COL
+	var k := (x - ArenaGen.FIRST_COL * float(ArenaGen.TILE)) / EDGE_STEP
 	var i := clampi(int(floor(k)), 0, _edges.size() - 2)
 	return lerpf(_edges[i], _edges[i + 1], clampf(k - i, 0.0, 1.0))
 
@@ -406,7 +413,7 @@ func dig(at: Vector2, half_width: float, depth: float, profile := PackedFloat32A
 	# The waiting room's ground is one line of heights: sink the columns under the pit, steep at the sides and flat at the bottom.
 	var bottom := (ArenaGen.GROUND_ROW + ArenaGen.DEPTH) * float(ArenaGen.TILE) - 64.0
 	for k in _edges.size():
-		var u := ((ArenaGen.FIRST_COL + k) * float(ArenaGen.TILE) - (at.x - half_width)) / (half_width * 2.0)
+		var u := (ArenaGen.FIRST_COL * float(ArenaGen.TILE) + k * EDGE_STEP - (at.x - half_width)) / (half_width * 2.0)
 		if u < 0.0 or u > 1.0:
 			continue
 		_edges[k] = minf(_edges[k] + depth * pit_share(u, profile), bottom)

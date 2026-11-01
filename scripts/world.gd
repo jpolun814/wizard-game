@@ -46,6 +46,7 @@ func _build_map() -> Variant:
 	MatchState.pending = false
 	if not _carried:
 		MatchState.begin(seed_value)
+		Library.record_match_begun()
 	var stage := MatchState.plan()
 	WorldGraph.size = Vector2i(stage["width"], MatchState.HEIGHT)
 	var rng := RandomNumberGenerator.new()
@@ -318,6 +319,10 @@ func _grow_trees() -> void:
 		tree.mirror = entry["mirror"]
 		tree.vine_ground = float(floors[column + JungleTree.layout(tree.size, tree.mirror)["vine"]] - floors[column]) * TILE
 		tree.position = Vector2((column + 0.5) * TILE, floors[column] * float(TILE) + 2.0)
+		var lowest := floors[column]
+		for c in range(column - JungleTree.FOOTPRINT, column + JungleTree.FOOTPRINT + 1):
+			lowest = maxi(lowest, floors[c])
+		tree.drop = float(lowest - floors[column]) * TILE  # where the ground falls away under its roots, they go on down to it
 		add_child(tree)
 
 
@@ -401,6 +406,16 @@ func _raise_biome_life() -> void:
 			slide.seed_value = seed_value + 41
 			add_child(slide)
 			_timed.append(slide)
+			var ridges := MountainRidges.new()  # a second range behind the ground, to climb over and drop down from
+			ridges.floors = floors
+			ridges.seed_value = seed_value + 53
+			ridges.tile = tile
+			ridges.earth = _ground.earth_texture  # the same rock as the ground in front, and its lip
+			ridges.lip = _ground.lip
+			ridges.snow = _ground.snow_pack
+			ridges.snow_lip = _ground.snow_lip
+			ridges.snow_line = float(WorldGraph.SURFACE_ROW - int(SurfaceGen.LOOKS["mountains"]["snow"])) * float(tile)
+			add_child(ridges)
 			var column := SurfaceGen.MARGIN + 20
 			while column < floors.size() - SurfaceGen.MARGIN - 20:  # sheets of ice on the level stretches
 				var run := 1
@@ -1143,6 +1158,8 @@ func _count_wizards(delta: float) -> void:
 	if standing.size() == 1 and standing[0] == player:
 		_won = true
 		hud.banner("Last wizard standing", "You win")
+		Library.record_win(player.ledger.pages.keys())
+		Library.flush()
 		Sfx.play("ritual_ok", player.center())
 	if standing.size() <= 1 and Net.online() and Net.is_host():
 		_won = true

@@ -711,6 +711,8 @@ static func _castle(cells: TileGrid, ground: int, x: int, gate := true, back := 
 				carve.call(i + s, low_floor, up_floor - s + CASTLE_STAIR_HEAD)
 			band.append(Vector2i(x + i + s, ground - 1 - (up_floor - s - 1)))
 			band.append(Vector2i(x + i + s, ground - 1 - (up_floor - s - 2)))
+		band.append(Vector2i(x + i, ground - up_floor))
+		band.append(Vector2i(x + i, ground - up_floor + 1))
 		var from := Vector2((x + i) * ArenaGen.TILE + ArenaGen.TILE * 0.5, (ground - up_floor) * ArenaGen.TILE)
 		stair_runs.append({"from": from, "to": from + Vector2(1, 1) * float(rise * ArenaGen.TILE), "under": band,
 				"top": Vector2i(x + i, ground - 1 - up_floor), "base": Vector2i(x + i + rise, ground - 1 - low_floor)})

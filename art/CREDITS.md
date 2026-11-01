@@ -54,7 +54,8 @@ and are no longer drawn by the game.
 | `jump` | [Jumping man sounds](https://opengameart.org/content/jumping-man-sounds) by IgnasD | CC0 |
 | `pickup` | [Kenney – RPG Audio](https://kenney.nl/assets/rpg-audio) (cloth rustle) | CC0 1.0 |
 | `heartbeat` | [Heartbeat sounds](https://opengameart.org/content/heartbeat-sounds) by estevinho (`heartbeat_slow_0`) | CC0 |
-| `surf`, `blood_cast`, `chomp` | [40 CC0 water / splash / slime SFX](https://opengameart.org/content/40-cc0-water-splash-slime-sfx) by rockseller (`splash_03`, `slime_05`, `slime_12`) | CC0 |
+| `blood_cast`, `chomp` | [40 CC0 water / splash / slime SFX](https://opengameart.org/content/40-cc0-water-splash-slime-sfx) by rockseller (`slime_05`, `slime_12`) | CC0 |
+| `surf` | [Beach ocean waves](https://opengameart.org/content/beach-ocean-waves) by qubodup, from a recording by jasinski (`wave_02`) | CC0 |
 | `glass`, `faint`, `jaw_snap` | [75 CC0 breaking / falling / hit SFX](https://opengameart.org/content/75-cc0-breaking-falling-hit-sfx) by rubberduck (`glass_breaking_01`, `falling_02`, `hit_03`) | CC0 |
 | `force`, `barrier`, `quake`, `tornado` (a jet roar) | [Kenney – Sci-fi Sounds](https://kenney.nl/assets/sci-fi-sounds) | CC0 1.0 |
 | `type`, `ui_click` | [Kenney – Interface Sounds](https://kenney.nl/assets/interface-sounds) | CC0 1.0 |
@@ -138,3 +139,6 @@ and are no longer drawn by the game.
 
 - Drawn by tools/prepare_biome_critters.py: a few pixels each, no outside source (own work, CC0). Stand-ins until a real pack is chosen.
 - Hex, Fight or Flight and Moonbeam marks (`art/fx/hex_mark.png`, `question_mark.png`, `moon_beam.png`): made for this game, pixel by pixel, by `tools/make_marks.py`. No outside source.
+
+## The wand cursor
+`art/ui/wand_cursor.png` is the second wand of "Wands and Magic Stuff (DawnBringer32 Palette)" by BizmasterStudios, https://opengameart.org/content/wands-and-magic-stuff-dawnbringer32-palette, licence CC-BY 4.0. Cut out and doubled in size; `scripts/wand_cursor.gd` recolours its jewel to the school being cast.

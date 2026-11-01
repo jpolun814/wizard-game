@@ -86,6 +86,16 @@ func _run(world: World) -> void:
 	for wave in range(1, 60):
 		sizes[field.wave_size(wave)] = true
 	_check(sizes.has(0) and sizes.has(8) and not sizes.has(9), "later waves bring none to eight")
+	var sides := 0
+	var all := 0
+	for step in range(0, 600, int(PortalField.INTERVAL)):
+		for portal in field.schedule(float(step)):
+			if portal["born"] == float(step):
+				all += 1
+				var share: float = float(portal["column"]) / float(field.floors.size())
+				if share < 0.25 or share > 0.75:
+					sides += 1
+	_check(all > 20 and float(sides) / all > 0.4, "they open toward the sides of the world as much as in the middle (%d of %d)" % [sides, all])
 	var live := field.open_portals()
 	_check(live.size() >= 2, "and the world has them standing (%d)" % live.size())
 	if live.size() >= 2:
@@ -102,6 +112,17 @@ func _run(world: World) -> void:
 			if p != a and world.player.global_position.distance_to(p.global_position + Vector2(0.0, Portal.RY)) < 60.0:
 				landed = true
 		_check(landed, "stepping into one brings the wizard out of another")
+		var gate: FieldPortal = live[1]
+		world.spawn_spell("Ignite", "directional", gate.global_position + Vector2(-70.0, 0.0), 0.0, {}, world.player)
+		var fired: Projectile = get_tree().get_nodes_in_group("projectiles").back()
+		var came_out := false
+		for k in 18:
+			await get_tree().physics_frame
+			if is_instance_valid(fired):
+				for p in live:
+					if p != gate and fired.global_position.distance_to(p.global_position) < 90.0:
+						came_out = true
+		_check(came_out, "a shot that flies into one comes out of another")
 	var riders := {}
 	var player := world.player
 	field.carried.connect(func(body: Node2D) -> void: riders[body] = riders.get(body, 0) + 1)
@@ -126,6 +147,27 @@ func _run(world: World) -> void:
 		if body != player:
 			ai_rides += riders[body]
 	_check(ai_rides > 0, "and the AI wizards use them too (%d rides by %d wizards)" % [ai_rides, riders.size()])
+	var hung := []
+	Engine.time_scale = 3.0
+	for k in 60:  # wait for one hung low enough to jump to, with time left to do it
+		hung = field.open_portals().filter(func(p: FieldPortal) -> bool: return p.lift > 0.0 and p.lift <= PortalField.JUMPABLE and p.remaining() > 8.0)
+		if not hung.is_empty():
+			break
+		await get_tree().create_timer(1.0, true, false, true).timeout
+	Engine.time_scale = 1.0
+	if not hung.is_empty():
+		hung.sort_custom(func(a: FieldPortal, b: FieldPortal) -> bool: return a.remaining() > b.remaining())
+		var high: FieldPortal = hung[0]
+		var lift_at := high.lift
+		var before: int = riders.get(rider, 0)
+		rider.global_position = high.global_position + Vector2(-220.0, Portal.RY + high.lift)
+		rider.brain._goal = ""
+		rider.brain._goal_timer = 0.0
+		Engine.time_scale = 3.0
+		await get_tree().create_timer(minf(high.remaining(), 12.0), true, false, true).timeout
+		Engine.time_scale = 1.0
+		print("jumper: ", rider.brain.status())
+		_check(riders.get(rider, 0) > before, "and a wizard jumps for a portal hung in the air (lift %.0f)" % lift_at)
 	if out_dir != "" and DisplayServer.get_name() != "headless" and not field.open_portals().is_empty() and is_instance_valid(world):
 		world.player.global_position = field.open_portals()[0].global_position + Vector2(-120.0, 0.0)
 		for k in 40:

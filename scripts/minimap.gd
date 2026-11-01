@@ -8,6 +8,9 @@ extends Control
 const MAX_CELL := 3.0      # pixels per tile, for small maps
 const MAX_WIDTH := 320.0   # the minimap never gets wider than this
 const MARGIN := 16.0
+const SKY_ROWS := 40       # rows of sky kept above the highest ground
+const SIDE_COLS := 8
+const ROCK_ROWS := 24      # and of rock kept under the lowest air
 const TILE_COLORS := {
 	ArenaGen.GROUND: Color("#7a5a8a"),
 	ArenaGen.STONE: Color("#8d8f96"),
@@ -27,6 +30,25 @@ func _ready() -> void:
 	if terrain is TileGrid:
 		lo = Vector2i.ZERO
 		hi = terrain.size - Vector2i.ONE
+		# Rock with nothing in it all the way across, far under the surface, and sky above the highest peak are left off the map, so that the
+		# map is mostly the place that is played in and not mostly solid ground.
+		var width: int = terrain.size.x
+		var total_rows: int = terrain.size.y
+		var first_air := total_rows
+		var last_air := 0
+		var first_solid := total_rows
+		for row in total_rows:
+			var solid := 0
+			for col in range(SIDE_COLS, width - SIDE_COLS):  # (the walls at the two ends of the world do not count)
+				if terrain.data[row * width + col] != 0:
+					solid += 1
+			if solid < width - SIDE_COLS * 2:
+				first_air = mini(first_air, row)
+				last_air = row
+			if solid > 0:
+				first_solid = mini(first_solid, row)
+		lo.y = maxi(first_solid - SKY_ROWS, 0)
+		hi.y = mini(last_air + ROCK_ROWS, total_rows - 1)
 	else:
 		for cell in terrain:
 			lo = Vector2i(mini(lo.x, cell.x), mini(lo.y, cell.y))
@@ -38,16 +60,19 @@ func _ready() -> void:
 	if terrain is TileGrid:
 		var bytes := PackedByteArray()
 		bytes.resize(cols * rows * 4)
+		var full_width: int = terrain.size.x
 		var ground: Color = TILE_COLORS[ArenaGen.GROUND]
 		var stone: Color = TILE_COLORS[ArenaGen.STONE]
-		for k in terrain.data.size():
-			var value: int = terrain.data[k]
-			if value != 0:
-				var colour := ground if value == ArenaGen.GROUND + 1 else stone
-				bytes[k * 4] = colour.r8
-				bytes[k * 4 + 1] = colour.g8
-				bytes[k * 4 + 2] = colour.b8
-				bytes[k * 4 + 3] = 255
+		for row in rows:
+			for col in cols:
+				var value: int = terrain.data[(row + lo.y) * full_width + col + lo.x]
+				if value != 0:
+					var k := row * cols + col
+					var colour := ground if value == ArenaGen.GROUND + 1 else stone
+					bytes[k * 4] = colour.r8
+					bytes[k * 4 + 1] = colour.g8
+					bytes[k * 4 + 2] = colour.b8
+					bytes[k * 4 + 3] = 255
 		image = Image.create_from_data(cols, rows, false, Image.FORMAT_RGBA8, bytes)
 	else:
 		for cell in terrain:

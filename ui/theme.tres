@@ -1,4 +1,4 @@
-[gd_resource type="Theme" load_steps=7 format=3]
+[gd_resource type="Theme" load_steps=9 format=3]
 
 [ext_resource type="FontFile" path="res://fonts/Jersey15-Regular.ttf" id="1"]
 [ext_resource type="FontFile" path="res://fonts/Jacquard24-Regular.ttf" id="2"]
@@ -51,6 +51,24 @@ border_width_right = 2
 border_width_bottom = 2
 border_color = Color(0.36, 0.26, 0.5, 1)
 
+[sub_resource type="StyleBoxFlat" id="back"]
+content_margin_left = 14.0
+content_margin_top = 4.0
+content_margin_right = 18.0
+content_margin_bottom = 4.0
+bg_color = Color(0.06, 0.04, 0.09, 0.7)
+border_width_left = 6
+border_color = Color(0.45, 0.2, 0.22, 1)
+
+[sub_resource type="StyleBoxFlat" id="back_hover"]
+content_margin_left = 14.0
+content_margin_top = 4.0
+content_margin_right = 18.0
+content_margin_bottom = 4.0
+bg_color = Color(0.14, 0.08, 0.14, 0.9)
+border_width_left = 6
+border_color = Color(0.85, 0.35, 0.3, 1)
+
 [resource]
 default_font = ExtResource("1")
 default_font_size = 18
@@ -66,6 +84,17 @@ Choice/styles/hover = SubResource("button_hover")
 Choice/styles/pressed = SubResource("button_pressed")
 Choice/styles/focus = SubResource("button_hover")
 Choice/styles/disabled = SubResource("button")
+Back/base_type = &"Button"
+Back/colors/font_color = Color(0.7, 0.62, 0.66, 1)
+Back/colors/font_hover_color = Color(1, 0.9, 0.85, 1)
+Back/colors/font_pressed_color = Color(0.949, 0.757, 0.306, 1)
+Back/colors/font_focus_color = Color(1, 0.9, 0.85, 1)
+Back/font_sizes/font_size = 20
+Back/styles/normal = SubResource("back")
+Back/styles/hover = SubResource("back_hover")
+Back/styles/pressed = SubResource("back_hover")
+Back/styles/focus = SubResource("back_hover")
+Back/styles/disabled = SubResource("back")
 Label/colors/font_color = Color(1, 1, 1, 1)
 Label/colors/font_outline_color = Color(0.07, 0.04, 0.1, 1)
 Label/constants/outline_size = 0

@@ -3,7 +3,7 @@ extends Node2D
 
 ## The portal world's portals. Every INTERVAL seconds a handful open on the ground (the ring opens), stay open for LIFETIME, and close (the ring shuts). Anyone who steps
 ## into one comes out of another that is open. Which open, where and how many all come from the world's seed and age, so every
-## machine of a match sees the same portals at the same moment. The first wave is never fewer than two; each later one brings none to three.
+## machine of a match sees the same portals at the same moment. The first wave is never fewer than two; each later one brings none to eight, spread from one end of the world to the other.
 ## Some hang in the air, but the first of every wave stands on the ground and some of the rest can be jumped to, so there is always a way in.
 ## Each portal has a colour of its own: no two that are open at once share a hue.
 
@@ -14,6 +14,8 @@ const HIGHEST := 200.0     # and the highest one hangs this high
 const FIRST_WAVE := 2
 const MOST_NEW := 8
 const COOLDOWN := 1.0      # seconds before whoever came out may go in again
+const SHOT_REACH := Vector2(26.0, 34.0)  # how near the middle of a portal a shot has to be to go in
+const SHOT_COOLDOWN := 0.4  # seconds before a shot that came out may go in again
 const SPACING := 90.0      # the least distance between two open portals
 const HUES := 24           # as many as can be open at once (three waves of eight)
 
@@ -55,14 +57,20 @@ func schedule(age: float) -> Array[Dictionary]:
 		var rng := RandomNumberGenerator.new()
 		rng.seed = seed_value * 17 + wave * 104729
 		var count := wave_size(wave)
+		var strips: Array[int] = []  # every wave gets a stretch of the world to each portal, in an order the seed shuffles: they are spread from one end to the other
 		for k in count:
-			var low := margin
-			var high := floors.size() - margin - 1
-			if wave == 0:  # the first wave gets a stretch of the world each, so none is dropped for crowding
-				var share := (high - low) / count
-				low += k * share
-				high = low + share - 1
-			var column := rng.randi_range(low, high)
+			strips.append(k)
+		for k in range(count - 1, 0, -1):
+			var swap := rng.randi_range(0, k)
+			var kept := strips[k]
+			strips[k] = strips[swap]
+			strips[swap] = kept
+		for k in count:
+			var first := margin
+			var last := floors.size() - margin - 1
+			var share := maxi((last - first + 1) / count, 1)
+			var low := first + strips[k] * share
+			var column := rng.randi_range(low, mini(low + share - 1, last))
 			var chance := rng.randf()
 			var lift := 0.0
 			if k > 0 and chance > 0.5:  # the first of a wave stands on the ground; of the others, half hang in the air
@@ -124,6 +132,31 @@ func _sync() -> void:
 		add_child(portal)
 		portal.open()
 		_open[id] = portal
+
+
+## A shot that flies into a portal comes out of another one, flying the way it was going. (A shot is not a body, so the portal itself does not notice it.)
+func _physics_process(_delta: float) -> void:
+	var portals := open_portals()
+	if portals.size() < 2:
+		return
+	for shot in get_tree().get_nodes_in_group("shots"):
+		if not shot is Node2D or _recent.has(shot) or not shot.has_method("heading"):
+			continue
+		for portal in portals:
+			var offset: Vector2 = shot.global_position - portal.global_position
+			if portal.is_closing() or absf(offset.x) > SHOT_REACH.x or absf(offset.y) > SHOT_REACH.y:
+				continue
+			var others := portals.filter(func(p: FieldPortal) -> bool: return p != portal and not p.is_closing())
+			if others.is_empty():
+				break
+			var rng := RandomNumberGenerator.new()
+			rng.seed = seed_value + int(seconds * 10.0) + portal.get_instance_id()
+			var exit: FieldPortal = others[rng.randi_range(0, others.size() - 1)]
+			_recent[shot] = SHOT_COOLDOWN
+			shot.global_position = exit.global_position + shot.heading() * 36.0
+			if shot.has_method("reset_physics_interpolation"):
+				shot.reset_physics_interpolation()
+			break
 
 
 ## Someone stepped into a portal: they come out of another that is open, if there is one.

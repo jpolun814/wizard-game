@@ -22,6 +22,7 @@ const LOCKABLE := ["Frostbolt", "Icicles", "Ice Prison", "Blizzard", "Stonefall"
 ## are not laid are simply not in that world: nothing carries over, and each world's pages come from its seed alone (not from who holds what).
 const PER_WORLD := {"graveyard": 16, "mountains": 16, "jungle": 18, "ashlands": 12, "castle": 18, "underground": 20, "portals": 10}
 const LEAST := 6  # however small the world
+const MIN_APART := 40  # columns between two pages lying out in the open of a world with no halls
 const ON_SURFACE := 3  # pages that lie out in the open near the start, so the first one is found within a minute
 ## Where in a castle they lie: a column from its west end, and the height of the floor in rows (the cellar's is below the ground, so negative).
 ## Deepest and highest first, then the middle floors, so the few of a small match go to the places hardest to reach.
@@ -158,9 +159,21 @@ static func plan(graph: WorldGraph, rng: RandomNumberGenerator, dealt: Array[Led
 		var landmarks: Array = graph.surface["landmarks"]
 		var in_trees: bool = not graph.surface["trees"].is_empty()  # the jungle's pages are nearly all up in its trees, spread along them
 		var wanted := mini(landmarks.size(), rest.size() * 3 / 4 if in_trees else rest.size() / 2)
-		for k in wanted:
-			placed.append({"page": rest.pop_back(), "room": 0, "x": landmarks[k * landmarks.size() / wanted] if in_trees else landmarks[k]})
+		var taken: Array[int] = outdoors.duplicate()  # where pages lie so far: out in the open, none lies close to another
+		if in_trees:
+			for k in wanted:
+				placed.append({"page": rest.pop_back(), "room": 0, "x": landmarks[k * landmarks.size() / wanted]})
+		else:
+			for landmark: int in landmarks:
+				if placed.size() - outdoors.size() >= wanted:
+					break
+				if _far_from(landmark, taken):
+					placed.append({"page": rest.pop_back(), "room": 0, "x": landmark})
+					taken.append(landmark)
 		for column in _spread_columns(graph, rest.size()):
+			if not in_trees:
+				column = _moved_apart(graph, column, taken)
+				taken.append(column)
 			placed.append({"page": rest.pop_back(), "room": 0, "x": column})
 		return placed
 	var open_halls := free.duplicate()
@@ -225,6 +238,24 @@ static func _spread_columns(graph: WorldGraph, count: int) -> Array[int]:
 				column = pit["b"] + 3
 		out.append(column)
 	return out
+
+
+## True when a column is at least MIN_APART from every one of these.
+static func _far_from(column: int, taken: Array[int]) -> bool:
+	for other in taken:
+		if absi(column - other) < MIN_APART:
+			return false
+	return true
+
+
+## The column, or the nearest one to it, to either side, that is far enough from the pages already lying and not in the way of a pool or a pit.
+static func _moved_apart(graph: WorldGraph, column: int, taken: Array[int]) -> int:
+	for step in range(0, 200, 4):
+		for side in [1, -1]:
+			var moved: int = column + step * side
+			if moved > SurfaceGen.MARGIN + 6 and moved < WorldGraph.size.x - SurfaceGen.MARGIN - 6 and _far_from(moved, taken) and not _in_the_way(graph, moved):
+				return moved
+	return column
 
 
 ## True when a page could not lie at the column: in a pool, or in a pit of mud or a thicket.

@@ -44,6 +44,17 @@ func _begin(origin: Vector2, aim_angle: float) -> void:
 	GameCamera.shake_scene(get_tree(), 0.2)
 
 
+## True where a point lies in the wall once it has grown, so that liquid (which reads the ground by points) is stopped by it.
+func holds(point: Vector2) -> bool:
+	var local := to_local(point)
+	return local.x >= 0.0 and local.x <= _length and absf(local.y) <= THICKNESS * 0.5
+
+
+## The box that surrounds the wall, in the world.
+func footprint() -> Rect2:
+	return global_transform * Rect2(0.0, -THICKNESS * 0.5, _length, THICKNESS)
+
+
 ## The solid slab. Enemies and shots collide with it, and a wall can be grown from it.
 func _add_slab() -> void:
 	var solid := RectangleShape2D.new()

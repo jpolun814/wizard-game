@@ -123,8 +123,11 @@ func gives(ledger: Ledger) -> bool:
 func take(ledger: Ledger) -> String:
 	var fresh := new_pages(ledger)
 	if not fresh.is_empty():
+		var reader := get_tree().get_first_node_in_group("player") as Wizard
 		for each in fresh:
 			ledger.learn(each)
+			if reader != null and reader.ledger == ledger:
+				Library.record_page(each)  # a page the person at this machine found
 		Fx.burst(get_parent(), global_position + Vector2(0, -FLOAT), _color, 14, 130.0, 0.5, true)
 		queue_free()
 		return fresh[0]

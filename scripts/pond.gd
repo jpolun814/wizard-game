@@ -27,14 +27,14 @@ const MOST_COLS := 360     # the biggest a pool's grid can grow, so liquid sprea
 const MOST_ROWS := 120
 const ROWS_A_FRAME := 2   # rows of ground a pool reads in a frame while its liquid is being made
 const WATER_STEP := 1.0 / 30.0  # seconds between rounds of flow: water, which takes two steps a round
-const COOL_SECONDS := 22.0  # how long poured lava takes to cool to a crust
+const COOL_SECONDS := 75.0  # how long poured lava takes to cool to a crust
 const CRUST := Color(0.16, 0.1, 0.1)
-const LAVA_STEP := 1.0 / 10.0   # and lava, which is slower to move and takes one
+const LAVA_STEP := 1.0 / 14.0   # and lava, which is a little slower to move and takes one
 
 var width := 200.0
 var depth := 90.0
 var lava := false
-var cools := false  # lava from a volcano's eruption: once it stops pouring it darkens to a crust, stops burning, and is gone
+var cools := false  # lava from a volcano's eruption: it dulls as it cools, burns the whole time, and is gone when cold
 var loose := false  # a puddle made by a spell, not a pool the world was dug with: it starts empty
 var ground: Terrain  # the ground the pool sits in; when given, the liquid flows over it
 var grid: LiquidGrid  # the flowing liquid, made when the pool first comes into view
@@ -47,6 +47,7 @@ var _t := 0.0
 var _pieces: Array = []  # the pool's fill, cut to the hollow it sits in: worked out once, since the cave never changes
 var _seen := true        # false while the pool is off screen: nothing about it is drawn or animated then
 var _flow_clock := 0.0
+var _walls_read := {}  # stone wall id -> the box it was read as, the last time the liquid looked at the walls
 var _heat := 1.0         # how molten cooling lava still is: 1 is fresh, 0 is crust
 var _reach: CollisionShape2D  # the area that finds the bodies near the liquid, kept as big as the grid
 var _watch: VisibleOnScreenNotifier2D
@@ -99,6 +100,8 @@ func _physics_process(delta: float) -> void:
 	if tick:
 		_tick = TICK
 	_make_a_little()
+	if tick:
+		_look_at_walls()
 	_flow(delta)
 	for body in get_overlapping_bodies():
 		if not SpellTargets.affects(body) or _flies(body) or _on_ice(body) or not holds(body):
@@ -117,22 +120,19 @@ func _physics_process(delta: float) -> void:
 		_douse_shots()
 
 
-## Lava that has stopped pouring cools: it darkens and, once it is crust, no longer burns anything; when it is cold it is gone.
+## Lava from a volcano slowly dulls and, when it is cold, is gone. It burns the whole time.
 func _cool(delta: float) -> void:
 	if not cools or _heat <= 0.0:
 		return
 	_heat = maxf(_heat - delta / COOL_SECONDS, 0.0)
-	if _heat < 0.5 and is_in_group("fires"):
-		remove_from_group("fires")
-		remove_from_group("danger")
 	if _heat <= 0.0 and grid != null:
 		grid.take(grid.world_rect(), INF)
 		queue_free()
 
 
-## True while the lava is hot enough to burn.
+## True for lava: it burns for as long as it is there, however far it has cooled.
 func molten() -> bool:
-	return lava and (not cools or _heat >= 0.5)
+	return lava
 
 
 ## Where the lava is, for what it heats: the top of each column that still holds it. A pool the liquid has run out of heats nothing,
@@ -168,6 +168,35 @@ func _fit_reach() -> void:
 		_watch.rect = Rect2(space.position - global_position - Vector2(16.0, 32.0), space.size + Vector2(32.0, 48.0))
 
 
+## True where the liquid cannot go: the ground, or a slab of a stone wall.
+func _solid(point: Vector2) -> bool:
+	if ground.solid_at(point):
+		return true
+	if get_tree().get_node_count_in_group("walls") == 0:
+		return false
+	for wall: StoneWall in get_tree().get_nodes_in_group("walls"):
+		if wall.holds(point):
+			return true
+	return false
+
+
+## A stone wall that has been raised or has crumbled since the liquid last looked is read again where it stands, so that liquid is stopped by a
+## wall the way it is by any ground, and runs on where one has gone.
+func _look_at_walls() -> void:
+	if grid == null:
+		return
+	var now := {}
+	for wall: StoneWall in get_tree().get_nodes_in_group("walls"):
+		now[wall.get_instance_id()] = wall.footprint()
+	for id: int in now:
+		if not _walls_read.has(id) and now[id].intersects(grid.world_rect()):
+			grid.read_ground(_solid, now[id].grow(LiquidGrid.CELL))
+	for id: int in _walls_read:
+		if not now.has(id) and _walls_read[id].intersects(grid.world_rect()):
+			grid.read_ground(_solid, _walls_read[id].grow(LiquidGrid.CELL))
+	_walls_read = now
+
+
 ## Makes the flowing liquid at once, full wherever the pool was, if it has not been made yet.
 func ensure_grid() -> void:
 	if grid != null or ground == null:
@@ -175,7 +204,7 @@ func ensure_grid() -> void:
 	_making = null
 	grid = LiquidGrid.new()
 	grid.setup(region())
-	grid.read_ground(ground.solid_at)
+	grid.read_ground(_solid)
 	if not loose:
 		grid.fill(Rect2(global_position + Vector2(-EDGE, 0.0), Vector2(width + EDGE * 2.0, depth)))
 
@@ -192,7 +221,7 @@ func begin_grid() -> void:
 func _make_a_little() -> void:
 	if _making == null:
 		return
-	_making.read_rows(ground.solid_at, _making_row, _making_row + ROWS_A_FRAME - 1)
+	_making.read_rows(_solid, _making_row, _making_row + ROWS_A_FRAME - 1)
 	_making_row += ROWS_A_FRAME
 	if _making_row < _making.rows:
 		return
@@ -231,13 +260,13 @@ func _make_room() -> void:
 	var after := grid.world_rect()
 	# Only the strips that were added are read.
 	if left > 0:
-		grid.read_ground(ground.solid_at, Rect2(after.position, Vector2(left * LiquidGrid.CELL, after.size.y)))
+		grid.read_ground(_solid, Rect2(after.position, Vector2(left * LiquidGrid.CELL, after.size.y)))
 	if right > 0:
-		grid.read_ground(ground.solid_at, Rect2(Vector2(before.end.x, after.position.y), Vector2(right * LiquidGrid.CELL, after.size.y)))
+		grid.read_ground(_solid, Rect2(Vector2(before.end.x, after.position.y), Vector2(right * LiquidGrid.CELL, after.size.y)))
 	if up > 0:
-		grid.read_ground(ground.solid_at, Rect2(after.position, Vector2(after.size.x, up * LiquidGrid.CELL)))
+		grid.read_ground(_solid, Rect2(after.position, Vector2(after.size.x, up * LiquidGrid.CELL)))
 	if down > 0:
-		grid.read_ground(ground.solid_at, Rect2(Vector2(after.position.x, before.end.y), Vector2(after.size.x, down * LiquidGrid.CELL)))
+		grid.read_ground(_solid, Rect2(Vector2(after.position.x, before.end.y), Vector2(after.size.x, down * LiquidGrid.CELL)))
 	_fit_reach()
 
 
@@ -251,7 +280,7 @@ func _on_ground_about_to_change(area: Rect2) -> void:
 func _on_ground_changed(area: Rect2) -> void:
 	_air_dirty = true
 	if grid != null and area.intersects(region()):
-		grid.read_ground(ground.solid_at, area.grow(LiquidGrid.CELL))
+		grid.read_ground(_solid, area.grow(LiquidGrid.CELL))
 
 
 ## True where a point is in the liquid.
@@ -464,7 +493,7 @@ func _draw() -> void:
 	var bottom := Color(0.4, 0.07, 0.05) if lava else WATER_BOTTOM
 	var rim := Color(0.95, 0.68, 0.25) if lava else WATER_RIM
 	if cools and lava:  # cooling lava goes dark
-		var crust := 1.0 - _heat
+		var crust := (1.0 - _heat) * 0.35  # it dulls, but never looks like anything that is safe to touch
 		top = top.lerp(CRUST, crust)
 		bottom = bottom.lerp(CRUST, crust)
 		rim = rim.lerp(CRUST.lightened(0.25), crust)

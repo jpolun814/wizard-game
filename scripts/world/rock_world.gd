@@ -207,18 +207,18 @@ func dig(at: Vector2, half_width: float, depth: float, profile := PackedFloat32A
 	return true
 
 
-## True when the outline nearest a point, within reach, has its air below it there: the underside of a roof.
+## True when the outline nearest a point, within reach, has its air below it there: the underside of a roof. Whether it bounds a hollow or a
+## slab of rock standing in the air, the air is on the left of the way it runs.
 func _faces_down_near(at: Vector2) -> bool:
 	var best := 48.0
 	var down := false
 	for outline: PackedVector2Array in _loops:
-		var sign_of_air := 1.0 if Contour.area(outline) < 0.0 else -1.0  # the air is on the left of an air outline, the right of an island's
 		for k in outline.size():
 			var to := outline[(k + 1) % outline.size()]
 			var distance := Geometry2D.get_closest_point_to_segment(at, outline[k], to).distance_to(at)
 			if distance < best:
 				best = distance
-				down = (to.x - outline[k].x) * sign_of_air < -0.3 * outline[k].distance_to(to)
+				down = (to.x - outline[k].x) < -0.3 * outline[k].distance_to(to)
 	return down
 
 

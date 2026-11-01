@@ -11,7 +11,8 @@ const CHUNK_WIDTH := 6
 const CHUNK_COUNT := 12  # the map is this many chunks wide
 const FIRST_COL := -36   # first floor column, so the map is centred on column 0
 const LEFT_WALL := FIRST_COL - 1
-const RIGHT_WALL := FIRST_COL + CHUNK_WIDTH * CHUNK_COUNT
+static var chunk_count := CHUNK_COUNT   # the tutorial room is wider than the others
+static var right_wall := FIRST_COL + CHUNK_WIDTH * CHUNK_COUNT
 const GROUND_ROW := 6    # the flat ground line; the terrain moves up and down from here
 const GROUND_Y := GROUND_ROW * TILE  # where the ground sits on a flat stretch
 const DEPTH := 12        # rows of ground below the surface: deep enough to fill the view on a tall window too
@@ -61,13 +62,13 @@ static func build(rng: RandomNumberGenerator, heights := PackedFloat32Array()) -
 	castle_hall = []
 	castle_steps = []
 	_fill(cells, LEFT_WALL, WALL_TOP, LEFT_WALL, GROUND_ROW + DEPTH, STONE)
-	_fill(cells, RIGHT_WALL, WALL_TOP, RIGHT_WALL, GROUND_ROW + DEPTH, STONE)
+	_fill(cells, right_wall, WALL_TOP, right_wall, GROUND_ROW + DEPTH, STONE)
 	column_heights = heights if not heights.is_empty() else _ground_heights(rng)
-	for c in range(FIRST_COL, RIGHT_WALL):
+	for c in range(FIRST_COL, right_wall):
 		var top := _top_of(c)
 		_fill(cells, c, top, c, GROUND_ROW + DEPTH, GROUND)
-	for i in CHUNK_COUNT:
-		var chunk: Array = CHUNKS[0] if i == 0 or i == CHUNK_COUNT - 1 else CHUNKS[rng.randi() % CHUNKS.size()]
+	for i in chunk_count:
+		var chunk: Array = CHUNKS[0] if i == 0 or i == chunk_count - 1 else CHUNKS[rng.randi() % CHUNKS.size()]
 		var mirror := rng.randf() < 0.5
 		var x0 := FIRST_COL + i * CHUNK_WIDTH
 		for row in chunk.size():
@@ -90,7 +91,7 @@ static func _ground_heights(rng: RandomNumberGenerator) -> PackedFloat32Array:
 	var phase_b := rng.randf() * TAU
 	var phase_c := rng.randf() * TAU
 	var out := PackedFloat32Array()
-	var count := RIGHT_WALL - FIRST_COL
+	var count := right_wall - FIRST_COL
 	for k in count:
 		var x := float(k)
 		var raw := -2.4 * sin(x * TAU / 34.0 + phase_a) - 0.8 * sin(x * TAU / 12.0 + phase_b) - 0.3 * sin(x * TAU / 6.0 + phase_c)
@@ -122,7 +123,7 @@ static func surface_y(cells: Dictionary, col: int) -> float:
 ## Floor columns where a character can stand: ground with nothing solid in the rows above it.
 static func open_columns(cells: Dictionary) -> Array[int]:
 	var cols: Array[int] = []
-	for c in range(FIRST_COL, RIGHT_WALL):
+	for c in range(FIRST_COL, right_wall):
 		var top := surface_row(cells, c)
 		var clear := true
 		for r in range(top - SPAWN_CLEAR_ROWS, top):
@@ -148,7 +149,7 @@ static func left_edge() -> float:
 static func right_edge() -> float:
 	if world_size.x > 0:
 		return (world_size.x - 2) * TILE
-	return RIGHT_WALL * TILE
+	return right_wall * TILE
 
 
 static func _material_for(ch: String) -> int:

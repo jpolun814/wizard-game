@@ -112,10 +112,10 @@ func _build_hall(rng: RandomNumberGenerator) -> void:
 	add_child(backdrop)
 	backdrop.build(ArenaGen.BIOMES["church"]["backdrop"])
 	var flat := PackedFloat32Array()  # level ground the whole way: the arena's own heights are hills
-	flat.resize(ArenaGen.RIGHT_WALL - ArenaGen.FIRST_COL)
+	flat.resize(ArenaGen.right_wall - ArenaGen.FIRST_COL)
 	var cells := ArenaGen.build(rng, flat)
 	for cell: Vector2i in cells.keys():  # only the floor: no props of the arena's chunks, which stand where the wizards do
-		if cell.y < ArenaGen.GROUND_ROW and cell.x > ArenaGen.LEFT_WALL and cell.x < ArenaGen.RIGHT_WALL:
+		if cell.y < ArenaGen.GROUND_ROW and cell.x > ArenaGen.LEFT_WALL and cell.x < ArenaGen.right_wall:
 			cells.erase(cell)
 	var ground := Terrain.new()
 	add_child(ground)

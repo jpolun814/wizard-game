@@ -20,7 +20,8 @@ const ENGAGE := 620.0         # a wizard this close, and in sight, is a fight; f
 const PAGE_REACH := 4          # tiles: a page further than this from any place to stand is not one it can get
 const GOAL_EVERY := 4.0       # seconds between looking for a nearer page
 const PORTAL_LEFT := 3.0        # seconds: a portal with less than this left open is not worth the walk
-const PORTAL_CHANCE := 0.4      # how often it takes a portal that is nearer than the page it was after
+const PORTAL_CHANCE := 0.75     # how often it takes a portal that is nearer than the page it was after
+const PORTAL_JUMP_FOR := 5.0    # seconds it stands under a portal hung in the air, jumping for it, before it takes it for out of reach
 const GIVE_UP := 45.0         # seconds a page it could not reach stays off its list
 const NEAR := 190.0           # closer than this it backs away
 const FAR := 330.0            # farther than this it closes in
@@ -91,6 +92,7 @@ var _route := WizardRoute.new()
 var _goal := ""                  # what it is travelling to: "page", "foe", or "" for nothing
 var _goal_page: PagePickup
 var _goal_portal: FieldPortal
+var _portal_jumping := 0.0     # seconds it has stood under a portal in the air, jumping for it
 var _last_feet := Vector2.INF
 var _goal_timer := 0.0
 var _skip := {}                  # a page (its instance id) or a gate (its name) -> seconds it stays off the list, for one that could not be had
@@ -182,7 +184,9 @@ func think(delta: float) -> void:
 	# Footwork, or the journey.
 	var run := _footwork(delta, to_player, sees) if fighting else _travel(delta)  # (both may jump: the speed is written after they have)
 	wizard.walk(run)
-	wizard.facing = signf(to_player.x) if fighting or wizard.is_drawing() else (signf(run) if run != 0.0 else wizard.facing)
+	# A wizard faces the way it runs; it turns to its rival only while standing still or drawing a spell, so it never backpedals.
+	var running := run != 0.0 and not wizard.is_drawing()
+	wizard.facing = signf(run) if running else (signf(to_player.x) if fighting or wizard.is_drawing() else wizard.facing)
 	if not fighting:
 		return
 
@@ -268,8 +272,10 @@ func _travel(delta: float) -> float:
 		_goal = ""
 		_goal_timer = 0.0
 	_last_feet = wizard.global_position
-	if _goal == "portal" and _route.done():  # it has come to the portal and nothing came of it
-		_skip[_goal_portal.get_instance_id()] = GIVE_UP
+	if _goal == "portal" and _route.done():
+		if is_instance_valid(_goal_portal) and _goal_portal.lift > 0.0 and _portal_jumping < PORTAL_JUMP_FOR and not _goal_lost():
+			return _jump_for_portal(delta)  # it stands under a portal hung in the air and leaps for it
+		_skip[_goal_portal.get_instance_id()] = GIVE_UP  # it has come to the portal and nothing came of it
 		_goal = ""
 		_goal_timer = 0.0
 	if _goal == "page" and _route.done() and not _goal_lost():  # it has come to the place, and the page is not to be had from there
@@ -588,6 +594,16 @@ func _read_page_underfoot() -> void:
 			return
 
 
+## Stands under the portal it is after and jumps until it is carried off. Returns the speed to go at.
+func _jump_for_portal(delta: float) -> float:
+	_portal_jumping += delta
+	if wizard.is_on_floor() and _jump_cooldown <= 0.0:
+		wizard.request_jump()
+		_jump_cooldown = 0.7
+	var off := _goal_portal.global_position.x - wizard.global_position.x
+	return signf(off) * WALK_SPEED * 0.5 if absf(off) > 14.0 else 0.0
+
+
 ## The page it was going to has gone: someone else read it, or it has it already.
 func _goal_lost() -> bool:
 	if _goal == "portal":
@@ -622,6 +638,7 @@ func _choose_goal() -> void:
 	if portal.has("portal") and (best_page == null or (portal["path"].size() < best_path.size() and _rng.randf() < PORTAL_CHANCE)):
 		_goal = "portal"
 		_goal_portal = portal["portal"]
+		_portal_jumping = 0.0
 		_route.set_path(portal["path"])
 		return
 	if best_page != null:
@@ -645,9 +662,9 @@ func _nearest_portal(start: Vector2i) -> Dictionary:
 	if open.size() < 2:
 		return best
 	for portal: FieldPortal in open:
-		if portal.remaining() < PORTAL_LEFT or portal.lift > 0.0 or _skip.has(portal.get_instance_id()):  # one hung in the air is not for it
+		if portal.remaining() < PORTAL_LEFT or portal.lift > PortalField.JUMPABLE or _skip.has(portal.get_instance_id()):  # one hung higher than a jump reaches is not for it
 			continue
-		var path: Array[Vector2i] = _path(start, wizard.nav.nearest(_tile_of(portal.global_position + Vector2(0.0, Portal.RY))))
+		var path: Array[Vector2i] = _path(start, wizard.nav.nearest(_tile_of(portal.global_position + Vector2(0.0, Portal.RY + portal.lift))))
 		if not path.is_empty() and (best.is_empty() or path.size() < best["path"].size()):
 			best = {"portal": portal, "path": path}
 	return best

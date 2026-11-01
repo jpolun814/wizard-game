@@ -335,11 +335,17 @@ GODOT="/c/Users/Jordan Polun/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.
 "$GODOT" --headless --fixed-fps 60 --path . tests/interaction_check.tscn  # spells that meet: water puts out fire, fire dries mud, lightning lights plants and shocks pools, a tornado over fire
 "$GODOT" --headless --fixed-fps 60 --path . tests/follow_check.tscn -- seed=0  # piranhas, ice and a Geyser follow a pool's liquid as it flows
 "$GODOT" --headless --fixed-fps 60 --path . tests/geyser_check.tscn  # a Geyser's and a Tide Surf's water is real liquid, not made over and over
+"$GODOT" --headless --fixed-fps 60 --path . tests/wall_liquid_check.tscn  # a Stone Wall holds back poured lava like any ground, and the lava runs on when it is gone
+"$GODOT" --path . tests/minimap_look.tscn -- seed=0 out=DIR  # how much of the minimap is ground (needs a window)
 "$GODOT" --path . tests/water_look.tscn -- out=DIR             # pictures of a Geyser and a Tide Surf by the waiting-room pond (needs a window)
 "$GODOT" --path . tests/marks_look.tscn -- out=DIR             # pictures of the Hex, Fight or Flight and Moonbeam marks (needs a window)
 "$GODOT" --path . tests/minimap_check.tscn  # the minimap stays in the top right corner as the window is resized
 "$GODOT" --headless --fixed-fps 60 --path . tests/eruption_check.tscn -- seed=5  # an ashlands volcano erupts: a smoke plume, lava over the rim that cools and goes (add `out=DIR` for pictures, needs a window)
 "$GODOT" --headless --fixed-fps 60 --path . tests/stalagmite_check.tscn  # a Stalagmite rises from the ground under the tip of a drawn peak (add `-- out=DIR` for a picture, needs a window)
+"$GODOT" --headless --fixed-fps 60 --path . tests/sinkhole_biomes_check.tscn -- seeds=0,1,2,4,5,9,13  # a drawn U digs a pit of its shape in every kind of ground, the castle's slab floors too (add `out=DIR` for pictures, needs a window)
+"$GODOT" --headless --fixed-fps 60 --path . tests/ridge_check.tscn -- seed=4  # the snowy peaks' ridges: a wizard lands on one and S drops them through it (add `out=DIR` for pictures, needs a window)
+"$GODOT" --headless --fixed-fps 60 --path . tests/tutorial_check.tscn  # the tutorial room's page at each place, and the library's counts (add `-- out=DIR` for pictures, needs a window)
+"$GODOT" --headless --fixed-fps 60 --path . tests/match_stats.tscn -- seed=3  # one whole match of AI wizards at real times: the pacing of each world, how often wizards are near each other, and whether the winner won by pages or by casting (takes minutes; run several seeds and compare the RESULT lines)
 "$GODOT" --headless --fixed-fps 60 --path . tests/sinkhole_check.tscn  # a Sinkhole lowers the ground under it and leaves the ground beside it (add `-- out=DIR` for a picture, needs a window)
 "$GODOT" --headless -s tests/test_liquid.gd                      # the flowing liquid on its own: falls, levels, fills a pit, keeps its liquid, is quick
 "$GODOT" --headless --fixed-fps 60 --path . tests/liquid_world_check.tscn -- seed=3  # a world's pools and a pit dug beside one (seeds 3, 5, 7, 12 have pools)
@@ -441,9 +447,9 @@ GODOT="/c/Users/Jordan Polun/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.
 
 **The spellbook is a canon tome only** (owner decision): in-world text and the drawn picture, no manual, no cost line. What a spell does, what counters it and how much it costs are learned in play. The table above is the first 32 spells. The others (Vacuum, Updraft, Sinkhole, Stalagmite, Silence, Fight or Flight, Sneak, Hunter's Mark, the Blood spells, Tide Surf, Obsidian Armor, Glowcap and Moonbeam) are in `spells/` and `docs/spell_pool.md`. The school and spell plan is in `docs/spell_pool.md`; the direction of the game (a last-wizard-standing page race, which replaced the
 boss and the solo roguelite loop of `docs/roguelite_exploration_design.md`) is in `docs/pvp_arena_design.md`. The waiting room (`scenes/lab.tscn`, `scripts/lab.gd`) is where every spell is tried; the portal there
-starts a run.
+starts a run. The first screen also has a **Tutorial** (`scripts/tutorial.gd`: a page of the book on screen at a place for each school, with the school's mouse, an example spell and a line to try it on a dummy, a turret or a pond; two places go on to a meeting of spells) and a **Library** (`scripts/library.gd`, `library_screen.gd`: what this machine remembers of the matches played on it, in `user://library.json`: matches played and won, and for each page how often it was found, its spell cast, and a match won with it in the book. Only the person at the machine, only in real matches; the tests never touch it).
 
-**Pages per world:** each world lays only `Pages.count_for(biome, width)` pages (graveyard 16, peaks 16, jungle 18, ashlands 12, castle 18, underground 20, portal fields 10, at 1000 tiles wide, fewer in the smaller worlds, never under 6), drawn from the seed alone (not from who holds what; only the starting pages the seed deals are left out). Pages not laid do not carry over. A kind of gate the world has always keeps a page that opens it (`Pages.choose`).
+**Pages per world:** each world lays only `Pages.count_for(biome, width)` pages (graveyard 16, peaks 16, jungle 18, ashlands 12, castle 18, underground 20, portal fields 10, at 1000 tiles wide, fewer in the smaller worlds, never under 6), drawn from the seed alone (not from who holds what; only the starting pages the seed deals are left out). Pages not laid do not carry over. A kind of gate the world has always keeps a page that opens it (`Pages.choose`). In a world with no halls, pages lying out in the open are at least `Pages.MIN_APART` (40) columns apart, apart from the three near the start (`tests/pages_spread_look.tscn` prints where they lie).
 
 **Targeting types:** `directional`, `positional`, `angled`, `shape` and `cone`. The caster's `cast_resolved`
 signal passes `info` (radius, line, rect, shapes, aim, spread, reach), and `arena.spawn_spell` routes it.
@@ -566,7 +572,7 @@ clean. It was cleaned up once, without losing any behaviour. Keep it that way:
 
 **Ideas the owner may like:**
 - More spells that combine (fire melting ice, water putting out fire, lightning in pools and a fire whirl are built).
-- A gesture tutorial room.
+- More to the tutorial room (`Tutorial`, `scenes/tutorial.tscn`: a page for each school, with two meetings of spells), such as a place for the chants.
 - Music (CC0 dark ambient).
 
 When unsure, ask the owner one clear question rather than guessing big.

@@ -157,6 +157,7 @@ var _coyote := 0.0
 var _jump_buffer := 0.0
 var _step := 0.0
 var casting := false      # true while the caster has a stroke in progress (set by the arena)
+var casts_made := 0       # the spells this wizard has cast, for the tests that watch a match
 var _releasing := 0.0     # time left of the thrust that plays when a spell goes off
 var _hurt_anim := 0.0     # time left of the flinch after a hit
 var cast_color := Color.WHITE  # the school being drawn (set by the arena); the staff's glow takes it
@@ -720,8 +721,8 @@ func _physics_process(delta: float) -> void:
 		velocity.y = minf(velocity.y, _shove.y)
 	_shove = _shove.move_toward(Vector2.ZERO, 1500.0 * delta)
 
-	# Walking into a ledge one tile high: a small hop lifts the wizard up it, so slopes and steps are walkable.
-	if is_on_floor() and is_on_wall() and absf(velocity.x) > 10.0 and not dead and sink_time <= 0.0 and tangle_time <= 0.0:
+	# Walking into a ledge one tile high: a small hop lifts the AI wizards up it. A person jumps for themselves.
+	if brain != null and is_on_floor() and is_on_wall() and absf(velocity.x) > 10.0 and not dead and sink_time <= 0.0 and tangle_time <= 0.0:
 		velocity.y = minf(velocity.y, -330.0)
 	move_and_slide()
 	# A character pushed out of the map's sides is put back inside.
@@ -860,8 +861,12 @@ func _animate(delta: float) -> void:
 		wanted = "jump" if velocity.y < 0.0 else "fall"
 	elif absf(velocity.x - wind) > 10.0:  # the wind can push a wizard along without a step
 		wanted = "run"
-	if _sprite.animation != wanted:
+	var set_in_ice := is_frozen() and not dead
+	if set_in_ice:
+		wanted = String(_sprite.animation)  # held in the pose it was caught in
+	elif _sprite.animation != wanted:
 		_sprite.play(wanted)
+	_sprite.speed_scale = 0.0 if set_in_ice else 1.0  # nothing moves inside the ice
 	shown_anim = wanted
 	_sprite.flip_h = facing < 0.0
 	_glow.visible = casting and not dead

@@ -88,13 +88,18 @@ func _ready() -> void:
 	await get_tree().create_timer(6.0).timeout
 	_shot(out_dir, "eruption_b")
 	await get_tree().create_timer(14.0).timeout
+	_check(get_tree().get_nodes_in_group("sight_blockers").filter(func(n: Node) -> bool: return n is SmokePlume).is_empty(), "and the smoke has cleared")
+	Engine.time_scale = 4.0  # the lava takes a long while to cool
+	await get_tree().create_timer(Pond.COOL_SECONDS * 0.6 - 20.0).timeout
 	_shot(out_dir, "eruption_c")
 	var burning := get_tree().get_nodes_in_group("ponds").filter(func(p: Pond) -> bool: return p.lava and p.cools and p.molten())
-	_check(burning.is_empty(), "later the lava has cooled and no longer burns")
-	await get_tree().create_timer(14.0).timeout
-	var left := get_tree().get_nodes_in_group("ponds").filter(func(p: Pond) -> bool: return p.lava and p.cools)
+	var cooling := get_tree().get_nodes_in_group("ponds").filter(func(p: Pond) -> bool: return p.lava and p.cools)
+	_check(not cooling.is_empty() and burning.size() == cooling.size() and cooling.all(func(p: Pond) -> bool: return p.is_in_group("danger")), "later the lava has cooled a long way and still burns (%d of %d pools)" % [burning.size(), cooling.size()])
+	var first_pools := get_tree().get_nodes_in_group("ponds").filter(func(p: Pond) -> bool: return p.lava and p.cools)  # (the volcano erupts again, and its new lava is not what is asked about)
+	await get_tree().create_timer(Pond.COOL_SECONDS * 0.7).timeout
+	Engine.time_scale = 1.0
+	var left := first_pools.filter(func(p: Pond) -> bool: return is_instance_valid(p))
 	_check(left.is_empty(), "and then it is gone (%d pools left)" % left.size())
-	_check(get_tree().get_nodes_in_group("sight_blockers").filter(func(n: Node) -> bool: return n is SmokePlume).is_empty(), "and the smoke has cleared")
 	print("the volcano erupts and settles" if not failed else "eruption check FAILED")
 	get_tree().quit(1 if failed else 0)
 
