@@ -52,7 +52,6 @@ const STAFF_HEAD := Vector2(-55, -115)  # where the staff's crystal is in the ca
 const DRAW_TIME := 0.8        # how long a brain's wizard takes to draw a spell
 const SPAWN_TIME := 0.7       # a wizard summoned into the world arrives out of a circle this long
 const FALL_LIMIT := 800.0     # a wizard below this has fallen off the map (in a world, the bottom of it)
-const ICE := preload("res://art/props/ice_fill.png")
 
 var gravity: float = ProjectSettings.get_setting("physics/2d/default_gravity")
 var look := "wizard":  # which wizard this is: the player's own, or the id of one of the others' looks (a MobKind in res://mobs)
@@ -182,6 +181,7 @@ const GROUNDED := 16
 const ROOTED := 32
 const SLOWED := 64
 const FADED := 128
+const VEILED := 256
 const FADE_ALPHA := 0.35  # how much of a veiled wizard shows
 var peer := 0  # the machine that drives this wizard, as a peer id; 0 for this machine. Set before the wizard enters the tree
 var human := true  # a person plays this wizard, here or on another machine; false for one a brain plays (on the host)
@@ -374,6 +374,7 @@ func take_damage(amount: int, grace_hit := true, projectile := false) -> void:
 			_veil_cool = 0.5
 			Fx.burst(get_parent(), center(), SpellData.SCHOOL_COLORS["Blood"], 14, 140.0, 0.4, true)
 			Sfx.play("glass", center(), -4.0)
+			FloatText.spawn(get_parent(), center() + Vector2(0, -44), "Negated", Color("#ff6b7a"), 1.0)
 		if grace_hit:
 			_grace = HURT_GRACE
 		return
@@ -532,6 +533,12 @@ func fade_from_sight(seconds: float) -> void:
 ## True while the wizard is faded from sight.
 func is_faded() -> bool:
 	return marks & FADED != 0 if is_likeness() else fade_time > 0.0
+
+
+## A spell or a chant ends Sneak: a wizard out of sight can do one thing, and doing it shows them.
+func break_sneak() -> void:
+	if fade_time > 0.0:
+		fade_time = 0.0
 
 
 func raise_obsidian(seconds: float) -> void:
@@ -869,9 +876,10 @@ func _animate(delta: float) -> void:
 	_wet_material.set_shader_parameter("water_y", _liquid_y if wet else 1000000.0)
 	_wet_material.set_shader_parameter("water_tint", _liquid)
 	_sprite.modulate = Color(1.0, 0.45, 0.45) if _flash > 0.0 else Color(1.0, 1.0, 1.0, 0.55 if blink else (FADE_ALPHA if is_faded() else 1.0))
-	if (marks & OBSIDIAN != 0 if is_likeness() else obsidian_time > 0.0) and _flash <= 0.0:
-		var glint := 0.5 + 0.08 * sin(Time.get_ticks_msec() * 0.006)
-		_sprite.modulate = Color(glint, glint * 0.92, glint * 1.2, _sprite.modulate.a)  # black glass, with a violet shine
+	var glassy := marks & OBSIDIAN != 0 if is_likeness() else obsidian_time > 0.0
+	var veiled := marks & VEILED != 0 if is_likeness() else veil > 0
+	_wet_material.set_shader_parameter("obsidian", 1.0 if glassy and _flash <= 0.0 else 0.0)  # black glass with a sheen running over it
+	_wet_material.set_shader_parameter("aura", 1.0 if veiled and _flash <= 0.0 else 0.0)  # a wizard under a Crimson Veil is tinted red while it holds
 
 
 ## Called when a spell goes off: the wizard thrusts its staff forward once.
@@ -971,15 +979,11 @@ func _show_interrupt() -> void:
 	Sfx.play("misfire", center())
 
 
-## Things drawn over the sprite: the block of ice a frozen wizard is in, and the stroke any other wizard is drawing (a brain's, or a
+## Things drawn over the sprite: the stroke any other wizard is drawing (a brain's, or a
 ## person's on another machine), which grows as the spell does so that it can be read and broken. Your own is the caster's trail.
 func _draw_overlay() -> void:
 	if dead:
 		return
-	if is_frozen():
-		var body := Vector2(BODY_WIDTH, BODY_HEIGHT)
-		var box := Rect2((center_offset() - body * 0.5 - Vector2(6, 6)).floor(), (body + Vector2(12, 10)).floor())
-		_overlay.draw_texture_rect(ICE, box, true, Color(1, 1, 1, 0.6))
 	if shown_stroke.size() >= 2 and not is_person():
 		var local := PackedVector2Array()
 		for point in shown_stroke:
@@ -1048,7 +1052,7 @@ func share() -> void:
 ## On the machine that drives the wizard: what the others are sent (see share).
 func _tell_others() -> void:
 	net_position = global_position
-	marks = (FROZEN if is_frozen() else 0) | (SHIELDED if has_shield() else 0) | (OBSIDIAN if obsidian_time > 0.0 else 0) | (STUCK if _stuck_time > 0.0 else 0) 			| (GROUNDED if is_on_floor() else 0) | (ROOTED if is_rooted() else 0) | (SLOWED if is_slowed() else 0) | (FADED if fade_time > 0.0 else 0)
+	marks = (FROZEN if is_frozen() else 0) | (SHIELDED if has_shield() else 0) | (OBSIDIAN if obsidian_time > 0.0 else 0) | (STUCK if _stuck_time > 0.0 else 0) 			| (GROUNDED if is_on_floor() else 0) | (ROOTED if is_rooted() else 0) | (SLOWED if is_slowed() else 0) | (FADED if fade_time > 0.0 else 0) | (VEILED if veil > 0 else 0)
 	if brain != null:
 		shown_stroke = _drawn_so_far()
 

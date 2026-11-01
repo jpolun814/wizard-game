@@ -1,15 +1,14 @@
 class_name GreatOak
 extends FloraSpell
 
-## Great Oak: a tree grows where the trunk was drawn. Its branches are ledges you can jump onto, and its trunk is a
-## wall to walkers and shots, until it is broken. Fire, Earthquake and Stonefall bring it down. It creaks and
+## Great Oak: a tree grows where the trunk was drawn. Its branches are ledges you can jump onto; its trunk is only a picture, so
+## anyone can walk through it. Fire, Earthquake and Stonefall bring it down. It creaks and
 ## leans first, then falls, and everything under it when it lands is crushed: you, and anyone else.
 
 const SIZE := 2.0  # the oak is this many times the size of its picture
 const TREE := preload("res://art/props/great_oak.png")  # 208 x 234; its trunk's base is a little left of the middle
 const HEALTH := 220.0
 const BURN_DAMAGE := 75.0  # per second, while it burns
-const TRUNK := Rect2(-26 * SIZE, -110 * SIZE, 44 * SIZE, 110 * SIZE)  # the trunk's solid part, from its base up to where it forks
 ## The ledges, as [height above the base, left edge, right edge], each one under a branch of the drawing.
 const LEDGES := [[30.0, -36.0, -10.0], [112.0, -44.0, -12.0], [156.0, 30.0, 90.0], [212.0, -26.0, 44.0]]  # at the picture's own size; scaled by SIZE
 const GROW_SECONDS := 0.8
@@ -45,26 +44,15 @@ func _ready() -> void:
 	var grow := create_tween()
 	grow.tween_property(self, "scale:y", 1.0, GROW_SECONDS).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
 	grow.tween_callback(_stand)
-	Sfx.play("earth", global_position)
+	Sfx.play("pickup", global_position)  # a rustle of leaves
 	Sfx.play("quake", global_position, -4.0)
 	Fx.debris(get_parent(), global_position, Color("#7a6a3a"), 12, 220.0)
 	GameCamera.shake_scene(get_tree(), 0.3)
 
 
-## The tree has grown: now its trunk and ledges are solid.
+## The tree has grown: now its ledges are solid.
 func _stand() -> void:
 	_state = "standing"
-	var trunk := StaticBody2D.new()
-	trunk.collision_layer = 1
-	trunk.collision_mask = 0
-	var shape := CollisionShape2D.new()
-	var box := RectangleShape2D.new()
-	box.size = TRUNK.size
-	shape.shape = box
-	shape.position = TRUNK.get_center()
-	trunk.add_child(shape)
-	add_child(trunk)
-	_statics.append(trunk)
 	var ledges := StaticBody2D.new()
 	ledges.collision_layer = 16  # a one-way platform: jump up through it, land on top
 	ledges.collision_mask = 0

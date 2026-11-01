@@ -121,7 +121,7 @@ func _build_collision() -> void:
 ## Digs a pit into the open ground at a point: the stretch of the surface within `half_width` of it sinks to a bowl `depth` deep. The outline
 ## the rock is cut from is changed and the world is cut again from it, so the ground is drawn and solid as the pit. False when there is no
 ## open ground there to dig.
-func dig(at: Vector2, half_width: float, depth: float) -> bool:
+func dig(at: Vector2, half_width: float, depth: float, profile := PackedFloat32Array()) -> bool:
 	var way := -1.0 if _faces_down_near(at) else 1.0  # a pit sinks into the ground below; under a roof it is dug up into the rock above
 	# Rock too thin to stand between this pit and another one beside it goes too: the pit reaches across to the other.
 	var left := at.x - half_width
@@ -175,11 +175,11 @@ func dig(at: Vector2, half_width: float, depth: float) -> bool:
 	var near := a if left_to_right else b
 	var far := b if left_to_right else a
 	var bowl := PackedVector2Array()
-	var steps := 8
+	var steps := 16 if not profile.is_empty() else 8
 	for s in steps + 1:
 		var u := float(s) / steps
 		var surface := near.lerp(far, u)
-		var sink := depth * clampf(minf(u, 1.0 - u) * 5.0, 0.0, 1.0)  # steep walls and a flat floor
+		var sink := depth * Terrain.pit_share(u, profile)  # steep walls and a flat floor, or the drawn U
 		bowl.append(surface + Vector2(0.0, sink * way))
 	if not left_to_right:
 		bowl.reverse()
@@ -455,7 +455,8 @@ func _paint_grass(canvas: CanvasItem, bands: PackedVector2Array) -> Array:
 		var group: Dictionary = made[texture]
 		var first: int = group["points"].size()
 		group["points"].append_array(PackedVector2Array([a, b, b + drop, a + drop]))
-		group["uvs"].append_array(PackedVector2Array([Vector2(along.x, 0.0) / t, Vector2(along.y, 0.0) / t, Vector2(along.y, BAND) / t, Vector2(along.x, BAND) / t]))
+		var size := texture.get_size()  # a lip is one picture, as deep as the band
+		group["uvs"].append_array(PackedVector2Array([Vector2(along.x / size.x, 0.0), Vector2(along.y / size.x, 0.0), Vector2(along.y / size.x, BAND / size.y), Vector2(along.x / size.x, BAND / size.y)]))
 		group["index"].append_array(PackedInt32Array([first, first + 1, first + 2, first, first + 2, first + 3]))
 	var meshes := []
 	for texture: Texture2D in made:

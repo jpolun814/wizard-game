@@ -7,6 +7,8 @@ extends Node2D
 const LIFE := 12.0
 const REACH := 48.0  # how far the smoke spreads past the line you drew
 const THICKNESS := 34.0  # how close to the drawn line a sight line must pass to be cut
+const DENSITY := 6.0  # how much more smoke lies on a sight line through the bank than its length in the bank: a full bank hides all that lies behind it
+const THICKEN := 5.0  # seconds the smoke takes to build up to all it will be
 const FADE := 0.7    # how long it takes to thin away when the wind takes it
 
 var line := PackedVector2Array()  # the drawn line, in world points; set before the smoke enters the tree
@@ -14,12 +16,20 @@ var _age := 0.0
 var _region := Rect2()  # the box the smoke fills
 var _thinning := -1.0   # counts down once the wind has taken it
 var _emitter: CPUParticles2D
+var _bank: Array = []  # the band of smoke along the drawn line, as polygons in the world, for how much smoke a sight line passes through
 
 
 func _ready() -> void:
 	add_to_group("clouds")
 	add_to_group("lasting")
 	add_to_group("sight_blockers")
+	add_to_group("smoke_plumes")  # a person's own screen is hazed behind it, as behind a volcano's plume (see SmokeVeil)
+	SmokeVeil.ensure(get_tree())
+	var coarse := PackedVector2Array()  # the bank is cut from a plainer line than the one drawn, so that working out how much smoke lies on a sight line is quick
+	for k in line.size():
+		if k % 4 == 0 or k == line.size() - 1:
+			coarse.append(line[k])
+	_bank = Geometry2D.offset_polyline(coarse, THICKNESS, Geometry2D.JOIN_ROUND, Geometry2D.END_ROUND)
 	_region = GestureTemplates.bounds(line).grow(REACH)
 	global_position = _region.get_center()
 	_emitter = CPUParticles2D.new()
@@ -54,6 +64,7 @@ func _ready() -> void:
 
 func _physics_process(delta: float) -> void:
 	_age += delta
+	_emitter.self_modulate.a = lerpf(0.25, 1.0, _thickness())
 	if _thinning >= 0.0:
 		_thinning -= delta
 		modulate.a = clampf(_thinning / FADE, 0.0, 1.0)
@@ -69,7 +80,7 @@ func _physics_process(delta: float) -> void:
 ## True when the smoke is between two points: a line of sight that passes through the bank, which is a band along the
 ## line you drew, is cut. A box round the whole line would block far more than the smoke fills.
 func blocks(from: Vector2, to: Vector2) -> bool:
-	if _thinning >= 0.0 or _age < 0.3:
+	if _thinning >= 0.0 or _thickness() < 0.45:
 		return false
 	if not _region.intersects(Rect2(from, Vector2.ZERO).expand(to).grow(THICKNESS)):
 		return false  # a quick way out: the sight line never comes near the smoke
@@ -77,6 +88,26 @@ func blocks(from: Vector2, to: Vector2) -> bool:
 		if _segment_gap(from, to, line[i], line[i + 1]) <= THICKNESS:
 			return true
 	return false
+
+
+## How much smoke lies on the line from one point to another: its length inside the bank, made denser, so the smoke hides what is behind it
+## on a person's screen as a volcano's plume does. It thins as the wind takes it.
+func smoke_along(from: Vector2, to: Vector2) -> float:
+	if _thickness() <= 0.0 or (_thinning >= 0.0 and _thinning < FADE * 0.5):
+		return 0.0
+	if not _region.intersects(Rect2(from, Vector2.ZERO).expand(to)):
+		return 0.0
+	var inside := 0.0
+	for poly: PackedVector2Array in _bank:
+		for part: PackedVector2Array in Geometry2D.intersect_polyline_with_polygon(PackedVector2Array([from, to]), poly):
+			for k in part.size() - 1:
+				inside += part[k].distance_to(part[k + 1])
+	return inside * DENSITY * _thickness()
+
+
+## How thick the smoke has grown, from 0 as it begins to 1 once it is full: it builds up, rather than appearing.
+func _thickness() -> float:
+	return smoothstep(0.0, THICKEN, _age)
 
 
 ## The shortest distance between two line segments.

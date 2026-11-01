@@ -35,7 +35,7 @@ func _ready() -> void:
 	var pieces := ceili(length / LINK)
 	for i in pieces:
 		var piece := Sprite2D.new()
-		piece.texture = load("res://art/props/swamp_vine.png")
+		piece.texture = load("res://art/props/dusk_vine.png")
 		piece.rotation = PI * 0.5
 		piece.flip_v = i % 2 == 1
 		piece.modulate = Color(0.8, 1.0, 0.65)
@@ -44,7 +44,7 @@ func _ready() -> void:
 	_hang.scale = Vector2(1.0, 0.02)
 	create_tween().tween_property(_hang, "scale:y", 1.0, 0.6).set_ease(Tween.EASE_OUT)
 	Fx.debris(get_parent(), foot, Color("#4a6a30"), 6, 120.0)
-	Sfx.play("earth", foot, -6.0)
+	Sfx.play("pickup", foot, -6.0)  # a rustle of leaves
 
 
 func _physics_process(delta: float) -> void:

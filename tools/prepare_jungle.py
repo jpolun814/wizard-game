@@ -1,4 +1,4 @@
-"""Makes art/props/jungle_vine.png: the swamp vine (already in art/props, from GothicVania Swamp by ansimuz, CC0) turned upright, two
+"""(Now done by tools/prepare_vines.py, which recolours it first.) Makes art/props/jungle_vine.png: the swamp vine (already in art/props, from GothicVania Swamp by ansimuz, CC0) turned upright, two
 pieces one above the other (the second flipped), so that it tiles down a hanging vine. Run from the project folder: python -I tools/prepare_jungle.py"""
 from PIL import Image, ImageOps
 

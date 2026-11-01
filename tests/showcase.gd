@@ -659,21 +659,24 @@ func _plan_new_spells() -> void:
 	_at(15.2, func() -> void: _cast("Faint", _stroke("spiral", _feet(19) + Vector2(0, -30), 1.0)))
 	_at(15.5, func() -> void: check.call("a Faint drops a foe", dummy.call().is_fainted()))
 	_at(18.5, func() -> void: check.call("and the foe gets up again", not dummy.call().is_fainted()))
-	# Glowcap: a mushroom on the hat that is a light, and a second one replaces it.
+	# Glowcap: a mushroom that grows from the ground where it was drawn, is a light, and is eaten by whoever walks into it.
 	_at(19.0, func() -> void:
 		reset.call(15, "Glowcap")
-		wizard.max_stamina = 200.0)
+		wizard.max_stamina = 150.0)
 	_at(19.2, func() -> void: _cast("Glowcap", _stroke("circle", _feet(15) + Vector2(80, -60), 1.0)))
-	_at(19.8, func() -> void:
+	_at(20.4, func() -> void:
 		var caps := tree.get_nodes_in_group("glowcaps")
-		check.call("a Glowcap grows on the hat", caps.size() == 1 and caps[0].global_position.distance_to(wizard.global_position + Vector2(0, -80)) < 14.0)
-		check.call("and lights what is hidden near it", SpellTargets.lit_near(tree, wizard.global_position + Vector2(100, 0), 20.0) and not SpellTargets.lit_near(tree, wizard.global_position + Vector2(900, 0), 20.0))
+		check.call("a Glowcap grows from the ground, not on the hat", caps.size() == 1 and caps[0].global_position.distance_to(wizard.global_position + Vector2(0, -80)) > 40.0)
+		check.call("and lights what is hidden near it", caps.size() == 1 and SpellTargets.lit_near(tree, caps[0].global_position + Vector2(100, 0), 20.0) and not SpellTargets.lit_near(tree, caps[0].global_position + Vector2(900, 0), 20.0))
 		_snap("glowcap"))
-	_at(20.0, func() -> void:
-		_cast("Glowcap", _stroke("circle", _feet(15) + Vector2(80, -60), 1.0)))
-	_at(20.6, func() -> void:
-		check.call("a second Glowcap replaces the first, and still sits on the hat with the staff in hand", tree.get_nodes_in_group("glowcaps").size() == 1 and tree.get_nodes_in_group("glowcaps")[0].global_position.distance_to(wizard.global_position + Vector2(0, -80)) < 14.0)
-		_snap("glowcap_staff"))
+	_at(20.5, func() -> void:
+		var caps := tree.get_nodes_in_group("glowcaps")
+		if caps.size() == 1:
+			wizard.global_position = caps[0].global_position + Vector2(4, 0))
+	_at(20.8, func() -> void:
+		check.call("walking into it eats it", tree.get_nodes_in_group("glowcaps").is_empty())
+		check.call("and a little more is the most stamina the wizard has", wizard.max_stamina > 150.0)
+		check.call("and the wizard glows for a while", wizard.get_children().any(func(child: Node) -> bool: return child is GlowAura)))
 	# Moonbeam: a dim light on the ground where it was drawn.
 	_at(21.0, func() -> void:
 		reset.call(15, "Moonbeam")

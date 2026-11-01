@@ -17,7 +17,7 @@ func _begin(origin: Vector2, aim_angle: float) -> void:
 	_life = LIFE
 	rotation = aim_angle
 	Sfx.play("push", origin)
-	var ring := PixelFx.play(get_parent(), origin, "ring", 60.0, maxf(1.0, roundf(zone_radius / 22.0)), Color(0.8, 0.6, 1.0))
+	var ring := PixelFx.play(get_parent(), origin, "ring", 60.0, maxf(1.0, roundf(zone_radius / 22.0)), SpellData.SCHOOL_COLORS["Air"])  # the same pale wind as a Gust and an Updraft
 	ring.material = Fx.additive()
 
 
@@ -54,5 +54,5 @@ func _draw() -> void:
 	for i in 3:
 		var x := fmod(_age * 300.0 + i * zone_radius * 2.0 / 3.0, zone_radius * 2.0) - zone_radius
 		draw_set_transform(Vector2(x, (i - 1) * zone_radius * 0.45), 0.0, Vector2.ONE * 2.0)
-		draw_texture(frame, -frame.get_size() * 0.5, Color(0.85, 0.7, 1.0, _fade()))
+		draw_texture(frame, -frame.get_size() * 0.5, Color(SpellData.SCHOOL_COLORS["Air"], _fade()))
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)

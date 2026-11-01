@@ -15,7 +15,7 @@ const VINE_LEDGE := 2
 const MAX_BRIDGE := 9  # the most columns a rope bridge spans
 const TRUNK_SHIFT := 12.0  # the trunk's base is this far left of the middle of the picture, at the picture's own size
 
-var size := 2  # how many times the size of its picture: 1 is only to be seen, 2 and 3 have the oak's ledges and a vine
+var size := 2  # how many times the size of its picture: 2 and 3 (every tree has the oak's ledges and a vine)
 var mirror := false  # the picture turned about, ledges, vine and all
 var vine_ground := 0.0  # how far below the foot of the trunk the ground is where the vine hangs (it is a little to the side)
 
@@ -72,9 +72,8 @@ func _ready() -> void:
 	sprite.scale = Vector2.ONE * scale_up
 	sprite.flip_h = mirror
 	sprite.position = Vector2(TRUNK_SHIFT * way, -PICTURE.get_height() * 0.5) * scale_up
+	sprite.modulate = Color(1.18, 1.1, 1.12)  # a touch brighter than the trunks painted into the distance, so a tree to climb stands out from them
 	add_child(sprite)
-	if size < 2:
-		return
 	var ledges := StaticBody2D.new()  # the oak's ledges, as the spell's own tree has: one-way, jump up through, land on top
 	ledges.collision_layer = 16
 	ledges.collision_mask = 0

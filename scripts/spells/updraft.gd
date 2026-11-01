@@ -9,7 +9,8 @@ const HEIGHT := 520.0
 const LIFT := 2700.0    # pixels a second, each second, the air adds to a body on its way up (gravity pulls back)
 const MAX_RISE := 420.0 # the fastest it carries anyone up
 
-var _streaks: CPUParticles2D
+const STREAKS := 7
+var _streaks: Array[AnimatedSprite2D] = []  # gusts of the same pale wind as a Gust and a Push, climbing the column
 
 
 func _ready() -> void:
@@ -17,30 +18,22 @@ func _ready() -> void:
 	add_to_group("updrafts")
 	global_position = SpellTargets.ground_below(get_world_2d(), global_position + Vector2(0.0, -30.0))
 	z_index = 2
-	_streaks = CPUParticles2D.new()
-	_streaks.amount = 26
-	_streaks.lifetime = 1.4
-	_streaks.position = Vector2(0.0, -4.0)
-	_streaks.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
-	_streaks.emission_rect_extents = Vector2(WIDTH * 0.45, 2.0)
-	_streaks.direction = Vector2.UP
-	_streaks.spread = 4.0
-	_streaks.initial_velocity_min = 260.0
-	_streaks.initial_velocity_max = 380.0
-	_streaks.gravity = Vector2.ZERO
-	_streaks.texture = load("res://art/particles/rain_streak.png")
-	_streaks.particle_flag_align_y = true  # a streak points the way it travels, as the rain's do
-	_streaks.scale_amount_min = 1.0
-	_streaks.scale_amount_max = 1.6
-	_streaks.color = Color(0.85, 0.93, 1.0, 0.55)
-	_streaks.local_coords = false
-	_streaks.preprocess = 1.4
-	add_child(_streaks)
+	for i in STREAKS:
+		var gust := PixelFx.sprite("wind_bolt", 14.0)
+		gust.scale = Vector2.ONE * 2.0
+		gust.rotation = -PI * 0.5  # the wind stands on end
+		gust.frame = i
+		add_child(gust)
+		_streaks.append(gust)
 	Sfx.play("tornado", global_position, -14.0)
 	Fx.smoke(get_parent(), global_position, Color(0.85, 0.9, 0.95, 0.5), 5, 24.0, 40.0)
 
 
 func _physics_process(delta: float) -> void:
+	for i in _streaks.size():
+		var rise := fmod(Time.get_ticks_msec() * 0.00035 * HEIGHT + i * HEIGHT / STREAKS, HEIGHT)
+		_streaks[i].position = Vector2(((i * 37) % int(WIDTH * 0.8)) - WIDTH * 0.4, -rise)
+		_streaks[i].modulate = Color(SpellData.SCHOOL_COLORS["Air"], 0.8 * (1.0 - rise / HEIGHT))
 	for body: Node2D in SpellTargets.all(get_tree()):
 		if not _holds(body):
 			continue

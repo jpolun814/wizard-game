@@ -158,30 +158,40 @@ func _draw() -> void:
 	while x < _width() + 10.0:
 		var cloud: Texture2D = CLOUDS[i % CLOUDS.size()]
 		var bob := roundf(sin(_age * 0.8 + i) * 2.0)
-		draw_texture(cloud, Vector2(x, -60.0 - cloud.get_height() * 0.6 + bob), Color(1, 1, 1, fade * grow))
+		var at := Vector2(x, -60.0 - cloud.get_height() * 0.6 + bob)
+		draw_texture(cloud, at + Vector2(3.0, 7.0), Color(0.34, 0.4, 0.55, 0.8 * fade * grow))  # the dark underside of the cloud, a little below it
+		draw_texture(cloud, at, Color(0.7, 0.76, 0.9, fade * grow))  # storm cloud grey, not paper white
 		x += cloud.get_width() * 0.7
 		i += 1
-	var wash := PackedVector2Array()
-	for c in _floors.size():
-		wash.append(Vector2(c * STEP, _floors[c]))
-	for c in range(_floors.size() - 1, -1, -1):
-		wash.append(Vector2(c * STEP, SNOW_TOP))
-	draw_colored_polygon(wash, Color(1.0, 1.0, 1.0, 0.14 * fade * grow))
-	# Flakes fall only across the wash, and land on the top of the pile. Their number follows the area they fall through.
+	# A haze of snow under the clouds that is thickest up under them and thins toward the ground and at both sides, so the storm has no
+	# edges to it, as a box would.
+	var across := maxf(float(_floors.size() - 1) * STEP, 1.0)
+	for c in _floors.size() - 1:
+		var x0 := c * STEP
+		var x1 := (c + 1) * STEP
+		var side0 := smoothstep(0.0, 70.0, x0) * smoothstep(0.0, 70.0, across - x0)
+		var side1 := smoothstep(0.0, 70.0, x1) * smoothstep(0.0, 70.0, across - x1)
+		var strip := PackedVector2Array([Vector2(x0, SNOW_TOP), Vector2(x1, SNOW_TOP), Vector2(x1, _floors[c + 1]), Vector2(x0, _floors[c])])
+		var haze := PackedColorArray([Color(0.78, 0.86, 1.0, 0.2 * side0 * fade * grow), Color(0.78, 0.86, 1.0, 0.2 * side1 * fade * grow), Color(0.85, 0.92, 1.0, 0.03 * side1 * fade * grow), Color(0.85, 0.92, 1.0, 0.03 * side0 * fade * grow)])
+		draw_polygon(strip, haze)
+	# Flakes fall slanting with the wind, which gusts, each at a speed of its own by how far off it is, and settle on the top of the pile.
 	var span := maxf((_floors.size() - 1) * STEP, 1.0)
 	var fall := 0.0
 	for f in _floors:
 		fall += f - SNOW_TOP
 	fall /= maxf(float(_floors.size()), 1.0)
-	for k in clampi(int(_width() * fall / 26.0), 30, 1400):
-		var fx := floorf(fmod(k * 37.0 + _age * 10.0, span) + sin(_age * 2.0 + k) * 2.0)
+	var gust := sin(_age * 0.35) * 16.0 + sin(_age * 1.3) * 5.0
+	for k in clampi(int(_width() * fall / 20.0), 30, 1600):
+		var depth := 0.35 + 0.65 * float(k % 3) / 2.0
+		var drift := fmod(k * 37.0 + _age * (7.0 + 14.0 * depth), span)
+		var fx := floorf(clampf(drift + sin(_age * (0.7 + depth) + k * 1.7) * (6.0 + 10.0 * depth) + gust * depth, 0.0, span))
 		var column := clampi(int(fx / STEP), 0, _floors.size() - 1)
 		var landing := _floors[column] - _pile[column]
-		var fy := floorf(fmod(_age * 55.0 + k * 23.0, landing - SNOW_TOP) + SNOW_TOP)
-		var s := 2.0 + float(k % 2)
-		var a := fade * grow * clampf((fy - SNOW_TOP) / 12.0, 0.0, 1.0)
-		draw_rect(Rect2(fx - 1.0, fy - 1.0, s + 2.0, s + 2.0), Color(0.2, 0.36, 0.6, 0.8 * a))
-		draw_rect(Rect2(fx, fy, s, s), Color(1, 1, 1, a))
+		var fy := floorf(fmod(_age * (38.0 + 80.0 * depth) + k * 23.0, landing - SNOW_TOP) + SNOW_TOP)
+		var size := 2.0 if depth < 0.7 else 4.0  # whole pixel blocks
+		var edge := smoothstep(0.0, 50.0, fx) * smoothstep(0.0, 50.0, span - fx)
+		var a := fade * grow * edge * clampf((fy - SNOW_TOP) / 14.0, 0.0, 1.0) * (0.5 + 0.5 * depth)
+		draw_rect(Rect2(fx, fy, size, size), Color(0.92 + 0.08 * depth, 0.96 + 0.04 * depth, 1.0, a))
 	for c in _pile.size():
 		if _pile[c] > 0.5:
 			draw_rect(Rect2(c * STEP, _floors[c] - _pile[c], STEP + 1.0, _pile[c]), Color(0.92, 0.96, 1.0, fade * grow))

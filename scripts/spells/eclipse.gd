@@ -5,6 +5,7 @@ extends Node2D
 ## enemies in it lose sight of you beyond a few steps. A flare lights its patch of the dark and cuts through.
 
 const LIFE := 10.0
+const DEEPEN := 1.8  # seconds the dark takes to settle in full
 const SIGHT := 90.0  # how far you can see inside an eclipse
 const COLOR := Color(0.05, 0.0, 0.12)
 const VEIL_LIGHTS := 6  # the most lit patches the veil cuts out of the dark at once
@@ -17,7 +18,7 @@ uniform float strength;
 uniform vec4 lights[6];
 void fragment() {
 	vec2 p = UV * size;
-	float dark = mix(0.3, 0.94, smoothstep(radius * 0.75, radius * 1.25, distance(p, centre)));
+	float dark = mix(0.3, 1.0, smoothstep(radius * 0.75, radius * 1.25, distance(p, centre)));
 	for (int i = 0; i < 6; i++) {
 		dark *= smoothstep(lights[i].z * 0.45, lights[i].z, distance(p, lights[i].xy));
 	}
@@ -76,8 +77,8 @@ func covers(point: Vector2) -> bool:
 
 
 func _draw() -> void:
-	var grow := clampf(_age / 0.5, 0.0, 1.0) * clampf((LIFE - _age) / 1.0, 0.0, 1.0)
-	draw_texture_rect(Fx.tex("circle_05"), Rect2(-Vector2.ONE * radius * 1.2, Vector2.ONE * radius * 2.4), false, Color(COLOR.r, COLOR.g, COLOR.b, 0.62 * grow))
+	var grow := clampf(_age / DEEPEN, 0.0, 1.0) * clampf((LIFE - _age) / 1.0, 0.0, 1.0)
+	draw_texture_rect(Fx.tex("circle_05"), Rect2(-Vector2.ONE * radius * 1.2, Vector2.ONE * radius * 2.4), false, Color(COLOR.r, COLOR.g, COLOR.b, 0.9 * grow))
 
 
 ## The world goes dark around whoever is watching from inside it, leaving a dim ring of sight about them.
@@ -100,7 +101,7 @@ func _make_veil() -> void:
 func _update_veil(delta: float) -> void:
 	var watched := get_tree().get_first_node_in_group("player") as Wizard
 	var inside := watched != null and not watched.dead and covers(watched.global_position)
-	var fade := clampf(_age / 0.5, 0.0, 1.0) * clampf((LIFE - _age) / 1.0, 0.0, 1.0)
+	var fade := clampf(_age / DEEPEN, 0.0, 1.0) * clampf((LIFE - _age) / 1.0, 0.0, 1.0)
 	_veil_strength = move_toward(_veil_strength, fade if inside else 0.0, delta * 3.0)
 	_veil.visible = _veil_strength > 0.0
 	if not _veil.visible:

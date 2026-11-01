@@ -1,7 +1,7 @@
 class_name LilyPads
 extends FloraSpell
 
-## Lily Pads: a row of floating leaves appears along the line you drew. Each one holds your weight, so you can walk
+## Lily Pads: a pad drawn as a ring, then a level line across: a row of floating leaves appears along that line. Each one holds your weight, so you can walk
 ## across water or a pit on them. After 8 seconds they sink. Fire burns them, so they will not cross lava, and a flood
 ## washes them away.
 
@@ -9,7 +9,7 @@ const SECONDS := 8.0
 const SINK_SECONDS := 1.0
 const PAD_WIDTH := 52.0
 const PAD_FLOAT_REACH := 100.0  # how far from the drawn line a pool's surface can be for the leaf to settle on it
-const LEAF := preload("res://art/props/swamp_vine.png")
+const LEAF := preload("res://art/props/lily_pad.png")  # made by tools/prepare_vines.py
 
 var line := PackedVector2Array()  # the drawn line, in world points; set before the pads enter the tree
 var _age := 0.0
@@ -37,8 +37,7 @@ func _ready() -> void:
 		pad.position = Vector2(x, y)
 		var leaf := Sprite2D.new()
 		leaf.texture = LEAF
-		leaf.modulate = Color(0.7, 1.0, 0.6)
-		leaf.scale = Vector2(1.0, 0.9)
+		leaf.offset = Vector2(0, 6.0)
 		leaf.z_index = 1
 		pad.add_child(leaf)
 		var platform := StaticBody2D.new()

@@ -52,7 +52,7 @@ func _process(delta: float) -> void:
 			if scene is World and scene.player != null and scene.ledgers.size() > 0:
 				_verdict(scene.ledgers.size() == 4, "the world deals four wizards their pages (%d)" % scene.ledgers.size())
 				_verdict(scene.player.ledger == scene.ledgers[0] and not scene.player.ledger.everything, "the player holds the first ledger and not every page")
-				_verdict(get_tree().get_nodes_in_group("pages").size() > 25, "pages lie on the map (%d)" % get_tree().get_nodes_in_group("pages").size())
+				_verdict(get_tree().get_nodes_in_group("pages").size() >= Pages.LEAST, "pages lie on the map (%d)" % get_tree().get_nodes_in_group("pages").size())
 				_finish()
 	var limits := {"lab": 30.0, "intro": 20.0, "skip": 20.0, "world": 120.0}
 	if _stage_clock > limits.get(_stage, 30.0):

@@ -10,13 +10,16 @@ const RISE := 0.3  # seconds it takes to grow
 
 var polygon := PackedVector2Array()  # the triangle, relative to the middle of its base, which is in the ground; set by the arena before setup
 var rock: Texture2D  # the biome's earth, which the spike is made of; set by the arena before setup
+var _picture: ImageTexture
 
 
 func _begin(origin: Vector2, _aim_angle: float) -> void:
 	_life = INF
 	add_to_group("lasting")
 	add_to_group("danger")
-	texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
+	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	var tall := absf(polygon[2].y)
+	_picture = RockArt.spike(rock, absf(polygon[1].x - polygon[0].x), tall, true, false, int(origin.x))
 	z_index = -1  # behind the ground, which hides its base
 	var shape := ConvexPolygonShape2D.new()
 	shape.points = polygon
@@ -34,12 +37,9 @@ func _act(delta: float) -> void:
 		_damage_overlapping(DAMAGE)
 
 
-## The drawn triangle filled with the ground's own earth.
+## A spire of the ground's own stone with spurs beside it, rough and lit from the left (see RockArt.spike).
 func _draw() -> void:
-	var uvs := PackedVector2Array()
-	for p in polygon:
-		uvs.append(p / rock.get_size())
-	draw_colored_polygon(polygon, Color.WHITE, uvs, rock)
+	draw_texture_rect(_picture, RockArt.spike_rect(_picture, true, absf(polygon[2].y)), false)
 
 
 func danger_at(point: Vector2) -> bool:

@@ -34,18 +34,7 @@ static func place(parent: Node, at: Vector2, patch_width: float, life: float) ->
 func _ready() -> void:
 	add_to_group("danger")
 	add_to_group("fires")
-	# A row of the pixel fire along the patch.
-	_flames = Node2D.new()
-	_flames.position = Vector2(0, 4.0)
-	add_child(_flames)
-	var count := maxi(1, ceili(width / 22.0))
-	for i in count:
-		var flame := PixelFx.sprite("fire_puff", 12.0 + i % 3 * 2.0, true, 1)
-		flame.offset = Vector2(0, -PixelArt.FX["fire_puff"]["size"].y * 0.5)
-		flame.position = Vector2((i + 0.5) * width / count - width * 0.5, 0.0)
-		flame.frame = (i * 2) % 7
-		flame.flip_h = i % 2 == 1
-		_flames.add_child(flame)
+	_flames = Flames.lay(self, Rect2(-width * 0.5, -6.0, width, 12.0), int(global_position.x), 18.0, 1.3)  # a ragged fire over the patch
 
 
 func _physics_process(delta: float) -> void:

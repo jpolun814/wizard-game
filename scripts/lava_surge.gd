@@ -16,7 +16,7 @@ var width := 160.0
 var phase := 0.0     # seconds this lake is behind the others, so they do not all swell together
 var seconds := 0.0   # the world's age: the world sets it each frame
 
-var _flames: Array[AnimatedSprite2D] = []
+var _fire: Node2D  # the flames over the lake while it swells
 var _tick := 0.0
 var _bubble := 0.0
 
@@ -24,16 +24,8 @@ var _bubble := 0.0
 func _ready() -> void:
 	add_to_group("danger")
 	add_to_group("fires")
-	var count := maxi(1, int(width / 56.0))
-	for k in count:
-		var flame := PixelFx.sprite("fire_puff", 14.0, true, 1)
-		flame.scale = Vector2(2.0, 2.0)
-		flame.offset = Vector2(0, -PixelArt.FX["fire_puff"]["size"].y * 0.5)
-		flame.position = Vector2((k + 0.5) * width / count, 4.0)
-		flame.z_index = 1
-		flame.visible = false
-		add_child(flame)
-		_flames.append(flame)
+	_fire = Flames.lay(self, Rect2(0.0, -8.0, width, 12.0), int(global_position.x), 40.0, 0.8)
+	_fire.visible = false
 
 
 ## How far through its rhythm the lake is, in seconds.
@@ -52,9 +44,8 @@ func rise() -> float:
 func _physics_process(delta: float) -> void:
 	var into := _into()
 	var up := rise()
-	for flame in _flames:
-		flame.visible = up > 0.0
-		flame.scale = Vector2(2.0, 2.0 * up)
+	_fire.visible = up > 0.0
+	_fire.scale = Vector2(1.0, maxf(up, 0.01))
 	_bubble -= delta
 	if into < BUBBLING and into > BUBBLING - 1.6 and _bubble <= 0.0:  # it bubbles before it swells
 		_bubble = 0.2

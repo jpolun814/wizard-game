@@ -6,6 +6,7 @@ extends CanvasLayer
 ## anything, so you can keep casting and typing while you read. Buttons are drawn as a mouse with the held buttons lit
 ## up, and every spell's shape is drawn on the book's own pixel grid.
 
+const SHIFT_LEAVES := 5  # how many leaves a turn takes with Shift held
 const INK := Color("#3a1d1a")
 const TEXT_INK := Color(INK, 0.86)  # the writing is a touch lighter than the drawings, as if the pen was lifted
 const HEADING := Color("#6e1420")
@@ -269,10 +270,10 @@ func _input(event: InputEvent) -> void:
 			_toggle()
 		get_viewport().set_input_as_handled()
 	elif visible and event.is_action_pressed("ui_right"):
-		_turn(1)
+		_turn(SHIFT_LEAVES if event.shift_pressed else 1)
 		get_viewport().set_input_as_handled()
 	elif visible and event.is_action_pressed("ui_left"):
-		_turn(-1)
+		_turn(-SHIFT_LEAVES if event.shift_pressed else -1)
 		get_viewport().set_input_as_handled()
 
 
@@ -306,9 +307,11 @@ func _toggle() -> void:
 		_book.play([2, 1, 0], func() -> void: visible = false)
 
 
-func _turn(direction: int) -> void:
+## Turns the leaves of the book: one at a time, or five with Shift held. The page flips in the direction it is turned.
+func _turn(leaves: int) -> void:
+	var direction := signi(leaves)
 	var last_spread := ceili(_pages.size() / 2.0) - 1
-	var turned := clampi(_spread + direction, 0, last_spread)
+	var turned := clampi(_spread + leaves, 0, last_spread)
 	if turned == _spread:
 		return
 	Sfx.play("page")
@@ -475,7 +478,7 @@ func _page_spell(column: VBoxContainer, spell_name: String) -> void:
 
 
 ## An incantation's own page: its name, its words and what it does. Every one is spoken by typing it and pressing Enter,
-## which the first page shows once, as a key, the way the spell pages show the mouse buttons.
+## which every page shows as a key, the way the spell pages show the mouse buttons.
 func _page_incantation(column: VBoxContainer, ritual_id: String) -> void:
 	var r: Dictionary = RitualInput.RITUALS[ritual_id]
 	var top := HBoxContainer.new()
@@ -483,14 +486,19 @@ func _page_incantation(column: VBoxContainer, ritual_id: String) -> void:
 	var heading := _heading(r["name"], 40)
 	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	top.add_child(heading)
-	if ritual_id == RitualInput.RITUALS.keys()[0]:
-		top.add_child(KeyCap.new("Enter"))
+	top.add_child(KeyCap.new("Enter"))
 	column.add_child(top)
 	column.add_child(_ink("“%s”" % r["text"], 26, TEXT_INK))
 	column.add_child(_ink(_ritual_effect(ritual_id), 20, SUBTLE))
 	if ritual_id == "mark":
 		var back: Dictionary = RitualInput.RITUALS["recall"]
-		column.add_child(_heading(back["name"], 32))
+		var back_top := HBoxContainer.new()
+		back_top.add_theme_constant_override("separation", 10)
+		var back_heading := _heading(back["name"], 32)
+		back_heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		back_top.add_child(back_heading)
+		back_top.add_child(KeyCap.new("Enter"))
+		column.add_child(back_top)
 		column.add_child(_ink("“%s”" % back["text"], 26, TEXT_INK))
 		column.add_child(_ink(_ritual_effect("recall"), 20, SUBTLE))
 

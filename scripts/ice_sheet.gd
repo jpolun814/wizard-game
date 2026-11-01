@@ -11,14 +11,12 @@ var _area := Rect2()
 func _ready() -> void:
 	add_to_group("slick")
 	_area = Rect2(global_position + Vector2(0.0, -6.0), Vector2(width, 14.0))
-	var strip := Sprite2D.new()
-	strip.texture = preload("res://art/props/ice_fill.png")
-	strip.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
-	strip.region_enabled = true
-	strip.region_rect = Rect2(0, 0, width, 10)
+	var strip := Sprite2D.new()  # glossy, scratched ice with ragged ends (see RockArt.ice_sheet)
+	strip.texture = RockArt.ice_sheet(width, int(global_position.x))
+	strip.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	strip.scale = Vector2.ONE * RockArt.BLOCK
 	strip.centered = false
-	strip.position = Vector2(0.0, -2.0)
-	strip.modulate = Color(0.7, 0.9, 1.0, 0.85)
+	strip.position = Vector2(0.0, -8.0)
 	add_child(strip)
 
 

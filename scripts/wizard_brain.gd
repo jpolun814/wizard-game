@@ -19,7 +19,7 @@ const WALK_SPEED := 170.0
 const ENGAGE := 620.0         # a wizard this close, and in sight, is a fight; farther off, it is a journey
 const PAGE_REACH := 4          # tiles: a page further than this from any place to stand is not one it can get
 const GOAL_EVERY := 4.0       # seconds between looking for a nearer page
-const PORTAL_LEFT := 5.0        # seconds: a portal with less than this left open is not worth the walk
+const PORTAL_LEFT := 3.0        # seconds: a portal with less than this left open is not worth the walk
 const PORTAL_CHANCE := 0.4      # how often it takes a portal that is nearer than the page it was after
 const GIVE_UP := 45.0         # seconds a page it could not reach stays off its list
 const NEAR := 190.0           # closer than this it backs away
@@ -645,7 +645,7 @@ func _nearest_portal(start: Vector2i) -> Dictionary:
 	if open.size() < 2:
 		return best
 	for portal: FieldPortal in open:
-		if portal.remaining() < PORTAL_LEFT or _skip.has(portal.get_instance_id()):
+		if portal.remaining() < PORTAL_LEFT or portal.lift > 0.0 or _skip.has(portal.get_instance_id()):  # one hung in the air is not for it
 			continue
 		var path: Array[Vector2i] = _path(start, wizard.nav.nearest(_tile_of(portal.global_position + Vector2(0.0, Portal.RY))))
 		if not path.is_empty() and (best.is_empty() or path.size() < best["path"].size()):

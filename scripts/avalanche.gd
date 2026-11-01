@@ -5,8 +5,8 @@ extends Node2D
 ## snow rolls down the slope and sweeps along every wizard in its way. It follows a timetable made from the world's seed and the world's age,
 ## so every machine of a match sees the same one at the same time. It hurts whoever is run down, and shoves them down the hill.
 
-const PERIOD := 42.0   # seconds from one to the next
-const FIRST := 12.0    # seconds into the world before the first
+const PERIOD := 28.0   # seconds from one to the next
+const FIRST := 10.0    # seconds into the world before the first
 const WARNING := 3.5   # seconds of rumbling before the snow moves
 const SPEED := 260.0   # pixels a second the front travels
 const REACH := 70.0    # how far each way from the front it sweeps
@@ -14,6 +14,7 @@ const HEIGHT := 150.0  # how high above the slope it reaches
 const PUSH := 300.0
 const DAMAGE := 6
 const MAX_RUN := 70    # columns it runs, at the most
+const SHAKE_REACH := 2200.0  # how far off the ground still shakes under a wizard, as at a volcano
 
 var floors := PackedInt32Array()
 var seed_value := 0
@@ -25,6 +26,7 @@ var _way := 1          # which way it runs: 1 east, -1 west
 var _length := 0       # how many columns it runs
 var _hit := {}         # the wizards already hurt by this one
 var _smoke := 0.0
+var _rumbled := -1  # the slot whose rumble has been heard
 
 
 func _ready() -> void:
@@ -71,6 +73,10 @@ func _physics_process(delta: float) -> void:
 	var top := Vector2((_from + 0.5) * tile, floors[_from] * tile)
 	_smoke -= delta
 	if into < WARNING:  # the slope rumbles and smokes
+		_shake(top, 0.04)
+		if _rumbled != _slot and into >= 0.0:
+			_rumbled = _slot
+			Sfx.play("quake", top, -2.0)
 		if _smoke <= 0.0:
 			_smoke = 0.25
 			Fx.smoke(get_parent(), top + Vector2(randf_range(-60.0, 60.0), -10.0), Color(0.95, 0.97, 1.0, 0.7), 2, 30.0, 30.0)
@@ -80,6 +86,7 @@ func _physics_process(delta: float) -> void:
 		return
 	var column := clampi(_from + _way * int(travelled / tile), 0, floors.size() - 1)
 	var front := Vector2(top.x + _way * travelled, floors[column] * tile)
+	_shake(front, 0.08)
 	if _smoke <= 0.0:
 		_smoke = 0.05
 		Fx.smoke(get_parent(), front + Vector2(randf_range(-REACH, REACH), -randf_range(10.0, 90.0)), Color(0.96, 0.98, 1.0, 0.85), 4, 80.0, 30.0)
@@ -91,6 +98,13 @@ func _physics_process(delta: float) -> void:
 			if not _hit.has(wizard):
 				_hit[wizard] = true
 				SpellTargets.hurt(wizard, DAMAGE, "Air")
+
+
+## The ground shakes the camera of anyone near enough: the more the closer.
+func _shake(from: Vector2, amount: float) -> void:
+	var player := get_tree().get_first_node_in_group("player") as Node2D
+	if player != null:
+		GameCamera.shake_scene(get_tree(), amount * clampf(1.0 - player.global_position.distance_to(from) / SHAKE_REACH, 0.0, 1.0))
 
 
 ## True over the slope while it rumbles, and along the front of the snow while it runs.

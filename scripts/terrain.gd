@@ -46,10 +46,14 @@ var cells: Variant = {}  # a Dictionary of cells (the waiting room) or a TileGri
 var biome := "cemetery"
 var _textures := {}  # material -> atlas texture
 const SNOW_FADE := 640.0  # pixels over which snow thins out below the snow line
-const GRASS_BAND := 16.0  # how deep the grass along the top of the ground is, in world pixels
+const GRASS_BAND := 24.0  # how deep the grass along the top of the ground is, in world pixels
 var _edges := PackedFloat32Array()  # the ground's top edge height at each column boundary, left to right
+var earth_tiles := "cemetery"  # the tile set of the world's first biome, which names its earth and its grassy lip
+var snow_lip: Texture2D   # the snow along the ridges of the high ground
+var snow_pack: Texture2D  # and the snow over its rock
+var stone_earth: Texture2D  # the rock of the waiting room's slabs and walls, made like the ground's; kept here because a texture loaded in _draw is freed before it is drawn
+var lip: Texture2D  # the grassy lip along every surface, kept here because a texture loaded in _draw is freed before it is drawn
 var earth_texture: Texture2D  # the biome's plain earth, which repeats under the surface
-var _grass_texture: Texture2D  # the biome's grassy top, its first few pixels repeat along the surface
 
 
 ## Builds everything from the generated cells. Call once, after adding the terrain to the tree. Props are the decorations scattered
@@ -61,8 +65,10 @@ func build(map_cells: Variant, biome_name: String, rng: RandomNumberGenerator, p
 	_textures[ArenaGen.GROUND] = load("res://art/tiles/%s.png" % tiles)
 	_textures[ArenaGen.STONE] = load("res://art/tiles/stone.png")
 	texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
-	earth_texture = _piece_texture(_textures[ArenaGen.GROUND], CENTER)  # the lit, rocky middle of the earth, not the black depths
-	_grass_texture = _piece_texture(_textures[ArenaGen.GROUND], TOP)
+	earth_tiles = ArenaGen.biome_spans[0]["tiles"] if tiled and not ArenaGen.biome_spans.is_empty() else tiles
+	lip = load("res://art/tiles/lip_%s.png" % earth_tiles)
+	earth_texture = load("res://art/tiles/earth_%s.png" % earth_tiles)  # stones with dark seams, made for every biome by tools/prepare_earth.py
+	stone_earth = earth_texture  # the waiting room's slabs are the same rock as its ground
 	if tiled:
 		_build_contour()
 	else:
@@ -104,9 +110,34 @@ func _draw() -> void:
 		var material: int = cells[cell]
 		if material == ArenaGen.GROUND:
 			continue  # the ground is drawn as one smooth surface, see _draw_ground
+		if material == ArenaGen.STONE:
+			_draw_stone_cell(cell)
+			continue
 		var piece := _piece_for(cell, material)
 		var source := Rect2(Vector2(piece * ATLAS_CELL + Vector2i(ATLAS_PAD, ATLAS_PAD)), Vector2(ATLAS_TILE, ATLAS_TILE))
 		draw_texture_rect_region(_textures[material], Rect2(Vector2(cell) * ArenaGen.TILE, Vector2.ONE * ArenaGen.TILE), source)
+
+
+## A cell of the waiting room's rock (a slab overhead, the walls): the same stones as the ground, with a dark rim on every side that faces the open and a lit
+## edge on top, so it reads as rock and not as a floating tile.
+func _draw_stone_cell(cell: Vector2i) -> void:
+	var t := float(ArenaGen.TILE)
+	var at := Vector2(cell) * t
+	var uvs := PackedVector2Array()
+	var quad := PackedVector2Array([at, at + Vector2(t, 0.0), at + Vector2(t, t), at + Vector2(0.0, t)])
+	for p in quad:
+		uvs.append(p / stone_earth.get_size())
+	draw_polygon(quad, PackedColorArray([Color.WHITE]), uvs, stone_earth)
+	var rim := Color("#0d0916")
+	if not _same(cell + Vector2i.UP, ArenaGen.STONE):
+		draw_rect(Rect2(at, Vector2(t, 3.0)), Color("#6a5f8c"))  # lit top
+		draw_rect(Rect2(at + Vector2(0.0, 3.0), Vector2(t, 3.0)), rim)
+	if not _same(cell + Vector2i.DOWN, ArenaGen.STONE):
+		draw_rect(Rect2(at + Vector2(0.0, t - 4.0), Vector2(t, 4.0)), rim)
+	if not _same(cell + Vector2i.LEFT, ArenaGen.STONE):
+		draw_rect(Rect2(at, Vector2(4.0, t)), rim)
+	if not _same(cell + Vector2i.RIGHT, ArenaGen.STONE):
+		draw_rect(Rect2(at + Vector2(t - 4.0, 0.0), Vector2(4.0, t)), rim)
 
 
 ## Which tile piece a cell shows. Cells only join up with cells of the same material, so a stone pillar
@@ -167,17 +198,17 @@ func _draw_ground() -> void:
 	fill.append(Vector2(top[0].x, bottom))
 	var fill_uvs := PackedVector2Array()
 	for p in fill:
-		fill_uvs.append(p / float(ArenaGen.TILE))
+		fill_uvs.append(p / earth_texture.get_size())
 	draw_polygon(fill, PackedColorArray([Color("#2a1f1a")]))  # an opaque base, so the earth is never see-through
 	draw_polygon(fill, PackedColorArray([Color.WHITE]), fill_uvs, earth_texture)
 	var band := PackedVector2Array(top)
 	var uvs := PackedVector2Array()
 	for p in top:
-		uvs.append(Vector2(p.x, 0.0) / float(ArenaGen.TILE))
+		uvs.append(Vector2(p.x / lip.get_width(), 0.0))
 	for i in range(top.size() - 1, -1, -1):
 		band.append(top[i] + Vector2(0, GRASS_BAND))
-		uvs.append(Vector2(top[i].x, GRASS_BAND) / float(ArenaGen.TILE))
-	draw_polygon(band, PackedColorArray([Color.WHITE]), uvs, _grass_texture)
+		uvs.append(Vector2(top[i].x / lip.get_width(), GRASS_BAND / lip.get_height()))
+	draw_polygon(band, PackedColorArray([Color.WHITE]), uvs, lip)
 
 
 ## One static body for solid stone. Stone's runs of cells become single strips. The ground is a row of sloped blocks under
@@ -270,6 +301,24 @@ var _changed: Array[Rect2] = []  # where pits have been dug, so the tiles no lon
 var _solid: StaticBody2D  # the waiting room's solid ground, made again when a pit is dug
 
 
+## The height of the drawn ground at an x, near a row's height: the outline is rounded off, so it is not the same as the row's own top. The
+## height given back is the one of the outline's own that lies closest to y (within a couple of tiles), or y itself where there is none.
+func surface_near(x: float, y: float) -> float:
+	var best := y
+	var gap := float(ArenaGen.TILE) * 2.0
+	for loop: PackedVector2Array in air_loops:
+		for k in loop.size():
+			var a := loop[k]
+			var b := loop[(k + 1) % loop.size()]
+			if (a.x <= x) == (b.x <= x) or a.x == b.x:
+				continue
+			var at := a.y + (b.y - a.y) * (x - a.x) / (b.x - a.x)
+			if absf(at - y) < gap:
+				gap = absf(at - y)
+				best = at
+	return best
+
+
 ## Turns the world's solid tiles into rock with smooth edges, the way the waiting room ground is one smooth line: the
 ## outlines of the caves are traced and rounded off, then drawn (with a grass band along every surface facing up) and made
 ## solid a chunk at a time, see RockWorld. The castle is stone on top of that, drawn in brick.
@@ -287,16 +336,17 @@ func _build_contour() -> void:
 	air_loops = loops.filter(func(points: PackedVector2Array) -> bool: return Contour.area(points) < 0.0)
 	_rock_world = RockWorld.new()
 	_rock_world.earth = earth_texture
-	_rock_world.grass_texture = _grass_texture
+	_rock_world.grass_texture = lip
 	var snow_spans := []
 	for span: Dictionary in ArenaGen.biome_spans:  # each biome's grass is cut from its own tiles
 		var atlas: Texture2D = load("res://art/tiles/%s.png" % span["tiles"])
-		var entry := {"a": span["a"] * t, "b": (span["b"] + 1) * t, "texture": _piece_texture(atlas, TOP)}
+		var entry := {"a": span["a"] * t, "b": (span["b"] + 1) * t, "texture": load("res://art/tiles/lip_%s.png" % span["tiles"])}
 		if span.has("snow"):  # the high ground of a biome is snowy
-			var ice: Texture2D = load("res://art/tiles/snow.png")
-			entry["high"] = _piece_texture(ice, TOP)
+			snow_lip = load("res://art/tiles/lip_snow.png")  # drifts along the ridges, and a pack of snow over the high rock (see tools/prepare_earth.py)
+			snow_pack = load("res://art/tiles/earth_snow.png")
+			entry["high"] = snow_lip
 			entry["line"] = float(WorldGraph.SURFACE_ROW - span["snow"]) * t
-			snow_spans.append({"a": entry["a"], "b": entry["b"], "line": entry["line"], "texture": _piece_texture(ice, CENTER)})
+			snow_spans.append({"a": entry["a"], "b": entry["b"], "line": entry["line"], "texture": snow_pack})
 		_rock_world.grass_spans.append(entry)
 	rock.snow = snow_spans
 	_rock_world.sky = _sky_polygon()
@@ -329,13 +379,23 @@ func _build_contour() -> void:
 
 
 ## Digs a pit into the open ground at a point (see RockWorld.dig). False when this ground cannot be dug.
-func dig(at: Vector2, half_width: float, depth: float) -> bool:
+## How deep a pit is at a place across it, as a share of its depth: `u` is 0 at its left side and 1 at its right. A pit with no profile has steep
+## walls and a flat floor; one with a profile (see Sinkhole.profile_of) is the shape of what was drawn.
+static func pit_share(u: float, profile: PackedFloat32Array) -> float:
+	if profile.is_empty():
+		return clampf(minf(u, 1.0 - u) * 5.0, 0.0, 1.0)
+	var at := clampf(u, 0.0, 1.0) * (profile.size() - 1)
+	var i := mini(int(at), profile.size() - 2)
+	return lerpf(profile[i], profile[i + 1], at - i)
+
+
+func dig(at: Vector2, half_width: float, depth: float, profile := PackedFloat32Array()) -> bool:
 	var area := Rect2(at - Vector2(half_width + 16.0, 48.0), Vector2(half_width * 2.0 + 32.0, depth + 112.0))
 	if tiled:
 		if _rock_world == null:
 			return false
 		about_to_change.emit(area)
-		var dug := _rock_world.dig(at, half_width, depth)
+		var dug := _rock_world.dig(at, half_width, depth, profile)
 		if dug:
 			_changed.append(area)
 			changed.emit(area)
@@ -349,7 +409,7 @@ func dig(at: Vector2, half_width: float, depth: float) -> bool:
 		var u := ((ArenaGen.FIRST_COL + k) * float(ArenaGen.TILE) - (at.x - half_width)) / (half_width * 2.0)
 		if u < 0.0 or u > 1.0:
 			continue
-		_edges[k] = minf(_edges[k] + depth * clampf(minf(u, 1.0 - u) * 5.0, 0.0, 1.0), bottom)
+		_edges[k] = minf(_edges[k] + depth * pit_share(u, profile), bottom)
 	_solid.queue_free()
 	_build_collision()
 	queue_redraw()

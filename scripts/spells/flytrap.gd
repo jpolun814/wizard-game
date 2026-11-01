@@ -32,7 +32,7 @@ func _ready() -> void:
 	_picture.scale = Vector2(1.0, 0.05)
 	add_child(_picture)
 	create_tween().tween_property(_picture, "scale:y", 1.0, 0.5).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
-	Sfx.play("earth", global_position, -4.0)
+	Sfx.play("pickup", global_position, -6.0)  # a rustle of leaves
 
 
 func _physics_process(delta: float) -> void:
@@ -81,7 +81,7 @@ func _snap(prey: Node2D) -> void:
 	else:
 		prey.apply_debuff("root", HOLD_SECONDS)
 	_picture.scale = Vector2(1.15, 0.7)  # the jaws shut
-	Sfx.play("earth", global_position)
+	Sfx.play("jaw_snap", global_position)
 
 
 func _bite() -> void:
@@ -89,7 +89,7 @@ func _bite() -> void:
 	_bite_clock = BITE_GAP
 	SpellTargets.hurt(_victim, BITE_DAMAGE, "Flora")
 	Fx.burst(get_parent(), global_position + Vector2(0, -20), Color("#c04050"), 8, 90.0, 0.4)
-	Sfx.play("stones", global_position, -4.0)
+	Sfx.play("chomp", global_position, -4.0)
 	var chomp := create_tween()
 	chomp.tween_property(_picture, "scale", Vector2(1.25, 0.55), 0.08)
 	chomp.tween_property(_picture, "scale", Vector2(1.15, 0.7), 0.15)

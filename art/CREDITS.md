@@ -53,7 +53,9 @@ and are no longer drawn by the game.
 | `player_hurt`, `mob_shoot` | [Kenney – New Platformer Pack](https://kenney.nl/assets/new-platformer-pack) | CC0 1.0 |
 | `jump` | [Jumping man sounds](https://opengameart.org/content/jumping-man-sounds) by IgnasD | CC0 |
 | `pickup` | [Kenney – RPG Audio](https://kenney.nl/assets/rpg-audio) (cloth rustle) | CC0 1.0 |
-| `blood_cast`, `heartbeat`, `surf`, `glass`, `faint` | Synthesised for this game (`tools/make_spell_sounds.py`) | own work |
+| `heartbeat` | [Heartbeat sounds](https://opengameart.org/content/heartbeat-sounds) by estevinho (`heartbeat_slow_0`) | CC0 |
+| `surf`, `blood_cast`, `chomp` | [40 CC0 water / splash / slime SFX](https://opengameart.org/content/40-cc0-water-splash-slime-sfx) by rockseller (`splash_03`, `slime_05`, `slime_12`) | CC0 |
+| `glass`, `faint`, `jaw_snap` | [75 CC0 breaking / falling / hit SFX](https://opengameart.org/content/75-cc0-breaking-falling-hit-sfx) by rubberduck (`glass_breaking_01`, `falling_02`, `hit_03`) | CC0 |
 | `force`, `barrier`, `quake`, `tornado` (a jet roar) | [Kenney – Sci-fi Sounds](https://kenney.nl/assets/sci-fi-sounds) | CC0 1.0 |
 | `type`, `ui_click` | [Kenney – Interface Sounds](https://kenney.nl/assets/interface-sounds) | CC0 1.0 |
 | `book_open`, `book_close`, `page_*` | [Kenney – RPG Audio](https://kenney.nl/assets/rpg-audio) | CC0 1.0 |

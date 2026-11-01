@@ -53,7 +53,7 @@ func _ready() -> void:
 	var right := _surface[_surface.size() - 1].x
 	_box = Rect2(left - 10.0, top - HEIGHT, right - left + 20.0, bottom - top + HEIGHT + 14.0)
 	if not planted:
-		Sfx.play("earth", _surface[0], -6.0)
+		Sfx.play("pickup", _surface[0], -6.0)  # a rustle of leaves
 
 
 func _physics_process(delta: float) -> void:

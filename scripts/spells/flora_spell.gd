@@ -35,22 +35,10 @@ func is_burning() -> bool:
 	return _burning > 0.0
 
 
-## Sets the plant alight: flames of the Firewall's pixel fire along its bottom edge and up its height, and the sound of it catching.
+## Sets the plant alight: a fire scattered over it (see Flames), and the sound of it catching.
 func _ignite(box: Rect2) -> void:
 	_burning = 0.001
-	var across := clampi(int(box.size.x / 30.0), 1, 6)
-	var up := clampi(int(box.size.y / 60.0) + 1, 1, 3)
-	for row in up:
-		for i in across:
-			var flame := PixelFx.sprite("fire_puff", 13.0 + (i + row) % 3 * 2.0, true, 1)
-			flame.offset = Vector2(0, -PixelArt.FX["fire_puff"]["size"].y * 0.5)
-			flame.frame = (i * 2 + row * 3) % 7
-			flame.flip_h = (i + row) % 2 == 1
-			flame.scale = Vector2.ONE * (1.4 if row > 0 else 1.7)
-			var along := box.position.x + box.size.x * (i + 0.5) / across
-			flame.position = to_local(Vector2(along, box.end.y - row * box.size.y / up * 0.8))
-			flame.z_index = 4
-			add_child(flame)
+	Flames.lay(self, box, int(box.position.x * 3.0 + box.position.y), box.size.y * 0.5)
 	Sfx.play("fire_hit", box.get_center(), -4.0)
 
 

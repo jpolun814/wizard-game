@@ -135,7 +135,6 @@ var _body_center := Vector2(0, -20)
 var _overlay: Node2D               # draws health bar, ice, shield and charge glows on top of the sprite
 var _material: ShaderMaterial
 @onready var _visual: AnimatedSprite2D = $Visual
-const ICE := preload("res://art/props/ice_fill.png")
 
 
 func _ready() -> void:
@@ -817,6 +816,11 @@ func is_frozen() -> bool:
 	return _frozen_time > 0.0
 
 
+## How big the body is, for the block of ice that is built round it.
+func body_extent() -> Vector2:
+	return _body_size
+
+
 func knock_back(impulse: Vector2) -> void:
 	if _frozen_time > 0.0:
 		impulse *= 0.4  # a block of ice is heavy
@@ -953,10 +957,6 @@ func _draw_overlay() -> void:
 		var orb := orbs.get_frame_texture("default", int(_idle_t * 12.0) % orbs.get_frame_count("default"))
 		var size := 1.0 + floorf(k * 2.0)
 		o.draw_texture_rect(orb, Rect2(at - Vector2.ONE * 8.0 * size, Vector2.ONE * 16.0 * size), false, c.lightened(0.4))
-	if _frozen_time > 0.0:
-		# Encased in a block of pixel-art ice, seen through.
-		var box := Rect2((_body_center - _body_size * 0.5 - Vector2(6, 6)).floor(), (_body_size + Vector2(12, 10)).floor())
-		o.draw_texture_rect(ICE, box, true, Color(1, 1, 1, 0.6))
 	if hp < max_hp:
 		var width := 28.0
 		var top := _body_center.y - _body_size.y * 0.5 - 9.0

@@ -443,6 +443,8 @@ func _earth_texture() -> Texture2D:
 ## Makes a spell take effect in the world. Every wizard's spells come through here, whoever plays them.
 func spawn_spell(spell: String, targeting: String, origin: Vector2, aim: float, info: Dictionary, caster_node: Wizard) -> void:
 	var from: Vector2 = caster_node.center()
+	if spell != "Sneak":
+		caster_node.break_sneak()
 	if spell != "Vacuum":
 		Vacuum.release(get_tree(), caster_node)  # a caster who casts something else lets go of whoever they were smothering
 	var school: String = SpellData.SPELLS[spell].school if SpellData.SPELLS.has(spell) else ""
@@ -516,6 +518,7 @@ func spawn_spell(spell: String, targeting: String, origin: Vector2, aim: float, 
 		"Glowcap":
 			var cap := Glowcap.new()
 			cap.caster_node = caster_node
+			cap.position = _ground_below(origin)
 			add_child(cap)
 			return
 		"Moonbeam":
@@ -590,6 +593,8 @@ func spawn_spell(spell: String, targeting: String, origin: Vector2, aim: float, 
 				var box := GestureTemplates.bounds(drawn)
 				spot = Vector2(box.get_center().x, box.end.y)
 				hole.half_width = clampf(box.size.x * 0.5, Sinkhole.LEAST, Sinkhole.MOST)
+				hole.depth = clampf(box.size.y * hole.half_width / maxf(box.size.x * 0.5, 1.0), Sinkhole.SHALLOWEST, Sinkhole.DEEPEST)
+				hole.profile = Sinkhole.profile_of(drawn, 17)
 			hole.global_position = SpellTargets.surface_over(get_world_2d(), spot)
 			hole.ground = _ground
 			add_child(hole)
@@ -634,6 +639,7 @@ func spawn_spell(spell: String, targeting: String, origin: Vector2, aim: float, 
 	if spell == "Stonefall":
 		# A boulder falls onto the ground under the stroke and stays where it lands, as a loose rock.
 		var boulder := Boulder.new()
+		boulder.earth = _earth_texture()
 		boulder.global_position = _drop_point(origin)
 		add_child(boulder)
 		return
@@ -897,6 +903,7 @@ func _on_ritual_finished(id: String, acc: float, unfinished: bool) -> void:
 	if unfinished:
 		# Stopping a chant partway lets the words fade harmlessly; only a garbled chant backfires.
 		return
+	player.break_sneak()
 	if data["kind"] == "toggle":
 		_on_toggle_chant(data, acc)
 		return
@@ -973,6 +980,7 @@ func _grant_chant(speaker: Wizard, id: String) -> void:
 func chant_by(speaker: Wizard, id: String) -> bool:
 	if not is_instance_valid(speaker) or speaker.dead or not speaker.ledger.knows_chant(id) or speaker.is_muted() or speaker.is_frozen() or speaker.holding_breath():
 		return false
+	speaker.break_sneak()
 	_show_chant(String(speaker.name))
 	Net.send(self, &"_show_chant", [String(speaker.name)])
 	_grant_chant(speaker, id)

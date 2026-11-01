@@ -70,6 +70,8 @@ func build(backdrop: String, ground_y := -1.0) -> void:
 		sprite.position = Vector2(0.0, top)
 		sprite.scale = Vector2(zoom, zoom)
 		parallax.add_child(sprite)
+		if place == "jungle" and layer[1].x > 0.1:
+			sprite.modulate = Color(0.55, 0.72, 0.68)  # the painted trunks sit in haze, so that the trees that can be climbed stand out from them
 		# Carry the picture's top and bottom colours on past its edges, where they are solid.
 		var image := texture.get_image()
 		if image.is_compressed():

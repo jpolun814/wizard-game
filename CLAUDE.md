@@ -251,7 +251,7 @@ spells you do, drawing them visibly. There are no waves and no boss (see `docs/p
   - Each world of a match is one of these six, in an order the seed picks; the last, small world is all open sky, one of the first four.
   - **Each biome has landmarks of its own, not just a reskin; only the underground has tunnels.** The graveyard is dark with rain and fog, and its skeletons roam
     (`Mob.roams`). The ashlands have volcanoes that erupt now and then (`Eruption`) and pits of lava. The snowy peaks are mountains to climb (`MountainGale`: wind that grows toward the summits and pushes a wizard without the run animation, seen as streaks; `SnowCloud`: clouds that drift past in front of whoever is in them), with a page on each
-    summit. The jungle has pits of mud (`Mudslide`, dug by the world), thickets of thorns (`Bramble`) and great trees (`JungleTree`: dense, in three sizes and mirrored or not, each large one with the oak's ledges to hop between and a vine to climb to the high one, where most of the pages lie; the AI climbs the vines; the ponds are full of `Piranhas`). Its art is still named for the swamp it was cut from. The castle is a row of castles with five floors: a cellar down a
+    summit. The jungle has pits of mud (`Mudslide`, dug by the world), thickets of thorns (`Bramble`) and great trees (`JungleTree`: dense, in two sizes and mirrored or not, every one with the oak's ledges to hop between and a vine to climb to the high one, where most of the pages lie; the AI climbs the vines; the ponds are full of `Piranhas`). Its art is still named for the swamp it was cut from. The castle is a row of castles with five floors: a cellar down a
     stair, the ground floor, the first, and the second and third under the keep (see `docs/world_generation.md`).
 - **Characters and art:** LuizMelo characters, Ansimuz GothicVania environments, and CC0 pixel effects.
 
@@ -425,13 +425,13 @@ GODOT="/c/Users/Jordan Polun/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.
 | Earth | Mudslide | wavy line (as Frost Bridge) | a pit of mud: slows, no jumping; flyers pass over | walk out |
 | Earth | Stalagmite | one or more peaks (^) over the ground | spikes of rock that rise from the ground and hurt whatever touches them | step around |
 | Earth | Earthquake | arrow with a head at both ends | the ground shakes | flyers unaffected |
-| Earth | Sinkhole | U | the ground opens: `Terrain.dig` cuts a pit in the open ground and the rock is cut again (permanent) | jump out, fly |
+| Earth | Sinkhole | U | the ground opens: `Terrain.dig` cuts a pit the shape of the U that was drawn (`Sinkhole.profile_of`) in the open ground and the rock is cut again (permanent) | jump out, fly |
 | Flora | Bramble | low sawtooth | a thicket of thorns: slows and pricks | jump it; fire |
 | Flora | Spore Puff | cone `<` (as Fire Breath) | poison spores poured from your mouth | wind, water |
 | Flora | Liana | leaf and line: an almond on its point, then a line up | a vine to climb | fire |
 | Flora | Great Oak | trunk drawn up into a round crown | a tree: ledges and a wall, and when it falls it crushes | fire, Earthquake, Stonefall; it creaks first |
 | Flora | Flytrap | tall narrow W | a trap that snaps shut on whoever steps in | jump, fire |
-| Flora | Lily Pads | chain of low loops | floating leaves to cross water or a pit | fire; they sink after 8 s |
+| Flora | Lily Pads | a ring (the pad), then a level line across the water where they grow | floating leaves to cross water or a pit | fire; they sink after 8 s |
 | Shadow | Decoy | figure of eight | a shadow that draws enemies' attacks | it wears out |
 | Shadow | Eclipse | crescent | darkness: enemies inside see only what is close | Flare |
 | Shadow | Hex | pentagram (five-point star, one stroke) | a curse: 50% more damage | short time |

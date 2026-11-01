@@ -125,7 +125,7 @@ static func preview_points(gesture: String) -> PackedVector2Array:
 		"jaws":
 			return PackedVector2Array([Vector2(-30, -40), Vector2(-15, 40), Vector2(0, -5), Vector2(15, 40), Vector2(30, -40)])
 		"pads":
-			return _loop_chain(3)
+			return _circle_and_level_line()
 		"tree":
 			return _lollipop()
 		"eight":
@@ -399,13 +399,13 @@ static func _sawtooth(teeth: int, tooth_width: float, height: float) -> PackedVe
 	return pts
 
 
-## A chain of low loops, drawn left to right.
-static func _loop_chain(loops: int) -> PackedVector2Array:
+## A pad drawn as a ring, then a level line out of its top across where the pads are to grow.
+static func _circle_and_level_line() -> PackedVector2Array:
 	var pts := PackedVector2Array()
-	var steps := loops * 24
-	for i in steps + 1:
-		var theta := TAU * loops * i / steps
-		pts.append(Vector2(8.0 * theta - 18.0 * sin(theta) - 75.0, -14.0 * cos(theta)))
+	for i in range(33):
+		pts.append(Vector2.from_angle(-PI / 2.0 + TAU * i / 32.0) * 36.0)
+	for i in range(1, 11):
+		pts.append(Vector2(14.0 * i, -36.0))
 	return pts
 
 

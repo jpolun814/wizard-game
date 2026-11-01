@@ -116,7 +116,8 @@ static func fire_points(tree: SceneTree) -> Array:
 			for point in node.flame_points():
 				fires.append({"at": point, "heat": 1.0, "size": -10.0, "shot": false})
 		elif node is Pond:
-			fires.append({"at": node.global_position + Vector2(node.width * 0.5, 0), "heat": 1.0, "size": node.width * 0.5, "shot": false})
+			for point in node.heat_points():
+				fires.append({"at": point, "heat": 1.0, "size": LiquidGrid.CELL if node.grid != null else node.width * 0.5, "shot": false})
 		elif node is Tornado:
 			for point in node.flame_points():
 				fires.append({"at": point, "heat": 1.0, "size": 30.0, "shot": false})

@@ -29,7 +29,7 @@ func _begin(origin: Vector2, aim_angle: float) -> void:
 	for i in 5:
 		var streak := PixelFx.sprite("wind_bolt", 14.0)
 		streak.scale = Vector2.ONE * 2.0
-		streak.modulate = Color(0.9, 0.95, 1.0, 0.85)
+		streak.modulate = Color(SpellData.SCHOOL_COLORS["Air"], 0.85)  # every air spell is the same pale wind
 		streak.position = Vector2(0, (i - 2) * WIDTH * 0.2)
 		streak.frame = i
 		add_child(streak)

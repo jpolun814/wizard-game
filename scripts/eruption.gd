@@ -9,10 +9,10 @@ extends Node2D
 const SLEEP_MIN := 40.0
 const SLEEP_MAX := 80.0
 const RUMBLE := 4.0       # seconds of smoke and shaking before it erupts
-const ERUPT_SECONDS := 8.0
+const ERUPT_SECONDS := 10.0
 const THROW_INTERVAL := 0.55
 const POUR_INTERVAL := 0.25  # seconds between spoonfuls of lava over the rim, while it erupts
-const POUR_AMOUNT := 1.0     # how much lava wells up at each of the places along the crater, in cells of liquid, every time
+const POUR_AMOUNT := 2.4     # how much lava wells up at each of the places along the crater, in cells of liquid, every time
 const POUR_SPOTS := 5        # places across the crater it wells up, so the bowl fills evenly and then spills over its rim
 const BOWL_FLOOR := 28.0  # how far below the rim the bowl in the top of the mountain lies
 const CRATER_SPAN := 16.0 * 32.0  # how wide the bowl in the top of the mountain is (SurfaceGen.CRATER_WIDTH tiles)

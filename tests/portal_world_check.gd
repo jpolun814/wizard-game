@@ -69,12 +69,23 @@ func _run(world: World) -> void:
 			seen[tint] = true
 			if age - portal["born"] >= PortalField.LIFETIME or age < portal["born"]:
 				lasts = false
+	var reachable_always := true
+	var some_in_the_air := false
+	for step in 400:
+		var open := field.schedule(step * 1.0)
+		var grounded := false
+		for portal in open:
+			grounded = grounded or portal["lift"] <= PortalField.JUMPABLE
+			some_in_the_air = some_in_the_air or portal["lift"] > 0.0
+		reachable_always = reachable_always and (open.is_empty() or grounded)
+	_check(reachable_always, "some portal that is open can always be reached from the ground, by walking or jumping")
+	_check(some_in_the_air, "and some hang in the air")
 	_check(shared == 0, "no two portals open together share a colour (most open at once: %d)" % most)
 	_check(lasts, "each stays open for three intervals and no longer")
 	var sizes := {}
 	for wave in range(1, 60):
 		sizes[field.wave_size(wave)] = true
-	_check(sizes.has(0) and sizes.has(3) and not sizes.has(4), "later waves bring none to three")
+	_check(sizes.has(0) and sizes.has(8) and not sizes.has(9), "later waves bring none to eight")
 	var live := field.open_portals()
 	_check(live.size() >= 2, "and the world has them standing (%d)" % live.size())
 	if live.size() >= 2:
@@ -100,7 +111,9 @@ func _run(world: World) -> void:
 			rider = w
 	for page in get_tree().get_nodes_in_group("pages"):
 		rider.brain._skip[page.get_instance_id()] = 999.0  # with no page it can go for, it looks to the portals
-	var near: FieldPortal = field.open_portals()[0]
+	var grounded := field.open_portals().filter(func(p: FieldPortal) -> bool: return p.lift == 0.0)  # the AI walks to ones on the ground
+	grounded.sort_custom(func(a: FieldPortal, b: FieldPortal) -> bool: return a.remaining() > b.remaining())
+	var near: FieldPortal = grounded[0]  # the one with the most time left
 	rider.global_position = near.global_position + Vector2(-220.0, 0.0)
 	rider.brain._goal = ""
 	rider.brain._goal_timer = 0.0
@@ -113,8 +126,8 @@ func _run(world: World) -> void:
 		if body != player:
 			ai_rides += riders[body]
 	_check(ai_rides > 0, "and the AI wizards use them too (%d rides by %d wizards)" % [ai_rides, riders.size()])
-	if out_dir != "" and DisplayServer.get_name() != "headless" and not live.is_empty() and is_instance_valid(world):
-		world.player.global_position = live[0].global_position + Vector2(-120.0, 0.0)
+	if out_dir != "" and DisplayServer.get_name() != "headless" and not field.open_portals().is_empty() and is_instance_valid(world):
+		world.player.global_position = field.open_portals()[0].global_position + Vector2(-120.0, 0.0)
 		for k in 40:
 			await get_tree().physics_frame
 		DirAccess.make_dir_recursive_absolute(out_dir)

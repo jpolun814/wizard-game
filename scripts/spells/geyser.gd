@@ -26,6 +26,7 @@ var _burst := false
 var _lifted := 0.0   # water in the column, on its way back down
 var _sprung := false # true once water has come up from below
 var _hiss: CPUParticles2D
+var _riders := {}  # body -> when the column last threw it up, so a body that stays in the water is not thrown every frame
 
 
 func _ready() -> void:
@@ -33,6 +34,9 @@ func _ready() -> void:
 	add_to_group("lasting")
 	add_to_group("danger")
 	z_index = 3
+	material = ShaderMaterial.new()  # shaded in dithered bands, like the pools
+	(material as ShaderMaterial).shader = preload("res://scripts/pixel_liquid.gdshader")
+	(material as ShaderMaterial).set_shader_parameter("levels", 14.0)
 	# Small jets hiss up out of the cracking ground.
 	_hiss = CPUParticles2D.new()
 	_hiss.amount = 16
@@ -73,6 +77,8 @@ func _physics_process(delta: float) -> void:
 		_hiss.amount = 16 + int(40.0 * _age / WARNING)  # the hissing grows as the burst nears
 	if _burst:
 		_douse_shots()
+		_douse_fires()
+		_carry_riders()
 		if _lifted > 0.0 and _age >= DROP:
 			_let_fall()
 	if not _burst and _age >= WARNING:
@@ -103,6 +109,38 @@ func _douse_shots() -> void:
 				shot._finish()
 			else:
 				shot.queue_free()
+
+
+## All fire that is in the rising water goes out: a flamethrower's breath, a wall of flame or a bonfire alike.
+func _douse_fires() -> void:
+	var column := Rect2(global_position + Vector2(-WIDTH * 0.5 - 8.0, -_height()), Vector2(WIDTH + 16.0, _height() + 8.0))
+	for node: Node2D in get_tree().get_nodes_in_group("fires"):
+		if not node.has_method("quench") or not node.has_method("flame_points"):
+			continue
+		for point: Vector2 in node.flame_points():
+			if column.has_point(point):
+				Fx.smoke(get_parent(), point, Color(0.88, 0.92, 0.96, 0.7), 6, 24.0, 60.0)
+				Sfx.play("freeze", point, -6.0)
+				node.quench()
+				break
+
+
+## Anyone who walks into the column while it stands is thrown up, not only whoever was on the spot when it burst.
+func _carry_riders() -> void:
+	if _age >= DROP:
+		return
+	var now := Time.get_ticks_msec()
+	var column := Rect2(global_position + Vector2(-WIDTH * 0.5 - 8.0, -_height()), Vector2(WIDTH + 16.0, _height() + 30.0))
+	for body in SpellTargets.all(get_tree()):
+		if body.is_in_group("mobs") and body.KINDS[body.kind].role == "flyer":
+			continue
+		if not column.has_point(SpellTargets.center_of(body)) or now - int(_riders.get(body, -10000)) < 350:
+			continue
+		_riders[body] = now
+		if body.is_in_group("mobs"):
+			body.knock_back(Vector2(0.0, -MOB_LAUNCH))
+		else:
+			body.push(Vector2(0.0, -WIZARD_LAUNCH))
 
 
 ## The burst lifts the water at its foot: from a pool, or, the first time on dry ground, from below.

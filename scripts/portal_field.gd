@@ -4,15 +4,18 @@ extends Node2D
 ## The portal world's portals. Every INTERVAL seconds a handful open on the ground (the ring opens), stay open for LIFETIME, and close (the ring shuts). Anyone who steps
 ## into one comes out of another that is open. Which open, where and how many all come from the world's seed and age, so every
 ## machine of a match sees the same portals at the same moment. The first wave is never fewer than two; each later one brings none to three.
+## Some hang in the air, but the first of every wave stands on the ground and some of the rest can be jumped to, so there is always a way in.
 ## Each portal has a colour of its own: no two that are open at once share a hue.
 
-const INTERVAL := 10.0
-const LIFETIME := 30.0     # three intervals
+const INTERVAL := 5.0
+const LIFETIME := 15.0     # three intervals
+const JUMPABLE := 90.0     # a portal hung no higher than this above the ground can be reached by jumping
+const HIGHEST := 200.0     # and the highest one hangs this high
 const FIRST_WAVE := 2
-const MOST_NEW := 3
+const MOST_NEW := 8
 const COOLDOWN := 1.0      # seconds before whoever came out may go in again
 const SPACING := 90.0      # the least distance between two open portals
-const HUES := 12           # more than can ever be open at once (three waves of three, and a few over)
+const HUES := 24           # as many as can be open at once (three waves of eight)
 
 signal carried(body: Node2D)  # someone has gone in at one and come out of another
 
@@ -60,7 +63,11 @@ func schedule(age: float) -> Array[Dictionary]:
 				low += k * share
 				high = low + share - 1
 			var column := rng.randi_range(low, high)
-			out.append({"id": _id_of(wave, k), "wave": wave, "x": (column + 0.5) * tile, "born": wave * INTERVAL, "column": column})
+			var chance := rng.randf()
+			var lift := 0.0
+			if k > 0 and chance > 0.5:  # the first of a wave stands on the ground; of the others, half hang in the air
+				lift = rng.randf_range(40.0, JUMPABLE) if chance < 0.75 else rng.randf_range(JUMPABLE + 30.0, HIGHEST)
+			out.append({"id": _id_of(wave, k), "wave": wave, "x": (column + 0.5) * tile, "born": wave * INTERVAL, "column": column, "lift": lift})
 	return _spread(out)
 
 
@@ -111,7 +118,8 @@ func _sync() -> void:
 		portal.tint = tint_of(id)
 		portal.lifetime = LIFETIME
 		portal.age = seconds - entry["born"]
-		portal.position = Vector2(entry["x"], floors[entry["column"]] * tile - Portal.RY - 4.0)
+		portal.lift = entry["lift"]
+		portal.position = Vector2(entry["x"], floors[entry["column"]] * tile - Portal.RY - 4.0 - entry["lift"])
 		portal.entered.connect(_on_entered)
 		add_child(portal)
 		portal.open()

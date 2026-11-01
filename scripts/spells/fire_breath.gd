@@ -163,6 +163,14 @@ func _draw() -> void:
 		Fx.draw_glow(self, _mouth, 12.0, Color(1.0, 0.8, 0.35, 0.8))
 
 
+## Put out by water: the flames go out in steam where they were.
+func quench() -> void:
+	_age = LIFE
+	for puff in _puffs:
+		Fx.smoke(get_parent(), puff["pos"], Color(0.88, 0.92, 0.96, 0.5), 1, 16.0, 30.0)
+	_puffs.clear()
+
+
 ## Where each puff of flame is now, in the world.
 func flame_points() -> PackedVector2Array:
 	var points := PackedVector2Array()

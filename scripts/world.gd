@@ -203,6 +203,7 @@ func _begin_encounter(camera: Camera2D) -> void:
 	_raise_the_gale()
 	_raise_biome_life()
 	_wash_out_the_colour()
+	add_child(Grade.for_biome(SurfaceGen.biome_at(graph.surface, graph.surface["start"])))
 	if not _castle_stairs.is_empty():
 		var slopes := StaticBody2D.new()
 		slopes.collision_layer = 16  # a one-way platform: walk up it, land on top, and S drops through
@@ -274,7 +275,8 @@ func _lay_landmarks() -> void:
 		var heights := PackedFloat32Array()
 		for i in Mudslide.SAMPLES:
 			var column := clampi(pit["a"] + roundi(float(pit["b"] - pit["a"]) * i / (Mudslide.SAMPLES - 1)), 0, floors.size() - 1)
-			heights.append(floors[column] * t - mud.position.y)
+			var x := mud.position.x + lerpf(-mud.width * 0.5, mud.width * 0.5, float(i) / (Mudslide.SAMPLES - 1))
+			heights.append(_ground.surface_near(x, floors[column] * t) - mud.position.y)  # the ground as drawn, which is rounded off, not the row's own top
 		mud.planted_ground = heights
 		mud.modulate = Color(0.36, 0.42, 0.26)  # dark green-brown jungle mud, not the sand of the spell
 		add_child(mud)
@@ -555,7 +557,7 @@ func _grow_thorns(entry: Dictionary) -> void:
 		var end: float = (first + mini(start + chunk, floors.size())) * t
 		while x < end:
 			var column := clampi(int(floor(x / t)) - first, 0, floors.size() - 1)
-			points.append(Vector2(x, floors[column] * t))
+			points.append(Vector2(x, _ground.surface_near(x, floors[column] * t)))
 			x += Bramble.SPACING
 		var thorns := Bramble.new()
 		thorns.planted_ground = points

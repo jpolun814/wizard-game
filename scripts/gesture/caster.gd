@@ -178,7 +178,7 @@ func _end() -> void:
 	var coil := _coil(relative) if options.has("tornado") else PackedVector2Array()
 	var bramble := _sawtooth(relative) if options.has("bramble") else PackedVector2Array()
 	var jaws := _w_shape(relative) if options.has("jaws") else PackedVector2Array()
-	var pads := _loop_row(relative) if options.has("pads") else PackedVector2Array()
+	var pads := _pad_line(relative) if options.has("pads") and spiral.is_empty() else PackedVector2Array()
 	if not spiral.is_empty():
 		# A spiral wound inward is a Black Hole, centred where it ends up.
 		gesture = "spiral"
@@ -195,6 +195,10 @@ func _end() -> void:
 		var ring := relative.slice(0, ring_split)
 		ring_centre = _relative_centroid(ring)
 		info["radius"] = _mean_distance(ring, ring_centre)
+	elif pads.size() > 0:
+		gesture = "pads"
+		score = 1.0
+		info["line"] = _to_world(pads)
 	elif snow_line.size() >= 2:
 		gesture = "snowfall"
 		score = 1.0
@@ -218,10 +222,6 @@ func _end() -> void:
 		gesture = "tornado"
 		score = 1.0
 		info["line"] = _to_world(coil)
-	elif pads.size() > 0:
-		gesture = "pads"
-		score = 1.0
-		info["line"] = _to_world(pads)
 	elif bramble.size() > 0:
 		gesture = "bramble"
 		score = 1.0
@@ -825,14 +825,16 @@ func _w_shape(points: PackedVector2Array) -> PackedVector2Array:
 	return points
 
 
-## Lily Pads: a row of low loops, drawn as one chain that crosses itself at least twice and runs across.
-func _loop_row(points: PackedVector2Array) -> PackedVector2Array:
-	var extent := _extent(points)
-	if extent.x < 80.0 or extent.y > 0.7 * extent.x or _count_crossings(points) < 2:
+## Lily Pads: a pad drawn as a ring, then a line across, level, where the pads are to grow. Returns the line.
+func _pad_line(points: PackedVector2Array) -> PackedVector2Array:
+	var split := _ring_then_line_split(points)
+	if split < 0:
 		return PackedVector2Array()
-	if absf(points[points.size() - 1].x - points[0].x) < 0.5 * extent.x:
+	var tail := points.slice(split)
+	var across := tail[tail.size() - 1] - tail[0]
+	if absf(across.x) < 60.0 or absf(across.y) > 0.45 * absf(across.x):
 		return PackedVector2Array()
-	return points
+	return tail
 
 
 ## A flame is a loop that comes to a point, and the point is at the top: the top of the stroke is narrower than the

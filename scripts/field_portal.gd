@@ -11,13 +11,24 @@ const CLOSE_SECONDS := 8.0 / 12.0  # the closing frames, at twelve a second
 var tint := Color.WHITE
 var lifetime := 30.0
 var age := 0.0  # seconds since it opened: the field sets it each frame
+var lift := 0.0  # how far above the ground it hangs
 var _closing := false
+var _backing: AnimatedSprite2D  # a dark copy of the ring under it, drawn the ordinary way, which hides what is behind the glow
 
 
 func _ready() -> void:
 	super()
 	collision_mask = 6  # the player and the foes
 	_ring.modulate = ring_colour(tint)
+	_ring.modulate = ring_colour(tint) * 1.35  # brighter, and over a dark copy of itself (below), so that it is not see-through
+	_backing = AnimatedSprite2D.new()
+	_backing.sprite_frames = _ring.sprite_frames
+	_backing.scale = _ring.scale
+	_backing.position = _ring.position
+	_backing.modulate = Color(tint.r * 0.3, tint.g * 0.3, tint.b * 0.3, 0.95)
+	_backing.z_index = _ring.z_index
+	add_child(_backing)
+	move_child(_backing, _ring.get_index())  # under the ring
 	body_entered.connect(func(body: Node2D) -> void: entered.emit(self, body))
 	add_to_group("field_portals")
 
@@ -29,6 +40,10 @@ func open() -> void:
 
 func _process(delta: float) -> void:
 	super(delta)
+	if _backing.animation != _ring.animation:
+		_backing.play(_ring.animation)
+	_backing.frame = _ring.frame
+	_backing.pause()
 	if not _closing and age >= lifetime - CLOSE_SECONDS:
 		_closing = true
 		_ring.play("closing")

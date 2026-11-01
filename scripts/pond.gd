@@ -18,9 +18,9 @@ const HEADROOM := 32.0    # room above the surface, for liquid pushed up
 const LOOSE_HEADROOM := 96.0  # and above a puddle, which has no pool under it: the water poured in lands high in the grid
 const BELOW := 160.0      # and below the bed
 const RIM_OVERLAP := 12.0 # how far liquid runs under the ground beside it, to hide the gap between a square cell and the smooth edge of the ground
-const WATER_TOP := Color(0.2, 0.46, 0.72)     # the colours of water: lighter at the surface, darker below, with a bright edge
-const WATER_BOTTOM := Color(0.07, 0.18, 0.38)
-const WATER_RIM := Color(0.75, 0.92, 1.0)
+const WATER_TOP := Color(0.15, 0.34, 0.5)     # the colours of water: lighter at the surface, darker below, with a bright edge
+const WATER_BOTTOM := Color(0.05, 0.1, 0.24)
+const WATER_RIM := Color(0.6, 0.78, 0.88)
 const GROW := 12           # cells added at an edge the liquid has run up to
 const EDGE_WET := 0.05     # how much liquid at the edge of its grid makes it grow
 const MOST_COLS := 360     # the biggest a pool's grid can grow, so liquid spreading over a plain ends somewhere
@@ -60,6 +60,9 @@ var _air_dirty := true
 
 
 func _ready() -> void:
+	material = ShaderMaterial.new()  # dithered bands, as pixel art is shaded
+	(material as ShaderMaterial).shader = preload("res://scripts/pixel_liquid.gdshader")
+	(material as ShaderMaterial).set_shader_parameter("levels", 14.0)
 	_reach = CollisionShape2D.new()
 	_reach.shape = RectangleShape2D.new()
 	add_child(_reach)
@@ -130,6 +133,21 @@ func _cool(delta: float) -> void:
 ## True while the lava is hot enough to burn.
 func molten() -> bool:
 	return lava and (not cools or _heat >= 0.5)
+
+
+## Where the lava is, for what it heats: the top of each column that still holds it. A pool the liquid has run out of heats nothing,
+## and one it has run into heats where it now lies, not where the pool was first dug.
+func heat_points() -> PackedVector2Array:
+	var points := PackedVector2Array()
+	if grid == null:
+		points.append(global_position + Vector2(width * 0.5, 0.0))
+		return points
+	var wet := grid.wet_columns()
+	for c in range(wet.x, wet.y + 1):
+		var runs: Array = grid.runs_in(c)
+		if not runs.is_empty():
+			points.append(Vector2(grid.origin.x + (c + 0.5) * LiquidGrid.CELL, (runs[0][0] + runs[0][1]) * 0.5))
+	return points
 
 
 ## The space the liquid can reach: the pool itself, and room round it for liquid to spread into if the ground there is dug away. Once the liquid
@@ -442,9 +460,9 @@ func _hollow() -> Array:
 
 ## The pool: a solid fill, lighter at the surface, with a moving bright edge, and ice where it is frozen.
 func _draw() -> void:
-	var top := Color(1.0, 0.5, 0.12) if lava else WATER_TOP
-	var bottom := Color(0.55, 0.1, 0.05) if lava else WATER_BOTTOM
-	var rim := Color(1.0, 0.8, 0.3) if lava else WATER_RIM
+	var top := Color(0.92, 0.4, 0.1) if lava else WATER_TOP
+	var bottom := Color(0.4, 0.07, 0.05) if lava else WATER_BOTTOM
+	var rim := Color(0.95, 0.68, 0.25) if lava else WATER_RIM
 	if cools and lava:  # cooling lava goes dark
 		var crust := 1.0 - _heat
 		top = top.lerp(CRUST, crust)

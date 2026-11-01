@@ -114,7 +114,7 @@ func _physics_process(delta: float) -> void:
 		pos = _confine(pos)
 		fish["pos"] = pos
 		sprite.position = pos.round()  # drawn on whole pixels, so it does not shimmer
-		sprite.flip_h = fish["dir"] < 0.0
+		sprite.flip_h = fish["dir"] > 0.0  # the picture faces left
 
 
 ## True once the pool's liquid is flowing, so the water is wherever the liquid is rather than the rectangle the pool began as.

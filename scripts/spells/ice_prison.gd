@@ -12,8 +12,9 @@ const MAX_SIZE := 160.0
 var rect := Rect2()   # the box as drawn, in world space; set before adding to the tree
 var _age := 0.0
 var _life := 0.6
-var _held: Node2D      # the player, while frozen by the dark wizard's prison
-const ICE := preload("res://art/props/ice_fill.png")
+var _encased := []     # each body in ice: {"body", "block": the picture of its block of ice}
+const WIZARD_BLOCK := Vector2(68.0, 104.0)  # the block round a wizard: past the body on every side, and over the hood
+const ROOM := Vector2(26.0, 22.0)  # how much bigger than a walker its block is
 
 
 func _ready() -> void:
@@ -34,11 +35,13 @@ func _ready() -> void:
 		if body.is_in_group("mobs"):
 			if not body.freeze(FREEZE_SECONDS):
 				FloatText.spawn(get_parent(), body.center() + Vector2(0, -30), "Immune", Color("#bfe9ff"), 0.8)
-		else:
-			if body.freeze(FREEZE_SECONDS):
-				_held = body
-				_life = FREEZE_SECONDS
-	texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
+				continue
+		elif not body.freeze(FREEZE_SECONDS):
+			continue
+		var block_size: Vector2 = body.body_extent() + ROOM if body.is_in_group("mobs") else WIZARD_BLOCK
+		_encased.append({"body": body, "block": RockArt.ice_block(block_size.x, block_size.y, int(global_position.x) + _encased.size())})
+		_life = FREEZE_SECONDS
+	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	var burst := PixelFx.play(get_parent(), global_position, "ice_burst", 70.0, maxf(1.0, roundf(rect.size.x / 70.0)))
 	burst.z_index = 5
 
@@ -46,19 +49,26 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	_age += delta
 	queue_redraw()
-	if _age >= _life:
-		if _held:
-			Shatter.spawn(get_parent(), global_position, Color("#cdeeff"))
-			Sfx.play("ice_shatter", global_position)
+	for entry: Dictionary in _encased.duplicate():
+		var body: Node2D = entry["body"]
+		if not is_instance_valid(body) or (_age > 1.0 and not body.is_frozen()) or _age >= _life:  # thawed, or broken out of it (a wizard on another machine is told it a moment late)
+			if is_instance_valid(body):
+				Shatter.spawn(get_parent(), body.center(), Color("#cdeeff"))
+				Sfx.play("ice_shatter", body.center())
+			_encased.erase(entry)
+	if _age >= _life or (_age > 1.0 and _encased.is_empty() and _life > 0.6):
 		queue_free()
 
 
-## The ice round the frozen player: pixel-art ice over the body. Enemies draw their own ice.
+## The ice round each frozen body: a block of it that covers the whole body, growing from the ground up.
 func _draw() -> void:
-	if not _held or not is_instance_valid(_held):
-		return
-	var local := Rect2(_held.center() - global_position - Vector2(18, 40), Vector2(36, 80))
 	var fade := clampf((_life - _age) / 0.4, 0.0, 1.0)
-	var grow := clampf(_age / 0.12, 0.0, 1.0)
-	local = Rect2((local.get_center() - local.size * 0.5 * grow).floor(), (local.size * grow).floor())
-	draw_texture_rect(ICE, local, true, Color(1, 1, 1, 0.75 * fade))
+	var grow := clampf(_age / 0.18, 0.0, 1.0)
+	for entry: Dictionary in _encased:
+		var body: Node2D = entry["body"]
+		var block: ImageTexture = entry["block"]
+		var size := block.get_size() * RockArt.BLOCK
+		var feet: Vector2 = body.global_position - global_position + Vector2(0.0, 6.0)  # the block stands on the ground under the body
+		var shown := size.y * grow
+		var rect := Rect2(feet + Vector2(-size.x * 0.5, -shown), Vector2(size.x, shown))
+		draw_texture_rect_region(block, rect, Rect2(0.0, block.get_height() * (1.0 - grow), block.get_width(), block.get_height() * grow), Color(1, 1, 1, fade))

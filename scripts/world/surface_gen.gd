@@ -211,7 +211,7 @@ static func _lay_jungle_hazards(width: int, ponds: Array, mud: Array, thorns: Ar
 
 
 ## The jungle's great trees, one now and then along the ground where it is level and clear of the pits, the pools and the places the
-## wizards start from: [{"column", "size": 1, 2 or 3 times the picture, "mirror"}]. The large ones have a branch with a vine to climb to it.
+## wizards start from: [{"column", "size": 2 or 3 times the picture, "mirror"}]. The large ones have a branch with a vine to climb to it.
 static func _plant_trees(floor_row: PackedInt32Array, hazards: Array, starts: Array, rng: RandomNumberGenerator) -> Array:
 	var avoid := []  # [first, last] columns
 	for list: Array in hazards:
@@ -223,7 +223,7 @@ static func _plant_trees(floor_row: PackedInt32Array, hazards: Array, starts: Ar
 	var column := MARGIN + 14
 	while column < floor_row.size() - MARGIN - 14:
 		var roll := rng.randf()
-		var tree_size := 1 if roll < 0.2 else (2 if roll < 0.65 else 3)  # some small, some large, some larger still
+		var tree_size := 2 if roll < 0.55 else 3  # large, or larger still: every tree has ledges to hop up and a vine to climb
 		var mirror := rng.randf() < 0.5
 		var spot := JungleTree.layout(tree_size, mirror)
 		var clear: bool = absi(floor_row[column + spot["vine"]] - floor_row[column]) <= 2 and absi(floor_row[column + spot["vine"] / 2] - floor_row[column]) <= 1

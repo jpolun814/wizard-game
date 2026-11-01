@@ -11,9 +11,10 @@ const DAMAGE := 6
 const MELT_RATE := 0.5  # share of its height a steady fire melts a second
 const MELT_STEP := 0.25  # it melts in slices of this share of its height
 const MELT_REACH := 20.0  # fire this close to the ice melts it
-const ICE := preload("res://art/props/ice_fill.png")
+const ICE := preload("res://art/props/ice_fill.png")  # the ice the picture is shaded from
 
 var polygon := PackedVector2Array()  # the triangle, relative to the middle of its base, which is at the ceiling; set by the arena before setup
+var _picture: ImageTexture
 var _melted := 0.0  # heat taken in from steady fire toward the next slice
 var _struck := {}  # shots that have already melted a slice; shrinking the ice makes a shot inside it touch it again
 
@@ -22,7 +23,8 @@ func _begin(origin: Vector2, _aim_angle: float) -> void:
 	_life = INF
 	add_to_group("lasting")
 	add_to_group("danger")
-	texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
+	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_picture = RockArt.spike(ICE, absf(polygon[1].x - polygon[0].x), polygon[2].y, false, true, int(origin.x))
 	z_index = -1  # behind the ceiling, which hides its base
 	var shape := ConvexPolygonShape2D.new()
 	shape.points = polygon
@@ -67,12 +69,9 @@ func _ice_box() -> Rect2:
 	return Rect2(global_position + box.position * Vector2(1.0, scale.y), box.size * Vector2(1.0, scale.y))
 
 
-## The drawn triangle filled with pixel-art ice.
+## An icicle: a bulb at the ceiling tapering to a point, with a bright streak down it (see RockArt.spike).
 func _draw() -> void:
-	var uvs := PackedVector2Array()
-	for p in polygon:
-		uvs.append(p / ICE.get_size())
-	draw_colored_polygon(polygon, Color(1, 1, 1, 0.95 * _fade()), uvs, ICE)
+	draw_texture_rect(_picture, RockArt.spike_rect(_picture, false, polygon[2].y), false, Color(1, 1, 1, _fade()))
 
 
 func danger_at(point: Vector2) -> bool:

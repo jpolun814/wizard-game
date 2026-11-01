@@ -9,8 +9,8 @@ const LANDING_RADIUS := 36.0
 const LANDING_DAMAGE := 30
 const BREAKING_BLOW := 60.0  # what it takes off a wall or a plug of ice where it lands
 const HEALTH := 63.0  # the same as a default stone wall (45% of its length)
-const ROCK := preload("res://art/fx/rock.png")
 
+var earth: Texture2D  # the world's earth, which the boulder is cut from; set by the arena
 var _health := HEALTH
 var _landed := false
 var _speed := 0.0  # how fast it was moving last frame, which is how hard it hits
@@ -36,9 +36,11 @@ func _ready() -> void:
 	shape.shape = circle
 	add_child(shape)
 	var sprite := Sprite2D.new()
-	sprite.texture = ROCK
+	if earth == null:
+		earth = load("res://art/tiles/earth_cemetery.png")
+	sprite.texture = RockArt.boulder(earth, RADIUS, int(global_position.x))
 	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	sprite.scale = Vector2.ONE * 3.0  # a whole-number scale keeps the pixels crisp
+	sprite.scale = Vector2.ONE * float(RockArt.BLOCK)  # whole blocks keep the pixels crisp
 	add_child(sprite)
 	var strike_zone := Area2D.new()
 	var zone := CollisionShape2D.new()

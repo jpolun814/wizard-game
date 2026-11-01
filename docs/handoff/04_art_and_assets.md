@@ -121,3 +121,31 @@
 - **Colour bands:** the bottom colour carries on downward. The top colour carries on upward only when
   `extend_top` is set. The swamp's trees have flat canopy bands that look bad stretched, so those layers draw
   at 2x instead.
+
+## One look across worlds (cohesion pass)
+
+The packs come from different artists, so three things tie them together:
+- **The earth.** The packs' ground atlases are a thin lit band over black, which drew as bare navy with stripes. `tools/prepare_earth.py`
+  now makes `art/tiles/earth_<tiles>.png` (stones with dark seams, lit from the top left) and `art/tiles/lip_<tiles>.png` (the grassy,
+  mossy, ashen or frosted lip along each surface) for every tile set, each from a four-step ramp of its own. `Terrain` takes the earth of
+  the world's first biome; the lip follows each biome's span. Change a ramp in the script, run it, then `godot --import`.
+- **The grade.** `Grade` (`scripts/grade.gd`, `grade.gdshader`) is a layer over every world and under the interface: shadows pulled toward
+  one deep violet, colours drawn a little together, lights warmed a touch, corners darkened. Tune it there, not per biome.
+- **Pixel size.** The earth and lip are drawn with 2x2 blocks, like the other tiles.
+
+### Loose rock, vines and glow (second cohesion pass)
+
+- `RockArt` (`scripts/rock_art.gd`) cuts boulders, stone walls, stalagmites, icicles and Ice Prison blocks from the world's own earth texture, brightened so they read over the ground. Nothing loose is a plain polygon with a texture on it.
+- Vines use `art/props/dusk_vine.png` (made by `tools/prepare_vines.py`) so they share the Great Oak's colours; the Great Oak's trunk is walk-through, its ledges are solid.
+- Air spells (Gust, Push, Updraft) all take `SpellData.SCHOOL_COLORS["Air"]`.
+- Glowcap grows from the ground; a wizard who walks into it eats it (`GlowAura` gives the glow). The spellbook line must not say so.
+- Test: `tests/spell_fixes_check.tscn` (Sneak, veil, Geyser, Smoke Screen).
+
+### Third cohesion pass (jungle, peaks, fire, sounds)
+
+- **No sounds I made.** The owner asked that none of the game's sounds be purely my own. The ones I had synthesised were replaced by CC0 recordings (see art/CREDITS.md): `blood_cast`, `heartbeat`, `surf`, `glass`, `faint`, `jaw_snap`, `chomp`; the choice was made from file names, not by ear. Growth of plants uses `pickup` (a rustle). `spark`, `blink`, `push`, `fire_breath`, `ritual_ok`, `tornado`, `jump` and `quake` are still layered by `tools/make_sounds.py` from CC0 recordings with a little synthesis, which the owner said is fine.
+- **Earth.** `tools/prepare_earth.py` makes every ground: stones with seams, but the jungle's is soil (`dirt()`), and the peaks' high rock is a pack of snow with drifts along the ridges (`earth_snow.png`, `lip_snow.png`). Loose rock (`RockArt`) samples the ground's own texels at the same scale, so a wall looks like what it grew from.
+- **Grade.** `Grade.for_biome` gives each biome a cast on the shared grade: shadows pulled toward its colour, lights tinted a little.
+- **Fire.** `Flames.lay` scatters flames over a burning plant, a patch of burning ground or a lava lake: uneven sizes, heights and leans, a glow, and embers. Never lay flames in a row or a grid.
+- **Ice and snow.** `RockArt.ice_block` (Ice Prison, round wizards and mobs: the old `ice_fill` overlay is no longer drawn), `RockArt.ice_sheet` (the peaks' ice), `SnowDrift` (laid by `SnowCloud`; cosmetic and not solid). `art/props/ice_fill.png` is now unused; keep it until the owner says it can go.
+- **Jungle.** Every tree has ledges and a vine (no small ones); the painted backdrop is hazed so the trees to climb stand out; fish face the way they swim; mud and thorns follow the drawn ground (`Terrain.surface_near`).
