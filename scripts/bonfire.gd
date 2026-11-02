@@ -7,6 +7,18 @@ extends Node2D
 const LIFE := 30.0
 const REACH := 90.0          # how close the player must stand to be warmed
 const HEAL_PER_SECOND := 4.0
+const FLAME_BASE := 14.0     # how high up the pile the flames start
+
+## What each kind of world does to the logs, so that they are of the place: the wood is of that ground's trees, and wet, frosted, charred or old.
+const LOG_FILTERS := {
+	"graveyard": Color(0.78, 0.72, 0.95),
+	"jungle": Color(0.78, 1.0, 0.7),
+	"mountains": Color(0.72, 0.85, 1.0),
+	"ashlands": Color(0.8, 0.5, 0.42),
+	"castle": Color(1.0, 0.88, 0.7),
+	"underground": Color(0.66, 0.74, 0.95),
+	"portals": Color(0.92, 0.74, 1.0),
+}
 
 var power := 1.0             # set from the chant's accuracy: a truer chant warms more
 var _age := 0.0
@@ -16,10 +28,11 @@ var _flames: Node2D
 
 func _ready() -> void:
 	add_to_group("fires")  # it lights the dark and shows up to fire-sensitive things like any other fire
-	var logs := Sprite2D.new()  # the fire burns on a stone hearth, seen from the side
+	var logs := Sprite2D.new()  # the fire burns on a pile of logs, seen from the side
 	logs.texture = load("res://art/props/bonfire_logs.png")
-	logs.scale = Vector2.ONE * 3.0
-	logs.modulate = Color(0.62, 0.52, 0.48)  # weathered, not bright
+	var grade := get_tree().get_first_node_in_group("grade") as Grade
+	logs.modulate = LOG_FILTERS.get(grade.biome if grade != null else "", Color.WHITE)
+	logs.scale = Vector2.ONE
 	logs.offset = Vector2(0, -logs.texture.get_height() * 0.5 + 1.0)
 	add_child(logs)
 	_flames = Node2D.new()
@@ -28,9 +41,9 @@ func _ready() -> void:
 	_flames.draw.connect(_draw_flames)
 	for i in 3:
 		var fire := PixelFx.sprite("fire_puff", 12.0 + i * 2.0, true, 1)  # the same flame as the fire breath and the volcano
-		fire.scale = Vector2.ONE * (1.4 if i == 1 else 1.1)
+		fire.scale = Vector2.ONE * (1.2 if i == 1 else 0.9)
 		fire.offset = Vector2(0, -PixelArt.FX["fire_puff"]["size"].y * 0.5)
-		fire.position = Vector2(-11 + i * 11, -10)
+		fire.position = Vector2(-4 + i * 6, -FLAME_BASE + (4.0 if i != 1 else 0.0))
 		fire.flip_h = i == 1
 		fire.frame = i * 2
 		add_child(fire)

@@ -182,6 +182,7 @@ func _dress() -> void:
 	_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_title.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_title)
+	move_child(_wizard, _demo.get_index() + 1)  # the wizard stands in front of the book, not behind it
 	move_child(_box, get_child_count() - 1)  # the inscriptions stay on top of it all
 	move_child(_ink, get_child_count() - 1)  # and the stroke over them
 

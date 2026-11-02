@@ -17,9 +17,13 @@ const CASTS := {
 }
 
 
+var biome := ""  # the place it is laid over, which others ask for (see Bonfire)
+
+
 ## The grade with the cast of a biome, or the plain grade for a place with none (the waiting room).
 static func for_biome(biome: String) -> Grade:
 	var grade := Grade.new()
+	grade.biome = biome
 	if CASTS.has(biome):
 		var cast: Dictionary = CASTS[biome]
 		var material := grade.get_child(0).material as ShaderMaterial
@@ -31,6 +35,7 @@ static func for_biome(biome: String) -> Grade:
 
 func _init() -> void:
 	layer = 2
+	add_to_group("grade")
 	var wash := ColorRect.new()
 	wash.set_anchors_preset(Control.PRESET_FULL_RECT)
 	wash.mouse_filter = Control.MOUSE_FILTER_IGNORE

@@ -118,7 +118,7 @@ and are no longer drawn by the game.
 
 ## Bonfire logs (art/props/bonfire_logs.png)
 
-- The stone hearth (seen from the side) cut from "Campfire pixel art animated" by ArlanTR (opengameart.org/content/campfire-pixel-art-animated), CC0 (`tools/prepare_bonfire.py`).
+- The stack of firewood (seen from the side) cut from "FREE Platformer Assets" by GandalfHardcore (gandalfhardcore.itch.io/free-pixel-art-sidescroller-asset-pack-32x32-overworld). Free to use and modify in games, credit given; its licence forbids reselling or redistributing the assets themselves (`tools/prepare_bonfire.py`).
 
 - Piranhas (`art/mobs/piranha_small/ (halved from the tool's output)`): "Cute Fish Sprites" by chips8688, https://opengameart.org/content/cute-fish-sprites, OGA-BY 3.0 (credit required). The red fish, swim row, darkened (`tools/prepare_piranha.py`).
 

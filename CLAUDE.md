@@ -338,6 +338,7 @@ GODOT="/c/Users/Jordan Polun/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.
 "$GODOT" --headless --fixed-fps 60 --path . tests/wall_liquid_check.tscn  # a Stone Wall holds back poured lava like any ground, and the lava runs on when it is gone
 "$GODOT" --path . tests/minimap_look.tscn -- seed=0 out=DIR  # how much of the minimap is ground (needs a window)
 "$GODOT" --path . tests/water_look.tscn -- out=DIR             # pictures of a Geyser and a Tide Surf by the waiting-room pond (needs a window)
+"$GODOT" --path . tests/bonfire_look.tscn -- out=DIR [seed=N]  # a picture of a Bonfire beside the wizard in the waiting room, or in the world of a seed (needs a window)
 "$GODOT" --path . tests/marks_look.tscn -- out=DIR             # pictures of the Hex, Fight or Flight and Moonbeam marks (needs a window)
 "$GODOT" --path . tests/minimap_check.tscn  # the minimap stays in the top right corner as the window is resized
 "$GODOT" --headless --fixed-fps 60 --path . tests/eruption_check.tscn -- seed=5  # an ashlands volcano erupts: a smoke plume, lava over the rim that cools and goes (add `out=DIR` for pictures, needs a window)
