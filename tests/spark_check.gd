@@ -12,7 +12,7 @@ var _failures := 0
 func _ready() -> void:
 	World.random_start = false
 	for stage in [0, 3]:
-		World.next_seed = 8
+		World.next_seed = 13 if stage == 0 else 8  # 13 is a world with caves under it
 		MatchState.hurry = 100.0
 		if stage > 0:
 			MatchState.begin(8)

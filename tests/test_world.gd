@@ -1,10 +1,10 @@
-extends SceneTree
+extends Node
 
 ## Checks the world generator: one seed always builds the same world, every room of every world can be walked to from
 ## the start, and incantations and seeds convert both ways. Pass `-- out=DIR` to save a picture of one world's map.
 ##
 ## Run from the project folder:
-##     godot --headless -s tests/test_world.gd
+##     godot --headless --path . tests/test_world.tscn -- seeds=30
 ## It prints each failure and exits with code 1 if anything failed.
 
 var seeds := 300
@@ -14,7 +14,7 @@ var picture_seed := 7
 var _failures := 0
 
 
-func _initialize() -> void:
+func _ready() -> void:
 	var out := ""
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("out="):
@@ -162,13 +162,14 @@ func _initialize() -> void:
 	if out != "":
 		_picture(_make(picture_seed), out)
 	print("%d failures" % _failures if _failures > 0 else "all world checks passed")
-	quit(1 if _failures > 0 else 0)
+	get_tree().quit(1 if _failures > 0 else 0)
 
 
 func _make(seed_value: int) -> Dictionary:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed_value
-	return WorldBuilder.make(rng, SurfaceGen.BIOMES[seed_value % SurfaceGen.BIOMES.size()], true)
+	var biomes: Array = SurfaceGen.BIOMES.filter(func(b: String) -> bool: return b != "castle")  # the castle world has no halls: stairwells (tests/stairwell_check) stand in for them
+	return WorldBuilder.make(rng, biomes[seed_value % biomes.size()], true)
 
 
 ## The world is a sprawl, not a single path: many ways down, systems of halls joined by more than one route, and four starting

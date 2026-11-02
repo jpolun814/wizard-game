@@ -13,6 +13,7 @@ const PARCHMENT := Color("#e9d7bb")  # the plate a spell's shape is drawn on
 const PANEL := Color("#1f1528")
 const PANEL_DONE := Color("#1d2c22")
 const WORDS := Color("#efe3cf")
+const LETTERING := preload("res://fonts/PirataOne-Regular.ttf")  # the face of the home screen and the spellbook
 const WORDS_DONE := Color("#a9dc98")
 const MENU := "res://scenes/menu.tscn"
 
@@ -209,7 +210,8 @@ func _show(place: int) -> void:
 	_panel.add_child(column)
 	var heading := Label.new()
 	heading.text = entry["title"]
-	heading.add_theme_font_size_override("font_size", 34)
+	heading.add_theme_font_override("font", LETTERING)
+	heading.add_theme_font_size_override("font_size", 46)
 	heading.add_theme_color_override("font_color", accent)
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	column.add_child(heading)

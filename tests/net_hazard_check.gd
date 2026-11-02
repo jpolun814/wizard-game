@@ -59,7 +59,7 @@ class Driver extends Node:
 			for mob: Node in get_tree().get_nodes_in_group("mobs"):
 				if String(mob.name).begins_with("Dead") and int(String(mob.name).substr(4)) < 3:
 					line += " %s=(%d,%d)" % [mob.name, mob.global_position.x, mob.global_position.y]
-			for child in world.get_children():
+			for child in (world.get_children() if is_instance_valid(world) else []):
 				if child is Eruption:
 					line += " %s=%s" % [child.name, "ERUPT" if child.is_erupting() else "-"]
 			print(line)

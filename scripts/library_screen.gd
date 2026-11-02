@@ -38,9 +38,7 @@ func _ready() -> void:
 	add_child(column)
 	var title := Label.new()
 	title.text = "Library"
-	title.theme_type_variation = &"Outlined"
-	title.add_theme_font_size_override("font_size", 56)
-	title.add_theme_color_override("font_color", Color(0.9, 0.8, 1.0))
+	title.theme_type_variation = &"Heading"  # the lettering of the home screen's title
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	column.add_child(title)
 	_top = VBoxContainer.new()

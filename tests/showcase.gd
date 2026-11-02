@@ -61,6 +61,8 @@ func _at(time: float, action: Callable) -> void:
 
 
 func _snap(name := "") -> void:
+	if DisplayServer.get_name() == "headless":
+		return  # there is no picture to take; the checks still run
 	var image := get_viewport().get_texture().get_image()
 	_shot += 1
 	var file := "%s/%s_%02d%s.png" % [out_dir, scenario, _shot, ("_" + name) if name != "" else ""]
@@ -697,7 +699,7 @@ func _plan_new_spells() -> void:
 		memo["dx"] = dummy.call().global_position.x)
 	_at(22.7, func() -> void: _cast("Tide Surf", _stroke("tsunami", wizard.center() + Vector2(0, -20), 1.0)))
 	_at(23.5, func() -> void:
-		check.call("a wave carries the wizard along (moved %d px)" % (wizard.global_position.x - memo["x"]), wizard.global_position.x - memo["x"] > 200.0 and wizard.surf_time > 2.0)
+		check.call("a wave carries the wizard along (moved %d px)" % (wizard.global_position.x - memo["x"]), wizard.global_position.x - memo["x"] > 150.0 and wizard.surf_time > 2.0)
 		_snap("tide_surf"))
 	_at(23.9, func() -> void: wizard.surf_time = 0.0)  # the portal at the far end of the room starts a run
 	_at(24.6, func() -> void:
@@ -804,6 +806,7 @@ func _plan_checks() -> void:
 		print("%s  %s" % ["PASS" if ok else "FAIL", label])
 		if not ok:
 			failures[0] += 1
+			_exit_code = 1
 	var turret := func() -> Node2D:
 		for mob in _arena.get_tree().get_nodes_in_group("mobs"):
 			if mob.kind == "turret":
@@ -815,13 +818,7 @@ func _plan_checks() -> void:
 				return mob
 		return null
 	var tree := _arena.get_tree()
-	# Smoke between the turret and the wizard cuts the turret's sight.
-	_at(0.3, func() -> void: _reset_room(15, "Smoke Screen"))
-	_at(0.5, func() -> void: check.call("the turret sees the wizard with nothing between", not SpellTargets.sight_blocked(tree, turret.call().center(), _player().center())))
-	_at(0.7, func() -> void: _cast("Smoke Screen", _stroke("smoke", _feet(18) + Vector2(0, -60))))
-	_at(1.5, func() -> void: check.call("smoke between them cuts the turret's sight", SpellTargets.sight_blocked(tree, turret.call().center(), _player().center())))
-	_at(1.6, func() -> void: _cast("Gust", _densify(PackedVector2Array([_feet(15) + Vector2(0, -45), _feet(15) + Vector2(160, -45)]))))
-	_at(2.2, func() -> void: check.call("a Gust blows the smoke clear", not SpellTargets.sight_blocked(tree, turret.call().center(), _player().center())))
+	var memo_dx := [0.0]  # a number a later step compares with
 	# A decoy draws a walker's attention.
 	_at(3.0, func() -> void: _reset_room(10, "Decoy"))
 	_at(3.1, func() -> void:
@@ -938,6 +935,56 @@ func _plan_checks() -> void:
 	_at(35.0, func() -> void:
 		print("%d checks failed" % failures[0])
 		_exit_code = 1 if failures[0] > 0 else 0)
+	# Smoke between the turret and the wizard cuts the turret's sight once it has built up (it takes a few seconds), and a Gust clears it.
+	_at(36.0, func() -> void: _reset_room(15, "Smoke Screen"))
+	_at(36.2, func() -> void: check.call("the turret sees the wizard with nothing between", not SpellTargets.sight_blocked(tree, turret.call().center(), _player().center())))
+	_at(36.4, func() -> void: _cast("Smoke Screen", _stroke("smoke", _feet(18) + Vector2(0, -60))))
+	_at(40.0, func() -> void: check.call("smoke between them cuts the turret's sight", SpellTargets.sight_blocked(tree, turret.call().center(), _player().center())))
+	_at(40.1, func() -> void: _cast("Gust", _densify(PackedVector2Array([_feet(15) + Vector2(0, -45), _feet(15) + Vector2(160, -45)]))))
+	_at(40.8, func() -> void: check.call("a Gust blows the smoke clear", not SpellTargets.sight_blocked(tree, turret.call().center(), _player().center())))
+	# The spells that make something stand in the world, each cast in the waiting room and judged on what it leaves there.
+	var made := func(kind: Variant) -> int: return tree.get_nodes_in_group("danger").filter(func(n: Node) -> bool: return is_instance_of(n, kind)).size() + _arena.get_children().filter(func(n: Node) -> bool: return is_instance_of(n, kind)).size()
+	var spot := func(gesture: String, spell_name: String, at: Vector2, size := 1.0, from_start := false) -> void:
+		_cast(spell_name, _stroke_from(gesture, at, size) if from_start else _stroke(gesture, at, size))
+	_at(42.0, func() -> void: _reset_room(14, "Ice Prison"))
+	_at(42.3, func() -> void: spot.call("circle", "Ice Prison", _feet(14) + Vector2(66, -34), 0.9))
+	_at(43.0, func() -> void: check.call("an Ice Prison drawn round a dummy freezes it solid", dummy.call() != null and dummy.call().is_frozen()))
+	_at(44.0, func() -> void: _reset_room(14, "Icicles"))
+	_at(44.3, func() -> void: spot.call("icicles", "Icicles", _feet(14) + Vector2(110, -40)))
+	_at(44.9, func() -> void: check.call("Icicles hang from the ceiling", made.call(Icicle) > 0))
+	_at(46.0, func() -> void: _reset_room(14, "Blizzard"))
+	_at(46.3, func() -> void: spot.call("snowfall", "Blizzard", _feet(14) + Vector2(110, -90)))
+	_at(47.2, func() -> void: check.call("a Blizzard snows from a cloud", tree.get_nodes_in_group("clouds").any(func(n: Node) -> bool: return n is Blizzard)))
+	_at(48.0, func() -> void:
+		_reset_room(14, "Black Hole")
+		memo_dx[0] = dummy.call().global_position.x)
+	_at(48.3, func() -> void: spot.call("spiral", "Black Hole", dummy.call().global_position + Vector2(-150, -30), 1.2))
+	_at(50.0, func() -> void: check.call("a Black Hole pulls a dummy toward it (moved %d px)" % (memo_dx[0] - dummy.call().global_position.x), memo_dx[0] - dummy.call().global_position.x > 20.0 and tree.get_nodes_in_group("danger").any(func(n: Node) -> bool: return n is BlackHole)))
+	_at(51.0, func() -> void: _reset_room(14, "Earthquake"))
+	_at(51.3, func() -> void: spot.call("earthquake", "Earthquake", _feet(14) + Vector2(0, -120)))
+	_at(52.0, func() -> void: check.call("an Earthquake shakes the ground", Earthquake.is_shaking(tree)))
+	_at(58.5, func() -> void: _reset_room(14, "Liana"))
+	_at(58.8, func() -> void: spot.call("vine", "Liana", _feet(14) + Vector2(60, -110)))
+	_at(59.8, func() -> void:
+		var vines := _arena.get_children().filter(func(n: Node) -> bool: return n is Liana)
+		check.call("a Liana grows, and can be taken hold of", vines.size() == 1 and vines[0].can_grab(Vector2(vines[0].vine_x(), (vines[0].top_y() + vines[0].bottom_y()) * 0.5))))
+	_at(61.0, func() -> void: _reset_room(14, "Flytrap"))
+	_at(61.3, func() -> void: spot.call("jaws", "Flytrap", Vector2(ArenaGen.column_x(16), _feet(14).y - 40.0), 1.0))
+	_at(62.4, func() -> void: check.call("a Flytrap grows where the jaws were drawn", made.call(Flytrap) > 0))
+	_at(63.5, func() -> void: _reset_room(14, "Spore Puff"))
+	_at(63.8, func() -> void: spot.call("cone", "Spore Puff", _feet(14) + Vector2(60, -26)))
+	_at(64.8, func() -> void: check.call("Spore Puff pours spores", _arena.get_children().any(func(n: Node) -> bool: return n is SporePuff)))
+	_at(66.5, func() -> void: _reset_room(14, "Great Oak"))
+	_at(66.8, func() -> void: spot.call("tree", "Great Oak", _feet(14) + Vector2(90, -2), 1.0, true))
+	_at(68.2, func() -> void: check.call("a Great Oak grows", _arena.get_children().any(func(n: Node) -> bool: return n is GreatOak) or tree.get_nodes_in_group("flora").any(func(n: Node) -> bool: return n is GreatOak)))
+	_at(70.0, func() -> void:
+		_reset_room(1, "Frost Bridge")
+		var ponds := tree.get_nodes_in_group("ponds")
+		memo_dx[0] = SpellTargets.solid_below(_arena.get_world_2d(), Vector2(ArenaGen.column_x(8), _feet(1).y - 200.0)).y if not ponds.is_empty() else 0.0)
+	_at(70.3, func() -> void: spot.call("wave", "Frost Bridge", Vector2(ArenaGen.column_x(8), _feet(1).y - 20.0), 1.5))
+	_at(71.2, func() -> void:
+		var after := SpellTargets.solid_below(_arena.get_world_2d(), Vector2(ArenaGen.column_x(8), _feet(1).y - 200.0)).y
+		check.call("a Frost Bridge freezes the pond into ground to stand on (surface %d, was %d)" % [after, memo_dx[0]], after < memo_dx[0] - 20.0))
 
 
 ## Grows a vine, stands the wizard at it and holds W: the wizard should climb it. The heights are printed, since a

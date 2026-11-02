@@ -9,6 +9,7 @@ const HEALTH := Color("#b3122e")
 const STAMINA := Color("#c08a2c")
 const UNLIMITED := Color("#7fe0ff")
 const INK := Color(0.07, 0.04, 0.1)
+const LETTERING := preload("res://fonts/PirataOne-Regular.ttf")  # the face of the home screen and the spellbook
 const CONTROLS := [
 	["W A S D", "Move"], ["Space", "Jump"],
 	["Mouse buttons", "Hold mouse buttons and draw a spell"], ["Tab", "Open the spellbook"],
@@ -35,22 +36,40 @@ func _ready() -> void:
 	add_to_group(&"hud")  # the wand cursor asks whether the game is paused
 	$Pause/Box/Leave.pressed.connect(_on_leave)
 	var rows: GridContainer = $Pause/Box/Controls
+	_lay_on_parchment(rows)
 	for row in CONTROLS:
 		if row[0] == "F1" and not OS.is_debug_build():
 			continue  # the summon menu is a testing tool
 		var key := Label.new()
 		key.text = row[0]
 		key.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-		key.theme_type_variation = &"Outlined"
-		key.add_theme_color_override("font_color", Color("#f2c14e"))
-		key.add_theme_font_size_override("font_size", 19)
+		key.add_theme_font_override("font", LETTERING)
+		key.add_theme_color_override("font_color", Color("#6e1420"))  # the crimson of the book's headings
+		key.add_theme_font_size_override("font_size", 26)
 		rows.add_child(key)
 		var what := Label.new()
 		what.text = row[1] if not (row[0] == "Esc" and Net.online()) else "Open the menu"  # a network game goes on while it is open
-		what.theme_type_variation = &"Outlined"
-		what.add_theme_color_override("font_color", Color(0.92, 0.9, 1.0))
-		what.add_theme_font_size_override("font_size", 19)
+		what.add_theme_font_override("font", LETTERING)
+		what.add_theme_color_override("font_color", Color("#3a1d1a"))
+		what.add_theme_font_size_override("font_size", 26)
 		rows.add_child(what)
+
+
+## The controls are written on a sheet of the book's parchment, in the book's ink and lettering, as the home screen is.
+func _lay_on_parchment(rows: GridContainer) -> void:
+	var sheet := PanelContainer.new()
+	sheet.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	var paper := StyleBoxFlat.new()
+	paper.bg_color = Color("#d8b690")
+	paper.border_color = Color("#3a1d1a")
+	paper.set_border_width_all(4)
+	paper.set_corner_radius_all(3)
+	paper.set_content_margin_all(18.0)
+	sheet.add_theme_stylebox_override("panel", paper)
+	var box: Node = rows.get_parent()
+	box.add_child(sheet)
+	box.move_child(sheet, rows.get_index())
+	rows.reparent(sheet, false)
 
 
 func _process(delta: float) -> void:

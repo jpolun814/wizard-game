@@ -357,6 +357,10 @@ GODOT="/c/Users/Jordan Polun/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.
 "$GODOT" --headless --fixed-fps 60 --path . tests/stairwell_check.tscn  # the castle has thirteen swinging stairs (`SwingStair`) in three stairwells, each swinging among landings on other floors; a wizard waits for one, crosses it and is carried (add `-- out=DIR` for pictures, needs a window)
 "$GODOT" --headless --fixed-fps 60 --path . tests/menu_check.tscn  # the first screen is the open spellbook: a sign drawn with the left button held chooses its inscription, and the page turns (add `-- out=DIR` for pictures, needs a window)
 "$GODOT" --headless --fixed-fps 60 --path . tests/castle_spells_check.tscn  # the castle takes spells: a boulder rests on a swinging stair, a Stalagmite and a Sinkhole work on an upper floor
+"$GODOT" --headless --fixed-fps 60 --path . tests/avalanche_check.tscn  # the peaks' avalanche rumbles, then runs down its slope and hurts whoever it runs over, once
+"$GODOT" --headless --fixed-fps 60 --path . tests/pieces_check.tscn  # small pieces: a world's four words and its seed, the spell table and its buttons, a fireball called down onto the ground
+"$GODOT" --headless --fixed-fps 60 --path . tests/ritual_check.tscn  # the chants: how accurately they must be said, and what each gives
+"$GODOT" --headless --fixed-fps 60 --path . tests/library_screen_check.tscn  # the library's ledger, its face-down cards and its world filters, from a file of its own
 "$GODOT" --headless --fixed-fps 60 --path . tests/castle_sinkhole_fall_check.tscn  # a wizard dropped into a castle pit sinks into it and stays, or falls through to the floor below
 "$GODOT" --path . tests/castle_sinkhole_look.tscn -- out=DIR  # pictures of a Sinkhole dug in every kind of castle floor (needs a window)
 "$GODOT" --headless --fixed-fps 60 --path . tests/biome_jump_check.tscn  # the F1 panel goes to a world of any biome, whatever the seed deals
@@ -373,7 +377,8 @@ GODOT="/c/Users/Jordan Polun/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.
 "$GODOT" --headless --path . tests/net_match_check.tscn -- role=host &  then  ... -- role=client  # two copies play a whole match (add `leave` to both)
 ```
 
-- **All the quick checks at once:** `sh tools/run_checks.sh` runs the gesture, page, navigation, stage and scene checks above (not the long or windowed ones) and prints one line for each, ok or FAILED.
+- **All the checks at once:** `python tools/run_checks.py` runs the quick checks side by side (about a minute and a half) and prints one line for each, ok or FAILED. A scene check also fails when it prints a `SCRIPT ERROR`. `--all` adds the slower ones (a whole generated world, the showcase's `checks`, `newspells`, `spells` and `soak` scenarios, and the network checks, which start two or three copies of the game and take minutes); `-j N` sets how many run at once; names on the end pick checks (`python tools/run_checks.py --all ritual`). `sh tools/run_checks.sh` does the same.
+- **Coverage:** `python tools/run_checks.py --all --cov` runs the scene checks in a scratch copy of the game with `gd-tools` (see `tools/coverage_run.py` for the setup) counting the lines that ran, and prints the scripts that ran least. It takes ten minutes or more. `gd-tools` cannot read about twenty of the scripts (it names them), so they are left out of the figure; a check run with `-s` has no autoloads, so the gesture, page, navigation and stage checks are not counted either.
 - **Other scenarios:** `world`, `kinds`, `ui` (portal, spellbook pages, pause, game over), `wizard` (a dark-wizard
   duel), `brawl`, and the other scenarios named at the top of `tests/showcase.gd`.
 - **Screenshots need a window:** don't pass `--headless` for them.
