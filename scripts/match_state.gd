@@ -14,6 +14,7 @@ const STAGES := [
 	{"width": 520, "seconds": 180.0},
 	{"width": 360, "seconds": 0.0},
 ]
+const CASTLE_SHARE := 0.6  # the share of a stage's width that a castle world takes
 const HEIGHT := 380  # every world is this deep, in tiles
 const WARNING := 18.0 # seconds of shaking and a warning before a world collapses
 
@@ -45,7 +46,10 @@ static func plan() -> Dictionary:
 static func plan_of(at: int) -> Dictionary:
 	var biome := forced_biome if forced_biome != "" and at == stage else biome_of(at)
 	var halls := SurfaceGen.has_halls(biome) and at < STAGES.size() - 1  # the last world is all open sky
-	return STAGES[at].merged({"biome": biome, "caves": halls})
+	var plan: Dictionary = STAGES[at].merged({"biome": biome, "caves": halls})
+	if biome == "castle":
+		plan["width"] = roundi(plan["width"] * CASTLE_SHARE)  # a castle world is built tall, and takes less width than the rest
+	return plan
 
 
 ## The biome of a stage of this match: the biomes shuffled by the match's seed, so every machine in a match gets the same order and no

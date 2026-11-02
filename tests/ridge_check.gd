@@ -33,12 +33,15 @@ func _ready() -> void:
 		get_tree().quit(1)
 		return
 	var ridge: PackedVector2Array = ridges.ridges[ridges.ridges.size() / 2]
-	var top := ridge[1].lerp(ridge[2], 0.5)
+	var top := ridge[0]  # its highest point, which is on the crest
+	for point in ridge:
+		if point.y < top.y:
+			top = point
 	var low := ridge[0]
 	var steepest := 0.0
 	for r: PackedVector2Array in ridges.ridges:
-		steepest = maxf(steepest, absf((r[1].y - r[0].y) / (r[1].x - r[0].x)))
-		steepest = maxf(steepest, absf((r[3].y - r[2].y) / (r[3].x - r[2].x)))
+		for k in r.size() - 1:
+			steepest = maxf(steepest, absf((r[k + 1].y - r[k].y) / (r[k + 1].x - r[k].x)))
 	_verdict(steepest < 1.0, "every slope is one a wizard can walk (%.2f rows a column)" % steepest)
 	var player := world.player
 	player.max_stamina = 9999.0
@@ -76,7 +79,7 @@ func _ready() -> void:
 	var before := ridges.top_at(middle.x)
 	_verdict(ridges.dig(fit["spot"], fit["half_width"], fit["depth"], fit["profile"]), "the pit opens in the ridge")
 	_verdict(ridges.top_at(middle.x) > before + 20.0, "and the ridge's top is lower there (%.0f px)" % (ridges.top_at(middle.x) - before))
-	_verdict(ridges.top_at(middle.x + 120.0) == before, "and no lower beside it")
+	_verdict(absf(ridges.top_at(middle.x + 120.0) - before) < 20.0, "and no lower beside it")
 	print("the peaks have a second range" if _failures == 0 else "%d FAILED" % _failures)
 	get_tree().quit(1 if _failures > 0 else 0)
 

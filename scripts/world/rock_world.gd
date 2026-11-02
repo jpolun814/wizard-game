@@ -6,6 +6,8 @@ extends Node2D
 ## ones off screen, and a chunk is made when someone comes near and freed when they leave. Collision is one concave shape per
 ## chunk on a single static body, so a body is only ever tested against the outlines round it.
 
+signal dug(pit: PackedVector2Array)  # a pit has been cut: the shape taken away, for whatever is painted over the rock (the castle's brick)
+
 const CHUNK := 32         # tiles along a chunk's side
 const NEAR := 2           # chunks round a watcher that are drawn
 const FAR := 4            # chunks round a watcher that are kept; farther ones are freed
@@ -185,15 +187,21 @@ func dig(at: Vector2, half_width: float, depth: float, profile := PackedFloat32A
 		bowl.reverse()
 	# The pit is joined to the outline as a shape, not spliced in along the surface: a pit beside another one then runs into it, and no thin wall is
 	# left standing between them.
-	var up := Vector2(0.0, -40.0 * way)
-	var pit := PackedVector2Array([bowl[0] + up])
+	# Its sides rise above the highest of the surface it was dug in, so that no sliver of the ground is left standing over the line the bowl was drawn along
+	# (the surface is rounded at an edge, and a chord from one end to the other runs under it).
+	var top := bowl[0].y
+	for k in range(first, last + 1):
+		top = minf(top, points[k].y) if way > 0.0 else maxf(top, points[k].y)
+	top -= 40.0 * way
+	var pit := PackedVector2Array([Vector2(bowl[0].x, top)])
 	pit.append_array(bowl)
-	pit.append(bowl[bowl.size() - 1] + up)
+	pit.append(Vector2(bowl[bowl.size() - 1].x, top))
 	var outline: PackedVector2Array = _loops[best_loop]
 	var is_air := Contour.area(outline) < 0.0
 	var pieces := Geometry2D.merge_polygons(outline, pit) if is_air else Geometry2D.clip_polygons(outline, pit)
 	if pieces.is_empty():
 		return false
+	dug.emit(pit)
 	_loops.remove_at(best_loop)
 	if is_air and way < 0.0:
 		pieces = _joined_to_other_air(pieces)  # a pit dug up through a roof opens into the air beyond it

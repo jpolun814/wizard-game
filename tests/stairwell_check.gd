@@ -25,10 +25,11 @@ func _ready() -> void:
 	if stairs.size() < 13:
 		get_tree().quit(1)
 		return
-	var left: SwingStair = stairs[0]  # hinged on the left of the shaft, at the first floor
+	var left: SwingStair = stairs[1]  # the middle room's second: hinged on the left of the shaft, at the first floor
 	var ways: Array = left.ways
 	_verdict(ways.size() == 3, "and it swings among three landings (%d)" % ways.size())
 	var from: Vector2i = ways[0]["from"]
+	_clear_others(left)
 	var player: Wizard = world.player
 	player.movement_enabled = true
 	player.infinite_time = 600.0
@@ -44,7 +45,7 @@ func _ready() -> void:
 		player.velocity = Vector2.ZERO
 		await _frames(20)
 		var waited := 0.0
-		while not SwingStair.is_joined(get_tree(), from, across, 3.6) and waited < 90.0:
+		while not (left.joins(from, across, 3.6)) and waited < 90.0:  # this stair, not another that happens to join the same two landings
 			await _frames(6)
 			waited += 0.1
 		_verdict(waited < 90.0, "the stair swings to landing %d within a minute and a half (%.1f s)" % [index, waited])
@@ -56,7 +57,7 @@ func _ready() -> void:
 		var got := false
 		for k in 420:
 			await get_tree().physics_frame
-			if absf(player.global_position.x - (across.x + 0.5) * 32.0) < 24.0 and absf(player.global_position.y - (across.y + 1) * 32.0) < 20.0:
+			if player.global_position.x > (across.x + 0.5) * 32.0 - 24.0 and absf(player.global_position.y - (across.y + 1) * 32.0) < 20.0:
 				got = true
 				break
 		Input.action_release("move_right")
@@ -73,6 +74,14 @@ func _ready() -> void:
 	_verdict(moved > 30.0, "a wizard on it is carried or thrown as it swings (%.0f px)" % moved)
 	print("the stairwell works" if _failures == 0 else "%d FAILED" % _failures)
 	get_tree().quit(1 if _failures > 0 else 0)
+
+
+## Takes the other stairs of this stairwell out of the way of a walk: one resting with its end at the landing, or swinging across it, is a ramp that the
+## wizard would walk up instead of the stair being tried.
+func _clear_others(stair: SwingStair) -> void:
+	for other: SwingStair in get_tree().get_nodes_in_group("swing_stairs"):
+		if other != stair and other.hinge.distance_to(stair.hinge) < 500.0:
+			other.collision_layer = 0
 
 
 func _frames(count: int) -> void:

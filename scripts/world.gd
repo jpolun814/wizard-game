@@ -48,6 +48,7 @@ func _build_map() -> Variant:
 		MatchState.begin(seed_value)
 		Library.record_match_begun()
 	var stage := MatchState.plan()
+	Library.record_world_entered(stage["biome"])
 	WorldGraph.size = Vector2i(stage["width"], MatchState.HEIGHT)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed_value
@@ -208,6 +209,7 @@ func _begin_encounter(camera: Camera2D) -> void:
 		swing.ends.assign(_planks[index]["ends"])
 		swing.ways = _planks[index]["ways"]
 		swing.seed_value = seed_value + 71 + index
+		swing.stone = _earth_texture()  # the stairs are of the same stone as the castle
 		add_child(swing)
 	for entry in _gates:
 		match entry["kind"]:
@@ -481,7 +483,7 @@ func _wash_out_the_colour() -> void:
 
 
 const DEAD_PER_COLUMNS := 90  # the graveyard has a skeleton for this many columns of its width
-const GIANT_ROOMS := [20, 66, 105, 120]  # columns from a castle's west end to the middle of a ground-floor room with open floor
+const GIANT_ROOMS := [7, 24, 33, 50, 59, 76]  # columns from a castle's west end to the middle of a ground-floor room with open floor
 const GIANT_PER_COLUMNS := 300  # the castle world has a giant for this many columns of its width
 const DEAD_KEEP_AWAY := 45    # columns from every starting place that none rise
 ## On the host, tells the others a few times a second where each of the dead is, which way it faces and whether it is drawing back to strike.
@@ -728,7 +730,9 @@ func _in_rock(point: Vector2) -> bool:
 	if cell.x < 0 or cell.y < 0 or cell.x >= size.x or cell.y >= size.y:
 		return true
 	var material: int = _cells.material(cell)
-	return material == ArenaGen.GROUND or material == ArenaGen.STONE
+	if material != ArenaGen.GROUND and material != ArenaGen.STONE:
+		return false
+	return not _ground.is_dug(point) or _ground.solid_at(point)  # the tiles do not know about a pit that was dug
 
 
 ## A point inside the rock is lifted out of it first, so a spell drawn into a hill lands on top of it.

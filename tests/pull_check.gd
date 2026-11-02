@@ -51,14 +51,14 @@ func _ready() -> void:
 	for body in wizards:
 		start[body] = body.global_position.distance_to(world._tear.global_position)
 	var player_start: float = start[world.player]
-	await tree.create_timer(1.2).timeout
+	await tree.create_timer(load("res://scripts/portal_collapse.gd").PULL * 0.4).timeout
 	_shot("3_pull")
 	var nearer := 0
 	for body in wizards:
 		if body.global_position.distance_to(world._tear.global_position) < start[body]:
 			nearer += 1
 	_verdict(nearer == wizards.size(), "they are on their way up to it (%d of %d nearer)" % [nearer, wizards.size()])
-	await tree.create_timer(1.6).timeout
+	await tree.create_timer(load("res://scripts/portal_collapse.gd").PULL * 0.55).timeout
 	_verdict(world.player.global_position.distance_to(world._tear.global_position) < player_start * 0.2 or player_start < 600.0, "the player is nearly there, and was not put back on the ground (%.0f of %.0f px left)" % [world.player.global_position.distance_to(world._tear.global_position), player_start])
 	_verdict(world.player.modulate.a < 0.9, "they fade as they go in")
 	var seen_loading := false

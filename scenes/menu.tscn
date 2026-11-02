@@ -41,17 +41,17 @@ theme_override_constants/separation = 16
 
 [node name="SinglePlayer" type="Button" parent="Box/Main"]
 layout_mode = 2
-theme_type_variation = &"Choice"
+theme_type_variation = &"Inscription"
 text = "Single player"
 
 [node name="Multiplayer" type="Button" parent="Box/Main"]
 layout_mode = 2
-theme_type_variation = &"Choice"
+theme_type_variation = &"Inscription"
 text = "Multiplayer"
 
 [node name="Library" type="Button" parent="Box/Main"]
 layout_mode = 2
-theme_type_variation = &"Choice"
+theme_type_variation = &"Inscription"
 text = "Library"
 
 [node name="Single" type="VBoxContainer" parent="Box"]
@@ -61,17 +61,17 @@ theme_override_constants/separation = 16
 
 [node name="Play" type="Button" parent="Box/Single"]
 layout_mode = 2
-theme_type_variation = &"Choice"
+theme_type_variation = &"Inscription"
 text = "Play"
 
 [node name="Tutorial" type="Button" parent="Box/Single"]
 layout_mode = 2
-theme_type_variation = &"Choice"
+theme_type_variation = &"Inscription"
 text = "Tutorial"
 
 [node name="SingleBack" type="Button" parent="Box/Single"]
 layout_mode = 2
-theme_type_variation = &"Back"
+theme_type_variation = &"InscriptionBack"
 text = "Back"
 
 [node name="Multi" type="VBoxContainer" parent="Box"]
@@ -81,35 +81,33 @@ theme_override_constants/separation = 16
 
 [node name="Host" type="Button" parent="Box/Multi"]
 layout_mode = 2
-theme_type_variation = &"Choice"
+theme_type_variation = &"Inscription"
 text = "Host a game"
 
-[node name="JoinRow" type="HBoxContainer" parent="Box/Multi"]
+[node name="JoinRow" type="VBoxContainer" parent="Box/Multi"]
 layout_mode = 2
 theme_override_constants/separation = 10
 
 [node name="Address" type="LineEdit" parent="Box/Multi/JoinRow"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_type_variation = &"Field"
+theme_type_variation = &"Inked"
 placeholder_text = "Type the host's address"
 
 [node name="Join" type="Button" parent="Box/Multi/JoinRow"]
-custom_minimum_size = Vector2(130, 0)
 layout_mode = 2
-theme_type_variation = &"Choice"
+theme_type_variation = &"Inscription"
 text = "Join"
 
 [node name="MultiBack" type="Button" parent="Box/Multi"]
 layout_mode = 2
-theme_type_variation = &"Back"
+theme_type_variation = &"InscriptionBack"
 text = "Back"
 
 [node name="Status" type="Label" parent="Box"]
-custom_minimum_size = Vector2(460, 0)
+custom_minimum_size = Vector2(228, 0)
 layout_mode = 2
-theme_type_variation = &"Outlined"
-theme_override_colors/font_color = Color(0.784, 0.659, 1, 1)
+theme_override_colors/font_color = Color(0.431, 0.078, 0.125, 1)
 theme_override_font_sizes/font_size = 19
 horizontal_alignment = 1
 autowrap_mode = 3

@@ -4,23 +4,26 @@ extends Control
 ## The library: what this machine remembers of the matches played on it (see Library), laid out as a shelf of cards, a row for each school.
 ## A card is a page of the book with its shape drawn on it. A page never found or cast is a card turned face down, so the shelf does not give
 ## away what there is to find. Clicking a card turns it over to what its page says and how often it was found, cast and won with, and a
-## star marks a page that has won a match.
+## page that the filters at the top leave out is dimmed. The filters choose which kind of world the counts are of, and which count a card must have.
 
 const MENU := "res://scenes/menu.tscn"
 const PAGE_COLOUR := Color("#ffe9a0")
 const PARCHMENT := Color("#e9d7bb")
 const BACK := Color("#2a1a30")
 const DIM := Color(0.55, 0.52, 0.65)
-const STAR := Color("#ffd24a")
 const CARD := Vector2(172.0, 216.0)
+const WORLDS := ["graveyard", "mountains", "jungle", "ashlands", "castle", "underground", "portals"]
 
 var _list: VBoxContainer
 var _data: Dictionary
 var _cards := 0
+var _top: VBoxContainer       # the ledger line and the filters, made again whenever a filter changes
+var _world := ""              # the kind of world the counts are of, or "" for every kind
+var _measure := ""            # "pages", "casts" or "won_with": a card with none of these is dimmed; "" dims none
 
 
 func _ready() -> void:
-	_data = Library.stats()
+	_data = Library.stats_for(_world)
 	var dark := ColorRect.new()
 	dark.color = Color(0.03, 0.01, 0.05, 1.0)
 	dark.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -40,7 +43,9 @@ func _ready() -> void:
 	title.add_theme_color_override("font_color", Color(0.9, 0.8, 1.0))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	column.add_child(title)
-	column.add_child(_summary())
+	_top = VBoxContainer.new()
+	_top.add_theme_constant_override("separation", 6)
+	column.add_child(_top)
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -49,7 +54,7 @@ func _ready() -> void:
 	_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_list.add_theme_constant_override("separation", 18)
 	scroll.add_child(_list)
-	_fill()
+	_refresh()
 	var hint := _label("Click a card to turn it over", 20, DIM)
 	hint.custom_minimum_size = Vector2(0.0, 30.0)
 	column.add_child(hint)
@@ -73,8 +78,26 @@ func _on_back() -> void:
 	get_tree().change_scene_to_file(MENU)
 
 
-## The row of three plates at the top: matches played, matches won, and how much of the book has been found, as a bar that fills.
-func _summary() -> HBoxContainer:
+## Makes the top of the page and the shelves again from the filters as they now stand.
+func _refresh() -> void:
+	_data = Library.stats_for(_world)
+	for child in _top.get_children():
+		child.queue_free()
+	for child in _list.get_children():
+		child.queue_free()
+	_cards = 0
+	_top.add_child(_ledger())
+	_top.add_child(_choices("World", [["", "All"]] + WORLDS.map(func(b: String) -> Array: return [b, str(SurfaceGen.LOOKS[b]["title"]).trim_prefix("The ")]), _world, func(v: String) -> void:
+		_world = v
+		_refresh()))
+	_top.add_child(_choices("Show", [["", "All"], ["pages", "Found"], ["casts", "Cast"], ["won_with", "Won with"]], _measure, func(v: String) -> void:
+		_measure = v
+		_refresh()))
+	_fill()
+
+
+## One plain line of figures, written across the page with no boxes: what was played and won, and how much of the book is known.
+func _ledger() -> HBoxContainer:
 	var known := 0
 	var every := Pages.every()
 	for page in every:
@@ -82,38 +105,49 @@ func _summary() -> HBoxContainer:
 			known += 1
 	var row := HBoxContainer.new()
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	row.add_theme_constant_override("separation", 22)
-	row.add_child(_plate(str(_data["matches"]), "Matches played", null))
-	row.add_child(_plate(str(_data["wins"]), "Matches won", null))
-	row.add_child(_plate("%d of %d" % [known, every.size()], "Pages known", float(known) / float(every.size())))
+	row.add_theme_constant_override("separation", 10)
+	var figures: Array = []
+	if _world == "":
+		figures = [["Matches played", str(_data["matches"])], ["Matches won", str(_data["wins"])]]
+	else:
+		figures = [["Worlds entered", str(_data["worlds"])], ["Matches won here", str(_data["wins"])]]
+	figures.append(["Pages known", "%d of %d" % [known, every.size()]])
+	for k in figures.size():
+		if k > 0:
+			row.add_child(_label("·", 24, DIM))
+		row.add_child(_label(figures[k][0], 20, DIM))
+		row.add_child(_label(figures[k][1], 28, PAGE_COLOUR))
 	return row
 
 
-## One plate: a big figure, what it counts, and (for a share) a bar under it.
-func _plate(figure: String, what: String, share: Variant) -> PanelContainer:
-	var plate := PanelContainer.new()
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.13, 0.07, 0.17)
-	style.border_color = Color(0.45, 0.32, 0.6)
-	style.set_border_width_all(2)
-	style.set_corner_radius_all(6)
-	style.set_content_margin_all(10.0)
-	plate.add_theme_stylebox_override("panel", style)
-	plate.custom_minimum_size = Vector2(210.0, 0.0)
-	var inside := VBoxContainer.new()
-	inside.add_theme_constant_override("separation", 2)
-	plate.add_child(inside)
-	var big := _label(figure, 34, PAGE_COLOUR)
-	inside.add_child(big)
-	inside.add_child(_label(what, 17, DIM))
-	if share != null:
-		var bar := ProgressBar.new()
-		bar.show_percentage = false
-		bar.max_value = 1.0
-		bar.value = share
-		bar.custom_minimum_size = Vector2(0.0, 8.0)
-		inside.add_child(bar)
-	return plate
+## A line of words to choose among, written plainly, the chosen one lit and underlined. Each option is [value, words].
+func _choices(heading: String, options: Array, chosen: String, picked: Callable) -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 18)
+	row.add_child(_label(heading, 18, DIM))
+	for option: Array in options:
+		var button := Button.new()
+		button.text = option[1]
+		button.flat = true
+		button.focus_mode = Control.FOCUS_NONE
+		button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+		var lit: bool = option[0] == chosen
+		for state in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
+			button.add_theme_color_override(state, PAGE_COLOUR if lit else (Color(1.0, 0.95, 0.8) if state == "font_hover_color" else DIM))
+		button.add_theme_font_size_override("font_size", 22)
+		if lit:
+			var line := StyleBoxFlat.new()
+			line.bg_color = Color(0, 0, 0, 0)
+			line.border_color = PAGE_COLOUR
+			line.border_width_bottom = 2
+			for state in ["normal", "hover", "pressed"]:
+				button.add_theme_stylebox_override(state, line)
+		button.pressed.connect(func() -> void:
+			Sfx.play("ui_click", null, -8.0)
+			picked.call(option[0]))
+		row.add_child(button)
+	return row
 
 
 func _label(text: String, size: int, colour: Color) -> Label:
@@ -128,7 +162,8 @@ func _label(text: String, size: int, colour: Color) -> Label:
 
 ## True when a page has been found or its spell cast at least once.
 func _known(page: String) -> bool:
-	return _data["pages"].has(page) or _data["casts"].has(page) or _data["won_with"].has(page)
+	var overall := Library.stats_for("")  # known by what was ever recorded, whichever kind of world the counts are of
+	return overall["pages"].has(page) or overall["casts"].has(page) or overall["won_with"].has(page)
 
 
 func _fill() -> void:
@@ -187,22 +222,13 @@ func _card(page: String, colour: Color) -> Control:
 		back.visible = false
 		card.add_child(back)
 		_write_back(back.get_child(0), page, colour)
-		if int(_data["won_with"].get(page, 0)) > 0:
-			var star := Label.new()
-			star.text = "★"
-			star.add_theme_font_size_override("font_size", 28)
-			star.add_theme_color_override("font_color", STAR)
-			star.add_theme_color_override("font_outline_color", Color(0.1, 0.05, 0.05))
-			star.add_theme_constant_override("outline_size", 6)
-			star.position = Vector2(CARD.x - 36.0, -4.0)
-			card.add_child(star)
 	card.gui_input.connect(_on_card_input.bind(card, known))
 	card.mouse_entered.connect(_pointed_at.bind(card))
 	card.mouse_exited.connect(_left.bind(card))
 	card.modulate.a = 0.0
 	var appear := create_tween()
 	appear.tween_interval(0.025 * _cards)
-	appear.tween_property(card, "modulate:a", 1.0, 0.25)
+	appear.tween_property(card, "modulate:a", 0.3 if (known and _measure != "" and int(_data[_measure].get(page, 0)) == 0) else 1.0, 0.25)  # a card with none of what the filter asks for is dimmed
 	_cards += 1
 	return card
 

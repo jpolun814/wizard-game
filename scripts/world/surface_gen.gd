@@ -8,9 +8,9 @@ extends RefCounted
 const BASE_ROW := 110       # the ground line of the plains
 const MARGIN := 4           # columns at each end of the world that are left alone
 const GRAVEYARD_WIDTH := 270
-const CASTLE_WIDTH := 136   # the same as WorldBuilder's
-const CASTLE_START_WEST := 25    # columns from a castle's west end to a place to start on its ground floor, in the second room
-const CASTLE_START_EAST := 105   # and in the sixth
+const CASTLE_WIDTH := 90    # the same as WorldBuilder's
+const CASTLE_START_WEST := 24    # columns from a castle's west end to a place to start on its ground floor, in the first room, right of its stairwell
+const CASTLE_START_EAST := 76    # and in the last
 const POOL_PAD := 3         # columns of level shore each side of a pool
 const START_FLAT := 8       # columns each side of the middle that are level, to start on
 const LEDGE := 3            # the most a ledge on a mountain climbs in one column: a jump (the wizard clears three rows)

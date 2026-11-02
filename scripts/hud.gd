@@ -10,10 +10,10 @@ const STAMINA := Color("#c08a2c")
 const UNLIMITED := Color("#7fe0ff")
 const INK := Color(0.07, 0.04, 0.1)
 const CONTROLS := [
-	["A / D", "Move"], ["W or Space", "Jump"],
+	["W A S D", "Move"], ["Space", "Jump"],
 	["Mouse buttons", "Hold mouse buttons and draw a spell"], ["Tab", "Open the spellbook"],
 	["Enter", "Speak an incantation"], ["M", "Mute sound"],
-	["F1", "Open the summon menu (testing)"], ["Esc", "Pause"],
+	["F1", "Open the debug menu"], ["Esc", "Pause/Resume"],
 ]
 
 var player: Node2D
@@ -32,6 +32,7 @@ var _feedback_time := 0.0
 
 ## The list of controls is data, so its rows are filled in here; the rest of the screen is laid out in scenes/hud.tscn.
 func _ready() -> void:
+	add_to_group(&"hud")  # the wand cursor asks whether the game is paused
 	$Pause/Box/Leave.pressed.connect(_on_leave)
 	var rows: GridContainer = $Pause/Box/Controls
 	for row in CONTROLS:

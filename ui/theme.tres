@@ -1,7 +1,8 @@
-[gd_resource type="Theme" load_steps=9 format=3]
+[gd_resource type="Theme" load_steps=15 format=3]
 
 [ext_resource type="FontFile" path="res://fonts/Jersey15-Regular.ttf" id="1"]
 [ext_resource type="FontFile" path="res://fonts/Jacquard24-Regular.ttf" id="2"]
+[ext_resource type="FontFile" path="res://fonts/PirataOne-Regular.ttf" id="3"]
 
 [sub_resource type="StyleBoxFlat" id="button"]
 content_margin_left = 18.0
@@ -69,6 +70,42 @@ bg_color = Color(0.14, 0.08, 0.14, 0.9)
 border_width_left = 6
 border_color = Color(0.85, 0.35, 0.3, 1)
 
+[sub_resource type="StyleBoxEmpty" id="inscription"]
+content_margin_left = 8.0
+content_margin_top = 4.0
+content_margin_right = 8.0
+content_margin_bottom = 4.0
+
+[sub_resource type="StyleBoxFlat" id="inscription_hover"]
+content_margin_left = 8.0
+content_margin_top = 4.0
+content_margin_right = 8.0
+content_margin_bottom = 2.0
+bg_color = Color(0.431, 0.078, 0.125, 0.1)
+border_width_bottom = 2
+border_color = Color(0.431, 0.078, 0.125, 0.8)
+
+[sub_resource type="StyleBoxFlat" id="inscription_back"]
+content_margin_left = 12.0
+content_margin_top = 2.0
+content_margin_right = 8.0
+content_margin_bottom = 2.0
+bg_color = Color(0, 0, 0, 0)
+border_width_left = 4
+border_color = Color(0.431, 0.078, 0.125, 0.7)
+
+[sub_resource type="StyleBoxFlat" id="inked"]
+content_margin_left = 8.0
+content_margin_top = 4.0
+content_margin_right = 8.0
+content_margin_bottom = 4.0
+bg_color = Color(0.72, 0.56, 0.45, 0.55)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.227, 0.114, 0.102, 0.85)
+
 [resource]
 default_font = ExtResource("1")
 default_font_size = 18
@@ -110,3 +147,36 @@ Title/base_type = &"Label"
 Title/fonts/font = ExtResource("2")
 Title/constants/outline_size = 4
 Title/colors/font_color = Color(1, 0.949, 0.839, 1)
+Inscription/base_type = &"Button"
+Inscription/colors/font_color = Color(0.227, 0.114, 0.102, 1)
+Inscription/colors/font_hover_color = Color(0.431, 0.078, 0.125, 1)
+Inscription/colors/font_pressed_color = Color(0.75, 0.35, 0.1, 1)
+Inscription/colors/font_focus_color = Color(0.431, 0.078, 0.125, 1)
+Inscription/colors/font_disabled_color = Color(0.42, 0.33, 0.28, 0.6)
+Inscription/fonts/font = ExtResource("3")
+Inscription/font_sizes/font_size = 30
+Inscription/styles/normal = SubResource("inscription")
+Inscription/styles/hover = SubResource("inscription_hover")
+Inscription/styles/pressed = SubResource("inscription_hover")
+Inscription/styles/focus = SubResource("inscription_hover")
+Inscription/styles/disabled = SubResource("inscription")
+InscriptionBack/base_type = &"Button"
+InscriptionBack/colors/font_color = Color(0.42, 0.267, 0.204, 1)
+InscriptionBack/colors/font_hover_color = Color(0.431, 0.078, 0.125, 1)
+InscriptionBack/colors/font_pressed_color = Color(0.75, 0.35, 0.1, 1)
+InscriptionBack/colors/font_focus_color = Color(0.431, 0.078, 0.125, 1)
+InscriptionBack/colors/font_disabled_color = Color(0.42, 0.33, 0.28, 0.6)
+InscriptionBack/fonts/font = ExtResource("3")
+InscriptionBack/font_sizes/font_size = 24
+InscriptionBack/styles/normal = SubResource("inscription_back")
+InscriptionBack/styles/hover = SubResource("inscription_back")
+InscriptionBack/styles/pressed = SubResource("inscription_back")
+InscriptionBack/styles/focus = SubResource("inscription_back")
+InscriptionBack/styles/disabled = SubResource("inscription_back")
+Inked/base_type = &"LineEdit"
+Inked/colors/font_color = Color(0.227, 0.114, 0.102, 1)
+Inked/colors/font_placeholder_color = Color(0.42, 0.267, 0.204, 0.7)
+Inked/fonts/font = ExtResource("3")
+Inked/font_sizes/font_size = 24
+Inked/styles/normal = SubResource("inked")
+Inked/styles/focus = SubResource("inked")

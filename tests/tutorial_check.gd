@@ -59,6 +59,7 @@ func _library_check() -> void:
 	Library.force = true
 	Library.use_file("user://library_test.json")
 	Library.clear()
+	MatchState.begin(3)
 	Library.record_match_begun()
 	Library.record_page("Ignite")
 	Library.record_page("Ignite")
@@ -68,6 +69,8 @@ func _library_check() -> void:
 	var stats := Library.stats()
 	_verdict(stats["matches"] == 1 and stats["wins"] == 1, "the library counts a match and a win")
 	_verdict(stats["pages"]["Ignite"] == 2 and stats["casts"]["Ignite"] == 1 and stats["won_with"]["chant:minimap"] == 1, "and each page found, each spell cast, each win with a page")
+	var here := Library.stats_for(str(MatchState.biome_of(MatchState.stage)))
+	_verdict(here["wins"] == 1 and here["casts"]["Ignite"] == 1 and Library.stats_for("")["wins"] == 1, "and the same counts are kept for the kind of world it was in")
 	var text := FileAccess.get_file_as_string(Library.path)
 	var read: Variant = JSON.parse_string(text)
 	_verdict(read is Dictionary and int(read["pages"]["Ignite"]) == 2, "and it is written to a file that can be read back")
@@ -88,10 +91,17 @@ func _library_check() -> void:
 		await RenderingServer.frame_post_draw
 		DirAccess.make_dir_recursive_absolute(_out)
 		get_viewport().get_texture().get_image().save_png(_out + "/library.png")
+		screen._world = "castle"
+		screen._measure = "casts"
+		screen._refresh()
+		await get_tree().create_timer(1.5).timeout
+		await RenderingServer.frame_post_draw
+		get_viewport().get_texture().get_image().save_png(_out + "/library_castle.png")
 		screen.queue_free()
 	Library.clear()
 	Library.force = false
 	Library.use_file(Library.PATH)
+	MatchState.begin(0)  # as it was before the check
 
 
 ## A card of the library that has a back: one that is face up.

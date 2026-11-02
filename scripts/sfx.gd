@@ -47,8 +47,8 @@ func _ready() -> void:
 
 
 ## Plays a sound. at is a world position, or leave it out for a sound that is not in the world.
-## pitch_spread varies the pitch a little each time, so repeats sound alive.
-func play(sound: String, at: Variant = null, volume_db := 0.0, pitch_spread := 0.08) -> void:
+## pitch_spread varies the pitch a little each time, so repeats sound alive; pitch plays it lower (under 1) or higher (over 1) than it was recorded.
+func play(sound: String, at: Variant = null, volume_db := 0.0, pitch_spread := 0.08, pitch := 1.0) -> void:
 	if muted or not _files.has(sound) or _live >= POLYPHONY:
 		return
 	var stream := _stream(sound, pitch_spread)
@@ -62,6 +62,7 @@ func play(sound: String, at: Variant = null, volume_db := 0.0, pitch_spread := 0
 		player.global_position = at
 	player.stream = stream
 	player.bus = BUS
+	player.pitch_scale = pitch
 	player.volume_db = VOLUME.get(sound, 0.0) + volume_db
 	player.finished.connect(_done.bind(player))
 	_live += 1

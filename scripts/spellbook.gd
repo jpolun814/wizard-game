@@ -40,6 +40,7 @@ var _right_number: Label
 ## The book itself, one frame of its sheet at a time. play() runs a list of frames, then calls back.
 class BookArt extends Control:
 	var frame := Spellbook.OPEN
+	var pixel := Spellbook.SCALE  # one pixel of the book is this many screen pixels
 	var _sheet: Texture2D = preload("res://art/ui/book.png")
 	var _queue: Array = []
 	var _clock := 0.0
@@ -68,7 +69,7 @@ class BookArt extends Control:
 
 	func _draw() -> void:
 		var source := Rect2(Vector2(frame * Spellbook.FRAME.x, 0), Spellbook.FRAME)
-		draw_texture_rect_region(_sheet, Rect2(Vector2.ZERO, Spellbook.FRAME * Spellbook.SCALE), source)
+		draw_texture_rect_region(_sheet, Rect2(Vector2.ZERO, Spellbook.FRAME * pixel), source)
 
 
 ## A mouse seen from above (Kenney's Input Prompts, with the lit pixels of each button kept apart). The buttons in `mask` are

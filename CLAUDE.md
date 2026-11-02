@@ -251,8 +251,8 @@ spells you do, drawing them visibly. There are no waves and no boss (see `docs/p
   - Each world of a match is one of these six, in an order the seed picks; the last, small world is all open sky, one of the first four.
   - **Each biome has landmarks of its own, not just a reskin; only the underground has tunnels.** The graveyard is dark with rain and fog, and its skeletons roam
     (`Mob.roams`). The ashlands have volcanoes that erupt now and then (`Eruption`) and pits of lava. The snowy peaks are mountains to climb (`MountainGale`: wind that grows toward the summits and pushes a wizard without the run animation, seen as streaks; `SnowCloud`: clouds that drift past in front of whoever is in them), with a page on each
-    summit. The jungle has pits of mud (`Mudslide`, dug by the world), thickets of thorns (`Bramble`) and great trees (`JungleTree`: dense, in two sizes and mirrored or not, every one with the oak's ledges to hop between and a vine to climb to the high one, where most of the pages lie; the AI climbs the vines; the ponds are full of `Piranhas`). Its art is still named for the swamp it was cut from. The castle is a row of castles with five floors: a cellar down a
-    stair, the ground floor, the first, and the second and third under the keep (see `docs/world_generation.md`).
+    summit. The jungle has pits of mud (`Mudslide`, dug by the world), thickets of thorns (`Bramble`) and great trees (`JungleTree`: dense, in two sizes and mirrored or not, every one with the oak's ledges to hop between and a vine to climb to the high one, where most of the pages lie; the AI climbs the vines; the ponds are full of `Piranhas`). Its art is still named for the swamp it was cut from. The castle is a row of castles with six floors: a cellar down a
+    stairwell, the ground floor and four floors over it, three rooms to a floor (see `docs/world_generation.md`).
 - **Characters and art:** LuizMelo characters, Ansimuz GothicVania environments, and CC0 pixel effects.
 
 ## 2. The eleven rules that matter most
@@ -354,7 +354,11 @@ GODOT="/c/Users/Jordan Polun/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.
 "$GODOT" --headless --fixed-fps 60 --path . tests/pull_check.tscn  # the portal tears open at the top and sucks the wizards in (add `-- out=DIR` for pictures, needs a window)
 "$GODOT" --headless --fixed-fps 60 --path . tests/spark_check.tscn  # Spark Strike lands on the ground under open sky
 "$GODOT" --headless --fixed-fps 60 --path . tests/stairs_check.tscn  # a swinging stair is a one-way platform: a wizard stands on it and holding S drops them through
-"$GODOT" --headless --fixed-fps 60 --path . tests/stairwell_check.tscn  # the castle has thirteen swinging stairs (`SwingStair`) in five stairwells, each swinging among landings on other floors; a wizard waits for one, crosses it and is carried (add `-- out=DIR` for pictures, needs a window)
+"$GODOT" --headless --fixed-fps 60 --path . tests/stairwell_check.tscn  # the castle has thirteen swinging stairs (`SwingStair`) in three stairwells, each swinging among landings on other floors; a wizard waits for one, crosses it and is carried (add `-- out=DIR` for pictures, needs a window)
+"$GODOT" --headless --fixed-fps 60 --path . tests/menu_check.tscn  # the first screen is the open spellbook: a sign drawn with the left button held chooses its inscription, and the page turns (add `-- out=DIR` for pictures, needs a window)
+"$GODOT" --headless --fixed-fps 60 --path . tests/castle_spells_check.tscn  # the castle takes spells: a boulder rests on a swinging stair, a Stalagmite and a Sinkhole work on an upper floor
+"$GODOT" --headless --fixed-fps 60 --path . tests/castle_sinkhole_fall_check.tscn  # a wizard dropped into a castle pit sinks into it and stays, or falls through to the floor below
+"$GODOT" --path . tests/castle_sinkhole_look.tscn -- out=DIR  # pictures of a Sinkhole dug in every kind of castle floor (needs a window)
 "$GODOT" --headless --fixed-fps 60 --path . tests/biome_jump_check.tscn  # the F1 panel goes to a world of any biome, whatever the seed deals
 "$GODOT" --headless --fixed-fps 60 --path . tests/parity_check.tscn  # Push, Geyser, Burst, Tornado, Tide Surf and a shot do the same to a person's wizard and the brain's
 "$GODOT" --path . tests/eclipse_check.tscn  # an Eclipse darkens the screen of the one inside it (add `-- out=DIR` for pictures)
@@ -369,6 +373,7 @@ GODOT="/c/Users/Jordan Polun/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.
 "$GODOT" --headless --path . tests/net_match_check.tscn -- role=host &  then  ... -- role=client  # two copies play a whole match (add `leave` to both)
 ```
 
+- **All the quick checks at once:** `sh tools/run_checks.sh` runs the gesture, page, navigation, stage and scene checks above (not the long or windowed ones) and prints one line for each, ok or FAILED.
 - **Other scenarios:** `world`, `kinds`, `ui` (portal, spellbook pages, pause, game over), `wizard` (a dark-wizard
   duel), `brawl`, and the other scenarios named at the top of `tests/showcase.gd`.
 - **Screenshots need a window:** don't pass `--headless` for them.

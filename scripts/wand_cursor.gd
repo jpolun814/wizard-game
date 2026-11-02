@@ -2,7 +2,7 @@ extends Node
 
 ## The mouse cursor is a wand (art/ui/wand_cursor.png). The tip is the point of the cursor. The wand is held by the wizard: its handle is toward
 ## the wizard and its tip points away, so it turns to follow the cursor all the way round them (cursor above their middle, the tip is up; below,
-## the tip is down). Where there is no wizard, on the home screen, it points up and to the left as an ordinary mouse cursor does. While a spell is
+## the tip is down). Where there is no wizard, on the home screen or while the game is paused, it points up and to the left as an ordinary mouse cursor does. While a spell is
 ## being drawn, the jewel at the tip takes the colour of the school whose buttons are held. Only the wand's own pixels are used, turned in steps.
 
 const CANVAS := 128             # a square the wand can turn about its tip inside, in pixels
@@ -24,6 +24,7 @@ var _target := POINTER
 
 
 func _ready() -> void:
+	process_mode = Node.PROCESS_MODE_ALWAYS  # it must go on turning while a game alone is stopped, to go back to the pointer
 	_plain = (load("res://art/ui/wand_cursor.png") as Texture2D).get_image()
 	_plain.convert(Image.FORMAT_RGBA8)
 	_apply(0, _step_of(_angle))
@@ -39,7 +40,8 @@ func _process(delta: float) -> void:
 		now |= SpellData.MIDDLE
 	_held = 0 if now == 0 else (_held | now)
 	var wizard: Node2D = _player()
-	if wizard == null:
+	var menu := get_tree().get_first_node_in_group(&"hud")
+	if wizard == null or (menu != null and menu.call("is_paused")):  # the pause menu is the home screen's kind of place: an ordinary pointer
 		_target = POINTER
 	else:
 		var middle: Vector2 = get_viewport().get_canvas_transform() * Vector2(wizard.call("center"))

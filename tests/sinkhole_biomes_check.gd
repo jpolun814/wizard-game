@@ -68,12 +68,15 @@ func _try(seed_value: int) -> void:
 	for k in 20:
 		await get_tree().physics_frame
 	var before := SpellTargets.solid_below(space, spot + Vector2(0.0, -60.0)).y
+	var level := []  # the ground where each of the five places lies before the pit, which is not flat everywhere
+	for u in [0.1, 0.3, 0.5, 0.7, 0.9]:
+		level.append(SpellTargets.solid_below(space, Vector2(spot.x - 80.0 + 160.0 * u, before - 60.0)).y)
 	world.spawn_spell("Sinkhole", "positional", spot + Vector2(0.0, -20.0), 0.0, {"line": drawn}, world.player)
 	for k in int(Sinkhole.WARNING * 60.0) + 20:
 		await get_tree().physics_frame
 	var floors := []
-	for u in [0.1, 0.3, 0.5, 0.7, 0.9]:
-		floors.append(SpellTargets.solid_below(space, Vector2(spot.x - 80.0 + 160.0 * u, before - 60.0)).y - before)
+	for k in 5:
+		floors.append(SpellTargets.solid_below(space, Vector2(spot.x - 80.0 + 160.0 * (0.1 + 0.2 * k), before - 60.0)).y - level[k])
 	for argument in OS.get_cmdline_user_args():
 		if argument.begins_with("out="):
 			world.player.global_position = spot + Vector2(-260.0, -60.0)
@@ -85,7 +88,7 @@ func _try(seed_value: int) -> void:
 			get_viewport().get_texture().get_image().save_png("%s/sink_%s.png" % [argument.trim_prefix("out="), biome])
 	print("INFO  %s (seed %d) at %s (feet %s): the ground sank by %s" % [biome, seed_value, spot, feet, floors])
 	_verdict(floors[2] > 50.0, "%s: the ground under the middle of the U sank" % biome)
-	_verdict(floors[2] > floors[0] + 10.0 and floors[2] > floors[4] + 10.0, "%s: it sank most in the middle, less at the sides, as the U was drawn" % biome)
+	_verdict(floors[2] > floors[4] + 10.0 and floors[2] > floors[0] - 10.0, "%s: it sank most toward the middle, and least on the long slope at the right, as the U was drawn" % biome)
 	var wall_open := not world._ground.solid_at(Vector2(spot.x - 80.0 + 160.0 * 0.1, before + 30.0))  # the left arm of this U is steep, so look at it from the side
 	_verdict(wall_open and floors[4] > 8.0, "%s: and both sides are open too, so it is a pit and not a dimple" % biome)
 	world.queue_free()

@@ -157,8 +157,8 @@ func _plan() -> void:
 		"castle":
 			var tile := float(ArenaGen.TILE)
 			var ground_y := WorldGraph.SURFACE_ROW * tile
-			var views := [["gate", -8.0, 0.0, 1.0], ["entry", 8.0, 0.0, 1.0], ["hall", 26.0, 0.0, 1.0], ["first", 26.0, 11.0, 1.0], ["first2", 66.0, 11.0, 1.0],
-					["great", 50.0, 22.0, 1.0], ["great2", 90.0, 22.0, 1.0], ["back", 126.0, 0.0, 1.0], ["whole", 68.0, 20.0, 0.2], ["roofwest", 22.0, 24.0, 0.6], ["cellar", 26.0, -11.0, 1.0], ["stairs", 24.0, -4.0, 0.8], ["third", 70.0, 34.0, 1.0], ["wholetall", 68.0, 10.0, 0.14]]
+			var views := [["gate", -8.0, 0.0, 1.0], ["entry", 8.0, 0.0, 1.0], ["hall", 15.0, 0.0, 1.0], ["first", 15.0, 11.0, 1.0], ["first2", 66.0, 11.0, 1.0],
+					["great", 41.0, 22.0, 1.0], ["third", 66.0, 33.0, 1.0], ["back", 80.0, 0.0, 1.0], ["whole", 45.0, 20.0, 0.2], ["cellar", 50.0, -11.0, 1.0], ["cellar_shaft", 41.0, -8.0, 1.0], ["ground_mid", 50.0, 0.0, 1.0], ["wholetall", 45.0, 10.0, 0.14]]
 			var t := 0.6
 			for view: Array in views:
 				var at := Vector2((_arena.castle_x + view[1]) * tile, ground_y - (view[2] + 1.0) * tile)

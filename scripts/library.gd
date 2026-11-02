@@ -2,7 +2,9 @@ class_name Library
 extends RefCounted
 
 ## What this machine remembers about the matches played on it, kept between sessions in a file of its own: how many matches were played
-## and won, and for each page how often it was found, how often its spell was cast, and how often the match was won with it in the book.
+## and won, and for each page how often it was found, how often its spell was cast, and how often the match was won with it in the book. The same counts
+## are kept for each kind of world (the graveyard, the jungle and so on), so they can be looked at one world at a time; what was recorded before that was
+## only counted overall.
 ## Only the person at this machine is counted, and only in matches: the waiting room and the tutorial are for trying things.
 
 const PATH := "user://compendium.json"  # (the file kept the name it began with, so what was recorded before is not lost)
@@ -30,6 +32,15 @@ static func _counts() -> bool:
 	return scene != null and not scene.scene_file_path.begins_with("res://tests/")
 
 
+## A world was entered, of this kind.
+static func record_world_entered(biome: String) -> void:
+	if not _counts():
+		return
+	_load()
+	_here(biome)["worlds"] = int(_here(biome)["worlds"]) + 1
+	_save()
+
+
 static func record_match_begun() -> void:
 	if not _counts():
 		return
@@ -44,8 +55,12 @@ static func record_win(held_pages: Array) -> void:
 		return
 	_load()
 	_data["wins"] = int(_data["wins"]) + 1
+	if _world_now() != "":
+		var here := _here(_world_now())
+		here["wins"] = int(here["wins"]) + 1
 	for page: String in held_pages:
 		_bump("won_with", page)
+		_bump_here("won_with", page)
 	_save()
 
 
@@ -54,6 +69,7 @@ static func record_page(page: String) -> void:
 		return
 	_load()
 	_bump("pages", page)
+	_bump_here("pages", page)
 	_save()
 
 
@@ -62,6 +78,7 @@ static func record_cast(spell: String) -> void:
 		return
 	_load()
 	_bump("casts", spell)
+	_bump_here("casts", spell)
 	_dirty = true
 	if Time.get_ticks_msec() - _saved_at > SAVE_EVERY:
 		_save()
@@ -86,13 +103,40 @@ static func clear() -> void:
 	_save()
 
 
+## The counts for one kind of world, or for all of them when none is named.
+static func stats_for(biome: String) -> Dictionary:
+	_load()
+	if biome == "":
+		return _data
+	return _here(biome)
+
+
+## The kind of world being played now, or "" when that cannot be told.
+static func _world_now() -> String:
+	return MatchState.biome_of(MatchState.stage)
+
+
+static func _here(biome: String) -> Dictionary:
+	var all: Dictionary = _data["in"]
+	if not all.has(biome):
+		all[biome] = {"worlds": 0, "wins": 0, "pages": {}, "casts": {}, "won_with": {}}
+	return all[biome]
+
+
+static func _bump_here(table: String, key: String) -> void:
+	if _world_now() == "":
+		return  # no world to count it under: it is counted overall only
+	var entries: Dictionary = _here(_world_now())[table]
+	entries[key] = int(entries.get(key, 0)) + 1
+
+
 static func _bump(table: String, key: String) -> void:
 	var entries: Dictionary = _data[table]
 	entries[key] = int(entries.get(key, 0)) + 1
 
 
 static func _blank() -> Dictionary:
-	return {"matches": 0, "wins": 0, "pages": {}, "casts": {}, "won_with": {}}
+	return {"matches": 0, "wins": 0, "pages": {}, "casts": {}, "won_with": {}, "in": {}}
 
 
 static func _load() -> void:

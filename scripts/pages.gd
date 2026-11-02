@@ -26,7 +26,7 @@ const MIN_APART := 40  # columns between two pages lying out in the open of a wo
 const ON_SURFACE := 3  # pages that lie out in the open near the start, so the first one is found within a minute
 ## Where in a castle they lie: a column from its west end, and the height of the floor in rows (the cellar's is below the ground, so negative).
 ## Deepest and highest first, then the middle floors, so the few of a small match go to the places hardest to reach.
-const CASTLE_SPOTS := [Vector2i(72, 34), Vector2i(38, -11), Vector2i(92, 34), Vector2i(98, -11), Vector2i(48, 34), Vector2i(58, -11), Vector2i(55, 22), Vector2i(96, 22), Vector2i(78, -11), Vector2i(18, 11), Vector2i(97, 11)]
+const CASTLE_SPOTS := [Vector2i(76, 44), Vector2i(15, -11), Vector2i(7, 44), Vector2i(65, -11), Vector2i(50, 33), Vector2i(32, -11), Vector2i(24, 33), Vector2i(33, 22), Vector2i(59, 22), Vector2i(7, 11), Vector2i(76, 11), Vector2i(50, 22), Vector2i(24, 11), Vector2i(59, 33)]
 
 ## How many pages lie in a world of this biome and width in tiles.
 static func count_for(biome: String, width: int) -> int:

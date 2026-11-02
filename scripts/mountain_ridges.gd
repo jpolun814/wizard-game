@@ -7,13 +7,13 @@ extends Node2D
 ## front, the way the stairs of a castle work. A ridge is hollow like those stairs: its slopes are one-way, so it is jumped up
 ## through and landed on from above.
 
-const SLOPE := 0.85       # rows a ridge climbs in one column: a walk up, a little under the steepest a wizard can stand on
 const HEIGHT_LEAST := 4   # how many rows a ridge's top stands above the highest ground under it
 const HEIGHT_MOST := 8
 const LENGTH_LEAST := 8   # columns of level top
 const LENGTH_MOST := 20
 const GAP_LEAST := 14     # columns of the world between the end of one ridge's top and the start of the next's
 const GAP_MOST := 34
+const SLOPE_STEEPEST := 0.95  # the steepest a run of a flank is, in rows to a column: a little under the steepest a wizard can stand on
 const BAND := 12.0        # how deep the lip along a ridge's top is, in pixels
 ## Each ridge is in the shade of the ground in front of it, so that it reads as farther off, and each is shaded a little differently from the
 ## ones either side of it, so that the ridges stand apart from one another and from the sky behind.
@@ -53,32 +53,61 @@ static func plan(ground: PackedInt32Array, margin: int, seed_for: int, tile_size
 			column += 5
 			continue
 		var top := high - rng.randi_range(HEIGHT_LEAST, HEIGHT_MOST)
-		var left := _foot(ground, column, top, -1, margin)
-		var right := _foot(ground, column + length, top, 1, margin)
-		if left.x < 0 or right.x < 0:
+		# Not a plain shoulder: each flank climbs in runs of different steepness with treads between, and the crest is broken, as the ground in front is.
+		var down_left := _descend(ground, column, top, -1, margin, tile_size, rng)
+		var down_right := _descend(ground, column + length, top, 1, margin, tile_size, rng)
+		if down_left.is_empty() or down_right.is_empty():
 			column += 5
 			continue
-		out.append(PackedVector2Array([
-			Vector2((left.x + 0.5) * tile_size, left.y * tile_size),
-			Vector2((column + 0.5) * tile_size, float(top) * tile_size),
-			Vector2((column + length + 0.5) * tile_size, float(top) * tile_size),
-			Vector2((right.x + 0.5) * tile_size, right.y * tile_size)]))
+		down_left.reverse()
+		var outline := PackedVector2Array(down_left)  # from its foot on the left up to the crest's left end
+		outline.append_array(_crest(outline[outline.size() - 1], down_right[0], tile_size, rng))
+		outline.append_array(down_right)
+		out.append(outline)
 		column += length + rng.randi_range(GAP_LEAST, GAP_MOST)
 	return out
 
 
-## Where a slope that leaves the end of a ridge's top, at a row, comes down into the ground: the column and the row there, or (-1, 0) if it
-## never does within reach.
-static func _foot(ground: PackedInt32Array, from_column: int, top: int, way: int, margin: int) -> Vector2:
-	var column := from_column
-	for step in range(1, 61):
-		column += way
-		if column <= margin or column >= ground.size() - margin:
-			return Vector2(-1.0, 0.0)
-		var row := float(top) + step * SLOPE
-		if row >= float(ground[column]):
-			return Vector2(column, row)
-	return Vector2(-1.0, 0.0)
+## A flank from the end of a ridge's top down to where it meets the ground, in runs of different steepness: a steep face, a shallow one, a nearly level
+## tread. The first point is the end of the top, the last is the foot, and every run is one a wizard can walk. An empty list where it never comes down
+## into the ground within reach.
+static func _descend(ground: PackedInt32Array, from_column: int, top: int, way: int, margin: int, tile_size: float, rng: RandomNumberGenerator) -> PackedVector2Array:
+	var points := PackedVector2Array([Vector2((from_column + 0.5) * tile_size, float(top) * tile_size)])
+	var column := float(from_column) + 0.5
+	var row := float(top)
+	var steps := 0
+	while steps < 70:
+		var slope := rng.randf_range(0.05, 0.4) if rng.randf() < 0.3 else rng.randf_range(0.55, SLOPE_STEEPEST)
+		for k in rng.randi_range(2, 7):
+			column += way
+			row += slope
+			steps += 1
+			var at := int(floorf(column))
+			if at <= margin or at >= ground.size() - margin:
+				return PackedVector2Array()
+			if row >= float(ground[at]):
+				points.append(Vector2(column * tile_size, row * tile_size))  # the foot is in the ground, which hides it
+				return points
+		points.append(Vector2(column * tile_size, row * tile_size))
+	return PackedVector2Array()
+
+
+## A few points along the crest that stand higher or lower than its two ends, so the top is not a level line.
+static func _crest(from: Vector2, to: Vector2, tile_size: float, rng: RandomNumberGenerator) -> PackedVector2Array:
+	var points := PackedVector2Array()
+	var count := rng.randi_range(2, 4)
+	var before := from
+	for k in count:
+		var along := (float(k) + rng.randf_range(0.2, 0.8)) / float(count)
+		var x := lerpf(from.x, to.x, along)
+		var reach := (x - before.x) * SLOPE_STEEPEST  # as steep as a flank may be, and no steeper
+		var next := Vector2(x, clampf(from.y - rng.randf_range(-0.5, 2.0) * tile_size, before.y - reach, before.y + reach))
+		points.append(next)
+		before = next
+	var last := points[points.size() - 1]  # the last of them must also be within a flank's steepness of the crest's far end
+	last.y = clampf(last.y, to.y - (to.x - last.x) * SLOPE_STEEPEST, to.y + (to.x - last.x) * SLOPE_STEEPEST)
+	points[points.size() - 1] = last
+	return points
 
 
 ## The height of the top of a ridge at a place across the world, or INF where no ridge stands.

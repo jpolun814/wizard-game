@@ -4,7 +4,7 @@ extends Node2D
 ## wizard still standing up and into it. It does not end the world itself: the world waits PULL seconds after calling pull() and goes on.
 
 const GROW := 1.5          # seconds for the portal to open to its full size
-const PULL := 3.0          # seconds the wizards take to be drawn in
+const PULL := 8.0          # seconds the wizards take to be drawn in: a long climb, so it is a drift and not a snatch
 const SIZE := 3.5          # how many times the size of a doorway portal it grows
 const CRACKLE_COLOUR := Color(0.55, 0.25, 1.0)  # the portal's violet
 
@@ -62,6 +62,6 @@ func pull(wizards: Array) -> void:
 		if "movement_enabled" in body:
 			body.movement_enabled = false
 		var tween := body.create_tween().set_parallel()
-		tween.tween_property(body, "global_position", global_position + Vector2(0.0, 30.0), PULL).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+		tween.tween_property(body, "global_position", global_position + Vector2(0.0, 30.0), PULL).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 		tween.tween_property(body, "modulate:a", 0.0, PULL * 0.4).set_delay(PULL * 0.6)
 	Sfx.play("portal_enter", global_position, -2.0)
