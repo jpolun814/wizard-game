@@ -20,6 +20,7 @@ const SETTINGS := "user://settings.cfg"  # remembers the last address typed, so 
 @onready var _status: Label = $Box/Status
 @onready var _tutorial: Button = $Box/Single/Tutorial
 @onready var _library: Button = $Box/Main/Library
+@onready var _options: Button = $Box/Main/Settings
 @onready var _box: VBoxContainer = $Box
 
 const SCENERY := "res://art/backgrounds/cemetery/"
@@ -31,10 +32,11 @@ const SHAPES := {
 	"book": [Vector2(0, 40), Vector2(0, -20), Vector2(-50, -30), Vector2(-50, 30), Vector2(0, 40), Vector2(50, 30), Vector2(50, -30), Vector2(0, -20)],  # an open book: the spine, a page either side
 	"four": [Vector2(20, 50), Vector2(20, -50), Vector2(-45, 15), Vector2(50, 15)],  # the stem, the slant, the bar
 	"house": [Vector2(-40, 40), Vector2(-40, -5), Vector2(0, -45), Vector2(40, -5), Vector2(40, 40), Vector2(-40, 40)],  # straight walls and a roof
+	"gear": [Vector2(0, -38), Vector2(6, -50), Vector2(17, -47), Vector2(17, -34), Vector2(27, -27), Vector2(39, -31), Vector2(45, -21), Vector2(36, -12), Vector2(38, 0), Vector2(50, 6), Vector2(47, 17), Vector2(34, 17), Vector2(27, 27), Vector2(31, 39), Vector2(21, 45), Vector2(12, 36), Vector2(0, 38), Vector2(-6, 50), Vector2(-17, 47), Vector2(-17, 34), Vector2(-27, 27), Vector2(-39, 31), Vector2(-45, 21), Vector2(-36, 12), Vector2(-38, 0), Vector2(-50, -6), Vector2(-47, -17), Vector2(-34, -17), Vector2(-27, -27), Vector2(-31, -39), Vector2(-21, -45), Vector2(-12, -36), Vector2(0, -38)],  # a cog: eight teeth round a ring
 	"back": [Vector2(40, -40), Vector2(-40, 0), Vector2(40, 40), Vector2(40, -40)],  # a triangle pointing the way back
 }
 const SIGNS := {  # the recognizer's templates that count as each sign
-	"one": ["menu_one"], "four": ["menu_four"], "book": ["menu_book"], "house": ["menu_house"], "back": ["menu_back"],
+	"one": ["menu_one"], "four": ["menu_four"], "book": ["menu_book"], "house": ["menu_house"], "back": ["menu_back"], "gear": ["menu_gear"],
 	"arrow": ["arrow", "arrow_r2", "arrow_l", "arrow_l2"], "question": ["question", "question_r"]}
 const LEAST_SCORE := 0.74  # how well a stroke must match a sign to choose it
 const LEAST_STROKE := 60.0  # a stroke shorter than this is a click, not a drawing
@@ -79,6 +81,7 @@ func _ready() -> void:
 	_library.pressed.connect(func() -> void:
 		Sfx.play("ui_click")
 		get_tree().change_scene_to_file(LIBRARY))
+	_options.pressed.connect(_open_settings)
 	$Box/Main/SinglePlayer.pressed.connect(_show_page.bind(_single, _alone, true))
 	$Box/Main/Multiplayer.pressed.connect(_show_page.bind(_multi, _host, true))
 	$Box/Single/SingleBack.pressed.connect(_show_page.bind(_main, $Box/Main/SinglePlayer, false))
@@ -276,7 +279,7 @@ func _show_sign(sign_name: String) -> void:
 
 ## Each choice with a sign gets it drawn beside it, small, and shows the larger one on the left page when the pointer or the keyboard comes to it.
 func _write_signs() -> void:
-	var table := {$Box/Main/SinglePlayer: "one", $Box/Main/Multiplayer: "four", $Box/Main/Library: "book",
+	var table := {$Box/Main/SinglePlayer: "one", $Box/Main/Multiplayer: "four", $Box/Main/Library: "book", $Box/Main/Settings: "gear",
 			$Box/Single/Play: "arrow", $Box/Single/Tutorial: "question", $Box/Multi/Host: "house", $Box/Multi/JoinRow/Join: "arrow", $Box/Single/SingleBack: "back", $Box/Multi/MultiBack: "back"}
 	for button: Button in table:
 		_signs[button] = table[button]
@@ -348,6 +351,17 @@ func _choose(button: Button) -> void:
 	get_tree().create_timer(0.45).timeout.connect(func() -> void:
 		_busy = false
 		button.pressed.emit())
+
+
+## The page of settings opens over the book; while it is open, nothing is drawn on the book behind it.
+func _open_settings() -> void:
+	Sfx.play("ui_click")
+	_busy = true
+	var panel := SettingsPanel.new()
+	panel.closed.connect(func() -> void:
+		_busy = false
+		_options.grab_focus())
+	add_child(panel)
 
 
 func _on_alone() -> void:

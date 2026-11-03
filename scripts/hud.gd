@@ -35,6 +35,7 @@ var _feedback_time := 0.0
 func _ready() -> void:
 	add_to_group(&"hud")  # the wand cursor asks whether the game is paused
 	$Pause/Box/Leave.pressed.connect(_on_leave)
+	$Pause/Box/Settings.pressed.connect(_on_settings)
 	var rows: GridContainer = $Pause/Box/Controls
 	_lay_on_parchment(rows)
 	for row in CONTROLS:
@@ -138,6 +139,12 @@ func _on_leave() -> void:
 
 
 ## Words shown at the bottom of the pause screen, such as the incantation that names this world. Empty hides them.
+## The Settings button on the pause screen opens the page of settings over it.
+func _on_settings() -> void:
+	Sfx.play("ui_click")
+	$Pause.add_child(SettingsPanel.new())
+
+
 func set_pause_note(text: String) -> void:
 	_pause_note.text = text
 

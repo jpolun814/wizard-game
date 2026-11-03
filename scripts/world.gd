@@ -1202,6 +1202,9 @@ func _end_with_epilogue(look: String) -> void:
 		return
 	if Net.is_host():
 		Net.send(self, &"_end_with_epilogue", [look])
+	if GameSettings.skip_ending():
+		_fade_to_room()  # this machine's player would rather not watch it
+		return
 	_roll_the_epilogue(look)
 
 
@@ -1238,6 +1241,11 @@ func _back_to_room() -> void:
 		return
 	if Net.is_host():
 		Net.send(self, &"_back_to_room")
+	_fade_to_room()
+
+
+## The screen goes black, and then it is the waiting room again.
+func _fade_to_room() -> void:
 	_leave_network_scene()
 	World.next_seed = -1
 	var layer := CanvasLayer.new()

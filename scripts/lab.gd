@@ -176,7 +176,7 @@ func _go(seed_value: int) -> void:
 	fade.tween_interval(0.25)
 	fade.tween_property(black, "color:a", 1.0, 0.4)
 	fade.tween_interval(0.15)
-	fade.tween_callback(get_tree().change_scene_to_file.bind("res://scenes/intro.tscn"))
+	fade.tween_callback(get_tree().change_scene_to_file.bind(Intro.LOADING if GameSettings.skip_opening() else "res://scenes/intro.tscn"))
 
 
 ## On the host: a person has touched the book. When the last one has, the match begins for everyone, in one world, from one seed.

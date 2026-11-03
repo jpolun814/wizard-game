@@ -200,6 +200,13 @@ theme_override_constants/h_separation = 32
 theme_override_constants/v_separation = 6
 columns = 2
 
+[node name="Settings" type="Button" parent="Pause/Box"]
+layout_mode = 2
+size_flags_horizontal = 4
+focus_mode = 0
+theme_type_variation = &"Choice"
+text = "Settings"
+
 [node name="Leave" type="Button" parent="Pause/Box"]
 layout_mode = 2
 size_flags_horizontal = 4

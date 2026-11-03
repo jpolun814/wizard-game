@@ -31,6 +31,7 @@ var _live := 0
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS  # interface sounds still play while the game is paused
+	GameSettings.load_saved()
 	for file in ResourceLoader.list_directory("res://audio"):
 		var base := file.get_basename()
 		if not (file.ends_with(".ogg") or file.ends_with(".wav")):
