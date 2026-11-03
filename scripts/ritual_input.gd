@@ -10,6 +10,8 @@ signal finished(ritual_id: String, accuracy: float, unfinished: bool)
 signal cancelled
 ## Four words of a world's name were typed (see Incantation); the waiting room tunes its portal to them.
 signal seed_spoken(text: String)
+## The words that open the wizard maker were said (only where something listens for them: see likeness_listens).
+signal likeness_spoken
 
 ## "kind" is "ritual" (has an effect) or "toggle" (shows or hides a HUD module). Neither costs stamina.
 const RITUALS := {
@@ -36,9 +38,11 @@ const RITUALS := {
 	"recall": {"kind": "ritual", "name": "Incantation of the Return",
 		"text": "illum locum peto mihi"},
 }
+const LIKENESS_WORDS := "faciem meam muta"
 const BACKFIRE_BELOW := 0.6  # accuracy under this misfires
 const FULL_POWER_AT := 0.9   # accuracy at or above this is full power
 
+var likeness_listens := false  # the waiting room turns this on; in a match the words mean nothing
 var _line: LineEdit
 
 
@@ -94,6 +98,11 @@ func _on_submit(typed: String) -> void:
 		visible = false
 		_line.release_focus()
 		seed_spoken.emit(typed)
+		return
+	if likeness_listens and accuracy(typed, LIKENESS_WORDS) >= BACKFIRE_BELOW:
+		visible = false
+		_line.release_focus()
+		likeness_spoken.emit()
 		return
 	if typed.strip_edges().is_empty():
 		cancel()  # Enter on an empty box just closes it

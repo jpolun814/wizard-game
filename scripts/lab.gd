@@ -20,6 +20,9 @@ const HEAL_PER_SECOND := 40.0
 const HEAL_AFTER := 4.0  # seconds without a hit before health starts coming back, so damage can be seen
 
 var _lectern: Lectern
+var _making: LikenessPanel  # the wizard maker, while it is open
+var _mark: LikenessMark  # its circle, in the waiting room only
+var _guide: LikenessGuide  # the page with its words, while the player stands on the circle
 var _leaving := false
 var _touched := {}  # on the host, in a network game: the people who have touched the book
 var _heal := 0.0
@@ -57,6 +60,8 @@ func _begin_encounter(camera: Camera2D) -> void:
 	player.grant_unlimited(1.0e7)  # nothing here costs stamina
 	player.damaged.connect(func(_amount: int) -> void: _since_hurt = 0.0)
 	ritual.seed_spoken.connect(_on_seed_spoken)
+	if _scene_name() == "lab":
+		_add_likeness_mark()
 	_add_ponds()
 	_add_targets()
 	_night = CanvasModulate.new()
@@ -102,6 +107,8 @@ func _add_targets() -> void:
 
 func _process(delta: float) -> void:
 	super(delta)
+	if _mark != null and _making == null:
+		_show_guide(_mark.is_near(player.center()))
 	# Health comes back by itself a few seconds after a hit, so nothing here can end the visit.
 	_since_hurt += delta
 	if _since_hurt < HEAL_AFTER:
@@ -125,6 +132,46 @@ func _input(event: InputEvent) -> void:
 		elif event.is_action_pressed("restart") and not hud.is_game_over() and not Net.online():  # the room is shared in a network game
 			get_tree().reload_current_scene()
 	super(event)
+
+
+## A glowing circle on top of the floating slab stands for the wizard maker: on it, the page with the words comes up.
+func _add_likeness_mark() -> void:
+	_mark = LikenessMark.new()
+	var col := (CEILING.x + CEILING.y) / 2
+	_mark.position = Vector2(ArenaGen.column_x(col), -3.0 * ArenaGen.TILE)  # the top of the slab
+	add_child(_mark)
+	ritual.likeness_listens = true
+	ritual.likeness_spoken.connect(_open_likeness)
+
+
+## The wizard maker is open beside the player, who walks and casts as they like: a stroke that starts on its plate is not a spell.
+func _visible_hud_rects() -> Array[Rect2]:
+	var rects := super()
+	if _making != null:
+		rects.append(_making.plate_rect())
+	return rects
+
+
+## The page with the words comes up while the player is on the circle, and goes when they leave it.
+func _show_guide(wanted: bool) -> void:
+	if wanted and _guide == null:
+		_guide = LikenessGuide.new()
+		add_child(_guide)
+	elif not wanted and _guide != null:
+		_guide.queue_free()
+		_guide = null
+
+
+## The wizard maker opens beside the person, who goes on walking and casting while it is open.
+func _open_likeness() -> void:
+	if _making != null:
+		return
+	Sfx.play("ritual_ok", player.center(), -6.0)
+	_making = LikenessPanel.new()
+	_making.wizard = player
+	_show_guide(false)
+	_making.closed.connect(func() -> void: _making = null)
+	add_child(_making)
 
 
 ## The book stands on its stand at the far end of the room.
@@ -252,7 +299,5 @@ func _meet_people() -> void:
 		if wizard.human and wizard.is_likeness() and not Net.roster.has(wizard.peer):
 			wizard.queue_free()
 			_touched.erase(wizard.peer)
-		elif wizard.human:
-			wizard.look = Net.look_of(wizard.get_multiplayer_authority())  # a seat given up moves those after it along, look and all
 	if Net.is_host():
 		_start_if_all_in()  # the last one who had not walked in may have left the game

@@ -24,9 +24,11 @@ const HAMMER_RAISED := HAMMER_STRUCK - 0.6  # and turned back to lift the head
 const END := 11.5  # seconds
 
 static var winner_look := "wizard"  # set before the scene loads: which wizard won
+static var winner_palette := 0  # and the colours they wore
 
 var next_scene := ROOM  # empty to stay on when it is over (a test does that)
 var look := ""  # who won; if it is not set, whoever World left in winner_look
+var palette := -1  # in what colours; if it is not set, what World left in winner_palette
 var plaque: Node2D  # the second plaque, once it is up
 var _t := 0.0
 var _cues: Array = []
@@ -47,6 +49,8 @@ var _face := 1.0
 func _ready() -> void:
 	if look == "":
 		look = winner_look
+	if palette < 0:
+		palette = winner_palette
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 17
 	Hall.build(self, rng)
@@ -125,7 +129,7 @@ func _build_winner() -> void:
 	if look != "wizard":
 		var data: MobKind = Mob.KINDS[look]
 		art = data.art
-		size = data.scale
+		size = WizardLook.scale_of(look, data.scale)
 	_winner = Node2D.new()
 	_winner.position = Vector2(WINNER_FROM, FLOOR_Y)
 	_winner.z_index = 2
@@ -133,6 +137,7 @@ func _build_winner() -> void:
 	_sprite.sprite_frames = CharFrames.build("res://art/chars/" + art, Wizard.ANIMATIONS if look == "wizard" else Wizard.LOOK_ANIMATIONS)
 	_sprite.offset = Vector2(0.0, -PixelArt.CHARACTERS[art]["size"].y * 0.5)
 	_sprite.scale = Vector2.ONE * size
+	_sprite.material = WizardLook.material_for(look, palette)
 	_sprite.play("idle")
 	_winner.add_child(_sprite)
 	add_child(_winner)

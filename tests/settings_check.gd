@@ -19,7 +19,7 @@ func _ready() -> void:
 	GameSettings.set_value("skip_opening", true)
 	GameSettings.set_value("effects", 0.5)
 	GameSettings.values = GameSettings.DEFAULTS.duplicate()
-	GameSettings.load_saved()
+	GameSettings.load_saved(true)
 	_verdict(GameSettings.skip_opening() and is_equal_approx(float(GameSettings.get_value("effects")), 0.5), "choices come back from the file")
 	_verdict(is_equal_approx(AudioServer.get_bus_volume_db(AudioServer.get_bus_index("SFX")), linear_to_db(0.5)), "the effects volume reaches its sound bus")
 	GameSettings.set_value("frame_cap", 2)

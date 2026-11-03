@@ -61,6 +61,13 @@ var look := "wizard":  # which wizard this is: the player's own, or the id of on
 		look = value
 		if is_node_ready():
 			_dress()
+var palette := 0:  # which set of colours it wears (see WizardLook)
+	set(value):
+		if value == palette:
+			return
+		palette = value
+		if is_node_ready():
+			_paint()
 var brain: WizardBrain  # what plays this wizard; none while a person does
 var caster: Caster  # a brain's wizard draws its spells through this; a person's strokes are read by the arena's own
 var nav: WorldNav  # the ways about the world, for a wizard that walks it by itself; none in the waiting room
@@ -224,6 +231,7 @@ func _ready() -> void:
 	_wet_material = ShaderMaterial.new()
 	_wet_material.shader = load("res://scripts/wet.gdshader")
 	_sprite.material = _wet_material
+	_paint()
 	# The staff's head glows in the school's colour while a stroke is being drawn.
 	_glow = Sprite2D.new()
 	_glow.texture = Fx.tex("circle_05")
@@ -280,10 +288,17 @@ func _dress() -> void:
 	if look != "wizard":
 		var data: MobKind = Mob.KINDS[look]
 		art = data.art
-		_sprite.scale = Vector2.ONE * data.scale
+		_sprite.scale = Vector2.ONE * WizardLook.scale_of(look, data.scale)  # the four figures are drawn to one height
 	_sprite.sprite_frames = CharFrames.build("res://art/chars/" + art, ANIMATIONS if look == "wizard" else LOOK_ANIMATIONS)
 	_sprite.offset = Vector2(0, -PixelArt.CHARACTERS[art]["size"].y * 0.5)  # the frames' bottom edge is the feet
 	_sprite.play("idle")
+	_paint()
+
+
+## Puts its set of colours on the sprite (the material is made a little after the frames are put on).
+func _paint() -> void:
+	if _wet_material != null:
+		WizardLook.paint(_wet_material, look, palette)
 
 
 ## Where the wizard's mouth is, for Fire Breath.
@@ -1069,7 +1084,7 @@ func share() -> void:
 	for property in ["net_position", "velocity", "facing", "stamina", "max_stamina", "temp_stamina", "cast_color", "casting"]:
 		config.add_property(NodePath(".:" + property))
 		config.property_set_replication_mode(NodePath(".:" + property), SceneReplicationConfig.REPLICATION_MODE_ALWAYS)
-	for property in ["dead", "fainted", "shown_anim", "shown_stroke", "marks", "visible", "modulate"]:
+	for property in ["dead", "fainted", "shown_anim", "shown_stroke", "marks", "visible", "modulate", "look", "palette"]:
 		config.add_property(NodePath(".:" + property))
 		config.property_set_replication_mode(NodePath(".:" + property), SceneReplicationConfig.REPLICATION_MODE_ON_CHANGE)
 	var sync := MultiplayerSynchronizer.new()

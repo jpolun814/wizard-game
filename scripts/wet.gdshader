@@ -9,7 +9,54 @@ uniform vec4 water_tint : source_color = vec4(1.0);
 uniform float obsidian = 0.0;                   // 0 to 1: how far the body has turned to black glass
 uniform float aura = 0.0;                       // 0 to 1: how strongly a blood veil tints the body red
 
+// The wizard's colours (see WizardLook): two groups of the picture's colours, each picked out by its hue (centre and half-width, in turns of the
+// colour wheel, and the least colour a pixel must have to count), are turned to a new hue and made more or less colourful. Skin, wood and
+// outlines are in neither group, so they stay as they were. A hue of -1 leaves a group as it is.
+uniform vec4 robe_group = vec4(-1.0, 0.0, 0.0, 0.0);   // hue, half-width, least colour, (unused)
+uniform vec4 trim_group = vec4(-1.0, 0.0, 0.0, 0.0);
+uniform vec4 robe_goal = vec4(-1.0, 1.0, 0.0, 0.0);    // the hue it becomes (-1: unchanged), and how much colour it keeps
+uniform vec4 trim_goal = vec4(-1.0, 1.0, 0.0, 0.0);
+
 varying float world_y;
+
+vec3 rgb_to_hsv(vec3 c) {
+	vec4 k = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);
+	vec4 p = mix(vec4(c.bg, k.wz), vec4(c.gb, k.xy), step(c.b, c.g));
+	vec4 q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r));
+	float d = q.x - min(q.w, q.y);
+	float e = 1.0e-10;
+	return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x);
+}
+
+vec3 hsv_to_rgb(vec3 c) {
+	vec4 k = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+	vec3 p = abs(fract(c.xxx + k.xyz) * 6.0 - k.www);
+	return c.z * mix(k.xxx, clamp(p - k.xxx, 0.0, 1.0), c.y);
+}
+
+// How much of a pixel belongs to a group of hues: 1 inside it, falling to 0 over a little way past its edge.
+float in_group(vec3 hsv, vec4 group) {
+	float apart = abs(hsv.x - group.x);
+	apart = min(apart, 1.0 - apart);
+	float hue_part = 1.0 - smoothstep(group.y, group.y + 0.025, apart);
+	return hue_part * smoothstep(group.z * 0.7, group.z, hsv.y) * step(0.1, hsv.z);
+}
+
+vec3 recolour(vec3 rgb, vec3 hsv, vec4 group, vec4 goal) {
+	if (goal.x < 0.0 && goal.y >= 1.0) {
+		return rgb;
+	}
+	float part = in_group(hsv, group);
+	if (part <= 0.0) {
+		return rgb;
+	}
+	vec3 moved = hsv;
+	if (goal.x >= 0.0) {
+		moved.x = fract(hsv.x + goal.x - group.x);
+	}
+	moved.y = clamp(hsv.y * goal.y, 0.0, 1.0);
+	return mix(rgb, hsv_to_rgb(moved), part);
+}
 
 void vertex() {
 	world_y = (MODEL_MATRIX * vec4(VERTEX, 0.0, 1.0)).y;
@@ -20,6 +67,11 @@ void fragment() {
 		discard;
 	}
 	vec4 c = texture(TEXTURE, UV) * COLOR;
+	if (robe_goal.x >= 0.0 || robe_goal.y < 1.0 || trim_goal.x >= 0.0 || trim_goal.y < 1.0) {
+		vec3 hsv = rgb_to_hsv(c.rgb);
+		c.rgb = recolour(c.rgb, hsv, robe_group, robe_goal);
+		c.rgb = recolour(c.rgb, hsv, trim_group, trim_goal);
+	}
 	if (world_y > water_y) {
 		c.rgb *= water_tint.rgb;
 	}

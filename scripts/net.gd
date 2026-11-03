@@ -29,6 +29,7 @@ var roster: Array[int] = []
 ## The scene this machine is in now ("" while none is shared): the waiting room, the cut-scene or a world of the match.
 var scene := ""
 var _scenes := {}  # peer id -> the scene that peer last said it is in
+var _styles := {}  # peer id -> [look, palette]: the wizard each other person has chosen to play
 var farewell := ""  # why the last game ended, for the first screen to say
 
 
@@ -119,9 +120,48 @@ func seat_of(peer: int) -> int:
 	return roster.find(peer)
 
 
-## The look a person's wizard wears: their seat's.
+## The look a person's wizard wears: the one they chose, or their seat's until they have.
 func look_of(peer: int) -> String:
-	return LOOKS[maxi(seat_of(peer), 0)]
+	var chosen := ""
+	if peer == my_id():
+		chosen = str(GameSettings.get_value("look"))
+	elif _styles.has(peer):
+		chosen = _styles[peer][0]
+	return chosen if WizardLook.is_look(chosen) else LOOKS[clampi(seat_of(peer), 0, LOOKS.size() - 1)]
+
+
+## The set of colours a person's wizard wears.
+func palette_of(peer: int) -> int:
+	if peer == my_id():
+		return int(GameSettings.get_value("palette"))
+	return int(_styles[peer][1]) if _styles.has(peer) else 0
+
+
+## The look a brain's wizard in a seat wears: the first of the four that no person has chosen, so that a brain does not share a figure with a person
+## when it can be helped.
+func rival_look(seat: int) -> String:
+	var taken: Array[String] = []
+	var brains_before := 0
+	for s in SEATS:
+		var person := roster[s] if online() and s < roster.size() else (my_id() if s == 0 and not online() else 0)
+		if person > 0:
+			taken.append(look_of(person))
+		elif s < seat:
+			brains_before += 1
+	var free := LOOKS.filter(func(look: String) -> bool: return not taken.has(look))
+	return free[brains_before] if brains_before < free.size() else LOOKS[seat]
+
+
+## This person has chosen a wizard (or this machine has just joined): everyone else is told which.
+func say_style() -> void:
+	if online():
+		_said_style.rpc(look_of(my_id()), palette_of(my_id()))
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _said_style(look: String, palette: int) -> void:
+	if WizardLook.is_look(look) and palette >= 0 and palette < WizardLook.PALETTES.size():
+		_styles[multiplayer.get_remote_sender_id()] = [look, palette]
 
 
 ## The host keeps new people out once a match has begun, and lets them in again in the waiting room, where the seats of any who left
@@ -144,6 +184,7 @@ func enter_scene(name: String) -> void:
 	scene = name
 	if online():
 		_said_scene.rpc(name)
+		say_style()
 	scenes_changed.emit()
 
 
@@ -182,6 +223,7 @@ func _said_scene(name: String) -> void:
 func _on_peer_connected(peer: int) -> void:
 	if scene != "":
 		_said_scene.rpc_id(peer, scene)  # the newcomer learns where this machine is
+	_said_style.rpc_id(peer, look_of(my_id()), palette_of(my_id()))  # and who this person is playing
 	if is_host() and multiplayer.multiplayer_peer is ENetMultiplayerPeer:
 		(multiplayer.multiplayer_peer as ENetMultiplayerPeer).get_peer(peer).set_timeout(0, GIVE_UP_MS / 2, GIVE_UP_MS)  # a friend whose game is gone is known in seconds
 	if is_host() and not roster.has(peer):
@@ -192,6 +234,7 @@ func _on_peer_connected(peer: int) -> void:
 
 func _on_peer_disconnected(peer: int) -> void:
 	_scenes.erase(peer)
+	_styles.erase(peer)
 	scenes_changed.emit()
 	if is_host() and roster.has(peer):
 		if multiplayer.refuse_new_connections:

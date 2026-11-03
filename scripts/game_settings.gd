@@ -14,9 +14,11 @@ const DEFAULTS := {
 	"master": 1.0, "effects": 1.0,
 	"window": WINDOWED, "vsync": true, "frame_cap": 0,
 	"skip_opening": false, "skip_ending": false,
+	"look": "", "palette": 0,  # the wizard this person plays (see WizardLook); no look chosen yet is ""
 }
 
 static var values: Dictionary = DEFAULTS.duplicate()
+static var _window_applied := -1  # the screen choice last put to work; -1 before any
 
 
 static func get_value(key: String) -> Variant:
@@ -37,12 +39,22 @@ static func skip_ending() -> bool:
 	return get_value("skip_ending")
 
 
-static func load_saved() -> void:
+static func load_saved(force := false) -> void:
+	if not force and _under_test():
+		apply()  # a test sees the plain defaults, not what the person at this machine has chosen
+		return
 	var file := ConfigFile.new()
 	if file.load(path) == OK:
 		for key: String in DEFAULTS:
 			values[key] = file.get_value("options", key, DEFAULTS[key])
 	apply()
+
+
+static func _under_test() -> bool:
+	for arg in OS.get_cmdline_args():
+		if arg.contains("tests/"):
+			return true
+	return false
 
 
 static func save() -> void:
@@ -58,12 +70,15 @@ static func apply() -> void:
 	var effects := AudioServer.get_bus_index("SFX")
 	if effects >= 0:
 		AudioServer.set_bus_volume_db(effects, linear_to_db(maxf(float(get_value("effects")), 0.0001)))
-	var mode := DisplayServer.WINDOW_MODE_WINDOWED
-	if get_value("window") == FULLSCREEN:
-		mode = DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN
-	elif get_value("window") == BORDERLESS:
-		mode = DisplayServer.WINDOW_MODE_FULLSCREEN
-	if DisplayServer.window_get_mode() != mode:
-		DisplayServer.window_set_mode(mode)
+	var wanted := int(get_value("window"))
+	if wanted != _window_applied:  # only a change to the screen choice touches the window: a window the player maximised stays as it is
+		var mode := DisplayServer.WINDOW_MODE_WINDOWED
+		if wanted == FULLSCREEN:
+			mode = DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN
+		elif wanted == BORDERLESS:
+			mode = DisplayServer.WINDOW_MODE_FULLSCREEN
+		if _window_applied != -1 or wanted != WINDOWED:
+			DisplayServer.window_set_mode(mode)
+		_window_applied = wanted
 	Engine.max_fps = int(FRAME_CAPS[clampi(int(get_value("frame_cap")), 0, FRAME_CAPS.size() - 1)])
 	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_ENABLED if get_value("vsync") else DisplayServer.VSYNC_DISABLED)

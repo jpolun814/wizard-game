@@ -651,7 +651,7 @@ func _spawn_wizards() -> void:
 		elif Net.online() and not Net.is_host():
 			wizard = _add_brains_likeness(seat, places[seat])
 		else:
-			wizard = _add_wizard(Net.LOOKS[seat], places[seat], "Rival%d" % seat)
+			wizard = _add_wizard(Net.rival_look(seat), places[seat], "Rival%d" % seat)
 			wizard.nav = nav
 			if state.has("max"):
 				wizard.max_stamina = state["max"]
@@ -671,7 +671,7 @@ func _add_brains_likeness(seat: int, feet: Vector2) -> Wizard:
 	wizard.name = "Rival%d" % seat
 	wizard.peer = 1
 	wizard.human = false
-	wizard.look = Net.LOOKS[seat]
+	wizard.look = Net.rival_look(seat)
 	wizard.position = feet
 	add_child(wizard)
 	wizard.share()
@@ -1189,7 +1189,7 @@ func _count_wizards(delta: float) -> void:
 	if standing.size() == 1 and Library.real_match() and (Net.is_host() or not Net.online()):
 		_won = true
 		var champion: Wizard = standing[0]
-		get_tree().create_timer(EPILOGUE_AFTER).timeout.connect(_end_with_epilogue.bind(champion.look))  # the winner is shown putting the book back, on every machine
+		get_tree().create_timer(EPILOGUE_AFTER).timeout.connect(_end_with_epilogue.bind(champion.look, champion.palette))  # the winner is shown putting the book back, on every machine
 	elif standing.size() <= 1 and Net.online() and Net.is_host():
 		_won = true
 		get_tree().create_timer(BACK_TO_ROOM).timeout.connect(_back_to_room)  # no winner, or a test: everyone just goes back to the waiting room
@@ -1197,29 +1197,30 @@ func _count_wizards(delta: float) -> void:
 
 ## The match is won: on the host and then on every other machine, the winner is shown putting the book back.
 @rpc("authority", "call_remote", "reliable")
-func _end_with_epilogue(look: String) -> void:
+func _end_with_epilogue(look: String, palette: int) -> void:
 	if not is_inside_tree():
 		return
 	if Net.is_host():
-		Net.send(self, &"_end_with_epilogue", [look])
+		Net.send(self, &"_end_with_epilogue", [look, palette])
 	if GameSettings.skip_ending():
 		_fade_to_room()  # this machine's player would rather not watch it
 		return
-	_roll_the_epilogue(look)
+	_roll_the_epilogue(look, palette)
 
 
 ## The F1 panel's way to the ending: the player's own wizard has won.
 func go_to_epilogue() -> void:
 	if _leaving:
 		return
-	_roll_the_epilogue(player.look)
+	_roll_the_epilogue(player.look, player.palette)
 
 
 ## The screen goes black, and the epilogue plays in the waiting room's place.
-func _roll_the_epilogue(look: String) -> void:
+func _roll_the_epilogue(look: String, palette: int) -> void:
 	_leaving = true
 	_leave_network_scene()
 	Epilogue.winner_look = look
+	Epilogue.winner_palette = palette
 	World.next_seed = -1
 	var layer := CanvasLayer.new()
 	layer.layer = 100

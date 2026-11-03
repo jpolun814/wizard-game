@@ -47,7 +47,8 @@ func _ready() -> void:
 	if Net.online():
 		# In a network game each wizard is named after the machine that drives it, so it is at the same path on every machine.
 		player.name = Wizard.name_for(Net.my_id())
-		player.look = Net.look_of(Net.my_id())
+	player.look = Net.look_of(Net.my_id())
+	player.palette = Net.palette_of(Net.my_id())
 	# A new random arena each run, in the level's land. Build it before anything that reads the terrain.
 	_rng.randomize()
 	var biome := _biome()
@@ -126,6 +127,7 @@ func _add_person(peer_id: int, feet: Vector2) -> Wizard:
 	wizard.name = Wizard.name_for(peer_id)
 	wizard.peer = peer_id
 	wizard.look = Net.look_of(peer_id)
+	wizard.palette = Net.palette_of(peer_id)
 	wizard.position = feet
 	add_child(wizard)
 	wizard.share()
