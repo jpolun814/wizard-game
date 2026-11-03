@@ -156,3 +156,7 @@ and are no longer drawn by the game.
 ## Fire bolt and fire breath (art/fx/pimen_*.png)
 
 Cut by `tools/prepare_pimen_fire.py` from pimen's [Fire Spell Effect 01](https://pimen.itch.io/fire-spell). The page allows use and changes in personal and commercial projects, does not require credit (it is appreciated), and forbids reselling or redistributing the sprites. Not CC0 or CC-BY: ask the owner before the files go into a public repository. The source download is `art/Fire Effect 1.rar`.
+
+## The hammer in the cut-scene after a win (art/props/hammer.png)
+
+The iron hammer is one icon of FacadeGaikan's tool icons, in OpenGameArt's [CC0 Tool Icons](https://opengameart.org/content/cc0-tool-icons) (CC0), cut by `tools/prepare_hammer.py`.

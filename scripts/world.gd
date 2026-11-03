@@ -84,6 +84,7 @@ func _build_map() -> Variant:
 
 
 const THORN_CHUNK := 5  # tiles of floor in a thicket of the world
+const EPILOGUE_AFTER := 4.0  # seconds after a match is won, in a game on this machine alone, before the winner is shown putting the book back
 const BACK_TO_ROOM := 10.0  # seconds after a network match is won before everyone is back in the waiting room
 var nav: WorldNav  # the ways about the world on foot, with every gate shut
 var _start_tile := Vector2i.ZERO
@@ -1185,9 +1186,49 @@ func _count_wizards(delta: float) -> void:
 		Library.record_win(player.ledger.pages.keys())
 		Library.flush()
 		Sfx.play("ritual_ok", player.center())
-	if standing.size() <= 1 and Net.online() and Net.is_host():
+	if standing.size() == 1 and Library.real_match() and (Net.is_host() or not Net.online()):
 		_won = true
-		get_tree().create_timer(BACK_TO_ROOM).timeout.connect(_back_to_room)  # the match is over: everyone goes back to the waiting room
+		var champion: Wizard = standing[0]
+		get_tree().create_timer(EPILOGUE_AFTER).timeout.connect(_end_with_epilogue.bind(champion.look))  # the winner is shown putting the book back, on every machine
+	elif standing.size() <= 1 and Net.online() and Net.is_host():
+		_won = true
+		get_tree().create_timer(BACK_TO_ROOM).timeout.connect(_back_to_room)  # no winner, or a test: everyone just goes back to the waiting room
+
+
+## The match is won: on the host and then on every other machine, the winner is shown putting the book back.
+@rpc("authority", "call_remote", "reliable")
+func _end_with_epilogue(look: String) -> void:
+	if not is_inside_tree():
+		return
+	if Net.is_host():
+		Net.send(self, &"_end_with_epilogue", [look])
+	_roll_the_epilogue(look)
+
+
+## The F1 panel's way to the ending: the player's own wizard has won.
+func go_to_epilogue() -> void:
+	if _leaving:
+		return
+	_roll_the_epilogue(player.look)
+
+
+## The screen goes black, and the epilogue plays in the waiting room's place.
+func _roll_the_epilogue(look: String) -> void:
+	_leaving = true
+	_leave_network_scene()
+	Epilogue.winner_look = look
+	World.next_seed = -1
+	var layer := CanvasLayer.new()
+	layer.layer = 100
+	var black := ColorRect.new()
+	black.color = Color(0, 0, 0, 0)
+	black.set_anchors_preset(Control.PRESET_FULL_RECT)
+	black.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.add_child(black)
+	add_child(layer)
+	var tween := black.create_tween()
+	tween.tween_property(black, "color:a", 1.0, 0.8)
+	tween.tween_callback(get_tree().change_scene_to_file.bind("res://scenes/epilogue.tscn"))
 
 
 ## The end of a network match: everyone is back in the waiting room, for the next one.

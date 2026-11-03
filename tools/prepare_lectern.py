@@ -37,7 +37,7 @@ def read_aseprite(path: str) -> Image.Image:
 
 sheet = Image.open(sys.argv[1]).convert("RGBA")
 tomb = sheet.crop((194, 100, 238, 120))  # 44 x 20: the lid, the panels and the foot
-WIDEN, RAISE, SEAM_COL, SEAM_ROW = 12, 17, 22, 13  # the column and row (of the panels) that are repeated, and how often
+WIDEN, RAISE, SEAM_COL, SEAM_ROW = 24, 43, 22, 13  # the column and row (of the panels) that are repeated, and how often
 cols = list(range(SEAM_COL)) + [SEAM_COL] * WIDEN + list(range(SEAM_COL, tomb.width))
 rows = list(range(SEAM_ROW)) + [SEAM_ROW] * RAISE + list(range(SEAM_ROW, tomb.height))
 stand = Image.new("RGBA", (len(cols), len(rows)))

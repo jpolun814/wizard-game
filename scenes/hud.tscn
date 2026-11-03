@@ -96,7 +96,7 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("3")
-caption = "Spellbook"
+caption = "Tome of Unimaginable Power"
 
 [node name="HexArrows" type="Control" parent="."]
 layout_mode = 3

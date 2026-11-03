@@ -38,7 +38,7 @@ SLOW = [("net_check", "net", "host,client"), ("net_crowd_check", "net", "host,fi
         ("showcase:spells", "scene", "scenario=spells"), ("showcase:soak", "scene", "scenario=soak")] + [(name, "scene", "") for name in (
     "collapse_check", "gate_check", "follow_check", "geyser_check", "wall_liquid_check", "eruption_check", "dark_check", "spectate_check",
     "pull_check", "spark_check", "sentinel_check", "liquid_world_check", "dig_out_check", "lab_sinkhole_check", "page_count_check",
-    "portal_world_check", "spell_fixes_check", "spoils_check", "stage_jump_check", "intro_check", "eclipse_check", "minimap_check",
+    "portal_world_check", "spell_fixes_check", "spoils_check", "stage_jump_check", "intro_check", "epilogue_check", "epilogue_jump_check", "eclipse_check", "minimap_check",
 )]
 
 

@@ -112,6 +112,11 @@ func _process(delta: float) -> void:
 		_heal -= int(_heal)
 
 
+## Nothing here can end the visit: whoever falls is on their feet again at once.
+func _on_player_died() -> void:
+	player.revive.call_deferred()
+
+
 func _input(event: InputEvent) -> void:
 	if not ritual.visible:
 		if event.is_action_pressed("night_toggle"):

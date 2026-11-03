@@ -42,6 +42,8 @@ func _ready() -> void:
 	tools.add_child(_button("All spells", func() -> void: arena.learn_every_page()))
 	if arena.has_method("open_gates"):
 		tools.add_child(_button("Rift into locked areas", func() -> void: arena.open_gates()))
+	if arena.has_method("go_to_epilogue"):
+		tools.add_child(_button("The ending", func() -> void: arena.go_to_epilogue()))
 	if arena.has_method("gate_kinds"):
 		var heading := Label.new()
 		heading.text = "Go to a gate (each press, the next one)"

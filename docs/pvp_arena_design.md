@@ -26,6 +26,7 @@ single-run loop in `docs/roguelite_exploration_design.md`; the spells, the world
   (bolts meet over the pile; the six fall one after another), the camera cuts in on the duel, then the portal tears in a bloom of light and
   pulls the four left up into it, still firing. The pages are loose bodies: blasts that land knock them about, and the portal draws in the ones thrown high. The extras are for the cut-scene only: a match is still four wizards. Any key skips it. It ends
   with the `finished` signal and a change to `scenes/loading.tscn`. Tests: `tests/intro_check.tscn`, `tests/flow_check.tscn`.
+- The cut-scene after a win (`scenes/epilogue.tscn`, `scripts/epilogue.gd`), in a game on this machine alone: the last wizard standing, in their own look, carries the book back to its stand and nails a second plaque ("SERIOUSLY!!") under the first, then it is back to the waiting room. `World` rolls it `EPILOGUE_AFTER` seconds after the win; a test world and a network match skip it. Any key skips it. Test: `tests/epilogue_check.tscn`.
 
 - AI wizards that walk the world for pages and fight each other. `WorldBuilder.shut(world)` is the world with every gate shut; `Walkways`
   (`scripts/world/walkways.gd`) is the one set of rules for where a wizard can stand and the moves between (walk, step, fall, jump), shared by

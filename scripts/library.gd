@@ -32,6 +32,11 @@ static func _counts() -> bool:
 	return scene != null and not scene.scene_file_path.begins_with("res://tests/")
 
 
+## Whether this is a match someone is playing, and not one of the tests.
+static func real_match() -> bool:
+	return _counts()
+
+
 ## A world was entered, of this kind.
 static func record_world_entered(biome: String) -> void:
 	if not _counts():

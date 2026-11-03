@@ -21,7 +21,6 @@ func _ready() -> void:
 	_portal.z_index = 5  # over the sky and anything in it
 	add_child(_portal)
 	_portal.open()
-	_portal.add_to_group(&"portals")  # the arrow at the edge of the screen points to it
 	Sfx.play("portal_open", global_position, -2.0)
 	create_tween().tween_property(_portal, "scale", Vector2.ONE * SIZE, GROW).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 

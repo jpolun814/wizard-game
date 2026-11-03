@@ -363,6 +363,17 @@ func heal(amount: int) -> void:
 	max_stamina = minf(max_stamina + amount, MAX_STAMINA)
 	stamina = minf(stamina + amount, max_stamina)
 
+## Back on their feet with all their stamina, as if they had not fallen: a place where nothing can end the visit calls this.
+func revive() -> void:
+	if not dead or is_likeness():
+		return
+	dead = false
+	_passed = false
+	max_stamina = MAX_STAMINA
+	stamina = MAX_STAMINA
+	movement_enabled = true
+	modulate.a = 1.0
+
 
 ## A hit lowers your most stamina and then gives a short grace, in which no other hit lands. A burn (grace_hit false) takes
 ## it without starting that grace, so a burn and a blow can both land.
