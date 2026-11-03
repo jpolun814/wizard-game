@@ -29,17 +29,21 @@ func _initialize() -> void:
 			_check(attacks == 1 and moves == 1 and defences == 1, "seed %d: wizard %d does not start with one attack, one move and one defence" % [seed_value, k])
 			for chant in Pages.CHANTS:
 				_check(first[k].knows(chant), "seed %d: wizard %d lacks %s" % [seed_value, k, chant])
-		# The attacks and the defences are all different between the four wizards (there are enough of them); the moves are three, so one repeats.
+		# The attacks, the moves and the defences are all different between the four wizards (there are enough of them): no spell is in two books at the start.
 		var attacks_dealt := {}
+		var moves_dealt := {}
 		var defences_dealt := {}
 		for ledger in first:
 			for page in ledger.pages:
+				if Pages.MOVES.has(page):
+					moves_dealt[page] = true
 				if Pages.ATTACKS.has(page):
 					attacks_dealt[page] = true
 				if Pages.DEFENCES.has(page):
 					defences_dealt[page] = true
 		_check(attacks_dealt.size() == 4, "seed %d: the four wizards do not start with four different attacks" % seed_value)
-		_check(defences_dealt.size() == 4, "seed %d: the four wizards do not start with four different defences" % seed_value)
+		_check(moves_dealt.size() == 4, "seed %d: the four wizards do not start with four different moves" % seed_value)
+		_check(defences_dealt.size() == 4,"seed %d: the four wizards do not start with four different defences" % seed_value)
 	# A ledger knows what it holds, and learns more; one wizard's learning is not another's.
 	var ledgers := Pages.deal(1, 2)
 	var page := "Glowcap"
@@ -65,7 +69,7 @@ func _initialize() -> void:
 	_check(Pages.count_for("portals", 1000) < Pages.count_for("graveyard", 1000), "the portal world holds as many pages as a graveyard")
 	_check(Pages.count_for("graveyard", 360) < Pages.count_for("graveyard", 1000) and Pages.count_for("portals", 360) >= Pages.LEAST, "a smaller world is not held to a smaller count")
 	for seed_value in 100:
-		var counts: Array[int] = [14, 12, 11, 8]
+		var counts: Array[int] = [14, 12, 11, 7]
 		var plan := Pages.allotment(seed_value, 4, counts)
 		var dealt := Pages.deal(seed_value + 31, 4)
 		var seen := {}

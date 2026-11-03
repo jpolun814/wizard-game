@@ -370,6 +370,7 @@ GODOT="/c/Users/Jordan Polun/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.
 "$GODOT" --path . tests/castle_sinkhole_look.tscn -- out=DIR  # pictures of a Sinkhole dug in every kind of castle floor (needs a window)
 "$GODOT" --headless --fixed-fps 60 --path . tests/biome_jump_check.tscn  # the F1 panel goes to a world of any biome, whatever the seed deals
 "$GODOT" --headless --fixed-fps 60 --path . tests/parity_check.tscn  # Push, Geyser, Burst, Tornado, Tide Surf and a shot do the same to a person's wizard and the brain's
+"$GODOT" --headless --fixed-fps 60 --path . tests/brain_spells_check.tscn  # the brain knows every spell: each is given alone to an AI wizard in the place it wants it, and cast (add `-- only=Hex,Sneak` for some)
 "$GODOT" --path . tests/eclipse_check.tscn  # an Eclipse darkens the screen of the one inside it (add `-- out=DIR` for pictures)
 "$GODOT" --headless --fixed-fps 60 --path . tests/sentinel_check.tscn  # a sentinel shoots a rival wizard in range, not one out of range
 "$GODOT" --headless --fixed-fps 60 --path . tests/cross_check.tscn -- seed=4 kind=flood spells=Frost%Bridge  # a wizard crosses a gate with a spell (kind=chasm, flood, piranhas, sentinel, wall or gas; spells=chant:deep_breath for a chant; no spells= and it stays put)

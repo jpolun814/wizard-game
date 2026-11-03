@@ -11,6 +11,7 @@ const STATS := {
 const SLOW_SECONDS := 2.0
 const CLEAR_CHECK_AFTER := 0.05  # the overlaps of a new shot are not known until a few physics frames have passed
 const FIREBOLT_HEAD := 21.0  # how far the head of the fire bolt is from the middle of its frame
+const FIREBOLT_DROP := 6.0  # how far below the middle of its frame the ball of the fire bolt is, in art pixels
 const FIREBALL_KNOCK := 420.0  # how hard a fireball pushes what it hits
 
 var aim := Vector2.RIGHT
@@ -44,7 +45,7 @@ func _begin(origin: Vector2, aim_angle: float) -> void:
 	else:
 		shot = AnimatedSprite2D.new()  # pimen's fire bolt: its head is 21 px right of the middle of its frame
 		shot.sprite_frames = PixelFx.square_frames("pimen_firebolt", 16.0, true)
-		shot.offset = Vector2(-FIREBOLT_HEAD, 0)
+		shot.offset = Vector2(-FIREBOLT_HEAD, -FIREBOLT_DROP)  # the ball sits below the middle of its frame: lift it onto the axis the glow, trail and hit box ride on
 		shot.scale = Vector2(2.0, 2.0)
 		shot.play("default")
 	add_child(shot)

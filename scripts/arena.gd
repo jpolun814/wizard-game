@@ -545,7 +545,9 @@ func spawn_spell(spell: String, targeting: String, origin: Vector2, aim: float, 
 			return
 		"Hunter's Mark":
 			if caster_node != player:
-				return  # only the one who cast it follows the scent
+				if caster_node.brain != null:
+					caster_node.brain.catch_scent(HuntersMark.SECONDS)  # a brain has no arrow to follow: the scent shows it a wizard who has faded from sight
+				return
 			if HuntersMark.nearest_other(get_tree(), player.center(), player) == null:
 				return
 			for old in get_tree().get_nodes_in_group("hunts"):

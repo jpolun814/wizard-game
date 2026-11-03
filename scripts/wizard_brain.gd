@@ -43,7 +43,7 @@ const WAYS := {  # the spells (and chants) that get a wizard past each crossing 
 	"flood": ["Frost Bridge", "Lily Pads", "Shadow Step"],
 	"piranhas": ["Frost Bridge", "Lily Pads", "Shadow Step"],
 	"sentinel": ["Smoke Screen", "Eclipse", "Barrier", "Decoy"],
-	"wall": ["Geyser", "Push", "Liana"],
+	"wall": ["Geyser", "Push", "Updraft", "Liana", "Great Oak", "Tornado"],
 	"gas": ["chant:deep_breath"],  # walked through with the breath held (a chant, not a spell)  # thrown up over the top of it
 }
 const LASTS := {"Frost Bridge": 25.0, "Lily Pads": 6.0, "Smoke Screen": 11.0, "Eclipse": 9.0, "Barrier": 5.0, "Decoy": 3.0}  # seconds that the way a spell makes lasts
@@ -69,6 +69,28 @@ const BREATH_AHEAD := 60.0        # pixels short of a bank of gas that it stops 
 const GAS_WALK := 20.0            # seconds the way through gas is taken to be open after the chant (the breath is held for longer)
 const LIFT_CLEARANCE := 40.0    # pixels it must be thrown above the top of a wall to get over it
 const STRIKE_STAND := 4       # tiles: and it steps up to this far from it
+const ICICLE_REACH := 420.0      # pixels over a rival that a ceiling can hang an icicle from (the arena's own reach)
+const JUMP_REACH := 130.0       # pixels a jump carries it up: the highest ledge it will jump for
+const TORNADO_WAIT := 2.5       # seconds it walks into a whirlwind it has drawn, waiting to be flung, before it takes it for a miss
+const OAK_GROW := 1.1           # seconds it waits for a great oak to stand before it climbs
+const OAK_WAIT := 9.0           # seconds it climbs an oak before it takes it for a miss
+const CHASE_ABOVE := 90.0       # pixels a rival's feet must be over its own before it looks for a way up to them
+const CHASE_REST := 10.0        # seconds between two tries at a way up to a rival
+const OAK_CHASE_MAX := 190.0    # pixels up to a rival that an oak can still be climbed for (its low ledge, and a jump from it)
+const LIFTS := ["Geyser", "Updraft", "Push", "Liana", "Great Oak", "Tornado"]  # what raises it up a wall or to a rival, the one it likes best first
+const TEND_REST := {"Flare": 40.0, "Glowcap": 60.0, "Moonbeam": 30.0, "Adrenaline": 25.0, "Offering": 20.0, "Sneak": 25.0, "Crimson Veil": 8.0, "Obsidian Armor": 25.0,
+		"Decoy": 8.0, "Stone Wall": 6.0, "Smoke Screen": 10.0, "Eclipse": 14.0, "Hunter's Mark": 25.0}  # seconds before it looks to the same need with the same spell again
+## What the brain does with every spell there is (a test holds it to this: a spell with no line here is one it would never cast, and each line is met by a check).
+const USES := {
+	"Ignite": "attack", "Frostbolt": "attack", "Spark": "attack", "Stonefall": "attack", "Fire Breath": "attack", "Firewall": "attack", "Spore Puff": "attack",
+	"Stalagmite": "attack", "Bramble": "attack", "Flytrap": "attack", "Icicles": "attack under a ceiling", "Sinkhole": "attack", "Tornado": "attack, and a way up",
+	"Ice Prison": "attack", "Blizzard": "attack", "Mudslide": "attack", "Black Hole": "attack", "Earthquake": "attack", "Hex": "attack", "Vacuum": "attack",
+	"Faint": "attack", "Fight or Flight": "attack", "Silence": "attack", "Tide Surf": "attack", "Burst": "attack",
+	"Barrier": "defence", "Gust": "defence", "Shadow Step": "defence, and a way over a chasm", "Push": "repel, and a way up", "Geyser": "repel, and a way up",
+	"Stone Wall": "tend", "Smoke Screen": "tend", "Decoy": "tend", "Eclipse": "tend", "Crimson Veil": "tend", "Obsidian Armor": "tend, and a way through lava",
+	"Adrenaline": "tend", "Offering": "tend", "Sneak": "tend", "Hunter's Mark": "tend", "Flare": "tend", "Glowcap": "tend", "Moonbeam": "tend",
+	"Updraft": "a way up", "Great Oak": "a way up", "Liana": "a way up", "Frost Bridge": "a way over water", "Lily Pads": "a way over water",
+}
 
 var wizard: Wizard            # the body it plays
 var skill := 0.6              # 0 to 1: how quick its reactions are and how true its aim is
@@ -112,12 +134,20 @@ var _lift := {}                  # a throw up over a wall: {"dir", "key", "span"
 var _leap := {}                  # a jump over a chasm: {"dir": -1 or 1, "key", "steps": Shadow Steps left to make, "span": the chasm, "jumped", "air": seconds since it left the ground}
 var _cannot := {}                # crossing (by key) -> seconds more that it will not try it, having fallen in
 var _replans := 0                # times in a row it has had to find its way again
+var _scent := 0.0                # seconds that a Hunter's Mark lasts for it: a wizard faded from sight can be found
+var _tend_cooldown := 3.0        # counting down to the next time it looks to its own needs
+var _rest := {}                  # a spell (or "chase") -> seconds before it uses it for itself again
 
 
 func _init(body: Wizard) -> void:
 	wizard = body
 	_rng.randomize()
 	skill = 0.65
+
+
+## A Hunter's Mark was cast: for a while it can find a wizard who has faded from sight.
+func catch_scent(seconds: float) -> void:
+	_scent = maxf(_scent, seconds)
 
 
 ## Called when the wizard takes damage. A real hit while it draws breaks its spell, and being badly hurt makes it
@@ -137,7 +167,13 @@ func think(delta: float) -> void:
 	_escape_time -= delta
 	_goal_timer -= delta
 	_settle -= delta
+	_tend_cooldown -= delta
+	_scent -= delta
 	_pressure *= exp(-delta / 3.0)
+	for spell_name in _rest.keys():
+		_rest[spell_name] -= delta
+		if _rest[spell_name] <= 0.0:
+			_rest.erase(spell_name)
 	for id in _skip.keys():
 		_skip[id] -= delta
 		if _skip[id] <= 0.0:
@@ -181,8 +217,18 @@ func think(delta: float) -> void:
 		elif fighting and to_player.length() < TOO_CLOSE and _defend_cooldown <= 0.0:
 			_plan(_choose_repel(), _reaction_time())
 
+	# Looking after itself: its lights, its strength, a wall between it and you, a way up to you.
+	if _react <= 0.0 and _tend_cooldown <= 0.0 and not wizard.is_drawing() and _lift.is_empty() and _leap.is_empty() and _wade.is_empty() and not _smothering():
+		_tend_cooldown = 0.6 + _rng.randf() * 0.6
+		if _tend(to_player, sees, fighting):
+			_tend_cooldown = 1.4 + _rng.randf() * 0.8
+
 	# Footwork, or the journey.
-	var run := _footwork(delta, to_player, sees) if fighting else _travel(delta)  # (both may jump: the speed is written after they have)
+	var run: float
+	if not _lift.is_empty():
+		run = _lifting(delta)  # a throw, a climb or a lift up to you goes on, fight or no
+	else:
+		run = _footwork(delta, to_player, sees) if fighting else _travel(delta)  # (both may jump: the speed is written after they have)
 	wizard.walk(run)
 	# A wizard faces the way it runs; it turns to its rival only while standing still or drawing a spell, so it never backpedals.
 	var running := run != 0.0 and not wizard.is_drawing()
@@ -192,7 +238,9 @@ func think(delta: float) -> void:
 
 	# Attacks.
 	if _cast_cooldown <= 0.0 and not wizard.is_drawing() and _react <= 0.0:
-		if foe.has_shield():
+		if _smothering() or _hiding():
+			_cast_cooldown = 0.3  # another spell would let the breath go; and a wizard out of sight is shown by casting
+		elif foe.has_shield():
 			_cast_cooldown = 0.3  # nothing gets through a Barrier; wait it out
 		elif _attack(to_player, sees):
 			_cast_cooldown = lerpf(2.8, 1.5, skill) + _rng.randf() * 0.8
@@ -224,8 +272,8 @@ func _nearest_foe() -> Wizard:
 	var best: Wizard = null
 	var best_gap := INF
 	for other: Wizard in SpellTargets.wizards(wizard.get_tree()):
-		if other == wizard or not other.is_seen_from(wizard.center()):
-			continue  # a wizard faded from sight is not there to be found
+		if other == wizard or (_scent <= 0.0 and not other.is_seen_from(wizard.center())):
+			continue  # a wizard faded from sight is not there to be found, unless it has the scent
 		var gap: float = wizard.center().distance_to(other.center())
 		if gap < best_gap:
 			best = other
@@ -375,7 +423,7 @@ func _cross(crossing: Dictionary) -> bool:
 		dir = _pads[crossing["key"]]["dir"]  # a row of pads is laid along the way it set out
 	_cross_run = 0.0
 	match spell_name:
-		"Geyser", "Push", "Liana":  # it walks up to the face of the wall and stands there while the ground bubbles under it, while it shoves itself up, or while it climbs a vine
+		"Geyser", "Push", "Liana", "Updraft", "Great Oak", "Tornado":  # it walks up to the face of the wall and stands there while the ground bubbles under it, while it shoves itself up, while it climbs a vine, a column of air or an oak, or while a whirlwind flings it
 			var face := span.position.x - 36.0 if dir > 0 else span.end.x + 36.0
 			if absf(face - wizard.global_position.x) > 12.0:
 				_cross_run = clampf(face - wizard.global_position.x, -WALK_SPEED, WALK_SPEED)
@@ -511,9 +559,26 @@ func _lifting(delta: float) -> float:
 			_begin_cast("Push", _push_stroke(feet, Vector2(dir * 0.2, -1.0).normalized()), QUICK_DRAW)
 		elif _lift["spell"] == "Liana":  # a vine from the ground at its feet, taller than the wall
 			_begin_cast("Liana", _offset(GestureTemplates.preview_points("vine"), Vector2(feet.x, wizard.global_position.y - 75.0 * VINE_SCALE), VINE_SCALE), QUICK_DRAW)
+		elif _lift["spell"] == "Updraft":  # a column of air where it stands
+			_begin_cast("Updraft", _offset(GestureTemplates.preview_points("updraft"), feet, 0.6), QUICK_DRAW)
+		elif _lift["spell"] == "Tornado":  # a whirlwind a step ahead of it, to walk into
+			_begin_cast("Tornado", _offset(GestureTemplates.preview_points("tornado"), Vector2(feet.x + dir * 60.0, wizard.global_position.y - 90.0), 0.9), ATTACK_DRAW)
+		elif _lift["spell"] == "Great Oak":  # a trunk drawn up from the ground a step ahead of it
+			var shape := GestureTemplates.preview_points("tree")
+			var foot := Vector2(feet.x + dir * 50.0, wizard.global_position.y - 4.0)
+			var moved := PackedVector2Array()
+			for p in shape:
+				moved.append(foot + (p - shape[0]) * 0.7)
+			_begin_cast("Great Oak", _densify(moved), ATTACK_DRAW)
 		else:
 			_begin_cast("Geyser", _offset(GestureTemplates.preview_points("geyser"), feet, 0.6), QUICK_DRAW)
 		return 0.0
+	if _lift["spell"] == "Great Oak" and not _lift["thrown"]:  # it climbs the oak's ledges one by one
+		var step := _climb_oak(delta, span, dir)
+		if _lift.is_empty():
+			return 0.0
+		if not _lift["thrown"]:
+			return step
 	if _lift["spell"] == "Liana" and not _lift["thrown"]:  # it takes hold of the vine and climbs until its feet are over the top
 		_lift["waited"] += delta
 		if wizard.global_position.y < span.position.y - VINE_OVER:
@@ -528,10 +593,16 @@ func _lifting(delta: float) -> float:
 			wizard.climb_up = true
 			return 0.0
 	if wizard.is_on_floor():
-		if not _lift["thrown"] and _lift["waited"] < (LIFT_WAIT if _lift["spell"] == "Geyser" else SHOVE_WAIT):  # the ground bubbles for a moment before the burst
+		var wait := LIFT_WAIT if _lift["spell"] == "Geyser" or _lift["spell"] == "Updraft" else (TORNADO_WAIT if _lift["spell"] == "Tornado" else SHOVE_WAIT)
+		if not _lift["thrown"] and _lift["waited"] < wait:  # the ground bubbles for a moment before the burst
 			_lift["waited"] += delta
-			return 0.0
-		var across: bool = (wizard.global_position.x - span.get_center().x) * dir > span.size.x * 0.5 or wizard.global_position.y < span.position.y + 4.0  # (or on top of the wall)
+			return dir * WALK_SPEED if _lift["spell"] == "Tornado" else 0.0  # (a whirlwind is walked into)
+		var past: bool = (wizard.global_position.x - span.get_center().x) * dir > span.size.x * 0.5
+		var on_top: bool = wizard.global_position.y < span.position.y + 4.0
+		if _lift["spell"] == "Great Oak" and _lift["thrown"] and on_top and not past:  # on a ledge over the top: it jumps off toward the far side
+			wizard.request_jump()
+			return dir * WizardRoute.MAX_AIR_SPEED
+		var across: bool = past or on_top  # (or on top of the wall)
 		if not across:  # down again on the near side: the water did not throw it high enough
 			_cannot[_lift["key"]] = GIVE_UP
 		_bridged[_lift["key"]] = 2.0
@@ -543,6 +614,34 @@ func _lifting(delta: float) -> float:
 	pass
 	var clear: bool = wizard.global_position.y < span.position.y - 10.0
 	return dir * WizardRoute.MAX_AIR_SPEED if clear else 0.0
+
+
+## A climb up the ledges of an oak: it goes to the highest one it can jump onto, and jumps, until the top is within a jump. Returns the speed to go at.
+func _climb_oak(delta: float, span: Rect2, dir: int) -> float:
+	_lift["waited"] += delta
+	if _lift["waited"] < OAK_GROW:
+		return 0.0
+	var feet: Vector2 = wizard.global_position
+	if feet.y - span.position.y <= JUMP_REACH - 20.0:  # the top is a jump away
+		_lift["thrown"] = true
+		wizard.request_jump()
+		return dir * WizardRoute.MAX_AIR_SPEED
+	var best := Rect2()
+	var best_rise := 0.0
+	for oak: GreatOak in wizard.get_tree().get_nodes_in_group("oaks"):
+		for ledge in oak.ledge_tops():
+			var rise := feet.y - ledge.position.y
+			if rise > 6.0 and rise <= JUMP_REACH and rise > best_rise and absf(feet.x - ledge.get_center().x) < 220.0:
+				best = ledge
+				best_rise = rise
+	if best_rise == 0.0 or _lift["waited"] > OAK_WAIT:  # no ledge it can reach: the oak is given up
+		_cannot[_lift["key"]] = GIVE_UP
+		_lift = {}
+		return 0.0
+	var under := clampf(feet.x, best.position.x + 12.0, best.end.x - 12.0)
+	if wizard.is_on_floor() and absf(feet.x - under) < 8.0:
+		wizard.request_jump()
+	return clampf((under - feet.x) * 4.0, -WALK_SPEED, WALK_SPEED)
 
 
 ## The stroke that makes a way over a pit of water, along the width of it at its surface: a wave for Frost Bridge, a row of loops for Lily Pads.
@@ -913,6 +1012,14 @@ func _choose_defence(eta: float) -> String:
 
 func _choose_repel() -> String:
 	var options := {}
+	if _ready_to_cast("Burst"):
+		options["burst"] = 1.4
+	if _ready_to_cast("Geyser") and _foe.stands():
+		options["geyser"] = 1.0
+	if _ready_to_cast("Tide Surf"):
+		options["surf"] = 0.9
+	if _ready_to_cast("Spore Puff") and _clear_line(wizard.center(), _foe.center()):
+		options["spores"] = 1.1
 	if _knows("Push") and wizard.stamina >= 10.0:
 		options["push"] = 1.5
 	if _knows("Shadow Step") and wizard.stamina >= 10.0:
@@ -958,6 +1065,18 @@ func _act(reaction: String) -> void:
 		"breath":
 			_begin_cast("Fire Breath", _breath_stroke(foe.center()), QUICK_DRAW + 0.1)
 			_defend_cooldown = 1.8
+		"spores":
+			_begin_cast("Spore Puff", _breath_stroke(foe.center()), QUICK_DRAW + 0.1)
+			_defend_cooldown = 1.8
+		"burst":
+			_begin_cast("Burst", _offset(GestureTemplates.preview_points("circle"), wizard.center(), 0.7), QUICK_DRAW)
+			_defend_cooldown = 1.8
+		"geyser":  # the ground bubbles under its feet and throws it off
+			_begin_cast("Geyser", _offset(GestureTemplates.preview_points("geyser"), foe.global_position + Vector2(0.0, -24.0), 0.6), QUICK_DRAW)
+			_defend_cooldown = 1.8
+		"surf":
+			_begin_cast("Tide Surf", _surf_stroke(signf(foe.global_position.x - wizard.global_position.x)), QUICK_DRAW)
+			_defend_cooldown = 1.8
 
 
 ## Steps away from the player along the ground, or past them if its back is to a wall.
@@ -984,7 +1103,9 @@ func _footwork(delta: float, to_player: Vector2, sees: bool) -> float:
 	var gap := absf(to_player.x)
 	var toward := signf(to_player.x)
 	var dir := 0.0
-	if not sees:
+	if _hiding():
+		dir = -toward  # slipping away unseen
+	elif not sees:
 		dir = toward  # get a clear line
 	elif gap < NEAR:
 		dir = -toward
@@ -1066,12 +1187,24 @@ func _attack(to_player: Vector2, sees: bool) -> bool:
 		"Frostbolt": (0.4 if foe.is_slowed() else 1.6) if sees else 0.0,
 		"Spark": 2.2 if still or stuck else 1.0,
 		"Stonefall": 3.0 if stuck else (1.8 if still else 0.5),
-		"Icicles": 0.0,  # they need a ceiling, and the arenas have none yet
+		"Icicles": 2.0 if _ceiling_over(foe.center()) else 0.0,  # they hang from a ceiling, wherever there is one over you
+		"Spore Puff": 1.6 if gap < 240.0 else 0.0,
+		"Stalagmite": (2.0 if still or stuck else 1.0) if grounded and gap < 360.0 else 0.0,
+		"Bramble": (1.4 if closing else 0.7) if grounded and gap > 100.0 else 0.0,
+		"Flytrap": 1.3 if grounded and (still or stuck) else 0.0,  # a trap snaps shut on whoever stands in it
+		"Sinkhole": 1.5 if grounded and (still or stuck) and gap < 340.0 else 0.0,
+		"Hex": 1.4 if Hex.multiplier(wizard.get_tree(), foe) <= 1.0 else 0.0,
+		"Vacuum": 1.5 if not foe.smothered and gap < 400.0 else 0.0,
+		"Faint": 1.6 if not foe.fainted and gap < 400.0 else 0.0,
+		"Fight or Flight": 0.6 if foe.rage_time <= 0.0 and foe.fear_time <= 0.0 else 0.0,
+		"Silence": (1.8 if foe.is_drawing() else 0.6) if gap > Silence.RADIUS + 45.0 else 0.0,  # the ring is drawn round you, so well clear of it
+		"Tide Surf": 1.0 if grounded and gap > 110.0 and gap < 320.0 else 0.0,
+		"Burst": 1.6 if gap < 140.0 else 0.0,
 		"Tornado": (0.6 + _pressure * 0.5) if gap < 260.0 else 0.2,
 		"Ice Prison": 1.3 if gap < 360.0 and not stuck else 0.0,
 		"Mudslide": 1.1 if grounded and not stuck else 0.0,
 		"Black Hole": (0.4 + _pressure * 0.4) if gap < 300.0 else 0.0,
-		"Firewall": 1.6 if closing and gap < 280.0 and gap > 90.0 else 0.0,
+		"Firewall": (1.6 if closing else 0.5) if gap < 280.0 and gap > 90.0 else 0.0,
 		"Blizzard": 0.4 if grounded else 0.0,
 		"Fire Breath": 1.8 if gap < 240.0 else 0.0,
 		"Earthquake": 1.5 if grounded and gap < 300.0 and _own_walkers_near(300.0) < 2 else 0.0,
@@ -1084,7 +1217,7 @@ func _attack(to_player: Vector2, sees: bool) -> bool:
 		for spell_name in ["Ignite", "Frostbolt", "Ice Prison", "Black Hole", "Firewall", "Fire Breath"]:
 			scores[spell_name] = 0.0
 	for spell_name in scores.keys():
-		if not _knows(spell_name) or wizard.stamina < SpellData.SPELLS[spell_name].cost:
+		if not _ready_to_cast(spell_name):
 			scores[spell_name] = 0.0
 		elif spell_name in _recent:
 			scores[spell_name] *= 0.25  # it does not keep repeating itself
@@ -1158,9 +1291,42 @@ func _attack_stroke(spell_name: String) -> PackedVector2Array:
 			return _line(Vector2(x, feet.y - 110.0), Vector2(x, feet.y - 20.0))
 		"Blizzard":
 			return _offset(GestureTemplates.preview_points("snowfall"), Vector2(feet.x - 30.0, foe.center().y - 70.0), 0.8)
-		"Fire Breath":
+		"Fire Breath", "Spore Puff":
 			return _breath_stroke(foe.center())
+		"Stalagmite":
+			return _offset(GestureTemplates.preview_points("stalagmite"), Vector2(_predict(ATTACK_DRAW * 0.6).x, feet.y - 40.0), 0.9)
+		"Bramble":
+			return _offset(GestureTemplates.preview_points("bramble"), Vector2(lerpf(wizard.global_position.x, foe.global_position.x, 0.8), feet.y - 16.0), 1.0)
+		"Flytrap":
+			return _offset(GestureTemplates.preview_points("jaws"), Vector2(_predict(ATTACK_DRAW * 0.6).x, feet.y - 30.0), 0.8)
+		"Icicles":  # Vs hung over its head, their tips just above it
+			return _offset(GestureTemplates.preview_points("icicles"), Vector2(foe.center().x, foe.center().y - 35.0), 0.9)
+		"Sinkhole":  # a U drawn into the ground under its feet
+			return _offset(GestureTemplates.preview_points("pit"), Vector2(_predict(ATTACK_DRAW * 0.6).x, feet.y + 20.0), 0.8)
+		"Hex":
+			return _offset(GestureTemplates.preview_points("pentagram"), _predict(0.3), 0.5)
+		"Vacuum":
+			return _offset(GestureTemplates.preview_points("lungs"), foe.center(), 0.5)
+		"Faint":
+			return _offset(GestureTemplates.preview_points("spiral"), foe.center(), 0.5)
+		"Fight or Flight":
+			return _offset(GestureTemplates.preview_points("question"), foe.center(), 0.6)
+		"Silence":
+			return _offset(GestureTemplates.preview_points("silence"), foe.center(), 0.6)
+		"Tide Surf":
+			return _surf_stroke(facing)
+		"Burst":
+			return _offset(GestureTemplates.preview_points("circle"), wizard.center(), 0.7)
 	return PackedVector2Array()
+
+
+## A Tide Surf drawn toward one side: the wave runs the way the stroke runs.
+func _surf_stroke(side: float) -> PackedVector2Array:
+	var wave := GestureTemplates.preview_points("tsunami")
+	var out := PackedVector2Array()
+	for p in wave:
+		out.append(Vector2(p.x * (side if side != 0.0 else 1.0), p.y))
+	return _offset(out, wizard.center() + Vector2(side * 70.0, -10.0), 1.0)
 
 
 ## A Fire Breath cone with its point at the wizard and its mouth toward you, a little off when it is unskilled.
@@ -1209,6 +1375,153 @@ func _shaken(points: PackedVector2Array) -> PackedVector2Array:
 	for p in points:
 		shaken.append(p + Vector2(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)) * px)
 	return shaken
+
+
+# --- Looking after itself ---------------------------------------------------------------------------------------
+
+
+## Whether it is hiding: faded from sight, and too hurt to fight.
+func _hiding() -> bool:
+	return wizard.fade_time > 0.0 and wizard.max_stamina < Wizard.MAX_STAMINA * 0.45
+
+
+## Whether a Vacuum of its own still holds someone: any other spell it cast would let them go.
+func _smothering() -> bool:
+	for vacuum: Vacuum in wizard.get_tree().get_nodes_in_group("vacuums"):
+		if vacuum.caster == wizard:
+			return true
+	return false
+
+
+## Whether the world is dark: a flare, a glowcap or a moonbeam would show it the way.
+func _in_dark() -> bool:
+	for node in wizard.get_tree().get_nodes_in_group("darkness"):
+		if node is CanvasModulate and node.visible and node.color.get_luminance() < 0.5:
+			return true
+	return false
+
+
+## Whether there is a ceiling over a point that an icicle could hang from.
+func _ceiling_over(point: Vector2) -> bool:
+	var query := PhysicsRayQueryParameters2D.create(point, point + Vector2(0.0, -ICICLE_REACH))
+	query.collision_mask = 1
+	var hit := wizard.get_world_2d().direct_space_state.intersect_ray(query)
+	return not hit.is_empty() and hit["normal"].y > 0.3
+
+
+## Whether it may cast a spell now: it holds the page, is not silenced, has not just cast it for itself, and has the strength (blood is paid
+## in maximum stamina, and never to the last drop).
+func _ready_to_cast(spell_name: String) -> bool:
+	if not _knows(spell_name) or _rest.has(spell_name) or wizard.silenced() or wizard.rage_time > 0.0:
+		return false
+	var spell: Spell = SpellData.SPELLS[spell_name]
+	if spell.pays_max():
+		return wizard.max_stamina > spell.cost + 40.0
+	return wizard.stamina >= spell.cost
+
+
+## Looks to what it needs, and casts for it: a way up to a rival over its head, a light in the dark, its strength, and something between it and a rival who
+## is hurting it. True when it has begun a cast.
+func _tend(to_player: Vector2, sees: bool, fighting: bool) -> bool:
+	if fighting and _chase(to_player):
+		return true
+	var gap := absf(to_player.x)
+	var low := wizard.max_stamina < Wizard.MAX_STAMINA * 0.45
+	var tired := _resting or wizard.stamina < 35.0
+	var weights := {}
+	if _in_dark():
+		weights["Flare"] = 1.5
+		weights["Glowcap"] = 0.6 if tired or fighting else 0.0
+		weights["Moonbeam"] = 0.8 if fighting else 0.0
+	if tired and wizard.max_stamina > 110.0 and wizard.temp_stamina <= 0.0:
+		weights["Offering"] = 2.0
+	if (tired or (fighting and gap > FAR)) and wizard.adrenaline_time <= 0.0:
+		weights["Adrenaline"] = 1.2
+	if _goal != "page" and _scent <= 0.0:
+		weights["Hunter's Mark"] = 1.0
+	if fighting:
+		if low and gap > 140.0 and wizard.fade_time <= 0.0:
+			weights["Sneak"] = 2.5
+		if sees and _pressure > 0.8 and gap > 110.0 and gap < 380.0:
+			weights["Stone Wall"] = 1.4
+		if _pressure > 1.0 and gap > 150.0:
+			weights["Smoke Screen"] = 1.0
+		if _pressure > 1.2:
+			weights["Decoy"] = 1.0
+		if _pressure > 0.8 and wizard.veil == 0:
+			weights["Crimson Veil"] = 1.3
+		if _pressure > 1.6 and wizard.obsidian_time <= 0.0:
+			weights["Obsidian Armor"] = 0.8
+		if sees and gap > 200.0:
+			weights["Eclipse"] = 0.6 + 0.3 * _pressure
+	for spell_name in weights.keys():
+		if not _ready_to_cast(spell_name):
+			weights[spell_name] = 0.0
+	var choice := _pick(weights)
+	if choice == "":
+		return false
+	_rest[choice] = TEND_REST[choice]
+	_begin_cast(choice, _tend_stroke(choice, to_player), QUICK_DRAW)
+	return true
+
+
+## The stroke of a spell it casts for itself.
+func _tend_stroke(spell_name: String, to_player: Vector2) -> PackedVector2Array:
+	var dir := signf(to_player.x) if to_player.x != 0.0 else 1.0
+	var here: Vector2 = wizard.center()
+	var feet: Vector2 = wizard.global_position
+	match spell_name:
+		"Flare":
+			return _offset(GestureTemplates.preview_points("flare"), here + Vector2(0.0, -40.0), 0.6)
+		"Glowcap":
+			return _offset(GestureTemplates.preview_points("circle"), here + Vector2(dir * 60.0, 0.0), 0.6)
+		"Moonbeam":
+			var at: Vector2 = _foe.global_position if _foe != null else feet
+			return _line(Vector2(at.x, at.y - 70.0), Vector2(at.x, at.y + 10.0))
+		"Offering":
+			return _offset(GestureTemplates.preview_points("cross"), here, 0.6)
+		"Adrenaline":
+			return _offset(GestureTemplates.preview_points("zigzag"), here, 0.6)
+		"Hunter's Mark":
+			return _offset(GestureTemplates.preview_points("arrow"), here, 0.6)
+		"Sneak":  # a wave deep enough not to be read as a flick, which is a Shadow Step on the same buttons
+			var wave := PackedVector2Array()
+			for i in 61:
+				wave.append(here + Vector2(180.0 * i / 60.0 - 90.0, 28.0 * sin(TAU * 3.0 * i / 60.0)))
+			return _densify(wave)
+		"Stone Wall":  # begun in the ground a step toward you, and drawn up and a little toward you
+			var x := feet.x + dir * 70.0
+			return _line(Vector2(x, _ground_under(Vector2(x, feet.y)) + 4.0), Vector2(x + dir * 20.0, _ground_under(Vector2(x, feet.y)) - 90.0))
+		"Smoke Screen":
+			var middle := lerpf(feet.x, feet.x + to_player.x, 0.5)
+			return _offset(GestureTemplates.preview_points("smoke"), Vector2(middle, feet.y - 50.0), 0.9)
+		"Decoy":
+			return _offset(GestureTemplates.preview_points("eight"), here + Vector2(-dir * 50.0, 0.0), 0.7)
+		"Eclipse":
+			return _offset(GestureTemplates.preview_points("crescent"), _foe.center(), 1.0)
+		"Crimson Veil":
+			return _line(Vector2(here.x, here.y - 50.0), Vector2(here.x, here.y + 20.0))
+		"Obsidian Armor":
+			return _offset(GestureTemplates.preview_points("circle"), here, 0.8)
+	return PackedVector2Array()
+
+
+## A rival standing over its head, on a ledge: it raises itself up to them with the first spell it holds that does it. True when it has begun.
+func _chase(to_player: Vector2) -> bool:
+	if not wizard.is_on_floor() or _rest.has("chase") or not _lift.is_empty():
+		return false
+	var rise := wizard.global_position.y - _foe.global_position.y
+	if rise < CHASE_ABOVE or absf(to_player.x) > 320.0:
+		return false
+	var dir := 1 if to_player.x >= 0.0 else -1
+	var span := Rect2(_foe.global_position.x - 24.0, _foe.global_position.y - 6.0, 48.0, 12.0)
+	for spell_name: String in LIFTS:
+		if not _ready_to_cast(spell_name) or (spell_name == "Great Oak" and rise > OAK_CHASE_MAX):
+			continue
+		_rest["chase"] = CHASE_REST
+		if _begin_lift(spell_name, "chase", dir, span):
+			return true
+	return false
 
 
 # --- Shapes -----------------------------------------------------------------------------------------------------

@@ -10,9 +10,9 @@ extends RefCounted
 
 ## What every wizard starts with: one spell to attack, one to move and one to defend, each drawn by chance from its own list, and the
 ## incantations of the bonfire and of the rift. Every spell in these lists works alone.
-const ATTACKS := ["Ignite", "Fire Breath", "Spark", "Frostbolt", "Stonefall"]
-const MOVES := ["Shadow Step", "Push", "Liana"]
-const DEFENCES := ["Barrier", "Decoy", "Stone Wall", "Smoke Screen"]
+const ATTACKS := ["Ignite", "Fire Breath", "Spark", "Frostbolt", "Stonefall", "Spore Puff", "Firewall", "Stalagmite", "Bramble", "Flytrap"]
+const MOVES := ["Shadow Step", "Push", "Liana", "Geyser", "Updraft", "Tornado", "Great Oak"]
+const DEFENCES := ["Barrier", "Decoy", "Stone Wall", "Smoke Screen", "Gust", "Eclipse", "Sneak"]
 const CHANTS := ["chant:bonfire", "chant:rift"]
 ## Spells that open no gate, and chants that do not: the ones that may lie in a locked area.
 const LOCKABLE := ["Frostbolt", "Icicles", "Ice Prison", "Blizzard", "Stonefall", "Mudslide", "Earthquake", "Stalagmite", "Bramble", "Spore Puff",

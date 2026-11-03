@@ -16,8 +16,8 @@ single-run loop in `docs/roguelite_exploration_design.md`; the spells, the world
 
 - `Ledger` (`scripts/ledger.gd`): the pages one wizard holds. The player's is `player.ledger`. The waiting room's ledger holds every
   page (`Ledger.complete()`).
-- `Pages.deal(seed, wizards)`: each wizard's starting pages, from the seed. Starting attacks and defences differ between wizards, so
-  no one else can find that page on the map; the three moves repeat for the fourth wizard.
+- `Pages.deal(seed, wizards)`: each wizard's starting pages, from the seed. Starting attacks, moves and defences differ between wizards, so
+  no spell is in two books at the start and no one else can find that page on the map.
 - `Pages.plan(graph, rng, dealt)`: lays every page that no wizard started with. `World.ledgers` holds the four ledgers.
 - Tests: `tests/test_pages.gd`, and the `pages` scenario of `tests/showcase.tscn`.
 - The cut-scene (`scenes/intro.tscn`, `scripts/intro.gd`), played when a person touches the spellbook on its stand in the waiting room (`Lectern`, with a plaque too small to read until the camera comes close on it in the cut-scene), before the loading screen. It happens in the waiting room's own place (`ArenaGen.WAITING_ROOM_BIOME`), so the two look joined. It opens on the

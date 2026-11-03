@@ -28,6 +28,7 @@ var _picture: Node2D
 
 
 func _ready() -> void:
+	add_to_group("oaks")
 	burn_seconds = 3.0
 	add_to_group("breakables")
 	add_to_group("danger")
@@ -48,6 +49,16 @@ func _ready() -> void:
 	Sfx.play("quake", global_position, -4.0)
 	Fx.debris(get_parent(), global_position, Color("#7a6a3a"), 12, 220.0)
 	GameCamera.shake_scene(get_tree(), 0.3)
+
+
+## The top of each ledge, as a rectangle in the world, once the tree has grown: where a wizard can stand.
+func ledge_tops() -> Array[Rect2]:
+	var out: Array[Rect2] = []
+	if _state != "standing":
+		return out
+	for ledge in LEDGES:
+		out.append(Rect2(global_position.x + ledge[1] * SIZE, global_position.y - ledge[0] * SIZE, (ledge[2] - ledge[1]) * SIZE, 10.0))
+	return out
 
 
 ## The tree has grown: now its ledges are solid.

@@ -22,7 +22,7 @@ const HEAL_AFTER := 4.0  # seconds without a hit before health starts coming bac
 var _lectern: Lectern
 var _making: LikenessPanel  # the wizard maker, while it is open
 var _mark: LikenessMark  # its circle, in the waiting room only
-var _guide: LikenessGuide  # the page with its words, while the player stands on the circle
+var _chant_guide: LikenessGuide  # the page with its words, while the player stands on the circle
 var _leaving := false
 var _touched := {}  # on the host, in a network game: the people who have touched the book
 var _heal := 0.0
@@ -154,12 +154,12 @@ func _visible_hud_rects() -> Array[Rect2]:
 
 ## The page with the words comes up while the player is on the circle, and goes when they leave it.
 func _show_guide(wanted: bool) -> void:
-	if wanted and _guide == null:
-		_guide = LikenessGuide.new()
-		add_child(_guide)
-	elif not wanted and _guide != null:
-		_guide.queue_free()
-		_guide = null
+	if wanted and _chant_guide == null:
+		_chant_guide = LikenessGuide.new()
+		add_child(_chant_guide)
+	elif not wanted and _chant_guide != null:
+		_chant_guide.queue_free()
+		_chant_guide = null
 
 
 ## The wizard maker opens beside the person, who goes on walking and casting while it is open.
