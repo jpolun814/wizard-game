@@ -142,3 +142,17 @@ and are no longer drawn by the game.
 
 ## The wand cursor
 `art/ui/wand_cursor.png` is the second wand of "Wands and Magic Stuff (DawnBringer32 Palette)" by BizmasterStudios, https://opengameart.org/content/wands-and-magic-stuff-dawnbringer32-palette, licence CC-BY 4.0. Cut out and doubled in size; `scripts/wand_cursor.gd` recolours its jewel to the school being cast.
+
+## Wizard colour variants
+`art/chars/wizard_emerald`, `wizard_amber`, `dark_wizard_teal`, `bone_wizard_ice`, `pyre_wizard_green` and `pyre_wizard_magenta` are copies of the existing wizard art with the hue of robes and trim turned, made by `tools/make_wizard_colours.py`. No outside source; used by the opening cut-scene.
+
+## The Flytrap
+`art/props/flytrap.png` is cut by `tools/prepare_flytrap.py` from "Pixel Predator Plant Mob Character" (Craftpix), https://opengameart.org/content/pixel-predator-plant-mob-character, licence OGA-BY 3.0 (credit the author, as for CC-BY). The side-on attack frames of the plant, as they are.
+
+## The lectern in the waiting room and the cut-scene
+
+`art/props/lectern_stand.png` (the large wooden crate) and `art/props/lectern_plaque.png` (the gold frame, with the picture inside filled with its own gold) are cut from nikllamadev's [Dungeon Castle pixel art pack](https://nikllamadev.itch.io/dungeon-castle-pixel-art-asset-pack-free) (CC-BY 4.0) by `tools/prepare_lectern.py`. The source sheets are `art/DungeonSetPieces.png`, `art/DungeonTileset.png` and `art/Animations.zip`.
+
+## Fire bolt and fire breath (art/fx/pimen_*.png)
+
+Cut by `tools/prepare_pimen_fire.py` from pimen's [Fire Spell Effect 01](https://pimen.itch.io/fire-spell). The page allows use and changes in personal and commercial projects, does not require credit (it is appreciated), and forbids reselling or redistributing the sprites. Not CC0 or CC-BY: ask the owner before the files go into a public repository. The source download is `art/Fire Effect 1.rar`.

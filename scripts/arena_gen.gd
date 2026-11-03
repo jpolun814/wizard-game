@@ -45,6 +45,7 @@ static var biome_spans: Array = []  # a world's biomes, left to right: {"a", "b"
 
 ## Each level has its own look: the biome's ground tiles, the backdrop behind it and the things standing about on
 ## the ground (art/props, drawn at their own pixel size).
+const WAITING_ROOM_BIOME := "cemetery"  # the waiting room, and the cut-scene that follows it
 const BIOMES := {
 	"cemetery": {"tiles": "cemetery", "backdrop": "cemetery", "props": ["grave_1", "grave_2", "grave_3", "grave_4", "bush_small", "bush_large", "dead_tree_1", "statue"]},
 	"jungle": {"tiles": "swamp", "backdrop": "jungle", "props": ["swamp_grass", "swamp_fern", "swamp_vine", "swamp_grass", "dead_tree_2"]},

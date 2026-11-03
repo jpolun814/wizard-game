@@ -27,6 +27,7 @@ func _ready() -> void:
 			break
 	_check(seed_value >= 0, "a match can begin in the portal world (seed %d)" % seed_value)
 	World.random_start = false
+	World.arrive_by_portal = false
 	World.next_seed = seed_value
 	call_deferred("_start")
 

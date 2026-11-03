@@ -85,7 +85,7 @@ in the world. "On-screen text is a last resort" below says when that is allowed.
 
 **More patterns the owner has taught (apply them to every line):**
 - **The place decides the audience.** The waiting room is outside the story, so its lines are plain prompts
-  addressed to the human ("Walk into the portal to start the game"). The spellbook is inside it.
+  addressed to the human ("Touch the book to start the game"). The spellbook is inside it.
 - **A diegetic line says what the thing is, not how to use it.** "Gain deeper knowledge of those around you" is
   right for Insight. "Look at a creature to learn what it is" is a how-to and is wrong.
 - **Never rely on sound alone.** A player may have the sound off. Any outcome the player cannot otherwise see (a
@@ -462,7 +462,7 @@ GODOT="/c/Users/Jordan Polun/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.
 boss and the solo roguelite loop of `docs/roguelite_exploration_design.md`) is in `docs/pvp_arena_design.md`. The waiting room (`scenes/lab.tscn`, `scripts/lab.gd`) is where every spell is tried; the portal there
 starts a run. The first screen also has a **Tutorial** (`scripts/tutorial.gd`: a page of the book on screen at a place for each school, with the school's mouse, an example spell and a line to try it on a dummy, a turret or a pond; two places go on to a meeting of spells) and a **Library** (`scripts/library.gd`, `library_screen.gd`: what this machine remembers of the matches played on it, in `user://library.json`: matches played and won, and for each page how often it was found, its spell cast, and a match won with it in the book. Only the person at the machine, only in real matches; the tests never touch it).
 
-**Pages per world:** each world lays only `Pages.count_for(biome, width)` pages (graveyard 16, peaks 16, jungle 18, ashlands 12, castle 18, underground 20, portal fields 10, at 1000 tiles wide, fewer in the smaller worlds, never under 6), drawn from the seed alone (not from who holds what; only the starting pages the seed deals are left out). Pages not laid do not carry over. A kind of gate the world has always keeps a page that opens it (`Pages.choose`). In a world with no halls, pages lying out in the open are at least `Pages.MIN_APART` (40) columns apart, apart from the three near the start (`tests/pages_spread_look.tscn` prints where they lie).
+**Pages per world:** each world lays only `Pages.count_for(biome, width)` pages (graveyard 16, peaks 16, jungle 18, ashlands 12, castle 18, underground 20, portal fields 10, at 1000 tiles wide, fewer in the smaller worlds, never under 6), and which ones is settled when the match begins, from its seed (`Pages.allotment`): each wizard is dealt starting pages of their own, and each world is given pages of its own from the rest, no page in two places, some in none. So a page is never in a world once a wizard holds it, and no two wizards start alike. Pages not laid do not carry over. A kind of gate the world has always keeps a page that opens it, swapped in from the spare pages if need be (`Pages.with_openers`). In a world with no halls, pages lying out in the open are at least `Pages.MIN_APART` (40) columns apart, apart from the three near the start (`tests/pages_spread_look.tscn` prints where they lie).
 
 **Targeting types:** `directional`, `positional`, `angled`, `shape` and `cone`. The caster's `cast_resolved`
 signal passes `info` (radius, line, rect, shapes, aim, spread, reach), and `arena.spawn_spell` routes it.

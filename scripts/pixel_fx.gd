@@ -55,6 +55,39 @@ static func play(parent: Node, at: Vector2, effect: String, fps := 16.0, scale :
 	return s
 
 
+## The frames of a strip of square frames (as wide as the strip is tall), such as pimen's fire, built once and shared.
+static func square_frames(effect: String, fps := 14.0, loop := false) -> SpriteFrames:
+	var key := "square/%s/%s/%s" % [effect, fps, loop]
+	if _cache.has(key):
+		return _cache[key]
+	var strip: Texture2D = load("res://art/fx/%s.png" % effect)
+	var side := strip.get_height()
+	var out := SpriteFrames.new()
+	out.set_animation_speed("default", fps)
+	out.set_animation_loop("default", loop)
+	for i in int(strip.get_width() / float(side)):
+		var frame := AtlasTexture.new()
+		frame.atlas = strip
+		frame.region = Rect2(i * side, 0, side, side)
+		out.add_frame("default", frame)
+	_cache[key] = out
+	return out
+
+
+## A one-off effect from a strip of square frames at a point in the world, turned to a heading, removed when it has played.
+static func play_square(parent: Node, at: Vector2, effect: String, fps := 16.0, scale := 1.0, turn := 0.0) -> AnimatedSprite2D:
+	var s := AnimatedSprite2D.new()
+	s.sprite_frames = square_frames(effect, fps)
+	s.global_position = at
+	s.rotation = turn
+	s.scale = Vector2(scale, scale)
+	s.z_index = 6
+	s.animation_finished.connect(s.queue_free)
+	parent.add_child(s)
+	s.play("default")
+	return s
+
+
 ## One frame of the pixel fire the flames are cut from, for the embers that fly off fire.
 static func ember() -> Texture2D:
 	return frames("flame").get_frame_texture("default", 20)

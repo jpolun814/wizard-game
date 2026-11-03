@@ -42,7 +42,7 @@ class Driver extends Node:
 		var portal: Node2D = get_tree().get_first_node_in_group("portals")
 		if role == "client":
 			await _seconds(2.0)
-		room.player.global_position = portal.global_position + Vector2(0, 30)
+		room.player.global_position = portal.global_position + Vector2(0, -30)
 		await _until(func() -> bool: return get_tree().current_scene == null or get_tree().current_scene.scene_file_path != WAITING_ROOM)
 		await _seconds(1.5)
 		var key := InputEventKey.new()

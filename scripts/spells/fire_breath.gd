@@ -15,7 +15,11 @@ const MAX_SPREAD := 1.3
 const MIN_REACH := 110.0
 const MAX_REACH := 230.0
 const PUFF_SPEED := 430.0
-const PUFF_RATE := 40.0    # flame puffs per second
+const PUFF_RATE := 28.0    # flame puffs per second
+const FLAME_TAIL := 33.5   # the row of its frame the tail of the flame is on: this is the row that sits in the mouth
+const FLAME_LENGTH := 40.0 # how long pimen's flame is in its 48 px frame, tail to head
+const HIT_SCALE := 2.0     # the splash where the flame lands is drawn at twice its size
+const HIT_GAP := 0.25      # the least time between one splash on a wall and the next
 const DRAG := 1.2          # puffs slow as they spread out
 
 var caster_node: Wizard
@@ -28,6 +32,10 @@ var _emit := 0.0
 var _cast_facing := 1.0
 var _mouth := Vector2.ZERO
 var _puffs: Array = []     # each is {pos, vel, age, life, size, stopped}
+var _ended := -1.0         # when the pouring stopped, and the flame began to die out
+var _splashed := 0.0       # when a puff last splashed on a wall
+var _glow: Node2D          # a warm light under the puffs, as every other fire has
+var _light: PointLight2D   # and it lights the dark round the mouth
 
 
 func _ready() -> void:
@@ -45,11 +53,25 @@ func _ready() -> void:
 	_cast_facing = _facing()
 	_mouth = _mouth_position()
 	Sfx.play("fire_breath", _mouth)
+	_glow = Node2D.new()
+	_glow.material = Fx.additive()
+	_glow.z_index = 3
+	_glow.draw.connect(_draw_glow)
+	add_child(_glow)
+	_light = PointLight2D.new()
+	_light.texture = Fx.tex("light_01")
+	_light.texture_scale = 260.0 * 2.0 / Fx.TEX_SIZE
+	_light.color = Color(1.0, 0.6, 0.25)
+	_light.energy = 1.1
+	_light.shadow_enabled = false
+	add_child(_light)
 
 
 func _physics_process(delta: float) -> void:
 	_age += delta
 	var pouring := _age < LIFE and _caster_alive()
+	if not pouring and _ended < 0.0:
+		_ended = _age
 	if pouring:
 		_mouth = _mouth_position()
 		_emit += delta * PUFF_RATE
@@ -57,6 +79,9 @@ func _physics_process(delta: float) -> void:
 			_emit -= 1.0
 			_spawn_puff()
 	_move_puffs(delta)
+	_glow.queue_redraw()
+	_light.position = _mouth + _puff_middle()
+	_light.energy = 1.1 * clampf(float(_puffs.size()) / 6.0, 0.0, 1.0)
 	_tick -= delta
 	if _tick <= 0.0 and not _puffs.is_empty():
 		_tick = TICK
@@ -112,6 +137,9 @@ func _move_puffs(delta: float) -> void:
 		else:
 			puff["pos"] = hit["position"]
 			puff["stopped"] = true
+			if _age - _splashed >= HIT_GAP:
+				_splashed = _age
+				PixelFx.play_square(self, puff["pos"], "pimen_breath_hit", 16.0, HIT_SCALE, hit["normal"].angle())  # it splashes on the wall
 			puff["age"] = maxf(puff["age"], puff["life"] * 0.6)  # flame splashed on a wall dies quickly
 	_puffs = _puffs.filter(func(puff: Dictionary) -> bool: return puff["age"] < puff["life"])
 
@@ -130,6 +158,7 @@ func _burn() -> void:
 		for puff in _puffs:
 			if middle.distance_to(puff["pos"]) <= _radius(puff) + 16.0:
 				SpellTargets.hurt(body, DAMAGE, "Fire")
+				PixelFx.play_square(self, middle, "pimen_breath_hit", 16.0, HIT_SCALE, _direction().angle())  # and the flame lashes the one it burns
 				break
 
 
@@ -145,22 +174,48 @@ func danger_at(point: Vector2) -> bool:
 
 ## Each puff is a pixel-art flame, growing as it spreads and dying out at the end of its flight.
 func _draw() -> void:
-	var flames := PixelFx.frames("fire_puff", 14.0, true)
-	var count := flames.get_frame_count("default")
-	for puff in _puffs:
-		var t: float = clampf(puff["age"] / puff["life"], 0.0, 1.0)
-		var frame := flames.get_frame_texture("default", (int(puff["age"] * 30.0) + int(puff["size"] * 37.0)) % count)
-		# Hot and yellow at the mouth, cooling to orange and red as it spreads.
-		var colour := Color(1.0, 0.9, 0.6).lerp(Color(1.0, 0.45, 0.25), t)
-		colour.a = 1.0 - t * t
-		# The flame is turned to the way the breath is travelling, so it streams out of the mouth rather than standing up.
-		var heading: Vector2 = puff["vel"]
-		var turn := heading.angle() + PI * 0.5 if heading.length() > 1.0 else 0.0
-		draw_set_transform(puff["pos"], turn, Vector2(2.0 if int(puff["size"] * 10.0) % 2 == 0 else -2.0, 2.0))
-		draw_texture(frame, -frame.get_size() * Vector2(0.5, 0.75), colour)
+	# One flame, from the mouth the way the breath goes: it takes light, burns steadily while the breath pours, and dies out when it stops.
+	if not _puffs.is_empty():
+		var flames := PixelFx.square_frames("pimen_breath")
+		var frame := flames.get_frame_texture("default", _flame_frame(flames.get_frame_count("default")))
+		var heading := _direction()
+		var size := _flame_scale()
+		draw_set_transform(_mouth, heading.angle(), Vector2(size, size if heading.x >= 0.0 else -size))
+		draw_texture(frame, Vector2(-1.0, -FLAME_TAIL))  # its tail is 1 px in from the left of the frame
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 	if _age < LIFE and _caster_alive():
 		Fx.draw_glow(self, _mouth, 12.0, Color(1.0, 0.8, 0.35, 0.8))
+
+
+## How big the flame is drawn: a whole number of times its size, the one that comes nearest to the reach of the breath.
+func _flame_scale() -> float:
+	return clampf(roundf(reach / FLAME_LENGTH), 3.0, 6.0)
+
+
+## Which frame of the flame to show: the first two as it takes light, four that go round while it pours, and the rest as it dies out.
+func _flame_frame(count: int) -> int:
+	if _ended >= 0.0:
+		return mini(6 + int((_age - _ended) * 14.0), count - 1)
+	if _age < 0.15:
+		return int(_age / 0.075)
+	return 2 + int(_age * 12.0) % 4
+
+
+## The glow of each flame, hot at the mouth and fainter as it spreads.
+func _draw_glow() -> void:
+	for puff in _puffs:
+		var t: float = clampf(puff["age"] / puff["life"], 0.0, 1.0)
+		Fx.draw_glow(_glow, puff["pos"], 18.0 + 14.0 * t, Color(1.0, 0.5, 0.15, 0.4 * (1.0 - t)))
+
+
+## Where the light sits: partway along the flames from the mouth.
+func _puff_middle() -> Vector2:
+	if _puffs.is_empty():
+		return Vector2.ZERO
+	var sum := Vector2.ZERO
+	for puff in _puffs:
+		sum += puff["pos"] - _mouth
+	return sum / _puffs.size()
 
 
 ## Put out by water: the flames go out in steam where they were.

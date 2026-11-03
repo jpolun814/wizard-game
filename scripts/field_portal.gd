@@ -6,6 +6,7 @@ extends Portal
 
 signal entered(portal: FieldPortal, body: Node2D)
 
+const HEARD_WITHIN := 1400.0  # how far from the camera a sound can still be heard (Sfx.MAX_DISTANCE)
 const CLOSE_SECONDS := 8.0 / 12.0  # the closing frames, at twelve a second
 
 var tint := Color.WHITE
@@ -36,6 +37,20 @@ func _ready() -> void:
 ## It opens from nothing, unless it was already open when this machine first saw it.
 func open() -> void:
 	_ring.play("appearing" if age < 0.5 else "open")
+	if age < 0.5:
+		_sound_of_opening()
+
+
+## The portal hums open, quieter the farther it is from the camera, and not at all from beyond where a sound can be heard. (Sfx is not there when the
+## generator is tested on its own.)
+func _sound_of_opening() -> void:
+	var sfx := get_node_or_null("/root/Sfx")
+	var camera := get_viewport().get_camera_2d()
+	if sfx == null or camera == null:
+		return
+	var far := camera.get_screen_center_position().distance_to(global_position)
+	if far < HEARD_WITHIN:
+		sfx.call("play", "portal_open", global_position, -6.0 - 12.0 * far / HEARD_WITHIN)
 
 
 func _process(delta: float) -> void:

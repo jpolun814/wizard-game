@@ -39,6 +39,7 @@ func _ready() -> void:
 	var scene := "world" if scenario in ["cave", "gates", "castle", "pages", "tornado", "extras", "biome", "life"] else "lab"
 	if scenario in ["cave", "gates", "castle", "pages", "tornado", "extras", "biome", "life"]:
 		World.random_start = false
+		World.arrive_by_portal = false
 		World.next_seed = int(OS.get_environment("WORLD_SEED")) if OS.get_environment("WORLD_SEED") != "" else 11  # the same world each time
 	_arena = load("res://scenes/%s.tscn" % scene).instantiate()
 	add_child(_arena)
@@ -472,7 +473,7 @@ func _plan() -> void:
 				_at(0.9 + n * 0.5, func() -> void: _snap("spread_%d" % k))
 		"ui":
 			_at(1.0, func() -> void: _snap("portal_arrow"))
-			_at(1.1, func() -> void: _player().global_position = _arena._portal.global_position + Vector2(-90, Portal.RY + 4.0))
+			_at(1.1, func() -> void: _player().global_position = _arena._lectern.global_position + Vector2(-90, -4.0))
 			_at(1.6, func() -> void: _snap("portal"))
 			_at(1.7, func() -> void: _arena.spellbook.visible = true)
 			_at(1.9, func() -> void: _snap("book_contents"))

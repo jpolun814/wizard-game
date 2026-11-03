@@ -3,7 +3,7 @@ extends "res://scripts/arena.gd"
 
 ## The waiting room: the place before a run, where every spell can be tried. It is one long map with something to
 ## try each spell on: dummies that never fall, a turret that shoots, a pond, a pit of lava, a gap, and a hill. You
-## never run out of stamina or health, and the portal at the far right starts a real run.
+## never run out of stamina or health, and the spellbook on its stand at the far right starts a real run when it is touched.
 ## N turns night on and off (for flares and eclipses), and R puts the room back as it was.
 
 const START_COL := -31
@@ -19,9 +19,9 @@ const NIGHT := Color(0.22, 0.2, 0.34)
 const HEAL_PER_SECOND := 40.0
 const HEAL_AFTER := 4.0  # seconds without a hit before health starts coming back, so damage can be seen
 
-var _portal: Portal
+var _lectern: Lectern
 var _leaving := false
-var _in_portal := {}  # on the host, in a network game: the people who have walked into the portal
+var _touched := {}  # on the host, in a network game: the people who have touched the book
 var _heal := 0.0
 var _since_hurt := HEAL_AFTER
 var _night: CanvasModulate
@@ -72,7 +72,7 @@ func _begin_encounter(camera: Camera2D) -> void:
 	_player_light.enabled = false
 	player.add_child(_player_light)
 	hud.set_title(_title())
-	_open_portal()  # the portal is open from the start
+	_place_lectern()
 	if Net.online():
 		Net.set_open(true)  # friends may join while the host is in the waiting room
 		Net.roster_changed.connect(_meet_people)
@@ -122,40 +122,35 @@ func _input(event: InputEvent) -> void:
 	super(event)
 
 
-## The portal stands at the far end of the room, open from the start.
-func _open_portal() -> void:
-	_portal = Portal.new()
+## The book stands on its stand at the far end of the room.
+func _place_lectern() -> void:
+	_lectern = Lectern.new()
 	var far_right: bool = player.global_position.x < 0.0
 	var col := ArenaGen.right_wall - 3 if far_right else ArenaGen.LEFT_WALL + 3
-	_portal.position = Vector2(ArenaGen.column_x(col), ArenaGen.surface_y(_cells, col) - Portal.RY - 4.0)
-	_portal.body_entered.connect(_on_portal_entered)
-	add_child(_portal)
-	_portal.open()
-	hud.point_to_portal(_portal)
-	Sfx.play("portal_open", _portal.global_position)
+	_lectern.position = Vector2(ArenaGen.column_x(col), ArenaGen.surface_y(_cells, col))
+	_lectern.body_entered.connect(_on_book_touched)
+	add_child(_lectern)
+	hud.point_to_portal(_lectern)  # the arrow at the edge of the screen points at it
 
 
-## The portal opens a world at once: a random one, or the one named by four words spoken earlier (Enter opens the box). In a network
-## game the wizard waits inside it, and the world opens for everyone once every person has walked in.
-func _on_portal_entered(body: Node2D) -> void:
+## Touching the book starts the cut-scene and the run: of a random world, or the one named by four words spoken earlier (Enter opens the box). In a
+## network game the wizard waits at the book, and the cut-scene opens for everyone once every person has touched it.
+func _on_book_touched(body: Node2D) -> void:
 	if body != player or _leaving or ritual.visible:
 		return
 	_leaving = true
-	Sfx.play("portal_enter")
-	var fade := create_tween()
-	fade.tween_property(player, "modulate:a", 0.0, 0.25)
+	Sfx.play("book_open", _lectern.global_position)
 	if not Net.online():
 		_go(World.next_seed)
 		return
 	player.movement_enabled = false
-	fade.tween_callback(player.hide)  # gone from the room, on every machine
 	if Net.is_host():
 		_stepped_in()
 	else:
 		_stepped_in.rpc_id(1)
 	if _waiting_for().size() > 0:
 		hud.set_title("Waiting room
-Wait for the others to walk into the portal")
+Wait for the others to touch the book")
 
 
 ## Into the world, everyone at once. The world takes a few seconds to build, and the window cannot draw while it does: it goes dark first,
@@ -179,17 +174,17 @@ func _go(seed_value: int) -> void:
 	fade.tween_callback(get_tree().change_scene_to_file.bind("res://scenes/intro.tscn"))
 
 
-## On the host: a person has walked into the portal. When the last one has, the match begins for everyone, in one world, from one seed.
+## On the host: a person has touched the book. When the last one has, the match begins for everyone, in one world, from one seed.
 @rpc("any_peer", "call_remote", "reliable")
 func _stepped_in() -> void:
 	var who := multiplayer.get_remote_sender_id()
-	_in_portal[who if who != 0 else Net.my_id()] = true
+	_touched[who if who != 0 else Net.my_id()] = true
 	_start_if_all_in()
 
 
-## On the host: once every person is in the portal, the match begins.
+## On the host: once every person has touched the book, the match begins.
 func _start_if_all_in() -> void:
-	if _in_portal.is_empty() or not _waiting_for().is_empty():
+	if _touched.is_empty() or not _waiting_for().is_empty():
 		return
 	Net.set_open(false)  # nobody joins a match under way
 	var seed_value := World.next_seed if World.next_seed >= 0 else randi() % Incantation.seed_count()
@@ -198,22 +193,22 @@ func _start_if_all_in() -> void:
 	_go(seed_value)
 
 
-## The people who have not walked into the portal yet.
+## The people who have not touched the book yet.
 func _waiting_for() -> Array[int]:
 	var out: Array[int] = []
 	for peer in Net.roster:
-		if peer != 0 and not _in_portal.has(peer):
+		if peer != 0 and not _touched.has(peer):
 			out.append(peer)
 	return out
 
 
-## Four words of a world's name, typed into the ritual box, tune the portal to that world. In a network game the host's portal is the
+## Four words of a world's name, typed into the ritual box, tune the book to that world. In a network game the host's book is the
 ## one that counts, so it is tuned there.
 func _on_seed_spoken(text: String) -> void:
 	_tune(Incantation.seed_of(text))
 	if Net.online() and not Net.is_host():
 		_tune.rpc_id(1, Incantation.seed_of(text))
-	_on_feedback("Walk into the portal to enter that world.", Color("#c8a8ff"))
+	_on_feedback("Touch the book to enter that world.", Color("#c8a8ff"))
 	Sfx.play("ritual_ok", player.center(), -6.0)
 
 
@@ -234,8 +229,7 @@ func _start_for(peer_id: int) -> Vector2:
 
 ## The words at the top of the room. The host is told the address their friends type to join.
 func _title() -> String:
-	var lines := "Waiting room
-Walk into the portal to start the game, or chant your seed"
+	var lines := "Waiting room"
 	if Net.online() and Net.is_host():
 		var addresses := Net.local_addresses()
 		if not addresses.is_empty():
@@ -252,7 +246,7 @@ func _meet_people() -> void:
 	for wizard: Wizard in get_tree().get_nodes_in_group("wizards"):
 		if wizard.human and wizard.is_likeness() and not Net.roster.has(wizard.peer):
 			wizard.queue_free()
-			_in_portal.erase(wizard.peer)
+			_touched.erase(wizard.peer)
 		elif wizard.human:
 			wizard.look = Net.look_of(wizard.get_multiplayer_authority())  # a seat given up moves those after it along, look and all
 	if Net.is_host():

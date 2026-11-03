@@ -65,18 +65,32 @@ func _initialize() -> void:
 	_check(Pages.count_for("portals", 1000) < Pages.count_for("graveyard", 1000), "the portal world holds as many pages as a graveyard")
 	_check(Pages.count_for("graveyard", 360) < Pages.count_for("graveyard", 1000) and Pages.count_for("portals", 360) >= Pages.LEAST, "a smaller world is not held to a smaller count")
 	for seed_value in 100:
-		var rng := RandomNumberGenerator.new()
-		rng.seed = seed_value
-		var dealt := Pages.deal(seed_value, 4)
-		var unheld: Array[String] = []
-		for every_page in Pages.every():
-			if not dealt.any(func(l: Ledger) -> bool: return l.knows(every_page)):
-				unheld.append(every_page)
+		var counts: Array[int] = [14, 12, 11, 8]
+		var plan := Pages.allotment(seed_value, 4, counts)
+		var dealt := Pages.deal(seed_value + 31, 4)
+		var seen := {}
+		for world: Array in plan["worlds"]:
+			for lying: String in world:
+				_check(not seen.has(lying), "seed %d: %s lies in two worlds" % [seed_value, lying])
+				seen[lying] = true
+				_check(not dealt.any(func(l: Ledger) -> bool: return l.knows(lying)), "seed %d: %s lies in a world and is dealt to a wizard" % [seed_value, lying])
+		for spare_page: String in plan["spare"]:
+			_check(not seen.has(spare_page), "seed %d: %s is spare and lies in a world" % [seed_value, spare_page])
+		for k in counts.size():
+			_check(plan["worlds"][k].size() == counts[k], "seed %d: world %d has %d pages, not %d" % [seed_value, k, plan["worlds"][k].size(), counts[k]])
+		var again := Pages.allotment(seed_value, 4, counts)
+		_check(again["worlds"] == plan["worlds"], "seed %d: the allotment changes between two asks" % seed_value)
 		for kind in ["gas", "wall", "piranhas", "sentinel"]:
-			var kept := Pages.choose(unheld, dealt, 8, [kind], rng)
+			var spare: Array[String] = []
+			spare.assign(plan["spare"])
+			var first: Array[String] = []
+			first.assign(plan["worlds"][0])
+			var kept := Pages.with_openers(first, spare, dealt, [kind])
 			var wanted := Pages.openers_of(kind)
-			_check(kept.size() == 8, "seed %d: %d pages are chosen, not 8" % [seed_value, kept.size()])
-			_check(kept.any(func(p: String) -> bool: return wanted.has(p)) or dealt.any(func(l: Ledger) -> bool: return wanted.any(func(p: String) -> bool: return l.knows(p))), "seed %d: nothing opens a %s gate" % [seed_value, kind])
+			_check(kept.size() == first.size(), "seed %d: opener swap changes the count" % seed_value)
+			for kept_page in kept:
+				_check(first.has(kept_page) or spare.has(kept_page), "seed %d: %s comes from nowhere" % [seed_value, kept_page])
+			_check(kept.any(func(p: String) -> bool: return wanted.has(p)) or dealt.any(func(l: Ledger) -> bool: return wanted.any(func(p: String) -> bool: return l.knows(p))) or not spare.any(func(p: String) -> bool: return wanted.has(p)), "seed %d: nothing opens a %s gate" % [seed_value, kind])
 	print("%d checks" % _checks)
 	print("all page checks passed" if _failures == 0 else "%d FAILED" % _failures)
 	quit(1 if _failures > 0 else 0)

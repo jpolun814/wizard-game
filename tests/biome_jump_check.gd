@@ -8,6 +8,7 @@ var _failed := false
 func _ready() -> void:
 	MatchState.hurry = 1.0
 	World.random_start = false
+	World.arrive_by_portal = false
 	World.next_seed = 3
 	MatchState.begin(3)
 	reparent(get_tree().root)

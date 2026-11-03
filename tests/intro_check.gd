@@ -1,7 +1,7 @@
 extends Node
 
-## Plays the opening cut-scene and checks it: four wizards who square up round a pile of pages, shoot each other, have
-## every loose page knocked into the portal, and are pulled in after them; and the hand-over when it ends or is skipped. Pass `-- mode=skip` to press a key part-way through; `out=DIR` saves pictures (they need
+## Plays the opening cut-scene and checks it: the camera runs with the first wizard, ten wizards square up round a pile of pages and fight over it,
+## six fall, and the four left are pulled into the tearing portal after the pages; and the hand-over when it ends or is skipped. Pass `-- mode=skip` to press a key part-way through; `out=DIR` saves pictures (they need
 ## a window, so leave off --headless).
 ##
 ##     godot --path . tests/intro_check.tscn -- out=C:/some/dir
@@ -14,7 +14,7 @@ var _mode := "full"
 var _failures := 0
 var _done_at := -1.0
 var _clock := 0.0
-var _shots := [1.0, 2.5, 4.0, 5.0, 5.8, 6.8, 7.6, 8.4, 9.2, 9.8, 10.5, 11.2]
+var _shots := [0.5, 1.4, 2.2, 3.0, 4.2, 5.5, 6.3, 7.8, 8.6, 9.6, 10.4, 11.2]
 var _checks := {}  # seconds -> Callable
 
 
@@ -29,11 +29,14 @@ func _ready() -> void:
 	_intro.finished.connect(func() -> void: _done_at = _clock)
 	add_child(_intro)
 	_checks = {
+		1.0: _check_camera_runs_with_the_first,
 		1.5: _check_set,
-		5.2: _check_ring,
-		6.2: _check_pile_still_there,
-		11.6: _check_pile_gone,
-		11.7: _check_all_in,
+		4.8: _check_ring,
+		5.3: _check_camera_shows_the_ring,
+		5.3001: _check_pile_still_there,
+		7.4: _check_the_six_have_fallen,
+		12.5: _check_pile_gone,
+		12.7: _check_all_in,
 	}
 	if _mode == "skip":
 		_shots = []
@@ -88,7 +91,7 @@ func _pages_in_view() -> Array[Sprite2D]:
 
 
 func _check_set() -> void:
-	_verdict(_intro._wizards.size() == 4, "four wizards stand in the hall")
+	_verdict(_intro._wizards.size() == 4 and _intro._extras.size() == 6, "ten wizards are in the hall: four, and six more (%d, %d)" % [_intro._wizards.size(), _intro._extras.size()])
 	var frames := {}
 	for wizard in _intro._wizards:
 		var sprite: AnimatedSprite2D = wizard.get_child(0)
@@ -96,6 +99,32 @@ func _check_set() -> void:
 		_verdict(sprite.sprite_frames.has_animation(sprite.animation), "wizard animation '%s' exists" % sprite.animation)
 	_verdict(frames.size() == 4, "the four wizards each have a look of their own (%d)" % frames.size())
 	_verdict(_pages_in_view().size() == Intro.PAGES_IN_PILE, "a pile of %d pages lies on the floor (%d)" % [Intro.PAGES_IN_PILE, _pages_in_view().size()])
+
+
+## The shot opens on the first wizard, running, with the camera beside them.
+func _check_camera_runs_with_the_first() -> void:
+	var first: Node2D = _intro._wizards[0]
+	var sprite: AnimatedSprite2D = first.get_child(0)
+	_verdict(sprite.animation == "run", "the first wizard is running (%s)" % sprite.animation)
+	_verdict(absf(_intro._camera.position.x - first.position.x) < 200.0 and _intro._camera.zoom.x >= 2.5, "and the camera is close and beside them (%.0f from them, zoom %.1f)" % [_intro._camera.position.x - first.position.x, _intro._camera.zoom.x])
+
+
+func _check_camera_shows_the_ring() -> void:
+	_verdict(_intro._camera.zoom.x < 2.0 and absf(_intro._camera.position.x - Intro.PILE_X) < 60.0, "the camera has pulled back to show the whole ring (zoom %.1f, at %.0f)" % [_intro._camera.zoom.x, _intro._camera.position.x])
+
+
+func _check_the_six_have_fallen() -> void:
+	var down := 0
+	for wizard in _intro._extras:
+		var sprite: AnimatedSprite2D = wizard.get_child(0)
+		if sprite.animation == "death":
+			down += 1
+	_verdict(down == 6, "all six of the others have fallen (%d)" % down)
+	var up := 0
+	for wizard in _intro._wizards:
+		if wizard.get_meta("alive"):
+			up += 1
+	_verdict(up == 4, "and the four are still standing (%d)" % up)
 
 
 ## In the ring: each wizard at their own place, and the pile still on the floor.

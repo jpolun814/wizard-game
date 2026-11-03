@@ -15,6 +15,7 @@ var _clock := 0.0
 func _ready() -> void:
 	MatchState.hurry = 0.0001  # no collapse of its own
 	World.random_start = false
+	World.arrive_by_portal = false
 	World.next_seed = 11
 	call_deferred("_start")
 

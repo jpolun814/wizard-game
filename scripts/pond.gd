@@ -30,6 +30,7 @@ const WATER_STEP := 1.0 / 30.0  # seconds between rounds of flow: water, which t
 const COOL_SECONDS := 75.0  # how long poured lava takes to cool to a crust
 const CRUST := Color(0.16, 0.1, 0.1)
 const LAVA_STEP := 1.0 / 14.0   # and lava, which is a little slower to move and takes one
+const LAVA_REDRAW_GAP := 0.12  # the most often flowing lava works its drawn shapes out again: it costs more than the flow itself
 
 var width := 200.0
 var depth := 90.0
@@ -53,7 +54,8 @@ var _reach: CollisionShape2D  # the area that finds the bodies near the liquid, 
 var _watch: VisibleOnScreenNotifier2D
 var _runs: Array = []    # the grid's liquid as columns of stretches, worked out again when it changes
 var _runs_version := -1
-var _shapes: Array = []   # the polygons the liquid is drawn as, worked out when it changes: each {"points", "colours"}
+var _runs_made := -1.0  # when the drawn shapes were last worked out, by _t
+var _mesh: ArrayMesh      # the liquid as one mesh of coloured triangles, worked out when it changes, so drawing it each frame is one command
 var _edges: Array = []    # and the bright edges of its open surface: each {"line", "phase"}
 var _air: Array = []      # the open air round the liquid, cut to its space, for cutting the liquid to the ground
 var _air_area := Rect2()
@@ -536,31 +538,31 @@ func _surface_beside(c: int, height: float) -> float:
 ## The flowing liquid: each column's stretches of it as a block shaded from the surface down, and a bright edge on the open surface. Where
 ## the liquid lies against the ground it is cut to the smooth edge of the ground, so a slope looks as smooth with liquid on it as without.
 func _draw_liquid(top: Color, bottom: Color, rim: Color) -> void:
-	if _runs_version != grid.version or _air_dirty:
+	if (_runs_version != grid.version and _t - _runs_made >= (LAVA_REDRAW_GAP if lava else 0.0)) or _air_dirty:
 		_runs_version = grid.version
+		_runs_made = _t
 		_runs = []
 		_runs.resize(grid.cols)
 		var wet := grid.wet_columns()
 		for c in range(wet.x, wet.y + 1):
 			_runs[c] = grid.runs_in(c)
 		_build_shapes(top, bottom)
-	for shape: Dictionary in _shapes:
-		draw_polygon(shape["points"], shape["colours"])
+	if _mesh != null:
+		draw_mesh(_mesh, null)
 	for edge: Dictionary in _edges:
-		var wobble := sin(_t * 2.0 + edge["phase"] * 0.08) * 1.5
-		var line: PackedVector2Array = edge["line"]
-		var moved := PackedVector2Array()
-		for point in line:
-			moved.append(point + Vector2(0.0, 1.0 + wobble))
-		draw_polyline(moved, rim, 2.0)
+		draw_set_transform(Vector2(0.0, 1.0 + sin(_t * 2.0 + edge["phase"] * 0.08) * 1.5))
+		draw_polyline(edge["line"], rim, 2.0)
+	draw_set_transform(Vector2.ZERO)
 
 
 ## Works out the polygons of the liquid from its columns. Runs that lie against the ground reach into it by a whole cell and are then cut
 ## to the air, so nothing of them shows but the part in the open; the rest are plain blocks. An open surface meets the surface of the column
 ## beside it halfway, so the top runs on in a slope instead of a staircase of cells.
 func _build_shapes(top: Color, bottom: Color) -> void:
-	_shapes = []
 	_edges = []
+	var points := PackedVector2Array()
+	var shades := PackedColorArray()
+	var indices := PackedInt32Array()
 	var air := _air_pieces()
 	var cell := LiquidGrid.CELL
 	var shift := grid.origin - global_position
@@ -588,11 +590,15 @@ func _build_shapes(top: Color, bottom: Color) -> void:
 				for open: PackedVector2Array in air:
 					pieces.append_array(Geometry2D.intersect_polygons(outline, open))
 			for piece: PackedVector2Array in pieces:
-				if Geometry2D.is_polygon_clockwise(piece) == false and piece.size() >= 3 and not Geometry2D.triangulate_polygon(piece).is_empty():
-					var colours := PackedColorArray()
+				if Geometry2D.is_polygon_clockwise(piece) == false and piece.size() >= 3:
+					var triangles := Geometry2D.triangulate_polygon(piece)
+					if triangles.is_empty():
+						continue
+					for index in triangles:
+						indices.append(points.size() + index)
 					for point in piece:
-						colours.append(top.lerp(bottom, clampf(point.y / depth, 0.0, 1.0)))
-					_shapes.append({"points": piece, "colours": colours})
+						points.append(point)
+						shades.append(top.lerp(bottom, clampf(point.y / depth, 0.0, 1.0)))
 			if run[2]:
 				var surface := PackedVector2Array([Vector2(left, top_left), Vector2(right, top_right)])
 				var lines: Array = [surface]
@@ -602,6 +608,15 @@ func _build_shapes(top: Color, bottom: Color) -> void:
 						lines.append_array(Geometry2D.intersect_polyline_with_polygon(surface, open))
 				for line: PackedVector2Array in lines:
 					_edges.append({"line": line, "phase": x0 + cell * 0.5})
+	_mesh = null
+	if not indices.is_empty():
+		var arrays := []
+		arrays.resize(Mesh.ARRAY_MAX)
+		arrays[Mesh.ARRAY_VERTEX] = points
+		arrays[Mesh.ARRAY_COLOR] = shades
+		arrays[Mesh.ARRAY_INDEX] = indices
+		_mesh = ArrayMesh.new()
+		_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
 
 
 ## The open air round the liquid, as polygons in the pool's own coordinates, or none where the ground has no smooth edge of its own (the

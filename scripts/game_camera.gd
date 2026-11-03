@@ -35,6 +35,13 @@ static func shake_scene(tree: SceneTree, amount: float) -> void:
 		camera.shake(amount)
 
 
+## Shakes the camera only as much as the player is near the thing that shook: fully at its feet, not at all from `reach` away.
+static func shake_near(tree: SceneTree, at: Vector2, amount: float, reach: float) -> void:
+	var player := tree.get_first_node_in_group("player") as Node2D
+	if player != null:
+		shake_scene(tree, amount * clampf(1.0 - player.global_position.distance_to(at) / reach, 0.0, 1.0))
+
+
 func _process(delta: float) -> void:
 	_t += delta
 	_trauma = maxf(_trauma - DECAY * delta * 0.25, 0.0)

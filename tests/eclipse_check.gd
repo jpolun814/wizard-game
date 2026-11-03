@@ -15,6 +15,7 @@ func _ready() -> void:
 		if arg.begins_with("out="):
 			out = arg.substr(4)
 	World.random_start = false
+	World.arrive_by_portal = false
 	World.next_seed = 8
 	MatchState.hurry = 100.0
 	var world: World = load("res://scenes/world.tscn").instantiate()

@@ -10,6 +10,7 @@ extends Node2D
 const WARNING := 0.7
 const LIFE := 1.8  # one burst, from the first bubble to the column gone
 const REST := 1.2  # the quiet before the ground starts to bubble again
+const SHAKE_REACH := 700.0  # how far off the ground still shakes under a wizard
 const WIDTH := 46.0
 const WIZARD_LAUNCH := 1000.0
 const MOB_LAUNCH := 820.0
@@ -86,7 +87,7 @@ func _physics_process(delta: float) -> void:
 		_hiss.emitting = false
 		_erupt()
 	if _burst:
-		GameCamera.shake_scene(get_tree(), 0.05 if _age < DROP else 0.0)
+		GameCamera.shake_near(get_tree(), global_position, 0.05 if _age < DROP else 0.0, SHAKE_REACH)
 
 
 ## How high the column stands now: it shoots up, holds, and sinks.
@@ -165,7 +166,7 @@ func _erupt() -> void:
 	_lift()
 	SpellTargets.douse(get_tree(), global_position, 110.0)
 	Sfx.play("push", global_position, -2.0)
-	GameCamera.shake_scene(get_tree(), 0.25)
+	GameCamera.shake_near(get_tree(), global_position, 0.25, SHAKE_REACH)
 	# Water thrown up the middle that falls back on both sides, like a fountain.
 	var spray := CPUParticles2D.new()
 	spray.amount = 70

@@ -23,6 +23,7 @@ func _ready() -> void:
 		elif arg.begins_with("stretches="):
 			_stretches = int(arg.substr(10))
 	World.random_start = false
+	World.arrive_by_portal = false
 	var tree := get_tree()
 	var tried := 0
 	var seed_value := _first

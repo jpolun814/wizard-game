@@ -24,6 +24,7 @@ func _ready() -> void:
 		elif argument.begins_with("out="):
 			out_dir = argument.substr(4)
 	World.random_start = false
+	World.arrive_by_portal = false
 	World.next_seed = seed_value
 	MatchState.hurry = 100.0
 	var world: World = load("res://scenes/world.tscn").instantiate()

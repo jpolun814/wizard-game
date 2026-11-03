@@ -204,7 +204,7 @@ func _surface_under(point: Vector2) -> Vector2:
 
 
 func _biome() -> String:
-	return "cemetery"
+	return ArenaGen.WAITING_ROOM_BIOME
 
 
 ## The map's tiles. The waiting room builds its own.
@@ -1168,7 +1168,7 @@ func _body_under_pointer() -> Node2D:
 	var best: Node2D = null
 	var best_distance := INSIGHT_REACH
 	for body: Node2D in get_tree().get_nodes_in_group("mobs") + get_tree().get_nodes_in_group("wizards"):
-		if body == player:
+		if body == player or (body is Wizard and body.is_unseen()):
 			continue
 		var distance: float = body.center().distance_to(pointer)
 		if distance < best_distance:

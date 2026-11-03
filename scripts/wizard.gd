@@ -183,6 +183,8 @@ const ROOTED := 32
 const SLOWED := 64
 const FADED := 128
 const VEILED := 256
+var _hidden := false  # not drawn: faded from sight, and not the wizard at this machine
+const UNSEEN_BUMP := 50.0  # how near a wizard faded from sight must be to be felt rather than seen
 const FADE_ALPHA := 0.35  # how much of a veiled wizard shows
 var peer := 0  # the machine that drives this wizard, as a peer id; 0 for this machine. Set before the wizard enters the tree
 var human := true  # a person plays this wizard, here or on another machine; false for one a brain plays (on the host)
@@ -536,6 +538,17 @@ func is_faded() -> bool:
 	return marks & FADED != 0 if is_likeness() else fade_time > 0.0
 
 
+## True when this wizard cannot be seen by anyone else: faded from sight, and not the body at this machine (whose own wizard sees themselves faintly).
+## Rivals' brains, mobs, Insight and the Hunter's Mark all pass over a wizard like this, and nothing of it is drawn.
+func is_unseen() -> bool:
+	return is_faded() and not is_in_group("player")
+
+
+## True when a wizard that is looking for others can make this one out: not faded, or so close that it is bumped into.
+func is_seen_from(point: Vector2) -> bool:
+	return not is_unseen() or center().distance_to(point) < UNSEEN_BUMP
+
+
 ## A spell or a chant ends Sneak: a wizard out of sight can do one thing, and doing it shows them.
 func break_sneak() -> void:
 	if fade_time > 0.0:
@@ -880,6 +893,9 @@ func _animate(delta: float) -> void:
 	var wet := _liquid_time > 0.0
 	_wet_material.set_shader_parameter("water_y", _liquid_y if wet else 1000000.0)
 	_wet_material.set_shader_parameter("water_tint", _liquid)
+	if is_unseen() != _hidden:  # a wizard faded from sight is not drawn at all for anyone but themselves (the wizard is left as it was when it comes back)
+		_hidden = is_unseen()
+		visible = not _hidden
 	_sprite.modulate = Color(1.0, 0.45, 0.45) if _flash > 0.0 else Color(1.0, 1.0, 1.0, 0.55 if blink else (FADE_ALPHA if is_faded() else 1.0))
 	var glassy := marks & OBSIDIAN != 0 if is_likeness() else obsidian_time > 0.0
 	var veiled := marks & VEILED != 0 if is_likeness() else veil > 0

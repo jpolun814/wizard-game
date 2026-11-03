@@ -41,6 +41,7 @@ func _ready() -> void:
 	seed(_seed)
 	MatchState.hurry = 1.0
 	World.random_start = false
+	World.arrive_by_portal = false
 	World.next_seed = _seed
 	call_deferred("_start")
 

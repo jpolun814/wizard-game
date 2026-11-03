@@ -5,8 +5,9 @@ extends Node
 ## the tip is down). Where there is no wizard, on the home screen or while the game is paused, it points up and to the left as an ordinary mouse cursor does. While a spell is
 ## being drawn, the jewel at the tip takes the colour of the school whose buttons are held. Only the wand's own pixels are used, turned in steps.
 
-const CANVAS := 128             # a square the wand can turn about its tip inside, in pixels
-const TIP := Vector2(64, 64)    # where the tip sits in that square, and so the cursor's point
+const SCALE := 1.25            # each art pixel of the wand is drawn this many pixels across, so it is easy to see
+const CANVAS := 160             # a square the wand can turn about its tip inside, in pixels
+const TIP := Vector2(80, 80)    # where the tip sits in that square, and so the cursor's point
 const SOURCE_TIP := Vector2(5.0, 0.5)  # the tip in the wand's own picture
 const TIP_ROWS := 10            # the jewel is the top five art pixels, drawn twice as large
 const STEPS := 24               # the turns it comes in, all the way round
@@ -91,7 +92,7 @@ func _turned(wand: Image, degrees: float) -> Image:
 	for y in CANVAS:
 		for x in CANVAS:
 			var from := Vector2(x + 0.5, y + 0.5) - TIP
-			var back := Vector2(from.x * cosine + from.y * sine, -from.x * sine + from.y * cosine) + SOURCE_TIP
+			var back := Vector2(from.x * cosine + from.y * sine, -from.x * sine + from.y * cosine) / SCALE + SOURCE_TIP
 			var sx := floori(back.x)
 			var sy := floori(back.y)
 			if sx >= 0 and sy >= 0 and sx < wand.get_width() and sy < wand.get_height():

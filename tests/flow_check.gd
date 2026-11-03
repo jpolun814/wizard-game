@@ -1,6 +1,6 @@
 extends Node
 
-## Walks the whole way into a run: the waiting room, its portal, the cut-scene (skipped with a key), the loading screen and the world. Checks each
+## Walks the whole way into a run: the waiting room, its book, the cut-scene (skipped with a key), the loading screen and the world. Checks each
 ## scene in turn and that the world is dealt four wizards' pages.
 ##
 ##     godot --headless --path . tests/flow_check.tscn
@@ -29,13 +29,13 @@ func _process(delta: float) -> void:
 	var scene := get_tree().current_scene
 	match _stage:
 		"lab":
-			if scene is Lab and scene.player != null and scene._portal != null and _stage_clock > 1.0:
-				_verdict(true, "the waiting room opens with its portal")
-				scene.player.global_position = scene._portal.global_position + Vector2(0.0, Portal.RY)
+			if scene is Lab and scene.player != null and scene._lectern != null and _stage_clock > 1.0:
+				_verdict(true, "the waiting room opens with its book on a pedestal")
+				scene.player.global_position = scene._lectern.global_position + Vector2(0.0, -Lectern.STAND.get_height() * 0.5)
 				_next("intro")
 		"intro":
 			if scene is Intro:
-				_verdict(true, "the portal leads to the cut-scene after %.1fs" % _stage_clock)
+				_verdict(true, "touching the book leads to the cut-scene after %.1fs" % _stage_clock)
 				_next("skip")
 		"skip":
 			if _stage_clock > 1.5 and not _pressed:

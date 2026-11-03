@@ -14,8 +14,14 @@ var _tick := 0.0
 var _flames: Node2D
 
 
-## Places a patch centred on the point it is given, standing on the ground there.
+## Places a patch centred on the point it is given, standing on the ground there. Where a patch already burns, it burns on instead of a second
+## being lit over it: every patch is a light and a fire to draw, and a volcano throws a great many.
 static func place(parent: Node, at: Vector2, patch_width: float, life: float) -> Hazard:
+	for other: Hazard in parent.get_tree().get_nodes_in_group("fires").filter(func(n: Node) -> bool: return n is Hazard):
+		if absf(other.global_position.x - at.x) < patch_width * 0.75 and absf(other.global_position.y - at.y) < 24.0 and not other.is_queued_for_deletion():
+			other._age = 0.0
+			other._life = life
+			return other
 	var hazard := Hazard.new()
 	hazard.width = patch_width
 	hazard._life = life

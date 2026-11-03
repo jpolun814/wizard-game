@@ -23,7 +23,7 @@ func _ready() -> void:
 	SmokeVeil.ensure(get_tree())
 	z_index = 3
 	_puffs = CPUParticles2D.new()
-	_puffs.amount = 260
+	_puffs.amount = 70  # (each puff is a big soft square, so the number of them is what the picture costs)
 	_puffs.lifetime = 5.0
 	_puffs.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
 	_puffs.emission_rect_extents = Vector2(WIDTH * 0.5 - 40.0, 6.0)
@@ -37,8 +37,8 @@ func _ready() -> void:
 	_puffs.angular_velocity_min = -20.0
 	_puffs.angular_velocity_max = 20.0
 	_puffs.texture = Fx.tex("smoke_04")
-	_puffs.scale_amount_min = 110.0 / Fx.TEX_SIZE
-	_puffs.scale_amount_max = 150.0 / Fx.TEX_SIZE
+	_puffs.scale_amount_min = 140.0 / Fx.TEX_SIZE
+	_puffs.scale_amount_max = 190.0 / Fx.TEX_SIZE
 	var fade := Gradient.new()
 	fade.set_color(0, Color(0.1, 0.09, 0.1, 0.0))
 	fade.add_point(0.02, Color(0.1, 0.09, 0.1, 1.0))

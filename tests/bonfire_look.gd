@@ -16,6 +16,7 @@ func _ready() -> void:
 	var scene: Node
 	if seed_wanted >= 0:
 		World.random_start = false
+		World.arrive_by_portal = false
 		World.next_seed = seed_wanted
 		scene = load("res://scenes/world.tscn").instantiate()
 	else:

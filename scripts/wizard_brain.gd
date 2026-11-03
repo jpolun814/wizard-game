@@ -156,8 +156,8 @@ func think(delta: float) -> void:
 		_skip.clear()  # a gate has been cleared: pages that could not be reached may be reachable now
 	_track_shots()
 	_foe = _nearest_foe()
-	if _foe == null:  # the last wizard standing
-		wizard.walk(0.0)
+	if _foe == null:  # the last wizard standing, or the others are faded from sight: it goes about its journey
+		wizard.walk(_travel(delta) if SpellTargets.wizards(wizard.get_tree()).size() > 1 else 0.0)
 		return
 	var foe: Wizard = _foe
 	var to_player: Vector2 = foe.center() - wizard.center()
@@ -224,8 +224,8 @@ func _nearest_foe() -> Wizard:
 	var best: Wizard = null
 	var best_gap := INF
 	for other: Wizard in SpellTargets.wizards(wizard.get_tree()):
-		if other == wizard:
-			continue
+		if other == wizard or not other.is_seen_from(wizard.center()):
+			continue  # a wizard faded from sight is not there to be found
 		var gap: float = wizard.center().distance_to(other.center())
 		if gap < best_gap:
 			best = other

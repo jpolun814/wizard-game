@@ -16,6 +16,7 @@ func _ready() -> void:
 			_out = arg.substr(4)
 	MatchState.hurry = 0.05
 	World.random_start = false
+	World.arrive_by_portal = false
 	World.next_seed = 8
 	var tree := get_tree()
 	await tree.process_frame

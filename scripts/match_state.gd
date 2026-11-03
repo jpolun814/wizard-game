@@ -14,7 +14,7 @@ const STAGES := [
 	{"width": 520, "seconds": 180.0},
 	{"width": 360, "seconds": 0.0},
 ]
-const CASTLE_SHARE := 0.6  # the share of a stage's width that a castle world takes
+const CASTLE_SHARE := 0.4  # the share of a stage's width that a castle world takes
 const HEIGHT := 380  # every world is this deep, in tiles
 const WARNING := 18.0 # seconds of shaking and a warning before a world collapses
 
@@ -77,6 +77,21 @@ static func _shuffled(list: Array, rng: RandomNumberGenerator) -> Array:
 		out[i] = out[j]
 		out[j] = held
 	return out
+
+
+## How many pages each world of this match lays, in order: from its biome and width, as the world would be dealt them by the seed.
+static func page_counts() -> Array[int]:
+	var out: Array[int] = []
+	for at in STAGES.size():
+		var biome := biome_of(at)
+		var width: int = STAGES[at]["width"]
+		out.append(Pages.count_for(biome, roundi(width * CASTLE_SHARE) if biome == "castle" else width))
+	return out
+
+
+## The pages of each world of this match, and the spare ones, settled by its seed: see Pages.allotment.
+static func page_allotment(wizards: int) -> Dictionary:
+	return Pages.allotment(seed_base, wizards, page_counts())
 
 
 ## True when the world being built is the last of the match.

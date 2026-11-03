@@ -21,6 +21,7 @@ func _ready() -> void:
 		if argument.begins_with("seed="):
 			seed_value = int(argument.substr(5))
 	World.random_start = false
+	World.arrive_by_portal = false
 	World.next_seed = seed_value
 	MatchState.hurry = 100.0
 	var world: World = load("res://scenes/world.tscn").instantiate()

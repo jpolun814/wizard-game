@@ -20,6 +20,7 @@ var _biomes_seen: Array[String] = []
 func _ready() -> void:
 	MatchState.hurry = 0.05
 	World.random_start = false
+	World.arrive_by_portal = false
 	World.next_seed = 11
 	call_deferred("_start")
 

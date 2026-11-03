@@ -19,7 +19,7 @@ const LOCKABLE := ["Frostbolt", "Icicles", "Ice Prison", "Blizzard", "Stonefall"
 		"Flytrap", "Hex", "Black Hole", "Tide Surf", "Offering", "Burst", "Crimson Veil", "Adrenaline", "Faint", "Vacuum", "Fight or Flight", "Sneak", "Hunter's Mark", "chant:boundless", "chant:double_jump", "chant:haste", "chant:scrying"]
 ## How many pages lie in a world of each biome, in a world 1000 tiles wide: the ones with little height to spread through (a volcano's
 ## slopes, the portal fields) hold fewer than those with room to climb or dig. Smaller worlds hold fewer (see count_for). The pages that
-## are not laid are simply not in that world: nothing carries over, and each world's pages come from its seed alone (not from who holds what).
+## are not laid are simply not in that world: nothing carries over. Which pages each world lays is settled when the match begins (see allotment).
 const PER_WORLD := {"graveyard": 16, "mountains": 16, "jungle": 18, "ashlands": 12, "castle": 18, "underground": 20, "portals": 10}
 const LEAST := 6  # however small the world
 const MIN_APART := 40  # columns between two pages lying out in the open of a world with no halls
@@ -43,23 +43,43 @@ static func openers_of(kind: String) -> Array:
 	return out
 
 
-## Picks the pages that lie in a world from those no one holds, `count` of them, drawn by chance; a kind of gate the world has always
-## keeps a page that opens it, unless a wizard holds one already.
-static func choose(unheld: Array[String], held: Array[Ledger], count: int, gate_kinds: Array, rng: RandomNumberGenerator) -> Array[String]:
-	var pool := unheld.duplicate()
+## Settles, when a match begins, which pages lie in which world of it. The wizards are dealt their own starting pages (see deal), and each world is
+## given pages of its own from the others, no page in two places, so no page can lie in a world once a wizard holds it and no two wizards
+## start alike. Some pages are given to no one. `counts` is how many pages each world lays, in order. Returns {"worlds": a list of pages for each
+## world, "spare": the pages given to no one}.
+static func allotment(match_seed: int, wizards: int, counts: Array[int]) -> Dictionary:
+	var dealt := deal(match_seed + 31, wizards)
+	var pool: Array[String] = []
+	for page in every():
+		if not dealt.any(func(ledger: Ledger) -> bool: return ledger.knows(page)):
+			pool.append(page)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = match_seed + 8191
 	_shuffle(pool, rng)
-	var kept: Array[String] = []
-	for page: String in pool.slice(0, mini(count, pool.size())):
-		kept.append(page)
+	var worlds: Array = []
+	var taken := 0
+	for count in counts:
+		var mine: Array[String] = []
+		mine.assign(pool.slice(taken, mini(taken + count, pool.size())))
+		taken += mine.size()
+		worlds.append(mine)
+	var spare: Array[String] = []
+	spare.assign(pool.slice(taken))
+	return {"worlds": worlds, "spare": spare}
+
+
+## A world's allotted pages, with a page that opens each kind of gate it has swapped in from the spare ones where it has none (and no wizard holds one).
+static func with_openers(allotted: Array[String], spare: Array[String], held: Array[Ledger], gate_kinds: Array) -> Array[String]:
+	var kept := allotted.duplicate()
 	for kind: String in gate_kinds:
 		var wanted := openers_of(kind)
 		if wanted.is_empty() or kept.any(func(p: String) -> bool: return wanted.has(p)) or held.any(func(l: Ledger) -> bool: return wanted.any(func(p: String) -> bool: return l.knows(p))):
 			continue
-		var spare: Array = pool.filter(func(p: String) -> bool: return wanted.has(p) and not kept.has(p))
-		if spare.is_empty() or kept.is_empty():
+		var extra: Array = spare.filter(func(p: String) -> bool: return wanted.has(p))
+		if extra.is_empty() or kept.is_empty():
 			continue
-		kept.pop_back()  # the last of the draw gives way
-		kept.append(spare[0])
+		kept.pop_back()
+		kept.append(extra[0])
 	return kept
 
 
@@ -102,13 +122,17 @@ static func title_of(page: String) -> String:
 
 
 ## Where each page lies: [{"page", "room": a room's id}], from the graph and a rng. The pages the wizards start with are left off the map.
-static func plan(graph: WorldGraph, rng: RandomNumberGenerator, dealt: Array[Ledger], count := -1, gate_kinds := []) -> Array:
+## `allotted` is the world's own pages from the match's allotment; without it every page no one was dealt lies in the world.
+static func plan(graph: WorldGraph, rng: RandomNumberGenerator, dealt: Array[Ledger], allotted: Array = [], gate_kinds := [], spare: Array[String] = [], held: Array[Ledger] = []) -> Array:
 	var items: Array[String] = []
-	for page in every():
-		if not dealt.any(func(ledger: Ledger) -> bool: return ledger.knows(page)):
-			items.append(page)
-	if count >= 0 and count < items.size():
-		items = choose(items, dealt, count, gate_kinds, rng)
+	if not allotted.is_empty():
+		var mine: Array[String] = []
+		mine.assign(allotted)
+		items = with_openers(mine, spare, held, gate_kinds)
+	else:
+		for page in every():
+			if not dealt.any(func(ledger: Ledger) -> bool: return ledger.knows(page)):
+				items.append(page)
 	var lockable: Array[String] = []
 	var open: Array[String] = []
 	for page in items:

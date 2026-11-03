@@ -35,6 +35,7 @@ const BLACKEN_ROWS := 110.0  # and for the dark to become total
 
 var _dark: CanvasModulate
 static var random_start := true  # the player starts at any one of the starting places; the showcase and tests turn this off to see the same place each time
+static var arrive_by_portal := true  # the first world is entered by falling out of a portal; tests that need the wizards standing on their places turn this off
 var castle_x := -1  # the first column of the first castle on the surface, or -1 when there is none
 
 
@@ -170,6 +171,10 @@ func _begin_encounter(camera: Camera2D) -> void:
 	player.position = _places()[_my_seat()]
 	_safe_spot = player.position
 	_spawn_wizards()
+	if not _carried and arrive_by_portal:
+		for wizard in _seats:
+			if wizard != null:
+				_drop_from_portal(wizard)
 	_stay_out()
 	_ground.watch([player.position], true)  # the rock round the start is drawn before the first frame
 	camera.reset_smoothing()
@@ -713,11 +718,27 @@ func _lay_spoils(pickup_name: String, held: Array, spot: Vector2) -> void:
 	add_child(pickup)
 
 
+## The first world is entered by falling out of a portal that opens in the air over where the wizard stands, as high as there is clear air for.
+func _drop_from_portal(wizard: Node2D) -> void:
+	var feet := wizard.global_position
+	var height := 0.0
+	while height < DROP_HEIGHT and not _in_rock(feet + Vector2(0.0, -height - 16.0 - TILE)) and not _in_rock(feet + Vector2(0.0, -height - 16.0 - TILE) + Vector2(-20.0, 0.0)) and not _in_rock(feet + Vector2(0.0, -height - 16.0 - TILE) + Vector2(20.0, 0.0)):
+		height += 16.0
+	if height < 48.0:
+		return  # no room to fall in: the wizard simply stands there
+	wizard.global_position = feet + Vector2(0.0, -height)
+	wizard.velocity = Vector2.ZERO
+	var arrival := ArrivalPortal.new()
+	arrival.position = feet + Vector2(0.0, -height - 30.0)
+	add_child(arrival)
+
+
 ## The world position of the floor of a tile, at its middle.
 func _stand_at(tile: Vector2i) -> Vector2:
 	return Vector2((tile.x + 0.5) * TILE, (tile.y + 1) * TILE)
 
 
+const DROP_HEIGHT := 200.0  # how far over the ground a wizard comes out of the portal at most
 var _safe_spot := Vector2.ZERO  # the last place the wizard stood on firm ground
 var _buried := 0.0              # how long the wizard has been inside rock
 
@@ -818,7 +839,7 @@ func _make_light(radius: float, color: Color, energy: float) -> PointLight2D:
 
 ## Every fire lights the dark round it while it lasts, and lava glows.
 func _on_node_added(node: Node) -> void:
-	if node is Gateway or node is Pond or node is Hazard or node is Bonfire or node is Projectile or node is Firewall or node is FireBreath or node is LavaBall:
+	if node is Gateway or node is Pond or node is Hazard or node is Bonfire or node is Projectile or node is Firewall or node is LavaBall:
 		_light_when_ready.call_deferred(node)
 
 
@@ -834,7 +855,8 @@ func _light_when_ready(node: Node) -> void:
 		glow.position = Vector2(pond.width * 0.5, 0.0)
 		node.add_child(glow)
 	else:
-		node.add_child(_make_light(260.0, Color(1.0, 0.6, 0.25), 1.1))
+		var radius := 120.0 if node is LavaBall else (180.0 if node is Hazard else 260.0)  # a ball in flight is a small thing, and there are many in an eruption
+		node.add_child(_make_light(radius, Color(1.0, 0.6, 0.25), 1.1))
 
 
 ## What the player has left of their stamina, from the world before.
@@ -1204,7 +1226,7 @@ func _rift_spot(from: Vector2) -> Vector2:
 
 ## The spellbook of the run: only the starter spells are known, and a page for each of the others lies in a hall of the map.
 func _lay_pages() -> void:
-	ledgers = MatchState.ledgers if _carried else Pages.deal(seed_value + 31, WIZARDS)  # what each wizard starts with comes from the seed too
+	ledgers = MatchState.ledgers if _carried else Pages.deal(MatchState.seed_base + 31, WIZARDS)  # what each wizard starts with comes from the match's seed
 	MatchState.ledgers = ledgers
 	player.ledger = ledgers[_my_seat()]
 	spellbook.refresh()
@@ -1214,9 +1236,11 @@ func _lay_pages() -> void:
 	for entry in _gates:
 		if not gate_kinds.has(entry["kind"]):
 			gate_kinds.append(entry["kind"])
-	var biome := SurfaceGen.biome_at(graph.surface, graph.surface["start"])
-	# What lies in a world comes from the seed alone, not from what the wizards hold: the starting pages the seed deals are left out, the rest are drawn.
-	var layout := Pages.plan(graph, rng, Pages.deal(seed_value + 31, WIZARDS), Pages.count_for(biome, WorldGraph.size.x), gate_kinds)
+	# What lies in a world was settled when the match began: each world has pages of its own, apart from the ones the wizards were dealt.
+	var allotment := MatchState.page_allotment(WIZARDS)
+	var spare: Array[String] = []
+	spare.assign(allotment["spare"])
+	var layout := Pages.plan(graph, rng, Pages.deal(MatchState.seed_base + 31, WIZARDS), allotment["worlds"][MatchState.stage], gate_kinds, spare, ledgers)
 	var count := {}
 	for index in layout.size():
 		var entry: Dictionary = layout[index]

@@ -9,7 +9,7 @@ Friends play together over a network: one hosts, the others join by address. It 
   (Steam and the like) may come later; nothing here stops it.
 - One player hosts, and the host's game is the referee for the shared things (pages, the collapse, gates, the end of the match).
 - Brains (AI wizards) fill the seats nobody takes, up to four.
-- A Host / Join screen, then everyone shares the waiting room and walks into the portal; the match starts when the last person has.
+- A Host / Join screen, then everyone shares the waiting room and touches the book on its stand; the match starts when the last person has.
 - Friends only for now: each machine is trusted to read its own person's strokes and to say what happened to its own wizard.
 - Rejoining can wait. Esc opens the menu but the world goes on.
 

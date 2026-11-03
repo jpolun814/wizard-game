@@ -20,9 +20,11 @@ single-run loop in `docs/roguelite_exploration_design.md`; the spells, the world
   no one else can find that page on the map; the three moves repeat for the fourth wizard.
 - `Pages.plan(graph, rng, dealt)`: lays every page that no wizard started with. `World.ledgers` holds the four ledgers.
 - Tests: `tests/test_pages.gd`, and the `pages` scenario of `tests/showcase.tscn`.
-- The cut-scene (`scenes/intro.tscn`, `scripts/intro.gd`), played when the lab's portal is entered, before the loading screen. Four wizards
-  (the player's and the looks of `dark_wizard`, `bone_wizard` and `pyre_wizard`) run to a pile of pages in the cathedral hall; in the
-  scuffle every page but one each wizard keeps is knocked through the portal; then they run in after them. Any key skips it. It ends
+- The cut-scene (`scenes/intro.tscn`, `scripts/intro.gd`), played when a person touches the spellbook on its stand in the waiting room (`Lectern`, with a plaque too small to read until the camera comes close on it in the cut-scene), before the loading screen. It happens in the waiting room's own place (`ArenaGen.WAITING_ROOM_BIOME`), so the two look joined. It opens on the
+  wizard of whoever is watching (so it differs on each machine), running in beside a close camera to the same book on its pedestal. Every wizard reaches for it and it is torn apart: its pages burst out and a portal opens in the ceiling and begins to come apart. Nine more wizards arrive (four in all are the player's and the looks of `dark_wizard`, `bone_wizard` and
+  `pyre_wizard`, and six more of the same four looks, all ten in colours of their own, copies of the art made by `tools/make_wizard_colours.py`, drawn at sizes that make them stand equally tall). The camera pulls back to show the ring, they fight
+  (bolts meet over the pile; the six fall one after another), the camera cuts in on the duel, then the portal tears in a bloom of light and
+  pulls the four left up into it, still firing. The pages are loose bodies: blasts that land knock them about, and the portal draws in the ones thrown high. The extras are for the cut-scene only: a match is still four wizards. Any key skips it. It ends
   with the `finished` signal and a change to `scenes/loading.tscn`. Tests: `tests/intro_check.tscn`, `tests/flow_check.tscn`.
 
 - AI wizards that walk the world for pages and fight each other. `WorldBuilder.shut(world)` is the world with every gate shut; `Walkways`

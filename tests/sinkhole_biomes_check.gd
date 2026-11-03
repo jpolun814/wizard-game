@@ -28,6 +28,7 @@ func _ready() -> void:
 
 func _try(seed_value: int) -> void:
 	World.random_start = false
+	World.arrive_by_portal = false
 	World.next_seed = seed_value
 	MatchState.hurry = 100.0
 	var world: World = load("res://scenes/world.tscn").instantiate()

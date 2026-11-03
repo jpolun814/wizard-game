@@ -29,6 +29,7 @@ func _ready() -> void:
 			randoms = int(argument.trim_prefix("random="))
 	DirAccess.make_dir_recursive_absolute(out)
 	World.random_start = false
+	World.arrive_by_portal = false
 	World.next_seed = 9
 	MatchState.hurry = 100.0
 	var world: World = load("res://scenes/world.tscn").instantiate()

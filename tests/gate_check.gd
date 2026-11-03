@@ -25,6 +25,7 @@ func _ready() -> void:
 			spells = Array(arg.substr(7).replace("%", " ").split(","))
 	MatchState.hurry = 100.0  # the portal does not give way during the test
 	World.random_start = false
+	World.arrive_by_portal = false
 	World.next_seed = seed_value
 	var tree := get_tree()
 	var world: World = load("res://scenes/world.tscn").instantiate()

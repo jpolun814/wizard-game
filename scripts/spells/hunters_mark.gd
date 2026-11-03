@@ -16,7 +16,7 @@ static func nearest_other(tree: SceneTree, point: Vector2, not_this: Wizard) -> 
 	var best: Wizard = null
 	var best_distance := INF
 	for wizard: Wizard in SpellTargets.wizards(tree):
-		if wizard == not_this:
+		if wizard == not_this or not wizard.is_seen_from(point):
 			continue
 		var distance := wizard.center().distance_to(point)
 		if distance < best_distance:

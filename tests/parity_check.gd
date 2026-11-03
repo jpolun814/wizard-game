@@ -24,6 +24,7 @@ class QuietBrain extends WizardBrain:
 
 func _ready() -> void:
 	World.random_start = false
+	World.arrive_by_portal = false
 	World.next_seed = 8
 	MatchState.hurry = 100.0
 	var world: World = load("res://scenes/world.tscn").instantiate()

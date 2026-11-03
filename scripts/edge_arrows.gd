@@ -1,11 +1,11 @@
 class_name EdgeArrows
 extends Control
 
-## Arrows at the edge of the screen that point to things that are off screen: the portal, and whoever is hexed (other than the
+## Arrows at the edge of the screen that point to things that are off screen: the spellbook that starts a run, and whoever is hexed (other than the
 ## wizard). Which things, and how they are named and coloured, is set by the group they are in.
 
 @export var group := &"portals"
-@export var caption := "Portal"
+@export var caption := "Spellbook"
 @export var colour := Color("#c9a3ff")
 @export var outline := Color(0.1, 0.05, 0.15)
 

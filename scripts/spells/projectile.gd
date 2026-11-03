@@ -10,6 +10,7 @@ const STATS := {
 }
 const SLOW_SECONDS := 2.0
 const CLEAR_CHECK_AFTER := 0.05  # the overlaps of a new shot are not known until a few physics frames have passed
+const FIREBOLT_HEAD := 21.0  # how far the head of the fire bolt is from the middle of its frame
 const FIREBALL_KNOCK := 420.0  # how hard a fireball pushes what it hits
 
 var aim := Vector2.RIGHT
@@ -36,8 +37,16 @@ func _begin(origin: Vector2, aim_angle: float) -> void:
 	_trail = _make_trail()
 	add_child(_trail)
 	# The shot itself: a pixel-art fireball or ice spear, its head on the node and its tail streaming behind.
-	var shot := PixelFx.sprite("icespear" if spell == "Frostbolt" else "fireball", 18.0)
-	shot.offset = Vector2(-18, 0)
+	var shot: AnimatedSprite2D
+	if spell == "Frostbolt":
+		shot = PixelFx.sprite("icespear", 18.0)
+		shot.offset = Vector2(-18, 0)
+	else:
+		shot = AnimatedSprite2D.new()  # pimen's fire bolt: its head is 21 px right of the middle of its frame
+		shot.sprite_frames = PixelFx.square_frames("pimen_firebolt", 16.0, true)
+		shot.offset = Vector2(-FIREBOLT_HEAD, 0)
+		shot.scale = Vector2(2.0, 2.0)
+		shot.play("default")
 	add_child(shot)
 	Sfx.play("cast_ice" if spell == "Frostbolt" else "cast_fire", origin)
 
@@ -121,7 +130,7 @@ func _impact_effect() -> void:
 		Sfx.play("ice_shatter", global_position)
 		SpellTargets.douse(get_tree(), global_position, 50.0)
 	else:
-		PixelFx.play(get_parent(), global_position, "blast_small", 22.0, 1.0, Color.WHITE)
+		PixelFx.play_square(get_parent(), global_position, "pimen_firebolt_hit", 18.0, 2.0, aim.angle())
 		Fx.smoke(get_parent(), global_position, Color(0.3, 0.25, 0.25, 0.4), 3, 18.0, 30.0)
 		Sfx.play("fire_hit", global_position)
 

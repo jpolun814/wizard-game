@@ -14,6 +14,7 @@ var _world: World
 func _ready() -> void:
 	MatchState.hurry = 0.05 if OS.get_cmdline_user_args().has("collapse") else 1.0
 	World.random_start = false
+	World.arrive_by_portal = false
 	World.next_seed = 11
 	await get_tree().process_frame
 	reparent(get_tree().root)  # this node outlives the scenes that come and go

@@ -382,7 +382,7 @@ func _pick_prey(delta: float) -> void:
 	var nearest := INF
 	for wizard: Wizard in get_tree().get_nodes_in_group("wizards"):
 		var gap := wizard.global_position.distance_squared_to(global_position)
-		if not wizard.dead and gap < nearest:
+		if not wizard.dead and wizard.is_seen_from(global_position) and gap < nearest:
 			nearest = gap
 			player = wizard
 
