@@ -72,7 +72,11 @@ func _arrived(world: World) -> void:
 			repeated.append(pickup.page)
 	_verdict(repeated.is_empty(), "no page lies in world %d that a wizard already holds %s" % [stage + 1, str(repeated)])
 	var lying := get_tree().get_nodes_in_group("pages").size()
-	_verdict(lying <= Pages.count_for(MatchState.biome_of(stage), WorldGraph.size.x) + 2, "a world lays no more pages than it is meant to (%d lying, %d held)" % [lying, held])
+	var starting := 0
+	if stage == 0:
+		for seat in 4:
+			starting += Pages.cluster_of(MatchState.seed_base, seat, 4).size()  # the first world also holds each seat's starting pages
+	_verdict(lying <= Pages.count_for(MatchState.biome_of(stage), WorldGraph.size.x) + starting + 2, "a world lays no more pages than it is meant to (%d lying, %d held)" % [lying, held])
 	if stage == 0:
 		_held_at_start = held
 	else:

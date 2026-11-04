@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="Spell" format=3]
+
+[ext_resource type="Script" path="res://scripts/spell.gd" id="1_spell"]
+
+[resource]
+script = ExtResource("1_spell")
+spell_name = "Hailstorm"
+school = "Water"
+gesture = "hailstorm"
+targeting = "shape"
+cost = 24.0
+effect = "Call down a hailstorm."
+size_from = 3
+size_unit = 200.0
+size_min = 0.6
+size_max = 2.0
+effect_path = "res://scripts/spells/hailstorm.gd"

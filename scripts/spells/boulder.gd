@@ -65,12 +65,12 @@ func _on_contact(body: Node) -> void:
 		if _speed < 120.0 or now - int(_last_bump.get(body, -10000)) < 600:
 			return
 		_last_bump[body] = now
-		SpellTargets.hurt(body, clampi(int(_speed / 40.0), 4, 40), "Earth")
+		SpellTargets.hurt(body, clampi(int(_speed / 40.0), 4, 40), "Earth", false, false, self)
 		return
 	if _landed:
 		return
 	_landed = true
-	SpellTargets.hurt_within(get_tree(), global_position, LANDING_RADIUS, LANDING_DAMAGE, "Earth")
+	SpellTargets.hurt_within(get_tree(), global_position, LANDING_RADIUS, LANDING_DAMAGE, "Earth", false, false, self)
 	Fx.debris(get_parent(), global_position, Color("#9c7a52"), 12, 200.0)
 	Fx.smoke(get_parent(), global_position, Color(0.45, 0.38, 0.3, 0.5), 5, 30.0, 30.0)
 	Sfx.play("quake", global_position)

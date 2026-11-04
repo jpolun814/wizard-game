@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="Spell" format=3]
+
+[ext_resource type="Script" path="res://scripts/spell.gd" id="1_sphere"]
+
+[resource]
+script = ExtResource("1_sphere")
+spell_name = "Flaming Sphere"
+school = "Fire"
+gesture = "sphere"
+targeting = "directional"
+cost = 34.0
+effect = "Launch a rolling ball of fire."
+damage = ""

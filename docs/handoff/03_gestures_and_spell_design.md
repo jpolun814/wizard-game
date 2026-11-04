@@ -137,3 +137,10 @@ each new spell with the checklist in `CLAUDE.md` §6, and expect the owner to ve
 - **Text:** the spellbook shows each ritual's name, chant and one short line. Never repeat "costs no stamina".
 - **Unbuilt ideas from the original vision:** Words of Unmaking (clear hazards), Scrying (preview the next
   wave), Ward of True Sight (cure blind), Summoning of the Bound Servant.
+
+
+## New detectors (chapter 14)
+
+Read before the recognizer's guess, in `Caster` (each only on the buttons whose spells use that gesture): `hailstorm` (a ring, a line out, a line down), `feather` (three sweeps across, each bent down in the middle and ending lower than it began, like a falling feather's path), `sphere` (a ring drawn from the bottom, then a level line: the ring-then-line reading with a level tail), `hand` (five peaks, one after another, returning along a base) and `portrait` (a closed box
+taller than it is wide, with four corners; a leaning box is turned upright first). Near misses (four or six fingers, a box on its side, an oval, an open box, a straight zigzag, two sweeps, sweeps bent upward) are in
+`tests/test_gestures.gd`.

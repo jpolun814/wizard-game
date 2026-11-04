@@ -10,6 +10,7 @@ const RAMP := 4.0  # seconds it takes to build up, and to die away
 var period := 70.0   # seconds from the start of one to the start of the next
 var length := 18.0   # seconds each lasts
 var delay := 25.0   # seconds into the world before the first
+var rain := false     # what falls is water, which puts a fire out
 var tint := Color(0.04, 0.07, 0.1)
 var strength := 0.4  # how dark the view gets at its worst
 var seconds := 0.0   # the world's age: the world sets it each frame
@@ -18,6 +19,7 @@ var _veil: ColorRect
 
 
 func _ready() -> void:
+	add_to_group("squalls")
 	layer = 1
 	_veil = ColorRect.new()
 	_veil.set_anchors_preset(Control.PRESET_FULL_RECT)

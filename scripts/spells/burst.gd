@@ -26,7 +26,7 @@ func _begin(origin: Vector2, _aim_angle: float) -> void:
 			body.knock_back(Vector2(away.x * KNOCK * share, minf(away.y * KNOCK * share, LIFT * share)))  # thrown first: the blow may be its last
 		else:
 			body.push(Vector2(away.x * KNOCK * share * 0.6, minf(away.y * KNOCK * share * 0.6, LIFT * share)))
-		SpellTargets.hurt(body, DAMAGE, "Blood")
+		SpellTargets.hurt(body, DAMAGE, "Blood", false, false, self)
 	for shot in tree.get_nodes_in_group("shots"):
 		var from: Vector2 = shot.global_position
 		if from.distance_to(origin) <= RADIUS and shot.has_method("reflect"):

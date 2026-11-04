@@ -100,6 +100,7 @@ var _stage_time := 0.0     # seconds in this world
 var _leaving := false      # the portal has given way
 var _collapse_in := -1.0   # seconds until the portal gives way, once it has begun to
 var _seats: Array[Wizard] = []  # every wizard of the match by seat (see _my_seat), the player's own among them; null where one was beaten in an earlier world
+var _stats: StatsScreen  # what is shown when the person falls
 var _rivals: Array[Wizard] = []  # the same, without the player's own
 var _fallen := {}  # on the host: the wizards whose fall has been seen, and whose pages have been dropped
 var _backdrops := {}  # place -> Backdrop
@@ -208,7 +209,12 @@ func _begin_encounter(camera: Camera2D) -> void:
 	_raise_the_gale()
 	_raise_biome_life()
 	_wash_out_the_colour()
-	add_child(Grade.for_biome(SurfaceGen.biome_at(graph.surface, graph.surface["start"])))
+	grade_biome = SurfaceGen.biome_at(graph.surface, graph.surface["start"])
+	add_child(Grade.for_biome(grade_biome))
+	if MatchState.stage == 0:
+		MatchStats.begin(player)  # a new match: the story of it starts here
+	else:
+		MatchStats.carry_on(player)
 	for index in _planks.size():
 		var swing := SwingStair.new()
 		swing.hinge = _planks[index]["hinge"]
@@ -392,6 +398,7 @@ func _raise_biome_life() -> void:
 				span.position = Vector2(bridge["first"] * tile, floors[bridge["tree"]] * tile + 2.0 - JungleTree.LEDGES[JungleTree.VINE_LEDGE][0] * float(trees[0]["size"] if false else _tree_size(bridge["tree"])))
 				add_child(span)
 			_squall = Squall.new()
+			_squall.rain = true
 			_squall.period = 75.0
 			_squall.length = 20.0
 			_squall.delay = 28.0
@@ -476,6 +483,7 @@ func _tree_size(column: int) -> int:
 func _wash_out_the_colour() -> void:
 	if SurfaceGen.biome_at(graph.surface, graph.surface["start"]) != "graveyard":
 		return
+	greyed = true  # (the Scrying Eye's window is washed out too)
 	var layer := CanvasLayer.new()
 	layer.layer = 2
 	var wash := ColorRect.new()
@@ -794,7 +802,10 @@ func _out_of_rock(start: Vector2, end: Vector2) -> Vector2:
 ## If the wizard ever ends up inside rock, or falls out of the world, they are put back on the last firm ground.
 func _process(delta: float) -> void:
 	super(delta)
-	_ground.watch([player.global_position])  # the rock is drawn only round the wizard
+	var watched: Array[Vector2] = [player.global_position]  # the rock is drawn only round the wizard,
+	for watcher: Node2D in get_tree().get_nodes_in_group("ground_watchers"):
+		watched.append(watcher.global_position)  # and round a ball of fire that has rolled away, or the view of a Scrying Eye
+	_ground.watch(watched)
 	_fade_backdrops(delta)
 	var column := floori(player.global_position.x / TILE) - ArenaGen.sky_xl
 	var ground := ArenaGen.sky_floor[clampi(column, 0, ArenaGen.sky_floor.size() - 1)] if not ArenaGen.sky_floor.is_empty() else WorldGraph.SURFACE_ROW
@@ -806,6 +817,7 @@ func _process(delta: float) -> void:
 	_update_weather(under)
 	_share_the_dead(delta)
 	_count_wizards(delta)
+	MatchStats.tick(delta)
 	if Net.is_host():
 		_watch_falls()
 	_watch_portal(delta)
@@ -1132,6 +1144,7 @@ func gate_target(entry: Dictionary) -> Vector2:
 
 ## Out of the match: while other wizards still live the match goes on, and the camera follows one of them. Otherwise the run is over.
 func _on_player_died() -> void:
+	_show_stats()
 	if _living().is_empty():
 		_end_run()
 		return
@@ -1143,6 +1156,34 @@ func _on_player_died() -> void:
 	player.collision_mask = 0
 	player.hide()
 	hud.banner("", "Click to watch another wizard")
+
+
+## The story of the match so far, over the screen: where the person came, and charts of what they did.
+func _show_stats() -> void:
+	if _stats != null and is_instance_valid(_stats):
+		return
+	_stats = StatsScreen.new()
+	hud.add_child(_stats)
+	hud.offer_stats()
+	if not hud.stats_requested.is_connected(_look_at_stats):
+		hud.stats_requested.connect(_look_at_stats)
+	_stats.show_stats(_living().size() + 1, _rivals.size() + 1, not _living().is_empty())
+
+
+## A win ends the match too: the stats wait behind a button, so that the ending is not interrupted.
+func _show_stats_button() -> void:
+	hud.offer_stats()
+	if not hud.stats_requested.is_connected(_look_at_stats):
+		hud.stats_requested.connect(_look_at_stats)
+
+
+## The person asks to see their stats again, once the match is over for them.
+func _look_at_stats() -> void:
+	if _stats == null or not is_instance_valid(_stats):
+		_stats = StatsScreen.new()
+		hud.add_child(_stats)
+	hud.move_child(_stats, -1)  # over everything else on the layer
+	_stats.show_stats(_living().size() + 1, _rivals.size() + 1, not _living().is_empty())
 
 
 ## The wizards still in the match, other than the player.
@@ -1184,6 +1225,7 @@ func _count_wizards(delta: float) -> void:
 		_won = true
 		hud.banner("Last wizard standing", "You win")
 		Library.record_win(player.ledger.pages.keys())
+		_show_stats_button()
 		Library.flush()
 		Sfx.play("ritual_ok", player.center())
 	if standing.size() == 1 and Library.real_match() and (Net.is_host() or not Net.online()):
@@ -1276,7 +1318,7 @@ func _rift_spot(from: Vector2) -> Vector2:
 
 ## The spellbook of the run: only the starter spells are known, and a page for each of the others lies in a hall of the map.
 func _lay_pages() -> void:
-	ledgers = MatchState.ledgers if _carried else Pages.deal(MatchState.seed_base + 31, WIZARDS)  # what each wizard starts with comes from the match's seed
+	ledgers = MatchState.ledgers if _carried else Pages.start_empty(WIZARDS)  # nobody starts with a spell: the pages they would have started with lie by their spawn
 	MatchState.ledgers = ledgers
 	player.ledger = ledgers[_my_seat()]
 	spellbook.refresh()
@@ -1290,7 +1332,7 @@ func _lay_pages() -> void:
 	var allotment := MatchState.page_allotment(WIZARDS)
 	var spare: Array[String] = []
 	spare.assign(allotment["spare"])
-	var layout := Pages.plan(graph, rng, Pages.deal(MatchState.seed_base + 31, WIZARDS), allotment["worlds"][MatchState.stage], gate_kinds, spare, ledgers)
+	var layout := Pages.plan(graph, rng, Pages.deal(MatchState.seed_base + 31, WIZARDS), allotment["worlds"][MatchState.stage], gate_kinds, spare, ledgers if _carried else Pages.deal(MatchState.seed_base + 31, WIZARDS))  # (the pages in the clusters count as held, for the gates' openers)
 	var count := {}
 	for index in layout.size():
 		var entry: Dictionary = layout[index]
@@ -1320,6 +1362,68 @@ func _lay_pages() -> void:
 		var lie := spot + Vector2((k - 0.5) * 70.0 if k > 0 else 0.0, 0.0)
 		pickup.position = _floor_under(lie)  # on the floor, wherever the marker's tile ends
 		add_child(pickup)
+	if not _carried:
+		_lay_clusters(layout.size())
+
+
+## How many tiles apart the pages of a cluster lie, and the farthest from the spawn they may lie.
+const CLUSTER_GAP := 3
+const CLUSTER_REACH := 30
+
+
+## In the first world, the pages each wizard would have started with lie together by their spawn, fanned out like cards, a short walk away on level
+## ground, so nobody needs a spell to reach them. `first` numbers the pages after the ones the map already has.
+func _lay_clusters(first: int) -> void:
+	var places := _places()
+	var index := first
+	for seat in WIZARDS:
+		var pages := Pages.cluster_of(MatchState.seed_base, seat, WIZARDS)
+		if pages.is_empty():
+			continue
+		var pickup := PagePickup.new()  # all of a wizard's first pages lie together, fanned out like cards, and one read takes them all
+		pickup.name = "Page%d" % index  # the same on every machine, so the host can say which was read
+		index += 1
+		pickup.page = pages[0]
+		pickup.spoils.assign(pages)
+		pickup.fan = true
+		pickup.position = _cluster_spots(places[seat], 1)[0]
+		add_child(pickup)
+
+
+## Where `count` pages may lie by a spawn: on the ground a wizard can walk to without a jump, nearest first, a few tiles apart. A spawn with
+## too little room round it gets the rest set down on the last spot, a little to one side of each other.
+func _cluster_spots(origin: Vector2, count: int) -> Array[Vector2]:
+	var feet := _floor_under(origin - Vector2(0.0, 8.0))
+	var column := floori(origin.x / TILE)
+	var reachable: Array[Vector2] = []  # the floor at each column a wizard can walk to, nearest first
+	for side in [1, -1]:
+		var last := feet
+		for step in range(1, CLUSTER_REACH):
+			var at: int = column + step * side
+			var floor_at := _floor_under(Vector2((at + 0.5) * TILE, last.y - 8.0))
+			if absf(floor_at.y - last.y) > TILE or absf(floor_at.y - feet.y) > TILE * 3.0:
+				break  # a step too high, or a drop, ends the walk
+			if _in_rock(Vector2(floor_at.x, floor_at.y - 24.0)) or _in_rock(Vector2(floor_at.x, floor_at.y - 56.0)):
+				break  # a wall, or a low ceiling
+			if absf(floor_at.y - graph.surface["floor"][clampi(at, 0, graph.surface["floor"].size() - 1)] * float(TILE)) < TILE * 2.5 and Pages.in_the_way(graph, at):
+				break  # a pool, a pit of mud or a thicket
+			last = floor_at
+			reachable.append(floor_at)
+	reachable.sort_custom(func(a: Vector2, b: Vector2) -> bool: return absf(a.x - origin.x) < absf(b.x - origin.x))
+	var out: Array[Vector2] = []
+	var side_taken := {1: false, -1: false}
+	for spot in reachable:
+		var gap_ok := true
+		for other in out:
+			gap_ok = gap_ok and absf(other.x - spot.x) >= CLUSTER_GAP * TILE - 1.0
+		if gap_ok and absf(spot.x - origin.x) >= (CLUSTER_GAP - 1) * TILE:
+			out.append(spot)
+		if out.size() == count:
+			break
+	while out.size() < count:  # no room: the rest lie on the spots there are, or on the spawn's own floor
+		var base := out[out.size() % maxi(out.size(), 1)] if not out.is_empty() else feet
+		out.append(base + Vector2((out.size() % 3 - 1) * 48.0, 0.0))
+	return out
 
 
 ## The large jungle tree that stands at this column, or an empty dictionary.

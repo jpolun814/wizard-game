@@ -173,3 +173,13 @@ The PvP match (see `docs/pvp_arena_design.md`) runs on these. `World` extends `A
 ## Tests (`tests/`)
 - **`test_gestures.gd`:** every spellbook picture, at three sizes, shaky and mirrored, plus rotated cones.
 - **`showcase.gd` / `showcase.tscn`:** scripted scenes that save screenshots. See `07_testing.md`.
+
+
+## Added with the spell expansion (chapter 14)
+
+- `scripts/spells/`: `barbs.gd`, `thorn.gd`, `pebble.gd`, `hailstorm.gd`, `hail_stone.gd`, `featherfall.gd`, `thorn_whip.gd`, `insect_plague.gd`, `leech.gd`, `mirage.gd`,
+  `flaming_sphere.gd`. Raise Dead has no script of its own: `arena._raise_dead` makes a `Mob` (`Mob.master`, `_foe`, `_follow_master`, `_share_raised`).
+- `scripts/dowsing.gd` (was `scrying.gd`), `scripts/scrying_eye.gd`, `scripts/eye_mark.gd`, `scripts/hud/circle_mask.gdshader`.
+- Groups: `"leeches"`, `"squalls"` (`Squall.rain`), `"dowsings"`, `"eye_marks"`, `"ground_watchers"` (anything that keeps the ground near it made: a Flaming Sphere, the Scrying Eye's camera;
+  read by `World._process`).
+- `Wizard.feather_time`, `Pages.start_empty`/`cluster_of`, `World._lay_clusters`, `Library.title_of`/`average_accuracy`, `SpellData.school_name`.

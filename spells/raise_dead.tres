@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="Spell" format=3]
+
+[ext_resource type="Script" path="res://scripts/spell.gd" id="1_raise"]
+
+[resource]
+script = ExtResource("1_raise")
+spell_name = "Raise Dead"
+school = "Blood"
+gesture = "latin_cross"
+targeting = "positional"
+cost = 37.0
+effect = "Raise a skeleton from the dead."
+damage = ""

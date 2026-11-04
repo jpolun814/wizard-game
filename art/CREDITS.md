@@ -161,6 +161,10 @@ Cut by `tools/prepare_pimen_fire.py` from pimen's [Fire Spell Effect 01](https:/
 
 The iron hammer is one icon of FacadeGaikan's tool icons, in OpenGameArt's [CC0 Tool Icons](https://opengameart.org/content/cc0-tool-icons) (CC0), cut by `tools/prepare_hammer.py`.
 
+## The small shots of the new spells (art/fx/thorn.png, pebble.png, hailstone.png, insect.png)
+
+Drawn pixel by pixel by `tools/make_shot_art.py`. No outside source and nothing to credit. They are stand-ins, a few pixels each, until the owner picks real art.
+
 ## The magic mirror of the wizard maker
 
 `art/props/magic_mirror.png` is the animated mirror of [Magic Mirror/Portal Pixel Sprite](https://opengameart.org/content/magic-mirrorportal-pixel-sprite) by That One Annoying Pub Player (CC0), recoloured (a gold rim with a dark edge, violet glass) and cut to its still frames by `tools/prepare_mirror.py`. The sheet is not kept in the repo.

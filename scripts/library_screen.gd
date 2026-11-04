@@ -110,6 +110,8 @@ func _ledger() -> HBoxContainer:
 	else:
 		figures = [["Worlds entered", str(_data["worlds"])], ["Matches won here", str(_data["wins"])]]
 	figures.append(["Pages known", "%d of %d" % [known, every.size()]])
+	if _world == "":
+		figures.append(["Title", Library.title()])
 	for k in figures.size():
 		if k > 0:
 			row.add_child(_label("·", 24, DIM))
@@ -170,7 +172,7 @@ func _fill() -> void:
 		for spell_name: String in SpellData.SPELLS:
 			if SpellData.SPELLS[spell_name].school == school:
 				spells.append(spell_name)
-		_shelf(school, SpellData.SCHOOL_COLORS[school], spells)
+		_shelf(SpellData.school_name(school), SpellData.SCHOOL_COLORS[school], spells)
 	var chants: Array[String] = []
 	for page in Pages.every():
 		if page.begins_with("chant:"):
@@ -272,14 +274,25 @@ func _write_back(inside: VBoxContainer, page: String, colour: Color) -> void:
 	says.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	says.vertical_alignment = VERTICAL_ALIGNMENT_TOP
 	inside.add_child(says)
-	for entry in [["Found", "pages"], ["Cast", "casts"], ["Won with", "won_with"]]:
+	var rows := [["Found", "pages"], ["Cast", "casts"], ["Won with", "won_with"]]
+	if SpellData.SPELLS.has(page):
+		rows.append(["Accuracy", "accuracy"])
+	for entry in rows:
 		var row := HBoxContainer.new()
 		row.add_child(_label(entry[0], 16, DIM))
-		var count := _label(str(int(_data[entry[1]].get(page, 0))), 20, PAGE_COLOUR)
+		var count := _label(_figure(page, entry[1]), 20, PAGE_COLOUR)
 		count.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		count.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		row.add_child(count)
 		inside.add_child(row)
+
+
+## One count on the back of a card: a number, or for accuracy the average as a percentage ("-" before any cast could be judged).
+func _figure(page: String, table: String) -> String:
+	if table == "accuracy":
+		var average := Library.average_accuracy(page)
+		return "-" if average < 0.0 else "%d%%" % roundi(average * 100.0)
+	return str(int(_data[table].get(page, 0)))
 
 
 ## What the book says of a page.

@@ -17,28 +17,29 @@ const CHIME_FAR := 720.0   # and again only after they have gone this far from i
 
 var page := ""
 var spoils: Array[String] = []  # a dead wizard's whole book, lying together: reading it reads every page in it, and `page` is the first of them
+var fan := false  # the pages in `spoils` lie fanned out like cards, not shut in a book: one read takes them all
 var _t := 0.0
 var _sprite: Sprite2D
 var _hint: Label
 var _color := CHANT_COLOR  # the outline
 var _glow := CHANT_COLOR   # the light, in the school's own colour
 var _chimed := false
+var _cards: Array[Sprite2D] = []  # the pages of a fan
 
 
 func _ready() -> void:
 	add_to_group("pages")
 	z_index = 3
-	if SpellData.SPELLS.has(page) and spoils.is_empty():
+	if SpellData.SPELLS.has(page) and (spoils.is_empty() or fan):
 		_glow = SpellData.SCHOOL_COLORS[SpellData.SPELLS[page].school]
 		_color = _glow.lightened(0.2)
 	_t = randf() * TAU
 	_sprite = Sprite2D.new()
-	_sprite.texture = PAGE if spoils.is_empty() else BOOK
-	var outline := ShaderMaterial.new()
-	outline.shader = OUTLINE
-	outline.set_shader_parameter("outline_color", _color)
-	_sprite.material = outline
+	_sprite.texture = BOOK if not spoils.is_empty() and not fan else PAGE
+	_sprite.material = _outlined(_color)
 	add_child(_sprite)
+	if fan:
+		_fan_out()
 	_hint = Label.new()
 	_hint.add_theme_font_size_override("font_size", 14)
 	_hint.add_theme_color_override("font_color", Color("#ffe9a0"))
@@ -67,11 +68,43 @@ func _ready() -> void:
 	sparks.emitting = true
 
 
+## A material that outlines a page in a colour.
+func _outlined(colour: Color) -> ShaderMaterial:
+	var outline := ShaderMaterial.new()
+	outline.shader = OUTLINE
+	outline.set_shader_parameter("outline_color", colour)
+	return outline
+
+
+## The pages of a fan lie spread like a hand of cards, each leaning a little more than the one before and outlined in the colour of its own school.
+## `_sprite` is only the holder that bobs and sways, with the cards hanging from it.
+func _fan_out() -> void:
+	_sprite.texture = null
+	var count := spoils.size()
+	var middle := float(count - 1) * 0.5
+	for k in count:
+		var lean := (float(k) - middle) * 0.24  # in radians, leaning left to right
+		var card := Sprite2D.new()
+		card.texture = PAGE
+		card.rotation = lean
+		card.position = Vector2(lean * 90.0, lean * lean * 70.0)  # the outer cards sit a little lower, as a hand of cards does
+		card.z_index = k  # later cards over earlier ones
+		var school_colour: Color = SpellData.SCHOOL_COLORS[SpellData.SPELLS[spoils[k]].school] if SpellData.SPELLS.has(spoils[k]) else CHANT_COLOR
+		card.material = _outlined(school_colour.lightened(0.2))
+		_sprite.add_child(card)
+		_cards.append(card)
+
+
 func _physics_process(delta: float) -> void:
 	_t += delta
 	_sprite.position = Vector2(0.0, -FLOAT + sin(_t * 2.0) * 6.0)
 	_sprite.rotation = sin(_t * 1.3) * 0.06
-	(_sprite.material as ShaderMaterial).set_shader_parameter("strength", 0.75 + 0.25 * sin(_t * 3.0))
+	var strength := 0.75 + 0.25 * sin(_t * 3.0)
+	if _cards.is_empty():
+		(_sprite.material as ShaderMaterial).set_shader_parameter("strength", strength)
+	else:
+		for card in _cards:
+			(card.material as ShaderMaterial).set_shader_parameter("strength", strength)
 	_chime()
 	var wizard := get_tree().get_first_node_in_group("player") as Node2D
 	_hint.visible = is_underfoot()

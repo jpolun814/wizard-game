@@ -6,6 +6,10 @@ extends SpellEffect
 ## what lands builds up into a pile that settles like real snow, can be walked on, and is melted by fire. A passing
 ## fall (an ice enemy's trail) lasts a few seconds and leaves no pile.
 
+const CHILL_TO_FREEZE := 5.0  # seconds in the snow before the cold takes hold
+const CHILL_FADE := 1.5       # chill leaves this many times as fast as it comes, once out of the snow
+const IMMUNE_FOR := 1.5       # seconds after the ice thaws that the cold cannot take hold again
+const FROST_FROM := 0.2       # the share of the chill at which frost starts to show on a body
 const TRAIL_LIFE := 6.0
 const SLOW_SECONDS := 2.0
 const STEP := 6.0  # the ground under the snow is measured, and the pile kept, in columns this wide
@@ -24,6 +28,8 @@ var _pile := PackedFloat32Array()  # how deep the landed snow is in each column
 var _pile_shapes: Array[CollisionShape2D] = []
 var _pile_timer := 0.0
 var _dissipating := false
+var _chill := {}  # body -> seconds of cold it has taken, for the lasting storm only
+var _frozen_here := {}  # body -> true, for the bodies this storm has frozen, so the end of their ice is noticed
 
 
 func _begin(origin: Vector2, _aim_angle: float) -> void:
@@ -31,6 +37,7 @@ func _begin(origin: Vector2, _aim_angle: float) -> void:
 	if lasting:
 		_life = INF
 		add_to_group("lasting")
+		add_to_group("danger")
 	else:
 		_life = TRAIL_LIFE
 	_floors = _measure_ground()
@@ -51,6 +58,7 @@ func _act(delta: float) -> void:
 	if _tick <= 0.0:
 		_tick = 0.5
 		SpellTargets.douse(get_tree(), global_position + Vector2(_width() * 0.5, 60.0), _width() * 0.5 + 20.0)  # snow puts out flames beneath it
+	var inside := {}
 	for body in get_overlapping_bodies():
 		if not SpellTargets.affects(body):
 			continue
@@ -58,6 +66,81 @@ func _act(delta: float) -> void:
 			body.apply_slow(SLOW_SECONDS)
 		else:
 			body.apply_debuff("slow", SLOW_SECONDS)
+		inside[body] = true
+	if lasting:
+		for body in SpellTargets.all(get_tree()):
+			if not inside.has(body) and SpellTargets.affects(body) and _snowed_on(body):
+				inside[body] = true  # the snow falls the whole way down to the ground, not only where the clouds are
+				if body.is_in_group("mobs"):
+					body.apply_slow(SLOW_SECONDS)
+				else:
+					body.apply_debuff("slow", SLOW_SECONDS)
+		_take_the_cold(inside, delta)
+
+
+## The cold takes hold of whoever stays in the snow, and lets go of whoever leaves it. Enough of it freezes a body in ice, as an Ice Prison does,
+## and when that ice thaws there is a moment in which the cold cannot take hold again.
+func _take_the_cold(inside: Dictionary, delta: float) -> void:
+	for body in _frozen_here.keys():
+		if not is_instance_valid(body):
+			_frozen_here.erase(body)
+		elif not body.is_frozen():
+			_frozen_here.erase(body)
+			body.set_meta("cold_immune_until", Engine.get_physics_frames() + int(IMMUNE_FOR * Engine.physics_ticks_per_second))  # (counted in frames of the game, which run as fast or slow as it does)
+			_chill.erase(body)
+	for body in inside:
+		if _frozen_here.has(body) or body.is_frozen() or _is_immune(body):
+			continue
+		_chill[body] = float(_chill.get(body, 0.0)) + delta
+		if float(_chill[body]) >= CHILL_TO_FREEZE:
+			_freeze(body)
+	for body in _chill.keys():
+		if not is_instance_valid(body):
+			_chill.erase(body)
+		elif not inside.has(body):
+			_chill[body] = float(_chill[body]) - delta * CHILL_FADE
+			if float(_chill[body]) <= 0.0:
+				_chill.erase(body)
+
+
+## True while the cold cannot take hold of this body: its ice has only just thawed, or it is made of ice itself.
+func _is_immune(body: Node2D) -> bool:
+	if body.is_in_group("mobs") and body.shrugs_off_cold():
+		return true
+	return Engine.get_physics_frames() < int(body.get_meta("cold_immune_until", 0))
+
+
+## Freezes a body solid in a block of ice round it, as an Ice Prison drawn tightly round it would.
+func _freeze(body: Node2D) -> void:
+	var prison := IcePrison.new()
+	var middle := SpellTargets.center_of(body)
+	prison.rect = Rect2(middle - Vector2(14.0, 20.0), Vector2(28.0, 40.0))  # only this body is inside it
+	get_parent().add_child(prison)
+	_frozen_here[body] = true
+	_chill.erase(body)
+
+
+## True when this body stands under the clouds, in the column of falling snow, with nothing solid between it and them.
+func _snowed_on(body: Node2D) -> bool:
+	var at := SpellTargets.center_of(body)
+	if not danger_at(at):
+		return false
+	var top := Vector2(at.x, global_position.y + 60.0)
+	if top.y >= at.y:
+		return true
+	var query := PhysicsRayQueryParameters2D.create(top, at, 1)  # terrain, stone and ice stop snow; bodies do not
+	return get_world_2d().direct_space_state.intersect_ray(query).is_empty()
+
+
+## True where the snow falls on a wizard standing in it, for the wizards that step out of danger.
+func danger_at(point: Vector2) -> bool:
+	if not lasting or _floors.is_empty():
+		return false
+	var from := global_position.x
+	if point.x < from or point.x > from + _width():
+		return false
+	var column := clampi(int((point.x - from) / STEP), 0, _floors.size() - 1)
+	return point.y > global_position.y - 60.0 and point.y < global_position.y + _floors[column]
 
 
 func _width() -> float:
@@ -195,6 +278,29 @@ func _draw() -> void:
 	for c in _pile.size():
 		if _pile[c] > 0.5:
 			draw_rect(Rect2(c * STEP, _floors[c] - _pile[c], STEP + 1.0, _pile[c]), Color(0.92, 0.96, 1.0, fade * grow))
+	for body in _chill:
+		if is_instance_valid(body):
+			_draw_frost(body, float(_chill[body]) / CHILL_TO_FREEZE)
+
+
+## Frost creeping up a body from its feet as the cold takes hold: pixel squares of ice that crowd in and climb as the chill grows, so the
+## freezing is seen coming.
+func _draw_frost(body: Node2D, share: float) -> void:
+	if share < FROST_FROM:
+		return
+	var reach := clampf((share - FROST_FROM) / (1.0 - FROST_FROM), 0.0, 1.0)
+	var feet := body.global_position - global_position
+	var height := 8.0 + 44.0 * reach
+	var count := int(6.0 + 40.0 * reach)
+	var seed_at := int(absf(body.global_position.x)) % 7
+	for k in count:
+		var row := fmod(float(k * 37 + seed_at * 11), 100.0) / 100.0
+		var across := fmod(float(k * 53 + seed_at * 17), 100.0) / 100.0 - 0.5
+		var at := feet + Vector2(roundf(across * 30.0), -roundf(row * height))
+		var size := 4.0 if k % 3 == 0 else 2.0
+		draw_rect(Rect2(at - Vector2.ONE, Vector2(size + 2.0, size + 2.0)), Color(0.16, 0.38, 0.72, 0.85))  # an edge of deep blue, so it stands out from the flakes
+		draw_rect(Rect2(at, Vector2(size, size)), Color(0.6, 0.92, 1.0, 1.0))
+	draw_rect(Rect2(feet + Vector2(-17.0, -3.0), Vector2(34.0, 3.0)), Color(0.6, 0.92, 1.0, 0.9 * reach))  # a rim of ice round the feet that thickens
 
 
 ## Where the snow reaches, left and right, in the world.

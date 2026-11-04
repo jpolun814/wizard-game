@@ -158,7 +158,7 @@ func _burn() -> void:
 		var middle := SpellTargets.center_of(body)
 		for puff in _puffs:
 			if middle.distance_to(puff["pos"]) <= _radius(puff) + 16.0:
-				SpellTargets.hurt(body, DAMAGE, "Fire")
+				SpellTargets.hurt(body, DAMAGE, "Fire", false, false, self)
 				PixelFx.play_square(self, middle, "pimen_breath_hit", 16.0, HIT_SCALE, _direction().angle())  # and the flame lashes the one it burns
 				break
 

@@ -68,3 +68,11 @@ There are no waves. The world holds no enemy mobs: the enemies are the other wiz
 - A healer enemy that must be killed first.
 - An elite skeleton with a shield that blocks frontal projectiles. The skeleton art has a "Shield"
   animation that's unused.
+
+
+## Raised skeletons and the new spells (chapter 14)
+
+- A skeleton raised by Raise Dead is a `basic` `Mob` with `master` set. `_pick_prey` skips the master and also picks the nearest skeleton of another master as `_foe`; `_target()` prefers `_foe`;
+  with no one to fight it keeps near its master (`_follow_master`); it falls when its master falls.
+- The brain knows every new spell (`WizardBrain.USES`, a score in `_attack`, a stroke in `_attack_stroke`). It stops going for Mirages once it has watched one fade (`_wise_to_mirages`), casts a
+  Scrying Eye when it has lost track of everyone (`_eye_time`, which lets it find wizards faded from sight for a while), and lands Featherfall in a long fall.

@@ -26,8 +26,13 @@ var _shots := {}  # a shot that entered the funnel -> where it came in, or null 
 
 func _ready() -> void:
 	# The funnel's tip rests on the ground.
-	var ground := SpellTargets.ground_below(get_world_2d(), global_position + Vector2(0, -40))
-	global_position = ground - Vector2(0, TIP)
+	var query := PhysicsRayQueryParameters2D.create(global_position + Vector2(0, -40), global_position + Vector2(0, 800))
+	query.collision_mask = 1 | 16
+	var hit := get_world_2d().direct_space_state.intersect_ray(query)
+	if hit.is_empty():
+		queue_free()  # with no ground under it a whirlwind has nothing to stand on: it does not hang in the air
+		return
+	global_position = hit["position"] - Vector2(0, TIP)
 	for band in FUNNEL_BANDS:
 		var shape := CollisionShape2D.new()
 		var box := RectangleShape2D.new()
@@ -87,7 +92,7 @@ func _physics_process(delta: float) -> void:
 		if _scorch <= 0.0:
 			_scorch = WHIRL_TICK
 			for body in get_overlapping_bodies():
-				SpellTargets.hurt(body, WHIRL_DAMAGE, "Fire")
+				SpellTargets.hurt(body, WHIRL_DAMAGE, "Fire", false, false, self)
 	for body in _flung.keys():
 		_flung[body] -= delta
 		if _flung[body] <= 0.0 or not is_instance_valid(body):

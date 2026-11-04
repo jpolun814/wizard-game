@@ -29,23 +29,23 @@ const PLACES := [
 		["Enter", "Speak a chant."],
 		["", "Watch your stamina at the top left. Spells cost stamina."],
 		["", "Stamina will recharge while you stand still."]]},
-	{"col": -14, "title": "Fire", "school": "Fire", "steps": [
+	{"col": -14, "title": "Pyromancy", "school": "Fire", "steps": [
 		["Ignite", "Draw a short line toward the dummy."]]},
-	{"col": 4, "title": "Water", "school": "Water", "steps": [
+	{"col": 4, "title": "Aquamagy", "school": "Water", "steps": [
 		["Frostbolt", "Draw a short line toward the dummy."],
 		["Frost Bridge", "Draw a wavy line across the pond, then cross it."]]},
-	{"col": 38, "title": "Air", "school": "Air", "steps": [
+	{"col": 38, "title": "Aerokinesis", "school": "Air", "steps": [
 		["Barrier", "Draw a circle round yourself as the turret fires."]]},
-	{"col": 60, "title": "Earth", "school": "Earth", "steps": [
+	{"col": 60, "title": "Terramancy", "school": "Earth", "steps": [
 		["Stonefall", "Draw a circle with a line down, above the dummy."]]},
-	{"col": 80, "title": "Flora", "school": "Flora", "steps": [
+	{"col": 80, "title": "Druidry", "school": "Flora", "steps": [
 		["Liana", "Draw a leaf, then a line up, and climb the vine."],
 		["Ignite", "Then draw a short line into the vine."]]},
-	{"col": 102, "title": "Shadow", "school": "Shadow", "steps": [
+	{"col": 102, "title": "Umbramancy", "school": "Shadow", "steps": [
 		["Decoy", "Draw a figure of eight."]]},
-	{"col": 122, "title": "Blood", "school": "Blood", "steps": [
+	{"col": 122, "title": "Necromancy", "school": "Blood", "steps": [
 		["Adrenaline", "Draw a zigzag."]],
-		"note": "Blood spells are more powerful, but they spend maximum stamina that does not come back."},
+		"note": "Necromancy spells are more powerful, but they spend maximum stamina that does not come back."},
 	{"col": 142, "title": "Chants", "school": "", "steps": [
 		["chant:minimap", "Press Enter, type the words, then press Enter."],
 		["chant:haste", "Press Enter, type the words, then press Enter."]]},
@@ -53,7 +53,7 @@ const PLACES := [
 const DUMMIES := [-8, -20, 9, 64, 84, 74]
 const DUMMY_HP := 36  # three fireballs: the tutorial's dummies fall quickly, so each try is seen through
 const TURRET := 46
-const SHADOW_GUARD := 116  # a skeleton that comes for whoever is at the Shadow place: for a decoy, when there is one
+const SHADOW_GUARD := 116  # a skeleton that comes for whoever is at the Umbramancy place: for a decoy, when there is one
 
 var _done := {}      # place index -> {step index: true}
 var _guide: CanvasLayer
@@ -184,13 +184,13 @@ func _process(delta: float) -> void:
 		_call_guard(near)
 
 
-## The skeleton at the Shadow place is brought in when the wizard comes to that place and sent away when they leave it, so that it does not
+## The skeleton at the Umbramancy place is brought in when the wizard comes to that place and sent away when they leave it, so that it does not
 ## wander the room after them. It comes for whoever it can see: for a decoy, when there is one.
 func _call_guard(place: int) -> void:
 	if _guard != null and is_instance_valid(_guard):
 		_guard.queue_free()
 		_guard = null
-	if place >= 0 and PLACES[place]["title"] == "Shadow":
+	if place >= 0 and PLACES[place]["school"] == "Shadow":
 		_guard = _add_mob("basic", Vector2(ArenaGen.column_x(SHADOW_GUARD), ArenaGen.surface_y(_cells, SHADOW_GUARD)))
 		_guard.facing = -1.0
 

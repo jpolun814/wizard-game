@@ -1,8 +1,8 @@
-class_name Scrying
+class_name Dowsing
 extends Node
 
-## What the Chant of Scrying leaves: the way to one page, fixed when the chant was said. An arrow at the edge of the screen points to it
-## (see EdgeArrows, which looks for everything in the "scryings" group) until the page has been read. To look for another, chant again.
+## What the Chant of Dowsing leaves: the way to one page, fixed when the chant was said. An arrow at the edge of the screen points to it
+## (see EdgeArrows, which looks for everything in the "dowsings" group) until the page has been read. To look for another, chant again.
 
 var target: Node2D       # the page being shown
 var ledger: Ledger       # the pages the speaker has read
@@ -30,7 +30,7 @@ static func unread(page: PagePickup, held: Ledger) -> bool:
 
 
 func _ready() -> void:
-	add_to_group("scryings")
+	add_to_group("dowsings")
 
 
 func _process(_delta: float) -> void:

@@ -95,6 +95,19 @@ func _initialize() -> void:
 			for kept_page in kept:
 				_check(first.has(kept_page) or spare.has(kept_page), "seed %d: %s comes from nowhere" % [seed_value, kept_page])
 			_check(kept.any(func(p: String) -> bool: return wanted.has(p)) or dealt.any(func(l: Ledger) -> bool: return wanted.any(func(p: String) -> bool: return l.knows(p))) or not spare.any(func(p: String) -> bool: return wanted.has(p)), "seed %d: nothing opens a %s gate" % [seed_value, kind])
+	# Nobody starts with a page: what they would have been dealt lies in a cluster by their spawn.
+	var empty := Pages.start_empty(4)
+	_check(empty.size() == 4 and empty.all(func(l: Ledger) -> bool: return l.pages.is_empty() and not l.knows("Ignite") and not l.knows("chant:bonfire")), "four wizards start with empty books")
+	for seed_value in 50:
+		var dealt_seed := Pages.deal(seed_value + 31, 4)
+		var allotted := Pages.allotment(seed_value, 4, [10, 10, 10, 10])
+		for seat in 4:
+			var cluster := Pages.cluster_of(seed_value, seat, 4)
+			_check(cluster.size() == 5 and cluster == Array(dealt_seed[seat].pages.keys(), TYPE_STRING, "", null), "seed %d: seat %d's cluster holds exactly the pages it would have been dealt" % [seed_value, seat])
+			_check(cluster == Pages.cluster_of(seed_value, seat, 4), "seed %d: the cluster is the same twice" % seed_value)
+			for held_page in cluster:
+				if not held_page.begins_with("chant:"):
+					_check(not allotted["worlds"].any(func(world: Array) -> bool: return world.has(held_page)) and not allotted["spare"].has(held_page), "seed %d: %s is in a cluster and in no world" % [seed_value, held_page])
 	print("%d checks" % _checks)
 	print("all page checks passed" if _failures == 0 else "%d FAILED" % _failures)
 	quit(1 if _failures > 0 else 0)

@@ -12,7 +12,7 @@ signal died
 
 const SPEED := 300.0
 const BREATH := 8.0  # seconds under water before the wizard starts to drown
-const DEEP_BREATH := 45.0  # seconds the Chant of the Deep Breath holds the wizard's breath: it counts down from the chant
+const DEEP_BREATH := 45.0  # seconds the Blessing of the Deep Breath holds the wizard's breath: it counts down from the chant
 const DROWN_RATE := 3.0  # most stamina lost per second while out of breath, and it does not come back by itself
 const HASTE := 1.6  # how much faster the Chant of Swift Feet makes the wizard
 const JUMP_VELOCITY := -520.0
@@ -53,6 +53,8 @@ const DRAW_TIME := 0.8        # how long a brain's wizard takes to draw a spell
 const SPAWN_TIME := 0.7       # a wizard summoned into the world arrives out of a circle this long
 const FALL_LIMIT := 800.0     # a wizard below this has fallen off the map (in a world, the bottom of it)
 
+const FEATHER_FALL := 70.0  # the fastest a wizard falls under a Featherfall, in pixels a second
+var _feather_motes := 0.0
 var gravity: float = ProjectSettings.get_setting("physics/2d/default_gravity")
 var look := "wizard":  # which wizard this is: the player's own, or the id of one of the others' looks (a MobKind in res://mobs)
 	set(value):
@@ -86,7 +88,7 @@ var stamina := MAX_STAMINA
 var max_stamina := MAX_STAMINA  # what stamina can reach for now. Hits and the Rift wear it down; you die when it is gone
 var ledger := Ledger.complete()  # the pages in the wizard's book: all of them in the waiting room, the ones found in a world
 var movement_enabled := true  # the arena turns this off while a typing box or the spellbook is open
-var infinite_time: float: # Chant of Boundless Vigour: stamina does not run out while this lasts
+var infinite_time: float: # Blessing of the Wellspring: stamina does not run out while this lasts
 	get: return _status.left(&"infinite")
 	set(seconds): _status.set_left(&"infinite", seconds)
 var slow_time: float: # frost slows the caster while this lasts
@@ -98,15 +100,15 @@ var sink_time: float: # quicksand: slowed, and unable to jump while this lasts
 var tangle_time: float: # caught in thorns: nearly stopped, and unable to jump while this lasts
 	get: return _status.left(&"tangle")
 	set(seconds): _status.set_left(&"tangle", seconds)
-var deep_breath_time: float: # the Chant of the Deep Breath: the breath is held while this lasts, under water or not
+var deep_breath_time: float: # the Blessing of the Deep Breath: the breath is held while this lasts, under water or not
 	get: return _status.left(&"deep_breath")
 	set(seconds): _status.set_left(&"deep_breath", seconds)
-var breath := BREATH  # seconds of air left while the breath is held without the Chant of the Deep Breath
+var breath := BREATH  # seconds of air left while the breath is held without the Blessing of the Deep Breath
 var smothered := false  # the air is drawn out of the wizard's lungs (Vacuum sets and clears this)
 var haste_time: float: # the Chant of Swift Feet: faster on foot while this lasts
 	get: return _status.left(&"haste") if not ledger.is_settled("haste") else 1.0e9
 	set(seconds): _status.set_left(&"haste", seconds)
-var air_jump_time: float: # the Chant of the Second Leap: a jump in the air is allowed while this lasts
+var air_jump_time: float: # the Blessing of Skystep: a jump in the air is allowed while this lasts
 	get: return _status.left(&"air_jump") if not ledger.is_settled("double_jump") else 1.0e9
 	set(seconds): _status.set_left(&"air_jump", seconds)
 var adrenaline_time: float: # Adrenaline: stamina comes back quicker and the wizard is hasted while this lasts
@@ -121,6 +123,9 @@ var surf_time: float: # Tide Surf: a wave carries the wizard along surf_dir whil
 var fade_time: float: # Sneak: the wizard shows only faintly while this lasts
 	get: return _status.left(&"fade")
 	set(seconds): _status.set_left(&"fade", seconds)
+var feather_time: float: # Featherfall: the wizard falls as slowly as a feather while this lasts
+	get: return _status.left(&"feather")
+	set(seconds): _status.set_left(&"feather", seconds)
 var surf_dir := 1.0
 var temp_stamina := 0.0  # stamina from an Offering: spent once the usual stamina is gone, never comes back by itself, and may pass the most
 var veil := 0  # hits a Crimson Veil will still turn away
@@ -394,6 +399,7 @@ func revive() -> void:
 ## it without starting that grace, so a burn and a blow can both land.
 func take_damage(amount: int, grace_hit := true, projectile := false) -> void:
 	if is_likeness():
+		MatchStats.hit(self, minf(float(amount), maxf(max_stamina, 0.0)), "", float(amount) >= max_stamina)  # a blow this machine's person struck is theirs, though it lands on the other machine
 		return  # the machine that drives this wizard decides what a hit does, and shows it here (see _show_hurt)
 	if (projectile and _shield_time > 0.0) or dead or (grace_hit and _grace > 0.0) or amount <= 0:
 		return
@@ -410,6 +416,7 @@ func take_damage(amount: int, grace_hit := true, projectile := false) -> void:
 	if projectile and obsidian_time > 0.0:
 		amount = maxi(1, roundi(amount * OBSIDIAN_SHOTS))  # black glass takes half of what a shot would
 	amount = roundi(amount * Hex.multiplier(get_tree(), self))  # a hexed wizard takes half again as much
+	var had := maxf(max_stamina, 0.0)
 	max_stamina -= amount
 	stamina = minf(stamina, maxf(max_stamina, 0.0))
 	_flash = 0.3
@@ -424,6 +431,7 @@ func take_damage(amount: int, grace_hit := true, projectile := false) -> void:
 	if brain != null:
 		brain.on_hurt(amount)
 	_check_death()
+	MatchStats.hit(self, minf(float(amount), had))  # (only what there was to lose)
 
 
 func _check_death() -> void:
@@ -477,7 +485,7 @@ func underwater() -> bool:
 	return _liquid_time > 0.0 and not _in_lava and global_position.y - BODY_HEIGHT + 10.0 > _liquid_y
 
 
-## True while the wizard holds their breath, for any reason: under water, in the Chant of the Deep Breath, or with the air drawn out of them.
+## True while the wizard holds their breath, for any reason: under water, in the Blessing of the Deep Breath, or with the air drawn out of them.
 ## Gas does no harm to anyone holding their breath, and nobody can chant.
 func holding_breath() -> bool:
 	return underwater() or smothered or deep_breath_time > 0.0
@@ -638,7 +646,7 @@ func _draw_breath() -> void:
 
 
 ## While the breath is held (under water, or with the air drawn out) the air runs down, and once it is gone the most stamina does too,
-## until the wizard breathes again. That loss is only made good the usual ways. The Chant of the Deep Breath holds the breath without using the air.
+## until the wizard breathes again. That loss is only made good the usual ways. The Blessing of the Deep Breath holds the breath without using the air.
 func _breathe(delta: float) -> void:
 	if dead:
 		return
@@ -710,6 +718,12 @@ func _physics_process(delta: float) -> void:
 
 	if not is_on_floor():
 		velocity.y += gravity * delta
+		if feather_time > 0.0 and velocity.y > FEATHER_FALL:
+			velocity.y = FEATHER_FALL  # as light as a feather
+			_feather_motes -= delta
+			if _feather_motes <= 0.0:
+				_feather_motes = 0.35
+				Fx.burst(get_parent(), center() + Vector2(0, -20), Color(0.92, 0.95, 1.0), 2, 25.0, 0.8, false, "star_04")
 	_coyote = COYOTE_TIME if is_on_floor() else _coyote - delta
 	_jump_buffer -= delta
 
@@ -808,7 +822,7 @@ func _climb() -> bool:
 	return true
 
 
-## Chant of the Second Leap: one extra jump in the air, for a while.
+## Blessing of Skystep: one extra jump in the air, for a while.
 func grant_haste(seconds: float) -> void:
 	haste_time = maxf(haste_time, seconds)
 

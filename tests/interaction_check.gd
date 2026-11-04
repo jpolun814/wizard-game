@@ -148,18 +148,18 @@ func _ready() -> void:
 
 	var seer: Wizard = world.player
 	seer.ledger = Ledger.of(["Ignite"])  # (the waiting room's book holds everything; this one holds almost nothing)
-	seer.ledger.learn("chant:scrying")
-	world._on_ritual_finished("scrying", 1.0, false)
+	seer.ledger.learn("chant:dowsing")
+	world._on_ritual_finished("dowsing", 1.0, false)
 	await get_tree().process_frame
-	var shown := get_tree().get_nodes_in_group("scryings")
-	_verdict(shown.size() == 1 and shown[0].target is PagePickup, "the Chant of Scrying points to a page")
+	var shown := get_tree().get_nodes_in_group("dowsings")
+	_verdict(shown.size() == 1 and shown[0].target is PagePickup, "the Chant of Dowsing points to a page")
 	if shown.size() == 1:
-		var near: PagePickup = Scrying.nearest_unread(get_tree(), seer.center(), seer.ledger)
+		var near: PagePickup = Dowsing.nearest_unread(get_tree(), seer.center(), seer.ledger)
 		_verdict(near == shown[0].target, "the page it points to is the nearest one not yet read")
 		seer.ledger.learn(near.page)
 		await get_tree().process_frame
 		await get_tree().process_frame
-		_verdict(get_tree().get_nodes_in_group("scryings").is_empty() or get_tree().get_nodes_in_group("scryings")[0].is_queued_for_deletion(), "and the arrow goes once that page is read")
+		_verdict(get_tree().get_nodes_in_group("dowsings").is_empty() or get_tree().get_nodes_in_group("dowsings")[0].is_queued_for_deletion(), "and the arrow goes once that page is read")
 
 	var fought := false
 	var fled := false

@@ -30,13 +30,14 @@ CHECKS = [
     "flow_check", "tutorial_check", "menu_check", "settings_check", "lab_revive_check", "likeness_check", "stairs_check", "stairwell_check", "castle_spells_check", "castle_sinkhole_fall_check",
     "biome_jump_check", "sinkhole_check", "sinkhole_biomes_check", "ridge_check", "stalagmite_check", "parity_check", "interaction_check",
     "route_check", "ritual_check", "library_screen_check", "avalanche_check", "pieces_check", "arrival_check", "sneak_check", "brain_spells_check",
+    "cluster_check", "brains_start_check", "blizzard_freeze_check", "group_a_check", "group_b_check", "leech_check", "raise_dead_check", "mirage_check", "sphere_check", "lab_sphere_check", "eye_check",
 )]
 
 # Slower checks, or ones that need arguments: run with --all.
 SLOW = [("net_check", "net", "host,client"), ("net_crowd_check", "net", "host,first,second"), ("net_hazard_check", "net", "host seed=1,client seed=1"),
-        ("net_match_check", "net", "host,client"), ("test_world", "scene", "seeds=30"), ("showcase:checks", "scene", "scenario=checks"), ("showcase:newspells", "scene", "scenario=newspells"),
+        ("net_match_check", "net", "host,client"), ("net_spells_check", "net", "host,client"), ("test_world", "scene", "seeds=30"), ("showcase:checks", "scene", "scenario=checks"), ("showcase:newspells", "scene", "scenario=newspells"),
         ("showcase:spells", "scene", "scenario=spells"), ("showcase:soak", "scene", "scenario=soak")] + [(name, "scene", "") for name in (
-    "collapse_check", "gate_check", "follow_check", "geyser_check", "wall_liquid_check", "eruption_check", "dark_check", "spectate_check",
+    "collapse_check", "gate_check", "follow_check", "geyser_check", "wall_liquid_check", "eruption_check", "dark_check", "spectate_check", "stats_check",
     "pull_check", "spark_check", "sentinel_check", "liquid_world_check", "dig_out_check", "lab_sinkhole_check", "page_count_check",
     "portal_world_check", "spell_fixes_check", "spoils_check", "stage_jump_check", "intro_check", "epilogue_check", "epilogue_jump_check", "eclipse_check", "minimap_check",
 )]

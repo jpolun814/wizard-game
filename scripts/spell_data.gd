@@ -19,6 +19,35 @@ const SCHOOL_COLORS := {
 	"Blood": Color("#c4162f"),
 }
 
+## What the player reads for each school. The ids above stay as they are, because they also name an element (what hurts, what freezes,
+## what a mob is made of); only the screen shows these names.
+const SCHOOL_NAMES := {
+	"Fire": "Pyromancy",
+	"Water": "Aquamagy",
+	"Air": "Aerokinesis",
+	"Earth": "Terramancy",
+	"Flora": "Druidry",
+	"Shadow": "Umbramancy",
+	"Blood": "Necromancy",
+}
+
+## The title a wizard earns by casting mostly from a school.
+const SCHOOL_TITLES := {
+	"Fire": "Pyromancer",
+	"Water": "Aquamage",
+	"Air": "Aerokinetic",
+	"Earth": "Terramancer",
+	"Flora": "Druid",
+	"Shadow": "Umbramancer",
+	"Blood": "Necromancer",
+}
+
+
+## The name of a school as the player reads it.
+static func school_name(school: String) -> String:
+	return SCHOOL_NAMES.get(school, school)
+
+
 ## The schools, each cast with its own mouse buttons.
 const SCHOOL_BUTTONS := {
 	"Fire": LEFT,

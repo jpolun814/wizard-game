@@ -51,7 +51,8 @@ func _ready() -> void:
 	player.velocity = Vector2.ZERO
 	for k in 90:
 		await get_tree().physics_frame
-	_verdict(absf(player.global_position.y - top.y) < 6.0 and player.is_on_floor(), "a wizard dropped over a ridge lands on its top (%.0f px from it)" % (player.global_position.y - top.y))
+	var line_y := ridges.top_at(player.global_position.x)  # (a body wider than a sharp crest rests on its slope, a little under the very top)
+	_verdict(absf(player.global_position.y - line_y) < 6.0 and player.is_on_floor(), "a wizard dropped over a ridge lands on its top (%.0f px from the line under them)" % (player.global_position.y - line_y))
 	if out != "":
 		await RenderingServer.frame_post_draw
 		DirAccess.make_dir_recursive_absolute(out)
@@ -78,9 +79,10 @@ func _ready() -> void:
 	var fit := Sinkhole.fit(world.get_world_2d(), drawn, 17, ridges)
 	_verdict(fit["ridge"] == ridges, "a U drawn on a ridge's top is fitted to the ridge")
 	var before := ridges.top_at(middle.x)
+	var beside_before := ridges.top_at(middle.x + 120.0)
 	_verdict(ridges.dig(fit["spot"], fit["half_width"], fit["depth"], fit["profile"]), "the pit opens in the ridge")
 	_verdict(ridges.top_at(middle.x) > before + 20.0, "and the ridge's top is lower there (%.0f px)" % (ridges.top_at(middle.x) - before))
-	_verdict(absf(ridges.top_at(middle.x + 120.0) - before) < 20.0, "and no lower beside it")
+	_verdict(absf(ridges.top_at(middle.x + 120.0) - beside_before) < 20.0, "and no lower beside it")
 	print("the peaks have a second range" if _failures == 0 else "%d FAILED" % _failures)
 	get_tree().quit(1 if _failures > 0 else 0)
 

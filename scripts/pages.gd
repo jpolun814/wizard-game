@@ -16,7 +16,7 @@ const DEFENCES := ["Barrier", "Decoy", "Stone Wall", "Smoke Screen", "Gust", "Ec
 const CHANTS := ["chant:bonfire", "chant:rift"]
 ## Spells that open no gate, and chants that do not: the ones that may lie in a locked area.
 const LOCKABLE := ["Frostbolt", "Icicles", "Ice Prison", "Blizzard", "Stonefall", "Mudslide", "Earthquake", "Stalagmite", "Bramble", "Spore Puff",
-		"Flytrap", "Hex", "Black Hole", "Tide Surf", "Offering", "Burst", "Crimson Veil", "Adrenaline", "Faint", "Vacuum", "Fight or Flight", "Sneak", "Hunter's Mark", "chant:boundless", "chant:double_jump", "chant:haste", "chant:scrying"]
+		"Flytrap", "Hex", "Black Hole", "Tide Surf", "Offering", "Burst", "Crimson Veil", "Adrenaline", "Faint", "Vacuum", "Fight or Flight", "Sneak", "Hunter's Mark", "Barbs", "Pebble", "Hailstorm", "Featherfall", "Thorn Whip", "Insect Plague", "Leech", "Raise Dead", "Mirage", "chant:boundless", "chant:double_jump", "chant:haste", "chant:dowsing", "chant:scrying_eye"]
 ## How many pages lie in a world of each biome, in a world 1000 tiles wide: the ones with little height to spread through (a volcano's
 ## slopes, the portal fields) hold fewer than those with room to climb or dig. Smaller worlds hold fewer (see count_for). The pages that
 ## are not laid are simply not in that world: nothing carries over. Which pages each world lays is settled when the match begins (see allotment).
@@ -100,6 +100,22 @@ static func deal(seed_value: int, wizards: int) -> Array[Ledger]:
 			starters.append(copy[k % copy.size()])
 		starters.append_array(CHANTS)
 		out.append(Ledger.of(starters))
+	return out
+
+
+## Ledgers with nothing in them, one for each wizard: nobody starts a match with a spell (see cluster_of for where the pages they would
+## have been dealt lie instead).
+static func start_empty(wizards: int) -> Array[Ledger]:
+	var out: Array[Ledger] = []
+	for k in wizards:
+		out.append(Ledger.new())
+	return out
+
+
+## The pages that lie in a cluster by the spawn of a seat, in the first world of a match: the ones the seat would have been dealt (see deal).
+static func cluster_of(match_seed: int, seat: int, wizards: int) -> Array[String]:
+	var out: Array[String] = []
+	out.assign(deal(match_seed + 31, wizards)[seat].pages.keys())
 	return out
 
 
@@ -236,7 +252,7 @@ static func _surface_columns(graph: WorldGraph, count: int) -> Array[int]:
 		var clear := true
 		for castle: int in castles:
 			clear = clear and (column < castle - 6 or column > castle + SurfaceGen.CASTLE_WIDTH + 6)
-		clear = clear and not _in_the_way(graph, column)
+		clear = clear and not in_the_way(graph, column)
 		if clear:
 			out.append(column)
 			if out.size() == count:
@@ -277,13 +293,13 @@ static func _moved_apart(graph: WorldGraph, column: int, taken: Array[int]) -> i
 	for step in range(0, 200, 4):
 		for side in [1, -1]:
 			var moved: int = column + step * side
-			if moved > SurfaceGen.MARGIN + 6 and moved < WorldGraph.size.x - SurfaceGen.MARGIN - 6 and _far_from(moved, taken) and not _in_the_way(graph, moved):
+			if moved > SurfaceGen.MARGIN + 6 and moved < WorldGraph.size.x - SurfaceGen.MARGIN - 6 and _far_from(moved, taken) and not in_the_way(graph, moved):
 				return moved
 	return column
 
 
 ## True when a page could not lie at the column: in a pool, or in a pit of mud or a thicket.
-static func _in_the_way(graph: WorldGraph, column: int) -> bool:
+static func in_the_way(graph: WorldGraph, column: int) -> bool:
 	for span: Dictionary in graph.surface["ponds"]:
 		if column >= span["a"] - 4 and column <= span["b"] + 4:
 			return true

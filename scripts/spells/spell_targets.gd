@@ -16,7 +16,7 @@ static func affects(body: Node) -> bool:
 
 ## Hurts the body. Enemies take school damage (weak, resisted); a wizard, whoever plays it, takes it plain. A shot's hurt
 ## (shot true) is stopped by a wizard's Barrier, as every shot is.
-static func hurt(body: Node, amount: int, school: String, shot := false, lava := false) -> void:
+static func hurt(body: Node, amount: int, school: String, shot := false, lava := false, by: Node = null) -> void:
 	if not affects(body):
 		return
 	if lava and body.has_method("lava_proof") and body.lava_proof():
@@ -27,9 +27,12 @@ static func hurt(body: Node, amount: int, school: String, shot := false, lava :=
 			body.thaw()
 			Shatter.spawn(body.get_parent(), body.center(), Color("#cdeeff"))
 			Sfx.play("ice_shatter", body.center())
+		MatchStats.strike(by)  # (whose blow it is, for the count of what each wizard has done)
 		body.take_damage(amount, true, shot)
 	else:
+		MatchStats.strike(by)
 		body.take_damage(amount, school, shot)
+	MatchStats.strike(null)
 
 
 ## Every body a spell can reach: every enemy, and every wizard while alive.
@@ -73,11 +76,11 @@ static func center_of(body: Node2D) -> Vector2:
 
 
 ## Hurts every affected body within a radius of a point, and returns how many it hit.
-static func hurt_within(tree: SceneTree, point: Vector2, radius: float, amount: int, school: String, shot := false, lava := false) -> int:
+static func hurt_within(tree: SceneTree, point: Vector2, radius: float, amount: int, school: String, shot := false, lava := false, by: Node = null) -> int:
 	var hit := 0
 	for body in all(tree):
 		if center_of(body).distance_to(point) <= radius:
-			hurt(body, amount, school, shot, lava)
+			hurt(body, amount, school, shot, lava, by)
 			hit += 1
 	return hit
 
@@ -125,6 +128,8 @@ static func fire_points(tree: SceneTree) -> Array:
 			fires.append({"at": node.landing, "heat": 3.0, "size": 14.0, "shot": true})
 		elif node is Bonfire:
 			fires.append({"at": node.global_position + Vector2(0, -20), "heat": 1.0, "size": 24.0, "shot": false})
+		elif node is FlamingSphere:
+			fires.append({"at": node.global_position, "heat": 2.0, "size": 16.0, "shot": false})
 	return fires
 
 

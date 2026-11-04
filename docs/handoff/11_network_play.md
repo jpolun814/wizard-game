@@ -85,3 +85,12 @@ so its waits end before the other copy has answered. The waiting-room test with 
   This is the friendly choice (nobody is hit by something they dodged on their own screen); strangers would need the host to decide.
 - **R (reset the room) does nothing in a network game,** and F1's summons are only on your own machine.
 - **Joining once a match has begun is refused** (the joiner sees "Check the address and try again.").
+
+
+## New things a second machine must see (chapter 14)
+
+Spells spawn on every machine from the one that drives the caster (`arena._spawn_everywhere`), so a Mirage, a Flaming Sphere, a Featherfall and the rest need nothing more. Four need a word more:
+**Leech**: the caster's machine pays its half; every machine's `spawn_spell` drains the other half from the tethered wizard, which only the machine that drives that wizard does. **Raise Dead**: the
+machine driving the master drives the skeleton and sends where it is (`Mob._raised_at`); the others show a puppet, and a blow on a puppet goes to its driver (`_struck_by_the_dead`).
+**Scrying Eye**: the window is local; the eye over the watched wizard is shown on every machine (`arena.eye_on`). **Mirage**: each machine decides for itself when it fades, from where the wizards stand.
+None of these has been tried over a real connection (`net_match_check` runs a match; none of the new spells is cast in it).

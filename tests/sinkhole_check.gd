@@ -28,7 +28,10 @@ func _ready() -> void:
 		for pond: Pond in get_tree().get_nodes_in_group("ponds"):
 			if probe.x > pond.global_position.x - 400.0 and probe.x < pond.global_position.x + pond.width + 400.0 and absf(probe.y - pond.global_position.y) < 400.0:
 				near_water = true
-		if not near_water and not is_equal_approx(probe.y, float(ArenaGen.GROUND_Y)) and absf(level - probe.y) < 40.0:
+		var flat := true  # the ground under the whole of the U lies level, so that the pit's shape is the drawn shape
+		for side in [-70.0, -35.0, 35.0, 70.0]:
+			flat = flat and absf(SpellTargets.solid_below(space, probe + Vector2(side, -100.0)).y - probe.y) < 4.0
+		if not near_water and flat and not is_equal_approx(probe.y, float(ArenaGen.GROUND_Y)) and absf(level - probe.y) < 40.0:
 			spot = probe
 			break
 	var before := SpellTargets.solid_below(space, spot + Vector2(0.0, -60.0)).y

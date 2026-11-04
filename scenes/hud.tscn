@@ -112,7 +112,7 @@ caption = "Hexed"
 colour = Color(1, 0.42, 0.541, 1)
 outline = Color(0.15, 0.03, 0.06, 1)
 
-[node name="ScryArrows" type="Control" parent="."]
+[node name="DowsingArrows" type="Control" parent="."]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -121,7 +121,7 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("3")
-group = &"scryings"
+group = &"dowsings"
 caption = "Page"
 colour = Color(1, 0.91, 0.63, 1)
 outline = Color(0.15, 0.1, 0.03, 1)
@@ -173,6 +173,20 @@ theme_override_font_sizes/font_size = 64
 text = "You have fallen"
 horizontal_alignment = 1
 
+[node name="StatsButton" type="Button" parent="."]
+visible = false
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 16.0
+offset_top = -64.0
+offset_right = 216.0
+offset_bottom = -16.0
+grow_vertical = 0
+focus_mode = 0
+theme_type_variation = &"Choice"
+text = "Match stats"
+
 [node name="Pause" type="ColorRect" parent="."]
 visible = false
 anchors_preset = 15
@@ -201,6 +215,7 @@ theme_override_constants/v_separation = 6
 columns = 2
 
 [node name="Settings" type="Button" parent="Pause/Box"]
+custom_minimum_size = Vector2(260, 0)
 layout_mode = 2
 size_flags_horizontal = 4
 focus_mode = 0
@@ -208,18 +223,20 @@ theme_type_variation = &"Choice"
 text = "Settings"
 
 [node name="Leave" type="Button" parent="Pause/Box"]
+custom_minimum_size = Vector2(260, 0)
 layout_mode = 2
 size_flags_horizontal = 4
 focus_mode = 0
 theme_type_variation = &"Choice"
-text = "Leave the game"
+text = "Quit to menu"
 
 [node name="Quit" type="Button" parent="Pause/Box"]
+custom_minimum_size = Vector2(260, 0)
 layout_mode = 2
 size_flags_horizontal = 4
 focus_mode = 0
 theme_type_variation = &"Choice"
-text = "Quit"
+text = "Quit to desktop"
 
 [node name="Note" type="Label" parent="Pause/Box"]
 theme_type_variation = &"Outlined"

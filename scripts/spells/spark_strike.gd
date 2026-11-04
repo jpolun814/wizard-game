@@ -52,7 +52,7 @@ func _shock_pond(ground: Vector2) -> void:
 		for body in pond.get_overlapping_bodies():
 			if not pond.holds(body):
 				continue
-			SpellTargets.hurt(body, SHOCK, "Fire")
+			SpellTargets.hurt(body, SHOCK, "Fire", false, false, self)
 			Fx.burst(get_parent(), SpellTargets.center_of(body), Color("#ffe85a"), 8, 160.0, 0.3, true, "spark_04")
 
 

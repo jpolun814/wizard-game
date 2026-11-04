@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="Spell" format=3]
+
+[ext_resource type="Script" path="res://scripts/spell.gd" id="1_spell"]
+
+[resource]
+script = ExtResource("1_spell")
+spell_name = "Thorn Whip"
+school = "Flora"
+gesture = "tsunami"
+targeting = "directional"
+cost = 22.0
+effect = "Lash out with a thorny vine."
+effect_path = "res://scripts/spells/thorn_whip.gd"

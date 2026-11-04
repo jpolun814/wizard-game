@@ -2,7 +2,7 @@ class_name GasBank
 extends Area2D
 
 ## A bank of poison gas lying in a passage from the floor to the roof. Whoever is in it is poisoned every moment, and a
-## Barrier keeps it off, as does holding your breath (the Chant of the Deep Breath). Wind thins it away (a Gust, a Tornado), and fire burns it off.
+## Barrier keeps it off, as does holding your breath (the Blessing of the Deep Breath). Wind thins it away (a Gust, a Tornado), and fire burns it off.
 
 const TICK := 0.25
 const DAMAGE := 15

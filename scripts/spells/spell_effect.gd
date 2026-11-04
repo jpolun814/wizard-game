@@ -57,7 +57,7 @@ func _add_shape(shape: Shape2D, at := Vector2.ZERO) -> void:
 
 func _damage_overlapping(amount: int) -> void:
 	for body in get_overlapping_bodies():
-		SpellTargets.hurt(body, amount, _school())
+		SpellTargets.hurt(body, amount, _school(), false, false, self)
 
 
 ## The school this spell belongs to, which decides what enemies resist or are weak to.

@@ -120,6 +120,53 @@ func _process(_delta: float) -> bool:
 			if _cast != "Bramble":
 				_failures += 1
 				print("FAIL Bramble with %d teeth at %.1f: cast %s" % [teeth, size, _cast])
+	# Near misses are not the new spells: an almond with no quill is no Featherfall, a ring with a single line down is no Hailstorm, and the Push
+	# and Ice Prison shapes they are built from still cast what they did.
+	var hail_shape := GestureTemplates.preview_points("hailstorm")
+	var ring_and_down := hail_shape.slice(0, 33)
+	for k in range(1, 9):
+		ring_and_down.append(Vector2(0.0, -28.0 + 66.0 * k / 8.0))
+	var straight_zigzag := _sweeps(0.0, 3)  # three straight sweeps: no belly in them
+	var two_sweeps := _sweeps(20.0, 2)
+	var belly_up := _sweeps(-20.0, 3)  # bent the wrong way
+	var near_misses := [
+		["a straight zigzag", SpellData.MIDDLE, straight_zigzag, "Featherfall"],
+		["only two sweeps", SpellData.MIDDLE, two_sweeps, "Featherfall"],
+		["sweeps bent upward", SpellData.MIDDLE, belly_up, "Featherfall"],
+		["a ring with one line down", SpellData.RIGHT, ring_and_down, "Hailstorm"],
+		["a ring alone", SpellData.RIGHT, GestureTemplates.preview_points("circle"), "Hailstorm"],
+		["a ring with a line out", SpellData.MIDDLE, GestureTemplates.preview_points("circle_push"), "Featherfall"],
+		["a plus, the bar in the middle", SpellData.LEFT | SpellData.RIGHT | SpellData.MIDDLE, _cross_with(0.0), "Raise Dead"],
+		["a T, the bar at the top", SpellData.LEFT | SpellData.RIGHT | SpellData.MIDDLE, _cross_with(-50.0), "Raise Dead"],
+		["a bar low on the stem", SpellData.LEFT | SpellData.RIGHT | SpellData.MIDDLE, _cross_with(35.0), "Raise Dead"],
+		["a box lying on its side", SpellData.RIGHT | SpellData.MIDDLE, _box_of(100.0, 55.0), "Mirage"],
+		["a square", SpellData.RIGHT | SpellData.MIDDLE, _box_of(70.0, 70.0), "Mirage"],
+		["a tall oval", SpellData.RIGHT | SpellData.MIDDLE, _oval_of(55.0, 100.0), "Mirage"],
+		["a tall box left open", SpellData.RIGHT | SpellData.MIDDLE, GestureTemplates.preview_points("portrait").slice(0, 20), "Mirage"],
+		["a stem with no bar", SpellData.LEFT | SpellData.RIGHT | SpellData.MIDDLE, GestureTemplates.preview_points("latin_cross").slice(0, 16), "Raise Dead"],
+	]
+	# A feather drawn carelessly is still a feather: shallow or deep bellies, and sweeps of uneven width.
+	for sag in [12.0, 20.0, 34.0]:
+		for first in [1.0, -1.0]:
+			_checks += 1
+			var drift := _sweeps(sag, 3)
+			for i in drift.size():
+				drift[i].x *= first
+			_cast = ""
+			_caster.cast_stroke(SpellData.MIDDLE, _densify(drift))
+			if _cast != "Featherfall":
+				_failures += 1
+				print("FAIL a feather with belly %.0f (%s) was read as %s" % [sag, "right first" if first > 0.0 else "left first", _cast])
+	for miss: Array in near_misses:
+		_checks += 1
+		var drawn := PackedVector2Array()
+		for p in _densify(miss[2]):
+			drawn.append(p + Vector2(0, -260))
+		_cast = ""
+		_caster.cast_stroke(miss[1], drawn)
+		if _cast == miss[3]:
+			_failures += 1
+			print("FAIL %s was read as a %s" % [miss[0], miss[3]])
 	# A Fire Breath cone can point any way, and the fire must go toward its open end.
 	for angle in [0.0, PI * 0.5, PI, -PI * 0.5, PI * 0.25]:
 		_checks += 1
@@ -175,3 +222,40 @@ func _densify(points: PackedVector2Array) -> PackedVector2Array:
 			out.append(points[i].lerp(points[i + 1], float(k) / steps))
 	out.append(points[points.size() - 1])
 	return out
+
+
+## A cross with its bar at this height (the stem runs from -50 to 50): the Raise Dead stroke, with the bar moved.
+func _cross_with(bar_y: float) -> PackedVector2Array:
+	var pts := PackedVector2Array()
+	for p in [Vector2(0, -50), Vector2(0, 50), Vector2(0, bar_y), Vector2(-30, bar_y), Vector2(30, bar_y)]:
+		pts.append(p)
+	return _densify(pts)
+
+
+## Sweeps across and back, each bent down by `sag` in the middle and ending 25 lower than it began (a straight zigzag when `sag` is nothing).
+func _sweeps(sag: float, count: int) -> PackedVector2Array:
+	var pts := PackedVector2Array()
+	for k in count:
+		var from_x := 0.0 if k % 2 == 0 else 100.0
+		for i in range(1 if k > 0 else 0, 17):
+			var f := float(i) / 16.0
+			pts.append(Vector2(lerpf(from_x, 100.0 - from_x, f), 25.0 * k + 25.0 * f + sag * sin(PI * f)))
+	return pts
+
+
+## A closed box of this width and height, drawn corner to corner.
+func _box_of(width: float, height: float) -> PackedVector2Array:
+	var corners := [Vector2(0, 0), Vector2(0, height), Vector2(width, height), Vector2(width, 0), Vector2(-2, 0)]
+	var pts := PackedVector2Array()
+	for k in corners.size() - 1:
+		for i in range(8):
+			pts.append(corners[k].lerp(corners[k + 1], float(i) / 8.0))
+	return pts
+
+
+## A closed oval of this width and height.
+func _oval_of(width: float, height: float) -> PackedVector2Array:
+	var pts := PackedVector2Array()
+	for i in range(41):
+		pts.append(Vector2(cos(TAU * i / 40.0) * width * 0.5, sin(TAU * i / 40.0) * height * 0.5))
+	return pts

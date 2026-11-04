@@ -427,7 +427,7 @@ func _school_row(school: String, mouse_scale := 1.0) -> HBoxContainer:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 16)
 	row.add_child(MouseIcon.new(_school_mask(school), SpellData.SCHOOL_COLORS[school], mouse_scale))
-	var name := _title_label(school, 38, TEXT_INK)
+	var name := _title_label(SpellData.school_name(school), 38, TEXT_INK)
 	name.autowrap_mode = TextServer.AUTOWRAP_OFF  # a short name must keep its full width, or the row mis-centres
 	name.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(name)
@@ -524,7 +524,9 @@ static func ritual_effect(ritual_id: String) -> String:
 			return "Hold your breath for a while."
 		"mark":
 			return "Mark this place."
-		"scrying":
+		"scrying_eye":
+			return "Send out an eye to watch another wizard."
+		"dowsing":
 			return "Show the way to the nearest page you have not read."
 		"recall":
 			return "Open a long-lasting portal back to your mark."

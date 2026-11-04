@@ -5,6 +5,8 @@ extends CanvasLayer
 ## and the screen you see when you fall.
 
 
+signal stats_requested  # the person asked to see the story of their match again
+
 const HEALTH := Color("#b3122e")
 const STAMINA := Color("#c08a2c")
 const UNLIMITED := Color("#7fe0ff")
@@ -36,6 +38,7 @@ func _ready() -> void:
 	add_to_group(&"hud")  # the wand cursor asks whether the game is paused
 	$Pause/Box/Leave.pressed.connect(_on_leave)
 	$Pause/Box/Settings.pressed.connect(_on_settings)
+	$StatsButton.pressed.connect(_on_stats)
 	$Pause/Box/Quit.pressed.connect(func() -> void: get_tree().quit())
 	var rows: GridContainer = $Pause/Box/Controls
 	_lay_on_parchment(rows)
@@ -140,6 +143,16 @@ func _on_leave() -> void:
 
 
 ## Words shown at the bottom of the pause screen, such as the incantation that names this world. Empty hides them.
+## The match is over for the person: a button stays on the screen to pull its stats up again.
+func offer_stats() -> void:
+	$StatsButton.visible = true
+
+
+func _on_stats() -> void:
+	Sfx.play("ui_click")
+	stats_requested.emit()
+
+
 ## The Settings button on the pause screen opens the page of settings over it.
 func _on_settings() -> void:
 	Sfx.play("ui_click")

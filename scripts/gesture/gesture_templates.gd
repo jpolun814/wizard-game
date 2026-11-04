@@ -144,6 +144,16 @@ static func preview_points(gesture: String) -> PackedVector2Array:
 			return _arrow_side(false, false)
 		"silence":
 			return _slashed_ring(false)
+		"hailstorm":
+			return _ring_and_hail()
+		"feather":
+			return _feather_stroke()
+		"sphere":
+			return _ball_and_roll()
+		"latin_cross":
+			return _cross_stroke()
+		"portrait":
+			return _portrait_stroke()
 	return PackedVector2Array()
 
 
@@ -154,6 +164,62 @@ static func preview_ground(gesture: String) -> float:
 		"stone_wall":
 			return 100.0
 	return NAN
+
+
+## A ring (the cloud), then a line out from its top (as far as the cloud runs), then a line down (the hail): a Hailstorm.
+static func _ring_and_hail() -> PackedVector2Array:
+	var pts := PackedVector2Array()
+	for i in range(33):
+		pts.append(Vector2.from_angle(-PI / 2.0 + TAU * i / 32.0) * 28.0)
+	for i in range(1, 9):
+		pts.append(Vector2(90.0 * i / 8.0, -28.0))
+	for i in range(1, 9):
+		pts.append(Vector2(90.0, -28.0 + 66.0 * i / 8.0))
+	return pts
+
+
+## A feather drifting down, in one stroke: three sweeps across (right, back left, right again), each bent down in the middle and ending lower than it began.
+static func _feather_stroke() -> PackedVector2Array:
+	var pts := PackedVector2Array()
+	for k in 3:
+		var from_x := 0.0 if k % 2 == 0 else 100.0
+		var to_x := 100.0 - from_x
+		for i in range(1 if k > 0 else 0, 17):
+			var t := float(i) / 16.0
+			pts.append(Vector2(lerpf(from_x, to_x, t), 25.0 * k + 25.0 * t + 20.0 * sin(PI * t)))
+	return pts
+
+
+## A ring drawn from its bottom, then a level line out along the ground from there: a ball set rolling.
+static func _ball_and_roll() -> PackedVector2Array:
+	var pts := PackedVector2Array()
+	for i in range(33):
+		pts.append(Vector2.from_angle(PI / 2.0 + TAU * i / 32.0) * 30.0)
+	for i in range(1, 9):
+		pts.append(Vector2(100.0 * i / 8.0, 30.0))
+	return pts
+
+
+## A tall box drawn in one go: down the left side, along the bottom, up the right and back across the top.
+static func _portrait_stroke() -> PackedVector2Array:
+	var corners := [Vector2(0, 0), Vector2(0, 100), Vector2(52, 100), Vector2(52, 0), Vector2(-2, 0)]
+	var pts := PackedVector2Array()
+	for k in corners.size() - 1:
+		for i in range(8):
+			pts.append(corners[k].lerp(corners[k + 1], float(i) / 8.0))
+	pts.append(corners[corners.size() - 1])
+	return pts
+
+
+## A cross: down the stem from the top, back up to the bar, then across it one way and back the other.
+static func _cross_stroke() -> PackedVector2Array:
+	var corners := [Vector2(0, -50), Vector2(0, 50), Vector2(0, -22), Vector2(-30, -22), Vector2(30, -22)]
+	var pts := PackedVector2Array()
+	for k in corners.size() - 1:
+		for i in range(8):
+			pts.append(corners[k].lerp(corners[k + 1], float(i) / 8.0))
+	pts.append(corners[corners.size() - 1])
+	return pts
 
 
 ## A five-pointed star drawn in one swift stroke, crossing itself, then a level line out of its top point.

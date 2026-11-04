@@ -20,6 +20,7 @@ const MISFIRE_COST := 10.0
 const OFFERING_GAIN := 30.0  # the temporary stamina an Offering gives, for the 20 most it costs
 const STEP_DAMAGE := 8
 const INSIGHT_REACH := 40.0  # how close the pointer must be to an enemy for Insight to show it
+const RAISED_HEALTH := 50  # what a skeleton raised from the dead has, always
 const FLYER_HEIGHT := 150.0  # flyers arrive this far above the ground
 const STROKE_STEP := 8.0  # the points of a stroke the other machines are sent are this far apart
 const HOODED_WIZARD := "Hooded Wizard"  # what Insight calls the wizard in the player's own look
@@ -31,14 +32,17 @@ var ritual: RitualInput
 var spellbook: Spellbook
 var hud: Hud
 var _minimap: Minimap
+var grade_biome := ""  # the cast of colour the world is seen through (see Grade), the same for anything that shows a second view of it
+var greyed := false  # the world is seen without colour (the graveyard), and so is anything that shows a second view of it
+var _eye: ScryingEye  # the window of the Chant of the Scrying Eye, bottom right
 var _insight_tip: PanelContainer  # the hover tooltip Insight shows over an enemy
 var _insight_text: RichTextLabel
 ## The minimap is hidden until its chant brings it into view. Health and stamina are always shown.
-var _revealed := {"minimap": false, "insight": false}
+var _revealed := {"minimap": false, "insight": false, "scrying_eye": false}
 var _rng := RandomNumberGenerator.new()
 var debug_panel: DebugPanel  # F1 opens it: buttons that summon enemies for testing
 var _gateway_hue := randf()
-var _marked := Vector2.INF  # where the Incantation of the Mark was spoken, until the Return is
+var _marked := Vector2.INF  # where the Rite of the Cairn was spoken, until the Return is
 var _cells: Variant = {}  # the generated arena's tiles: a Dictionary (see ArenaGen) or a TileGrid
 var _ground: Terrain
 var tiled_ground := false  # true when the ground is tiles all the way, as in a generated world; set by _build_map
@@ -295,6 +299,7 @@ func _process(_delta: float) -> void:
 	for module: String in _revealed:
 		_revealed[module] = _revealed[module] or player.ledger.is_settled(module)  # a later world of the match keeps what was said in an earlier one
 	_minimap.visible = _revealed["minimap"]
+	_eye.visible = _revealed["scrying_eye"]
 	_update_insight()
 
 
@@ -316,6 +321,10 @@ func _build_overlays() -> void:
 	_minimap.visible = false
 	_minimap.gui_input.connect(_on_hud_clicked.bind("minimap"))
 	hud.add_child(_minimap)
+	_eye = ScryingEye.new()
+	_eye.arena = self
+	_eye.visible = false
+	hud.add_child(_eye)
 	_insight_tip = PanelContainer.new()
 	_insight_tip.visible = false
 	_insight_tip.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -344,7 +353,7 @@ func _on_hud_clicked(event: InputEvent, module: String) -> void:
 ## The visible HUD modules on screen. The caster ignores presses that start over them.
 func _visible_hud_rects() -> Array[Rect2]:
 	var rects: Array[Rect2] = []
-	for control in [hud.stamina_bar, _minimap]:
+	for control in [hud.stamina_bar, _minimap, _eye]:
 		if control.visible:
 			rects.append(control.get_global_rect())
 	if debug_panel.visible:
@@ -381,17 +390,27 @@ func cast_by(spell: String, targeting: String, origin: Vector2, aim: float, info
 		if person:
 			FloatText.spawn(self, label_at, "Aim at someone", Color("#ff9a9a"), 0.9)  # nothing is paid for a cut that finds no one
 		return
+	if spell == "Leech" and Leech.pick(get_tree(), wizard, aim) == null:
+		if person:
+			FloatText.spawn(self, label_at, "Aim at someone", Color("#ff9a9a"), 0.9)  # nothing is paid for a tether that finds no one
+		return
 	var spell_data: Spell = SpellData.SPELLS[spell]
 	var cost := spell_data.cost_for(info)
+	if not spell_data.pays_max():
+		cost = Leech.cost_after(get_tree(), wizard, cost)  # on a tether, half of it falls on the other end
 	var colour := spell_data.glow()
 	if spell_data.pays_max():
 		if not wizard.pay_max(cost):
 			FloatText.spawn(self, label_at, "Too weak", Color("#ff9a9a"), 0.9)  # blood is never spent to the last drop
 			Sfx.play("misfire", wizard.center(), -6.0)
+			if person and is_in_group(&"world"):
+				MatchStats.miss()
 			return
 	elif not wizard.spend(cost):
 		FloatText.spawn(self, label_at, "Too tired", Color("#ffb86b"), 0.9)
 		Sfx.play("misfire", wizard.center(), -6.0)
+		if person and is_in_group(&"world"):
+			MatchStats.miss()
 		return
 	wizard.last_spell = spell
 	if person:
@@ -447,15 +466,25 @@ func _earth_texture() -> Texture2D:
 
 ## Makes a spell take effect in the world. Every wizard's spells come through here, whoever plays them.
 func spawn_spell(spell: String, targeting: String, origin: Vector2, aim: float, info: Dictionary, caster_node: Wizard) -> void:
+	var before := get_child_count()
+	_spawn_spell(spell, targeting, origin, aim, info, caster_node)
+	for index in range(before, get_child_count()):
+		get_child(index).set_meta("caster", caster_node)  # whatever the spell made belongs to its caster, for the count of what each wizard has done (see MatchStats)
+
+
+func _spawn_spell(spell: String, targeting: String, origin: Vector2, aim: float, info: Dictionary, caster_node: Wizard) -> void:
 	caster_node.casts_made += 1
 	if caster_node == player and is_in_group(&"world"):
-		Library.record_cast(spell)  # only matches count, not the waiting room
+		Library.record_cast(spell, float(info.get("accuracy", 0.0)))  # only matches count, not the waiting room
+		MatchStats.cast(spell, float(info.get("accuracy", 0.0)))
 	var from: Vector2 = caster_node.center()
 	if spell != "Sneak":
 		caster_node.break_sneak()
 	if spell != "Vacuum":
 		Vacuum.release(get_tree(), caster_node)  # a caster who casts something else lets go of whoever they were smothering
 	var school: String = SpellData.SPELLS[spell].school if SpellData.SPELLS.has(spell) else ""
+	if SpellData.SPELLS.has(spell) and not SpellData.SPELLS[spell].pays_max():
+		Leech.charge_target(get_tree(), caster_node, SpellData.SPELLS[spell].cost_for(info))  # the other end of a tether pays its half, on every machine
 	if (school == "Water" or school == "Air") and spell != "Barrier":
 		# Water and wind put a flare out, but only one the spell actually reaches.
 		if targeting == "directional":
@@ -467,6 +496,30 @@ func spawn_spell(spell: String, targeting: String, origin: Vector2, aim: float, 
 			var quake := Earthquake.new()
 			quake.caster = caster_node
 			add_child(quake)
+			return
+		"Featherfall":
+			Featherfall.cast(caster_node)
+			return
+		"Flaming Sphere":
+			var ball := FlamingSphere.new()
+			ball.caster = caster_node
+			ball.direction = 1.0 if cos(aim) >= 0.0 else -1.0
+			ball.global_position = caster_node.center() + Vector2(ball.direction * 34.0, 8.0)
+			add_child(ball)
+			return
+		"Mirage":
+			Mirage.conjure(self, SpellTargets.surface_over(get_world_2d(), origin))
+			return
+		"Raise Dead":
+			_raise_dead(caster_node, SpellTargets.surface_over(get_world_2d(), origin))
+			return
+		"Leech":
+			var drained := Leech.pick(get_tree(), caster_node, aim)
+			if drained != null:
+				var tether := Leech.new()
+				tether.caster = caster_node
+				tether.target = drained
+				add_child(tether)
 			return
 		"Barrier":
 			# Barrier wraps the caster rather than appearing somewhere in the world.
@@ -700,6 +753,24 @@ func _offer(taker: Node2D) -> void:
 	Sfx.play("pickup", to, -4.0)
 
 
+## A skeleton rises from the ground for a wizard. It is named after the wizard and the cast, which are the same on every machine, so the
+## machines can tell each other about it; the machine that drives the wizard drives it, and the others only show it.
+func _raise_dead(master: Wizard, feet: Vector2) -> void:
+	var risen: Mob = MOB_SCENE.instantiate()
+	risen.kind = "basic"
+	risen.master = master
+	risen.roams = true
+	risen.puppet = master.is_likeness()
+	risen.name = "Raised_%s_%d" % [master.name, master.casts_made]
+	risen.position = feet
+	risen.set_multiplayer_authority(master.get_multiplayer_authority())
+	add_child(risen)
+	risen.max_hp = RAISED_HEALTH
+	risen.hp = RAISED_HEALTH
+	Fx.burst(self, feet, SpellData.SCHOOL_COLORS["Blood"], 12, 110.0, 0.5, true)
+	Sfx.play("summon", feet, -4.0)
+
+
 ## A new effect of the kind a spell needs: the script its resource names.
 func _new_effect(spell: String) -> SpellEffect:
 	var path: String = SpellData.SPELLS[spell].effect_path
@@ -877,6 +948,11 @@ func _place_shapes(spell: String, info: Dictionary) -> void:
 			sand.width = SpellData.width_of(line)
 			sand.position = centre
 			add_child(sand)
+		"Hailstorm":
+			var hail := Hailstorm.new()
+			hail.line = line
+			add_child(hail)
+			hail.setup(spell, centre, 0.0)
 		"Ice Prison":
 			var prison := IcePrison.new()
 			prison.rect = info["rect"]
@@ -890,6 +966,8 @@ func _on_misfire() -> void:
 
 ## What a shape or a chant that means nothing does: a puff, a sound and one word, so a player with the sound off still knows.
 func _misfire_puff() -> void:
+	if is_in_group(&"world"):
+		MatchStats.miss()  # a stroke that matched nothing is a try that did not go off
 	Sfx.play("misfire", player.center())
 	Fx.burst(self, get_global_mouse_position(), Color(0.6, 0.6, 0.65), 8, 80.0, 0.3)
 	FloatText.spawn(self, get_global_mouse_position() + Vector2(0, -22), "Misfire", Color(0.75, 0.75, 0.82), 0.9)  # for a player with the sound off
@@ -945,26 +1023,26 @@ func _on_ritual_finished(id: String, acc: float, unfinished: bool) -> void:
 				return
 		"rift":
 			_rift()
-		"scrying":
-			_scry()
+		"dowsing":
+			_dowse()
 		"bonfire":
 			var spot := _bonfire_spot()  # beside the wizard, not under them
 			_kindle(spot, power)
 			Net.send(self, &"_kindle", [spot, power])
 
 
-## The Chant of Scrying: an arrow points to the nearest page the player has not read, until they read it. Chanting again looks for another.
-func _scry() -> void:
-	for old in get_tree().get_nodes_in_group("scryings"):
+## The Chant of Dowsing: an arrow points to the nearest page the player has not read, until they read it. Chanting again looks for another.
+func _dowse() -> void:
+	for old in get_tree().get_nodes_in_group("dowsings"):
 		old.queue_free()
-	var page := Scrying.nearest_unread(get_tree(), player.center(), player.ledger)
+	var page := Dowsing.nearest_unread(get_tree(), player.center(), player.ledger)
 	if page == null:
 		_on_feedback("Nothing left to find.", Color("#ffe9a0"))
 		return
-	var scrying := Scrying.new()
-	scrying.target = page
-	scrying.ledger = player.ledger
-	add_child(scrying)
+	var dowsing := Dowsing.new()
+	dowsing.target = page
+	dowsing.ledger = player.ledger
+	add_child(dowsing)
 
 
 ## A bonfire burns at a spot, on every machine of a network game.
@@ -1002,6 +1080,26 @@ func chant_by(speaker: Wizard, id: String) -> bool:
 	return true
 
 
+## A little eye floats over a wizard while another watches them through the Chant of the Scrying Eye. Every machine shows it.
+func eye_on(wizard: Wizard, on: bool) -> void:
+	_show_eye(String(wizard.name), on)
+	Net.send(self, &"_show_eye", [String(wizard.name), on])
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _show_eye(wizard_name: String, on: bool) -> void:
+	var wizard := get_node_or_null(NodePath(wizard_name)) as Wizard
+	if wizard == null:
+		return
+	var mark := wizard.get_node_or_null("EyeMark")
+	if on and mark == null:
+		mark = EyeMark.new()
+		mark.name = "EyeMark"
+		wizard.add_child(mark)
+	elif not on and mark != null:
+		mark.queue_free()
+
+
 ## A chant takes hold: a ring of light under the speaker, seen and heard on every machine of a network game.
 @rpc("any_peer", "call_remote", "reliable")
 func _show_chant(speaker_name: String) -> void:
@@ -1022,14 +1120,14 @@ func _bonfire_spot() -> Vector2:
 	return player.global_position
 
 
-## The Incantation of the Mark: the place you stand on is remembered, until the Return is spoken.
+## The Rite of the Cairn: the place you stand on is remembered, until the Return is spoken.
 func _mark_here() -> void:
 	_marked = _ground_below(player.center())
 	var colour: Color = SpellData.SCHOOL_COLORS["Shadow"]
 	Fx.pop(self, _marked + Vector2(0, -20), "twirl_02", colour, 40.0, 0.4, 0.5, 4.0)
 
 
-## The Incantation of the Return: a portal opens at the mark and another where you stand. They are a pair, in a colour of
+## The Rite of Return: a portal opens at the mark and another where you stand. They are a pair, in a colour of
 ## their own, and stay open for anyone to use. False when there is no mark, or it is too close to be worth a portal.
 func _open_gateways() -> bool:
 	if _marked == Vector2.INF:
@@ -1116,8 +1214,8 @@ func _on_feedback(text: String, color: Color) -> void:
 func _is_ground_at(point: Vector2) -> bool:
 	var col := floori(point.x / TILE)
 	var row := floori(point.y / TILE)
-	if _cells.has(Vector2i(col, row)) or _cells.has(Vector2i(col, row + 1)):
-		return true
+	if _cells.has(Vector2i(col, row)):
+		return true  # the stroke has to begin inside the ground itself, not above it
 	var probe := CircleShape2D.new()
 	probe.radius = 12.0
 	var query := PhysicsShapeQueryParameters2D.new()

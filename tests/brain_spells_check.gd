@@ -7,7 +7,7 @@ extends Node
 ##     godot --headless --fixed-fps 60 --path . tests/brain_spells_check.tscn            (add `-- only=Hex,Sneak` for some)
 ## It prints PASS or FAIL for each spell and exits with code 1 if any failed.
 
-const SECONDS := 18.0       # how long each is given
+const SECONDS := 25.0       # how long each is given
 const ELSEWHERE := {"Frost Bridge": "cross_check kind=flood", "Lily Pads": "cross_check kind=flood spells=Lily%Pads"}
 
 ## How each spell is set up: "gap" the pixels between the two wizards, and flags for what the spell is for. Spells not listed are tried with the defaults.
@@ -20,7 +20,7 @@ const SCENES := {
 	"Stone Wall": {"shot_at": true}, "Smoke Screen": {"shot_at": true}, "Decoy": {"shot_at": true}, "Crimson Veil": {"shot_at": true},
 	"Obsidian Armor": {"shot_at": true}, "Eclipse": {"shot_at": true, "gap": 300.0},
 	"Barrier": {"shot_at": true, "gap": 400.0, "hold": true}, "Gust": {"shot_at": true, "gap": 400.0, "hold": true}, "Shadow Step": {"shot_at": true},
-	"Geyser": {"up": true}, "Updraft": {"up": true}, "Push": {"up": true}, "Liana": {"up": true}, "Great Oak": {"up": true}, "Tornado": {"up": true},
+	"Featherfall": {"fall": true}, "Geyser": {"up": true}, "Updraft": {"up": true}, "Push": {"up": true}, "Liana": {"up": true}, "Great Oak": {"up": true}, "Tornado": {"up": true},
 }
 
 var _failures := 0
@@ -106,6 +106,8 @@ func _try(spell_name: String) -> void:
 		mob.global_position = Vector2(-9000.0, -9000.0)
 	for page in tree.get_nodes_in_group("pages"):
 		page.queue_free()
+	for gate in tree.get_nodes_in_group("field_portals"):
+		gate.remove_from_group("field_portals")  # (the brain would otherwise go through a portal in a world of them, with no page left to want)
 	world.set_process(false)  # or it carries the person back from the place it is put away to the place it began
 	var spot: Vector2 = person.global_position
 	person.set_physics_process(false)
@@ -126,8 +128,9 @@ func _try(spell_name: String) -> void:
 		body.shape = box
 		ledge.add_child(body)
 		top = spot.y - 120.0
+		body.one_way_collision = true  # a ledge in the world is a platform that can be jumped up through, and does not hide a rival standing on it
 		ledge.position = Vector2(spot.x + 200.0, top + 20.0)
-		ledge.collision_layer = 1
+		ledge.collision_layer = 16
 		world.add_child(ledge)
 		rival.global_position = Vector2(spot.x + 200.0, top - 2.0)
 	if scene.get("ceiling", false):
@@ -146,6 +149,9 @@ func _try(spell_name: String) -> void:
 	for k in 30:  # the pair settle on the ground
 		await tree.physics_frame
 	tester.ledger = Ledger.of([spell_name])
+	if scene.get("fall", false):
+		tester.global_position.y -= 700.0  # a long fall
+		tester.velocity = Vector2.ZERO
 	var time := 0.0
 	var done := false
 	while time < SECONDS and not done and not tester.dead:
@@ -166,6 +172,9 @@ func _try(spell_name: String) -> void:
 		else:
 			tester.stamina = maxf(tester.stamina, 100.0)
 			tester.max_stamina = maxf(tester.max_stamina, 150.0)
+		if scene.get("fall", false) and tester.is_on_floor() and tester.last_spell != spell_name:
+			tester.global_position.y -= 700.0  # and another, if the first was not enough
+			tester.velocity = Vector2.ZERO
 		if scene.get("up", false):
 			done = tester.global_position.y <= top + 8.0 and tester.global_position.x > spot.x + 90.0
 		else:

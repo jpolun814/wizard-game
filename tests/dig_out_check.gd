@@ -37,7 +37,7 @@ func _ready() -> void:
 	var x := start.x
 	ground.watch([Vector2(x, start.y - 600.0)], true)
 	# Up from the floor of the cavern to the underside of its roof.
-	var y := start.y
+	var y := start.y - 48.0  # (from over the floor, which the wizard's feet stand on)
 	while y > 0.0 and not ground.solid_at(Vector2(x, y)):
 		y -= 8.0
 	_check(y > 0.0, "there is a roof over the cavern (its underside at %.0f)" % y)

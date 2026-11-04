@@ -156,7 +156,13 @@ func _end() -> void:
 	var star := gesture == "pentagram" and score >= tolerance
 	var slashed := options.has("silence") and _is_slashed_ring(relative)
 	var spiral := _inward_spiral(relative) if options.has("spiral") and not star and not slashed else {}
-	var ring_split := _ring_then_line_split(relative) if options.has("circle_push") and spiral.is_empty() else -1
+	var hail := _hailstorm(relative) if options.has("hailstorm") else {}
+	var feather := _feather(relative) if options.has("feather") else {}
+	var latin := options.has("latin_cross") and _is_cross(relative)
+	var portrait := options.has("portrait") and _is_portrait_box(relative)
+	var ring_split := _ring_then_line_split(relative) if (options.has("circle_push") or options.has("sphere")) and spiral.is_empty() and feather.is_empty() else -1
+	if ring_split >= 0 and options.has("sphere") and not options.has("circle_push") and not _runs_level(relative.slice(ring_split)):
+		ring_split = -1  # a ball of fire is pushed along the ground: the line out of the ring must run level
 	var ring_centre := Vector2.ZERO
 	# Icicles are open V strokes. A closed loop (a circle, a crystal) is never an icicle.
 	var extent := _extent(relative)
@@ -179,7 +185,21 @@ func _end() -> void:
 	var bramble := _sawtooth(relative) if options.has("bramble") else PackedVector2Array()
 	var jaws := _w_shape(relative) if options.has("jaws") else PackedVector2Array()
 	var pads := _pad_line(relative) if options.has("pads") and spiral.is_empty() else PackedVector2Array()
-	if not spiral.is_empty():
+	if portrait:
+		gesture = "portrait"  # a tall box with four sharp corners: a picture frame, a doorway
+		score = 1.0
+	elif latin:
+		gesture = "latin_cross"  # an upright stem with a bar across it, nearer the top: read before the recognizer's guess
+		score = 1.0
+	elif not hail.is_empty():
+		# A ring, a line out of it and a line down: a Hailstorm, the cloud running from the ring to the bend.
+		gesture = "hailstorm"
+		score = 1.0
+		info["line"] = _to_world(PackedVector2Array([hail["from"], hail["to"]]))
+	elif not feather.is_empty():
+		gesture = "feather"
+		score = 1.0
+	elif not spiral.is_empty():
 		# A spiral wound inward is a Black Hole, centred where it ends up.
 		gesture = "spiral"
 		score = 1.0
@@ -190,7 +210,7 @@ func _end() -> void:
 		score = 1.0
 	elif ring_split >= 0:
 		# A closed ring with a straight line out of it is a Push. The line can point any way.
-		gesture = "circle_push"
+		gesture = "sphere" if options.has("sphere") else "circle_push"
 		score = 1.0
 		var ring := relative.slice(0, ring_split)
 		ring_centre = _relative_centroid(ring)
@@ -263,6 +283,8 @@ func _end() -> void:
 	# A straight stroke that begins on the ground raises a stone wall instead of a spike.
 	if gesture == "flick" and options.has("stone_wall") and _starts_on_ground():
 		gesture = "stone_wall"
+	if gesture == "latin_cross" and not latin:
+		score = 0.0  # a stem alone, or any stroke the recognizer likes, is not a cross
 	if gesture == "flare" and not _flame_points_up(relative):
 		score = 0.0  # a plain loop, or a drop, is not a flame
 	var entry = options.get(gesture)
@@ -299,6 +321,12 @@ func _end() -> void:
 			spawn = info["center"]
 		if info.has("aim"):
 			aim = info["aim"]
+		if entry.spell == "Thorn Whip":
+			var farthest := relative[0]  # a whip goes the way the wave was drawn, at whatever angle, not only left or right
+			for p in relative:
+				if p.distance_squared_to(relative[0]) > farthest.distance_squared_to(relative[0]):
+					farthest = p
+			aim = (farthest - relative[0]).angle()
 		if entry.spell == "Ice Prison":
 			# The circle drawn round the target is the box the ice fills: its bounds, wherever it was drawn.
 			var box := GestureTemplates.bounds(relative)
@@ -411,6 +439,222 @@ func _ring_then_line_split(points: PackedVector2Array) -> int:
 	if chord >= 30.0 and _max_deviation(tail) <= chord * 0.15 + 4.0:
 		return split
 	return -1
+
+
+## Where a stroke that goes round a closed loop gets back to its start, and the last point still at the start: the loop is before it, what
+## follows is the tail. Returns -1 when the stroke does not close, or goes too short a way before it does.
+## True when a stroke runs level, or nearly: within thirty degrees of flat, left or right.
+func _runs_level(points: PackedVector2Array) -> bool:
+	var run := points[points.size() - 1] - points[0]
+	return run.length() > 0.0 and absf(run.y) <= absf(run.x) * tan(deg_to_rad(30.0))
+
+
+func _loop_end(points: PackedVector2Array, least_walk: float) -> int:
+	var walked := 0.0
+	var closed_at := -1
+	for i in range(1, points.size()):
+		walked += points[i].distance_to(points[i - 1])
+		if walked > least_walk and points[i].distance_to(points[0]) < 20.0:
+			closed_at = i
+			break
+	if closed_at < 0:
+		return -1
+	var split := closed_at
+	for k in range(closed_at, points.size()):
+		if points[k].distance_to(points[0]) < 20.0:
+			split = k
+	return split
+
+
+## Hailstorm: a ring, then a line out from it that runs level or nearly so, then a line down from the end of that. Returns {"from": the ring's middle,
+## "to": the bend, where the cloud ends} (in the stroke's own coordinates), or {} when the stroke is not one.
+func _hailstorm(points: PackedVector2Array) -> Dictionary:
+	var split := _loop_end(points, 100.0)
+	if split < 0:
+		return {}
+	var ring := points.slice(0, split)
+	var centre := _relative_centroid(ring)
+	if _mean_distance(ring, centre) < 12.0:
+		return {}
+	var tail := points.slice(split)
+	if tail.size() < 6:
+		return {}
+	var first := tail[0]
+	var last := tail[tail.size() - 1]
+	var bend := -1
+	var farthest := 0.0
+	for i in range(1, tail.size() - 1):
+		var away := Geometry2D.get_closest_point_to_segment(tail[i], first, last).distance_to(tail[i])
+		if away > farthest:
+			farthest = away
+			bend = i
+	if bend < 0:
+		return {}
+	var corner := tail[bend]
+	var out := corner - first
+	var down := last - corner
+	if out.length() < 40.0 or down.length() < 30.0:
+		return {}
+	if _max_deviation(tail.slice(0, bend + 1)) > out.length() * 0.15 + 4.0 or _max_deviation(tail.slice(bend)) > down.length() * 0.15 + 4.0:
+		return {}
+	if absf(out.y) > absf(out.x) * 1.2:  # the cloud runs level, or near it
+		return {}
+	if down.y <= 0.0 or absf(down.x) > down.y * 0.6:  # and the hail falls down
+		return {}
+	return {"from": centre, "to": corner}
+
+
+## Featherfall: a feather drifting down. Three sweeps across, one after the other (left to right, back, and again), each bent down in the middle
+## like a falling feather's path, and each ending lower than it began. A straight zigzag is not one, and neither is a ring or a flick.
+## Returns {} when the stroke is not one.
+func _feather(points: PackedVector2Array) -> Dictionary:
+	var box := GestureTemplates.bounds(points)
+	var width := box.size.x
+	if width < 50.0 or box.size.y > width * 1.4:
+		return {}
+	var turns := _turning_points(points, 0, width * 0.22)
+	if turns.size() != 2:
+		return {}
+	var ends := [0, int(turns[0][0]), int(turns[1][0]), points.size() - 1]
+	for k in 3:
+		var a := points[ends[k]]
+		var b := points[ends[k + 1]]
+		var span := absf(b.x - a.x)
+		if span < width * 0.5 or b.y < a.y - width * 0.05:
+			return {}  # each sweep goes right across, and ends lower than it began
+		var sag := 0.0
+		var sag_at := 0.5
+		for i in range(ends[k], ends[k + 1] + 1):
+			var along := (points[i].x - a.x) / (b.x - a.x)
+			var below := points[i].y - lerpf(a.y, b.y, along)
+			if below > sag:
+				sag = below
+				sag_at = float(i - ends[k]) / float(maxi(ends[k + 1] - ends[k], 1))
+		if sag < span * 0.07 or sag_at < 0.2 or sag_at > 0.8:
+			return {}  # and bellies downward in the middle
+	return {"axis": points[points.size() - 1] - points[0]}
+
+
+## Mirage: a box taller than it is wide, closed on itself, with four sharp corners and straight sides. A circle or an oval is not one (no corners), and
+## neither is a box lying on its side.
+func _is_portrait_box(drawn: PackedVector2Array) -> bool:
+	# A hand that is not quite square to the page draws a box that leans a little: turn it upright, by whichever turn makes the snuggest box.
+	var points := drawn
+	var tightest := INF
+	for step in range(-6, 7):
+		var turned := PackedVector2Array()
+		for p in drawn:
+			turned.append(p.rotated(deg_to_rad(3.0 * step)))
+		var size := GestureTemplates.bounds(turned).size
+		if size.x * size.y < tightest:
+			tightest = size.x * size.y
+			points = turned
+	var box := GestureTemplates.bounds(points)
+	var width := box.size.x
+	var height := box.size.y
+	if width < 30.0 or height < width * 1.2 or height > width * 3.4:
+		return false
+	if points[0].distance_to(points[points.size() - 1]) > 0.3 * height:
+		return false  # it must close
+	var walked := 0.0
+	for i in range(1, points.size()):
+		walked += points[i].distance_to(points[i - 1])
+	if walked < 2.0 * (width + height) * 0.9 or walked > 2.0 * (width + height) * 1.4:
+		return false
+	var near := 0.14 * width + 5.0
+	for corner in [box.position, box.position + Vector2(width, 0.0), box.position + Vector2(0.0, height), box.end]:
+		var covered := false
+		for p in points:
+			if p.distance_to(corner) < near + 0.04 * width:
+				covered = true
+				break
+		if not covered:
+			return false  # a round shape leaves the corners empty
+	var off_edge := 0
+	for p in points:
+		var from_edge := minf(minf(p.x - box.position.x, box.end.x - p.x), minf(p.y - box.position.y, box.end.y - p.y))
+		if from_edge > near:
+			off_edge += 1
+	return off_edge <= points.size() / 10  # and the stroke runs along the edges
+
+
+## Raise Dead: a cross. One long upright stem and a shorter bar across it, nearer the top than the middle, as on a grave. It may be drawn in any order of
+## strokes, so this looks at where the ink lies rather than the way it ran: a column of ink down most of the height, a row of it across most of the width,
+## and hardly any anywhere else. A plus (the bar in the middle), a T (the bar at the very top) and an X do not pass.
+func _is_cross(points: PackedVector2Array) -> bool:
+	for turn in [0.0, 0.12, -0.12, 0.24, -0.24, 0.36, -0.36]:  # a cross drawn leaning is turned upright before it is read
+		var upright := PackedVector2Array()
+		for p in points:
+			upright.append(p.rotated(turn))
+		if _is_upright_cross(upright):
+			return true
+	return false
+
+
+func _is_upright_cross(points: PackedVector2Array) -> bool:
+	var box := GestureTemplates.bounds(points)
+	if box.size.x < 24.0 or box.size.y < 40.0:
+		return false
+	var ratio := box.size.y / box.size.x
+	if ratio < 1.1 or ratio > 2.8:
+		return false
+	const N := 20
+	var cells := {}
+	var step := maxf(1.0, box.size.y / 90.0)
+	for i in points.size() - 1:
+		var span := points[i].distance_to(points[i + 1])
+		var pieces := maxi(1, ceili(span / step))
+		for k in pieces + 1:
+			var p := points[i].lerp(points[i + 1], float(k) / pieces)
+			var col := clampi(int((p.x - box.position.x) / box.size.x * N), 0, N - 1)
+			var row := clampi(int((p.y - box.position.y) / box.size.y * N), 0, N - 1)
+			cells[Vector2i(col, row)] = true
+	var col_rows := PackedInt32Array()
+	var row_cols := PackedInt32Array()
+	col_rows.resize(N)
+	row_cols.resize(N)
+	for cell: Vector2i in cells:
+		col_rows[cell.x] += 1
+		row_cols[cell.y] += 1
+	# The stem is the column (with a neighbour either side for a wobble) that reaches down the most rows; the bar is the row that reaches across the most columns.
+	var stem := 0
+	var best := -1
+	for c in range(1, N - 1):
+		var reach := 0
+		for r in N:
+			if cells.has(Vector2i(c - 1, r)) or cells.has(Vector2i(c, r)) or cells.has(Vector2i(c + 1, r)):
+				reach += 1
+		if reach > best:
+			best = reach
+			stem = c
+	if best < int(N * 0.8) or stem < int(N * 0.3) or stem > int(N * 0.7):
+		return false
+	best = 0
+	for r in range(1, N - 1):  # (a bar drawn on a slant lies across a few rows, so a row counts its neighbours too)
+		var across := 0
+		for c in N:
+			if cells.has(Vector2i(c, r - 1)) or cells.has(Vector2i(c, r)) or cells.has(Vector2i(c, r + 1)):
+				across += 1
+		best = maxi(best, across)
+	if best < int(N * 0.7):
+		return false
+	best = 0
+	for r in N:
+		best = maxi(best, row_cols[r])
+	var bar_sum := 0.0
+	var bar_rows := 0
+	for r in N:
+		if row_cols[r] >= int(best * 0.8):  # the rows the bar lies on, however thick the line was drawn
+			bar_sum += r
+			bar_rows += 1
+	var bar := int(roundf(bar_sum / bar_rows))
+	if bar < int(N * 0.12) or bar > int(N * 0.45):
+		return false
+	var stray := 0
+	for cell: Vector2i in cells:
+		if absi(cell.x - stem) > 2 and absi(cell.y - bar) > 2:
+			stray += 1
+	return stray <= cells.size() / 6
 
 
 ## Silence: a ring with a slash through it, as on a "do not enter" sign. The ring closes on itself, and a straight line then runs from it right

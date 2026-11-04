@@ -28,6 +28,7 @@ trust the code and this file where they disagree.
 | `12_liquids.md` | touch water or lava: pools are a flowing grid now (`LiquidGrid`, `Pond`), and a Sinkhole dug beside one fills from it |
 | `13_portal_world.md` | touch the portal world: a biome where portals open every few seconds, each a colour of its own, and carry you to another |
 | `11_network_play.md` | touch anything a second machine must see: wizards, spells, pages, gates, the match (done: host and join over a network) |
+| `14_spell_expansion_plan.md` | rename a school or a ritual, touch the Library, move the starting pages, or add Barbs, Pebble, Hailstorm, Featherfall, Thorn Whip, Flaming Sphere, Insect Plague, Leech, Raise Dead, Mirage or the Chant of the Scrying Eye (built; the Flaming Sphere's look and the stand-in shot art still wait for the owner) |
 
 ---
 
@@ -324,7 +325,7 @@ allows no numbers at all (not even damage), and the spellbook is a canon tome wi
 GODOT="/c/Users/Jordan Polun/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_console.exe"
 "$GODOT" --headless --path . --import                          # after adding or changing any asset
 "$GODOT" --headless --path . --quit-after 200                  # parse check: grep the output for "SCRIPT ERROR"
-"$GODOT" --headless -s tests/test_gestures.gd                  # must print "470 of 470" (or more, if you add checks)
+"$GODOT" --headless -s tests/test_gestures.gd                  # must print "761 of 761" (or more, if you add checks)
 "$GODOT" --headless -s tests/test_pages.gd                     # the pages each wizard is dealt and a ledger's rules
 "$GODOT" --headless --path . tests/intro_check.tscn            # the cut-scene (add `-- mode=skip`, or `-- out=DIR` for pictures, without --headless)
 "$GODOT" --headless --path . tests/flow_check.tscn             # lab, portal, cut-scene, loading, world
@@ -361,6 +362,16 @@ GODOT="/c/Users/Jordan Polun/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.
 "$GODOT" --headless --fixed-fps 60 --path . tests/lab_revive_check.tscn  # whoever dies in the waiting room is on their feet at once
 "$GODOT" --headless --fixed-fps 60 --path . tests/likeness_check.tscn  # the wizard maker: its words open it, and the page with them comes up before the magic mirror floating over the slab of the waiting room, a figure and colours chosen are worn and kept (`GameSettings` look and palette, `Net.look_of`/`palette_of`/`rival_look`), the four figures are one height (`WizardLook.SCALE`), a brain never wears a person's figure (add `-- out=DIR` for pictures, needs a window)
 "$GODOT" --path . tests/look_palettes.tscn -- out=DIR  # every figure in every set of colours, side by side (needs a window)
+"$GODOT" --headless --fixed-fps 60 --path . tests/cluster_check.tscn  # each wizard starts with no spells and finds a cluster of pages by their spawn (`Pages.cluster_of`), in every biome
+"$GODOT" --headless --fixed-fps 60 --path . tests/brains_start_check.tscn  # the AI wizards read their cluster
+"$GODOT" --headless --fixed-fps 60 --path . tests/blizzard_freeze_check.tscn  # a Blizzard chills and then freezes whoever stays in it (add `-- out=DIR` for pictures, needs a window)
+"$GODOT" --headless --fixed-fps 60 --path . tests/group_a_check.tscn  # Barbs, Pebble, Hailstorm and Featherfall
+"$GODOT" --headless --fixed-fps 60 --path . tests/group_b_check.tscn  # Thorn Whip and Insect Plague
+"$GODOT" --headless --fixed-fps 60 --path . tests/leech_check.tscn  # the tether, the split of a spell's cost and what breaks it
+"$GODOT" --headless --fixed-fps 60 --path . tests/raise_dead_check.tscn  # a skeleton with a master: never touches them, fights a rival and a rival's skeleton, follows, falls with its master
+"$GODOT" --headless --fixed-fps 60 --path . tests/mirage_check.tscn  # a false page that fades when anyone comes near, and a brain that learns
+"$GODOT" --headless --fixed-fps 60 --path . tests/sphere_check.tscn  # the Flaming Sphere rolls, climbs a wall, falls into a pit and climbs out, burns, goes out (add `-- out=DIR`, needs a window)
+"$GODOT" --headless --fixed-fps 60 --path . tests/eye_check.tscn  # the Chant of the Scrying Eye: a window bottom right, the eye over the watched wizard, the ground made round them (add `-- out=DIR`, needs a window)
 "$GODOT" --headless --fixed-fps 60 --path . tests/castle_spells_check.tscn  # the castle takes spells: a boulder rests on a swinging stair, a Stalagmite and a Sinkhole work on an upper floor
 "$GODOT" --headless --fixed-fps 60 --path . tests/avalanche_check.tscn  # the peaks' avalanche rumbles, then runs down its slope and hurts whoever it runs over, once
 "$GODOT" --headless --fixed-fps 60 --path . tests/pieces_check.tscn  # small pieces: a world's four words and its seed, the spell table and its buttons, a fireball called down onto the ground
@@ -406,13 +417,13 @@ GODOT="/c/Users/Jordan Polun/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.
 | A / D | Move |
 | W or Space | Jump |
 | S | Drop through a wooden platform |
-| Left mouse | Fire school |
-| Right mouse | Water school |
-| Middle mouse | Air school |
-| Left + Right | Earth school |
-| Left + Middle | Flora school |
-| Right + Middle | Shadow school |
-| Left + Right + Middle | Blood school |
+| Left mouse | Pyromancy (Fire) |
+| Right mouse | Aquamagy (Water) |
+| Middle mouse | Aerokinesis (Air) |
+| Left + Right | Terramancy (Earth) |
+| Left + Middle | Druidry (Flora) |
+| Right + Middle | Umbramancy (Shadow) |
+| Left + Right + Middle | Necromancy (Blood) |
 | W at a vine | Take hold of a Liana; W and S climb, Space or a sideways key lets go |
 | N / R (waiting room) | Night on and off / reset the room |
 | Tab | Spellbook (arrow keys turn pages) |
@@ -463,7 +474,24 @@ GODOT="/c/Users/Jordan Polun/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.
 | Shadow | Black Hole | inward spiral | a dark knot that pulls everything toward it, fiercely close in and faintly from far off (walls still stop it) | walk out |
 | Shadow | Shadow Step | flick | slipping along the stroke | |
 
-**The spellbook is a canon tome only** (owner decision): in-world text and the drawn picture, no manual, no cost line. What a spell does, what counters it and how much it costs are learned in play. The table above is the first 32 spells. The others (Vacuum, Updraft, Sinkhole, Stalagmite, Silence, Fight or Flight, Sneak, Hunter's Mark, the Blood spells, Tide Surf, Obsidian Armor, Glowcap and Moonbeam) are in `spells/` and `docs/spell_pool.md`. The school and spell plan is in `docs/spell_pool.md`; the direction of the game (a last-wizard-standing page race, which replaced the
+**The spellbook is a canon tome only** (owner decision): in-world text and the drawn picture, no manual, no cost line. What a spell does, what counters it and how much it costs are learned in play. The table above is the first 32 spells. The others (Vacuum, Updraft, Sinkhole, Stalagmite, Silence, Fight or Flight, Sneak, Hunter's Mark, the Blood spells, Tide Surf, Obsidian Armor, Glowcap and Moonbeam) are in `spells/` and `docs/spell_pool.md`.
+
+**The schools have new names** (the ids Fire, Water, Air, Earth, Flora, Shadow and Blood stay in code and double as element tags; only what a player reads changed, through `SpellData.school_name`): Pyromancy, Aquamagy, Aerokinesis, Terramancy, Druidry, Umbramancy and Necromancy. The Library gives a title from the casts (`Library.title_of`).
+
+**Ten spells were added (handoff chapter 14):**
+
+| School | Spell | Shape | Real thing | Counterplay |
+|---|---|---|---|---|
+| Fire | Flaming Sphere | a ring drawn from its bottom, then a level line along the ground | a ball of fire that rolls, follows slopes, falls into pits and climbs a wall (`FlamingSphere`, a `CharacterBody2D`; it keeps the ground round it made through the `ground_watchers` group); burns out after a long roll | jump it; water and rain put it out |
+| Water | Hailstorm | a ring, a line out of it, then a line down | a storm cloud that drops hail along the line | a roof |
+| Air | Featherfall | a feather drifting down: three sweeps across, each bent down in the middle, each ending lower | a slow fall for a while | none needed |
+| Flora | Barbs | a flick | a short spread of thorns | stone, fire |
+| Earth | Pebble | a flick | a stone that falls as it flies (goes over a wall that stops a flat shot) | cover |
+| Flora | Thorn Whip | the Tide Surf wave | a lash that drags the first thing it meets toward the caster (a wizard, an enemy, a loose page) | a wall, fire; a giant is too heavy |
+| Flora | Insect Plague | an eight | a stinging swarm, one cloud that ticks, drawn as insects; it follows the nearest wizard (the caster after a few seconds) | one hit, fire, water, smoke, wind |
+| Necromancy | Leech | the Tide Surf wave, aimed at a wizard | a tether (`Leech`): while it holds, every stamina spell the caster casts is paid half by the caster and half by the other end; it breaks when they lose sight of each other, move too far apart, or either falls | a wall, distance |
+| Necromancy | Raise Dead | a Latin cross: a long stem and a shorter bar across it, nearer the top | a skeleton (a `Mob` with a `master`) with 50 health for 37 maximum stamina, not refunded | kill it |
+| Umbramancy | Mirage | a tall box | a false page that wavers and fades when anyone comes near (`Mirage`, a `PagePickup`) | walk up to it; the AI learns after seeing one fade | The school and spell plan is in `docs/spell_pool.md`; the direction of the game (a last-wizard-standing page race, which replaced the
 boss and the solo roguelite loop of `docs/roguelite_exploration_design.md`) is in `docs/pvp_arena_design.md`. The waiting room (`scenes/lab.tscn`, `scripts/lab.gd`) is where every spell is tried; the portal there
 starts a run. The first screen also has a **Tutorial** (`scripts/tutorial.gd`: a page of the book on screen at a place for each school, with the school's mouse, an example spell and a line to try it on a dummy, a turret or a pond; two places go on to a meeting of spells) and a **Library** (`scripts/library.gd`, `library_screen.gd`: what this machine remembers of the matches played on it, in `user://library.json`: matches played and won, and for each page how often it was found, its spell cast, and a match won with it in the book. Only the person at the machine, only in real matches; the tests never touch it).
 
@@ -472,7 +500,7 @@ starts a run. The first screen also has a **Tutorial** (`scripts/tutorial.gd`: a
 **Targeting types:** `directional`, `positional`, `angled`, `shape` and `cone`. The caster's `cast_resolved`
 signal passes `info` (radius, line, rect, shapes, aim, spread, reach), and `arena.spawn_spell` routes it.
 **No sides:** once a spell is cast it has no team. It hurts whoever it touches: enemies, the player, the dark
-wizard, and the caster and its allies too (friendly fire). The one exception is a shot (Ignite, Frostbolt, an enemy's
+wizard, and the caster and its allies too (friendly fire). **The one exception is Raise Dead:** a skeleton has a master (`Mob.master`). It never attacks its master, and skeletons of different masters fight each other. It is the first thing in the game with a master; the spells themselves still have no sides, and every spell still hurts a skeleton (its master's too). It falls when its master falls. The one exception is a shot (Ignite, Frostbolt, an enemy's
 bolt): it can't hit whoever fired it while it is still inside that body. Once it has flown clear, it can hit them, so
 it hits them if it comes back. Blink and Fire Breath start on the caster's body, so the caster is passed by there as
 well. `scripts/spells/spell_targets.gd` decides who can be hurt.

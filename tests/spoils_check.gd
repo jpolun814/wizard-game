@@ -23,6 +23,7 @@ func _ready() -> void:
 	for found: Wizard in tree.get_nodes_in_group("wizards"):
 		if found != person and victim == null:
 			victim = found
+	victim.ledger.learn("Ignite")  # a wizard starts with nothing, and a book with nothing in it is not left
 	var book: Array = victim.ledger.pages.keys()
 	var before := tree.get_nodes_in_group("pages").size()
 	victim.take_damage(10000)

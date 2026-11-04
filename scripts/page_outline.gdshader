@@ -5,13 +5,14 @@ uniform vec4 outline_color : source_color = vec4(1.0, 0.9, 0.6, 1.0);
 uniform float strength = 1.0;
 
 void fragment() {
+	vec4 tint = COLOR;  // what the node's modulate asks for (a page that fades, a mirage that ripples)
 	vec4 c = texture(TEXTURE, UV);
 	vec2 px = TEXTURE_PIXEL_SIZE;
 	float near = max(max(texture(TEXTURE, UV + vec2(px.x, 0.0)).a, texture(TEXTURE, UV - vec2(px.x, 0.0)).a),
 			max(texture(TEXTURE, UV + vec2(0.0, px.y)).a, texture(TEXTURE, UV - vec2(0.0, px.y)).a));
 	if (c.a > 0.0) {
-		COLOR = c;
+		COLOR = c * tint;
 	} else {
-		COLOR = vec4(outline_color.rgb, near * strength);
+		COLOR = vec4(outline_color.rgb, near * strength * tint.a);
 	}
 }

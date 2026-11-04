@@ -24,6 +24,8 @@ func _ready() -> void:
 			await get_tree().process_frame
 		var laid := get_tree().get_nodes_in_group("pages").size()
 		var want := Pages.count_for(biome, WorldGraph.size.x)
+		for seat in 4:
+			want += 1  # the fan of pages each seat starts beside (one pickup), on top of the world's own
 		var ok := laid <= want + 2 and laid >= want - 2  # (a page may be dropped by a wizard's fall, or not placed)
 		print(("PASS  " if ok else "FAIL  ") + "%s (seed %d): %d pages lie, %d are meant to" % [biome, seed_value, laid, want])
 		if not ok:

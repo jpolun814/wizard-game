@@ -106,6 +106,7 @@ func _on_hit(body: Node2D) -> void:
 		if body.dead:
 			return
 		_spent = true
+		MatchStats.strike(self)
 		body.take_damage(damage(), true, true)
 		if spell == "Frostbolt":
 			body.apply_debuff("slow", SLOW_SECONDS)
@@ -113,6 +114,7 @@ func _on_hit(body: Node2D) -> void:
 		if body.is_dead():
 			return
 		_spent = true
+		MatchStats.strike(self)
 		body.take_damage(damage(), _school(), true)
 		if spell == "Ignite":
 			body.knock_back(aim * FIREBALL_KNOCK)  # a fireball shoves the enemy a little along its path

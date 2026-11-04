@@ -50,6 +50,8 @@ const MOB_JUMP_HIGH := -560.0 # enough to reach a platform when the player is up
 const BURST_DAMAGE := 6       # a Stormrunner's explosion hurts everything close by this much
 const BURST_RADIUS := 60.0
 const ROAM_NOTICE := 560.0     # a roaming enemy notices the player this close, and loses them again past a little farther
+const FOLLOW_GAP := 110.0      # a raised skeleton with no one to fight keeps about this close to its master
+const FOLLOW_REACH := 1100.0   # and goes no farther than this to find them
 const DECOY_NOTICE := 520.0    # a decoy this close is noticed, and attacked instead of the player
 const SPIT_RANGE := 480.0       # a ranged enemy fires from this far away
 const SPIT_STAND_RANGE := 300.0 # and stops walking once it is this close
@@ -76,6 +78,9 @@ var puppet := false  # in a network game, a roamer on a machine that is not the 
 var net_position := Vector2.ZERO  # where the host says it is, while it is a puppet
 var net_facing := 1.0
 var net_swing := false  # the host's is drawing back to strike
+var master: Wizard  # the wizard who raised this one from the dead (Raise Dead), or null for any other: it never attacks its master, and fights the dead another wizard raised
+var _foe: Mob       # a dead another wizard raised, which it has picked to fight
+var _master_sync := 0.0
 var _prey_time := 0.0
 var _wander := 0.0
 var _wander_time := 0.0
@@ -247,6 +252,10 @@ func _physics_process(delta: float) -> void:
 		return
 	if roams:
 		_pick_prey(delta)
+	if master != null and (not is_instance_valid(master) or master.dead) and not _dead:
+		_die()  # it was held up by its master's will: when the master is beaten it falls
+		return
+	_share_raised(delta)
 	if global_position.y > (ArenaGen.world_size.y * float(ArenaGen.TILE) if ArenaGen.world_size.y > 0 else FALL_LIMIT):
 		queue_free()
 		return
@@ -331,7 +340,10 @@ func _walk(delta: float) -> void:
 	var sees := target != null and _sees(target)
 	var stands_to_shoot: bool = shooter and distance < SPIT_STAND_RANGE and sees and data.effect != "ninja"
 	if roams and distance > ROAM_NOTICE:
-		_amble(delta, speed)
+		if master != null:
+			_follow_master(speed)
+		else:
+			_amble(delta, speed)
 		return
 	var close := absf(to_player.x) < 18.0  # right on top of the player: stop instead of walking through
 	var moving := target != null and speed > 0.0 and not stands_to_shoot and _root_time <= 0.0 and _windup <= 0.0 and _charge <= 0.0 and not close
@@ -387,12 +399,24 @@ func _pick_prey(delta: float) -> void:
 		return
 	_prey_time = 0.4
 	player = null
+	_foe = null
 	var nearest := INF
 	for wizard: Wizard in get_tree().get_nodes_in_group("wizards"):
 		var gap := wizard.global_position.distance_squared_to(global_position)
-		if not wizard.dead and wizard.is_seen_from(global_position) and gap < nearest:
+		if wizard != master and not wizard.dead and wizard.is_seen_from(global_position) and gap < nearest:
 			nearest = gap
 			player = wizard
+	if master == null:
+		return
+	# The dead another wizard raised are fought too, whichever is nearer.
+	var foe_gap := minf(nearest, ROAM_NOTICE * ROAM_NOTICE)
+	for other: Mob in get_tree().get_nodes_in_group("mobs"):
+		if other.master == null or other.master == master or other.is_dead() or other._spawn > 0.0:
+			continue
+		var gap := other.global_position.distance_squared_to(global_position)
+		if gap < foe_gap and _can_reach(other):
+			foe_gap = gap
+			_foe = other
 
 
 ## Hits a wizard for a mob. A wizard another machine drives is told to take the blow, since only its own machine can.
@@ -403,6 +427,40 @@ func _strike(target: Node2D, amount: int, impulse := Vector2.ZERO) -> void:
 	target.take_damage(amount)
 	if impulse != Vector2.ZERO:
 		target.push(impulse)
+
+
+## A raised skeleton with no one to fight stays near its master: it walks toward them until it is close, and hops what blocks the way.
+func _follow_master(speed: float) -> void:
+	var to := master.center() - center()
+	var coming := absf(to.x) > FOLLOW_GAP and to.length() < FOLLOW_REACH and _root_time <= 0.0 and _windup <= 0.0
+	velocity.x = (signf(to.x) * speed if coming else 0.0) + _knock_x + _drift.x
+	if is_on_floor() and coming and _nojump_time <= 0.0 and (is_on_wall() or (to.y < -50.0 and absf(to.x) < 140.0)):
+		velocity.y = MOB_JUMP_HIGH if to.y < -50.0 else MOB_JUMP
+	move_and_slide()
+
+
+## In a network game the machine that drives a raised skeleton's master tells the others where it is and what it is doing; theirs only show it.
+func _share_raised(delta: float) -> void:
+	if master == null or puppet or not Net.online():
+		return
+	_master_sync -= delta
+	if _master_sync > 0.0:
+		return
+	_master_sync = 0.05
+	Net.send(self, &"_raised_at", [global_position, facing, is_drawing_back()])
+
+
+@rpc("authority", "call_remote", "unreliable")
+func _raised_at(at: Vector2, face: float, swing: bool) -> void:
+	net_position = at
+	net_facing = face
+	net_swing = swing
+
+
+## A blow from another wizard's dead, struck on a machine where this one is only a puppet.
+@rpc("any_peer", "call_remote", "reliable")
+func _struck_by_the_dead(amount: int) -> void:
+	take_damage(amount)
 
 
 ## A roaming enemy that has not noticed anyone: it stands about, or shuffles a little way one direction or the other.
@@ -648,6 +706,8 @@ func _shoot(shot: Dictionary) -> void:
 
 ## Who this enemy is after: a decoy it has noticed, otherwise the player.
 func _target() -> Node2D:
+	if is_instance_valid(_foe) and not _foe.is_dead():
+		return _foe
 	var decoy := Decoy.nearest(get_tree(), center(), DECOY_NOTICE)
 	if decoy != null and _can_reach(decoy):
 		return decoy
@@ -692,8 +752,10 @@ func take_damage(amount: int, school := "", shot := false) -> void:
 	var text_at := center() + Vector2(0, -_body_size.y * 0.5 - 6.0)
 	if dealt <= 0:
 		FloatText.spawn(get_parent(), text_at, "Resisted", Color(0.75, 0.75, 0.82), 0.8)
+		MatchStats.strike(null)
 		return
 	hp -= dealt
+	var counted := float(dealt) + minf(float(hp), 0.0)  # (a blow past the last of its strength counts only for what was left)
 	_since_hit = 0.0
 	if data.effect == "dummy" and hp <= 0:
 		hp = max_hp  # a dummy is never beaten: it stands up again
@@ -709,6 +771,12 @@ func take_damage(amount: int, school := "", shot := false) -> void:
 		Sfx.play("mob_hurt", center())
 		if _visual.sprite_frames.has_animation("hit") and _windup <= 0.0 and _charge <= 0.0:
 			_visual.play("hit")
+	MatchStats.hit(self, counted, school)
+
+
+## True for the practice dummy, which is never beaten and so is never counted as a kill.
+func is_training_dummy() -> bool:
+	return KINDS[kind].effect == "dummy"
 
 
 ## A defeated enemy bursts into smoke and its school's sparks, plays its death tumble, then disappears.
@@ -824,6 +892,11 @@ func is_frozen() -> bool:
 	return _frozen_time > 0.0
 
 
+## True for an enemy that ice cannot hold: one made of ice, or one already beaten.
+func shrugs_off_cold() -> bool:
+	return KINDS[kind].school == "Water" or _dead
+
+
 ## How big the body is, for the block of ice that is built round it.
 func body_extent() -> Vector2:
 	return _body_size
@@ -852,7 +925,10 @@ func _attack() -> void:
 		return
 	var target := _target()
 	if target != player:
-		target.take_damage(data.damage)  # a decoy takes the blow
+		if target is Mob and target.puppet:
+			Net.send(target, &"_struck_by_the_dead", [data.damage])  # the machine that drives it decides what the blow does
+		else:
+			target.take_damage(data.damage)  # a decoy takes the blow
 		Sfx.play("push", target.center(), -6.0)
 		return
 	var impulse := Vector2.ZERO

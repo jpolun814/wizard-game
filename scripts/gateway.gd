@@ -1,7 +1,7 @@
 class_name Gateway
 extends Portal
 
-## One end of a pair of portals opened by the Incantation of the Return. Anyone who steps into one comes out of the other.
+## One end of a pair of portals opened by the Rite of Return. Anyone who steps into one comes out of the other.
 ## They stay open for good, each pair in a colour of its own.
 
 const COOLDOWN := 1.0  # seconds before whoever came out may go in again, so nobody bounces back and forth

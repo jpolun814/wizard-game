@@ -128,7 +128,7 @@ func _snap(prey: Node2D) -> void:
 func _bite() -> void:
 	_bites += 1
 	_bite_clock = BITE_GAP
-	SpellTargets.hurt(_victim, BITE_DAMAGE, "Flora")
+	SpellTargets.hurt(_victim, BITE_DAMAGE, "Flora", false, false, self)
 	Fx.burst(get_parent(), global_position + Vector2(0, -20), Color("#c04050"), 8, 90.0, 0.4)
 	Sfx.play("chomp", global_position, -4.0)
 	var chomp := create_tween()
