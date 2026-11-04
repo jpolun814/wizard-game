@@ -717,7 +717,7 @@ func _jump_for_portal(delta: float) -> float:
 
 ## The page it was going to has gone: someone else read it, or it has it already.
 func _goal_lost() -> bool:
-	if _goal == "page" and _wise_to_mirages and _goal_page is Mirage:
+	if _goal == "page" and _wise_to_mirages and is_instance_valid(_goal_page) and _goal_page is Mirage:
 		return true
 	if _goal == "portal":
 		return not is_instance_valid(_goal_portal) or _goal_portal.is_closing() or _goal_portal.remaining() < PORTAL_LEFT * 0.5

@@ -33,6 +33,10 @@ func _ready() -> void:
 	add_child(world)
 	await get_tree().process_frame
 	await get_tree().process_frame
+	for other: Wizard in get_tree().get_nodes_in_group("wizards"):
+		if other != world.player:
+			other.set_physics_process(false)  # the others would cast spells of their own, and put water in the ground that is being counted
+			other.global_position = Vector2(-9000.0, -9000.0)
 	var feet: Vector2 = world.player.global_position
 	var space := world.get_world_2d()
 	var spot := feet
@@ -74,6 +78,15 @@ func _ready() -> void:
 				await get_tree().physics_frame
 			node.queue_free()
 	await get_tree().physics_frame
+	var still := 0  # the water of the bursts goes on running and settling for a while; what is measured is what the ride changes, so wait until it is still
+	var last := _loose_total()
+	for k in 1200:
+		await get_tree().physics_frame
+		var now := _loose_total()
+		still = still + 1 if absf(now - last) < 0.0005 else 0
+		last = now
+		if still >= 90:
+			break
 	var water_before := _loose_total()
 	world.player.global_position = spot + Vector2(-500.0, -60.0)
 	world.player.velocity = Vector2.ZERO

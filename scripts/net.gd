@@ -17,6 +17,15 @@ signal scenes_changed
 signal disconnected(reason: String)  # the game we joined is gone, or could not be reached
 
 const PORT := 24565
+
+
+## The port a game is opened and joined on: the usual one, unless the environment says otherwise (WIZARD_PORT), so that several
+## checks of two machines can run side by side on one computer.
+static func port() -> int:
+	var named := OS.get_environment("WIZARD_PORT")
+	return named.to_int() if named != "" else PORT
+
+
 const MENU := "res://scenes/menu.tscn"
 const GIVE_UP_MS := 8000  # a host that has not answered for this long is taken to be gone
 const VIRTUAL_CARDS := ["vethernet", "virtual", "vmware", "vbox", "hyper-v", "wsl", "loopback", "docker", "tailscale", "zerotier"]
@@ -59,7 +68,7 @@ func my_id() -> int:
 ## Opens a game for others to join. OK, or the error when the port is taken.
 func host() -> Error:
 	var peer := ENetMultiplayerPeer.new()
-	var error := peer.create_server(PORT, SEATS - 1)
+	var error := peer.create_server(port(), SEATS - 1)
 	if error != OK:
 		return error
 	multiplayer.multiplayer_peer = peer
@@ -74,14 +83,14 @@ func host() -> Error:
 ## connected_to_server on the MultiplayerAPI or as disconnected here.
 func join(address: String) -> Error:
 	var host_name := address.strip_edges()
-	var port := PORT
+	var use_port := port()
 	if host_name.count(":") == 1:  # an address with a port; an IPv6 address has more than one colon and no port here
-		port = host_name.get_slice(":", 1).to_int()
+		use_port = host_name.get_slice(":", 1).to_int()
 		host_name = host_name.get_slice(":", 0)
 	if host_name == "":
 		return ERR_INVALID_PARAMETER
 	var peer := ENetMultiplayerPeer.new()
-	var error := peer.create_client(host_name, port)
+	var error := peer.create_client(host_name, use_port)
 	if error != OK:
 		return error
 	peer.get_peer(1).set_timeout(0, GIVE_UP_MS / 2, GIVE_UP_MS)  # a wrong address, or a host that is gone, is known in seconds, not half a minute

@@ -84,7 +84,7 @@ func _build_map() -> Variant:
 
 
 const THORN_CHUNK := 5  # tiles of floor in a thicket of the world
-const EPILOGUE_AFTER := 4.0  # seconds after a match is won, in a game on this machine alone, before the winner is shown putting the book back
+const EPILOGUE_AFTER := 14.0  # seconds after a match is won (and the stats, if they are open, are put away), in a game on this machine alone, before the winner is shown putting the book back
 const BACK_TO_ROOM := 10.0  # seconds after a network match is won before everyone is back in the waiting room
 var nav: WorldNav  # the ways about the world on foot, with every gate shut
 var _start_tile := Vector2i.ZERO
@@ -710,7 +710,7 @@ func _drop_pages(wizard: Wizard) -> void:
 		held.append(each)
 	if held.is_empty():
 		return
-	var spot := _floor_under(wizard.global_position)
+	var spot := _on_ridge(wizard.global_position, _floor_under(wizard.global_position))  # on a ridge, the book lies on it
 	var name := "Spoils" + String(wizard.name)
 	_lay_spoils(name, held, spot)
 	Net.send(self, &"_lay_spoils", [name, held, spot])
@@ -1231,10 +1231,18 @@ func _count_wizards(delta: float) -> void:
 	if standing.size() == 1 and Library.real_match() and (Net.is_host() or not Net.online()):
 		_won = true
 		var champion: Wizard = standing[0]
-		get_tree().create_timer(EPILOGUE_AFTER).timeout.connect(_end_with_epilogue.bind(champion.look, champion.palette))  # the winner is shown putting the book back, on every machine
+		get_tree().create_timer(EPILOGUE_AFTER).timeout.connect(_epilogue_when_stats_are_away.bind(champion.look, champion.palette))  # the winner is shown putting the book back, on every machine
 	elif standing.size() <= 1 and Net.online() and Net.is_host():
 		_won = true
 		get_tree().create_timer(BACK_TO_ROOM).timeout.connect(_back_to_room)  # no winner, or a test: everyone just goes back to the waiting room
+
+
+## The ending waits while the person is reading their stats, so it never cuts in on them.
+func _epilogue_when_stats_are_away(look: String, palette: int) -> void:
+	if _stats != null and is_instance_valid(_stats) and _stats.visible:
+		get_tree().create_timer(0.5).timeout.connect(_epilogue_when_stats_are_away.bind(look, palette))
+		return
+	_end_with_epilogue(look, palette)
 
 
 ## The match is won: on the host and then on every other machine, the winner is shown putting the book back.

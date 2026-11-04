@@ -85,11 +85,18 @@ func _raise() -> void:
 	_rival.max_stamina = 200.0
 	await _wait(0.4)
 	_rival.set_physics_process(true)
-	await _wait(5.0)
+	var waited := 0.0
+	while _rival.max_stamina >= 200.0 and waited < 14.0:  # (the rival's own brain may walk off first, and the skeleton must catch it up)
+		await _wait(0.5)
+		waited += 0.5
 	_verdict(_rival.max_stamina < 200.0, "it attacks a rival wizard (%.0f lost)" % (200.0 - _rival.max_stamina))
 	_rival.set_physics_process(false)
 	_rival.global_position = Vector2(-9000.0, -9000.0)
 	await _clear_risen()
+	_player.thaw()  # (the rival, with every spell, may have frozen the person who stood by its skeleton)
+	_player.fainted = false
+	if _rival.dead:
+		_rival.revive()  # (the skeleton may have felled it)
 	# Two masters' dead fight each other.
 	_player.global_position = _spot
 	_player.max_stamina = 200.0
@@ -100,21 +107,31 @@ func _raise() -> void:
 	_cast_by(_rival, _spot + Vector2(240.0, 0.0))
 	await _wait(0.2)
 	for tries in 5:  # (a cast may be refused while the wizard is still busy with the last)
-		if not _risen_of(_rival).is_empty():
+		if not _risen_of(_rival).is_empty() and not _risen_of(_player).is_empty():
 			break
-		_rival.stamina = _rival.max_stamina
-		_cast_by(_rival, _spot + Vector2(240.0, 0.0))
+		for who: Wizard in [_player, _rival]:
+			if _risen_of(who).is_empty():
+				who.max_stamina = 200.0  # (a cast that was only slow to show must not be paid for twice)
+				who.stamina = who.max_stamina
+				_cast_by(who, _spot + Vector2(60.0 if who == _player else 240.0, 0.0))
 		await _wait(0.3)
 	var a: Mob = _risen_of(_player)[0]
 	var b: Mob = _risen_of(_rival)[0]
 	await _wait(8.0)
-	var hurt := (50 - a.hp if not a.is_dead() else 50) + (50 - b.hp if not b.is_dead() else 50)
-	_verdict(hurt > 0 and (a.is_dead() or a.hp < 50 or b.is_dead() or b.hp < 50), "skeletons of different masters fight each other (%d hurt)" % hurt)
-	_verdict(_player.max_stamina >= 200.0 - 37.0 and _rival.max_stamina >= 200.0 - 37.0, "and neither master is touched")
+	var a_gone := not is_instance_valid(a) or a.is_dead()  # (a fallen skeleton is freed)
+	var b_gone := not is_instance_valid(b) or b.is_dead()
+	var hurt := (50 - a.hp if not a_gone else 50) + (50 - b.hp if not b_gone else 50)
+	_verdict(hurt > 0 and (a_gone or a.hp < 50 or b_gone or b.hp < 50), "skeletons of different masters fight each other (%d hurt)" % hurt)
+	# (A skeleton goes for another master's wizard as well as for its skeletons, so what a master loses to the other's is not looked at; that it never strikes its own is, above.)
 	await _clear_risen()
 	# The master's end is theirs.
-	_cast_by(_player, _spot + Vector2(80.0, 0.0))
-	await _wait(0.3)
+	for tries in 5:  # (a cast may be refused while the wizard is still busy with the last)
+		_player.max_stamina = 200.0
+		_player.stamina = 200.0
+		_cast_by(_player, _spot + Vector2(80.0, 0.0))
+		await _wait(0.3)
+		if not _risen_of(_player).is_empty():
+			break
 	var doomed: Mob = _risen_of(_player)[0]
 	_player.dead = true
 	await _wait(1.5)

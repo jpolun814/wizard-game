@@ -204,6 +204,24 @@ func _lifted_out_of_rock(point: Vector2) -> Vector2:
 	return point
 
 
+## Where a point lands when it is over a ridge of the snowy peaks: on the ridge's top, not on the ground behind it, which the ridge hides.
+## A point above the ridge, or only a little way into it, is on it; one far below the top is on the ground in front. `ground` is where it
+## would land otherwise.
+func _on_ridge(point: Vector2, ground: Vector2) -> Vector2:
+	var ridges := get_tree().get_first_node_in_group("ridges") as MountainRidges
+	if ridges == null:
+		return ground
+	var top := ridges.top_at(point.x)
+	if top < INF and point.y <= top + 48.0 and top < ground.y - 4.0:
+		return Vector2(point.x, top)
+	return ground
+
+
+## Where something placed at a point stands: the ground under it, or a ridge's top where it is over one.
+func _landing(point: Vector2) -> Vector2:
+	return _on_ridge(point, _surface_under(point))
+
+
 ## The ground a point sits over. A world with rock a physics query cannot see inside overrides this.
 func _surface_under(point: Vector2) -> Vector2:
 	return SpellTargets.surface_over(get_world_2d(), point)
@@ -511,10 +529,10 @@ func _spawn_spell(spell: String, targeting: String, origin: Vector2, aim: float,
 			add_child(ball)
 			return
 		"Mirage":
-			Mirage.conjure(self, SpellTargets.surface_over(get_world_2d(), origin))
+			Mirage.conjure(self, _landing(origin))
 			return
 		"Raise Dead":
-			_raise_dead(caster_node, SpellTargets.surface_over(get_world_2d(), origin))
+			_raise_dead(caster_node, _landing(origin))
 			return
 		"Leech":
 			var drained := Leech.pick(get_tree(), caster_node, aim)
@@ -870,8 +888,13 @@ func _stalagmite_spots(info: Dictionary) -> Array:
 			if not hit.is_empty() and hit["normal"].y < -0.3:  # the top of the ground, not a ceiling
 				break
 			hit = {}
+		if hit.is_empty():  # no ground within reach, but a ridge may stand there
+			var on_ridge := _on_ridge(tri[1], Vector2(tri[1].x, INF))
+			if on_ridge.y < INF and on_ridge.y - tri[1].y < ICICLE_REACH:
+				hit = {"position": on_ridge}
 		if hit.is_empty():
 			continue
+		hit["position"] = _on_ridge(tri[1], hit["position"])  # a peak drawn on a ridge rises from the ridge
 		var height := clampf(hit["position"].y - tri[1].y, 40.0, STALAGMITE_MAX)
 		var width := clampf(absf(tri[2].x - tri[0].x), 14.0, height * 0.6)
 		spots.append({"base": hit["position"] + Vector2(0.0, 6.0), "width": width, "height": height})
@@ -927,7 +950,7 @@ func _place_shapes(spell: String, info: Dictionary) -> void:
 			add_child(bridge)
 		"Geyser":
 			var geyser := Geyser.new()
-			geyser.position = _surface_under(centre)  # under the middle of the peak, on the surface
+			geyser.position = _landing(centre)  # under the middle of the peak, on the surface
 			geyser.ground = _ground
 			add_child(geyser)
 		"Bramble":
@@ -940,7 +963,7 @@ func _place_shapes(spell: String, info: Dictionary) -> void:
 			add_child(vine)
 		"Great Oak":
 			var oak := GreatOak.new()
-			oak.position = _surface_under(line[0])  # the trunk's foot
+			oak.position = _landing(line[0])  # the trunk's foot
 			add_child(oak)
 		"Lily Pads":
 			var pads := LilyPads.new()
@@ -1293,7 +1316,7 @@ func _school_bb(school: String) -> String:
 
 ## The surface directly below a point (the floor or a platform), so things placed there sit on the ground.
 func _ground_below(point: Vector2) -> Vector2:
-	return SpellTargets.ground_below(get_world_2d(), point)
+	return _on_ridge(point, SpellTargets.ground_below(get_world_2d(), point))
 
 
 ## Debug: summons one enemy of a kind on the far side of the screen, ahead of where the wizard is facing.

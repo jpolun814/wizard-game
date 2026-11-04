@@ -53,6 +53,15 @@ func _ready() -> void:
 		await get_tree().physics_frame
 	var line_y := ridges.top_at(player.global_position.x)  # (a body wider than a sharp crest rests on its slope, a little under the very top)
 	_verdict(absf(player.global_position.y - line_y) < 6.0 and player.is_on_floor(), "a wizard dropped over a ridge lands on its top (%.0f px from the line under them)" % (player.global_position.y - line_y))
+	# What is cast over a ridge lands on its top, not on the ground that the ridge hides.
+	var crest := ridges.top_at(top.x)
+	var ridge_tip := Vector2(top.x, crest - 10.0)
+	var spots: Array = world._stalagmite_spots({"shapes": [[ridge_tip + Vector2(-20.0, 60.0), ridge_tip, ridge_tip + Vector2(20.0, 60.0)]]})
+	_verdict(spots.size() == 1 and absf(spots[0]["base"].y - 6.0 - crest) < 2.0, "a Stalagmite drawn on a ridge rises from the ridge (base %.0f, ridge %.0f)" % [spots[0]["base"].y if spots.size() == 1 else 0.0, crest])
+	var landed: Vector2 = world._landing(ridge_tip)
+	_verdict(absf(landed.y - crest) < 2.0, "a Mirage or a skeleton cast over a ridge stands on it (%.0f, ridge %.0f)" % [landed.y, crest])
+	var ground_low := world._landing(Vector2(top.x, crest + 400.0))
+	_verdict(ground_low.y > crest + 100.0, "and one cast far below its top is on the ground in front")
 	if out != "":
 		await RenderingServer.frame_post_draw
 		DirAccess.make_dir_recursive_absolute(out)

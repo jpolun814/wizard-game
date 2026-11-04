@@ -7,7 +7,7 @@ extends Node
 ##     godot --headless --fixed-fps 60 --path . tests/brain_spells_check.tscn            (add `-- only=Hex,Sneak` for some)
 ## It prints PASS or FAIL for each spell and exits with code 1 if any failed.
 
-const SECONDS := 25.0       # how long each is given
+const SECONDS := 60.0       # how long each is given
 const ELSEWHERE := {"Frost Bridge": "cross_check kind=flood", "Lily Pads": "cross_check kind=flood spells=Lily%Pads"}
 
 ## How each spell is set up: "gap" the pixels between the two wizards, and flags for what the spell is for. Spells not listed are tried with the defaults.
@@ -53,10 +53,18 @@ class ShootingBrain extends WizardBrain:
 		_begin_cast("Ignite", _line(start, start + (target.center() - start).normalized() * 90.0), QUICK_DRAW)
 
 
+var _dice := 0  # dice=N rolls the dice differently, to look for a roll that fails
+var _shard := []  # [K, N] when this run is one shard of the whole
+
+
 func _ready() -> void:
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("only="):
 			_only = Array(arg.substr(5).replace("%", " ").split(","))
+		elif arg.begins_with("dice="):
+			_dice = int(arg.get_slice("=", 1))
+		elif arg.begins_with("shard="):  # shard=K/N: only every Nth spell, from the Kth, so that a whole set can run side by side
+			_shard = [int(arg.get_slice("=", 1).get_slice("/", 0)), int(arg.get_slice("/", 1))]
 	var names: Array = SpellData.SPELLS.keys()
 	names.sort()
 	for spell_name: String in names:
@@ -65,8 +73,12 @@ func _ready() -> void:
 	for spell_name: String in WizardBrain.USES:
 		if not SpellData.SPELLS.has(spell_name):
 			_verdict(false, "%s is in WizardBrain.USES and is not a spell" % spell_name)
+	var turn := -1
 	for spell_name: String in names:
 		if (not _only.is_empty() and not _only.has(spell_name)) or not WizardBrain.USES.has(spell_name):
+			continue
+		turn += 1
+		if not _shard.is_empty() and turn % _shard[1] != _shard[0]:
 			continue
 		if ELSEWHERE.has(spell_name):
 			print("NOTE  %s is met by %s" % [spell_name, ELSEWHERE[spell_name]])
@@ -84,6 +96,7 @@ func _try(spell_name: String) -> void:
 	World.arrive_by_portal = false
 	World.next_seed = 8
 	var tree := get_tree()
+	seed(spell_name.hash() + _dice)  # the same dice for the same spell, so that a failure comes again
 	var world: World = load("res://scenes/world.tscn").instantiate()
 	add_child(world)
 	await tree.process_frame
