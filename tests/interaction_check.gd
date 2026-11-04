@@ -156,7 +156,8 @@ func _ready() -> void:
 	if shown.size() == 1:
 		var near: PagePickup = Dowsing.nearest_unread(get_tree(), seer.center(), seer.ledger)
 		_verdict(near == shown[0].target, "the page it points to is the nearest one not yet read")
-		seer.ledger.learn(near.page)
+		for page_name: String in near.new_pages(seer.ledger):  # (a pickup may hold several pages, as the first cluster does)
+			seer.ledger.learn(page_name)
 		await get_tree().process_frame
 		await get_tree().process_frame
 		_verdict(get_tree().get_nodes_in_group("dowsings").is_empty() or get_tree().get_nodes_in_group("dowsings")[0].is_queued_for_deletion(), "and the arrow goes once that page is read")

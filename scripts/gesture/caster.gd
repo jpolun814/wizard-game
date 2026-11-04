@@ -159,6 +159,7 @@ func _end() -> void:
 	var hail := _hailstorm(relative) if options.has("hailstorm") else {}
 	var feather := _feather(relative) if options.has("feather") else {}
 	var latin := options.has("latin_cross") and _is_cross(relative)
+	var thunder := options.has("thunderclap") and _is_thunderclap(relative)
 	var portrait := options.has("portrait") and _is_portrait_box(relative)
 	var ring_split := _ring_then_line_split(relative) if (options.has("circle_push") or options.has("sphere")) and spiral.is_empty() and feather.is_empty() else -1
 	if ring_split >= 0 and options.has("sphere") and not options.has("circle_push") and not _runs_level(relative.slice(ring_split)):
@@ -175,7 +176,7 @@ func _end() -> void:
 	var cloud := _cloud_line(relative) if options.has("cloud") else PackedVector2Array()
 	var pit := _pit_stroke(relative) if options.has("pit") else PackedVector2Array()
 	var cone := _cone(relative) if options.has("cone") else {}
-	var smoke := _rising_wave(relative) if options.has("smoke") else PackedVector2Array()
+	var smoke := _rising_wave(relative) if options.has("smoke") and not (gesture == "rocket" and score >= tolerance) else PackedVector2Array()  # (an arrow up is a Rocket Jump, even when drawn a little wavy)
 	var wave := _cloud_line(relative) if options.has("wave") else PackedVector2Array()
 	# A leaf with a vine up from it starts like a tree's trunk would end, so a stroke the recognizer reads as one is not a tree.
 	var vine := gesture == "vine" and score >= tolerance
@@ -187,6 +188,9 @@ func _end() -> void:
 	var pads := _pad_line(relative) if options.has("pads") and spiral.is_empty() else PackedVector2Array()
 	if portrait:
 		gesture = "portrait"  # a tall box with four sharp corners: a picture frame, a doorway
+		score = 1.0
+	elif thunder:
+		gesture = "thunderclap"  # a cloud, and a bolt of lightning down out of it
 		score = 1.0
 	elif latin:
 		gesture = "latin_cross"  # an upright stem with a bar across it, nearer the top: read before the recognizer's guess
@@ -464,6 +468,28 @@ func _loop_end(points: PackedVector2Array, least_walk: float) -> int:
 		if points[k].distance_to(points[0]) < 20.0:
 			split = k
 	return split
+
+
+## Thunderclap: a cloud and a bolt out of it. A closed loop, then, from where it began, a zigzag that runs down: a line that bends back and forth
+## across its way at least twice, and ends well below where it began. A straight line out of the ring is a Push, and a bend or two with a level
+## cloud is a Hailstorm.
+func _is_thunderclap(points: PackedVector2Array) -> bool:
+	var split := _loop_end(points, 100.0)
+	if split < 0:
+		return false
+	var ring := points.slice(0, split)
+	if _mean_distance(ring, _relative_centroid(ring)) < 15.0:
+		return false
+	var tail := points.slice(split)
+	if tail.size() < 6:
+		return false
+	var drop := tail[tail.size() - 1].y - tail[0].y
+	if drop < 40.0:
+		return false  # the bolt falls
+	var width := GestureTemplates.bounds(tail).size.x
+	if width < 14.0 or width > drop * 1.1:
+		return false  # it is a zigzag, not a straight line, and not a sweep across
+	return _turning_points(tail, 0, clampf(width * 0.3, 7.0, 14.0)).size() >= 2
 
 
 ## Hailstorm: a ring, then a line out from it that runs level or nearly so, then a line down from the end of that. Returns {"from": the ring's middle,

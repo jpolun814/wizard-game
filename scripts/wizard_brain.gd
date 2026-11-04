@@ -43,7 +43,7 @@ const WAYS := {  # the spells (and chants) that get a wizard past each crossing 
 	"flood": ["Frost Bridge", "Lily Pads", "Shadow Step"],
 	"piranhas": ["Frost Bridge", "Lily Pads", "Shadow Step"],
 	"sentinel": ["Smoke Screen", "Eclipse", "Barrier", "Decoy"],
-	"wall": ["Geyser", "Push", "Updraft", "Liana", "Great Oak", "Tornado"],
+	"wall": ["Geyser", "Rocket Jump", "Push", "Updraft", "Liana", "Great Oak", "Tornado"],
 	"gas": ["chant:deep_breath"],  # walked through with the breath held (a chant, not a spell)  # thrown up over the top of it
 }
 const LASTS := {"Frost Bridge": 25.0, "Lily Pads": 6.0, "Smoke Screen": 11.0, "Eclipse": 9.0, "Barrier": 5.0, "Decoy": 3.0}  # seconds that the way a spell makes lasts
@@ -80,7 +80,7 @@ const LIFT_CLOSE := {"Liana": 40.0, "Great Oak": 40.0, "Updraft": 0.0}  # the li
 const LIFT_STAND := {"Updraft": 0.0}  # how close to a rival on a ledge it stands to raise itself to them, for the lifts that differ from the usual
 const CHASE_REST := 10.0        # seconds between two tries at a way up to a rival
 const OAK_CHASE_MAX := 190.0    # pixels up to a rival that an oak can still be climbed for (its low ledge, and a jump from it)
-const LIFTS := ["Geyser", "Updraft", "Push", "Liana", "Great Oak", "Tornado"]  # what raises it up a wall or to a rival, the one it likes best first
+const LIFTS := ["Geyser", "Updraft", "Rocket Jump", "Push", "Liana", "Great Oak", "Tornado"]  # what raises it up a wall or to a rival, the one it likes best first
 const TEND_REST := {"Flare": 40.0, "Glowcap": 60.0, "Moonbeam": 30.0, "Adrenaline": 25.0, "Offering": 20.0, "Sneak": 25.0, "Crimson Veil": 8.0, "Obsidian Armor": 25.0,
 		"Featherfall": 20.0, "Decoy": 8.0, "Stone Wall": 6.0, "Smoke Screen": 10.0, "Eclipse": 14.0, "Hunter's Mark": 25.0}  # seconds before it looks to the same need with the same spell again
 ## What the brain does with every spell there is (a test holds it to this: a spell with no line here is one it would never cast, and each line is met by a check).
@@ -88,9 +88,9 @@ const USES := {
 	"Ignite": "attack", "Frostbolt": "attack", "Spark": "attack", "Stonefall": "attack", "Fire Breath": "attack", "Firewall": "attack", "Spore Puff": "attack",
 	"Stalagmite": "attack", "Bramble": "attack", "Flytrap": "attack", "Icicles": "attack under a ceiling", "Sinkhole": "attack", "Tornado": "attack, and a way up",
 	"Ice Prison": "attack", "Blizzard": "attack", "Mudslide": "attack", "Black Hole": "attack", "Earthquake": "attack", "Hex": "attack", "Vacuum": "attack",
-	"Faint": "attack", "Fight or Flight": "attack", "Silence": "attack", "Tide Surf": "attack", "Burst": "attack",
+	"Faint": "attack", "Fight or Flight": "attack", "Silence": "attack", "Tide Surf": "attack", "Burst": "attack", "Thunderclap": "attack",
 	"Barbs": "attack", "Pebble": "attack", "Hailstorm": "attack", "Thorn Whip": "attack", "Insect Plague": "attack", "Leech": "attack", "Raise Dead": "attack", "Flaming Sphere": "attack", "Mirage": "attack",
-	"Barrier": "defence", "Gust": "defence", "Shadow Step": "defence, and a way over a chasm", "Push": "repel, and a way up", "Geyser": "repel, and a way up",
+	"Barrier": "defence", "Gust": "defence", "Shadow Step": "defence, and a way over a chasm", "Push": "repel, and a way up", "Rocket Jump": "a way up", "Geyser": "repel, and a way up",
 	"Stone Wall": "tend", "Smoke Screen": "tend", "Decoy": "tend", "Eclipse": "tend", "Crimson Veil": "tend", "Obsidian Armor": "tend, and a way through lava",
 	"Adrenaline": "tend", "Offering": "tend", "Sneak": "tend", "Hunter's Mark": "tend", "Flare": "tend", "Glowcap": "tend", "Moonbeam": "tend",
 	"Featherfall": "tend, in a long fall", "Updraft": "a way up", "Great Oak": "a way up", "Liana": "a way up", "Frost Bridge": "a way over water", "Lily Pads": "a way over water",
@@ -433,7 +433,7 @@ func _cross(crossing: Dictionary) -> bool:
 		dir = _pads[crossing["key"]]["dir"]  # a row of pads is laid along the way it set out
 	_cross_run = 0.0
 	match spell_name:
-		"Geyser", "Push", "Liana", "Updraft", "Great Oak", "Tornado":  # it walks up to the face of the wall and stands there while the ground bubbles under it, while it shoves itself up, while it climbs a vine, a column of air or an oak, or while a whirlwind flings it
+		"Geyser", "Rocket Jump", "Push", "Liana", "Updraft", "Great Oak", "Tornado":  # it walks up to the face of the wall and stands there while the ground bubbles under it, while it shoves itself up, while it climbs a vine, a column of air or an oak, or while a whirlwind flings it
 			var face := span.position.x - 36.0 if dir > 0 else span.end.x + 36.0
 			if absf(face - wizard.global_position.x) > 12.0:
 				_cross_run = clampf(face - wizard.global_position.x, -WALK_SPEED, WALK_SPEED)
@@ -569,6 +569,8 @@ func _lifting(delta: float) -> float:
 			_begin_cast("Push", _push_stroke(feet, Vector2(dir * 0.2, -1.0).normalized()), QUICK_DRAW)
 		elif _lift["spell"] == "Liana":  # a vine from the ground at its feet, taller than the wall
 			_begin_cast("Liana", _offset(GestureTemplates.preview_points("vine"), Vector2(feet.x, wizard.global_position.y - 75.0 * VINE_SCALE), VINE_SCALE), QUICK_DRAW)
+		elif _lift["spell"] == "Rocket Jump":  # an arrow up drawn at its feet: the flame throws it high
+			_begin_cast("Rocket Jump", _offset(GestureTemplates.preview_points("rocket"), feet, 0.6), QUICK_DRAW)
 		elif _lift["spell"] == "Updraft":  # a column of air where it stands
 			_begin_cast("Updraft", _offset(GestureTemplates.preview_points("updraft"), feet, 0.6), QUICK_DRAW)
 		elif _lift["spell"] == "Tornado":  # a whirlwind a step ahead of it, to walk into
@@ -1219,6 +1221,7 @@ func _attack(to_player: Vector2, sees: bool) -> bool:
 		"Silence": (1.8 if foe.is_drawing() else 0.6) if gap > Silence.RADIUS + 45.0 else 0.0,  # the ring is drawn round you, so well clear of it
 		"Tide Surf": 1.0 if grounded and gap > 110.0 and gap < 320.0 else 0.0,
 		"Burst": 1.6 if gap < 140.0 else 0.0,
+		"Thunderclap": 1.7 if gap < Thunderclap.RADIUS - 40.0 and foe.daze_time <= 0.0 else 0.0,
 		"Tornado": (0.6 + _pressure * 0.5) if gap < 260.0 else 0.2,
 		"Ice Prison": 1.3 if gap < 360.0 and not stuck else 0.0,
 		"Mudslide": 1.1 if grounded and not stuck else 0.0,
@@ -1362,6 +1365,8 @@ func _attack_stroke(spell_name: String) -> PackedVector2Array:
 			return _offset(GestureTemplates.preview_points("eight"), wizard.center() + Vector2(facing * 50.0, -10.0), 0.7)
 		"Burst":
 			return _offset(GestureTemplates.preview_points("circle"), wizard.center(), 0.7)
+		"Thunderclap":  # a cloud and a bolt, drawn on itself
+			return _offset(GestureTemplates.preview_points("thunderclap"), wizard.center() + Vector2(0.0, -30.0), 0.8)
 	return PackedVector2Array()
 
 

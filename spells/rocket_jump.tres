@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="Spell" format=3]
+
+[ext_resource type="Script" path="res://scripts/spell.gd" id="1_leap"]
+
+[resource]
+script = ExtResource("1_leap")
+spell_name = "Rocket Jump"
+school = "Fire"
+gesture = "rocket"
+cost = 30.0
+effect = "Launch into the sky like a rocket."
+damage = ""

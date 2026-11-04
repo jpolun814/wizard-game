@@ -16,11 +16,11 @@ const SCENES := {
 	"Flare": {"dark": true}, "Glowcap": {"dark": true}, "Moonbeam": {"dark": true},
 	"Offering": {"tired": true}, "Adrenaline": {"tired": true}, "Sneak": {"low": true},
 	"Hunter's Mark": {"gap": 720.0},
-	"Burst": {"gap": 80.0, "rush": true}, "Silence": {"gap": 270.0}, "Tide Surf": {"gap": 220.0},
+	"Burst": {"gap": 80.0, "rush": true}, "Thunderclap": {"gap": 120.0, "rush": true}, "Silence": {"gap": 270.0}, "Tide Surf": {"gap": 220.0},
 	"Stone Wall": {"shot_at": true}, "Smoke Screen": {"shot_at": true}, "Decoy": {"shot_at": true}, "Crimson Veil": {"shot_at": true},
 	"Obsidian Armor": {"shot_at": true}, "Eclipse": {"shot_at": true, "gap": 300.0},
 	"Barrier": {"shot_at": true, "gap": 400.0, "hold": true}, "Gust": {"shot_at": true, "gap": 400.0, "hold": true}, "Shadow Step": {"shot_at": true},
-	"Featherfall": {"fall": true}, "Geyser": {"up": true}, "Updraft": {"up": true}, "Push": {"up": true}, "Liana": {"up": true}, "Great Oak": {"up": true}, "Tornado": {"up": true},
+	"Featherfall": {"fall": true}, "Geyser": {"up": true}, "Updraft": {"up": true}, "Push": {"up": true}, "Rocket Jump": {"up": true}, "Liana": {"up": true}, "Great Oak": {"up": true}, "Tornado": {"up": true},
 }
 
 var _failures := 0

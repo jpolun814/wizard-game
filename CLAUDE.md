@@ -325,7 +325,7 @@ allows no numbers at all (not even damage), and the spellbook is a canon tome wi
 GODOT="/c/Users/Jordan Polun/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_console.exe"
 "$GODOT" --headless --path . --import                          # after adding or changing any asset
 "$GODOT" --headless --path . --quit-after 200                  # parse check: grep the output for "SCRIPT ERROR"
-"$GODOT" --headless -s tests/test_gestures.gd                  # must print "761 of 761" (or more, if you add checks)
+"$GODOT" --headless -s tests/test_gestures.gd                  # must print "784 of 784" (or more, if you add checks)
 "$GODOT" --headless -s tests/test_pages.gd                     # the pages each wizard is dealt and a ledger's rules
 "$GODOT" --headless --path . tests/intro_check.tscn            # the cut-scene (add `-- mode=skip`, or `-- out=DIR` for pictures, without --headless)
 "$GODOT" --headless --path . tests/flow_check.tscn             # lab, portal, cut-scene, loading, world
@@ -367,6 +367,7 @@ GODOT="/c/Users/Jordan Polun/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.
 "$GODOT" --headless --fixed-fps 60 --path . tests/blizzard_freeze_check.tscn  # a Blizzard chills and then freezes whoever stays in it (add `-- out=DIR` for pictures, needs a window)
 "$GODOT" --headless --fixed-fps 60 --path . tests/group_a_check.tscn  # Barbs, Pebble, Hailstorm and Featherfall
 "$GODOT" --headless --fixed-fps 60 --path . tests/group_b_check.tscn  # Thorn Whip and Insect Plague
+"$GODOT" --headless --fixed-fps 60 --path . tests/group_c_check.tscn  # Thunderclap (throws everyone near back but the caster, and dazes them) and Rocket Jump (the caster is thrown far up)
 "$GODOT" --headless --fixed-fps 60 --path . tests/leech_check.tscn  # the tether, the split of a spell's cost and what breaks it
 "$GODOT" --headless --fixed-fps 60 --path . tests/raise_dead_check.tscn  # a skeleton with a master: never touches them, fights a rival and a rival's skeleton, follows, falls with its master
 "$GODOT" --headless --fixed-fps 60 --path . tests/mirage_check.tscn  # a false page that fades when anyone comes near, and a brain that learns
@@ -490,6 +491,8 @@ GODOT="/c/Users/Jordan Polun/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.
 | Flora | Thorn Whip | the Tide Surf wave | a lash that drags the first thing it meets toward the caster (a wizard, an enemy, a loose page) | a wall, fire; a giant is too heavy |
 | Flora | Insect Plague | an eight | a stinging swarm, one cloud that ticks, drawn as insects; it follows the nearest wizard (the caster after a few seconds) | one hit, fire, water, smoke, wind |
 | Necromancy | Leech | the Tide Surf wave, aimed at a wizard | a tether (`Leech`): while it holds, every stamina spell the caster casts is paid half by the caster and half by the other end; it breaks when they lose sight of each other, move too far apart, or either falls | a wall, distance |
+| Air | Thunderclap | a cloud (a ring begun at its bottom), then a lightning bolt: a zigzag down out of it | thunder (a recording): throws back everyone near except the caster (no harm) and dazes them (`Wizard.daze_time`: slow, and no spell or chant) | stay out of its reach |
+| Fire | Rocket Jump | an arrow pointing up (drawn with the fire button) | flame from the feet lifts the caster slowly at first and then faster, about 480 px up (`RocketJump`, `Wizard.rocket_time`) | none needed |
 | Necromancy | Raise Dead | a Latin cross: a long stem and a shorter bar across it, nearer the top | a skeleton (a `Mob` with a `master`) with 50 health for 37 maximum stamina, not refunded | kill it |
 | Umbramancy | Mirage | a tall box | a false page that wavers and fades when anyone comes near (`Mirage`, a `PagePickup`) | walk up to it; the AI learns after seeing one fade | The school and spell plan is in `docs/spell_pool.md`; the direction of the game (a last-wizard-standing page race, which replaced the
 boss and the solo roguelite loop of `docs/roguelite_exploration_design.md`) is in `docs/pvp_arena_design.md`. The waiting room (`scenes/lab.tscn`, `scripts/lab.gd`) is where every spell is tried; the portal there

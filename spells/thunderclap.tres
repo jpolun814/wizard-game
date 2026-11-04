@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="Spell" format=3]
+
+[ext_resource type="Script" path="res://scripts/spell.gd" id="1_thunder"]
+
+[resource]
+script = ExtResource("1_thunder")
+spell_name = "Thunderclap"
+school = "Air"
+gesture = "thunderclap"
+cost = 35.0
+effect = "Evoke thunder, throwing and dazing everything around you."
+damage = ""
+effect_path = "res://scripts/spells/thunderclap.gd"

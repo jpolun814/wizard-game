@@ -95,6 +95,8 @@ class Driver extends Node:
 			world.player.velocity = Vector2.ZERO
 			world.player.global_position += Vector2(450.0, 0.0)
 		await _seconds(8.0)
+		if not is_instance_valid(skeleton) or not is_instance_valid(skeleton.master):
+			return  # a rival it was set on, or the end of the match, took it
 		var gap := skeleton.global_position.distance_to(skeleton.master.global_position)
 		_check(gap < 400.0, "it follows its master on this machine (%.0f px apart)" % gap)
 		for each: Node in _raised():  # (it hunts whoever is near, and a wizard it fells would end the match under the rest of the check)
@@ -138,6 +140,8 @@ class Driver extends Node:
 			world._on_toggle_chant(RitualInput.RITUALS["scrying_eye"], 1.0)
 		await _seconds(3.0)
 		var marks := get_tree().get_nodes_in_group("eye_marks").filter(func(m): return is_instance_valid(m) and not m.is_queued_for_deletion())
+		if not is_instance_valid(world):
+			return  # the other machine has already ended the match
 		var eye: ScryingEye = world._eye
 		_check(marks.size() == 1, "a little eye floats over the watched wizard on both machines (%d; window %s, watching %s, revealed %s)" % [marks.size(), eye.is_visible_in_tree(), eye.watched, world._revealed])
 

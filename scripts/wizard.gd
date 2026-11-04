@@ -123,6 +123,9 @@ var surf_time: float: # Tide Surf: a wave carries the wizard along surf_dir whil
 var fade_time: float: # Sneak: the wizard shows only faintly while this lasts
 	get: return _status.left(&"fade")
 	set(seconds): _status.set_left(&"fade", seconds)
+var rocket_time: float: # Rocket Jump: the flame lifts the wizard, slowly at first and then faster, while this lasts
+	get: return _status.left(&"rocket")
+	set(seconds): _status.set_left(&"rocket", seconds)
 var feather_time: float: # Featherfall: the wizard falls as slowly as a feather while this lasts
 	get: return _status.left(&"feather")
 	set(seconds): _status.set_left(&"feather", seconds)
@@ -138,6 +141,9 @@ var _shove := Vector2.ZERO  # a Push on the caster: slides them for a moment, th
 var mute_time: float: # no rituals while above zero
 	get: return _status.left(&"mute")
 	set(seconds): _status.set_left(&"mute", seconds)
+var daze_time: float: # a Thunderclap: slow, and no spell or chant, while above zero
+	get: return _status.left(&"daze")
+	set(seconds): _status.set_left(&"daze", seconds)
 var rage_time := 0.0    # Fight or Flight, fighting: the game casts for the wizard while above zero, and the wizard casts nothing of their own
 var fear_time := 0.0    # Fight or Flight, fleeing: the wizard cannot move toward afraid_of while above zero
 var afraid_of: Wizard
@@ -514,6 +520,10 @@ func apply_debuff(kind: String, seconds: float) -> void:
 			blind_time = maxf(blind_time, seconds)
 		"slow":
 			slow_time = maxf(slow_time, seconds)
+		"daze":
+			daze_time = maxf(daze_time, seconds)
+			slow_time = maxf(slow_time, seconds)
+			FloatText.spawn(get_parent(), center() + Vector2(0, -44), "Dazed", Color(0.85, 0.9, 1.0), 1.0)
 		"sink":
 			sink_time = maxf(sink_time, seconds)
 		"tangle":
@@ -525,9 +535,9 @@ func is_muted() -> bool:
 	return mute_time > 0.0 or fainted or silenced()
 
 
-## True while the wizard stands in a ring of Silence: they can cast nothing.
+## True while the wizard stands in a ring of Silence, or is dazed by thunder: they can cast nothing.
 func silenced() -> bool:
-	return Silence.covers(get_tree(), center())
+	return daze_time > 0.0 or Silence.covers(get_tree(), center())
 
 
 ## Pays for a spell in maximum stamina, which only healing brings back. Never takes the last of it: false, and nothing paid, if the
@@ -724,6 +734,11 @@ func _physics_process(delta: float) -> void:
 			if _feather_motes <= 0.0:
 				_feather_motes = 0.35
 				Fx.burst(get_parent(), center() + Vector2(0, -20), Color(0.92, 0.95, 1.0), 2, 25.0, 0.8, false, "star_04")
+	if rocket_time > 0.0:
+		var burned := 1.0 - rocket_time / RocketJump.BURN
+		velocity.y = -RocketJump.TOP * burned * burned  # a rocket: barely off the ground at first, then quicker and quicker
+		if is_on_ceiling():
+			rocket_time = 0.0
 	_coyote = COYOTE_TIME if is_on_floor() else _coyote - delta
 	_jump_buffer -= delta
 

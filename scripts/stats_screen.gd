@@ -35,7 +35,6 @@ func show_stats(place: int, of_total: int, watching: bool) -> void:
 	field = of_total
 	MatchStats.close()
 	mouse_filter = Control.MOUSE_FILTER_STOP
-	set_anchors_preset(Control.PRESET_FULL_RECT)
 	for child in get_children():
 		child.queue_free()
 	_button = Button.new()

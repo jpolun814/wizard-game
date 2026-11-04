@@ -50,6 +50,7 @@ static func recognizer_templates() -> Dictionary:
 		"crescent_cw": _crescent(false),
 		"crescent_ccw": _crescent(true),
 		"updraft": _arrow_up(),
+		"rocket": _arrow_up(),  # the flame going up, drawn with the fire button
 		"question": _question(false),
 		"question_r": _question(true),
 		"arrow": _arrow_side(false, false),
@@ -152,6 +153,10 @@ static func preview_points(gesture: String) -> PackedVector2Array:
 			return _ball_and_roll()
 		"latin_cross":
 			return _cross_stroke()
+		"thunderclap":
+			return _cloud_and_bolt()
+		"rocket":
+			return _arrow_up()
 		"portrait":
 			return _portrait_stroke()
 	return PackedVector2Array()
@@ -175,6 +180,18 @@ static func _ring_and_hail() -> PackedVector2Array:
 		pts.append(Vector2(90.0 * i / 8.0, -28.0))
 	for i in range(1, 9):
 		pts.append(Vector2(90.0, -28.0 + 66.0 * i / 8.0))
+	return pts
+
+
+## A cloud (a ring, begun at its bottom) and a bolt of lightning down out of it, in one stroke: a zigzag that bends across its way twice.
+static func _cloud_and_bolt() -> PackedVector2Array:
+	var pts := PackedVector2Array()
+	for i in range(33):
+		pts.append(Vector2.from_angle(PI / 2.0 + TAU * i / 32.0) * 32.0 + Vector2(0.0, -32.0))
+	for corner in [Vector2(-24, 24), Vector2(16, 34), Vector2(-14, 62), Vector2(8, 84)]:
+		var from: Vector2 = pts[pts.size() - 1]
+		for i in range(1, 7):
+			pts.append(from.lerp(corner, float(i) / 6.0))
 	return pts
 
 

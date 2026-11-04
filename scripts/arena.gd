@@ -500,6 +500,9 @@ func _spawn_spell(spell: String, targeting: String, origin: Vector2, aim: float,
 		"Featherfall":
 			Featherfall.cast(caster_node)
 			return
+		"Rocket Jump":
+			RocketJump.cast(caster_node)
+			return
 		"Flaming Sphere":
 			var ball := FlamingSphere.new()
 			ball.caster = caster_node
