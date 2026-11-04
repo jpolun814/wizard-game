@@ -4,7 +4,7 @@ extends CanvasLayer
 ## The page that comes up at the top of the screen while a wizard stands on the circle of the wizard maker, as a tutorial place's page does: the key that
 ## opens the box, and the words to type in it.
 
-const LETTERING := preload("res://fonts/PirataOne-Regular.ttf")
+const LETTERING := Lettering.FACE
 const PANEL := Color("#1f1528")
 const ACCENT := Color("#b890ff")
 const PARCHMENT := Color("#e9d7bb")  # the plate the words are written on
@@ -44,7 +44,7 @@ func _ready() -> void:
 	var words := Label.new()
 	words.text = RitualInput.LIKENESS_WORDS
 	words.add_theme_font_override("font", LETTERING)
-	words.add_theme_font_size_override("font_size", 34)
+	words.add_theme_font_size_override("font_size", Lettering.size_near(34))
 	words.add_theme_color_override("font_color", Spellbook.HEADING)
 	words.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	words.vertical_alignment = VERTICAL_ALIGNMENT_CENTER

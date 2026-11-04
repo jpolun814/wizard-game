@@ -9,7 +9,7 @@ extends Area2D
 const BOOK := preload("res://art/props/spellbook.png")  # the whole book, closed
 const STAND := preload("res://art/props/lectern_stand.png")
 const PLAQUE := preload("res://art/props/lectern_plaque.png")
-const LETTERING := preload("res://fonts/PirataOne-Regular.ttf")  # gothic letters, as on a plaque
+const LETTERING := Lettering.FACE  # gothic letters, as on a plaque
 const BOOK_SCALE := 0.8  # the book is drawn a little under its size, so it is not bigger than the stand it rests on
 const BOOK_FOOT := 3.0  # the empty rows under the book's own picture, so it rests on the stand and does not float over it
 const PLAQUE_AT := Vector2(0.0, -40.0)  # where the plaque is on the face of the stand
@@ -64,7 +64,7 @@ func _lettered(text: String, at: Vector2, size: int, layer: int) -> Label:
 	var words := Label.new()
 	words.text = text
 	words.add_theme_font_override("font", LETTERING)
-	words.add_theme_font_size_override("font_size", size)
+	words.add_theme_font_size_override("font_size", Lettering.size_near(size))
 	words.add_theme_color_override("font_color", Color(0.2, 0.1, 0.03))
 	words.add_theme_constant_override("line_spacing", -4)
 	words.add_theme_color_override("font_shadow_color", Color(1.0, 0.86, 0.5, 0.8))  # a lit edge below each letter, as if it were cut into the metal

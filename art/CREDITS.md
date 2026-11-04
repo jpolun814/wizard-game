@@ -44,6 +44,7 @@ and are no longer drawn by the game.
 | File | Font | License |
 |---|---|---|
 | `fonts/Jersey15-Regular.ttf` (HUD, damage numbers) | [Jersey 15](https://fonts.google.com/specimen/Jersey+15) by The Soft Type Project (scfried) | OFL 1.1 (`fonts/OFL-Jersey15.txt`) |
+| `fonts/OldeTome.ttf` (titles, spell names, headings) | [Olde Tome](https://ladyliefy.itch.io/olde-tome) by LadyLiefy | free to use, pay-what-you-want (the itch.io page names no licence; the owner downloaded it from there) |
 | `fonts/Jacquard24-Regular.ttf` (titles) | [Jacquard 24](https://fonts.google.com/specimen/Jacquard+24) by The Soft Type Project (scfried) | OFL 1.1 (`fonts/OFL-Jacquard24.txt`) |
 
 ## Sound (CC0)

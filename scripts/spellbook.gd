@@ -32,7 +32,7 @@ var _text_font: Font
 var _title_font: Font
 var _faces: Array[Font] = []
 var _title_faces: Array[Font] = []
-const FACE_FILES := ["res://fonts/PirataOne-Regular.ttf"]  # the face the book is written in
+const FACE_FILES := ["res://fonts/Jersey15-Regular.ttf"]  # the face the text of the book is written in (names and headings are in Lettering.FACE)
 var _left_number: Label  # the page numbers, at the foot of each page
 var _right_number: Label
 
@@ -214,11 +214,8 @@ func _ready() -> void:
 	# Each page is set in one of the candidate hands, in turn, so the pages can be compared as the book is turned.
 	for path in FACE_FILES:
 		var face: Font = load(path)
-		var heavy := FontVariation.new()
-		heavy.base_font = face
-		heavy.variation_embolden = 0.5  # titles are pressed a little harder than the text
 		_faces.append(face)
-		_title_faces.append(heavy)
+		_title_faces.append(Lettering.FACE)
 
 	var viewport_size := get_viewport().get_visible_rect().size
 	_book = BookArt.new()
@@ -394,6 +391,7 @@ func _ink(text: String, size := 24, color := TEXT_INK) -> Label:
 func _title_label(text: String, size: int, color := TEXT_INK) -> Label:
 	var label := _ink(text, size, color)
 	label.add_theme_font_override("font", _title_font)
+	label.add_theme_font_size_override("font_size", Lettering.size_near(size))
 	return label
 
 

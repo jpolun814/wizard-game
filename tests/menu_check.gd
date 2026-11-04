@@ -23,7 +23,9 @@ func _ready() -> void:
 		get_viewport().get_texture().get_image().save_png(out + "/menu_main.png")
 	var cross: Dictionary = menu._recognizer.recognize(_line([Vector2(300, 250), Vector2(380, 330), Vector2(300, 330), Vector2(380, 250)]), ["menu_quit", "menu_one", "menu_four", "menu_back", "menu_gear", "menu_book"])
 	_verdict(cross["name"] == "menu_quit" and cross["score"] >= menu.LEAST_SCORE, "a cross drawn in one stroke reads as the way out (%s, %.2f)" % [cross["name"], cross["score"]])
+	menu._show_sign("gear")  # the pointer had last been over the gear
 	await _stroke(menu, PackedVector2Array([Vector2(200, 250), Vector2(200, 350), Vector2(200, 450)]))  # one stroke: single player
+	_verdict(menu._demo.gesture == "one", "the left page shows the sign that was drawn, not the one that was hovered (%s)" % menu._demo.gesture)
 	await _frames(90)
 	_verdict(menu._single.visible and not menu._main.visible, "one stroke drawn on the first page turns to single player's")
 	if out != "":

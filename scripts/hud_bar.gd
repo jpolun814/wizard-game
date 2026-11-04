@@ -48,7 +48,7 @@ func _draw() -> void:
 		var strip := Rect2(Vector2(4, size.y + 1), Vector2(minf(extra / _cap, 1.0) * inner.size.x, 4))
 		draw_rect(strip, Color("#c4162f"))
 		draw_rect(Rect2(strip.position, Vector2(strip.size.x, 1)), Color("#ff6b7a"))
-	var font := get_theme_default_font()
+	var font: Font = preload("res://fonts/Jersey15-Regular.ttf")
 	if title != "":
 		var text := "%s  %d / %d" % [title, roundi(_value), roundi(_max)]
 		if extra > 0.0:

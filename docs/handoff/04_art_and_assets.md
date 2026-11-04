@@ -149,3 +149,9 @@ The packs come from different artists, so three things tie them together:
 - **Fire.** `Flames.lay` scatters flames over a burning plant, a patch of burning ground or a lava lake: uneven sizes, heights and leans, a glow, and embers. Never lay flames in a row or a grid.
 - **Ice and snow.** `RockArt.ice_block` (Ice Prison, round wizards and mobs: the old `ice_fill` overlay is no longer drawn), `RockArt.ice_sheet` (the peaks' ice), `SnowDrift` (laid by `SnowCloud`; cosmetic and not solid). `art/props/ice_fill.png` is now unused; keep it until the owner says it can go.
 - **Jungle.** Every tree has ledges and a vine (no small ones); the painted backdrop is hazed so the trees to climb stand out; fish face the way they swim; mud and thorns follow the drawn ground (`Terrain.surface_near`).
+
+## Fonts (decided with the owner, 2026-11-04)
+
+- **Olde Tome** (`fonts/OldeTome.ttf`, used through `Lettering.FACE` = `fonts/olde_tome.tres`, which falls back to Jersey 15 for the few letters it lacks): titles, spell and school names, headings, buttons made of words, banners, the plaque. It is a pixel font on a grid of 22 pixels to the em, so **use only sizes that suit it: 22, 44, 66, 88** (`Lettering.size_near` rounds to them; the home screen's choices use 33, a deliberate compromise to fit the page). **Its digits are blank**: never put a number in it (the stats screen draws "#3 of 4" in Jersey 15). Its K and H are easy to misread at small sizes ("Keep" looks like "Reep").
+- **Jersey 15** (`fonts/Jersey15-Regular.ttf`): everything small or numeric: spell descriptions in the book, the controls list, tooltips, the stamina bar and edge arrows, the stats screen's numbers and chart text, damage numbers.
+- Pirata One and Jacquard 24 are no longer used (still in `fonts/`).

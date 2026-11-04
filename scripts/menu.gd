@@ -47,7 +47,7 @@ const BOOK_ART := Rect2(12, 21, 157, 125)  # the open book's picture inside its 
 const LEFT_PAGE := Rect2(25, 30, 57, 100)
 const RIGHT_PAGE := Rect2(98, 30, 58, 100)
 const PIXEL := 3  # whole-number scale for the pixel art
-const TITLE_FONT := preload("res://fonts/PirataOne-Regular.ttf")
+const TITLE_FONT := Lettering.FACE
 
 var _ranges: Array[TextureRect] = []  # the far and near scenery, farthest first, along the bottom
 var _wizard: AnimatedSprite2D
@@ -178,7 +178,7 @@ func _dress() -> void:
 	_title = Label.new()
 	_title.text = "Wizard Game"
 	_title.add_theme_font_override("font", TITLE_FONT)
-	_title.add_theme_font_size_override("font_size", 96)
+	_title.add_theme_font_size_override("font_size", Lettering.size_near(96))
 	_title.add_theme_color_override("font_color", Color(0.9, 0.8, 1.0))
 	_title.add_theme_color_override("font_outline_color", Color(0.12, 0.02, 0.2))
 	_title.add_theme_constant_override("outline_size", 14)
@@ -349,6 +349,7 @@ func _choose(button: Button) -> void:
 	_ink.flare()
 	var small: Sign = button.get_meta("sign")
 	small.flare()
+	_show_sign(_signs[button])  # the left page shows the sign that was drawn, whatever the pointer had last been over
 	_demo.flare()
 	get_tree().create_timer(0.45).timeout.connect(func() -> void:
 		_busy = false

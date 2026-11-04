@@ -18,6 +18,8 @@ const LEARNED := Color("#7fd3ff")
 const CAST := Color("#7fe08a")
 const MISSED := Color("#b9a0ff")
 const KILLS := Color("#ffd85a")
+const BODY: Font = preload("res://fonts/Jersey15-Regular.ttf")  # numbers and small words
+const HEAD: Font = Lettering.FACE  # the big words and the titles of the charts
 
 var placement := 1
 var field := 4
@@ -84,15 +86,15 @@ func _draw() -> void:
 	var panel := Rect2((view - Vector2(width, height)) * 0.5, Vector2(width, height))
 	draw_rect(panel, PANEL)
 	draw_rect(panel, EDGE, false, 2.0)
-	var font := ThemeDB.fallback_font
+	var font := BODY
 	var x := panel.position.x + 24.0
 	var top := panel.position.y + 18.0
 	# The header: where they placed, and how long they lasted.
 	var heading := "Victory" if placement == 1 else "Eliminated"
-	draw_string(font, Vector2(x, top + 34.0), heading, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 40, KILLS if placement == 1 else TAKEN)
+	draw_string(HEAD, Vector2(x, top + 38.0), heading, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 44, KILLS if placement == 1 else TAKEN)
 	var place_text := "#%d of %d" % [placement, field]
-	draw_string(font, Vector2(x + 250.0, top + 34.0), place_text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 34, TEXT)
-	draw_string(font, Vector2(panel.end.x - 24.0 - 260.0, top + 30.0), "Survived  %s" % _clock(MatchStats.seconds), HORIZONTAL_ALIGNMENT_RIGHT, 260.0, 26, DIM)
+	draw_string(BODY, Vector2(x + 290.0, top + 36.0), place_text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 54, TEXT)  # (Olde Tome has no numbers)
+	draw_string(font, Vector2(panel.end.x - 24.0 - 260.0, top + 30.0), "Survived  %s" % _clock(MatchStats.seconds), HORIZONTAL_ALIGNMENT_RIGHT, 260.0, 27, DIM)
 	# The cards: the numbers people look for first.
 	var cards := [
 		["Kills", str(MatchStats.kills), KILLS],
@@ -107,7 +109,7 @@ func _draw() -> void:
 		var box := Rect2(x + index * (card_width + 10.0), top + 56.0, card_width, 66.0)
 		draw_rect(box, Color(1, 1, 1, 0.05))
 		draw_rect(Rect2(box.position, Vector2(4.0, box.size.y)), cards[index][2])
-		draw_string(font, box.position + Vector2(14.0, 26.0), cards[index][0], HORIZONTAL_ALIGNMENT_LEFT, card_width - 18.0, 16, DIM)
+		draw_string(font, box.position + Vector2(14.0, 26.0), cards[index][0], HORIZONTAL_ALIGNMENT_LEFT, card_width - 18.0, 18, DIM)
 		draw_string(font, box.position + Vector2(14.0, 56.0), cards[index][1], HORIZONTAL_ALIGNMENT_LEFT, card_width - 18.0, 32, TEXT)
 	# The charts, two by two, and the shares beside them.
 	var chart_top := top + 136.0
@@ -132,9 +134,9 @@ func _draw() -> void:
 
 ## One line chart: a title, a grid, a line for each series (the running total at every sample) and a key.
 func _chart(box: Rect2, title: String, lines: Array, stepped := false) -> void:
-	var font := ThemeDB.fallback_font
+	var font := BODY
 	draw_rect(box, Color(1, 1, 1, 0.04))
-	draw_string(font, box.position + Vector2(12.0, 22.0), title, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 18, TEXT)
+	draw_string(HEAD, box.position + Vector2(12.0, 24.0), title, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 22, TEXT)
 	var plot := Rect2(box.position + Vector2(44.0, 34.0), box.size - Vector2(58.0, 54.0))
 	var last: float = MatchStats.series[MatchStats.series.size() - 1]["t"]
 	var top := 1.0
@@ -145,9 +147,9 @@ func _chart(box: Rect2, title: String, lines: Array, stepped := false) -> void:
 	for step in 5:  # the grid, with the value of each line
 		var level := plot.end.y - plot.size.y * step / 4.0
 		draw_line(Vector2(plot.position.x, level), Vector2(plot.end.x, level), GRID, 1.0)
-		draw_string(font, Vector2(box.position.x + 6.0, level + 5.0), str(roundi(top * step / 4.0)), HORIZONTAL_ALIGNMENT_RIGHT, 32.0, 12, DIM)
-	draw_string(font, Vector2(plot.position.x, box.end.y - 6.0), "0:00", HORIZONTAL_ALIGNMENT_LEFT, -1.0, 12, DIM)
-	draw_string(font, Vector2(plot.end.x - 60.0, box.end.y - 6.0), _clock(last), HORIZONTAL_ALIGNMENT_RIGHT, 60.0, 12, DIM)
+		draw_string(font, Vector2(box.position.x + 6.0, level + 5.0), str(roundi(top * step / 4.0)), HORIZONTAL_ALIGNMENT_RIGHT, 32.0, 18, DIM)
+	draw_string(font, Vector2(plot.position.x, box.end.y - 6.0), "0:00", HORIZONTAL_ALIGNMENT_LEFT, -1.0, 18, DIM)
+	draw_string(font, Vector2(plot.end.x - 60.0, box.end.y - 6.0), _clock(last), HORIZONTAL_ALIGNMENT_RIGHT, 60.0, 18, DIM)
 	_charts.append({"box": box, "plot": plot, "last": last, "top": top, "lines": lines, "title": title})
 	var key_x := box.end.x - 12.0
 	for line: Array in lines:
@@ -165,7 +167,7 @@ func _chart(box: Rect2, title: String, lines: Array, stepped := false) -> void:
 			fill.append(Vector2(points[points.size() - 1].x, plot.end.y))
 			fill.append(Vector2(points[0].x, plot.end.y))
 			draw_colored_polygon(fill, Color(line[1], 0.12))
-		draw_string(font, Vector2(key_x - 90.0, box.position.y + 22.0), line[0], HORIZONTAL_ALIGNMENT_RIGHT, 90.0, 14, line[1])
+		draw_string(font, Vector2(key_x - 90.0, box.position.y + 22.0), line[0], HORIZONTAL_ALIGNMENT_RIGHT, 90.0, 18, line[1])
 		key_x -= 96.0
 
 
@@ -185,7 +187,7 @@ func _draw_reading(view: Vector2) -> void:
 				sample = point
 		var x := plot.position.x + plot.size.x * float(sample["t"]) / maxf(last, 1.0)
 		draw_line(Vector2(x, plot.position.y), Vector2(x, plot.end.y), Color(1, 1, 1, 0.35), 1.0)
-		var font := ThemeDB.fallback_font
+		var font := BODY
 		var rows: Array[String] = [_clock(float(sample["t"]))]
 		var colours: Array[Color] = [DIM]
 		for line: Array in chart["lines"]:
@@ -199,64 +201,64 @@ func _draw_reading(view: Vector2) -> void:
 		draw_rect(tip, Color(0.02, 0.0, 0.04, 0.95))
 		draw_rect(tip, EDGE, false, 1.0)
 		for index in rows.size():
-			draw_string(font, tip.position + Vector2(10.0, 22.0 + 20.0 * index), rows[index], HORIZONTAL_ALIGNMENT_LEFT, tip.size.x - 14.0, 16, colours[index])
+			draw_string(font, tip.position + Vector2(10.0, 22.0 + 20.0 * index), rows[index], HORIZONTAL_ALIGNMENT_LEFT, tip.size.x - 14.0, 18, colours[index])
 		return
 
 
 ## The shares beside the charts: how much of the book was found, how many tries went off, and what was cast most.
 func _shares(box: Rect2) -> void:
-	var font := ThemeDB.fallback_font
+	var font := BODY
 	draw_rect(box, Color(1, 1, 1, 0.04))
 	var y := box.position.y + 26.0
 	var x := box.position.x + 14.0
 	var inner := box.size.x - 28.0
-	draw_string(font, Vector2(x, y), "Spells learned", HORIZONTAL_ALIGNMENT_LEFT, -1.0, 18, TEXT)
+	draw_string(HEAD, Vector2(x, y), "Spells learned", HORIZONTAL_ALIGNMENT_LEFT, -1.0, 22, TEXT)
 	y += 14.0
 	y = _bar(Vector2(x, y), inner, [[MatchStats.learned_share(), LEARNED]], "%d of %d  (%d%%)" % [MatchStats.spells_known(), SpellData.SPELLS.size(), roundi(MatchStats.learned_share() * 100.0)]) + 24.0
-	draw_string(font, Vector2(x, y), "Cast and missed", HORIZONTAL_ALIGNMENT_LEFT, -1.0, 18, TEXT)
+	draw_string(HEAD, Vector2(x, y), "Cast and missed", HORIZONTAL_ALIGNMENT_LEFT, -1.0, 22, TEXT)
 	y += 14.0
 	var cast_share := MatchStats.cast_share()
 	y = _bar(Vector2(x, y), inner, [[cast_share, CAST], [1.0 - cast_share, MISSED]], "Cast %d%%    Missed %d%%" % [roundi(cast_share * 100.0), roundi((1.0 - cast_share) * 100.0)]) + 24.0
-	draw_string(font, Vector2(x, y), "Most cast", HORIZONTAL_ALIGNMENT_LEFT, -1.0, 18, TEXT)
+	draw_string(HEAD, Vector2(x, y), "Most cast", HORIZONTAL_ALIGNMENT_LEFT, -1.0, 22, TEXT)
 	y += 8.0
 	var ranked: Array = MatchStats.cast_by_spell.keys()
 	ranked.sort_custom(func(a: String, b: String) -> bool: return int(MatchStats.cast_by_spell[a]) > int(MatchStats.cast_by_spell[b]))
 	if ranked.is_empty():
-		draw_string(font, Vector2(x, y + 20.0), "Nothing cast", HORIZONTAL_ALIGNMENT_LEFT, -1.0, 15, DIM)
+		draw_string(font, Vector2(x, y + 20.0), "Nothing cast", HORIZONTAL_ALIGNMENT_LEFT, -1.0, 18, DIM)
 		y += 24.0
 	for index in mini(ranked.size(), 3):
 		var spell: String = ranked[index]
 		var school: String = SpellData.SPELLS[spell].school if SpellData.SPELLS.has(spell) else ""
 		draw_rect(Rect2(x, y + 9.0, 10.0, 10.0), SpellData.SCHOOL_COLORS.get(school, TEXT))
-		draw_string(font, Vector2(x + 18.0, y + 19.0), spell, HORIZONTAL_ALIGNMENT_LEFT, inner - 60.0, 15, TEXT)
-		draw_string(font, Vector2(x, y + 19.0), "%d" % int(MatchStats.cast_by_spell[spell]), HORIZONTAL_ALIGNMENT_RIGHT, inner, 15, DIM)
+		draw_string(font, Vector2(x + 18.0, y + 19.0), spell, HORIZONTAL_ALIGNMENT_LEFT, inner - 60.0, 18, TEXT)
+		draw_string(font, Vector2(x, y + 19.0), "%d" % int(MatchStats.cast_by_spell[spell]), HORIZONTAL_ALIGNMENT_RIGHT, inner, 18, DIM)
 		y += 24.0
 	y += 14.0
 	var school_rows: Array = MatchStats.damage_by_school.keys()
 	if not school_rows.is_empty():
 		school_rows.sort_custom(func(a: String, b: String) -> bool: return float(MatchStats.damage_by_school[a]) > float(MatchStats.damage_by_school[b]))
-		draw_string(font, Vector2(x, y), "Damage by school", HORIZONTAL_ALIGNMENT_LEFT, -1.0, 18, TEXT)
+		draw_string(HEAD, Vector2(x, y), "Damage by school", HORIZONTAL_ALIGNMENT_LEFT, -1.0, 22, TEXT)
 		y += 8.0
 		for index in mini(school_rows.size(), 3):
 			var school: String = school_rows[index]
 			draw_rect(Rect2(x, y + 9.0, 10.0, 10.0), SpellData.SCHOOL_COLORS.get(school, TEXT))
-			draw_string(font, Vector2(x + 18.0, y + 19.0), SpellData.school_name(school), HORIZONTAL_ALIGNMENT_LEFT, inner - 60.0, 15, TEXT)
-			draw_string(font, Vector2(x, y + 19.0), "%d" % roundi(float(MatchStats.damage_by_school[school])), HORIZONTAL_ALIGNMENT_RIGHT, inner, 15, DIM)
+			draw_string(font, Vector2(x + 18.0, y + 19.0), SpellData.school_name(school), HORIZONTAL_ALIGNMENT_LEFT, inner - 60.0, 18, TEXT)
+			draw_string(font, Vector2(x, y + 19.0), "%d" % roundi(float(MatchStats.damage_by_school[school])), HORIZONTAL_ALIGNMENT_RIGHT, inner, 18, DIM)
 			y += 24.0
 	if MatchStats.biggest_hit > 0.0 and y < box.end.y - 30.0:
-		draw_string(font, Vector2(x, box.end.y - 14.0), "Biggest hit  %d" % roundi(MatchStats.biggest_hit), HORIZONTAL_ALIGNMENT_LEFT, -1.0, 15, DIM)
+		draw_string(font, Vector2(x, box.end.y - 14.0), "Biggest hit  %d" % roundi(MatchStats.biggest_hit), HORIZONTAL_ALIGNMENT_LEFT, -1.0, 18, DIM)
 
 
 ## A bar split into shares of the whole (each a fraction and a colour), with a caption under it. Returns the y just under the caption.
 func _bar(at: Vector2, width: float, parts: Array, caption: String) -> float:
-	var font := ThemeDB.fallback_font
+	var font := BODY
 	draw_rect(Rect2(at, Vector2(width, 16.0)), Color(1, 1, 1, 0.08))
 	var used := 0.0
 	for part: Array in parts:
 		var span := width * clampf(float(part[0]), 0.0, 1.0)
 		draw_rect(Rect2(at + Vector2(used, 0.0), Vector2(span, 16.0)), part[1])
 		used += span
-	draw_string(font, at + Vector2(0.0, 36.0), caption, HORIZONTAL_ALIGNMENT_LEFT, width, 15, DIM)
+	draw_string(font, at + Vector2(0.0, 36.0), caption, HORIZONTAL_ALIGNMENT_LEFT, width, 18, DIM)
 	return at.y + 36.0
 
 

@@ -2,7 +2,7 @@
 
 [ext_resource type="FontFile" path="res://fonts/Jersey15-Regular.ttf" id="1"]
 [ext_resource type="FontFile" path="res://fonts/Jacquard24-Regular.ttf" id="2"]
-[ext_resource type="FontFile" path="res://fonts/PirataOne-Regular.ttf" id="3"]
+[ext_resource type="FontVariation" path="res://fonts/olde_tome.tres" id="3"]
 
 [sub_resource type="StyleBoxFlat" id="button"]
 content_margin_left = 18.0
@@ -116,7 +116,7 @@ Choice/colors/font_pressed_color = Color(0.949, 0.757, 0.306, 1)
 Choice/colors/font_focus_color = Color(1, 0.949, 0.839, 1)
 Choice/colors/font_disabled_color = Color(0.5, 0.46, 0.58, 1)
 Choice/fonts/font = ExtResource("3")
-Choice/font_sizes/font_size = 28
+Choice/font_sizes/font_size = 22
 Choice/styles/normal = SubResource("button")
 Choice/styles/hover = SubResource("button_hover")
 Choice/styles/pressed = SubResource("button_pressed")
@@ -128,7 +128,7 @@ Back/colors/font_hover_color = Color(1, 0.9, 0.85, 1)
 Back/colors/font_pressed_color = Color(0.949, 0.757, 0.306, 1)
 Back/colors/font_focus_color = Color(1, 0.9, 0.85, 1)
 Back/fonts/font = ExtResource("3")
-Back/font_sizes/font_size = 26
+Back/font_sizes/font_size = 22
 Back/styles/normal = SubResource("back")
 Back/styles/hover = SubResource("back_hover")
 Back/styles/pressed = SubResource("back_hover")
@@ -151,7 +151,7 @@ Title/constants/outline_size = 4
 Title/colors/font_color = Color(1, 0.949, 0.839, 1)
 Heading/base_type = &"Label"
 Heading/fonts/font = ExtResource("3")
-Heading/font_sizes/font_size = 64
+Heading/font_sizes/font_size = 66
 Heading/constants/outline_size = 8
 Heading/constants/shadow_offset_x = 3
 Heading/constants/shadow_offset_y = 3
@@ -165,7 +165,7 @@ Inscription/colors/font_pressed_color = Color(0.75, 0.35, 0.1, 1)
 Inscription/colors/font_focus_color = Color(0.431, 0.078, 0.125, 1)
 Inscription/colors/font_disabled_color = Color(0.42, 0.33, 0.28, 0.6)
 Inscription/fonts/font = ExtResource("3")
-Inscription/font_sizes/font_size = 30
+Inscription/font_sizes/font_size = 33
 Inscription/styles/normal = SubResource("inscription")
 Inscription/styles/hover = SubResource("inscription_hover")
 Inscription/styles/pressed = SubResource("inscription_hover")
@@ -178,7 +178,7 @@ InscriptionBack/colors/font_pressed_color = Color(0.75, 0.35, 0.1, 1)
 InscriptionBack/colors/font_focus_color = Color(0.431, 0.078, 0.125, 1)
 InscriptionBack/colors/font_disabled_color = Color(0.42, 0.33, 0.28, 0.6)
 InscriptionBack/fonts/font = ExtResource("3")
-InscriptionBack/font_sizes/font_size = 24
+InscriptionBack/font_sizes/font_size = 33
 InscriptionBack/styles/normal = SubResource("inscription_back")
 InscriptionBack/styles/hover = SubResource("inscription_back")
 InscriptionBack/styles/pressed = SubResource("inscription_back")
@@ -188,6 +188,6 @@ Inked/base_type = &"LineEdit"
 Inked/colors/font_color = Color(0.227, 0.114, 0.102, 1)
 Inked/colors/font_placeholder_color = Color(0.42, 0.267, 0.204, 0.7)
 Inked/fonts/font = ExtResource("3")
-Inked/font_sizes/font_size = 24
+Inked/font_sizes/font_size = 22
 Inked/styles/normal = SubResource("inked")
 Inked/styles/focus = SubResource("inked")

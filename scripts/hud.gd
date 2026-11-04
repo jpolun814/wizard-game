@@ -11,7 +11,6 @@ const HEALTH := Color("#b3122e")
 const STAMINA := Color("#c08a2c")
 const UNLIMITED := Color("#7fe0ff")
 const INK := Color(0.07, 0.04, 0.1)
-const LETTERING := preload("res://fonts/PirataOne-Regular.ttf")  # the face of the home screen and the spellbook
 const CONTROLS := [
 	["W A S D", "Move"], ["Space", "Jump"],
 	["Mouse buttons", "Hold mouse buttons and draw a spell"], ["Tab", "Open the spellbook"],
@@ -48,15 +47,13 @@ func _ready() -> void:
 		var key := Label.new()
 		key.text = row[0]
 		key.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-		key.add_theme_font_override("font", LETTERING)
 		key.add_theme_color_override("font_color", Color("#6e1420"))  # the crimson of the book's headings
-		key.add_theme_font_size_override("font_size", 26)
+		key.add_theme_font_size_override("font_size", 27)
 		rows.add_child(key)
 		var what := Label.new()
 		what.text = row[1] if not (row[0] == "Esc" and Net.online()) else "Open the menu"  # a network game goes on while it is open
-		what.add_theme_font_override("font", LETTERING)
 		what.add_theme_color_override("font_color", Color("#3a1d1a"))
-		what.add_theme_font_size_override("font_size", 26)
+		what.add_theme_font_size_override("font_size", 27)
 		rows.add_child(what)
 
 
