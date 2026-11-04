@@ -50,6 +50,9 @@ func _ready() -> void:
 	_verdict(has_chants, "a place teaches chants")
 	for spell: String in ["Ignite", "Frostbolt", "Frost Bridge", "Barrier", "Stonefall", "Liana", "Decoy", "Adrenaline"]:
 		_verdict(SpellData.SPELLS.has(spell), "the example spell %s exists" % spell)
+	var lectern_run := room._lectern != null
+	room._lectern.body_entered.emit(player)
+	_verdict(lectern_run and room._leaving and room._lectern.body_entered.is_connected(room._on_book_touched), "touching the book leads back to the first screen, not into a match")
 	print("the tutorial room works" if _failures == 0 else "%d FAILED" % _failures)
 	get_tree().quit(1 if _failures > 0 else 0)
 

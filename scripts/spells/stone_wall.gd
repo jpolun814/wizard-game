@@ -96,6 +96,15 @@ func take_blow_near(point: Vector2, damage: float) -> bool:
 	return true
 
 
+## Whoever raised a wall can bring it down again: the wall under a point, if there is one, crumbles at once. True if one did.
+static func crumble_at(tree: SceneTree, point: Vector2) -> bool:
+	for wall: StoneWall in tree.get_nodes_in_group("walls"):
+		if wall.holds(point) or wall.to_local(point).distance_to(Vector2(clampf(wall.to_local(point).x, 0.0, wall._length), 0.0)) <= THICKNESS:
+			wall._take_blow(wall._health + 1.0, point)
+			return true
+	return false
+
+
 func _take_blow(damage: float, at: Vector2) -> void:
 	_health -= damage
 	if _health <= 0.0:

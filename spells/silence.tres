@@ -8,5 +8,5 @@ spell_name = "Silence"
 school = "Shadow"
 gesture = "silence"
 cost = 40.0
-effect = "Smother every sound in a ring of the world."
+effect = "Block magic from being cast."
 damage = ""

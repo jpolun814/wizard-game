@@ -8,7 +8,8 @@ extends Node2D
 
 const POUR := 0.9
 const TICK := 0.5
-const DAMAGE := 2
+const DAMAGE := 8
+const SLOW_SECONDS := 1.0  # how long the choking lasts after the last breath of spores
 const MIN_SPREAD := 0.45
 const MAX_SPREAD := 1.3
 const MIN_REACH := 110.0
@@ -129,7 +130,13 @@ func _poison() -> void:
 			if body == caster_node and puff["pos"].distance_to(puff["born"]) < 60.0:
 				continue
 			if middle.distance_to(puff["pos"]) <= _radius(puff) + 8.0:
+				if body is Wizard and body.holding_breath():
+					break  # whoever holds their breath is not poisoned
 				SpellTargets.hurt(body, DAMAGE, "Flora")
+				if body is Wizard:
+					body.apply_debuff("tangle", SLOW_SECONDS)  # choking, they can barely walk
+				elif body.has_method("apply_slow"):
+					body.apply_slow(SLOW_SECONDS)
 				break
 
 

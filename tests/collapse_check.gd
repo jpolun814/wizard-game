@@ -66,6 +66,11 @@ func _arrived(world: World) -> void:
 		for page in ledger.pages:
 			known[page] = true
 	var held := known.size()
+	var repeated := []  # a page that lies in this world and is already in a wizard's book
+	for pickup: PagePickup in get_tree().get_nodes_in_group("pages"):
+		if pickup.spoils.is_empty() and known.has(pickup.page):
+			repeated.append(pickup.page)
+	_verdict(repeated.is_empty(), "no page lies in world %d that a wizard already holds %s" % [stage + 1, str(repeated)])
 	var lying := get_tree().get_nodes_in_group("pages").size()
 	_verdict(lying <= Pages.count_for(MatchState.biome_of(stage), WorldGraph.size.x) + 2, "a world lays no more pages than it is meant to (%d lying, %d held)" % [lying, held])
 	if stage == 0:

@@ -32,11 +32,11 @@ const RITUALS := {
 	"deep_breath": {"kind": "ritual", "name": "Chant of the Deep Breath",
 		"text": "sub aqua spiro"},
 	"mark": {"kind": "ritual", "name": "Incantation of the Mark",
-		"text": "hunc locum signo mihi"},
+		"text": "locum signo"},
 	"scrying": {"kind": "ritual", "name": "Chant of Scrying",
 		"text": "paginam quaero"},
 	"recall": {"kind": "ritual", "name": "Incantation of the Return",
-		"text": "illum locum peto mihi"},
+		"text": "locum peto"},
 }
 const LIKENESS_WORDS := "faciem meam muta"
 const BACKFIRE_BELOW := 0.6  # accuracy under this misfires

@@ -25,7 +25,7 @@ const SETTINGS := "user://settings.cfg"  # remembers the last address typed, so 
 
 const SCENERY := "res://art/backgrounds/cemetery/"
 ## The sign of each choice is a picture of what it means: one stroke for one player, a 4 for a game of four, a closed book for the library,
-## a house for hosting a game, an arrow for going on (to play, or to join a game), a question mark for learning and a triangle pointing back for going back. Pictures the spells already have are
+## a house for hosting a game, an arrow for going on (to play, or to join a game), a question mark for learning, a triangle pointing back for going back and a cross for leaving. Pictures the spells already have are
 ## the game's own (see GestureTemplates); the others are drawn here.
 const SHAPES := {
 	"one": [Vector2(0, -50), Vector2(0, 50)],
@@ -34,9 +34,10 @@ const SHAPES := {
 	"house": [Vector2(-40, 40), Vector2(-40, -5), Vector2(0, -45), Vector2(40, -5), Vector2(40, 40), Vector2(-40, 40)],  # straight walls and a roof
 	"gear": [Vector2(0, -38), Vector2(6, -50), Vector2(17, -47), Vector2(17, -34), Vector2(27, -27), Vector2(39, -31), Vector2(45, -21), Vector2(36, -12), Vector2(38, 0), Vector2(50, 6), Vector2(47, 17), Vector2(34, 17), Vector2(27, 27), Vector2(31, 39), Vector2(21, 45), Vector2(12, 36), Vector2(0, 38), Vector2(-6, 50), Vector2(-17, 47), Vector2(-17, 34), Vector2(-27, 27), Vector2(-39, 31), Vector2(-45, 21), Vector2(-36, 12), Vector2(-38, 0), Vector2(-50, -6), Vector2(-47, -17), Vector2(-34, -17), Vector2(-27, -27), Vector2(-31, -39), Vector2(-21, -45), Vector2(-12, -36), Vector2(0, -38)],  # a cog: eight teeth round a ring
 	"back": [Vector2(40, -40), Vector2(-40, 0), Vector2(40, 40), Vector2(40, -40)],  # a triangle pointing the way back
+	"quit": [Vector2(-40, -40), Vector2(40, 40), Vector2(-40, 40), Vector2(40, -40)],  # a cross, drawn in one stroke: the way out
 }
 const SIGNS := {  # the recognizer's templates that count as each sign
-	"one": ["menu_one"], "four": ["menu_four"], "book": ["menu_book"], "house": ["menu_house"], "back": ["menu_back"], "gear": ["menu_gear"],
+	"one": ["menu_one"], "four": ["menu_four"], "book": ["menu_book"], "house": ["menu_house"], "back": ["menu_back"], "quit": ["menu_quit"], "gear": ["menu_gear"],
 	"arrow": ["arrow", "arrow_r2", "arrow_l", "arrow_l2"], "question": ["question", "question_r"]}
 const LEAST_SCORE := 0.74  # how well a stroke must match a sign to choose it
 const LEAST_STROKE := 60.0  # a stroke shorter than this is a click, not a drawing
@@ -82,6 +83,7 @@ func _ready() -> void:
 		Sfx.play("ui_click")
 		get_tree().change_scene_to_file(LIBRARY))
 	_options.pressed.connect(_open_settings)
+	$Box/Main/Quit.pressed.connect(func() -> void: get_tree().quit())
 	$Box/Main/SinglePlayer.pressed.connect(_show_page.bind(_single, _alone, true))
 	$Box/Main/Multiplayer.pressed.connect(_show_page.bind(_multi, _host, true))
 	$Box/Single/SingleBack.pressed.connect(_show_page.bind(_main, $Box/Main/SinglePlayer, false))
@@ -279,7 +281,7 @@ func _show_sign(sign_name: String) -> void:
 
 ## Each choice with a sign gets it drawn beside it, small, and shows the larger one on the left page when the pointer or the keyboard comes to it.
 func _write_signs() -> void:
-	var table := {$Box/Main/SinglePlayer: "one", $Box/Main/Multiplayer: "four", $Box/Main/Library: "book", $Box/Main/Settings: "gear",
+	var table := {$Box/Main/SinglePlayer: "one", $Box/Main/Multiplayer: "four", $Box/Main/Library: "book", $Box/Main/Settings: "gear", $Box/Main/Quit: "quit",
 			$Box/Single/Play: "arrow", $Box/Single/Tutorial: "question", $Box/Multi/Host: "house", $Box/Multi/JoinRow/Join: "arrow", $Box/Single/SingleBack: "back", $Box/Multi/MultiBack: "back"}
 	for button: Button in table:
 		_signs[button] = table[button]

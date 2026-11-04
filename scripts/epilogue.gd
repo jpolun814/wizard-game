@@ -70,7 +70,7 @@ func _ready() -> void:
 	_carried.position = _winner.position + _carried_rest()
 	add_child(_carried)
 	_carried_aura = BookAura.new()
-	_carried_aura.z_index = 3
+	_carried_aura.z_index = 2  # behind the book, not over its face
 	add_child(_carried_aura)
 	_camera = Camera2D.new()
 	_camera.position = Vector2(WINNER_FROM + 80.0, FLOOR_Y - 70.0)

@@ -214,6 +214,13 @@ focus_mode = 0
 theme_type_variation = &"Choice"
 text = "Leave the game"
 
+[node name="Quit" type="Button" parent="Pause/Box"]
+layout_mode = 2
+size_flags_horizontal = 4
+focus_mode = 0
+theme_type_variation = &"Choice"
+text = "Quit"
+
 [node name="Note" type="Label" parent="Pause/Box"]
 theme_type_variation = &"Outlined"
 layout_mode = 2

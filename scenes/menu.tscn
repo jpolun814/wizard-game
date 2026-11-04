@@ -59,6 +59,11 @@ layout_mode = 2
 theme_type_variation = &"Inscription"
 text = "Settings"
 
+[node name="Quit" type="Button" parent="Box/Main"]
+layout_mode = 2
+theme_type_variation = &"Inscription"
+text = "Quit"
+
 [node name="Single" type="VBoxContainer" parent="Box"]
 visible = false
 layout_mode = 2

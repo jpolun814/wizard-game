@@ -137,13 +137,28 @@ func palette_of(peer: int) -> int:
 	return int(_styles[peer][1]) if _styles.has(peer) else 0
 
 
+## The person in a seat (their peer id), or 0 when a brain has it.
+func person_in_seat(seat: int) -> int:
+	if online():
+		return roster[seat] if seat < roster.size() else 0
+	return my_id() if seat == 0 else 0
+
+
+## The look and colours the wizard in a seat wears, a person's or a brain's.
+func style_of_seat(seat: int) -> Dictionary:
+	var person := person_in_seat(seat)
+	if person > 0:
+		return {"look": look_of(person), "palette": palette_of(person)}
+	return {"look": rival_look(seat), "palette": 0}
+
+
 ## The look a brain's wizard in a seat wears: the first of the four that no person has chosen, so that a brain does not share a figure with a person
 ## when it can be helped.
 func rival_look(seat: int) -> String:
 	var taken: Array[String] = []
 	var brains_before := 0
 	for s in SEATS:
-		var person := roster[s] if online() and s < roster.size() else (my_id() if s == 0 and not online() else 0)
+		var person := person_in_seat(s)
 		if person > 0:
 			taken.append(look_of(person))
 		elif s < seat:

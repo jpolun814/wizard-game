@@ -24,10 +24,19 @@ func _ready() -> void:
 			_out = arg.substr(4)
 		elif arg.begins_with("mode="):
 			_mode = arg.substr(5)
+		elif arg.begins_with("look="):
+			GameSettings.set_value("look", arg.substr(5))  # the person at this machine has chosen a figure
+		elif arg.begins_with("palette="):
+			GameSettings.set_value("palette", int(arg.substr(8)))
 	_intro = Intro.new()
 	_intro.next_scene = ""
 	_intro.finished.connect(func() -> void: _done_at = _clock)
 	add_child(_intro)
+	var first: AnimatedSprite2D = _intro._wizards[0].get_child(0)
+	var chosen := Net.look_of(Net.my_id())
+	var scale_ok := is_equal_approx(first.scale.x, WizardLook.scale_of(chosen))
+	_verdict(scale_ok, "the first wizard is the figure the person chose (%s), drawn at its size" % chosen)
+	_verdict(first.material is ShaderMaterial and first.get_parent().get_child_count() > 0, "and it wears the person's colours (a material set from their palette)")
 	_checks = {
 		1.0: _check_camera_runs_with_the_first,
 		1.5: _check_set,

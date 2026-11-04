@@ -261,6 +261,8 @@ func _input(event: InputEvent) -> void:
 	var click := event as InputEventMouseButton
 	if click != null and click.pressed and click.double_click and event.is_action("school_left") and not ritual.visible and not hud.is_paused() and not player.dead:
 		Flare.snuff_near(get_tree(), get_global_mouse_position(), 0.0)  # a double click on a flare puts it out
+		if player.ledger.knows_spell("Stone Wall"):
+			StoneWall.crumble_at(get_tree(), get_global_mouse_position())  # and one on a stone wall brings it down
 	if event.is_action_pressed("debug_menu"):
 		debug_panel.visible = not debug_panel.visible
 		return
@@ -519,6 +521,9 @@ func spawn_spell(spell: String, targeting: String, origin: Vector2, aim: float, 
 			var decoy := Decoy.new()
 			decoy.position = _ground_below(origin)
 			decoy.mine = caster_node == player
+			if caster_node is Wizard:
+				decoy.look = caster_node.look
+				decoy.palette = caster_node.palette
 			add_child(decoy)
 			return
 		"Glowcap":

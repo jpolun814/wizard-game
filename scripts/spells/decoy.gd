@@ -13,6 +13,8 @@ const HEALTH := 40
 
 var hp := HEALTH
 var mine := false  # true on the machine of the wizard who cast it: only they see it as a ghost, the rest see a wizard
+var look := "wizard"  # the figure of the wizard who cast it, and the colours worn: a decoy is a shadow of the caster as they look
+var palette := 0
 var _age := 0.0
 var _dead := false
 var _body: AnimatedSprite2D
@@ -36,8 +38,14 @@ func _ready() -> void:
 	add_to_group("decoys")
 	add_to_group("lasting")
 	_body = AnimatedSprite2D.new()
-	_body.sprite_frames = CharFrames.build("res://art/chars/wizard", Wizard.ANIMATIONS)
-	_body.offset = Vector2(0, -PixelArt.CHARACTERS["wizard"]["size"].y * 0.5)
+	var art := "wizard"
+	if look != "wizard" and Mob.KINDS.has(look):
+		var data: MobKind = Mob.KINDS[look]
+		art = data.art
+		_body.scale = Vector2.ONE * WizardLook.scale_of(look, data.scale)
+	_body.sprite_frames = CharFrames.build("res://art/chars/" + art, Wizard.ANIMATIONS if look == "wizard" else Wizard.LOOK_ANIMATIONS)
+	_body.offset = Vector2(0, -PixelArt.CHARACTERS[art]["size"].y * 0.5)
+	_body.material = WizardLook.material_for(look, palette)
 	_body.modulate = Color(0.5, 0.35, 0.75, 0.0)
 	_body.play("idle")
 	add_child(_body)

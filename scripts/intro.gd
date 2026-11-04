@@ -53,7 +53,7 @@ const EXTRAS := [
 	{"art": "pyre_wizard", "look": "pyre_wizard_magenta", "colour": Color("#ff58d8"), "to": 310.0, "from": 560.0, "mode": "walk", "at": 2.3},
 ]
 ## How much each look is drawn at, so that all ten bodies are as tall as the wizard's (head to feet; a staff, a flame or a hood's point above the head does not count): the other three's art is smaller.
-const LOOK_SCALE := {"wizard": 1.0, "dark_wizard": 1.6, "bone_wizard": 1.6, "pyre_wizard": 1.8}
+const LOOK_SCALE := {"wizard": 1.0, "dark_wizard": 1.6, "bone_wizard": 1.6, "pyre_wizard": 1.8}  # (the four of a match are drawn at WizardLook's sizes instead)
 const RUN := 330.0   # pixels a second, running in
 const WALK := 200.0  # and walking in
 const WIDE := 1.4    # how far the camera is zoomed when it shows the whole ring
@@ -224,12 +224,27 @@ func _build_pile(rng: RandomNumberGenerator) -> void:
 
 ## The ten wizards, each from its own frames, standing where they will arrive and facing the pile.
 func _build_wizards() -> void:
-	for entry: Dictionary in WIZARDS:
+	var styles := _seat_styles()
+	for k in WIZARDS.size():
+		var entry: Dictionary = WIZARDS[k].duplicate()
+		entry["art"] = styles[k]["look"]
+		entry["look"] = styles[k]["look"]
+		entry["palette"] = styles[k]["palette"]
 		_wizards.append(_make_wizard(entry))
 	for entry: Dictionary in EXTRAS:
 		_extras.append(_make_wizard(entry))
 	_all.append_array(_wizards)
 	_all.append_array(_extras)
+
+
+## The look and colours of the four wizards of the match, the person at this machine first: the same ones that will stand in the world.
+func _seat_styles() -> Array:
+	var mine := maxi(Net.seat_of(Net.my_id()), 0) if Net.online() else 0
+	var out := [Net.style_of_seat(mine)]
+	for seat in Net.SEATS:
+		if seat != mine:
+			out.append(Net.style_of_seat(seat))
+	return out
 
 
 func _make_wizard(entry: Dictionary) -> Node2D:
@@ -242,7 +257,9 @@ func _make_wizard(entry: Dictionary) -> Node2D:
 	var player := art == "wizard"
 	sprite.sprite_frames = CharFrames.build("res://art/chars/" + String(entry["look"]), Wizard.ANIMATIONS if player else Wizard.LOOK_ANIMATIONS)
 	sprite.offset = Vector2(0.0, -PixelArt.CHARACTERS[art]["size"].y * 0.5)
-	sprite.scale = Vector2.ONE * float(LOOK_SCALE[art])
+	sprite.scale = Vector2.ONE * (WizardLook.scale_of(art) if entry.has("palette") else float(LOOK_SCALE[art]))
+	if entry.has("palette"):
+		sprite.material = WizardLook.material_for(art, int(entry["palette"]))
 	var face := 1.0 if to < PILE_X else -1.0
 	sprite.flip_h = face < 0.0
 	sprite.play("idle")

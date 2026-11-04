@@ -9,10 +9,10 @@ extends RefCounted
 ## Each world is one biome (see biome_of): the first three take three of the six biomes in an order the seed picks, and the last is open sky.
 ## Whether it has halls underground depends on the biome (SurfaceGen.has_halls): only the castle and the underground do.
 const STAGES := [
-	{"width": 1000, "seconds": 180.0},
-	{"width": 720, "seconds": 180.0},
-	{"width": 520, "seconds": 180.0},
-	{"width": 360, "seconds": 0.0},
+	{"width": 600, "seconds": 180.0},
+	{"width": 440, "seconds": 180.0},
+	{"width": 320, "seconds": 180.0},
+	{"width": 240, "seconds": 0.0},
 ]
 const CASTLE_SHARE := 0.4  # the share of a stage's width that a castle world takes
 const HEIGHT := 380  # every world is this deep, in tiles

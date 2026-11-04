@@ -27,7 +27,8 @@ const PLACES := [
 		["", "Hold a school's mouse buttons and draw its shape."],
 		["Tab", "Open the spellbook."],
 		["Enter", "Speak a chant."],
-		["", "Watch your stamina at the top left. Spells cost stamina."]]},
+		["", "Watch your stamina at the top left. Spells cost stamina."],
+		["", "Stamina will recharge while you stand still."]]},
 	{"col": -14, "title": "Fire", "school": "Fire", "steps": [
 		["Ignite", "Draw a short line toward the dummy."]]},
 	{"col": 4, "title": "Water", "school": "Water", "steps": [
@@ -50,6 +51,7 @@ const PLACES := [
 		["chant:haste", "Press Enter, type the words, then press Enter."]]},
 ]
 const DUMMIES := [-8, -20, 9, 64, 84, 74]
+const DUMMY_HP := 36  # three fireballs: the tutorial's dummies fall quickly, so each try is seen through
 const TURRET := 46
 const SHADOW_GUARD := 116  # a skeleton that comes for whoever is at the Shadow place: for a decoy, when there is one
 
@@ -106,6 +108,8 @@ func _add_ponds() -> void:
 func _add_targets() -> void:
 	for col: int in DUMMIES:
 		var mob := _add_mob("dummy", Vector2(ArenaGen.column_x(col), ArenaGen.surface_y(_cells, col)))
+		mob.max_hp = DUMMY_HP
+		mob.hp = DUMMY_HP
 		mob.facing = -1.0 if col < 0 else 1.0
 	var turret := _add_mob("turret", Vector2(ArenaGen.column_x(TURRET), ArenaGen.surface_y(_cells, TURRET)))
 	turret.facing = -1.0
@@ -117,6 +121,11 @@ func _title() -> String:
 
 func _scene_name() -> String:
 	return "tutorial"
+
+
+## The book on its stand here does not start a match: touching it leads back to the first screen too.
+func _on_book_touched(body: Node2D) -> void:
+	_on_portal_entered(body)
 
 
 ## The portal leads back to the first screen.

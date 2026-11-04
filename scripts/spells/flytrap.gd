@@ -24,6 +24,7 @@ var _bites := 0
 var _bite_clock := 0.0
 var _hold := 0.0
 var _picture: AnimatedSprite2D
+var _sunk := 0.0
 
 
 func _ready() -> void:
@@ -34,12 +35,24 @@ func _ready() -> void:
 	_picture.offset = Vector2(0, FRAME * 0.5 - SOIL)
 	_picture.flip_h = int(global_position.x / 32.0) % 2 == 0  # the art faces left; which way each plant faces comes from where it stands, so it is the same on every machine
 	_picture.z_index = 1
-	_picture.scale = Vector2(SIZE, SIZE * 0.05)
+	_picture.scale = Vector2(SIZE, SIZE)
+	_picture.material = ShaderMaterial.new()
+	_picture.material.shader = preload("res://scripts/flytrap_ground.gdshader")
+	_picture.material.set_shader_parameter("soil_row", SOIL)
 	_picture.modulate = LURKING_TINT
 	_picture.play("waiting")
 	_picture.speed_scale = 0.0  # it does not sway while it hides: nothing moving would give it away
 	add_child(_picture)
-	create_tween().tween_property(_picture, "scale:y", SIZE * LURKING, 0.5).set_ease(Tween.EASE_OUT)
+	_sunk = SOIL
+	_sink(SOIL)
+	create_tween().tween_method(_sink, SOIL, SOIL * (1.0 - LURKING), 0.5).set_ease(Tween.EASE_OUT)  # it settles into the ground with only its tips showing
+
+
+## Puts the plant down into the soil by so many rows of its picture: the ground cuts off what is below it.
+func _sink(rows: float) -> void:
+	_sunk = rows
+	_picture.offset = Vector2(0, FRAME * 0.5 - SOIL + rows)
+	(_picture.material as ShaderMaterial).set_shader_parameter("sunk_rows", rows)
 
 
 func _physics_process(delta: float) -> void:
@@ -107,7 +120,7 @@ func _snap(prey: Node2D) -> void:
 	_picture.play("snap")  # the jaws shut
 	_bite_clock = 0.2
 	var rise := create_tween().set_parallel()  # and it shoots up out of its hiding place
-	rise.tween_property(_picture, "scale:y", SIZE, 0.08)
+	rise.tween_method(_sink, _sunk, 0.0, 0.08)
 	rise.tween_property(_picture, "modulate", Color.WHITE, 0.08)
 	Sfx.play("jaw_snap", global_position)
 

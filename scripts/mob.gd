@@ -71,6 +71,7 @@ const CREATURE_ANIMATIONS := {
 var kind := "basic"  # set before the mob enters the tree
 var player: Node2D
 var roams := false  # one the world left wandering (the graveyard's dead): it ambles about until a wizard comes near, then gives chase
+var _swing_seen := false  # a puppet: the host's was drawing back at the last news
 var puppet := false  # in a network game, a roamer on a machine that is not the host: it shows what the host's one does and decides nothing
 var net_position := Vector2.ZERO  # where the host says it is, while it is a puppet
 var net_facing := 1.0
@@ -369,7 +370,14 @@ func _glide(delta: float) -> void:
 	global_position = net_position if step.length() > 160.0 else global_position + step * minf(1.0, delta * 14.0)
 	velocity.x = step.x * 14.0
 	facing = net_facing
-	_windup = 0.2 if net_swing else 0.0
+	if net_swing and not _swing_seen:
+		_windup = _windup_time()  # a swing is drawn all the way through, even if the packets after the first are lost
+		_lunge = 0.0
+	elif _windup > 0.0:
+		_windup -= delta
+		if _windup <= 0.0:
+			_lunge = 1.0
+	_swing_seen = net_swing
 
 
 ## A roamer goes after the nearest wizard who is still standing, whoever's they are (looked for a few times a second).

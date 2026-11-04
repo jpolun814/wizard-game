@@ -9,7 +9,7 @@ extends Node2D
 
 const LIFE := 1.1          # how long the fire pours out
 const TICK := 0.2          # how often it burns what it touches
-const DAMAGE := 8
+const DAMAGE := 16
 const MIN_SPREAD := 0.45   # radians: the narrowest and widest a cone can be
 const MAX_SPREAD := 1.3
 const MIN_REACH := 110.0

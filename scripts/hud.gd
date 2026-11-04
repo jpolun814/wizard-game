@@ -36,6 +36,7 @@ func _ready() -> void:
 	add_to_group(&"hud")  # the wand cursor asks whether the game is paused
 	$Pause/Box/Leave.pressed.connect(_on_leave)
 	$Pause/Box/Settings.pressed.connect(_on_settings)
+	$Pause/Box/Quit.pressed.connect(func() -> void: get_tree().quit())
 	var rows: GridContainer = $Pause/Box/Controls
 	_lay_on_parchment(rows)
 	for row in CONTROLS:
