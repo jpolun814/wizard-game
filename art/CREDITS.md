@@ -171,3 +171,4 @@ Drawn pixel by pixel by `tools/make_shot_art.py`. No outside source and nothing 
 `art/props/magic_mirror.png` is the animated mirror of [Magic Mirror/Portal Pixel Sprite](https://opengameart.org/content/magic-mirrorportal-pixel-sprite) by That One Annoying Pub Player (CC0), recoloured (a gold rim with a dark edge, violet glass) and cut to its still frames by `tools/prepare_mirror.py`. The sheet is not kept in the repo.
 
 | `art/ui/library/` (the library's bookcase, book spines and stacks) | drawn pixel by pixel by `tools/make_library_art.py`, our own work | n/a |
+| `art/fx/sun.png` (the Flaming Sphere) | drawn pixel by pixel by `tools/make_sun_art.py`, our own work | n/a |

@@ -28,7 +28,7 @@ trust the code and this file where they disagree.
 | `12_liquids.md` | touch water or lava: pools are a flowing grid now (`LiquidGrid`, `Pond`), and a Sinkhole dug beside one fills from it |
 | `13_portal_world.md` | touch the portal world: a biome where portals open every few seconds, each a colour of its own, and carry you to another |
 | `11_network_play.md` | touch anything a second machine must see: wizards, spells, pages, gates, the match (done: host and join over a network) |
-| `14_spell_expansion_plan.md` | rename a school or a ritual, touch the Library, move the starting pages, or add Barbs, Pebble, Hailstorm, Featherfall, Thorn Whip, Flaming Sphere, Insect Plague, Leech, Raise Dead, Mirage or the Chant of the Scrying Eye (built; the Flaming Sphere's look and the stand-in shot art still wait for the owner) |
+| `14_spell_expansion_plan.md` | rename a school or a ritual, touch the Library, move the starting pages, or add Barbs, Pebble, Hailstorm, Featherfall, Thorn Whip, Flaming Sphere, Insect Plague, Leech, Raise Dead, Mirage or the Chant of the Scrying Eye (built; the Flaming Sphere is now a rolling sun; the stand-in shot art still waits for the owner) |
 
 ---
 
@@ -617,7 +617,7 @@ clean. It was cleaned up once, without losing any behaviour. Keep it that way:
 
 **Known issues:**
 - The death animation still shows a staff.
-- Sounds are untested by ear.
+- Sounds: the owner has heard them and they are fine (2026-11-05).
 
 **Ideas the owner may like:**
 - More spells that combine (fire melting ice, water putting out fire, lightning in pools and a fire whirl are built).

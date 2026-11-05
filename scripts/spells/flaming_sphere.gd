@@ -3,7 +3,7 @@ extends CharacterBody2D
 
 ## Flaming Sphere: a ball of fire that rolls along the ground the way the stroke ran. It follows slopes, falls into pits, climbs a wall that stands
 ## in its way and rolls on over the top, burns whoever it touches (the caster too), and goes out in water, in rain, or after a long roll.
-## It is a fire like any other: it lights, melts and is avoided by everything else (see SpellTargets.fire_points), and water quenches it.
+## It is drawn as a swirling ball of fire that turns as it rolls, that leaves licks of flame behind it. It is a fire like any other: it lights, melts and is avoided by everything else (see SpellTargets.fire_points), and water quenches it.
 ## It is a "ground_watchers" thing, so the world keeps the rock round it made even when no wizard is near (see World._process).
 
 const SPEED := 170.0
@@ -12,11 +12,13 @@ const FALL_MAX := 900.0
 const CLIMB := 130.0           # how fast it goes up a wall
 const CLIMB_LIMIT := 4.0       # seconds up a wall before it gives up and turns back (a wall with no top)
 const RADIUS := 14.0
+const SUN: Texture2D = preload("res://art/fx/sun.png")  # the ball is a sun, which turns as it rolls
 const REACH := 4300.0          # how far it rolls before it burns out: about a hundred and thirty tiles
 const BURN := 6
 const BURN_GAP := 0.8          # seconds before it burns the same one again
 const STEEP := 0.8             # a face whose normal is this sideways or more is a wall to climb, not a slope to roll up
 const RAIN_LEVEL := 0.35
+const PUFF_GAP := 0.07         # seconds between the licks of flame it leaves behind
 
 var direction := 1.0
 var caster: Wizard
@@ -25,10 +27,13 @@ var _climbing := 0.0
 var _burnt := {}               # who it has burned lately -> seconds until it can again
 var _out := false
 var _turn := 0.0               # the turn of the ball, for the glow of its heart
-var _flames: Node2D
+var _sun: Sprite2D
+var _age := 0.0
+var _puff := 0.0
 
 
 func _ready() -> void:
+	material = Fx.additive()  # fire adds light to what is behind it: its glow is drawn on this node, as the Firewall's and the lava's are
 	add_to_group("fires")
 	add_to_group("danger")
 	add_to_group("ground_watchers")
@@ -42,13 +47,18 @@ func _ready() -> void:
 	circle.radius = RADIUS
 	shape.shape = circle
 	add_child(shape)
-	_flames = Flames.lay(self, Rect2(global_position - Vector2(RADIUS, RADIUS), Vector2(RADIUS * 2.0, RADIUS * 2.0)), int(global_position.x) + 3, 20.0, 3.5)  # (the area is given in the world)
+	_sun = Sprite2D.new()
+	_sun.texture = SUN
+	_sun.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_sun.material = Fx.additive()  # it adds light to what is behind it, so it blazes
+	add_child(_sun)
 	Sfx.play("fire_hit", global_position, -8.0)
 
 
 func _physics_process(delta: float) -> void:
 	if _out:
 		return
+	_age += delta
 	var rain := _under_rain()
 	var wet := _in_water()
 	if rain or wet or _rolled >= REACH or (ArenaGen.world_size.y > 0 and global_position.y > ArenaGen.world_size.y * float(ArenaGen.TILE)):
@@ -61,6 +71,12 @@ func _physics_process(delta: float) -> void:
 	_move(delta)
 	_burn()
 	_turn += direction * delta * SPEED / RADIUS
+	_sun.rotation = _turn
+	_puff -= delta
+	if _puff <= 0.0:
+		_puff = PUFF_GAP
+		PixelFx.play(get_parent(), global_position + Vector2(-direction * 7.0, RADIUS * 0.5), "fire_puff", 14.0, 0.5, Color(1.0, 1.0, 1.0, 0.9), true, false, true)  # a lick of flame is left behind it
+	_sun.scale = Vector2.ONE * (1.0 + 0.07 * sin(_age * 17.0))  # it flares and sinks
 	queue_redraw()
 
 
