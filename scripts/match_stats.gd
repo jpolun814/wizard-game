@@ -17,12 +17,14 @@ static var taken := 0.0
 static var kills := 0
 static var casts := 0
 static var misses := 0                # strokes that matched nothing, and spells that were too costly to cast
-static var biggest_hit := 0.0
 static var cast_by_spell := {}        # spell name -> times cast
 static var damage_by_school := {}     # school -> damage dealt
 static var accuracy_total := 0.0      # the sum of how well each spell was drawn, for its average
 static var killed: Dictionary = {}    # ids of the bodies already counted as a kill
 static var series: Array[Dictionary] = []  # {"t", "dealt", "taken", "known", "casts", "misses", "kills"}
+static var finished := false          # the match is over, so the clock stops
+static var world_starts: Array = []    # [biome, seconds into the match] for each world entered, for the Chronicle's graph
+static var recorded := false          # the Chronicle already has this match
 static var _clock := 0.0
 static var _by: Wizard                # who is striking, for the blow that is about to land
 
@@ -36,25 +38,34 @@ static func begin(person: Wizard) -> void:
 	kills = 0
 	casts = 0
 	misses = 0
-	biggest_hit = 0.0
 	cast_by_spell = {}
 	damage_by_school = {}
 	accuracy_total = 0.0
 	killed = {}
 	series = []
+	finished = false
+	recorded = false
+	world_starts = []
 	_clock = 0.0
 	_by = null
+	_enter_world()
 	_sample()
 
 
 ## The next world of the same match: the person's new body takes the place of the old, and the counts go on.
 static func carry_on(person: Wizard) -> void:
 	me = person
+	_enter_world()
+
+
+## Notes that the person has come into a new world, and when.
+static func _enter_world() -> void:
+	world_starts.append([MatchState.biome_of(MatchState.stage), int(seconds)])
 
 
 ## Counts the time, and adds a point to every chart now and then.
 static func tick(delta: float) -> void:
-	if me == null or not is_instance_valid(me) or me.dead:
+	if me == null or not is_instance_valid(me) or me.dead or finished:
 		return
 	seconds += delta
 	_clock += delta
@@ -64,7 +75,7 @@ static func tick(delta: float) -> void:
 
 
 static func _sample() -> void:
-	series.append({"t": seconds, "dealt": dealt, "taken": taken, "known": spells_known(), "casts": casts, "misses": misses, "kills": kills})
+	series.append({"t": seconds, "dealt": dealt, "taken": taken, "known": pages_known(), "casts": casts, "misses": misses, "kills": kills})
 
 
 ## A last point at this very moment, so that a chart runs right up to the end.
@@ -72,21 +83,24 @@ static func close() -> void:
 	_sample()
 
 
-## How many spells (not chants) the person's book holds.
-static func spells_known() -> int:
+## The match is won: the clock stops where it is, and the charts end there.
+static func finish() -> void:
+	if not finished:
+		_sample()
+		finished = true
+
+
+## How many pages the person's book holds: spells and incantations both.
+static func pages_known() -> int:
 	if me == null or not is_instance_valid(me):
 		return 0
-	var count := 0
-	for page: String in me.ledger.pages:
-		if SpellData.SPELLS.has(page):
-			count += 1
-	return count
+	return me.ledger.count()
 
 
 ## The wizard a thing belongs to: a wizard, or whoever cast a spell or raised a skeleton. Null for a thing that belongs to no one.
-static func owner_of(thing: Node) -> Wizard:
+static func owner_of(thing: Variant) -> Wizard:
 	if thing == null or not is_instance_valid(thing):
-		return null
+		return null  # (it may be a node that has been freed since, so it is asked about before it is used)
 	if thing is Wizard:
 		return thing
 	if thing is Mob:
@@ -114,11 +128,11 @@ static func hit(victim: Node, amount: float, school := "", fatal := false) -> vo
 		taken += amount
 	if striker != null and striker == me and victim != me:
 		dealt += amount
-		biggest_hit = maxf(biggest_hit, amount)
 		if school != "":
 			damage_by_school[school] = float(damage_by_school.get(school, 0.0)) + amount
-		var gone: bool = fatal or victim.dead if victim is Wizard else (victim is Mob and (victim as Mob).is_dead())
-		if gone and not killed.has(victim.get_instance_id()) and not (victim is Mob and (victim as Mob).is_training_dummy()):
+		# only a wizard felled is a kill: skeletons, whether the graveyard's or raised, are not counted
+		var gone: bool = victim is Wizard and (fatal or victim.dead)
+		if gone and not killed.has(victim.get_instance_id()):
 			killed[victim.get_instance_id()] = true
 			kills += 1
 
@@ -135,17 +149,43 @@ static func miss() -> void:
 	misses += 1
 
 
-## The share of all the spells in the game that the person's book holds, from 0 to 1.
-static func learned_share() -> float:
-	return float(spells_known()) / float(maxi(SpellData.SPELLS.size(), 1))
-
-
-## The share of tries that went off, from 0 to 1 (1 when nothing was tried).
-static func cast_share() -> float:
-	var tries := casts + misses
-	return 1.0 if tries == 0 else float(casts) / float(tries)
-
-
 ## How well the spells that went off were drawn, on average, from 0 to 1.
 static func average_accuracy() -> float:
 	return accuracy_total / float(casts) if casts > 0 else 0.0
+
+
+## The match as it will be kept in the Chronicle: small, plain numbers and names, so each match takes only a little room in the file.
+## `place` is where the person came (1 won) among `of_total` wizards.
+static func summary(place: int, of_total: int) -> Dictionary:
+	close()
+	var worlds: Array = []
+	for at in range(MatchState.stage + 1):
+		worlds.append(MatchState.biome_of(at))
+	var spells: Array = []
+	for spell: String in cast_by_spell:
+		spells.append([spell, int(cast_by_spell[spell])])
+	spells.sort_custom(func(a: Array, b: Array) -> bool: return a[1] > b[1])
+	var strongest := ""
+	var most := 0.0
+	for school: String in damage_by_school:
+		if float(damage_by_school[school]) > most:
+			most = float(damage_by_school[school])
+			strongest = school
+	return {
+		"when": int(Time.get_unix_time_from_system()), "place": place, "field": of_total,
+		"seconds": int(seconds), "worlds": worlds, "seed": MatchState.seed_base,
+		"kills": kills, "dealt": int(dealt), "taken": int(taken), "stages": world_starts.duplicate(), "casts": casts, "misses": misses, "accuracy": snappedf(average_accuracy(), 0.01), "pages": pages_known(),
+		"favourites": spells.slice(0, 3), "school": strongest,
+		"online": Net.online(),
+		"dealt_line": _line("dealt"), "taken_line": _line("taken"),
+	}
+
+
+## A running total from the charts, thinned to 24 points whatever the length of the match.
+static func _line(key: String) -> Array:
+	var out: Array = []
+	if series.is_empty():
+		return out
+	for k in 24:
+		out.append(int(series[roundi(k * (series.size() - 1) / 23.0)][key]))
+	return out

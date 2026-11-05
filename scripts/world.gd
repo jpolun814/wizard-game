@@ -84,13 +84,15 @@ func _build_map() -> Variant:
 
 
 const THORN_CHUNK := 5  # tiles of floor in a thicket of the world
-const EPILOGUE_AFTER := 14.0  # seconds after a match is won (and the stats, if they are open, are put away), in a game on this machine alone, before the winner is shown putting the book back
+const EPILOGUE_AFTER := 4.0  # seconds after a match is won, in a game on this machine alone, before the winner is shown putting the book back (when the person won, after they have put their stats away)
+const STATS_AFTER := 3.0  # seconds after the person wins before their stats come up on their own
 const BACK_TO_ROOM := 10.0  # seconds after a network match is won before everyone is back in the waiting room
 var nav: WorldNav  # the ways about the world on foot, with every gate shut
 var _start_tile := Vector2i.ZERO
 var _spawn_tiles: Array[Vector2i] = []  # the starting places, far apart; the player takes one and a wizard each of the others
 var _since_count := 0.0
 var _won := false
+var _win_stats_due := false  # the person has won and their stats have not come up yet
 var _watched := 0  # while out of the match: which of the other wizards the camera follows
 var _spectating := false
 var _tear: Node2D  # the portal giving way, while it does
@@ -374,6 +376,8 @@ func _raise_biome_life() -> void:
 				add_child(crypt)
 				var guard: Mob = _add_mob("basic", _floor_under(Vector2((column + 4.5) * tile, floors[column] * tile - 40.0)))
 				guard.name = "Dead%d" % _dead.size()  # kept in step across the network like the roaming dead
+				guard.max_hp = DEAD_HEALTH
+				guard.hp = DEAD_HEALTH
 				guard.puppet = not Net.is_host()
 				_dead.append(guard)
 		"jungle":
@@ -496,6 +500,7 @@ func _wash_out_the_colour() -> void:
 	add_child(layer)
 
 
+const DEAD_HEALTH := 15  # what one of the graveyard's skeletons has: a spell or two puts it down
 const DEAD_PER_COLUMNS := 90  # the graveyard has a skeleton for this many columns of its width
 const GIANT_ROOMS := [7, 24, 33, 50, 59, 76]  # columns from a castle's west end to the middle of a ground-floor room with open floor
 const GIANT_PER_COLUMNS := 300  # the castle world has a giant for this many columns of its width
@@ -557,6 +562,9 @@ func _raise_roamers(kind: String, wanted: int, salt: int) -> void:
 			continue
 		var mob: Mob = _add_mob(kind, _floor_under(Vector2((column + 0.5) * TILE, graph.surface["floor"][column] * TILE - 40.0)))
 		mob.name = "Dead%d" % _dead.size()  # the same on every machine, so the host's can tell the others' puppets what it does
+		if kind == "basic":
+			mob.max_hp = DEAD_HEALTH
+			mob.hp = DEAD_HEALTH
 		mob.roams = true
 		mob.puppet = not Net.is_host()
 		_dead.append(mob)
@@ -1144,6 +1152,7 @@ func gate_target(entry: Dictionary) -> Vector2:
 
 ## Out of the match: while other wizards still live the match goes on, and the camera follows one of them. Otherwise the run is over.
 func _on_player_died() -> void:
+	_record_match(_living().size() + 1)
 	_show_stats()
 	if _living().is_empty():
 		_end_run()
@@ -1158,6 +1167,15 @@ func _on_player_died() -> void:
 	hud.banner("", "Click to watch another wizard")
 
 
+## The match goes into the Chronicle, once: where the person came, and what they did.
+func _record_match(place: int) -> void:
+	if MatchStats.recorded:
+		return
+	MatchStats.recorded = true
+	Library.record_match_end(MatchStats.summary(place, _rivals.size() + 1))
+	Library.flush()
+
+
 ## The story of the match so far, over the screen: where the person came, and charts of what they did.
 func _show_stats() -> void:
 	if _stats != null and is_instance_valid(_stats):
@@ -1170,11 +1188,29 @@ func _show_stats() -> void:
 	_stats.show_stats(_living().size() + 1, _rivals.size() + 1, not _living().is_empty())
 
 
-## A win ends the match too: the stats wait behind a button, so that the ending is not interrupted.
-func _show_stats_button() -> void:
-	hud.offer_stats()
-	if not hud.stats_requested.is_connected(_look_at_stats):
-		hud.stats_requested.connect(_look_at_stats)
+## A few seconds after the person wins, their stats come up on their own, and the ending waits for them to be put away. (The crystal ball on the screen is
+## only for one who has fallen and wants to look again while the match goes on.)
+func _show_win_stats() -> void:
+	_win_stats_due = false
+	if _leaving:
+		return
+	if _stats == null or not is_instance_valid(_stats):
+		_stats = StatsScreen.new()
+		hud.add_child(_stats)
+	hud.move_child(_stats, -1)
+	_stats.show_stats(1, _rivals.size() + 1, false)
+
+
+## The F1 panel's way to a won match: every other wizard falls, and the match ends as it does when the last of them is beaten.
+func debug_win() -> void:
+	for rival in _living():
+		rival.take_damage(100000)
+
+
+## The F1 panel's way to a lost match: the person falls, as when beaten.
+func debug_lose() -> void:
+	if not player.dead:
+		player.take_damage(100000)
 
 
 ## The person asks to see their stats again, once the match is over for them.
@@ -1225,7 +1261,10 @@ func _count_wizards(delta: float) -> void:
 		_won = true
 		hud.banner("Last wizard standing", "You win")
 		Library.record_win(player.ledger.pages.keys())
-		_show_stats_button()
+		MatchStats.finish()  # the clock stops where the match was won
+		_record_match(1)
+		_win_stats_due = true
+		get_tree().create_timer(STATS_AFTER).timeout.connect(_show_win_stats)
 		Library.flush()
 		Sfx.play("ritual_ok", player.center())
 	if standing.size() == 1 and Library.real_match() and (Net.is_host() or not Net.online()):
@@ -1239,7 +1278,7 @@ func _count_wizards(delta: float) -> void:
 
 ## The ending waits while the person is reading their stats, so it never cuts in on them.
 func _epilogue_when_stats_are_away(look: String, palette: int) -> void:
-	if _stats != null and is_instance_valid(_stats) and _stats.visible:
+	if _win_stats_due or (_stats != null and is_instance_valid(_stats) and _stats.visible):
 		get_tree().create_timer(0.5).timeout.connect(_epilogue_when_stats_are_away.bind(look, palette))
 		return
 	_end_with_epilogue(look, palette)

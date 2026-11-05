@@ -102,10 +102,22 @@ static func solid_below(world: World2D, point: Vector2, reach := 800.0) -> Vecto
 	return hit["position"] if not hit.is_empty() else Vector2(point.x, ArenaGen.GROUND_Y)
 
 
+static var _fires: Array = []
+static var _fires_frame := -1
+static var _fires_count := -1
+static var _fires_tree: SceneTree
+
+
 ## Every fire burning, as {at: where it is, heat: how fiercely it melts, size: how far it reaches past that point,
 ## shot: true for a fireball or ball of lava in flight}. Burning ground and a firewall are steady heat; a fireball or a
 ## ball of lava is three times as hot; each puff of breath is a small flame.
 static func fire_points(tree: SceneTree) -> Array:
+	# Everything that cares about fire asks this many times a frame, and a great pool of lava is hundreds of points, so the answer is kept for
+	# the frame (and thrown away when a fire is lit or put out in it).
+	var frame := Engine.get_physics_frames()
+	var count := tree.get_nodes_in_group("fires").size()
+	if frame == _fires_frame and count == _fires_count and tree == _fires_tree:
+		return _fires
 	var fires := []
 	for node in tree.get_nodes_in_group("fires"):
 		if node is Hazard:
@@ -130,6 +142,10 @@ static func fire_points(tree: SceneTree) -> Array:
 			fires.append({"at": node.global_position + Vector2(0, -20), "heat": 1.0, "size": 24.0, "shot": false})
 		elif node is FlamingSphere:
 			fires.append({"at": node.global_position, "heat": 2.0, "size": 16.0, "shot": false})
+	_fires = fires
+	_fires_frame = frame
+	_fires_count = count
+	_fires_tree = tree
 	return fires
 
 

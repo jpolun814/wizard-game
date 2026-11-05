@@ -29,4 +29,5 @@ func _physics_process(_delta: float) -> void:
 	for k in 2:
 		var x := player.global_position.x + rng.randf_range(-NEAR, NEAR)
 		var column := clampi(int(x / tile), SurfaceGen.MARGIN + 4, floors.size() - SurfaceGen.MARGIN - 4)
-		LavaBall.throw(get_parent(), Vector2(x, floors[column] * tile - SKY), Vector2(rng.randf_range(-40.0, 40.0), 60.0))
+		var lump := LavaBall.throw(get_parent(), Vector2(x, floors[column] * tile - SKY), Vector2(rng.randf_range(-40.0, 40.0), 60.0))
+		lump.burns_ground = false

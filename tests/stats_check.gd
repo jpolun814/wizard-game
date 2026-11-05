@@ -28,7 +28,7 @@ func _ready() -> void:
 	await get_tree().create_timer(5.0).timeout
 	_verdict(MatchStats.seconds > 4.0, "the clock runs (%.1f s)" % MatchStats.seconds)
 	_verdict(MatchStats.series.size() >= 2, "a point is added to the charts now and then (%d)" % MatchStats.series.size())
-	_verdict(MatchStats.spells_known() > 10, "spells learned are counted (%d)" % MatchStats.spells_known())
+	_verdict(MatchStats.pages_known() > SpellData.SPELLS.size(), "spells and incantations are both counted as learned (%d)" % MatchStats.pages_known())
 	# A spell cast, a stroke that matched nothing, a blow dealt to a rival and a blow taken.
 	_world.cast_by("Ignite", "directional", player.center(), 0.0, {"length": 90.0, "accuracy": 0.9}, player)
 	_verdict(MatchStats.casts == 1 and MatchStats.cast_by_spell.get("Ignite", 0) == 1, "a cast is counted by spell (%d)" % MatchStats.casts)
@@ -58,7 +58,20 @@ func _ready() -> void:
 	_verdict(StatsScreen._clock(83.0) == "1:23", "a time reads as minutes and seconds")
 	_verdict(StatsScreen._round_up(37.0) == 40.0 and StatsScreen._round_up(3.0) == 4.0, "a chart tops out at a round figure")
 	await get_tree().process_frame
-	_verdict(screen._charts.size() == 4, "four charts are laid out for reading (%d)" % screen._charts.size())
+	_verdict(screen._charts.is_empty(), "the first page of the ball is writing, not a chart")
+	var first_key := InputEventKey.new()
+	first_key.keycode = KEY_RIGHT
+	first_key.pressed = true
+	screen._input(first_key)
+	await get_tree().process_frame
+	_verdict(screen._page == 1 and screen._charts.size() == 1, "the right arrow turns to a chart, laid out for reading (page %d, %d charts)" % [screen._page, screen._charts.size()])
+	first_key.keycode = KEY_LEFT
+	screen._input(first_key)
+	screen._input(first_key)
+	_verdict(screen._page == StatsScreen.PAGES.size() - 1, "and the left arrow turns back, round past the first page (page %d)" % screen._page)
+	screen._page = 1
+	screen._turn(0)
+	await get_tree().process_frame
 	_verdict(screen.size.x > 100.0 and screen.size.y > 100.0, "the screen covers the window, so the pointer reaches it (%s)" % screen.size)
 	var plot: Rect2 = screen._charts[0]["plot"]
 	screen._pointer = plot.position + plot.size * Vector2(0.8, 0.5)  # the pointer rests on a chart
@@ -68,17 +81,34 @@ func _ready() -> void:
 		if arg.begins_with("out="):
 			var dir := arg.get_slice("=", 1)
 			DirAccess.make_dir_recursive_absolute(dir)
-			await RenderingServer.frame_post_draw
-			get_viewport().get_texture().get_image().save_png(dir.path_join("stats.png"))
+			for page in StatsScreen.PAGES.size():
+				screen._page = page
+				screen._turn(0)
+				screen._pointer = plot.position + plot.size * Vector2(0.8, 0.5)
+				await get_tree().create_timer(0.9).timeout
+				await RenderingServer.frame_post_draw
+				get_viewport().get_texture().get_image().save_png(dir.path_join("stats_%d.png" % page))
+			screen._page = 1
+			screen._turn(0)
 	# Dismissed, it can be pulled up again, from the pause screen or the end screen.
 	screen._close()
 	_verdict(not screen.visible, "the screen is put away")
-	_verdict(_world.hud.get_node("StatsButton").visible, "a button for them stays on the screen")
+	_verdict(_world.hud.get_node("StatsButton").visible, "a crystal ball for them stays on the screen")
 	_world.hud.get_node("StatsButton").pressed.emit()
 	await get_tree().process_frame
 	_verdict(_world._stats.visible, "and a request for it brings it back")
 	print("%d failures" % _failures)
 	get_tree().quit(1 if _failures > 0 else 0)
+
+
+## The buttons of a node's whole tree, by their words.
+func _buttons_of(node: Node) -> Dictionary:
+	var found := {}
+	for child in node.get_children():
+		if child is Button:
+			found[child.text] = child
+		found.merge(_buttons_of(child))
+	return found
 
 
 func _verdict(ok: bool, message: String) -> void:

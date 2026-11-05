@@ -44,6 +44,9 @@ func _ready() -> void:
 		tools.add_child(_button("Rift into locked areas", func() -> void: arena.open_gates()))
 	if arena.has_method("go_to_epilogue"):
 		tools.add_child(_button("The ending", func() -> void: arena.go_to_epilogue()))
+	if arena.has_method("debug_win"):  # the match ends: every other wizard falls, or the person does
+		tools.add_child(_button("Win game", func() -> void: _end_the_match(true)))
+		tools.add_child(_button("Lose game", func() -> void: _end_the_match(false)))
 	if arena.has_method("gate_kinds"):
 		var heading := Label.new()
 		heading.text = "Go to a gate (each press, the next one)"
@@ -86,6 +89,15 @@ func _ready() -> void:
 			var button := _button(SurfaceGen.LOOKS[biome]["title"], arena.go_to_biome.bind(biome))
 			button.custom_minimum_size = Vector2(160, 0)
 			biomes.add_child(button)
+
+
+## Puts the panel away and ends the match for real: the person wins (every other wizard is beaten) or loses (they are), and what follows is what the game does.
+func _end_the_match(won: bool) -> void:
+	visible = false
+	if won:
+		arena.debug_win()
+	else:
+		arena.debug_lose()
 
 
 func _button(text: String, action: Callable) -> Button:

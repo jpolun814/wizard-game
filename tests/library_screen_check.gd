@@ -17,7 +17,7 @@ func _ready() -> void:
 	var screen := await _open()
 	_verdict(_figure(screen, "Matches played") == "0" and _figure(screen, "Matches won") == "0", "an empty library has played and won nothing")
 	_verdict(_figure(screen, "Pages known") == "0 of %d" % every.size(), "and knows no page (%s)" % _figure(screen, "Pages known"))
-	_verdict(_covered(screen) == every.size(), "every page has a card, all face down (%d)" % _covered(screen))
+	_verdict(_covered(screen) == every.size(), "every page of every tome is blank and torn (%d)" % _covered(screen))
 	screen.queue_free()
 	# A match, a world, a page, a cast and a win.
 	Library.record_match_begun()
@@ -27,10 +27,20 @@ func _ready() -> void:
 	Library.record_win(["Ignite"])
 	screen = await _open()
 	_verdict(_figure(screen, "Matches played") == "1" and _figure(screen, "Matches won") == "1", "a match played and won is counted")
-	_verdict(_figure(screen, "Pages known") == "2 of %d" % every.size(), "a page found and a spell cast each turn a card up (%s)" % _figure(screen, "Pages known"))
-	_verdict(_covered(screen) == every.size() - 2, "so two cards are no longer face down")
-	_verdict(_has_text(screen, "Ignite") and _has_text(screen, "Frostbolt"), "and those cards carry their spells' names")
+	_verdict(_figure(screen, "Pages known") == "2 of %d" % every.size(), "a page found and a spell cast are both counted (%s)" % _figure(screen, "Pages known"))
+	_verdict(_covered(screen) == every.size() - 2, "so two pages are no longer blank")
+	screen.open_tome("Fire")
+	screen.set("_spread", screen.call("_pages_of", "Fire").find("Ignite") / 2)
+	screen.call("_show_spread")
+	_verdict(_has_text(screen, "Ignite"), "the Fire tome carries Ignite's name")
+	screen.open_tome("Water")
+	screen.set("_spread", screen.call("_pages_of", "Water").find("Frostbolt") / 2)
+	screen.call("_show_spread")
+	_verdict(_has_text(screen, "Frostbolt"), "the Water tome carries Frostbolt's name")
 	_verdict(_figure(screen, "Title") == "Novice", "a wizard with few casts is a Novice (%s)" % _figure(screen, "Title"))
+	screen.open_tome("Water")
+	screen.set("_spread", screen.call("_pages_of", "Water").find("Frostbolt") / 2)
+	screen.call("_show_spread")
 	_verdict(Library.average_accuracy("Frostbolt") < 0.0 and _has_text(screen, "-"), "a cast whose shape could not be judged leaves accuracy blank")
 	screen.queue_free()
 	# Accuracy is the average of the casts that were judged, shown as a percentage.
@@ -39,19 +49,54 @@ func _ready() -> void:
 	Library.record_cast("Frostbolt", 0.0)  # not judged: not in the average
 	_verdict(is_equal_approx(Library.average_accuracy("Frostbolt"), 0.85), "accuracy averages the judged casts (%f)" % Library.average_accuracy("Frostbolt"))
 	screen = await _open()
-	_verdict(_has_text(screen, "85%"), "and the card's back shows it as a percentage")
+	screen.open_tome("Water")
+	screen.set("_spread", screen.call("_pages_of", "Water").find("Frostbolt") / 2)
+	screen.call("_show_spread")
+	_verdict(_has_text(screen, "85%"), "and its page shows it as a percentage")
 	_check_titles()
 	# Choosing a kind of world shows what was done there.
+	screen.open_tome("Fire")
 	_choose(screen, "Castle")
 	await get_tree().process_frame
-	_verdict(_figure(screen, "Worlds entered") == "1", "the Castle's counts show the world entered there")
+	_verdict(_figure(screen, "Matches played here") == "1", "the Castle's counts show the world entered there")
 	_choose(screen, "Graveyard")
 	await get_tree().process_frame
-	_verdict(_figure(screen, "Worlds entered") == "0", "and a kind of world never entered shows none")
-	await _picture("library")
-	_choose(screen, "Found")
-	await get_tree().process_frame
-	_verdict(_has_text(screen, "Pages known"), "the screen still stands after another way of showing is chosen")
+	_verdict(_figure(screen, "Matches played here") == "0", "and a kind of world never entered shows none")
+	screen.set("_spread", screen.call("_pages_of", "Fire").find("Ignite") / 2)
+	screen.call("_show_spread")
+	await get_tree().create_timer(0.6).timeout
+	await _picture("library_book")
+	screen.close_tome()
+	await _picture("library_shelf")
+	screen.close_tome()
+	screen.open_tome("chronicle")
+	_verdict(_has_text(screen, "Pages known"), "the screen still stands once the tome is shelved again")
+	screen.queue_free()
+	# The Chronicle: a page for each match that was played to its end, newest first, found pages before blank ones.
+	var line: Array = []
+	for k in 24:
+		line.append(k * 9)
+	Library.record_match_end({"when": 1793800000, "place": 3, "field": 4, "seconds": 412, "worlds": ["graveyard", "jungle"], "stages": [["graveyard", 0], ["jungle", 150]], "kills": 1, "dealt": 120, "taken": 260,
+		"casts": 40, "misses": 3, "accuracy": 0.81, "pages": 9, "favourites": [["Ignite", 22]], "online": false, "dealt_line": line, "taken_line": line})
+	Library.record_match_end({"when": 1793900000, "place": 1, "field": 4, "seconds": 1260, "worlds": ["castle"], "stages": [["castle", 0]], "kills": 3, "dealt": 900, "taken": 300,
+		"casts": 150, "misses": 9, "accuracy": 0.9, "pages": 20, "favourites": [["Push", 40], ["Ignite", 30]], "online": true, "dealt_line": line, "taken_line": line})
+	screen = await _open()
+	screen.open_tome("chronicle")
+	_verdict(screen.call("_pages_of", "chronicle").size() == 3, "the Chronicle has its first page and a page for each match (%d)" % screen.call("_pages_of", "chronicle").size())
+	screen.set("_spread", 1)
+	screen.call("_show_spread")
+	_verdict(_has_text(screen, "Victory"), "the newest match, won, comes first")
+	screen.set("_spread", 0)
+	screen.call("_show_spread")
+	_verdict(_has_text(screen, "Best placing") and _has_text(screen, "1st"), "and the first page tells the best placing")
+	_choose(screen, "Graveyard")
+	_verdict(screen.call("_pages_of", "chronicle").size() == 2, "a world chosen leaves only the matches that went through it")
+	_choose(screen, "All")
+	await get_tree().create_timer(0.6).timeout
+	screen.set("_spread", 1)
+	screen.call("_show_spread")
+	await _picture("library_chronicle")
+	_verdict(Library.stats()["history"].size() == 2, "and the matches are kept in the file")
 	screen.queue_free()
 	# What was counted under the old name of the Chant of Dowsing is kept under the new, and is not left behind to be read as the Scrying Eye's.
 	var old := FileAccess.open("user://library_carry_test.json", FileAccess.WRITE)
@@ -106,6 +151,7 @@ func _open() -> Node:
 
 ## The figure written after a ledger label ("Matches played" then its number), or "" when there is no such label.
 func _figure(screen: Node, label: String) -> String:
+	screen.open_tome("chronicle")  # the figures are written on the Chronicle's first page
 	var found: Array = screen.find_children("*", "Label", true, false)
 	for k in found.size():
 		if found[k].text == label and k + 1 < found.size():
@@ -113,8 +159,17 @@ func _figure(screen: Node, label: String) -> String:
 	return ""
 
 
+## How many pages, over every tome, are blank.
 func _covered(screen: Node) -> int:
-	return screen.find_children("*", "Label", true, false).filter(func(l: Label) -> bool: return l.text == "?").size()
+	var blank := 0
+	for tome: String in screen.call("_tomes"):
+		screen.open_tome(tome)
+		for spread in ceili(screen.call("_pages_of", tome).size() / 2.0):
+			screen.set("_spread", spread)
+			screen.call("_show_spread")
+			blank += screen.find_children("*", "Control", true, false).filter(func(c: Control) -> bool: return c is LibraryScreen.Torn and not c.is_queued_for_deletion()).size()
+	screen.close_tome()
+	return blank
 
 
 func _has_text(screen: Node, text: String) -> bool:

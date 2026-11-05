@@ -49,6 +49,9 @@ var _pieces: Array = []  # the pool's fill, cut to the hollow it sits in: worked
 var _seen := true        # false while the pool is off screen: nothing about it is drawn or animated then
 var _flow_clock := 0.0
 var _walls_read := {}  # stone wall id -> the box it was read as, the last time the liquid looked at the walls
+var _heat_grid: LiquidGrid        # the grid the last answer of heat_points() was worked out from, and its version then
+var _heat_version := -1
+var _heat_points := PackedVector2Array()
 var _heat := 1.0         # how molten cooling lava still is: 1 is fresh, 0 is crust
 var _reach: CollisionShape2D  # the area that finds the bodies near the liquid, kept as big as the grid
 var _watch: VisibleOnScreenNotifier2D
@@ -144,11 +147,16 @@ func heat_points() -> PackedVector2Array:
 	if grid == null:
 		points.append(global_position + Vector2(width * 0.5, 0.0))
 		return points
+	if grid == _heat_grid and grid.version == _heat_version:
+		return _heat_points  # asked many times a frame by everything that checks for fire, but the liquid only changes now and then
 	var wet := grid.wet_columns()
 	for c in range(wet.x, wet.y + 1):
 		var runs: Array = grid.runs_in(c)
 		if not runs.is_empty():
 			points.append(Vector2(grid.origin.x + (c + 0.5) * LiquidGrid.CELL, (runs[0][0] + runs[0][1]) * 0.5))
+	_heat_grid = grid
+	_heat_version = grid.version
+	_heat_points = points
 	return points
 
 

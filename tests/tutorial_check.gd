@@ -77,45 +77,10 @@ func _library_check() -> void:
 	var text := FileAccess.get_file_as_string(Library.path)
 	var read: Variant = JSON.parse_string(text)
 	_verdict(read is Dictionary and int(read["pages"]["Ignite"]) == 2, "and it is written to a file that can be read back")
-	if _out != "" and DisplayServer.get_name() != "headless":
-		for page in ["Ignite", "Ignite", "Frostbolt", "Barrier", "chant:minimap"]:
-			Library.record_page(page)
-		for spell in ["Ignite", "Ignite", "Ignite", "Frostbolt"]:
-			Library.record_cast(spell)
-		Library.record_win(["Ignite", "Barrier"])
-		var screen: Control = load("res://scenes/library.tscn").instantiate()
-		add_child(screen)
-		await get_tree().create_timer(3.0).timeout
-		var card := _first_known_card(screen)
-		if card != null:
-			card.gui_input.emit(_left_click())
-			await get_tree().create_timer(0.5).timeout
-			_verdict(not card.get_child(0).visible and card.get_child(1).visible, "clicking a known card turns it over to its back")
-		await RenderingServer.frame_post_draw
-		DirAccess.make_dir_recursive_absolute(_out)
-		get_viewport().get_texture().get_image().save_png(_out + "/library.png")
-		screen._world = "castle"
-		screen._measure = "casts"
-		screen._refresh()
-		await get_tree().create_timer(1.5).timeout
-		await RenderingServer.frame_post_draw
-		get_viewport().get_texture().get_image().save_png(_out + "/library_castle.png")
-		screen.queue_free()
 	Library.clear()
 	Library.force = false
 	Library.use_file(Library.PATH)
 	MatchState.begin(0)  # as it was before the check
-
-
-## A card of the library that has a back: one that is face up.
-func _first_known_card(node: Node) -> Control:
-	for child in node.get_children():
-		if child is Control and child.custom_minimum_size == LibraryScreen.CARD and child.get_child_count() >= 2:
-			return child
-		var found := _first_known_card(child)
-		if found != null:
-			return found
-	return null
 
 
 func _left_click() -> InputEventMouseButton:

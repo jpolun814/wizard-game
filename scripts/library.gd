@@ -12,6 +12,7 @@ static var path := PATH  # a test points this at a file of its own, so it never 
 const TITLE_AFTER := 100       # casts before a wizard earns a school's title; fewer and they are a Novice
 const TITLE_SHARE := 0.30      # the share of casts a school needs to give its title
 const TITLE_LEAD := 0.05       # a school must lead the next by more than this share, or the spread is even
+const MAX_HISTORY := 5000      # matches kept in the Chronicle; each takes about half a kilobyte, so the file never grows past about 2.5 MB
 const SAVE_EVERY := 4000  # milliseconds: casts come thick and fast, so they are written out in batches
 
 static var force := false  # a test of this class turns it on, so its records are kept (with `path` set to a file of its own)
@@ -22,7 +23,7 @@ static var _saved_at := 0
 
 
 ## What has been recorded, as {"matches": n, "wins": n, "pages": {page: n}, "casts": {spell: n}, "won_with": {page: n}, "accuracy_sum": {spell: sum},
-## "accuracy_n": {spell: casts judged}}.
+## "accuracy_n": {spell: casts judged}, "history": [one summary for each match played to its end, oldest first]}.
 static func stats() -> Dictionary:
 	_load()
 	return _data
@@ -71,6 +72,30 @@ static func record_win(held_pages: Array) -> void:
 		_bump("won_with", page)
 		_bump_here("won_with", page)
 	_save()
+
+
+## A match is over for the person at this machine (they won or fell): its summary (see `MatchStats.summary`) goes into the Chronicle. Only the
+## newest MAX_HISTORY are kept.
+static func record_match_end(summary: Dictionary) -> void:
+	if not _counts():
+		return
+	_load()
+	var history: Array = _data["history"]
+	history.append(summary)
+	while history.size() > MAX_HISTORY:
+		history.pop_front()
+	_save()
+
+
+## The matches in the Chronicle, newest first. With a kind of world named, only the matches that went through it.
+static func history(biome := "") -> Array:
+	_load()
+	var out: Array = []
+	var all: Array = _data["history"]
+	for k in range(all.size() - 1, -1, -1):
+		if biome == "" or (all[k].get("worlds", []) as Array).has(biome):
+			out.append(all[k])
+	return out
 
 
 static func record_page(page: String) -> void:
@@ -195,7 +220,7 @@ static func _bump(table: String, key: String) -> void:
 
 
 static func _blank() -> Dictionary:
-	return {"matches": 0, "wins": 0, "pages": {}, "casts": {}, "won_with": {}, "accuracy_sum": {}, "accuracy_n": {}, "in": {}}
+	return {"matches": 0, "wins": 0, "pages": {}, "casts": {}, "won_with": {}, "accuracy_sum": {}, "accuracy_n": {}, "in": {}, "history": []}
 
 
 static func _load() -> void:

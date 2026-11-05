@@ -14,6 +14,7 @@ const FIRE_SECONDS := 5.0
 const LIFE := 6.0  # one thrown off the map is gone after this
 
 var velocity := Vector2.ZERO
+var burns_ground := true  # the ash storm's rain only burns where it strikes: the ground does not stay alight, so a dodged lump leaves safe ground
 var _age := 0.0
 var _spent := false
 
@@ -80,7 +81,8 @@ func _land(ground: Vector2, struck := Vector2.INF) -> void:
 	_spent = true
 	if struck == Vector2.INF:
 		struck = ground
-	var hazard := Hazard.place(get_parent(), ground, FIRE_WIDTH, FIRE_SECONDS)
+	if burns_ground:
+		Hazard.place(get_parent(), ground, FIRE_WIDTH, FIRE_SECONDS)
 	SpellTargets.hurt_within(get_tree(), struck + Vector2(0, -12), REACH, DAMAGE, "Fire", true, true, self)
 	PixelFx.play(get_parent(), struck, "blast_small", 20.0, 1.0, Color.WHITE, true)
 	Sfx.play("fire_hit", struck, -6.0)
