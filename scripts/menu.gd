@@ -96,7 +96,10 @@ func _ready() -> void:
 	_address.text_submitted.connect(func(_text: String) -> void: _on_join())
 	Net.roster_changed.connect(_on_roster_changed)
 	Net.disconnected.connect(_on_disconnected)
-	$Box/Main/SinglePlayer.grab_focus.call_deferred()
+	var first: Button = $Box/Main/SinglePlayer
+	(func() -> void:
+		if is_instance_valid(first) and first.is_inside_tree():
+			first.grab_focus()).call_deferred()
 	_dress()
 	_write_signs()
 	resized.connect(_lay_out)
