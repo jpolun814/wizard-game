@@ -8,6 +8,7 @@ extends Node
 var _failures := 0
 var room: Tutorial
 var player: Wizard
+var _deaths := 0
 
 
 func _ready() -> void:
@@ -16,8 +17,15 @@ func _ready() -> void:
 	for k in 20:
 		await get_tree().process_frame
 	player = room.player
+	player.died.connect(func() -> void: _deaths += 1)
+	for f in 90:
+		await get_tree().physics_frame  # (the mobs fade in first)
 	for node: Node in get_tree().get_nodes_in_group("mobs"):
 		node.set_physics_process(false)  # the dummy and the turrets stand quiet: only the ground is tried here
+	await _dummy()
+	await _control_door()
+	await _stamina_door()
+	await _turrets()
 	await _cliff()
 	await _thorns()
 	await _pit()
@@ -48,6 +56,113 @@ func _run_and_jump(seconds: float, second_jump: bool, until_column: float) -> vo
 		if _column() >= until_column and player.is_on_floor():
 			break
 	Input.action_release("move_right")
+
+
+## Runs right (jumping, with a second jump if it has one) until it has got to a column, died, or the time is out.
+func _run_until(column: float, seconds: float) -> void:
+	var deaths := _deaths
+	Input.action_press("move_right")
+	for f in int(seconds * 60.0):
+		await get_tree().physics_frame
+		if player.is_on_floor():
+			player.request_jump()
+		elif player.air_jump_time > 0.0 and player.velocity.y > -40.0 and player.velocity.y < 60.0:
+			player.request_jump()
+		if _column() >= column or _deaths > deaths:
+			break
+	Input.action_release("move_right")
+
+
+func _dummy() -> void:
+	var at := room._dummy.global_position.x / float(ArenaGen.TILE)
+	var deaths := _deaths
+	_put(-12)
+	for f in 20:
+		await get_tree().physics_frame
+	await _run_until(at + 6.0, 6.0)
+	_verdict(_deaths > deaths, "walking past the dummy while it stands kills (deaths %d)" % (_deaths - deaths))
+	for f in 10:
+		await get_tree().physics_frame
+	_verdict(not room._reached.has(1), "and the Attack place is not done by that")
+	room._dummy.take_damage(1000)
+	for f in 30:
+		await get_tree().physics_frame
+	_verdict(room._dummy.is_dead() and room._reached.has(1), "killing the dummy finishes the Attack place")
+	deaths = _deaths
+	_put(-12)
+	for f in 20:
+		await get_tree().physics_frame
+	await _run_until(at + 6.0, 6.0)
+	_verdict(_deaths == deaths and _column() >= at + 6.0, "and then it can be walked past (column %.1f)" % _column())
+
+
+func _control_door() -> void:
+	var col: int = Tutorial.PLACES[0]["door"]
+	player.air_jump_time = 30.0
+	player.air_jump_ready = true
+	_put(col - 8)
+	for f in 20:
+		await get_tree().physics_frame
+	await _run_until(col + 3.0, 5.0)
+	_verdict(_column() < col, "the door after the controls cannot be passed or jumped (column %.1f)" % _column())
+	for key in ["move", "jump", "book", "ritual"]:
+		room._pressed[key] = true
+	for f in 30:
+		await get_tree().physics_frame
+	_verdict(room._doors[0].is_open, "and opens once every key has been used")
+	_put(col - 4)
+	for f in 20:
+		await get_tree().physics_frame
+	await _run_until(col + 3.0, 5.0)
+	_verdict(_column() >= col + 3.0, "and then it can be passed (column %.1f)" % _column())
+	player.air_jump_time = 0.0
+
+
+func _stamina_door() -> void:
+	var col: int = Tutorial.PLACES[2]["door"]
+	player.air_jump_time = 30.0
+	player.air_jump_ready = true
+	_put(col - 6)
+	for f in 20:
+		await get_tree().physics_frame
+	await _run_until(col + 3.0, 5.0)
+	_verdict(_column() < col, "the door at the Maximum Stamina place cannot be passed or jumped (column %.1f)" % _column())
+	room.spawn_spell("Adrenaline", "directional", player.center(), 0.0, {}, player)
+	for f in 30:
+		await get_tree().physics_frame
+	_verdict(room._doors[2].is_open, "and opens once Adrenaline is cast")
+	_put(col - 4)
+	for f in 20:
+		await get_tree().physics_frame
+	await _run_until(col + 3.0, 5.0)
+	_verdict(_column() >= col + 3.0, "and then it can be passed (column %.1f)" % _column())
+	player.air_jump_time = 0.0
+
+
+func _turrets() -> void:
+	for node: Node in get_tree().get_nodes_in_group("mobs"):
+		if node is Mob and node.kind == "turret":
+			node.set_physics_process(true)
+	var goal: int = 106
+	var deaths := _deaths
+	_put(Tutorial.TURRET_ZONE.x - 2)
+	for f in 20:
+		await get_tree().physics_frame
+	await _run_until(goal, 12.0)
+
+	_verdict(_deaths > deaths, "running through the turrets unprotected kills (deaths %d)" % (_deaths - deaths))
+	deaths = _deaths
+	for f in 30:
+		await get_tree().physics_frame
+	_put(Tutorial.TURRET_ZONE.x - 4)
+	for f in 20:
+		await get_tree().physics_frame
+	room.spawn_spell("Barrier", "positional", player.center(), 0.0, {}, player)
+	await _run_until(goal, 12.0)
+	_verdict(_deaths == deaths and _column() >= goal, "and with a Barrier it is got through alive (column %.1f)" % _column())
+	for node: Node in get_tree().get_nodes_in_group("mobs"):
+		if node is Mob and node.kind == "turret":
+			node.set_physics_process(false)
 
 
 func _cliff() -> void:

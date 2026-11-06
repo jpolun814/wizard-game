@@ -20,6 +20,9 @@ func _ready() -> void:
 	for k in 20:
 		await get_tree().process_frame
 	var player: Wizard = room.player
+	for f in 90:
+		await get_tree().physics_frame
+	room._dummy.take_damage(1000)  # so that the dummy in the way does not strike the visitor walking along the room
 	for k in Tutorial.PLACES.size():
 		var place: Dictionary = Tutorial.PLACES[k]
 		var spot := Vector2(ArenaGen.column_x(place["col"]), ArenaGen.surface_y(room._cells, place["col"]))

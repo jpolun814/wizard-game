@@ -24,35 +24,36 @@ const MENU := "res://scenes/menu.tscn"
 ## the Plants place is done when its thorns are gone. Each of those is shut off from the next place by something the spells must clear:
 ## water and a pit too wide to cross, turrets, thorns too long to walk through, a cliff too high to jump.
 const PLACES := [
-	{"col": -30, "title": "Controls", "school": "", "keys": [
-		["A D", "Move."],
-		["W Space", "Jump."],
+		{"col": -30, "title": "Controls", "school": "", "door": -26, "keys": [
+		["A D", "Move.", "move"],
+		["W Space", "Jump.", "jump"],
+		["Tab", "Open the spellbook.", "book"],
+		["Enter", "Speak a chant.", "ritual"],
 		["", "Hold a school's mouse buttons and draw its shape."],
-		["Tab", "Open the spellbook."],
-		["Enter", "Speak a chant."],
 		["", "Watch your stamina at the top left. Spells cost stamina."],
-		["", "Stamina will recharge while you stand still."]]},
-	{"col": -14, "title": "Attack", "school": "Fire", "any": true, "steps": [
+		["", "Stamina recharges while you stand still."]],
+		"note": "Try each key to open the door."},
+	{"col": -14, "title": "Attack", "school": "Fire", "any": true, "dummy": true, "steps": [
 		["Ignite"], ["Frostbolt"], ["Stonefall"]],
-		"note": "Fell the dummy with one of these."},
-	{"col": 4, "title": "Maximum Stamina", "school": "Blood", "steps": [
+		"note": "Kill the dummy. It kills you if you walk past it."},
+	{"col": 4, "title": "Maximum Stamina", "school": "Blood", "door": 9, "steps": [
 		["Adrenaline"]],
-		"note": "Necromancy spells are more powerful, but they spend maximum stamina that does not come back."},
+		"note": "Cast it to open the door. Necromancy spends maximum stamina, and it does not come back."},
 	{"col": 18, "title": "Cross Water", "school": "Water", "any": true, "goal": 48, "steps": [
 		["Frost Bridge"], ["Lily Pads"]],
-		"note": "Cross the pond with one of these."},
+		"note": "Cross the pond."},
 	{"col": 60, "title": "Block Projectiles", "school": "Air", "any": true, "goal": 106, "steps": [
 		["Barrier"], ["Stone Wall"]],
-		"note": "Get past the turrets with one of these."},
+		"note": "Get past the turrets. One hit kills you."},
 	{"col": 110, "title": "Burn Plants", "school": "Fire", "any": true, "thicket": true, "steps": [
 		["Ignite"], ["Fire Breath"]],
-		"note": "Burn the thorns with one of these."},
+		"note": "Burn the thorns."},
 	{"col": 160, "title": "Higher Ground", "school": "", "goal": 178, "steps": [
 		["chant:double_jump"]],
 		"note": "Press Enter, type the words, then press Enter. Then climb the cliff."},
 	{"col": 192, "title": "Cross a Pit", "school": "Air", "any": true, "goal": 233, "steps": [
 		["Rocket Jump"], ["Featherfall"], ["Push"]],
-		"note": "Cross the pit with one of these."},
+		"note": "Cross the pit."},
 ]
 const CLIFF_COL := 170       # from here on the ground is this many rows higher than before: too high to jump, near enough for a second jump
 const CLIFF_ROWS := 7.0
@@ -61,7 +62,10 @@ const GAP_ROWS_DOWN := 4.0
 const THICKET_SPAN := Vector2i(118, 150)   # thorns across the way, far too long to walk through
 const THICKET_LAYERS := 10
 const TURRETS := [70, 82, 94]
-const DUMMIES := [-6]
+const TURRET_PATIENCE := 0.8   # seconds in the sight of a turret, with nothing in the way, before its shot finds the wizard
+const DUMMIES := [-6]   # the one in the way at the Attack place: whoever walks past it while it stands is struck down
+const TURRET_ZONE := Vector2i(62, 106)   # a hit from a turret here is a death
+const DOOR_HEIGHT := 288.0   # three doors tall: too high to jump, even with the second jump
 const DUMMY_HP := 36  # three fireballs: the tutorial's dummies fall quickly, so each try is seen through
 
 var _done := {}      # place index -> {step index: true}
@@ -70,6 +74,10 @@ var _panel: PanelContainer
 var _shown := -1     # the place whose page is up, or -1
 var _marks: Array[TutorialMark] = []
 var _thickets: Array[Bramble] = []
+var _dummy: Mob
+var _exposed := 0.0   # how long the wizard has been in the sight of a turret
+var _doors := {}     # place index -> the door that place opens
+var _pressed := {}   # the keys of the Controls place that have been used
 var _reached := {}   # place index -> true once its goal has been reached
 
 
@@ -107,6 +115,14 @@ func _begin_encounter(camera: Camera2D) -> void:
 		mark.colour = SpellData.SCHOOL_COLORS[PLACES[k]["school"]] if PLACES[k]["school"] != "" else Color("#c8a8ff")
 		add_child(mark)
 		_marks.append(mark)
+		if PLACES[k].has("door"):
+			var door := TutorialDoor.new()
+			var door_col: int = PLACES[k]["door"]
+			door.position = Vector2(ArenaGen.column_x(door_col), ArenaGen.surface_y(_cells, door_col))
+			door.height = DOOR_HEIGHT
+			add_child(door)
+			_doors[k] = door
+	player.damaged.connect(_on_player_hurt)
 
 
 ## A pit of the same shape as the others, dug down from the ground at `base` rows.
@@ -132,6 +148,8 @@ func _add_targets() -> void:
 		mob.max_hp = DUMMY_HP
 		mob.hp = DUMMY_HP
 		mob.facing = -1.0 if col < 0 else 1.0
+		mob.felled_stays = true
+		_dummy = mob
 	_plant_thicket()
 	for col: int in TURRETS:
 		var turret := _add_mob("turret", Vector2(ArenaGen.column_x(col), ArenaGen.surface_y(_cells, col)))
@@ -228,7 +246,9 @@ func _is_done(place: int) -> bool:
 	var entry: Dictionary = PLACES[place]
 	if _reached.has(place):
 		return true
-	if entry.has("goal") or entry.get("thicket", false):
+	if entry.has("keys"):
+		return _keys_used()
+	if entry.has("goal") or entry.get("thicket", false) or entry.get("dummy", false):
 		return false
 	var steps: Array = entry.get("steps", [])
 	var tried: int = _done.get(place, {}).size()
@@ -253,6 +273,9 @@ func _process(delta: float) -> void:
 			best = distance
 			near = k
 	_check_goals(column)
+	_guard_the_way(column)
+	_watch_the_turrets(delta, column)
+	_open_doors()
 	if near != _shown:
 		_shown = near
 		_show(near)
@@ -270,6 +293,8 @@ func _check_goals(column: float) -> void:
 			met = column >= entry["goal"] and column < entry["goal"] + 6.0 and player.is_on_floor()
 		elif entry.get("thicket", false):
 			met = thorns_left() == 0
+		elif entry.get("dummy", false):
+			met = _dummy == null or not is_instance_valid(_dummy) or _dummy.is_dead()
 		if met:
 			_reached[k] = true
 			_marks[k].lit = true
@@ -282,6 +307,78 @@ func _check_goals(column: float) -> void:
 		if column >= span.x and column <= span.y and player.global_position.y > ArenaGen.surface_y(_cells, edge) + (float(pit[1]) - 1.0) * ArenaGen.TILE:
 			player.global_position = Vector2(ArenaGen.column_x(edge), ArenaGen.surface_y(_cells, edge) - 20.0)
 			player.velocity = Vector2.ZERO
+
+
+## The dummy at the Attack place strikes down whoever walks past it while it stands.
+func _guard_the_way(column: float) -> void:
+	if _dummy == null or not is_instance_valid(_dummy) or _dummy.is_dead() or player.dead:
+		return
+	if column > _dummy.global_position.x / float(ArenaGen.TILE) + 1.5:
+		player.take_damage(1000, false)
+
+
+## Whoever stays in sight of a turret, with no Barrier round them and no stone between, is shot, for the turrets
+## fire slowly and a runner could slip every one of them.
+func _watch_the_turrets(delta: float, column: float) -> void:
+	if player.dead or player.has_shield() or column < TURRET_ZONE.x or column > TURRET_ZONE.y:
+		_exposed = 0.0
+		return
+	var watcher: Mob
+	for mob: Node in get_tree().get_nodes_in_group("mobs"):
+		if mob is Mob and mob.kind == "turret" and not mob.is_dead() and mob.center().distance_to(player.center()) < 480.0:
+			var query := PhysicsRayQueryParameters2D.create(mob.center(), player.center())
+			query.collision_mask = 1
+			if get_world_2d().direct_space_state.intersect_ray(query).is_empty() and not SpellTargets.sight_blocked(get_tree(), mob.center(), player.center()):
+				watcher = mob
+				break
+	if watcher == null:
+		_exposed = maxf(_exposed - delta, 0.0)
+		return
+	_exposed += delta
+	if _exposed >= TURRET_PATIENCE:
+		_exposed = 0.0
+		Sfx.play("mob_shoot", watcher.center())
+		Fx.burst(self, player.center(), Color("#7fd8ff"), 8, 120.0, 0.3, true)
+		player.take_damage(6, true, true)  # (and in this stretch a hit is a death, see _strike_down)
+
+
+## A hit from a turret kills, in the stretch the turrets guard (the Barrier and the Stone Wall are what turn the shots away).
+func _on_player_hurt(_amount: int) -> void:
+	_strike_down.call_deferred()
+
+
+func _strike_down() -> void:
+	var column := player.global_position.x / float(ArenaGen.TILE)
+	if not player.dead and column >= TURRET_ZONE.x and column <= TURRET_ZONE.y:
+		player.take_damage(1000, false)
+
+
+## A door opens, the first time its place is done.
+func _open_doors() -> void:
+	for place: int in _doors:
+		var door: TutorialDoor = _doors[place]
+		if not door.is_open and _is_done(place):
+			door.open()
+			Sfx.play("pickup")
+			_marks[place].lit = true
+			if _shown == place:
+				_show(place)
+
+
+func _keys_used() -> bool:
+	for key: Array in PLACES[0]["keys"]:
+		if key.size() > 2 and not _pressed.has(key[2]):
+			return false
+	return true
+
+
+func _input(event: InputEvent) -> void:
+	super(event)
+	for action: Array in [["move_left", "move"], ["move_right", "move"], ["jump", "jump"], ["book", "book"], ["start_ritual", "ritual"]]:
+		if event.is_action_pressed(action[0]) and not _pressed.has(action[1]):
+			_pressed[action[1]] = true
+			if _shown == 0:
+				_show(0)
 
 
 ## Puts the page for a place up on screen, or takes the page down when the wizard has walked away from every place.
@@ -325,7 +422,7 @@ func _show(place: int) -> void:
 			line.add_theme_constant_override("separation", 10)
 			for cap: String in String(key[0]).split(" ", false):
 				line.add_child(Spellbook.KeyCap.new(cap))
-			var words := _ink(key[1], 20, WORDS)
+			var words := _ink(key[1], 20, WORDS_DONE if key.size() > 2 and _pressed.has(key[2]) else WORDS)
 			words.autowrap_mode = TextServer.AUTOWRAP_OFF
 			line.add_child(words)
 			lines.add_child(line)
@@ -428,3 +525,38 @@ class TutorialMark extends Node2D:
 		var strength := (0.5 if lit else 0.24) + 0.05 * sin(_t * 2.0)
 		Fx.draw_glow(self, Vector2(0.0, -8.0), 46.0, Color(colour.r, colour.g, colour.b, strength))
 		Fx.draw_glow(self, Vector2(0.0, -8.0), 18.0, Color(colour.r, colour.g, colour.b, strength + 0.2))
+
+
+## A door across the way, too tall to jump, shut until its place is done: it then rises and fades.
+class TutorialDoor extends StaticBody2D:
+	const DOOR := preload("res://art/props/door.png")
+	var height := 288.0
+	var is_open := false
+	var _look: Node2D
+
+	func _ready() -> void:
+		var shape := CollisionShape2D.new()
+		var box := RectangleShape2D.new()
+		box.size = Vector2(64.0, height)
+		shape.shape = box
+		shape.position = Vector2(0.0, -height * 0.5)
+		add_child(shape)
+		_look = Node2D.new()
+		_look.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		add_child(_look)
+		var count := int(ceil(height / (DOOR.get_height() * 2.0)))
+		for k in count:
+			var piece := Sprite2D.new()
+			piece.texture = DOOR
+			piece.scale = Vector2(2.0, 2.0)
+			piece.offset = Vector2(0.0, -DOOR.get_height() * 0.5 + 1.0)
+			piece.position = Vector2(0.0, -k * DOOR.get_height() * 2.0)
+			_look.add_child(piece)
+
+	func open() -> void:
+		is_open = true
+		get_child(0).set_deferred("disabled", true)
+		var tween := create_tween().set_parallel()
+		tween.tween_property(_look, "position:y", -height, 0.8).set_ease(Tween.EASE_IN)
+		tween.tween_property(_look, "modulate:a", 0.0, 0.8)
+		tween.chain().tween_callback(hide)

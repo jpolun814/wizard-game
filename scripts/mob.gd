@@ -89,6 +89,7 @@ var hp := 30
 var max_hp := 30
 var stamina := 100.0      # a Faint takes all of it; it comes back as a wizard's does, and the enemy stands up when there is enough
 var _cooldown := 0.0
+var felled_stays := false  # a practice dummy that can be beaten: it falls and stays down (the tutorial's)
 var _since_hit := 0.0  # seconds since this enemy was last hurt; a dummy heals once it has been left alone
 var _slow_time: float:
 	get: return _status.left(&"slow")
@@ -272,7 +273,7 @@ func _physics_process(delta: float) -> void:
 	modulate.a = 1.0
 	_cooldown -= delta
 	_since_hit += delta
-	if KINDS[kind].effect == "dummy" and _since_hit > 3.0:
+	if KINDS[kind].effect == "dummy" and _since_hit > 3.0 and not felled_stays:
 		hp = max_hp  # a dummy heals as soon as you stop
 	_knock_x = move_toward(_knock_x, 0.0, KNOCK_DECAY * delta)
 	_drift = _drift.move_toward(Vector2.ZERO, 900.0 * delta)
@@ -758,7 +759,7 @@ func take_damage(amount: int, school := "", shot := false) -> void:
 	hp -= dealt
 	var counted := float(dealt) + minf(float(hp), 0.0)  # (a blow past the last of its strength counts only for what was left)
 	_since_hit = 0.0
-	if data.effect == "dummy" and hp <= 0:
+	if data.effect == "dummy" and hp <= 0 and not felled_stays:
 		hp = max_hp  # a dummy is never beaten: it stands up again
 	_flash = 1.0
 	var weak := dealt > amount
