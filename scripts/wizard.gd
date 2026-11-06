@@ -19,8 +19,8 @@ const JUMP_VELOCITY := -520.0
 const JUMP_COST := 5.0  # stamina a jump takes; with less than this, you can't jump
 const RUN_COST := 0.12   # stamina per second of walking or running on the ground
 const MAX_STAMINA := 200.0  # what you start with, and the most you can ever have: a hit lowers the most you have, and healing raises it again, but not past this
-const STAMINA_REGEN := 28.0   # per second
-const REGEN_DELAY := 0.7      # seconds without spending before regen starts
+const STAMINA_REGEN := 20.0   # per second
+const REGEN_DELAY := 1.0      # seconds after a spell (or a faint, or a blow) before regen starts; walking and jumping do not make it wait
 const SHIELD_RADIUS := 50.0
 const ADRENALINE_REGEN := 3.0   # how many times faster stamina comes back under Adrenaline
 const ICE_GRIP := 650.0         # how fast a wizard on ice can change speed, in pixels a second each second
@@ -164,6 +164,7 @@ var _frozen_time: float: # frozen in ice: rooted, and shattered out of it by Air
 	get: return _status.left(&"frozen")
 	set(seconds): _status.set_left(&"frozen", seconds)
 var _since_spend := 0.0
+var _stepping := false  # the wizard is moving their body along the ground (the last frame): the stamina does not come back meanwhile
 var facing := 1.0
 var _flash := 0.0        # red flash after being hit
 var _liquid := Color.WHITE  # the colour of the water or lava the wizard stands in
@@ -352,23 +353,25 @@ func thaw() -> void:
 
 
 ## Spend stamina if there is enough. Returns false and spends nothing otherwise.
-func spend(amount: float) -> bool:
+func spend(amount: float, makes_wait := true) -> bool:
 	if infinite_time > 0.0:
 		return true
 	if stamina + temp_stamina < amount:
 		return false
-	drain(amount)
+	drain(amount, makes_wait)
 	return true
 
 
 ## Take stamina even if it's short (misfire penalty); never goes below zero.
-func drain(amount: float) -> void:
+## `makes_wait` is false for what the body does (a step, a jump): it does not put off the stamina coming back.
+func drain(amount: float, makes_wait := true) -> void:
 	if infinite_time > 0.0 or is_likeness():
 		return
 	var short := maxf(amount - stamina, 0.0)  # what the usual stamina could not cover is taken from the offering
 	stamina = maxf(stamina - amount, 0.0)
 	temp_stamina = maxf(temp_stamina - short, 0.0)
-	_since_spend = 0.0
+	if makes_wait:
+		_since_spend = 0.0
 
 
 ## An Offering: stamina on top of the bar that is used last and not given back.
@@ -721,7 +724,7 @@ func _physics_process(delta: float) -> void:
 	if infinite_time > 0.0:
 		stamina = max_stamina
 	_since_spend += delta
-	if _since_spend >= REGEN_DELAY:
+	if _since_spend >= REGEN_DELAY and not _stepping:  # it comes back the moment the wizard stops moving their body
 		restore_stamina(STAMINA_REGEN * (ADRENALINE_REGEN if adrenaline_time > 0.0 else 1.0) * delta)
 	queue_redraw()
 	_shield.queue_redraw()
@@ -753,7 +756,7 @@ func _physics_process(delta: float) -> void:
 	if can_move:
 		if brain == null and Input.is_action_just_pressed("jump"):
 			request_jump()
-		if _jump_buffer > 0.0 and _coyote > 0.0 and sink_time <= 0.0 and tangle_time <= 0.0 and spend(JUMP_COST):
+		if _jump_buffer > 0.0 and _coyote > 0.0 and sink_time <= 0.0 and tangle_time <= 0.0 and spend(JUMP_COST, false):
 			velocity.y = JUMP_VELOCITY * _jump_strength
 			_jump_buffer = 0.0
 			_coyote = 0.0
@@ -770,10 +773,12 @@ func _physics_process(delta: float) -> void:
 		# Walking is free; running drains stamina. With none left you still walk, at half speed.
 		var speed := (SPEED if stamina > 0.0 else SPEED * 0.5) * (0.5 if slow_time > 0.0 else 1.0) * (0.4 if sink_time > 0.0 else 1.0) * (0.3 if tangle_time > 0.0 else 1.0) * (HASTE if haste_time > 0.0 else 1.0) * (OBSIDIAN_SPEED if obsidian_time > 0.0 else 1.0)
 		velocity.x = Input.get_axis("move_left", "move_right") * speed if brain == null else clampf(_walk, -speed, speed)
+		_stepping = absf(velocity.x) > 10.0
 		if is_on_floor() and absf(velocity.x) > 10.0 and stamina > 0.0:
-			drain(RUN_COST * delta)
+			drain(RUN_COST * delta, false)
 	else:
 		velocity.x = 0.0
+		_stepping = false
 	if surf_time > 0.0 and not dead and not fainted:
 		velocity.x = surf_dir * SURF_SPEED  # a wave does not wait for the wizard
 	if is_on_floor() and can_move and IceSheet.under(get_tree(), global_position):
