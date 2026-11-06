@@ -152,7 +152,7 @@ var _rest := {}                  # a spell (or "chase") -> seconds before it use
 func _init(body: Wizard) -> void:
 	wizard = body
 	_rng.randomize()
-	skill = 0.65
+	skill = GameSettings.rival_skill()
 
 
 ## A Hunter's Mark was cast: for a while it can find a wizard who has faded from sight.

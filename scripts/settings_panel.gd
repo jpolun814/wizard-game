@@ -40,6 +40,8 @@ func _ready() -> void:
 	column.add_child(_row("Screen", _choice("window", ["Windowed", "Fullscreen", "Borderless"])))
 	column.add_child(_row("Vertical sync", _toggle("vsync")))
 	column.add_child(_row("Frame rate", _choice("frame_cap", ["Unlimited", "60", "120", "144"])))
+	column.add_child(_heading("Match", 22))
+	column.add_child(_row("Rival skill", _choice("rival_skill", ["Easy", "Normal", "Hard"])))
 	column.add_child(_heading("Cut-scenes", 22))
 	column.add_child(_row("Skip the opening", _toggle("skip_opening")))
 	column.add_child(_row("Skip the ending", _toggle("skip_ending")))
