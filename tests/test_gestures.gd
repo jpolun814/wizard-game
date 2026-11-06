@@ -108,6 +108,21 @@ func _process(_delta: float) -> bool:
 		if _cast == "Black Hole":
 			_failures += 1
 			print("FAIL %s was read as a Black Hole" % label)
+	# A Thorn Whip is a wave aimed at whatever it is to drag in, which may be up a slope or down it: the wave tilted either way, drawn toward either
+	# side, big or small, must still be a Thorn Whip, and still aimed along where it was drawn to go.
+	for tilt in [-50.0, -30.0, -15.0, 0.0, 15.0, 30.0, 50.0]:
+		for mirrored in [false, true]:
+			for size in [0.8, 1.0, 1.5]:
+				_checks += 1
+				var wave := PackedVector2Array()
+				for p in GestureTemplates.preview_points("tsunami"):
+					var q: Vector2 = Vector2(-p.x if mirrored else p.x, p.y) * size
+					wave.append(q.rotated(deg_to_rad(tilt)) + Vector2(0, -260))
+				_cast = ""
+				_caster.cast_stroke(SpellData.LEFT | SpellData.MIDDLE, _densify(wave))
+				if _cast != "Thorn Whip":
+					_failures += 1
+					print("FAIL Thorn Whip tilted %.0f%s at %.1f: cast '%s'" % [tilt, " and mirrored" if mirrored else "", size, _cast])
 	# A Bramble row need not have five teeth: two, three or four are thorns too.
 	for teeth in [2, 3, 4]:
 		for size in [0.8, 1.0, 1.5]:

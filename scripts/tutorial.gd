@@ -6,9 +6,10 @@ extends Lab
 ## spells: water laid across a pond, and a vine set alight. It is the waiting room's own ground and targets, but stamina runs out here as it does in
 ## a match, and the portal at the far end leads back to the first screen.
 
-const POND_SPAN := Vector2i(12, 24)
+const POND_SPAN := Vector2i(24, 44)   # water too wide to jump, and too deep to wade
+const POND_ROWS := 4.0
 const REACH := 5.0  # columns either side of a place within which its page shows
-const CHUNKS := 44  # the room is wide, so that the places are far apart
+const CHUNKS := 52  # the room is wide, so that the places are far apart
 const PARCHMENT := Color("#e9d7bb")  # the plate a spell's shape is drawn on
 const PANEL := Color("#1f1528")
 const PANEL_DONE := Color("#1d2c22")
@@ -17,11 +18,13 @@ const LETTERING := Lettering.FACE  # the face of the home screen and the spellbo
 const WORDS_DONE := Color("#a9dc98")
 const MENU := "res://scenes/menu.tscn"
 
-## Each place: the column it stands at, its title and its colour's school, and its steps: the spell to try and the line that asks for it.
-## A place with a `keys` list shows keys and what they do instead of spells. A step whose first entry begins "chant:" is a chant, spoken with Enter.
-## A place's `note` is a line under its steps.
+## Each place: the column it stands at, its title and its colour's school, and its steps: the spells to try (one is enough where it says "any").
+## A place with `keys` shows keys and what they do instead of spells. A step whose first entry begins "chant:" is a chant, spoken with Enter.
+## A place's `note` is the line under its steps. A place with a `goal` is done on standing on the ground within ten columns past that column;
+## the Plants place is done when its thorns are gone. Each of those is shut off from the next place by something the spells must clear:
+## water and a pit too wide to cross, turrets, thorns too long to walk through, a cliff too high to jump.
 const PLACES := [
-	{"col": -30, "title": "Tutorial", "school": "", "keys": [
+	{"col": -30, "title": "Controls", "school": "", "keys": [
 		["A D", "Move."],
 		["W Space", "Jump."],
 		["", "Hold a school's mouse buttons and draw its shape."],
@@ -29,50 +32,44 @@ const PLACES := [
 		["Enter", "Speak a chant."],
 		["", "Watch your stamina at the top left. Spells cost stamina."],
 		["", "Stamina will recharge while you stand still."]]},
-	{"col": -14, "title": "Targets", "school": "Fire", "steps": [
-		["Ignite", "Draw a short line toward the dummy."],
-		["Frostbolt", "Draw a short line toward the dummy."],
-		["Stonefall", "Draw a circle with a line down, above the dummy."]]},
-	{"col": 4, "title": "Water", "school": "Water", "goal": 28, "steps": [
-		["Frost Bridge", "Draw a wavy line across the pond."],
-		["Lily Pads", "Draw a ring, then a level line across the pond."]],
-		"note": "Cross the pond."},
-	{"col": 38, "title": "Shots", "school": "Air", "steps": [
-		["Barrier", "Draw a circle round yourself as the turret fires."],
-		["Stone Wall", "Draw a line up from the ground."]]},
-	{"col": 80, "title": "Plants", "school": "Flora", "thicket": true, "steps": [
-		["Ignite", "Draw a short line into the thorns."],
-		["Liana", "Draw a leaf, then a line up, and climb the vine."]],
-		"note": "Clear the thorns."},
-	{"col": 112, "title": "Hunted", "school": "Shadow", "guard": true, "steps": [
-		["Decoy", "Draw a figure of eight."]]},
-	{"col": 132, "title": "Low Stamina", "school": "Blood", "steps": [
-		["Adrenaline", "Draw a zigzag."]],
+	{"col": -14, "title": "Attack", "school": "Fire", "any": true, "steps": [
+		["Ignite"], ["Frostbolt"], ["Stonefall"]],
+		"note": "Fell the dummy with one of these."},
+	{"col": 4, "title": "Maximum Stamina", "school": "Blood", "steps": [
+		["Adrenaline"]],
 		"note": "Necromancy spells are more powerful, but they spend maximum stamina that does not come back."},
-	{"col": 152, "title": "Chants", "school": "", "steps": [
-		["chant:minimap", "Press Enter, type the words, then press Enter."],
-		["chant:haste", "Press Enter, type the words, then press Enter."]]},
-	{"col": 172, "title": "A Wide Gap", "school": "Air", "goal": 206, "steps": [
-		["Push", "Draw a circle, then a line out of it."],
-		["Updraft", "Draw an arrow pointing up."],
-		["Stone Wall", "Draw a line up from the ground."]],
-		"note": "Reach the far side of the gap."},
+	{"col": 18, "title": "Cross Water", "school": "Water", "any": true, "goal": 48, "steps": [
+		["Frost Bridge"], ["Lily Pads"]],
+		"note": "Cross the pond with one of these."},
+	{"col": 60, "title": "Block Projectiles", "school": "Air", "any": true, "goal": 106, "steps": [
+		["Barrier"], ["Stone Wall"]],
+		"note": "Get past the turrets with one of these."},
+	{"col": 110, "title": "Burn Plants", "school": "Fire", "any": true, "thicket": true, "steps": [
+		["Ignite"], ["Fire Breath"]],
+		"note": "Burn the thorns with one of these."},
+	{"col": 160, "title": "Higher Ground", "school": "", "goal": 178, "steps": [
+		["chant:double_jump"]],
+		"note": "Press Enter, type the words, then press Enter. Then climb the cliff."},
+	{"col": 192, "title": "Cross a Pit", "school": "Air", "any": true, "goal": 233, "steps": [
+		["Rocket Jump"], ["Featherfall"], ["Push"]],
+		"note": "Cross the pit with one of these."},
 ]
-const GAP_SPAN := Vector2i(178, 201)   # a pit far too wide to jump
-const GAP_ROWS_DOWN := 5.0
-const THICKET_SPAN := Vector2i(88, 98)   # columns of thorns across the way at the Plants place
-const DUMMIES := [-8, -20, 9, 64, 84, 74]
+const CLIFF_COL := 170       # from here on the ground is this many rows higher than before: too high to jump, near enough for a second jump
+const CLIFF_ROWS := 7.0
+const GAP_SPAN := Vector2i(204, 229)   # a pit far too wide to jump, on the high ground: the spells listed carry a jump across it
+const GAP_ROWS_DOWN := 4.0
+const THICKET_SPAN := Vector2i(118, 150)   # thorns across the way, far too long to walk through
+const THICKET_LAYERS := 10
+const TURRETS := [70, 82, 94]
+const DUMMIES := [-6]
 const DUMMY_HP := 36  # three fireballs: the tutorial's dummies fall quickly, so each try is seen through
-const TURRET := 46
-const SHADOW_GUARD := 116  # a skeleton that comes for whoever is at the Umbramancy place: for a decoy, when there is one
 
 var _done := {}      # place index -> {step index: true}
 var _guide: CanvasLayer
 var _panel: PanelContainer
 var _shown := -1     # the place whose page is up, or -1
 var _marks: Array[TutorialMark] = []
-var _guard: Node2D
-var _thicket: Bramble
+var _thickets: Array[Bramble] = []
 var _reached := {}   # place index -> true once its goal has been reached
 
 
@@ -89,8 +86,10 @@ func _exit_tree() -> void:
 func _build_map() -> Variant:
 	var heights := PackedFloat32Array()
 	heights.resize(ArenaGen.right_wall - ArenaGen.FIRST_COL)
-	_dig(heights, POND_SPAN, PIT_ROWS)
-	_dig(heights, GAP_SPAN, GAP_ROWS_DOWN)
+	for col in range(ArenaGen.FIRST_COL, CLIFF_COL):
+		heights[col - ArenaGen.FIRST_COL] = CLIFF_ROWS  # the low ground, which the high ground at the end of the room stands over
+	_dig_into(heights, POND_SPAN, CLIFF_ROWS, POND_ROWS)
+	_dig_into(heights, GAP_SPAN, 0.0, GAP_ROWS_DOWN)
 	return ArenaGen.build(_rng, heights)
 
 
@@ -110,11 +109,19 @@ func _begin_encounter(camera: Camera2D) -> void:
 		_marks.append(mark)
 
 
+## A pit of the same shape as the others, dug down from the ground at `base` rows.
+func _dig_into(heights: PackedFloat32Array, span: Vector2i, base: float, rows: float) -> void:
+	for col in range(span.x, span.y + 1):
+		var edge := mini(col - span.x, span.y - col)
+		var t := clampf((edge + 0.5) / 3.0, 0.0, 1.0)
+		heights[col - ArenaGen.FIRST_COL] = base + rows * t * t * (3.0 - 2.0 * t)
+
+
 func _add_ponds() -> void:
 	var pond := Pond.new()
 	pond.width = (POND_SPAN.y - POND_SPAN.x + 1) * float(ArenaGen.TILE)
-	pond.depth = PIT_ROWS * ArenaGen.TILE + 16.0
-	pond.position = Vector2(POND_SPAN.x * float(ArenaGen.TILE), ArenaGen.GROUND_Y)
+	pond.depth = POND_ROWS * ArenaGen.TILE + 16.0
+	pond.position = Vector2(POND_SPAN.x * float(ArenaGen.TILE), ArenaGen.GROUND_Y + CLIFF_ROWS * ArenaGen.TILE)
 	pond.ground = _ground
 	add_child(pond)
 
@@ -126,8 +133,9 @@ func _add_targets() -> void:
 		mob.hp = DUMMY_HP
 		mob.facing = -1.0 if col < 0 else 1.0
 	_plant_thicket()
-	var turret := _add_mob("turret", Vector2(ArenaGen.column_x(TURRET), ArenaGen.surface_y(_cells, TURRET)))
-	turret.facing = -1.0
+	for col: int in TURRETS:
+		var turret := _add_mob("turret", Vector2(ArenaGen.column_x(col), ArenaGen.surface_y(_cells, col)))
+		turret.facing = -1.0
 
 
 ## The thorns across the way at the Plants place: planted like the world's own, so fire burns them away.
@@ -137,9 +145,11 @@ func _plant_thicket() -> void:
 		for half in 2:
 			var x := (col + half * 0.5) * float(ArenaGen.TILE)
 			points.append(Vector2(x, ArenaGen.surface_y(_cells, col)))
-	_thicket = Bramble.new()
-	_thicket.planted_ground = points
-	add_child(_thicket)
+	for layer in THICKET_LAYERS:  # each layer pricks on its own, so that walking all the way through is more than a wizard can take
+		var thorns := Bramble.new()
+		thorns.planted_ground = points
+		add_child(thorns)
+		_thickets.append(thorns)
 
 
 func _title() -> String:
@@ -183,9 +193,46 @@ func _try_step(wanted: String) -> void:
 			if not _done.has(_shown):
 				_done[_shown] = {}
 			_done[_shown][k] = true
-			_marks[_shown].lit = _done[_shown].size() == steps.size()
+			_marks[_shown].lit = _is_done(_shown)
 			_show(_shown)  # the page is made again, with the step marked done
 			return
+
+
+## Whoever falls is on their feet again at the place they were working on, and has to get past what shut them off.
+func _on_player_died() -> void:
+	var column := player.global_position.x / float(ArenaGen.TILE)
+	var back: int = PLACES[0]["col"]
+	for entry: Dictionary in PLACES:
+		if entry["col"] + 0.5 <= column:
+			back = entry["col"]
+	super()
+	_return_to.call_deferred(back)
+
+
+func _return_to(column: int) -> void:
+	player.global_position = Vector2(ArenaGen.column_x(column), ArenaGen.surface_y(_cells, column) - 20.0)
+	player.velocity = Vector2.ZERO
+
+
+## How many layers of thorns still stand at the Plants place.
+func thorns_left() -> int:
+	var left := 0
+	for thorns in _thickets:
+		if is_instance_valid(thorns) and not thorns.is_queued_for_deletion():
+			left += 1
+	return left
+
+
+## Whether everything a place asks has been done: its goal reached, or its spells tried (one of them, where one is enough).
+func _is_done(place: int) -> bool:
+	var entry: Dictionary = PLACES[place]
+	if _reached.has(place):
+		return true
+	if entry.has("goal") or entry.get("thicket", false):
+		return false
+	var steps: Array = entry.get("steps", [])
+	var tried: int = _done.get(place, {}).size()
+	return not steps.is_empty() and (tried >= 1 if entry.get("any", false) else tried == steps.size())
 
 
 ## A chant spoken well enough to take (the rest of it is the room's own) counts for the step that asks for it.
@@ -209,11 +256,10 @@ func _process(delta: float) -> void:
 	if near != _shown:
 		_shown = near
 		_show(near)
-		_call_guard(near)
 
 
-## A place with a goal is done when the wizard stands on solid ground at the column it names, or, at the Plants place, when the thorns are gone.
-## Whoever has fallen into the wide gap is put back on its near edge, where they came from.
+## A place with a goal is done when the wizard stands on solid ground within ten columns past the column it names, or, at the Plants place, when the
+## thorns are gone. Whoever has fallen into the pond or the pit is put back on its near edge, where they came from.
 func _check_goals(column: float) -> void:
 	for k in PLACES.size():
 		var entry: Dictionary = PLACES[k]
@@ -221,30 +267,21 @@ func _check_goals(column: float) -> void:
 			continue
 		var met := false
 		if entry.has("goal"):
-			met = column >= entry["goal"] and column < entry["goal"] + 10.0 and player.is_on_floor()
+			met = column >= entry["goal"] and column < entry["goal"] + 6.0 and player.is_on_floor()
 		elif entry.get("thicket", false):
-			met = _thicket == null or not is_instance_valid(_thicket) or _thicket.is_queued_for_deletion()
+			met = thorns_left() == 0
 		if met:
 			_reached[k] = true
 			_marks[k].lit = true
 			Sfx.play("pickup")
 			if _shown == k:
 				_show(k)
-	var floor_y := ArenaGen.surface_y(_cells, 0)
-	if column >= GAP_SPAN.x and column <= GAP_SPAN.y and player.global_position.y > floor_y + (GAP_ROWS_DOWN + 1.0) * ArenaGen.TILE:
-		player.global_position = Vector2(ArenaGen.column_x(GAP_SPAN.x - 3), ArenaGen.surface_y(_cells, GAP_SPAN.x - 3) - 20.0)
-		player.velocity = Vector2.ZERO
-
-
-## The skeleton at the Umbramancy place is brought in when the wizard comes to that place and sent away when they leave it, so that it does not
-## wander the room after them. It comes for whoever it can see: for a decoy, when there is one.
-func _call_guard(place: int) -> void:
-	if _guard != null and is_instance_valid(_guard):
-		_guard.queue_free()
-		_guard = null
-	if place >= 0 and PLACES[place].get("guard", false):
-		_guard = _add_mob("basic", Vector2(ArenaGen.column_x(SHADOW_GUARD), ArenaGen.surface_y(_cells, SHADOW_GUARD)))
-		_guard.facing = -1.0
+	for pit: Array in [[POND_SPAN, POND_ROWS], [GAP_SPAN, GAP_ROWS_DOWN]]:
+		var span: Vector2i = pit[0]
+		var edge := span.x - 3
+		if column >= span.x and column <= span.y and player.global_position.y > ArenaGen.surface_y(_cells, edge) + (float(pit[1]) - 1.0) * ArenaGen.TILE:
+			player.global_position = Vector2(ArenaGen.column_x(edge), ArenaGen.surface_y(_cells, edge) - 20.0)
+			player.velocity = Vector2.ZERO
 
 
 ## Puts the page for a place up on screen, or takes the page down when the wizard has walked away from every place.
@@ -260,7 +297,7 @@ func _show(place: int) -> void:
 	var steps: Array = entry.get("steps", [])
 	_panel = PanelContainer.new()
 	var style := StyleBoxFlat.new()
-	style.bg_color = PANEL_DONE if _reached.has(place) or (not entry.has("goal") and not steps.is_empty() and _done.get(place, {}).size() == steps.size()) else PANEL
+	style.bg_color = PANEL_DONE if _is_done(place) else PANEL
 	style.border_color = accent.lightened(0.3)
 	style.set_border_width_all(3)
 	style.set_corner_radius_all(4)
@@ -294,7 +331,12 @@ func _show(place: int) -> void:
 			lines.add_child(line)
 		row.add_child(lines)
 	for k in steps.size():
-		row.add_child(_step(steps[k][0], steps[k][1], _done.get(place, {}).has(k), accent))
+		if k > 0 and entry.get("any", false):
+			var either := _ink("or", 24, accent.lightened(0.25))
+			either.autowrap_mode = TextServer.AUTOWRAP_OFF
+			either.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+			row.add_child(either)
+		row.add_child(_step(steps[k][0], steps[k][1] if steps[k].size() > 1 else "", _done.get(place, {}).has(k), accent))
 	if entry.has("note"):
 		var note := _ink(entry["note"], 19, WORDS)
 		note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -338,15 +380,15 @@ func _step(page: String, prompt: String, done: bool, accent: Color) -> VBoxConta
 		plate.add_child(Spellbook.Preview.new(GestureTemplates.preview_points(gesture), GestureTemplates.preview_ground(gesture), 104.0))
 	var name_label := _ink(title, 26, WORDS_DONE if done else accent.lightened(0.25))
 	name_label.autowrap_mode = TextServer.AUTOWRAP_OFF
-	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	top.add_child(name_label)
-	top.move_child(name_label, 0)
+	top.add_child(name_label)  # the mouse (or the key) comes first, with the name beside it
+	top.alignment = BoxContainer.ALIGNMENT_CENTER
 	box.add_child(top)
 	box.add_child(plate)
-	var text := _ink(prompt, 19, WORDS)
-	text.custom_minimum_size = Vector2(250.0, 0.0)
-	text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	box.add_child(text)
+	if prompt != "":
+		var text := _ink(prompt, 19, WORDS)
+		text.custom_minimum_size = Vector2(250.0, 0.0)
+		text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		box.add_child(text)
 	return box
 
 
@@ -373,8 +415,8 @@ class TutorialMark extends Node2D:
 		label.theme_type_variation = &"Outlined"
 		label.add_theme_font_size_override("font_size", 22)
 		label.add_theme_color_override("font_color", colour.lightened(0.3))
-		label.position = Vector2(-60.0, -140.0)
-		label.size = Vector2(120.0, 28.0)
+		label.position = Vector2(-110.0, -140.0)
+		label.size = Vector2(220.0, 28.0)
 		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		add_child(label)
 

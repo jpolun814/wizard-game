@@ -14,6 +14,7 @@ signal misfired
 const MIN_POINT_SPACING := 2.0
 const ICICLE_TURN := 30.0  # a stroke must zig or zag this far vertically to count as a V tip
 const ICICLE_BACK := 0.22  # and a row of them may go back across at most this share of its width
+const WAVE_TILT := 60.0  # how far a wave may be turned from the template (degrees) and still be a wave
 
 ## Where the caster's character is, so a flick drawn toward it can be told from one drawn away.
 var anchor := Vector2.ZERO
@@ -1023,9 +1024,27 @@ func _stem_gesture(stem: Dictionary, options: Dictionary) -> String:
 
 ## Tsunami: a big wave. A long rise to a crest that curls over. Returns {"aim": the way the wave runs, which is the
 ## way the crest curls}, or {} when the stroke is not a wave. A sharp corner (a V) is not a curl.
-func _big_wave(points: PackedVector2Array) -> Dictionary:
-	if points.size() < 20:
+func _big_wave(drawn: PackedVector2Array) -> Dictionary:
+	if drawn.size() < 20:
 		return {}
+	# The wave is read the way the template lies: drawn toward the left it is the mirror of one drawn toward the right, and turned until the way it
+	# goes (from where it starts to the point farthest from it) is the way the template goes. A whip is aimed at whatever it is to drag in, up a
+	# slope or down it, so the wave may be tilted either way.
+	var far := drawn[0]
+	for p in drawn:
+		if p.distance_squared_to(drawn[0]) > far.distance_squared_to(drawn[0]):
+			far = p
+	var leftward := far.x < drawn[0].x
+	var points := PackedVector2Array()
+	for p in drawn:
+		var q := p - drawn[0]
+		points.append(Vector2(-q.x, q.y) if leftward else q)
+	var heading := Vector2(-(far - drawn[0]).x if leftward else (far - drawn[0]).x, (far - drawn[0]).y).angle()
+	var turn := wrapf(heading - _wave_heading(), -PI, PI)
+	if absf(turn) > deg_to_rad(WAVE_TILT):
+		return {}
+	for k in points.size():
+		points[k] = points[k].rotated(-turn)
 	var extent := _extent(points)
 	if extent.x < 110.0 or extent.y < 40.0 or points[0].distance_to(points[points.size() - 1]) < 0.3 * extent.x:
 		return {}
@@ -1038,7 +1057,21 @@ func _big_wave(points: PackedVector2Array) -> Dictionary:
 		return {}
 	if rad_to_deg(absf(_total_turning(points))) < 140.0 or _sharpest_turn(points, 12.0) > deg_to_rad(70.0):
 		return {}
-	return {"aim": 0.0 if crest.x > points[0].x else PI}
+	var peak := drawn[0]
+	for p in drawn:
+		if p.y < peak.y:
+			peak = p
+	return {"aim": 0.0 if peak.x > drawn[0].x else PI}  # (a Thorn Whip is aimed on its own, along the heading: see cast_stroke)
+
+
+## The way the template wave goes, from its start to the point farthest from it: the heading a drawn wave is turned to match.
+func _wave_heading() -> float:
+	var shape := GestureTemplates.preview_points("tsunami")
+	var far := shape[0]
+	for p in shape:
+		if p.distance_squared_to(shape[0]) > far.distance_squared_to(shape[0]):
+			far = p
+	return (far - shape[0]).angle()
 
 
 ## The sharpest turn a stroke makes within a short stretch of path, in radians: a corner scores high, a curve low.

@@ -46,20 +46,24 @@ func _ready() -> void:
 	for k in range(1, Tutorial.PLACES.size()):
 		apart = apart and Tutorial.PLACES[k]["col"] - Tutorial.PLACES[k - 1]["col"] >= 14
 	_verdict(apart, "the places are at least fourteen columns apart")
-	var has_chants := Tutorial.PLACES.any(func(p: Dictionary) -> bool: return p["title"] == "Chants")
-	_verdict(has_chants, "a place teaches chants")
-	for spell: String in ["Ignite", "Frostbolt", "Frost Bridge", "Barrier", "Stonefall", "Liana", "Decoy", "Adrenaline"]:
+	var has_chants := Tutorial.PLACES.any(func(p: Dictionary) -> bool: return p["title"] == "Higher Ground")
+	_verdict(has_chants, "a place teaches a chant")
+	for spell: String in ["Ignite", "Frostbolt", "Frost Bridge", "Barrier", "Stonefall", "Liana", "Adrenaline", "Push", "Lily Pads"]:
 		_verdict(SpellData.SPELLS.has(spell), "the example spell %s exists" % spell)
+	room._reached.clear()  # the walk along the room above passed some goals by
+	player.rocket_time = 0.0  # and the spells tried there left a rocket burning
 	for k in Tutorial.PLACES.size():
 		if Tutorial.PLACES[k].has("goal"):
 			var goal: int = Tutorial.PLACES[k]["goal"]
 			player.global_position = Vector2(ArenaGen.column_x(Tutorial.PLACES[k]["col"]), ArenaGen.surface_y(room._cells, Tutorial.PLACES[k]["col"]) - 20.0)
-			for f in 10:
+			player.velocity = Vector2.ZERO
+			for f in 40:
 				await get_tree().physics_frame
+			room._reached.erase(k)
 			_verdict(not room._reached.has(k), "%s is not done at its start" % Tutorial.PLACES[k]["title"])
 			player.global_position = Vector2(ArenaGen.column_x(goal), ArenaGen.surface_y(room._cells, goal) - 20.0)
 			player.velocity = Vector2.ZERO
-			for f in 30:
+			for f in 60:
 				await get_tree().physics_frame
 			_verdict(room._reached.has(k), "%s is done on reaching its far side" % Tutorial.PLACES[k]["title"])
 	var lectern_run := room._lectern != null

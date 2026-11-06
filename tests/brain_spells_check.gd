@@ -16,6 +16,7 @@ const SCENES := {
 	"Flare": {"dark": true}, "Glowcap": {"dark": true}, "Moonbeam": {"dark": true},
 	"Offering": {"tired": true}, "Adrenaline": {"tired": true}, "Sneak": {"low": true},
 	"Hunter's Mark": {"gap": 720.0},
+	"Mirage": {"gap": 400.0, "page": true, "seed": 3},  # a rival some way off, and a real page by it for the false one to pass for
 	"Burst": {"gap": 80.0, "rush": true}, "Thunderclap": {"gap": 120.0, "rush": true}, "Silence": {"gap": 270.0}, "Tide Surf": {"gap": 220.0},
 	"Stone Wall": {"shot_at": true}, "Smoke Screen": {"shot_at": true}, "Decoy": {"shot_at": true}, "Crimson Veil": {"shot_at": true},
 	"Obsidian Armor": {"shot_at": true}, "Eclipse": {"shot_at": true, "gap": 300.0, "seed": 3},
@@ -156,6 +157,11 @@ func _try(spell_name: String) -> void:
 		roof.position = Vector2(spot.x + gap * 0.5, spot.y - 260.0)
 		roof.collision_layer = 1
 		world.add_child(roof)
+	if scene.get("page", false):
+		var real := PagePickup.new()
+		real.page = "Ignite"
+		real.position = spot + Vector2(-120.0, 0.0)
+		world.add_child(real)
 	if scene.get("dark", false):
 		for node in tree.get_nodes_in_group("darkness"):
 			node.color = Color(0.08, 0.08, 0.12)

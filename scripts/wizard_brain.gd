@@ -1248,7 +1248,7 @@ func _attack(to_player: Vector2, sees: bool) -> bool:
 		"Thorn Whip": 1.3 if sees and aim_ok and gap > 110.0 and gap < 340.0 else 0.0,  # it drags you in
 		"Insect Plague": 1.2 if gap < 480.0 else 0.0,
 		"Flaming Sphere": 1.3 if grounded and aim_ok and gap > 120.0 and gap < 620.0 else 0.0,  # it rolls along the ground toward you
-		"Mirage": 0.9 if gap < 700.0 and grounded and _mirages_set() < 2 else 0.0,
+		"Mirage": 0.9 if gap > 250.0 and grounded and _real_page_near(500.0) and _mirages_set() < 2 else 0.0,  # a bait set among real pages, with the rival still some way off; nonsense at arm's length, or where no page lies
 		"Raise Dead": 1.2 if gap < 560.0 and grounded and wizard.max_stamina > 120.0 and _own_raised() < 2 else 0.0,
 		"Leech": 1.0 if sees and aim_ok and gap < Leech.REACH - 40.0 and Leech.held_by(wizard.get_tree(), wizard) == null else 0.0,
 	}
@@ -1402,6 +1402,14 @@ func _facing_flipped(points: PackedVector2Array, side: float) -> PackedVector2Ar
 ## A brain that has watched a mirage fade learns to see the waver of the next, and does not go for it.
 func saw_a_mirage_fade() -> void:
 	_wise_to_mirages = true
+
+
+## True when a real page, one a wizard could take, lies within this distance of the wizard: the thing a mirage would pass for.
+func _real_page_near(distance: float) -> bool:
+	for pickup: PagePickup in wizard.get_tree().get_nodes_in_group("pages"):
+		if not pickup is Mirage and not pickup.is_queued_for_deletion() and pickup.global_position.distance_to(wizard.global_position) < distance:
+			return true
+	return false
 
 
 ## How many mirages are out there at the moment (a brain does not scatter them all over the world).

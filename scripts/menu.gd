@@ -14,6 +14,10 @@ const SETTINGS := "user://settings.cfg"  # remembers the last address typed, so 
 @onready var _single: VBoxContainer = $Box/Single
 @onready var _multi: VBoxContainer = $Box/Multi
 @onready var _alone: Button = $Box/Single/Play
+@onready var _single_player: Button = $Box/Main/SinglePlayer  # kept here: _dress moves the buttons into rows, and a path to them no longer finds them
+@onready var _multiplayer: Button = $Box/Main/Multiplayer
+@onready var _single_back: Button = $Box/Single/SingleBack
+@onready var _multi_back: Button = $Box/Multi/MultiBack
 @onready var _host: Button = $Box/Multi/Host
 @onready var _address: LineEdit = $Box/Multi/JoinRow/Address
 @onready var _join: Button = $Box/Multi/JoinRow/Join
@@ -84,10 +88,10 @@ func _ready() -> void:
 		get_tree().change_scene_to_file(LIBRARY))
 	_options.pressed.connect(_open_settings)
 	$Box/Main/Quit.pressed.connect(func() -> void: get_tree().quit())
-	$Box/Main/SinglePlayer.pressed.connect(_show_page.bind(_single, _alone, true))
-	$Box/Main/Multiplayer.pressed.connect(_show_page.bind(_multi, _host, true))
-	$Box/Single/SingleBack.pressed.connect(_show_page.bind(_main, $Box/Main/SinglePlayer, false))
-	$Box/Multi/MultiBack.pressed.connect(_show_page.bind(_main, $Box/Main/Multiplayer, false))
+	_single_player.pressed.connect(_show_page.bind(_single, _alone, true))
+	_multiplayer.pressed.connect(_show_page.bind(_multi, _host, true))
+	_single_back.pressed.connect(_show_page.bind(_main, _single_player, false))
+	_multi_back.pressed.connect(_show_page.bind(_main, _multiplayer, false))
 	var templates := GestureTemplates.recognizer_templates()
 	for template_name: String in templates:
 		_recognizer.add_template(template_name, templates[template_name])
@@ -96,7 +100,7 @@ func _ready() -> void:
 	_address.text_submitted.connect(func(_text: String) -> void: _on_join())
 	Net.roster_changed.connect(_on_roster_changed)
 	Net.disconnected.connect(_on_disconnected)
-	var first: Button = $Box/Main/SinglePlayer
+	var first: Button = _single_player
 	(func() -> void:
 		if is_instance_valid(first) and first.is_inside_tree():
 			first.grab_focus()).call_deferred()
@@ -227,7 +231,7 @@ func _lay_out() -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("pause") and not _main.visible:
-		_show_page(_main, $Box/Main/SinglePlayer if _single.visible else $Box/Main/Multiplayer, false)  # Esc goes back a page
+		_show_page(_main, _single_player if _single.visible else _multiplayer, false)  # Esc goes back a page
 
 
 ## Shows one page of inscriptions (the main ones, single player's or multiplayer's), with the keyboard on one of its choices. The book turns its
@@ -284,8 +288,8 @@ func _show_sign(sign_name: String) -> void:
 
 ## Each choice with a sign gets it drawn beside it, small, and shows the larger one on the left page when the pointer or the keyboard comes to it.
 func _write_signs() -> void:
-	var table := {$Box/Main/SinglePlayer: "one", $Box/Main/Multiplayer: "four", $Box/Main/Library: "book", $Box/Main/Settings: "gear", $Box/Main/Quit: "quit",
-			$Box/Single/Play: "arrow", $Box/Single/Tutorial: "question", $Box/Multi/Host: "house", $Box/Multi/JoinRow/Join: "arrow", $Box/Single/SingleBack: "back", $Box/Multi/MultiBack: "back"}
+	var table := {_single_player: "one", _multiplayer: "four", $Box/Main/Library: "book", $Box/Main/Settings: "gear", $Box/Main/Quit: "quit",
+			$Box/Single/Play: "arrow", $Box/Single/Tutorial: "question", $Box/Multi/Host: "house", $Box/Multi/JoinRow/Join: "arrow", _single_back: "back", _multi_back: "back"}
 	for button: Button in table:
 		_signs[button] = table[button]
 		var row := HBoxContainer.new()
@@ -401,7 +405,7 @@ func _on_join() -> void:
 
 ## While joining, the buttons wait for the answer.
 func _set_waiting(waiting: bool) -> void:
-	for button: Button in [_alone, _host, _join, _tutorial, _library, $Box/Main/SinglePlayer, $Box/Main/Multiplayer, $Box/Single/SingleBack, $Box/Multi/MultiBack]:
+	for button: Button in [_alone, _host, _join, _tutorial, _library, _single_player, _multiplayer, _single_back, _multi_back]:
 		button.disabled = waiting
 	_address.editable = not waiting
 	_join.text = "Joining..." if waiting else "Join"
