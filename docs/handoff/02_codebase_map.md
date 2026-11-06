@@ -183,3 +183,10 @@ The PvP match (see `docs/pvp_arena_design.md`) runs on these. `World` extends `A
 - Groups: `"leeches"`, `"squalls"` (`Squall.rain`), `"dowsings"`, `"eye_marks"`, `"ground_watchers"` (anything that keeps the ground near it made: a Flaming Sphere, the Scrying Eye's camera;
   read by `World._process`).
 - `Wizard.feather_time`, `Pages.start_empty`/`cluster_of`, `World._lay_clusters`, `Library.title_of`/`average_accuracy`, `SpellData.school_name`.
+
+## Added 2026-11-06
+- `scripts/warmup.gd` (an autoload, `Warmup`): at start-up it loads the pictures and sounds that spells use on other threads (`ResourceLoader.load_threaded_request`), then the spell scripts one a frame on the main thread (never together: a script compiled while its pictures were being read on another core once failed to preload one). Without it the first cast of each spell stalled a frame or several.
+- `Mob.shared`: a skeleton the world keeps in step across the network (a roamer or a crypt guard); only these tell the other machines when they fall.
+- Group `canopy`: the ledges of a jungle great tree; sky spells (Spark, Boulder) pass through them (`tests/canopy_check.tscn`).
+- `GameSettings.rival_skill()`: the AI wizards' skill from the Settings page (0.4, 0.65, 0.85).
+- `Pages.RANGED`: the attacks that reach across a distance; each wizard is dealt one as the starting attack.
