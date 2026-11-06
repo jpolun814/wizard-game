@@ -12,7 +12,8 @@ const INTERVAL := 0.7
 const DAMAGE := 40        # what a bolt does to the wizard
 const LASER_SPEED := 2400.0
 const DECOY_DAMAGE := 8   # what it does to a decoy, so a decoy buys several seconds
-const FRAMES := 8       # the frames of the flying eye
+const FRAMES := 8       # the frames of the watching loop
+const SHOT_FRAMES := 4  # and of the flash of a shot
 const HEIGHT := 120.0
 
 var reach := RANGE   # how far it sees
@@ -29,14 +30,19 @@ func _ready() -> void:
 	frames.add_animation("watch")
 	frames.set_animation_speed("watch", 8.0)
 	for k in FRAMES:
-		frames.add_frame("watch", load("res://art/mobs/eye/idle_%d.png" % k))
+		frames.add_frame("watch", load("res://art/mobs/sentinel/watch_%d.png" % k))
+	frames.add_animation("shoot")
+	frames.set_animation_speed("shoot", 12.0)
+	frames.set_animation_loop("shoot", false)
+	for k in SHOT_FRAMES:
+		frames.add_frame("shoot", load("res://art/mobs/sentinel/shoot_%d.png" % k))
 	_sprite = AnimatedSprite2D.new()
 	_sprite.sprite_frames = frames
-	_sprite.scale = Vector2(2.0, 2.0)
+	_sprite.scale = Vector2(3.0, 3.0)
 	_sprite.position = Vector2(0, -HEIGHT * 0.6)
-	_sprite.modulate = Color(1.0, 0.45, 0.4)
 	_sprite.z_index = 1
 	_sprite.play("watch")
+	_sprite.animation_finished.connect(func() -> void: _sprite.play("watch"))
 	add_child(_sprite)
 
 
@@ -56,6 +62,7 @@ func _physics_process(delta: float) -> void:
 	_cool = interval
 	var at := SpellTargets.center_of(target)
 	Sfx.play("spark", center(), -8.0)
+	_sprite.play("shoot")
 	if target is Decoy:  # the shot lands on the decoy at once, so no bolt flies on past it to hit whoever stands behind
 		target.take_damage(DECOY_DAMAGE)
 		Fx.burst(get_parent(), at, Color("#ff5a40"), 8, 120.0, 0.3)

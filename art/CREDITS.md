@@ -172,3 +172,5 @@ Drawn pixel by pixel by `tools/make_shot_art.py`. No outside source and nothing 
 
 | `art/ui/library/` (the library's bookcase, book spines and stacks) | drawn pixel by pixel by `tools/make_library_art.py`, our own work | n/a |
 | `art/fx/sun.png` (the Flaming Sphere) | drawn pixel by pixel by `tools/make_sun_art.py`, our own work | n/a |
+
+`art/mobs/sentinel/` (the sentinel's eye) is cut from [Floating Eyeball Enemy](https://blueapollo.itch.io/floating-eyeball-enemy) by blueapollo (CC0): its first eight frames are the watching loop and the third row is the flash of a shot. The sheet is not kept in the repo.
