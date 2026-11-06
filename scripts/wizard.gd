@@ -1029,8 +1029,7 @@ func start_drawing(points: PackedVector2Array, colour: Color, on_done: Callable,
 	_on_drawn = on_done
 	_draw_time = draw_time
 	_draw_total = draw_time
-	casting = true
-	Sfx.play("wizard_cast", center())
+	casting = true  # (no sound here: the same sound for every spell was not liked; each spell makes its own when it is cast)
 
 
 func is_drawing() -> bool:
@@ -1144,8 +1143,6 @@ func _drawn_so_far() -> PackedVector2Array:
 ## A likeness glides to where its wizard is, or jumps there when it went far at once, and falls when its wizard does. Its drawing
 ## is heard as it begins, as a brain's is on the host, whoever is drawing.
 func _follow() -> void:
-	if casting and not _was_casting:
-		Sfx.play("wizard_cast", center())
 	_was_casting = casting
 	if global_position.distance_to(net_position) > SNAP:
 		global_position = net_position

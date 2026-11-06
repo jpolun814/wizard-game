@@ -46,6 +46,11 @@ func _ready() -> void:
 		print("FAIL  no %s in the world" % look)
 		get_tree().quit(1)
 		return
+	for other: Wizard in get_tree().get_nodes_in_group("wizards"):  # the others are put away: a rival that casts at the one being tried (a push, a geyser) spoils the move
+		if other != body:
+			other.set_physics_process(false)
+			other.set_process(false)
+			other.global_position = Vector2(-9000.0, -9000.0)
 	print("world: %s, %d ridge nodes" % [_world._biome(), get_tree().get_nodes_in_group("ridges").size()])
 	body.set_physics_process(false)  # driven from here
 	body.set_process(false)
