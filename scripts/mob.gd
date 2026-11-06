@@ -74,6 +74,7 @@ var kind := "basic"  # set before the mob enters the tree
 var player: Node2D
 var roams := false  # one the world left wandering (the graveyard's dead): it ambles about until a wizard comes near, then gives chase
 var _swing_seen := false  # a puppet: the host's was drawing back at the last news
+var shared := false  # the world keeps its place in step across the network (a roamer or a crypt guard): its fall is told to the other machines
 var puppet := false  # in a network game, a roamer on a machine that is not the host: it shows what the host's one does and decides nothing
 var net_position := Vector2.ZERO  # where the host says it is, while it is a puppet
 var net_facing := 1.0
@@ -782,7 +783,7 @@ func is_training_dummy() -> bool:
 ## A defeated enemy bursts into smoke and its school's sparks, plays its death tumble, then disappears.
 func _die() -> void:
 	_dead = true
-	if roams and not puppet:
+	if (roams or shared) and not puppet:
 		Net.send(self, &"_fell")  # the others' puppets of it fall too
 	remove_from_group("mobs")
 	set_physics_process(false)

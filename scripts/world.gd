@@ -378,6 +378,7 @@ func _raise_biome_life() -> void:
 				guard.name = "Dead%d" % _dead.size()  # kept in step across the network like the roaming dead
 				guard.max_hp = DEAD_HEALTH
 				guard.hp = DEAD_HEALTH
+				guard.shared = true
 				guard.puppet = not Net.is_host()
 				_dead.append(guard)
 		"jungle":
@@ -528,7 +529,7 @@ func _share_the_dead(delta: float) -> void:
 func _dead_at(places: PackedVector2Array, faces: PackedFloat32Array, swings: PackedByteArray) -> void:
 	for k in mini(places.size(), _dead.size()):
 		var mob := _dead[k]
-		if is_instance_valid(mob) and not mob.is_dead():
+		if is_instance_valid(mob) and not mob.is_dead() and places[k] != Vector2.ZERO:  # (nothing at the origin means the host's one is gone)
 			mob.net_position = places[k]
 			mob.net_facing = faces[k]
 			mob.net_swing = swings[k] == 1
@@ -566,6 +567,7 @@ func _raise_roamers(kind: String, wanted: int, salt: int) -> void:
 			mob.max_hp = DEAD_HEALTH
 			mob.hp = DEAD_HEALTH
 		mob.roams = true
+		mob.shared = true
 		mob.puppet = not Net.is_host()
 		_dead.append(mob)
 		wanted -= 1
