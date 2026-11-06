@@ -4,12 +4,13 @@ extends Lab
 ## The tutorial room: a level stretch of ground with something in the way at each place, and the pages that answer it lying at the foot of it. The book
 ## starts empty, as in a match; reading a page (Tab) puts its spell in the book. Nothing is explained on screen but the keys to walk and jump at the very
 ## start. What shuts the way: a dummy and a skeleton that strike down whoever walks past them standing, a pond and a pit too wide to cross, turrets that
-## hit whoever has no cover, thorns too long to walk through and a cliff too high to jump. It is the waiting room's own ground, but stamina runs out here as
-## it does in a match, and the portal at the far end leads back to the first screen.
+## hit whoever has no cover, thorns too long to walk through, a cliff too high to jump, a gap too wide for one jump and a dark stretch of hidden spikes. The
+## last gates ask for two things together (light and fire, a leap and fire). It is the waiting room's own ground, but stamina runs out here as it does in a
+## match, and the portal at the far end leads back to the first screen.
 
-const POND_SPAN := Vector2i(24, 44)   # water too wide to jump, and too deep to wade
-const POND_ROWS := 4.0
-const CHUNKS := 52  # the room is wide, so that the places are far apart
+const POND_SPAN := Vector2i(24, 44)   # water too wide to jump, shallow enough to wade, and full of piranhas
+const POND_ROWS := 2.0
+const CHUNKS := 64  # the room is wide, so that the places are far apart
 const PANEL := Color("#1f1528")
 const WORDS := Color("#efe3cf")
 const MENU := "res://scenes/menu.tscn"
@@ -19,20 +20,29 @@ const MENU := "res://scenes/menu.tscn"
 const PAGE_SPOTS := [
 	[-16, ["Ignite", "Frostbolt", "Stonefall"]],
 	[3, ["Faint"]],
-	[17, ["Frost Bridge", "Lily Pads"]],
+	[17, ["Frost Bridge", "Lily Pads", "Spark"]],
 	[59, ["Barrier", "Stone Wall"]],
 	[108, ["Ignite", "Fire Breath"]],
-	[156, ["chant:double_jump"]],
-	[192, ["Rocket Jump", "Featherfall", "Push"]],
+	[158, ["Liana"]],
+	[176, ["chant:double_jump"]],
+	[206, ["Flare", "Glowcap"]],
+	[281, ["Rocket Jump", "Featherfall", "Push"]],
 ]
-const STARTS := [-31, -22, 0, 12, 54, 104, 154, 186]   # where whoever falls is on their feet again: the start of the place they were working on
+const STARTS := [-31, -22, 0, 12, 54, 104, 154, 172, 204, 278]   # where whoever falls is on their feet again: the start of the place they were working on
 const HINT_UNTIL := -21.0   # the keys to walk and jump show until the wizard has gone this far
-const CLIFF_COL := 170       # from here on the ground is this many rows higher than before: too high to jump, near enough for a second jump
+const CLIFF_COL := 165       # from here on the ground is this many rows higher than before: too high to jump, a vine climbs it
 const CLIFF_ROWS := 7.0
-const GAP_SPAN := Vector2i(204, 229)   # a pit far too wide to jump, on the high ground: the spells listed carry a jump across it
+const CHANT_GAP := Vector2i(186, 199)   # a gap too wide for one jump and not for two (the chant of the double jump)
+const CHANT_GAP_ROWS := 4.0
+const GAP_SPAN := Vector2i(288, 313)   # a pit far too wide to jump, on the high ground: the spells listed carry a jump across it
 const GAP_ROWS_DOWN := 4.0
 const THICKET_SPAN := Vector2i(118, 150)   # thorns across the way, far too long to walk through
+const THICKET_DARK := Vector2i(258, 270)   # thorns at the end of the dark stretch
+const THICKET_LAST := Vector2i(322, 336)   # and thorns past the last pit
+const THICKETS := [THICKET_SPAN, THICKET_DARK, THICKET_LAST]
 const THICKET_LAYERS := 10
+const DARK_SPAN := Vector2i(210, 272)   # where it is dark: the spikes in it are seen only by a light
+const SPIKE_STRIPS := [216, 228, 240, 252]   # the first column of each strip of spikes, each three columns wide
 const TURRETS := [70, 82, 94]
 const TURRET_ZONE := Vector2i(62, 106)   # a hit from a turret here is a death
 const TURRET_PATIENCE := 0.8   # seconds in the sight of a turret, with nothing in the way, before its shot finds the wizard
@@ -46,6 +56,8 @@ var _thickets: Array[Bramble] = []
 var _dummy: Mob
 var _skeleton: Mob
 var _exposed := 0.0   # how long the wizard has been in the sight of a turret
+var _shoal: Piranhas
+var _spikes: SpikeBed
 
 
 func _init() -> void:
@@ -64,6 +76,7 @@ func _build_map() -> Variant:
 	for col in range(ArenaGen.FIRST_COL, CLIFF_COL):
 		heights[col - ArenaGen.FIRST_COL] = CLIFF_ROWS  # the low ground, which the high ground at the end of the room stands over
 	_dig_into(heights, POND_SPAN, CLIFF_ROWS, POND_ROWS)
+	_dig_into(heights, CHANT_GAP, 0.0, CHANT_GAP_ROWS)
 	_dig_into(heights, GAP_SPAN, 0.0, GAP_ROWS_DOWN)
 	return ArenaGen.build(_rng, heights)
 
@@ -104,6 +117,14 @@ func _add_ponds() -> void:
 	pond.position = Vector2(POND_SPAN.x * float(ArenaGen.TILE), ArenaGen.GROUND_Y + CLIFF_ROWS * ArenaGen.TILE)
 	pond.ground = _ground
 	add_child(pond)
+	_shoal = Piranhas.new()
+	_shoal.water = Rect2(pond.position, Vector2(pond.width, pond.depth))
+	_shoal.pond = pond
+	_shoal.count = 6
+	for col in range(POND_SPAN.x, POND_SPAN.y + 1):
+		_shoal.bed.append(roundi(ArenaGen.surface_y(_cells, col) / float(ArenaGen.TILE)))
+	_shoal.bed_x = POND_SPAN.x * float(ArenaGen.TILE)
+	add_child(_shoal)
 
 
 func _add_targets() -> void:
@@ -115,16 +136,31 @@ func _add_targets() -> void:
 	_skeleton = _add_mob("basic", Vector2(ArenaGen.column_x(SKELETON_COL), ArenaGen.surface_y(_cells, SKELETON_COL))) as Mob
 	_skeleton.facing = -1.0
 	_skeleton.faint_stays = true
-	_plant_thicket()
+	for span: Vector2i in THICKETS:
+		_plant_thicket(span)
+	_lay_spikes()
 	for col: int in TURRETS:
 		var turret := _add_mob("turret", Vector2(ArenaGen.column_x(col), ArenaGen.surface_y(_cells, col)))
 		turret.facing = -1.0
 
 
-## The thorns across the way at the Plants place: planted like the world's own, so fire burns them away.
-func _plant_thicket() -> void:
+## Strips of spikes along the dark stretch, seen only when a light falls on them.
+func _lay_spikes() -> void:
+	var strips := []
+	for col: int in SPIKE_STRIPS:
+		var floors := PackedInt32Array()
+		for k in 3:
+			floors.append(roundi(ArenaGen.surface_y(_cells, col + k) / float(ArenaGen.TILE)))
+		strips.append({"x": col, "width": 3, "floors": floors})
+	_spikes = SpikeBed.new()
+	_spikes.strips = strips
+	add_child(_spikes)
+
+
+## Thorns across the way: planted like the world's own, so fire burns them away.
+func _plant_thicket(span: Vector2i) -> void:
 	var points := PackedVector2Array()
-	for col in range(THICKET_SPAN.x, THICKET_SPAN.y + 1):
+	for col in range(span.x, span.y + 1):
 		for half in 2:
 			var x := (col + half * 0.5) * float(ArenaGen.TILE)
 			points.append(Vector2(x, ArenaGen.surface_y(_cells, col)))
@@ -184,6 +220,12 @@ func thorns_left() -> int:
 	return left
 
 
+func _input(event: InputEvent) -> void:
+	if event.is_action_pressed("night_toggle"):
+		return  # the dark is the room's own here
+	super(event)
+
+
 func _process(delta: float) -> void:
 	super(delta)
 	var column := player.global_position.x / float(ArenaGen.TILE)
@@ -191,6 +233,8 @@ func _process(delta: float) -> void:
 	_guard_the_way(column)
 	_watch_the_turrets(delta, column)
 	_clear_spare_pages()
+	_night.visible = column >= DARK_SPAN.x and column <= DARK_SPAN.y  # dark only along the dark stretch, and no light of the wizard's own
+	_player_light.enabled = false
 	if _hint != null and column > HINT_UNTIL:
 		_hint.queue_free()
 		_hint = null
@@ -205,7 +249,7 @@ func _clear_spare_pages() -> void:
 
 ## Whoever has fallen into the pond or the pit is put back on its near edge, where they came from.
 func _rescue_from_pits(column: float) -> void:
-	for pit: Array in [[POND_SPAN, POND_ROWS], [GAP_SPAN, GAP_ROWS_DOWN]]:
+	for pit: Array in [[CHANT_GAP, CHANT_GAP_ROWS], [GAP_SPAN, GAP_ROWS_DOWN]]:
 		var span: Vector2i = pit[0]
 		var edge := span.x - 3
 		if column >= span.x and column <= span.y and player.global_position.y > ArenaGen.surface_y(_cells, edge) + (float(pit[1]) - 1.0) * ArenaGen.TILE:
@@ -251,15 +295,20 @@ func _watch_the_turrets(delta: float, column: float) -> void:
 		player.take_damage(6, true, true)
 
 
-## A hit from a turret kills, in the stretch the turrets guard (the Barrier and the Stone Wall are what turn the shots away).
+## A hit is a death in the stretches that are guarded: by the turrets (the Barrier and the Stone Wall turn their shots away), the piranhas, the thorns
+## and the spikes in the dark.
 func _on_player_hurt(_amount: int) -> void:
 	_strike_down.call_deferred()
 
 
 func _strike_down() -> void:
 	var column := player.global_position.x / float(ArenaGen.TILE)
-	if not player.dead and column >= TURRET_ZONE.x and column <= TURRET_ZONE.y:
-		player.take_damage(1000, false)
+	if player.dead:
+		return
+	for zone: Vector2i in [TURRET_ZONE, POND_SPAN, DARK_SPAN] + THICKETS:
+		if column >= zone.x and column <= zone.y:
+			player.take_damage(1000, false)
+			return
 
 
 ## The keys to walk and jump, on screen at the start: the one thing the room does not leave to be found out.

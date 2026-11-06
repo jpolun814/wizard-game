@@ -27,6 +27,23 @@ func _ready() -> void:
 		await RenderingServer.frame_post_draw
 		DirAccess.make_dir_recursive_absolute(_out)
 		get_viewport().get_texture().get_image().save_png("%s/tutorial_start.png" % _out)
+	if _out != "" and DisplayServer.get_name() != "headless":
+		room._dummy.take_damage(1000)  # (so that the pictures are of the room, not of a wizard struck down)
+		room._skeleton.faint()
+		player.veil = 999
+		for look: Array in [[22, "pond"], [168, "cliff"], [214, "dark"], [286, "pit"], [318, "end"]]:
+			player.global_position = Vector2(ArenaGen.column_x(look[0]), ArenaGen.surface_y(room._cells, look[0]) - 20.0)
+			player.velocity = Vector2.ZERO
+			if look[1] == "dark":
+				room.spawn_spell("Flare", "positional", player.center() + Vector2(60.0, -40.0), 0.0, {}, player)
+			for f in 40:
+				await get_tree().physics_frame
+			await RenderingServer.frame_post_draw
+			get_viewport().get_texture().get_image().save_png("%s/tutorial_%s.png" % [_out, look[1]])
+		player.global_position = Vector2(ArenaGen.column_x(-31), ArenaGen.surface_y(room._cells, -31) - 20.0)
+		player.veil = 0
+		for f in 20:
+			await get_tree().physics_frame
 	var pickups := get_tree().get_nodes_in_group("pages")
 	_verdict(pickups.size() == Tutorial.PAGE_SPOTS.size(), "a page or a fan of pages lies at each spot (%d)" % pickups.size())
 	for spot: Array in Tutorial.PAGE_SPOTS:

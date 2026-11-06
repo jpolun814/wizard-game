@@ -25,9 +25,12 @@ func _ready() -> void:
 		node.set_physics_process(false)  # the dummy and the turrets stand quiet: only the ground is tried here
 	await _dummy()
 	await _skeleton()
+	await _pond()
 	await _turrets()
-	await _cliff()
 	await _thorns()
+	await _cliff()
+	await _chant_gap()
+	await _dark()
 	await _pit()
 	print("the tutorial room is shut off place from place" if _failures == 0 else "%d FAILED" % _failures)
 	get_tree().quit(1 if _failures > 0 else 0)
@@ -141,20 +144,108 @@ func _turrets() -> void:
 			node.set_physics_process(false)
 
 
+func _pond() -> void:
+	var span := Tutorial.POND_SPAN
+	var deaths := _deaths
+	_put(span.x - 4)
+	for f in 20:
+		await get_tree().physics_frame
+	await _run_until(span.y + 3.0, 12.0)
+	_verdict(_deaths > deaths, "wading through the pond among the piranhas kills (deaths %d)" % (_deaths - deaths))
+	var water_top: float = room._shoal.water.position.y
+	for k in 6:  # a Spark lands on the water, six times along it, and the fish are dead
+		var strike := SparkStrike.new()
+		room.add_child(strike)
+		strike.setup("Spark", Vector2(ArenaGen.column_x(span.x + 4 + 3 * k), water_top - 150.0), 0.0)
+	for f in 30:
+		await get_tree().physics_frame
+	_verdict(not is_instance_valid(room._shoal) or not room._shoal.alive(), "and Spark kills the piranhas")
+	deaths = _deaths
+	_put(span.x - 4)
+	for f in 20:
+		await get_tree().physics_frame
+	await _run_until(span.y + 3.0, 12.0)
+	_verdict(_deaths == deaths and _column() >= span.y + 3.0, "and then the pond can be waded across (column %.1f)" % _column())
+
+
 func _cliff() -> void:
 	_put(Tutorial.CLIFF_COL - 6)
 	for f in 20:
 		await get_tree().physics_frame
 	await _run_and_jump(6.0, false, Tutorial.CLIFF_COL + 2.0)
 	_verdict(_column() < Tutorial.CLIFF_COL, "the cliff cannot be climbed with a single jump (column %.1f)" % _column())
-	player.air_jump_time = 30.0
-	player.air_jump_ready = true
-	_put(Tutorial.CLIFF_COL - 6)
+	var foot := Vector2(ArenaGen.column_x(Tutorial.CLIFF_COL - 3), ArenaGen.surface_y(room._cells, Tutorial.CLIFF_COL - 3))
+	var vine := Liana.new()
+	vine.line = PackedVector2Array([foot, foot + Vector2(0.0, -380.0)])
+	room.add_child(vine)
+	_put(Tutorial.CLIFF_COL - 3)
 	for f in 20:
 		await get_tree().physics_frame
-	await _run_and_jump(8.0, true, Tutorial.CLIFF_COL + 2.0)
-	_verdict(_column() >= Tutorial.CLIFF_COL + 2.0, "and can with the double jump (column %.1f)" % _column())
+	Input.action_press("move_up")
+	for f in 60 * 4:
+		await get_tree().physics_frame
+		if player.global_position.y < foot.y - 340.0:
+			break
+	Input.action_release("move_up")
+	Input.action_press("move_right")
+	for f in 60 * 3:
+		await get_tree().physics_frame
+		if _column() > Tutorial.CLIFF_COL + 2.0 and player.is_on_floor():
+			break
+	Input.action_release("move_right")
+	_verdict(_column() > Tutorial.CLIFF_COL + 2.0, "and a vine climbs it (column %.1f)" % _column())
+	vine.queue_free()
+
+
+func _chant_gap() -> void:
+	var span := Tutorial.CHANT_GAP
+	_put(span.x - 5)
+	for f in 20:
+		await get_tree().physics_frame
+	await _run_and_jump(6.0, false, span.y + 3.0)
+	_verdict(_column() < span.y, "the first gap cannot be jumped (column %.1f)" % _column())
+	player.air_jump_time = 30.0
+	player.air_jump_ready = true
+	_put(span.x - 5)
+	for f in 20:
+		await get_tree().physics_frame
+	await _run_and_jump(8.0, true, span.y + 3.0)
+	_verdict(_column() >= span.y + 3.0, "and can with the double jump (column %.1f)" % _column())
 	player.air_jump_time = 0.0
+
+
+## Runs right, jumping at the foot of each strip of spikes (when it is seen), from the gap before it.
+func _run_hopping(until: float, seconds: float) -> void:
+	var deaths := _deaths
+	Input.action_press("move_right")
+	for f in int(seconds * 60.0):
+		await get_tree().physics_frame
+		for strip: int in Tutorial.SPIKE_STRIPS:
+			if player.is_on_floor() and strip - _column() > 0.2 and strip - _column() < 1.2:
+				player.request_jump()
+		if _column() >= until or _deaths > deaths:
+			break
+	Input.action_release("move_right")
+
+
+func _dark() -> void:
+	var first: int = Tutorial.SPIKE_STRIPS[0]
+	var deaths := _deaths
+	_put(first - 4)
+	for f in 30:
+		await get_tree().physics_frame
+	_verdict(room._night.visible, "it is dark along the dark stretch")
+	_verdict(not room._spikes.shown(), "and the spikes are not seen without a light")
+	await _run_until(first + 8.0, 6.0)
+	_verdict(_deaths > deaths, "walking into the spikes unseen kills (deaths %d)" % (_deaths - deaths))
+	room.spawn_spell("Flare", "positional", Vector2(ArenaGen.column_x(first - 3), ArenaGen.surface_y(room._cells, first) - 60.0), 0.0, {}, player)
+	_put(first - 3)
+	for f in 40:
+		await get_tree().physics_frame
+	_verdict(room._spikes.shown(), "a Flare shows them")
+	deaths = _deaths
+	await _run_hopping(Tutorial.THICKET_DARK.x - 2.0, 14.0)
+	_verdict(_deaths == deaths and _column() >= Tutorial.THICKET_DARK.x - 2.0, "and with them seen they are jumped (column %.1f)" % _column())
 
 
 func _thorns() -> void:
@@ -179,9 +270,9 @@ func _thorns() -> void:
 	room.spawn_spell("Ignite", "directional", player.center() + Vector2(10.0, 0.0), 0.0, {}, player)
 	for f in 60 * 12:
 		await get_tree().physics_frame
-		if room.thorns_left() == 0:
+		if room.thorns_left() <= 2 * Tutorial.THICKET_LAYERS:
 			break
-	_verdict(room.thorns_left() == 0, "a fireball burns all of the thorns away")
+	_verdict(room.thorns_left() == 2 * Tutorial.THICKET_LAYERS, "a fireball burns all of the first thicket's thorns away (%d layers left in the others)" % room.thorns_left())
 
 
 func _pit() -> void:
