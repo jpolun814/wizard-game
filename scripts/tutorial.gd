@@ -31,7 +31,7 @@ const PAGE_SPOTS := [
 	[350, ["Eclipse", "Decoy"]],
 	[421, ["Gust", "Tornado"]],
 ]
-const STARTS := [-31, -22, 0, 12, 47, 104, 154, 172, 204, 278, 316, 348, 419, 456, 488]   # where whoever falls is on their feet again: the start of the place they were working on
+const STARTS := [-31, -22, 0, 12, 47, 104, 154, 172, 204, 278, 316, 348, 382, 419, 456, 488]   # where whoever falls is on their feet again: the start of the place they were working on
 const HINT_UNTIL := -21.0   # the keys to walk and jump show until the wizard has gone this far
 const CLIFF_COL := 165       # from here on the ground is this many rows higher than before: too high to jump, a vine climbs it
 const CLIFF_ROWS := 7.0
@@ -43,15 +43,15 @@ const THICKET_SPAN := Vector2i(118, 150)   # thorns across the way, far too long
 const THICKET_DARK := Vector2i(258, 270)   # thorns at the end of the dark stretch
 const WALL_COL := 324        # a wall of brick three columns thick and ten rows high: no jump clears it, and an earthquake or a boulder brings it down
 const WALL_ROWS := 10
-const SENTINEL_COL := 392     # an eye that shoots whoever it sees, over a stretch with thorns at the far end of it
+const SENTINEL_COL := 402     # an eye that shoots whoever it sees, over a stretch with thorns at the far end of it
 const SENTINEL_REACH := 480.0
-const SENTINEL_ZONE := Vector2i(376, 408)
-const THICKET_SENTINEL := Vector2i(398, 408)
+const SENTINEL_ZONE := Vector2i(388, 414)
+const THICKET_SENTINEL := Vector2i(366, 376)
 const GAS_SPAN := Vector2i(428, 451)    # three banks of poison gas
 const GAS_HEIGHT := 7
 const PIT_TWO := Vector2i(458, 483)     # a second pit, for the same leap
-const POND_TWO := Vector2i(496, 516)    # a pond of piranhas in the dark, for the light and the Spark together
-const DARK_POND := Vector2i(488, 526)
+const POND_TWO := Vector2i(506, 524)    # a pond of piranhas in the dark, for the light and the Spark together
+const DARK_POND := Vector2i(488, 534)
 const THICKETS := [THICKET_SPAN, THICKET_DARK, THICKET_SENTINEL]
 const DARK_COLOR := Color(0.03, 0.03, 0.05)   # as dark as it is far under the ground in a match
 const THICKET_LAYERS := 10
@@ -196,6 +196,8 @@ func _add_targets() -> void:
 	var watcher := Sentinel.new()
 	watcher.position = Vector2(ArenaGen.column_x(SENTINEL_COL), ArenaGen.surface_y(_cells, SENTINEL_COL))
 	watcher.reach = SENTINEL_REACH
+	watcher.first_shot = 1.2   # it takes a moment to take aim, and then shoots slowly
+	watcher.interval = 1.6
 	add_child(watcher)
 	_spread_gas()
 	for col: int in TURRETS:
@@ -322,7 +324,7 @@ func _process(delta: float) -> void:
 	_clear_spare_pages()
 	_trim_fans()
 	var under := (column >= DARK_SPAN.x and column <= DARK_SPAN.y) or (column >= DARK_POND.x and column <= DARK_POND.y)  # dark only under the rock, and no light of the wizard's own
-	_darkness = move_toward(_darkness, 1.0 if under else 0.0, delta * 1.5)
+	_darkness = move_toward(_darkness, 1.0 if under else 0.0, delta * 4.0)
 	_night.visible = _darkness > 0.0
 	_night.color = Color.WHITE.lerp(DARK_COLOR, _darkness)
 	if _backdrop != null:

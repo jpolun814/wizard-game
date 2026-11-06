@@ -16,6 +16,8 @@ const FRAMES := 8       # the frames of the flying eye
 const HEIGHT := 120.0
 
 var reach := RANGE   # how far it sees
+var first_shot := FIRST_SHOT
+var interval := INTERVAL
 var _seen_for := 0.0
 var _cool := 0.0
 var _sprite: AnimatedSprite2D
@@ -49,9 +51,9 @@ func _physics_process(delta: float) -> void:
 		_seen_for = 0.0
 		return
 	_seen_for += delta
-	if _seen_for < FIRST_SHOT or _cool > 0.0:
+	if _seen_for < first_shot or _cool > 0.0:
 		return
-	_cool = INTERVAL
+	_cool = interval
 	var at := SpellTargets.center_of(target)
 	Sfx.play("spark", center(), -8.0)
 	if target is Decoy:  # the shot lands on the decoy at once, so no bolt flies on past it to hit whoever stands behind

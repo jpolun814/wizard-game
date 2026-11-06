@@ -119,7 +119,8 @@ var _relight := 0.0  # seconds until the flame is lit again after a freeze
 var _base_scale := 1.0
 var _lunge := 0.0        # 1 the moment an enemy attacks, fading to 0: it lunges toward the player
 var _windup := 0.0       # counting down to a melee hit
-var _stuck := 0.0        # how long a giant has been held up by a ledge
+var _lie_side := 1.0     # which way a fainted enemy with no fall of its own topples
+var _stuck := 0.0       # how long a giant has been held up by a ledge
 var _last_x := 0.0       # where a giant was last frame, to tell whether it is moving
 var _slash_cd := 0.0     # counting down to a ninja's next katana strike
 var _burst_left := 0     # stars still to throw in the burst being thrown
@@ -315,7 +316,7 @@ func _physics_process(delta: float) -> void:
 ## like that on the way to the player, it jumps.
 func _climb_ledges(delta: float) -> void:
 	# Only a giant that is trying to walk and not moving counts: one winding up a smash stands still on purpose.
-	var held: bool = is_on_floor() and _windup <= 0.0 and player != null and absf(player.center().x - center().x) > 60.0 and absf(global_position.x - _last_x) < 0.5
+	var held: bool = is_on_floor() and _windup <= 0.0 and _root_time <= 0.0 and player != null and absf(player.center().x - center().x) > 60.0 and absf(global_position.x - _last_x) < 0.5
 	_stuck = _stuck + delta if held else 0.0
 	if _stuck > 0.25:
 		velocity.y = GIANT_JUMP
@@ -839,6 +840,7 @@ func faint() -> void:
 	if _dead or _fainted:
 		return
 	_fainted = true
+	_lie_side = facing
 	stamina = 0.0
 	_since_stamina = 0.0
 	_windup = 0.0
@@ -997,7 +999,9 @@ func _animate(delta: float) -> void:
 	var busy: bool = _visual.animation == "hit" or (_visual.animation == "attack" and _visual.is_playing())
 	if not _dead and _visual.animation != wanted and not (busy and wanted != "attack"):
 		_visual.play(wanted)
-	_visual.speed_scale = 0.0 if _frozen_time > 0.0 else 1.0
+	var lies := _fainted and not _visual.sprite_frames.has_animation("death")  # one with no fall of its own is toppled over instead
+	_visual.rotation = lerp_angle(_visual.rotation, PI * 0.5 * _lie_side if lies else 0.0, minf(delta * 5.0, 1.0))
+	_visual.speed_scale = 0.0 if _frozen_time > 0.0 or lies else 1.0
 	var bob := roundf(sin(_idle_t * 3.0) * 2.0) if flying else 0.0
 	_visual.position = Vector2(lunge, bob) + shake
 	_visual.scale = Vector2(_base_scale, _base_scale)
