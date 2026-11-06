@@ -12,6 +12,8 @@ extends RefCounted
 ## incantations of the bonfire and of the rift. Every spell in these lists works alone.
 const ATTACKS := ["Ignite", "Fire Breath", "Spark", "Frostbolt", "Stonefall", "Spore Puff", "Firewall", "Stalagmite", "Bramble", "Flytrap",
 		"Barbs", "Pebble", "Hailstorm", "Thorn Whip", "Insect Plague", "Flaming Sphere", "Thunderclap", "Raise Dead"]
+## Attacks that reach a rival from a distance: every wizard starts with one of these (see deal), so nobody begins with only spells that need an enemy close by.
+const RANGED := ["Ignite", "Spark", "Frostbolt", "Stonefall", "Barbs", "Pebble", "Hailstorm", "Thorn Whip", "Flaming Sphere"]
 const MOVES := ["Shadow Step", "Push", "Liana", "Geyser", "Updraft", "Tornado", "Great Oak", "Rocket Jump"]
 const DEFENCES := ["Barrier", "Decoy", "Stone Wall", "Smoke Screen", "Gust", "Eclipse", "Sneak", "Featherfall", "Mirage"]
 const CHANTS := ["chant:bonfire", "chant:rift"]
@@ -90,7 +92,7 @@ static func deal(seed_value: int, wizards: int) -> Array[Ledger]:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed_value
 	var shuffled := []
-	for list: Array in [ATTACKS, MOVES, DEFENCES]:
+	for list: Array in [RANGED, MOVES, DEFENCES]:
 		var copy := list.duplicate()
 		_shuffle(copy, rng)
 		shuffled.append(copy)

@@ -27,6 +27,10 @@ func _initialize() -> void:
 				moves += 1 if Pages.MOVES.has(page) else 0
 				defences += 1 if Pages.DEFENCES.has(page) else 0
 			_check(attacks == 1 and moves == 1 and defences == 1, "seed %d: wizard %d does not start with one attack, one move and one defence" % [seed_value, k])
+			var reaches := false
+			for page in first[k].pages:
+				reaches = reaches or Pages.RANGED.has(page)
+			_check(reaches, "seed %d: wizard %d starts with no attack that reaches across a distance" % [seed_value, k])
 			for chant in Pages.CHANTS:
 				_check(first[k].knows(chant), "seed %d: wizard %d lacks %s" % [seed_value, k, chant])
 		# The attacks, the moves and the defences are all different between the four wizards (there are enough of them): no spell is in two books at the start.

@@ -7,6 +7,7 @@ extends SpellEffect
 const LIFE := 0.35
 const DAMAGE := 30
 const SHOCK := 14  # what the water gives to those standing in it
+const WIDTH := 26.0  # how wide the strike is where it hits: a little wider than the bolt drawn
 const SKY := 420.0  # the strike starts this far above where it lands
 
 var landing := Vector2.ZERO  # where it comes down, for the flames it lights
@@ -27,7 +28,7 @@ func _begin(origin: Vector2, _aim_angle: float) -> void:
 	var height := clampf(ground.y - start.y, 40.0, SKY)
 	global_position = Vector2(origin.x, ground.y - height)
 	var rect := RectangleShape2D.new()
-	rect.size = Vector2(16, height)
+	rect.size = Vector2(WIDTH, height)
 	_add_shape(rect, Vector2(0, height * 0.5))
 	# The bolt is a pixel-art strike drawn twice its size, standing on the ground where it lands.
 	var strike := PixelFx.play(get_parent(), ground + Vector2(0, 6), "lightning", 24.0, 2.0, Color(1.0, 1.0, 0.85), true)
