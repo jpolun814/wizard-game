@@ -32,6 +32,11 @@ func _ready() -> void:
 	await _chant_gap()
 	await _dark()
 	await _pit()
+	await _wall()
+	await _sentinel()
+	await _gas()
+	await _second_pit()
+	await _dark_pond()
 	print("the tutorial room is shut off place from place" if _failures == 0 else "%d FAILED" % _failures)
 	get_tree().quit(1 if _failures > 0 else 0)
 
@@ -270,9 +275,9 @@ func _thorns() -> void:
 	room.spawn_spell("Ignite", "directional", player.center() + Vector2(10.0, 0.0), 0.0, {}, player)
 	for f in 60 * 12:
 		await get_tree().physics_frame
-		if room.thorns_left() <= 2 * Tutorial.THICKET_LAYERS:
+		if room.thorns_left() <= (Tutorial.THICKETS.size() - 1) * Tutorial.THICKET_LAYERS:
 			break
-	_verdict(room.thorns_left() == 2 * Tutorial.THICKET_LAYERS, "a fireball burns all of the first thicket's thorns away (%d layers left in the others)" % room.thorns_left())
+	_verdict(room.thorns_left() == (Tutorial.THICKETS.size() - 1) * Tutorial.THICKET_LAYERS, "a fireball burns all of the first thicket's thorns away (%d layers left in the others)" % room.thorns_left())
 
 
 func _pit() -> void:
@@ -282,6 +287,103 @@ func _pit() -> void:
 	await _run_and_jump(6.0, true, Tutorial.GAP_SPAN.y + 2.0)
 	_verdict(_column() < Tutorial.GAP_SPAN.y, "the pit cannot be jumped (column %.1f)" % _column())
 	_verdict(player.global_position.y < ArenaGen.surface_y(room._cells, Tutorial.GAP_SPAN.x - 3) + 40.0, "and whoever fell in is back on the edge")
+
+
+func _wall() -> void:
+	var col := Tutorial.WALL_COL
+	player.air_jump_time = 30.0
+	player.air_jump_ready = true
+	_put(col - 6)
+	for f in 20:
+		await get_tree().physics_frame
+	await _run_and_jump(6.0, true, col + 5.0)
+	_verdict(_column() < col, "the wall of brick cannot be jumped, even twice (column %.1f)" % _column())
+	room._wall.take_blow_near(Vector2(ArenaGen.column_x(col + 1), ArenaGen.surface_y(room._cells, col) - 60.0), 1000.0)
+	for f in 60:
+		await get_tree().physics_frame
+	_put(col - 6)
+	for f in 20:
+		await get_tree().physics_frame
+	await _run_until(col + 5.0, 6.0)
+	_verdict(_column() >= col + 5.0, "and once it is brought down it can be walked through (column %.1f)" % _column())
+	player.air_jump_time = 0.0
+
+
+func _sentinel() -> void:
+	var zone := Tutorial.SENTINEL_ZONE
+	for thorns in room._thickets.duplicate():
+		if is_instance_valid(thorns) and thorns.planted_ground[0].x >= Tutorial.THICKET_SENTINEL.x * 32.0 - 40.0 and thorns.planted_ground[0].x <= Tutorial.THICKET_SENTINEL.x * 32.0 + 40.0:
+			thorns.queue_free()  # (the thorns are tried on their own: here it is the statue)
+	for f in 5:
+		await get_tree().physics_frame
+	var deaths := _deaths
+	_put(zone.x - 2)
+	for f in 20:
+		await get_tree().physics_frame
+	await _run_until(zone.y + 3.0, 12.0)
+	_verdict(_deaths > deaths, "crossing the statue's stretch in its sight kills (deaths %d)" % (_deaths - deaths))
+	deaths = _deaths
+	for f in 30:
+		await get_tree().physics_frame
+	_put(zone.x - 4)
+	for f in 20:
+		await get_tree().physics_frame
+	room.spawn_spell("Barrier", "positional", player.center(), 0.0, {}, player)
+	await _run_until(zone.y + 3.0, 12.0)
+	_verdict(_deaths == deaths and _column() >= zone.y + 3.0, "and with a Barrier it is crossed alive (column %.1f)" % _column())
+
+
+func _gas() -> void:
+	var span := Tutorial.GAS_SPAN
+	var deaths := _deaths
+	_put(span.x - 4)
+	for f in 20:
+		await get_tree().physics_frame
+	await _run_until(span.y + 3.0, 10.0)
+	_verdict(_deaths > deaths, "walking through the poison gas kills (deaths %d)" % (_deaths - deaths))
+	for bank: GasBank in room._gas:
+		if is_instance_valid(bank):
+			bank.dissipate()  # the wind takes it
+	for f in 90:
+		await get_tree().physics_frame
+	deaths = _deaths
+	_put(span.x - 4)
+	for f in 20:
+		await get_tree().physics_frame
+	await _run_until(span.y + 3.0, 10.0)
+	_verdict(_deaths == deaths and _column() >= span.y + 3.0, "and with the gas blown away it is crossed (column %.1f)" % _column())
+
+
+func _second_pit() -> void:
+	_put(Tutorial.PIT_TWO.x - 3)
+	for f in 20:
+		await get_tree().physics_frame
+	await _run_and_jump(6.0, true, Tutorial.PIT_TWO.y + 2.0)
+	_verdict(_column() < Tutorial.PIT_TWO.y, "the second pit cannot be jumped (column %.1f)" % _column())
+
+
+func _dark_pond() -> void:
+	var span := Tutorial.POND_TWO
+	var deaths := _deaths
+	_put(span.x - 4)
+	for f in 30:
+		await get_tree().physics_frame
+	_verdict(room._night.visible, "it is dark at the second pond")
+	await _run_until(span.y + 3.0, 12.0)
+	_verdict(_deaths > deaths, "wading it among the piranhas kills (deaths %d)" % (_deaths - deaths))
+	var water_top: float = room._shoal_two.water.position.y
+	for k in 6:
+		var strike := SparkStrike.new()
+		room.add_child(strike)
+		strike.setup("Spark", Vector2(ArenaGen.column_x(span.x + 4 + 3 * k), water_top - 150.0), 0.0)
+	for f in 30:
+		await get_tree().physics_frame
+	deaths = _deaths
+	_put(span.x - 4)
+	for f in 20:
+		await get_tree().physics_frame
+	await _run_until(span.y + 3.0, 12.0)
+	_verdict(_deaths == deaths and _column() >= span.y + 3.0, "and after a Spark it is waded across (column %.1f)" % _column())
 
 
 func _verdict(ok: bool, message: String) -> void:

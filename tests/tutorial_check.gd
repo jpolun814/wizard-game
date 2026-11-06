@@ -31,7 +31,7 @@ func _ready() -> void:
 		room._dummy.take_damage(1000)  # (so that the pictures are of the room, not of a wizard struck down)
 		room._skeleton.faint()
 		player.veil = 999
-		for look: Array in [[22, "pond"], [168, "cliff"], [214, "dark"], [286, "pit"], [318, "end"]]:
+		for look: Array in [[22, "pond"], [214, "dark"], [346, "wall"], [380, "sentinel"], [424, "gas"], [490, "pond2"]]:
 			player.global_position = Vector2(ArenaGen.column_x(look[0]), ArenaGen.surface_y(room._cells, look[0]) - 20.0)
 			player.velocity = Vector2.ZERO
 			if look[1] == "dark":
