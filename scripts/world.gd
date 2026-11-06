@@ -175,6 +175,8 @@ func _begin_encounter(camera: Camera2D) -> void:
 	player.position = _places()[_my_seat()]
 	_safe_spot = player.position
 	_spawn_wizards()
+	if Net.dedicated:
+		_give_player_to_a_brain()
 	if not _carried and arrive_by_portal:
 		for wizard in _seats:
 			if wizard != null:
@@ -684,6 +686,14 @@ func _spawn_wizards() -> void:
 		Net.roster_changed.connect(_on_roster_changed)
 
 
+## On a dedicated server nobody is at the machine: its wizard, in the first seat, plays on its own, as the brains of the empty seats do.
+func _give_player_to_a_brain() -> void:
+	player.human = false
+	player.ensure_caster()  # (it casts through a caster of its own, as a brain's wizard does)
+	player.brain = WizardBrain.new(player)
+	player.nav = nav
+
+
 ## On a machine other than the host: a likeness of the wizard a brain plays in a seat, on the host.
 func _add_brains_likeness(seat: int, feet: Vector2) -> Wizard:
 	var wizard: Wizard = WIZARD_SCENE.instantiate()
@@ -700,6 +710,10 @@ func _add_brains_likeness(seat: int, feet: Vector2) -> Wizard:
 
 ## Someone left the game: their wizard falls where it stands, on every machine.
 func _on_roster_changed() -> void:
+	if Net.dedicated and not _won and Net.roster.all(func(peer: int) -> bool: return peer == 0 or peer == Net.my_id()):
+		_won = true  # the last person has left: the brains would only play on to themselves, so the server goes back to the waiting room for the next people
+		get_tree().create_timer(2.0).timeout.connect(_back_to_room)
+		return
 	for wizard in _rivals:
 		if is_instance_valid(wizard) and wizard.human and wizard.is_likeness() and not Net.roster.has(wizard.peer) and not wizard.dead:
 			wizard.abandon()
@@ -1156,6 +1170,8 @@ func gate_target(entry: Dictionary) -> Vector2:
 
 ## Out of the match: while other wizards still live the match goes on, and the camera follows one of them. Otherwise the run is over.
 func _on_player_died() -> void:
+	if Net.dedicated:
+		return  # nobody is here to watch the others, or to see the stats: the match goes on for the people on other machines
 	_record_match(_living().size() + 1)
 	_show_stats()
 	if _living().is_empty():
@@ -1261,7 +1277,7 @@ func _count_wizards(delta: float) -> void:
 		return
 	_since_count = 0.0
 	var standing := SpellTargets.wizards(get_tree())
-	if standing.size() == 1 and standing[0] == player:
+	if standing.size() == 1 and standing[0] == player and not Net.dedicated:
 		_won = true
 		hud.banner("Last wizard standing", "You win")
 		Library.record_win(player.ledger.pages.keys())

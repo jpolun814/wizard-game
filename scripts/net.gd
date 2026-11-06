@@ -41,6 +41,9 @@ var scene := ""
 var _scenes := {}  # peer id -> the scene that peer last said it is in
 var _styles := {}  # peer id -> [look, palette]: the wizard each other person has chosen to play
 var farewell := ""  # why the last game ended, for the first screen to say
+## True on a dedicated server (started with `-- --server`): a host with no person at it. It keeps the waiting room, begins each match when the people who have
+## joined are in, plays seat 0 with a brain, and keeps nothing in the Library. Everything else is as for any host.
+var dedicated := false
 
 
 func _ready() -> void:
@@ -50,6 +53,23 @@ func _ready() -> void:
 	multiplayer.connected_to_server.connect(_on_connected)
 	multiplayer.connection_failed.connect(_on_failed)
 	multiplayer.server_disconnected.connect(_on_server_gone)
+	if OS.get_cmdline_user_args().has("--server"):
+		dedicated = true
+		Library.dedicated = true
+		_start_dedicated.call_deferred()
+
+
+## Opens the game for others and goes to the waiting room, with nobody at the machine. Quits at once if the port is taken.
+func _start_dedicated() -> void:
+	Engine.max_fps = 60  # (a window-less game would otherwise run flat out)
+	var error := host()
+	if error != OK:
+		print("server: could not open port %d (error %d)" % [port(), error])
+		get_tree().quit(1)
+		return
+	print("server: waiting for wizards on port %d" % port())
+	roster_changed.connect(func() -> void: print("server: %d in the room" % roster.size()))
+	get_tree().change_scene_to_file("res://scenes/lab.tscn")
 
 
 ## True while this machine hosts a game or is in one.

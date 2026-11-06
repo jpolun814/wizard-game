@@ -78,6 +78,9 @@ func _begin_encounter(camera: Camera2D) -> void:
 	player.add_child(_player_light)
 	hud.set_title(_title())
 	_place_lectern()
+	if Net.dedicated:
+		_touched[Net.my_id()] = true  # the server has nobody to touch the book: the match begins when the people who joined have
+		player.hide()
 	if Net.online():
 		Net.set_open(true)  # friends may join while the host is in the waiting room
 		Net.roster_changed.connect(_meet_people)
@@ -223,7 +226,7 @@ func _go(seed_value: int) -> void:
 	fade.tween_interval(0.25)
 	fade.tween_property(black, "color:a", 1.0, 0.4)
 	fade.tween_interval(0.15)
-	fade.tween_callback(get_tree().change_scene_to_file.bind(Intro.LOADING if GameSettings.skip_opening() else "res://scenes/intro.tscn"))
+	fade.tween_callback(get_tree().change_scene_to_file.bind(Intro.LOADING if GameSettings.skip_opening() or Net.dedicated else "res://scenes/intro.tscn"))
 
 
 ## On the host: a person has touched the book. When the last one has, the match begins for everyone, in one world, from one seed.
@@ -238,6 +241,8 @@ func _stepped_in() -> void:
 func _start_if_all_in() -> void:
 	if _touched.is_empty() or not _waiting_for().is_empty():
 		return
+	if Net.dedicated and Net.roster.filter(func(peer: int) -> bool: return peer != 0 and peer != Net.my_id()).is_empty():
+		return  # a server with nobody in the room does not begin a match
 	Net.set_open(false)  # nobody joins a match under way
 	var seed_value := World.next_seed if World.next_seed >= 0 else randi() % Incantation.seed_count()
 	for peer in Net.peers_here():

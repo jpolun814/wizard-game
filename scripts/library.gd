@@ -15,6 +15,7 @@ const TITLE_LEAD := 0.05       # a school must lead the next by more than this s
 const MAX_HISTORY := 5000      # matches kept in the Chronicle; each takes about half a kilobyte, so the file never grows past about 2.5 MB
 const SAVE_EVERY := 4000  # milliseconds: casts come thick and fast, so they are written out in batches
 
+static var dedicated := false  # a dedicated server (see Net.dedicated) plays no match of its own: nothing it sees is recorded
 static var force := false  # a test of this class turns it on, so its records are kept (with `path` set to a file of its own)
 static var _data: Dictionary = {}
 static var _loaded := false
@@ -33,6 +34,8 @@ static func stats() -> Dictionary:
 static func _counts() -> bool:
 	if force:
 		return true
+	if dedicated:
+		return false
 	var scene := (Engine.get_main_loop() as SceneTree).current_scene
 	return scene != null and not scene.scene_file_path.begins_with("res://tests/")
 
