@@ -4,9 +4,8 @@ rem Usage:  tools\run_server.bat                       (runs the project here wi
 rem         tools\run_server.bat WizardGame.exe        (runs an exported game; give its path)
 rem Friends join with the "Join" box on the first screen, at this computer's address (on this computer: 127.0.0.1).
 rem Set WIZARD_PORT to use a port other than 24565. Close the window to stop it.
-if "%~1"=="" (
-  set GODOT=C:\Users\Jordan Polun\Downloads\Godot_v4.7.2-stable_win64.exe\Godot_v4.7.2-stable_win64_console.exe
-  "%GODOT%" --headless --path "%~dp0.." -- --server
-) else (
-  "%~1" --headless -- --server
-)
+if not "%~1"=="" goto exported
+"C:\Users\Jordan Polun\Downloads\Godot_v4.7.2-stable_win64.exe\Godot_v4.7.2-stable_win64_console.exe" --headless --path "%~dp0.." -- --server
+goto :eof
+:exported
+"%~1" --headless -- --server
