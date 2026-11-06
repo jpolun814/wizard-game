@@ -23,6 +23,8 @@ func _ready() -> void:
 	collision_layer = 1  # solid, like the ground: walkers and shots meet it
 	collision_mask = 1 | 2 | 4 | 16  # it rests on the ground and on platforms and stairs, rolls down slopes, and bumps walkers and the player
 	mass = 4.0
+	for leaves: CollisionObject2D in get_tree().get_nodes_in_group("canopy"):
+		add_collision_exception_with(leaves)  # it falls through the leaves of a great tree, and lands on the ground below
 	var physics := PhysicsMaterial.new()
 	physics.friction = 0.6
 	physics.bounce = 0.0

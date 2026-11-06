@@ -89,6 +89,7 @@ func _ready() -> void:
 		add_child(strip)
 	var ledges := StaticBody2D.new()  # the oak's ledges, as the spell's own tree has: one-way, jump up through, land on top
 	ledges.collision_layer = 16
+	ledges.add_to_group("canopy")  # the leaves of a great tree: what falls from the sky goes through them (see Boulder and SparkStrike)
 	ledges.collision_mask = 0
 	var spot := layout(size, mirror)
 	for k in LEDGES.size():

@@ -87,9 +87,14 @@ static func hurt_within(tree: SceneTree, point: Vector2, radius: float, amount: 
 
 ## The surface directly below a point (the floor or a platform), or the point itself pushed down a little if
 ## there is nothing below.
-static func ground_below(world: World2D, point: Vector2, reach := 800.0) -> Vector2:
+static func ground_below(world: World2D, point: Vector2, reach := 800.0, through_canopy := false) -> Vector2:
 	var query := PhysicsRayQueryParameters2D.create(point, point + Vector2(0, reach))
 	query.collision_mask = 1 | 16
+	if through_canopy:  # (a bolt from the sky passes the leaves of a great tree)
+		var leaves: Array[RID] = []
+		for body: CollisionObject2D in (Engine.get_main_loop() as SceneTree).get_nodes_in_group("canopy"):
+			leaves.append(body.get_rid())
+		query.exclude = leaves
 	var hit := world.direct_space_state.intersect_ray(query)
 	return hit["position"] if not hit.is_empty() else Vector2(point.x, ArenaGen.GROUND_Y)
 

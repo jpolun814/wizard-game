@@ -56,6 +56,11 @@ class Driver extends Node:
 		await _until(func() -> bool: return Net.peers_here().size() == 1)
 		MatchState.hurry = 100.0  # no collapse while we watch
 		world.player.ledger.learn_all()
+		if role == "host":  # the host's brains are put away: one casting a Mirage, or a blow that breaks a tether, would spoil what is counted here
+			for wizard: Wizard in get_tree().get_nodes_in_group("wizards"):
+				if wizard.brain != null:
+					wizard.set_physics_process(false)
+					wizard.global_position = Vector2(-9000.0, -9000.0)
 		await _seconds(4.0)
 		await _skeleton()
 		await _mirage()
@@ -115,7 +120,7 @@ class Driver extends Node:
 		if other == null:
 			return
 		if role == "host":  # the host steps up beside the other and tethers them
-			world.player.global_position = other.global_position + Vector2(-200.0, 0.0)
+			world.player.global_position = other.global_position + Vector2(-110.0, -20.0)
 			world.player.velocity = Vector2.ZERO
 		await _seconds(3.0)
 		if role == "host":

@@ -24,7 +24,7 @@ func _begin(origin: Vector2, _aim_angle: float) -> void:
 	var roof := get_world_2d().direct_space_state.intersect_ray(roof_query)
 	if not roof.is_empty():
 		start = Vector2(origin.x, roof["position"].y + 4.0)
-	var ground := SpellTargets.ground_below(get_world_2d(), start, 4000.0)
+	var ground := SpellTargets.ground_below(get_world_2d(), start, 4000.0, true)
 	var height := clampf(ground.y - start.y, 40.0, SKY)
 	global_position = Vector2(origin.x, ground.y - height)
 	var rect := RectangleShape2D.new()
