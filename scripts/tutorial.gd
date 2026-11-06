@@ -29,39 +29,38 @@ const PLACES := [
 		["Enter", "Speak a chant."],
 		["", "Watch your stamina at the top left. Spells cost stamina."],
 		["", "Stamina will recharge while you stand still."]]},
-	{"col": -14, "title": "Pyromancy", "school": "Fire", "steps": [
-		["Ignite", "Draw a short line toward the dummy."]]},
-	{"col": 4, "title": "Aquamagy", "school": "Water", "steps": [
+	{"col": -14, "title": "Targets", "school": "Fire", "steps": [
+		["Ignite", "Draw a short line toward the dummy."],
 		["Frostbolt", "Draw a short line toward the dummy."],
-		["Frost Bridge", "Draw a wavy line across the pond, then cross it."]]},
-	{"col": 38, "title": "Aerokinesis", "school": "Air", "steps": [
-		["Barrier", "Draw a circle round yourself as the turret fires."]]},
-	{"col": 60, "title": "Terramancy", "school": "Earth", "steps": [
 		["Stonefall", "Draw a circle with a line down, above the dummy."]]},
-	{"col": 80, "title": "Druidry", "school": "Flora", "steps": [
-		["Liana", "Draw a leaf, then a line up, and climb the vine."],
-		["Ignite", "Then draw a short line into the vine."]]},
-	{"col": 102, "title": "Umbramancy", "school": "Shadow", "steps": [
+	{"col": 4, "title": "Water", "school": "Water", "goal": 28, "steps": [
+		["Frost Bridge", "Draw a wavy line across the pond."],
+		["Lily Pads", "Draw a ring, then a level line across the pond."]],
+		"note": "Cross the pond."},
+	{"col": 38, "title": "Shots", "school": "Air", "steps": [
+		["Barrier", "Draw a circle round yourself as the turret fires."],
+		["Stone Wall", "Draw a line up from the ground."]]},
+	{"col": 80, "title": "Plants", "school": "Flora", "thicket": true, "steps": [
+		["Ignite", "Draw a short line into the thorns."],
+		["Liana", "Draw a leaf, then a line up, and climb the vine."]],
+		"note": "Clear the thorns."},
+	{"col": 112, "title": "Hunted", "school": "Shadow", "guard": true, "steps": [
 		["Decoy", "Draw a figure of eight."]]},
-	{"col": 122, "title": "Necromancy", "school": "Blood", "steps": [
+	{"col": 132, "title": "Low Stamina", "school": "Blood", "steps": [
 		["Adrenaline", "Draw a zigzag."]],
 		"note": "Necromancy spells are more powerful, but they spend maximum stamina that does not come back."},
-	{"col": 142, "title": "Chants", "school": "", "steps": [
+	{"col": 152, "title": "Chants", "school": "", "steps": [
 		["chant:minimap", "Press Enter, type the words, then press Enter."],
 		["chant:haste", "Press Enter, type the words, then press Enter."]]},
-	{"col": 160, "title": "The Gap", "school": "", "goal": 180, "steps": [
+	{"col": 172, "title": "A Wide Gap", "school": "Air", "goal": 206, "steps": [
 		["Push", "Draw a circle, then a line out of it."],
 		["Updraft", "Draw an arrow pointing up."],
 		["Stone Wall", "Draw a line up from the ground."]],
 		"note": "Reach the far side of the gap."},
-	{"col": 196, "title": "The Turret", "school": "", "goal": 222, "steps": [
-		["Barrier", "Draw a circle round yourself."],
-		["Stone Wall", "Draw a line up from the ground."]],
-		"note": "Get past the turret."},
 ]
-const GAP_SPAN := Vector2i(166, 177)   # a pit too wide to jump
-const GAP_ROWS_DOWN := 4.0
-const GAUNTLET_TURRET := 212
+const GAP_SPAN := Vector2i(178, 201)   # a pit far too wide to jump
+const GAP_ROWS_DOWN := 5.0
+const THICKET_SPAN := Vector2i(88, 98)   # columns of thorns across the way at the Plants place
 const DUMMIES := [-8, -20, 9, 64, 84, 74]
 const DUMMY_HP := 36  # three fireballs: the tutorial's dummies fall quickly, so each try is seen through
 const TURRET := 46
@@ -73,6 +72,7 @@ var _panel: PanelContainer
 var _shown := -1     # the place whose page is up, or -1
 var _marks: Array[TutorialMark] = []
 var _guard: Node2D
+var _thicket: Bramble
 var _reached := {}   # place index -> true once its goal has been reached
 
 
@@ -125,10 +125,21 @@ func _add_targets() -> void:
 		mob.max_hp = DUMMY_HP
 		mob.hp = DUMMY_HP
 		mob.facing = -1.0 if col < 0 else 1.0
+	_plant_thicket()
 	var turret := _add_mob("turret", Vector2(ArenaGen.column_x(TURRET), ArenaGen.surface_y(_cells, TURRET)))
 	turret.facing = -1.0
-	var gauntlet := _add_mob("turret", Vector2(ArenaGen.column_x(GAUNTLET_TURRET), ArenaGen.surface_y(_cells, GAUNTLET_TURRET)))
-	gauntlet.facing = -1.0
+
+
+## The thorns across the way at the Plants place: planted like the world's own, so fire burns them away.
+func _plant_thicket() -> void:
+	var points := PackedVector2Array()
+	for col in range(THICKET_SPAN.x, THICKET_SPAN.y + 1):
+		for half in 2:
+			var x := (col + half * 0.5) * float(ArenaGen.TILE)
+			points.append(Vector2(x, ArenaGen.surface_y(_cells, col)))
+	_thicket = Bramble.new()
+	_thicket.planted_ground = points
+	add_child(_thicket)
 
 
 func _title() -> String:
@@ -201,15 +212,28 @@ func _process(delta: float) -> void:
 		_call_guard(near)
 
 
-## A place with a goal is done when the wizard stands on solid ground at the column it names, past whatever stood in the way.
+## A place with a goal is done when the wizard stands on solid ground at the column it names, or, at the Plants place, when the thorns are gone.
+## Whoever has fallen into the wide gap is put back on its near edge, where they came from.
 func _check_goals(column: float) -> void:
 	for k in PLACES.size():
-		if PLACES[k].has("goal") and not _reached.has(k) and column >= PLACES[k]["goal"] and player.is_on_floor():
+		var entry: Dictionary = PLACES[k]
+		if _reached.has(k):
+			continue
+		var met := false
+		if entry.has("goal"):
+			met = column >= entry["goal"] and column < entry["goal"] + 10.0 and player.is_on_floor()
+		elif entry.get("thicket", false):
+			met = _thicket == null or not is_instance_valid(_thicket) or _thicket.is_queued_for_deletion()
+		if met:
 			_reached[k] = true
 			_marks[k].lit = true
 			Sfx.play("pickup")
 			if _shown == k:
 				_show(k)
+	var floor_y := ArenaGen.surface_y(_cells, 0)
+	if column >= GAP_SPAN.x and column <= GAP_SPAN.y and player.global_position.y > floor_y + (GAP_ROWS_DOWN + 1.0) * ArenaGen.TILE:
+		player.global_position = Vector2(ArenaGen.column_x(GAP_SPAN.x - 3), ArenaGen.surface_y(_cells, GAP_SPAN.x - 3) - 20.0)
+		player.velocity = Vector2.ZERO
 
 
 ## The skeleton at the Umbramancy place is brought in when the wizard comes to that place and sent away when they leave it, so that it does not
@@ -218,7 +242,7 @@ func _call_guard(place: int) -> void:
 	if _guard != null and is_instance_valid(_guard):
 		_guard.queue_free()
 		_guard = null
-	if place >= 0 and PLACES[place]["school"] == "Shadow":
+	if place >= 0 and PLACES[place].get("guard", false):
 		_guard = _add_mob("basic", Vector2(ArenaGen.column_x(SHADOW_GUARD), ArenaGen.surface_y(_cells, SHADOW_GUARD)))
 		_guard.facing = -1.0
 

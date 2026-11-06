@@ -19,6 +19,8 @@ var _ponds := []
 var _gates := []
 const NAV_DELAY := 0.4  # seconds after a pit is dug before the wizards' map of the ways is made again
 var _nav_waiting := false
+const PAGES_TOLD_EVERY := 3.0
+var _pages_told := 0.0
 var _dug_tiles := {}  # the tiles of the ground that pits have taken away, so the map of the ways can be made again without them
 var _built: Dictionary  # what the generator made, kept to build the ways again when a gate is cleared
 var _since_gates := 0.0
@@ -742,6 +744,27 @@ func _drop_pages(wizard: Wizard) -> void:
 	Net.send(self, &"_lay_spoils", [name, held, spot])
 
 
+## The host says every few seconds which pages still lie, because a page read while a machine was still loading the world is never heard of
+## there, and would lie on its screen for ever, out of reach. A machine takes off the ground any page that is not on the list.
+func _tell_pages_left(delta: float) -> void:
+	_pages_told += delta
+	if _pages_told < PAGES_TOLD_EVERY or not Net.online():
+		return
+	_pages_told = 0.0
+	var names: Array[String] = []
+	for pickup: PagePickup in get_tree().get_nodes_in_group("pages"):
+		if not pickup is Mirage and not pickup.is_queued_for_deletion():
+			names.append(String(pickup.name))
+	Net.send(self, &"_pages_left", [names])
+
+
+@rpc("authority", "call_remote", "reliable")
+func _pages_left(names: Array) -> void:
+	for pickup: PagePickup in get_tree().get_nodes_in_group("pages"):
+		if not pickup is Mirage and not names.has(String(pickup.name)):
+			pickup.queue_free()
+
+
 ## A fallen wizard's book lies where it fell.
 @rpc("authority", "call_remote", "reliable")
 func _lay_spoils(pickup_name: String, held: Array, spot: Vector2) -> void:
@@ -846,6 +869,7 @@ func _process(delta: float) -> void:
 	MatchStats.tick(delta)
 	if Net.is_host():
 		_watch_falls()
+		_tell_pages_left(delta)
 	_watch_portal(delta)
 	_watch_gates(delta)
 	if player.dead:

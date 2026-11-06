@@ -23,6 +23,7 @@ func _ready() -> void:
 
 
 class Driver extends Node:
+	var _lost_page := ""
 	var _struck_name := ""
 	var role := "host"
 
@@ -69,6 +70,31 @@ class Driver extends Node:
 					if String(mob.name) == _struck_name:
 						mob.take_damage(100000)
 						print("host: struck %s" % mob.name)
+			if second == 8:  # a page, the same on both machines, that the host will lose without telling anyone
+				var names := []
+				for page: Node in get_tree().get_nodes_in_group("pages"):
+					names.append(String(page.name))
+				names.sort()
+				_lost_page = names[names.size() - 1] if not names.is_empty() else ""
+			if second == 9:
+				var had := false
+				for page: Node in get_tree().get_nodes_in_group("pages"):
+					had = had or String(page.name) == _lost_page
+				print("%s  %s: has the page (%s) before the host loses it" % ["PASS" if had else "FAIL", role, _lost_page])
+				if not had:
+					get_tree().quit(1)
+			if second == 9 and role == "host" and _lost_page != "":
+				for page: Node in get_tree().get_nodes_in_group("pages"):
+					if String(page.name) == _lost_page:
+						page.free()
+						print("host: lost page %s without a word" % _lost_page)
+			if second == 20 and _lost_page != "":
+				var still := false
+				for page: Node in get_tree().get_nodes_in_group("pages"):
+					still = still or String(page.name) == _lost_page
+				print("%s  %s: a page the host lost is off the ground here too (%s)" % ["PASS" if not still else "FAIL", role, _lost_page])
+				if still:
+					get_tree().quit(1)
 			if second == 25 and _struck_name != "":
 				var gone := true
 				for mob: Node in get_tree().get_nodes_in_group("mobs"):
