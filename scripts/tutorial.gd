@@ -8,7 +8,7 @@ extends Lab
 
 const POND_SPAN := Vector2i(12, 24)
 const REACH := 5.0  # columns either side of a place within which its page shows
-const CHUNKS := 32  # the room is wide, so that the places are far apart
+const CHUNKS := 44  # the room is wide, so that the places are far apart
 const PARCHMENT := Color("#e9d7bb")  # the plate a spell's shape is drawn on
 const PANEL := Color("#1f1528")
 const PANEL_DONE := Color("#1d2c22")
@@ -49,7 +49,19 @@ const PLACES := [
 	{"col": 142, "title": "Chants", "school": "", "steps": [
 		["chant:minimap", "Press Enter, type the words, then press Enter."],
 		["chant:haste", "Press Enter, type the words, then press Enter."]]},
+	{"col": 160, "title": "The Gap", "school": "", "goal": 180, "steps": [
+		["Push", "Draw a circle, then a line out of it."],
+		["Updraft", "Draw an arrow pointing up."],
+		["Stone Wall", "Draw a line up from the ground."]],
+		"note": "Reach the far side of the gap."},
+	{"col": 196, "title": "The Turret", "school": "", "goal": 222, "steps": [
+		["Barrier", "Draw a circle round yourself."],
+		["Stone Wall", "Draw a line up from the ground."]],
+		"note": "Get past the turret."},
 ]
+const GAP_SPAN := Vector2i(166, 177)   # a pit too wide to jump
+const GAP_ROWS_DOWN := 4.0
+const GAUNTLET_TURRET := 212
 const DUMMIES := [-8, -20, 9, 64, 84, 74]
 const DUMMY_HP := 36  # three fireballs: the tutorial's dummies fall quickly, so each try is seen through
 const TURRET := 46
@@ -61,6 +73,7 @@ var _panel: PanelContainer
 var _shown := -1     # the place whose page is up, or -1
 var _marks: Array[TutorialMark] = []
 var _guard: Node2D
+var _reached := {}   # place index -> true once its goal has been reached
 
 
 func _init() -> void:
@@ -77,6 +90,7 @@ func _build_map() -> Variant:
 	var heights := PackedFloat32Array()
 	heights.resize(ArenaGen.right_wall - ArenaGen.FIRST_COL)
 	_dig(heights, POND_SPAN, PIT_ROWS)
+	_dig(heights, GAP_SPAN, GAP_ROWS_DOWN)
 	return ArenaGen.build(_rng, heights)
 
 
@@ -113,6 +127,8 @@ func _add_targets() -> void:
 		mob.facing = -1.0 if col < 0 else 1.0
 	var turret := _add_mob("turret", Vector2(ArenaGen.column_x(TURRET), ArenaGen.surface_y(_cells, TURRET)))
 	turret.facing = -1.0
+	var gauntlet := _add_mob("turret", Vector2(ArenaGen.column_x(GAUNTLET_TURRET), ArenaGen.surface_y(_cells, GAUNTLET_TURRET)))
+	gauntlet.facing = -1.0
 
 
 func _title() -> String:
@@ -178,10 +194,22 @@ func _process(delta: float) -> void:
 		if distance < best:
 			best = distance
 			near = k
+	_check_goals(column)
 	if near != _shown:
 		_shown = near
 		_show(near)
 		_call_guard(near)
+
+
+## A place with a goal is done when the wizard stands on solid ground at the column it names, past whatever stood in the way.
+func _check_goals(column: float) -> void:
+	for k in PLACES.size():
+		if PLACES[k].has("goal") and not _reached.has(k) and column >= PLACES[k]["goal"] and player.is_on_floor():
+			_reached[k] = true
+			_marks[k].lit = true
+			Sfx.play("pickup")
+			if _shown == k:
+				_show(k)
 
 
 ## The skeleton at the Umbramancy place is brought in when the wizard comes to that place and sent away when they leave it, so that it does not
@@ -208,7 +236,7 @@ func _show(place: int) -> void:
 	var steps: Array = entry.get("steps", [])
 	_panel = PanelContainer.new()
 	var style := StyleBoxFlat.new()
-	style.bg_color = PANEL_DONE if not steps.is_empty() and _done.get(place, {}).size() == steps.size() else PANEL
+	style.bg_color = PANEL_DONE if _reached.has(place) or (not entry.has("goal") and not steps.is_empty() and _done.get(place, {}).size() == steps.size()) else PANEL
 	style.border_color = accent.lightened(0.3)
 	style.set_border_width_all(3)
 	style.set_corner_radius_all(4)

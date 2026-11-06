@@ -50,6 +50,18 @@ func _ready() -> void:
 	_verdict(has_chants, "a place teaches chants")
 	for spell: String in ["Ignite", "Frostbolt", "Frost Bridge", "Barrier", "Stonefall", "Liana", "Decoy", "Adrenaline"]:
 		_verdict(SpellData.SPELLS.has(spell), "the example spell %s exists" % spell)
+	for k in Tutorial.PLACES.size():
+		if Tutorial.PLACES[k].has("goal"):
+			var goal: int = Tutorial.PLACES[k]["goal"]
+			player.global_position = Vector2(ArenaGen.column_x(Tutorial.PLACES[k]["col"]), ArenaGen.surface_y(room._cells, Tutorial.PLACES[k]["col"]) - 20.0)
+			for f in 10:
+				await get_tree().physics_frame
+			_verdict(not room._reached.has(k), "%s is not done at its start" % Tutorial.PLACES[k]["title"])
+			player.global_position = Vector2(ArenaGen.column_x(goal), ArenaGen.surface_y(room._cells, goal) - 20.0)
+			player.velocity = Vector2.ZERO
+			for f in 30:
+				await get_tree().physics_frame
+			_verdict(room._reached.has(k), "%s is done on reaching its far side" % Tutorial.PLACES[k]["title"])
 	var lectern_run := room._lectern != null
 	room._lectern.body_entered.emit(player)
 	_verdict(lectern_run and room._leaving and room._lectern.body_entered.is_connected(room._on_book_touched), "touching the book leads back to the first screen, not into a match")
