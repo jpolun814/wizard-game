@@ -32,13 +32,19 @@ var mass := PackedFloat32Array()
 var asleep := true
 var version := 0  # goes up whenever the liquid changes, so a drawing can tell it is out of date
 
-var _next := PackedFloat32Array()
+var _task := -1  # the pool task working out steps (see step_later), or -1
+var _job_times := 0
+var _job_from := PackedFloat32Array()
+var _job_band := Rect2i()
+var _job_mass := PackedFloat32Array()
+var _job_passes := []
 var _quiet := 0
 var _band := Rect2i()  # the columns and rows that hold liquid, with one to spare
 
 
 ## Lays out the cells over a rectangle of the world, widened to whole cells. Nothing is solid and nothing is wet yet.
 func setup(area: Rect2) -> void:
+	settle()
 	var first := Vector2(floorf(area.position.x / CELL), floorf(area.position.y / CELL))
 	var last := Vector2(ceilf(area.end.x / CELL), ceilf(area.end.y / CELL))
 	origin = first * CELL
@@ -48,12 +54,12 @@ func setup(area: Rect2) -> void:
 	solid.fill(0)
 	mass.resize(cols * rows)
 	mass.fill(0.0)
-	_next = mass.duplicate()
 
 
 ## Adds cells on any side, for liquid that has run to the edge of the grid. The new cells are ground until they are read (see read_ground), so liquid
 ## stays where it is until the ground there is known.
 func grow(left: int, right: int, up: int, down: int) -> void:
+	settle()
 	var new_cols := cols + left + right
 	var new_rows := rows + up + down
 	var wall_left := PackedByteArray()
@@ -90,7 +96,6 @@ func grow(left: int, right: int, up: int, down: int) -> void:
 	rows = new_rows
 	solid = new_solid
 	mass = new_mass
-	_next = mass.duplicate()
 	wake()
 
 
@@ -120,6 +125,7 @@ func center_of(column: int, row: int) -> Vector2:
 
 ## Marks which cells are ground, by asking `is_solid` about each cell's middle. Only the cells inside `area` are looked at again.
 func read_ground(is_solid: Callable, area := Rect2()) -> void:
+	settle()
 	var c0 := 0
 	var c1 := cols - 1
 	var r0 := 0
@@ -140,6 +146,7 @@ func read_ground(is_solid: Callable, area := Rect2()) -> void:
 
 ## Reads the ground for some whole rows only, without waking the liquid: a pool does a few rows a frame so that making it never stalls the game.
 func read_rows(is_solid: Callable, first_row: int, last_row: int) -> void:
+	settle()
 	for r in range(first_row, mini(last_row, rows - 1) + 1):
 		for c in cols:
 			var ground: bool = is_solid.call(center_of(c, r))
@@ -153,6 +160,7 @@ func wet_columns() -> Vector2i:
 
 ## Fills every open cell whose middle lies in a rectangle of the world with liquid.
 func fill(area: Rect2) -> void:
+	settle()
 	for r in rows:
 		for c in cols:
 			var i := r * cols + c
@@ -164,6 +172,7 @@ func fill(area: Rect2) -> void:
 ## Puts liquid into the cell at a point, and into the cells above it when that one is full. Returns how much went in (all of it, unless the
 ## point is outside the grid or buried in ground).
 func add(point: Vector2, amount: float) -> float:
+	settle()
 	var cell := cell_at(point)
 	if cell.x < 0 or cell.y < 0 or cell.x >= cols or cell.y >= rows:
 		return 0.0
@@ -183,6 +192,7 @@ func add(point: Vector2, amount: float) -> float:
 
 ## Takes liquid from the cells whose middles lie in a rectangle, the highest first, up to an amount. Returns how much was taken.
 func take(area: Rect2, amount: float) -> float:
+	settle()
 	var left := amount
 	var first := cell_at(area.position)
 	var last := cell_at(area.end)
@@ -201,6 +211,7 @@ func take(area: Rect2, amount: float) -> float:
 
 
 func wake() -> void:
+	settle()
 	asleep = false
 	_quiet = 0
 	version += 1
@@ -280,25 +291,94 @@ static func _stable(total_mass: float) -> float:
 	return (total_mass + MAX_COMPRESS) / 2.0
 
 
-## One step of flow. Returns true while the liquid is still moving; when it comes to rest the grid sleeps.
+## One step of flow, done now. Returns true while the liquid is still moving; when it comes to rest the grid sleeps.
 func step() -> bool:
+	settle()
 	if asleep:
 		return false
-	_next = mass.duplicate()
+	var into := mass.duplicate()
+	_commit(into, [_pass(mass, into, _band)])
+	return not asleep
+
+
+## `times` steps of flow worked out on another core while the game goes on, the way a pool does it (see Pond). Until `settle` takes the answer, the
+## liquid stays as it was, so whatever looks at it in the meantime sees a whole, steady picture; anything that changes the grid settles it first.
+func step_later(times: int) -> void:
+	settle()
+	if asleep:
+		return
+	_job_times = times
+	_job_from = mass
+	_job_band = _band
+	_task = WorkerThreadPool.add_task(_work)
+
+
+## Whether steps are being worked out on another core.
+func working() -> bool:
+	return _task >= 0
+
+
+## Waits for the steps that `step_later` started (if any), and takes their answer.
+func settle() -> void:
+	if _task < 0:
+		return
+	WorkerThreadPool.wait_for_task_completion(_task)
+	_task = -1
+	_commit(_job_mass, _job_passes)
+	_job_from = PackedFloat32Array()
+	_job_mass = PackedFloat32Array()
+	_job_passes = []
+
+
+## The work of `step_later`, on a pool thread. It reads the grid and writes only to arrays of its own.
+func _work() -> void:
+	var from := _job_from
+	var band := _job_band
+	var passes := []
+	for k in _job_times:
+		var into := from.duplicate()
+		var result := _pass(from, into, band)
+		passes.append(result)
+		band = result["band"]
+		from = into
+	_job_mass = from
+	_job_passes = passes
+
+
+## Takes the answer of one or more steps: the new liquid, where it lies, and whether it has come to rest.
+func _commit(new_mass: PackedFloat32Array, passes: Array) -> void:
+	mass = new_mass
+	for result: Dictionary in passes:
+		version += 1
+		if not result["any"]:
+			asleep = true
+			return
+		_band = result["band"]
+		if result["moved"] < QUIET_FLOW:
+			_quiet += 1
+			if _quiet >= QUIET_STEPS:
+				asleep = true
+		else:
+			_quiet = 0
+
+
+## One step of flow, from the liquid in `from` into `into` (a copy of it). Touches nothing else of the grid, so it may run on any thread.
+## Returns where the liquid now lies ("band"), how much moved at most ("moved") and whether there is any liquid at all ("any").
+func _pass(from: PackedFloat32Array, into: PackedFloat32Array, band: Rect2i) -> Dictionary:
 	var first_row := rows
 	var last_row := -1
 	var first_col := cols
 	var last_col := -1
 	var moved := 0.0
-	var r0 := maxi(_band.position.y, 0)
-	var r1 := mini(_band.end.y - 1, rows - 1)
-	var c0 := maxi(_band.position.x, 0)
-	var c1 := mini(_band.end.x - 1, cols - 1)
+	var r0 := maxi(band.position.y, 0)
+	var r1 := mini(band.end.y - 1, rows - 1)
+	var c0 := maxi(band.position.x, 0)
+	var c1 := mini(band.end.x - 1, cols - 1)
 	for r in range(r0, r1 + 1):
 		var base := r * cols
 		for c in range(c0, c1 + 1):
 			var i := base + c
-			var remaining := mass[i]
+			var remaining := from[i]
 			if remaining <= 0.0:
 				continue
 			if r < first_row:
@@ -311,66 +391,54 @@ func step() -> bool:
 				last_col = c
 			# Down first: liquid falls whenever there is room.
 			if r + 1 < rows and solid[i + cols] == 0:
-				var below := mass[i + cols]
+				var below := from[i + cols]
 				var flow := _stable(remaining + below) - below
 				if flow > MIN_FLOW:
 					flow *= 0.5
 				flow = clampf(flow, 0.0, minf(MAX_SPEED, remaining))
 				if flow > 0.0:
-					_next[i] -= flow
-					_next[i + cols] += flow
+					into[i] -= flow
+					into[i + cols] += flow
 					remaining -= flow
 					moved = maxf(moved, flow)
 			if remaining <= 0.0:
 				continue
 			# Then out to either side, from the fuller cell to the emptier one.
 			if c > 0 and solid[i - 1] == 0:
-				var flow := (remaining - mass[i - 1]) * SIDE_RATE
+				var flow := (remaining - from[i - 1]) * SIDE_RATE
 				if flow > MIN_FLOW:
 					flow *= SIDE_EASE
 				flow = clampf(flow, 0.0, remaining)
 				if flow > 0.0:
-					_next[i] -= flow
-					_next[i - 1] += flow
+					into[i] -= flow
+					into[i - 1] += flow
 					remaining -= flow
 					moved = maxf(moved, flow)
 			if remaining <= 0.0:
 				continue
 			if c + 1 < cols and solid[i + 1] == 0:
-				var flow := (remaining - mass[i + 1]) * SIDE_RATE
+				var flow := (remaining - from[i + 1]) * SIDE_RATE
 				if flow > MIN_FLOW:
 					flow *= SIDE_EASE
 				flow = clampf(flow, 0.0, remaining)
 				if flow > 0.0:
-					_next[i] -= flow
-					_next[i + 1] += flow
+					into[i] -= flow
+					into[i + 1] += flow
 					remaining -= flow
 					moved = maxf(moved, flow)
 			if remaining <= 0.0:
 				continue
 			# And up, when this cell holds more than the weight above it allows.
 			if r > 0 and solid[i - cols] == 0:
-				var flow := remaining - _stable(remaining + mass[i - cols])
+				var flow := remaining - _stable(remaining + from[i - cols])
 				if flow > MIN_FLOW:
 					flow *= 0.5
 				flow = clampf(flow, 0.0, minf(MAX_SPEED, remaining))
 				if flow > 0.0:
-					_next[i] -= flow
-					_next[i - cols] += flow
+					into[i] -= flow
+					into[i - cols] += flow
 					moved = maxf(moved, flow)
-	var swap := mass
-	mass = _next
-	_next = swap
-	if last_row < 0:
-		asleep = true
-		version += 1
-		return false
-	_band = Rect2i(maxi(first_col - 1, 0), maxi(first_row - 1, 0), mini(last_col + 2, cols) - maxi(first_col - 1, 0), mini(last_row + 2, rows) - maxi(first_row - 1, 0))
-	version += 1
-	if moved < QUIET_FLOW:
-		_quiet += 1
-		if _quiet >= QUIET_STEPS:
-			asleep = true
-	else:
-		_quiet = 0
-	return not asleep
+	var found := Rect2i()
+	if last_row >= 0:
+		found = Rect2i(maxi(first_col - 1, 0), maxi(first_row - 1, 0), mini(last_col + 2, cols) - maxi(first_col - 1, 0), mini(last_row + 2, rows) - maxi(first_row - 1, 0))
+	return {"band": found, "moved": moved, "any": last_row >= 0}

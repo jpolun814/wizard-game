@@ -7,6 +7,6 @@ script = ExtResource("1_vt8yl")
 spell_name = "Earthquake"
 school = "Earth"
 gesture = "earthquake"
-cost = 75.0
+cost = 60.0
 effect = "Shake the world for a little while."
 damage = "shakes the ground"

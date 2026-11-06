@@ -86,7 +86,7 @@ func _arrived(world: World) -> void:
 		if wizard != world.player:
 			wizards += 1
 			_verdict(wizard.global_position.x > 0.0 and wizard.global_position.x < ArenaGen.world_size.x * 32.0, "a wizard stands inside world %d" % (stage + 1))
-	_verdict(wizards == 3, "three rival wizards in world %d (%d)" % [stage + 1, wizards])
+	_verdict(wizards == World.WIZARDS - 1, "the rival wizards in world %d (%d)" % [stage + 1, wizards])
 	var spread: Array[float] = [world.player.global_position.x]
 	for wizard: Wizard in get_tree().get_nodes_in_group("wizards"):
 		if wizard != world.player:

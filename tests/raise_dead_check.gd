@@ -76,6 +76,15 @@ func _raise() -> void:
 	await _wait(5.0)
 	_verdict(_player.max_stamina == stamina_before and not _player.dead, "it never strikes its master (%.0f lost)" % (stamina_before - _player.max_stamina))
 	# It stays near its master.
+	var floor_slab := StaticBody2D.new()  # level ground to walk to (the ground there may be a pit or a slope)
+	var floor_shape := CollisionShape2D.new()
+	var floor_box := RectangleShape2D.new()
+	floor_box.size = Vector2(1400.0, 40.0)
+	floor_shape.shape = floor_box
+	floor_slab.add_child(floor_shape)
+	floor_slab.collision_layer = 1
+	floor_slab.position = _spot + Vector2(300.0, 22.0)
+	_world.add_child(floor_slab)
 	_player.global_position = _spot + Vector2(500.0, 0.0)
 	await _wait(5.0)
 	_verdict(skeleton.global_position.distance_to(_player.global_position) < 260.0, "it follows its master (%.0f px off)" % skeleton.global_position.distance_to(_player.global_position))

@@ -7,6 +7,6 @@ script = ExtResource("1_jjuiq")
 spell_name = "Stonefall"
 school = "Earth"
 gesture = "stonefall"
-cost = 25.0
+cost = 30.0
 effect = "Drop a boulder from above."
 damage = "30 damage"

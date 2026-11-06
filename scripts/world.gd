@@ -8,7 +8,7 @@ extends "res://scripts/arena.gd"
 ## The seed to build from. The waiting room's portal sets it before the world loads; a world opened directly gets a random one.
 static var next_seed := -1
 
-const WIZARDS := 4  # the wizards in a world: the player and three more
+const WIZARDS := WorldGraph.PLAYERS  # the wizards in a world: the player and the rest
 const PortalCollapse := preload("res://scripts/portal_collapse.gd")
 
 var seed_value := 0
@@ -668,6 +668,7 @@ func _spawn_wizards() -> void:
 			wizard = _add_brains_likeness(seat, places[seat])
 		else:
 			wizard = _add_wizard(Net.rival_look(seat), places[seat], "Rival%d" % seat)
+			wizard.palette = Net.rival_palette(seat)
 			wizard.nav = nav
 			if state.has("max"):
 				wizard.max_stamina = state["max"]
@@ -688,6 +689,7 @@ func _add_brains_likeness(seat: int, feet: Vector2) -> Wizard:
 	wizard.peer = 1
 	wizard.human = false
 	wizard.look = Net.rival_look(seat)
+	wizard.palette = Net.rival_palette(seat)
 	wizard.position = feet
 	add_child(wizard)
 	wizard.share()

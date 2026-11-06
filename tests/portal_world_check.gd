@@ -131,6 +131,10 @@ func _run(world: World) -> void:
 	for w in get_tree().get_nodes_in_group("wizards"):
 		if w != player and w.brain != null:
 			rider = w
+	for w in get_tree().get_nodes_in_group("wizards"):  # the others keep out of its way: with eight in one field one would fight it, or ride the same portal
+		if w != player and w != rider:
+			w.set_physics_process(false)
+			w.global_position += Vector2(0.0, -3000.0)
 	for page in get_tree().get_nodes_in_group("pages"):
 		rider.brain._skip[page.get_instance_id()] = 999.0  # with no page it can go for, it looks to the portals
 	var grounded := field.open_portals().filter(func(p: FieldPortal) -> bool: return p.lift == 0.0)  # the AI walks to ones on the ground
@@ -157,11 +161,11 @@ func _run(world: World) -> void:
 		await get_tree().create_timer(1.0, true, false, true).timeout
 	Engine.time_scale = 1.0
 	if not hung.is_empty():
-		hung.sort_custom(func(a: FieldPortal, b: FieldPortal) -> bool: return a.remaining() > b.remaining())
+		hung.sort_custom(func(a: FieldPortal, b: FieldPortal) -> bool: return a.lift < b.lift)  # the easiest jump
 		var high: FieldPortal = hung[0]
 		var lift_at := high.lift
 		var before: int = riders.get(rider, 0)
-		rider.global_position = high.global_position + Vector2(-220.0, Portal.RY + high.lift)
+		rider.global_position = high.global_position + Vector2(-220.0, -300.0)  # dropped from above, to land on whatever ground lies there
 		rider.brain._goal = ""
 		rider.brain._goal_timer = 0.0
 		Engine.time_scale = 3.0

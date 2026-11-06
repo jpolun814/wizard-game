@@ -6,7 +6,7 @@ extends SpellEffect
 
 const STATS := {
 	"Ignite": {"speed": 700.0, "damage": 12, "life": 2.0, "color": Color("#ff7a2a")},
-	"Frostbolt": {"speed": 600.0, "damage": 6, "life": 2.0, "color": Color("#b8f0ff")},
+	"Frostbolt": {"speed": 600.0, "damage": 7, "life": 2.0, "color": Color("#b8f0ff")},
 }
 const SLOW_SECONDS := 2.0
 const CLEAR_CHECK_AFTER := 0.05  # the overlaps of a new shot are not known until a few physics frames have passed

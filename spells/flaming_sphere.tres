@@ -8,6 +8,6 @@ spell_name = "Flaming Sphere"
 school = "Fire"
 gesture = "sphere"
 targeting = "directional"
-cost = 34.0
+cost = 30.0
 effect = "Launch a rolling ball of fire."
 damage = ""

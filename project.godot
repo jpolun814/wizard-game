@@ -20,6 +20,7 @@ config/icon="res://icon.svg"
 Sfx="*res://scripts/sfx.gd"
 Net="*res://scripts/net.gd"
 WandCursor="*res://scripts/wand_cursor.gd"
+Warmup="*res://scripts/warmup.gd"
 
 [debug]
 

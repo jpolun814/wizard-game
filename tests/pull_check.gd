@@ -47,7 +47,7 @@ func _ready() -> void:
 		await tree.process_frame
 		frames += 1
 	var wizards := SpellTargets.wizards(tree)
-	_verdict(wizards.size() == 4, "four wizards are drawn in (%d)" % wizards.size())
+	_verdict(wizards.size() == World.WIZARDS, "every wizard is drawn in (%d)" % wizards.size())
 	var start := {}
 	for body in wizards:
 		start[body] = body.global_position.distance_to(world._tear.global_position)

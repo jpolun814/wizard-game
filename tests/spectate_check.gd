@@ -31,7 +31,7 @@ func _ready() -> void:
 	_verdict(player.dead, "the player is dead")
 	_verdict(not _world.hud.is_game_over(), "no game-over screen while rivals live")
 	var living := _world._living()
-	_verdict(living.size() == 3, "three rivals live (%d)" % living.size())
+	_verdict(living.size() == World.WIZARDS - 1, "every rival lives (%d)" % living.size())
 	_verdict(player.global_position.distance_to(living[0].global_position) < 40.0, "the camera follows the first rival")
 	var click := InputEventMouseButton.new()
 	click.pressed = true
@@ -41,7 +41,7 @@ func _ready() -> void:
 	_verdict(player.global_position.distance_to(living[1].global_position) < 40.0, "a click moves to the next rival")
 	living[1].take_damage(100000)
 	await get_tree().create_timer(1.0).timeout
-	_verdict(_world._living().size() == 2, "a beaten rival is no longer watched")
+	_verdict(_world._living().size() == World.WIZARDS - 2, "a beaten rival is no longer watched")
 	_verdict(not _world.hud.is_game_over(), "still no game-over screen with two left")
 	var hint_ok := true
 	for page in get_tree().get_nodes_in_group("pages"):

@@ -14,7 +14,7 @@ extends Node
 
 const WAITING_ROOM := "res://scenes/lab.tscn"
 const WORLD := "res://scenes/world.tscn"
-const GIVE_UP := 300.0
+const GIVE_UP := 300.0  # (eight wizards in a wider world: a whole match takes longer to load and to play)
 
 
 func _ready() -> void:
@@ -55,7 +55,7 @@ class Driver extends Node:
 			await _seconds(2.0)
 		room.player.global_position = portal.global_position + Vector2(0, -30)
 		await _until(func() -> bool: return get_tree().current_scene == null or get_tree().current_scene.scene_file_path != WAITING_ROOM)
-		print("%s: left the waiting room" % role)
+		print("%s: left the waiting room (%.0f s)" % [role, Time.get_ticks_msec() / 1000.0])
 		await _seconds(1.5)
 		var key := InputEventKey.new()  # any key skips the cut-scene
 		key.keycode = KEY_SPACE
@@ -99,7 +99,7 @@ class Driver extends Node:
 		if role == "host":
 			MatchState.hurry = 0.01
 		await _until(func() -> bool: return get_tree().current_scene != world)
-		print("%s: the world collapsed" % role)
+		print("%s: the world collapsed (%.0f s)" % [role, Time.get_ticks_msec() / 1000.0])
 		var next: Node = await _scene(WORLD)
 		await _until(func() -> bool: return Net.peers_here().size() == 1)
 		await _seconds(2.0)
@@ -126,6 +126,14 @@ class Driver extends Node:
 			for wizard: Wizard in get_tree().get_nodes_in_group("wizards"):
 				if wizard.brain != null:
 					wizard.take_damage(9999)
+		if role == "host":
+			for k in 8:  # the winner's stats come up and hold the ending until someone puts them away: nobody is here to, so the test does
+				await _seconds(1.0)
+				for screen: Node in get_tree().root.find_children("*", "StatsScreen", true, false):
+					screen.hide()
+		get_tree().create_timer(120.0).timeout.connect(func() -> void:
+			print("%s: the match did not end and send everyone back to the waiting room" % role)
+			get_tree().quit(1))
 		await _scene(WAITING_ROOM)
 		_check(true, "back in the waiting room after the match")
 		if leave:
@@ -145,7 +153,7 @@ class Driver extends Node:
 			names.append(String(wizard.name))
 		names.sort()
 		print("%s: world %d, seed %d, wizards %s, pages %d" % [role, stage, world.seed_value, names, get_tree().get_nodes_in_group("pages").size()])
-		_check(wizards.size() == 4 or stage > 0, "four wizards in the first world (%d)" % wizards.size())
+		_check(wizards.size() == World.WIZARDS or stage > 0, "every wizard in the first world (%d)" % wizards.size())
 		var brains := 0
 		var brain_likenesses := 0
 		for wizard: Wizard in wizards:

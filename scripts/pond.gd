@@ -21,6 +21,7 @@ const RIM_OVERLAP := 12.0 # how far liquid runs under the ground beside it, to h
 const WATER_TOP := Color(0.15, 0.34, 0.5)     # the colours of water: lighter at the surface, darker below, with a bright edge
 const WATER_BOTTOM := Color(0.05, 0.1, 0.24)
 const WATER_RIM := Color(0.6, 0.78, 0.88)
+const READ_CELLS := 256   # the most cells of new ground read in a frame, so that a pool spreading never stalls the game
 const GROW := 12           # cells added at an edge the liquid has run up to
 const EDGE_WET := 0.05     # how much liquid at the edge of its grid makes it grow
 const MOST_COLS := 360     # the biggest a pool's grid can grow, so liquid spreading over a plain ends somewhere
@@ -39,6 +40,7 @@ var cools := false  # lava from a volcano's eruption: it dulls as it cools, burn
 var loose := false  # a puddle made by a spell, not a pool the world was dug with: it starts empty
 var ground: Terrain  # the ground the pool sits in; when given, the liquid flows over it
 var grid: LiquidGrid  # the flowing liquid, made when the pool first comes into view
+var _to_read: Array[Rect2] = []  # strips of new ground still to be read, a few cells at a time
 var _making: LiquidGrid  # a grid whose ground is being read a few rows a frame, before it takes over
 var _making_row := 0
 var clip: Array = []  # outlines of the open air, in world pixels: when given, the pool fills only the hollow
@@ -242,20 +244,55 @@ func _make_a_little() -> void:
 	grid.wake()
 
 
+## The liquid's steps are worked out on another core while the rest of the game goes on, and taken in at the next step's time (see
+## `LiquidGrid.step_later`), so a big pool of lava never stalls a frame.
 func _flow(delta: float) -> void:
-	if grid == null or grid.asleep:
+	if grid == null:
+		return
+	if grid.working():
+		grid.settle()  # (done long since, as a rule: a whole frame has gone by)
+		_make_room()
+	_read_a_little()
+	if grid.asleep:
 		return
 	_flow_clock += delta
 	if _flow_clock >= (LAVA_STEP if lava else WATER_STEP):
 		_flow_clock = 0.0  # (one step at most in a frame, however long the frame was)
-		grid.step()
-		if not lava:
-			grid.step()
-		_make_room()
+		grid.step_later(1 if lava else 2)
+
+
+func _exit_tree() -> void:
+	if grid != null:
+		grid.settle()  # a core must not be left working on a grid that is going
+
+
+## Puts a strip of new ground on the list to be read, cut into pieces small enough to read in one frame each.
+func _read_later(area: Rect2) -> void:
+	var cell := LiquidGrid.CELL
+	var cols := ceili(area.size.x / cell)
+	var rows := ceili(area.size.y / cell)
+	if cols * rows <= READ_CELLS:
+		_to_read.append(area)
+	elif cols >= rows:
+		var step := maxi(READ_CELLS / maxi(rows, 1), 1)
+		for c in range(0, cols, step):
+			_to_read.append(Rect2(area.position + Vector2(c * cell, 0.0), Vector2(minf(step, cols - c) * cell, area.size.y)))
+	else:
+		var step := maxi(READ_CELLS / maxi(cols, 1), 1)
+		for r in range(0, rows, step):
+			_to_read.append(Rect2(area.position + Vector2(0.0, r * cell), Vector2(area.size.x, minf(step, rows - r) * cell)))
+
+
+## Reads the next piece of new ground, if there is one.
+func _read_a_little() -> void:
+	if not _to_read.is_empty():
+		grid.read_ground(_solid, _to_read.pop_front())
 
 
 ## Liquid that has run to the edge of its grid gets more room there, as far as the ground lets it go.
 func _make_room() -> void:
+	if not _to_read.is_empty():
+		return  # the last strip is still being read
 	var wanted := grid.edges_wet(EDGE_WET)
 	if wanted == 0:
 		return
@@ -268,15 +305,15 @@ func _make_room() -> void:
 	var before := grid.world_rect()
 	grid.grow(left, right, up, down)
 	var after := grid.world_rect()
-	# Only the strips that were added are read.
+	# Only the strips that were added are read, a little each frame (the new cells are ground until they are read, so the liquid waits for them).
 	if left > 0:
-		grid.read_ground(_solid, Rect2(after.position, Vector2(left * LiquidGrid.CELL, after.size.y)))
+		_read_later(Rect2(after.position, Vector2(left * LiquidGrid.CELL, after.size.y)))
 	if right > 0:
-		grid.read_ground(_solid, Rect2(Vector2(before.end.x, after.position.y), Vector2(right * LiquidGrid.CELL, after.size.y)))
+		_read_later(Rect2(Vector2(before.end.x, after.position.y), Vector2(right * LiquidGrid.CELL, after.size.y)))
 	if up > 0:
-		grid.read_ground(_solid, Rect2(after.position, Vector2(after.size.x, up * LiquidGrid.CELL)))
+		_read_later(Rect2(after.position, Vector2(after.size.x, up * LiquidGrid.CELL)))
 	if down > 0:
-		grid.read_ground(_solid, Rect2(Vector2(after.position.x, before.end.y), Vector2(after.size.x, down * LiquidGrid.CELL)))
+		_read_later(Rect2(Vector2(after.position.x, before.end.y), Vector2(after.size.x, down * LiquidGrid.CELL)))
 	_fit_reach()
 
 

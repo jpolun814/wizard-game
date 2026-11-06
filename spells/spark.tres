@@ -9,4 +9,5 @@ gesture = "zigzag"
 effect = "Call down a bolt of lightning from the sky."
 damage = "20 damage"
 colour = Color(1, 0.9098039, 0.3529412, 1)
+cost = 40.0
 effect_path = "res://scripts/spells/spark_strike.gd"

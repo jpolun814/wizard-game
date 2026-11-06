@@ -33,11 +33,20 @@ func _ready() -> void:
 	if ridges == null:
 		get_tree().quit(1)
 		return
+	# A ridge from the middle of the range whose crest nothing hides: a wider world has ridges that cross, and a wizard dropped on a crest
+	# that another ridge stands in front of would land on that one.
 	var ridge: PackedVector2Array = ridges.ridges[ridges.ridges.size() / 2]
 	var top := ridge[0]  # its highest point, which is on the crest
-	for point in ridge:
-		if point.y < top.y:
-			top = point
+	for k in ridges.ridges.size():
+		var candidate: PackedVector2Array = ridges.ridges[(ridges.ridges.size() / 2 + k) % ridges.ridges.size()]
+		var crest_point := candidate[0]
+		for point in candidate:
+			if point.y < crest_point.y:
+				crest_point = point
+		if absf(ridges.top_at(crest_point.x) - crest_point.y) < 2.0:
+			ridge = candidate
+			top = crest_point
+			break
 	var low := ridge[0]
 	var steepest := 0.0
 	for r: PackedVector2Array in ridges.ridges:

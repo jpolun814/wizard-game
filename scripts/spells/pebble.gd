@@ -5,7 +5,7 @@ extends Projectile
 ## It hits the first body or the ground in its way.
 
 const SPEED := 1050.0
-const HARM := 8
+const HARM := 5
 const FLIGHT := 2.5
 const FALL := 760.0          # pixels a second it gains downward, every second
 const ART := preload("res://art/fx/pebble.png")

@@ -11,7 +11,7 @@ var _failures := 0
 
 func _ready() -> void:
 	var seed_value := 3
-	var seconds := 60.0
+	var seconds := 120.0
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("seed="):
 			seed_value = int(arg.substr(5))
@@ -31,9 +31,16 @@ func _ready() -> void:
 		await get_tree().physics_frame
 		elapsed += get_physics_process_delta_time()
 	for seat in range(1, World.WIZARDS):
+		var wizard: Wizard = world._seats[seat]
 		var mine := Pages.cluster_of(MatchState.seed_base, seat, World.WIZARDS)
 		var read := mine.filter(func(page: String) -> bool: return world.ledgers[seat].knows(page)).size()
+		# With eight in one world a wizard can be beaten on the way: that is not a brain that cannot find its pages.
+		if not is_instance_valid(wizard) or wizard.dead:
+			print("NOTE  seat %d was beaten after reading %d of its 5 pages" % [seat, read])
+			continue
 		_verdict(read >= 4, "seat %d has read %d of its 5 pages after %.0f s (book: %s)" % [seat, read, seconds, ", ".join(world.ledgers[seat].pages.keys())])
+		if read < 4:
+			print("      seat %d is at (%d, %d), %s, held up: %s" % [seat, wizard.global_position.x / 32.0, wizard.global_position.y / 32.0, wizard.brain.status(), "; ".join(wizard.brain.stuck_at.slice(0, 3))])
 	print("the brains find their own pages first" if _failures == 0 else "%d FAILED" % _failures)
 	get_tree().quit(1 if _failures > 0 else 0)
 

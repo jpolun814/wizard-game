@@ -12,7 +12,7 @@ var _failures := 0
 func _ready() -> void:
 	World.random_start = false
 	World.arrive_by_portal = false
-	World.next_seed = 8
+	World.next_seed = 3
 	var world: World = load("res://scenes/world.tscn").instantiate()
 	add_child(world)
 	await get_tree().process_frame

@@ -10,6 +10,7 @@ const MARGIN := 4           # columns at each end of the world that are left alo
 const GRAVEYARD_WIDTH := 270
 const CASTLE_WIDTH := 90    # the same as WorldBuilder's
 const CASTLE_START_WEST := 24    # columns from a castle's west end to a place to start on its ground floor, in the first room, right of its stairwell
+const CASTLE_START_MIDDLE := 50  # and in the room between
 const CASTLE_START_EAST := 76    # and in the last
 const POOL_PAD := 3         # columns of level shore each side of a pool
 const START_FLAT := 8       # columns each side of the middle that are level, to start on
@@ -93,7 +94,7 @@ static func build(width: int, biome: String, rng: RandomNumberGenerator) -> Dict
 		for c in range(0, width):
 			floor_row[c] = BASE_ROW
 			pinned[c] = 1
-	var starts := _starts(width, castles)
+	var starts := _starts(width, castles, volcanoes)
 	if castles.is_empty():  # a world that is all surface starts its wizards a quarter of the way apart, each on a level shelf cut into whatever ground is there
 		for spot in starts:
 			var shelf := floor_row[spot]
@@ -139,25 +140,50 @@ static func build(width: int, biome: String, rng: RandomNumberGenerator) -> Dict
 			"craters": craters, "mud": mud, "thorns": thorns, "trees": trees, "crypts": crypts, "landmarks": _landmarks(biome, floor_row, craters, trees, crypts), "starts": starts}
 
 
-## The columns four wizards start from in a world that is all surface: a quarter of the way along it, each time over; or, in the castle
-## world, inside the castles, on the ground floor, spread along the row.
-static func _starts(width: int, castles: Array[int]) -> Array[int]:
+## The columns the wizards start from in a world that is all surface: evenly along it, each time over (but not on the cone of a volcano: a start that
+## falls there is moved to the foot of it); or, in the castle world, inside the castles, on the ground floor, spread along the row.
+static func _starts(width: int, castles: Array[int], volcanoes: Array = []) -> Array[int]:
+	var count := WorldGraph.PLAYERS
 	var out: Array[int] = []
 	if castles.is_empty():
-		for k in 4:
-			out.append(roundi(width * (k + 0.5) / 4.0))
+		# The ground a wizard may start on is the world less its ends and the cone of each volcano; the starts are spread evenly along that.
+		var free: Array[Vector2i] = [Vector2i(MARGIN + START_FLAT + 4, width - MARGIN - START_FLAT - 4)]
+		for volcano: Dictionary in volcanoes:
+			var middle: int = MARGIN + volcano["at"]
+			var reach: int = volcano["height"] + RIM + START_FLAT + 2
+			var next: Array[Vector2i] = []
+			for piece in free:
+				if middle + reach <= piece.x or middle - reach >= piece.y:
+					next.append(piece)
+					continue
+				if middle - reach > piece.x:
+					next.append(Vector2i(piece.x, middle - reach))
+				if middle + reach < piece.y:
+					next.append(Vector2i(middle + reach, piece.y))
+			free = next
+		var total := 0
+		for piece in free:
+			total += piece.y - piece.x
+		for k in count:
+			var along := int(total * (k + 0.5) / count)
+			for piece in free:
+				if along <= piece.y - piece.x:
+					out.append(piece.x + along)
+					break
+				along -= piece.y - piece.x
 		return out
 	var spots: Array[int] = []
 	for castle in castles:
 		spots.append(castle + CASTLE_START_WEST)
+		spots.append(castle + CASTLE_START_MIDDLE)
 		spots.append(castle + CASTLE_START_EAST)
-	for j in 4:
-		out.append(spots[roundi(j * (spots.size() - 1) / 3.0)])
+	for j in count:
+		out.append(spots[roundi(j * (spots.size() - 1) / (count - 1.0))])
 	return out
 
 
 ## The volcanoes of a biome: [{"at": the column (from the first the ground takes), "height": rows}]. Only the ashlands have them, a pair
-## standing between the places the wizards start from (a quarter of the world apart, so the foot of one is never a start).
+## standing where the wizards do not start (a start that would fall on the cone of one is moved to its foot).
 static func _volcanoes(biome: String, n: int, rng: RandomNumberGenerator) -> Array:
 	if biome != "ashlands":
 		return []

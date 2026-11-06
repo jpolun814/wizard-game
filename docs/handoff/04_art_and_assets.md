@@ -10,7 +10,7 @@
   - Biome: a blood-moon graveyard.
   - Biome: a haunted swamp with jack-o'-lantern trees.
   - Biome: a cathedral with skull pillars.
-  - Characters: four identical wizards, each with its own look (the purple-hooded player, the shadow-flame dark wizard, the pyre and bone wizards), plus skeletons, goblins and flying eyes.
+  - Characters: eight identical wizards (four figures; seats beyond the fourth wear other sets of colours), each with its own look (the purple-hooded player, the shadow-flame dark wizard, the pyre and bone wizards), plus skeletons, goblins and flying eyes.
 
 ## Pixel rules (hard)
 

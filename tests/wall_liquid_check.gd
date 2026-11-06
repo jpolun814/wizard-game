@@ -14,14 +14,15 @@ func _verdict(ok: bool, what: String) -> void:
 		_failures += 1
 
 
-## How much liquid lies beyond a given x (to the right of it), in all of the lava of the world.
-func _beyond(x: float) -> float:
+## How much liquid lies beyond a given x (to the right of it), within a few hundred pixels of a level, in all of the lava of the world (lava that has
+## run down a long way and along a floor far below is not lava that went through the wall).
+func _beyond(x: float, level := 0.0, anywhere := false) -> float:
 	var sum := 0.0
 	for pond: Pond in get_tree().get_nodes_in_group("ponds"):
 		if pond.lava and pond.grid != null:
 			for r in pond.grid.rows:
 				for c in pond.grid.cols:
-					if pond.grid.center_of(c, r).x > x:
+					if pond.grid.center_of(c, r).x > x and (anywhere or absf(pond.grid.center_of(c, r).y - level) < 300.0):
 						sum += pond.grid.mass[r * pond.grid.cols + c]
 	return sum
 
@@ -67,13 +68,13 @@ func _ready() -> void:
 			await get_tree().physics_frame
 	for k in 240:
 		await get_tree().physics_frame
-	var over := _beyond(wall_x + 24.0)
+	var over := _beyond(wall_x + 24.0, spot.y)
 	_verdict(over < 0.05, "lava poured beside a wall does not run through it (%.2f beyond it)" % over)
 	for wall in walls:
 		wall.queue_free()
 	for k in 600:
 		await get_tree().physics_frame
-	var after := _beyond(wall_x + 24.0)
+	var after := _beyond(wall_x + 24.0, spot.y, true)
 	_verdict(after > 0.3, "and runs on once the wall is gone (%.2f beyond it)" % after)
 	print("a wall holds back liquid" if _failures == 0 else "%d FAILED" % _failures)
 	get_tree().quit(1 if _failures > 0 else 0)

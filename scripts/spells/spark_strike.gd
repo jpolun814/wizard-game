@@ -5,7 +5,7 @@ extends SpellEffect
 ## a platform or the ground, so nothing under a platform can be struck from above it.
 
 const LIFE := 0.35
-const DAMAGE := 20
+const DAMAGE := 30
 const SHOCK := 14  # what the water gives to those standing in it
 const SKY := 420.0  # the strike starts this far above where it lands
 

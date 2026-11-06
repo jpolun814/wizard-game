@@ -28,6 +28,8 @@ trust the code and this file where they disagree.
 | `12_liquids.md` | touch water or lava: pools are a flowing grid now (`LiquidGrid`, `Pond`), and a Sinkhole dug beside one fills from it |
 | `13_portal_world.md` | touch the portal world: a biome where portals open every few seconds, each a colour of its own, and carry you to another |
 | `11_network_play.md` | touch anything a second machine must see: wizards, spells, pages, gates, the match (done: host and join over a network) |
+| `15_open_problem_net_match.md` | work on the network match check that times out with eight wizards (open, unsolved) |
+| `16_backlog_2026_11_05.md` | pick the next job: owner requests not yet coded (bugs, more attack spells, easing in new players, training grounds) |
 | `14_spell_expansion_plan.md` | rename a school or a ritual, touch the Library, move the starting pages, or add Barbs, Pebble, Hailstorm, Featherfall, Thorn Whip, Flaming Sphere, Insect Plague, Leech, Raise Dead, Mirage or the Chant of the Scrying Eye (built; the Flaming Sphere is now a rolling sun; the stand-in shot art still waits for the owner) |
 
 ---
@@ -235,7 +237,7 @@ A 2D side-view last-wizard-standing duel built in Godot 4.7.2 and GDScript. You 
   plus hand-written shape detectors.
 - **Rituals:** press Enter and type a pseudo-Latin chant. Typing accuracy sets the ritual's power.
 
-A match: four identical wizards (you and three AI wizards, or friends over a network with AI wizards in the empty seats) race through a generated world for spellbook pages and fight each other. The last one standing wins. The AI wizards cast the same
+A match: eight identical wizards (`WorldGraph.PLAYERS`: you and seven AI wizards, or friends over a network with AI wizards in the empty seats; the four figures are shared out and, once they run out, wear other sets of colours, `Net.rival_palette`) race through a generated world for spellbook pages and fight each other. The last one standing wins. The AI wizards cast the same
 spells you do, drawing them visibly. There are no waves and no boss (see `docs/pvp_arena_design.md`).
 
 **The owner's taste, in their words:**

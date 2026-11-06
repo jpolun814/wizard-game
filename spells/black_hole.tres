@@ -7,6 +7,6 @@ script = ExtResource("1_w6wbe")
 spell_name = "Black Hole"
 school = "Shadow"
 gesture = "spiral"
-cost = 80.0
+cost = 70.0
 effect = "Open a black hole that pulls everything toward it."
 damage = "pulls everything in"

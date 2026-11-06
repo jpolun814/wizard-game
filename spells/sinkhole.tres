@@ -8,6 +8,6 @@ spell_name = "Sinkhole"
 school = "Earth"
 gesture = "pit"
 targeting = "shape"
-cost = 40.0
+cost = 35.0
 effect = "Open a sinkhole in the ground."
 damage = ""

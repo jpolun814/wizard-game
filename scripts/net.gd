@@ -29,7 +29,8 @@ static func port() -> int:
 const MENU := "res://scenes/menu.tscn"
 const GIVE_UP_MS := 8000  # a host that has not answered for this long is taken to be gone
 const VIRTUAL_CARDS := ["vethernet", "virtual", "vmware", "vbox", "hyper-v", "wsl", "loopback", "docker", "tailscale", "zerotier"]
-const SEATS := 4  # wizards in a match; the seats nobody takes are played by brains
+const RIVAL_PALETTES := [0, 4, 5, 2]  # the sets of colours (see WizardLook.PALETTES) brains wear in turn once the figures are used up
+const SEATS := WorldGraph.PLAYERS  # wizards in a match; the seats nobody takes are played by brains
 const LOOKS := ["wizard", "dark_wizard", "pyre_wizard", "bone_wizard"]  # the look of each seat, in order
 
 ## The people in the game, by peer id, in the order they came: the host first. A person's seat is their place in this list. Someone who
@@ -158,7 +159,7 @@ func style_of_seat(seat: int) -> Dictionary:
 	var person := person_in_seat(seat)
 	if person > 0:
 		return {"look": look_of(person), "palette": palette_of(person)}
-	return {"look": rival_look(seat), "palette": 0}
+	return {"look": rival_look(seat), "palette": rival_palette(seat)}
 
 
 ## The look a brain's wizard in a seat wears: the first of the four that no person has chosen, so that a brain does not share a figure with a person
@@ -173,7 +174,23 @@ func rival_look(seat: int) -> String:
 		elif s < seat:
 			brains_before += 1
 	var free := LOOKS.filter(func(look: String) -> bool: return not taken.has(look))
-	return free[brains_before] if brains_before < free.size() else LOOKS[seat]
+	var pool: Array = free if not free.is_empty() else LOOKS
+	return pool[brains_before % pool.size()]
+
+
+## The set of colours a brain's wizard in a seat wears: the original while there are figures left that no one has taken, and then, for the brains that
+## must share a figure, other sets in turn, so that no two wizards of a match look the same.
+func rival_palette(seat: int) -> int:
+	var taken := 0
+	var brains_before := 0
+	for s in SEATS:
+		var person := person_in_seat(s)
+		if person > 0:
+			taken += 1
+		elif s < seat:
+			brains_before += 1
+	var figures := maxi(LOOKS.size() - taken, 1)
+	return RIVAL_PALETTES[(brains_before / figures) % RIVAL_PALETTES.size()]
 
 
 ## This person has chosen a wizard (or this machine has just joined): everyone else is told which.

@@ -55,11 +55,11 @@ func _ready() -> void:
 		_verdict(world._leaving, "and goes on once they are put away")
 	else:
 		_verdict(world.player.dead, "the person has fallen")
-		_verdict(world._stats != null and world._stats.visible and world._stats.placement == 4, "and the stats come up, in last place (#%s)" % (world._stats.placement if world._stats != null else "?"))
+		_verdict(world._stats != null and world._stats.visible and world._stats.placement == World.WIZARDS, "and the stats come up, in last place (#%s)" % (world._stats.placement if world._stats != null else "?"))
 	var told := Library.history()
-	var want := 1 if mode == "win" else 4
-	_verdict(told.size() == 1 and int(told[0]["place"]) == want and int(told[0]["field"]) == 4 and not (told[0]["worlds"] as Array).is_empty() and int(told[0]["seconds"]) > 0,
-			"the Chronicle took the match once, placed %d of 4 (%s)" % [want, str(told)])
+	var want := 1 if mode == "win" else World.WIZARDS
+	_verdict(told.size() == 1 and int(told[0]["place"]) == want and int(told[0]["field"]) == World.WIZARDS and not (told[0]["worlds"] as Array).is_empty() and int(told[0]["seconds"]) > 0,
+			"the Chronicle took the match once, placed %d of the field (%s)" % [want, str(told)])
 	Library.clear()
 	Library.use_file(Library.PATH)
 	Library.force = false

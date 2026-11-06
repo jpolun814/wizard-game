@@ -74,3 +74,9 @@ Water from a spell is real liquid, and is not made from nothing more than once:
 "$GODOT" --headless --fixed-fps 60 --path . tests/liquid_world_check.tscn -- seed=3   # every pool of a world is made and keeps its liquid; a pit dug beside one fills (seeds 3, 5, 7, 12 have pools)
 "$GODOT" --fixed-fps 60 --path . tests/liquid_look.tscn -- out=DIR           # the waiting room's pond before and after a pit, as pictures (needs a window)
 ```
+
+## Steps on another core (`LiquidGrid.step_later`)
+
+A pool no longer steps its liquid on the main thread. `Pond._flow` calls `grid.step_later(n)`, which hands the work to a `WorkerThreadPool` task; the task reads `mass` and `solid` and writes only to arrays of its own (`_pass`). Nothing changes until `settle()` takes the answer, which `Pond._flow` does at the next physics frame, so the liquid is one frame behind and whatever reads it in the meantime sees a whole, steady picture. **Every method that changes the grid (`setup`, `grow`, `read_ground`, `read_rows`, `fill`, `add`, `take`, `wake`, `step`) settles first**; code that writes `grid.mass` or `grid.solid` directly (some checks do) must call `grid.settle()` first. A pond settles in `_exit_tree`, so a core is never left working on a grid that is going. `step()` is still there and is done at once (the liquid test uses it).
+
+What was measured (`tests/eruption_perf.tscn -- seed=5`, which now also prints the engine's process and physics time each second): the liquid's steps were the largest part of the ponds' cost (about 25-55 ms of each second), but the brains' thinking is under 1 ms a frame and path-finding is almost nothing, so neither is worth moving to a thread. Physics ticks still spike to 30-45 ms now and then for a reason not yet found (not the liquid steps, brains or paths).

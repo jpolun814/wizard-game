@@ -50,7 +50,7 @@ func _process(delta: float) -> void:
 				_next("world")
 		"world":
 			if scene is World and scene.player != null and scene.ledgers.size() > 0:
-				_verdict(scene.ledgers.size() == 4, "the world deals four wizards their pages (%d)" % scene.ledgers.size())
+				_verdict(scene.ledgers.size() == World.WIZARDS, "the world deals every wizard their pages (%d)" % scene.ledgers.size())
 				_verdict(scene.player.ledger == scene.ledgers[0] and not scene.player.ledger.everything, "the player holds the first ledger and not every page")
 				_verdict(get_tree().get_nodes_in_group("pages").size() >= Pages.LEAST, "pages lie on the map (%d)" % get_tree().get_nodes_in_group("pages").size())
 				_finish()

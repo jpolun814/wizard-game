@@ -53,7 +53,7 @@ func _ready() -> void:
 	await get_tree().create_timer(1.5).timeout
 	var screen: StatsScreen = _world._stats
 	_verdict(screen != null and screen.visible, "the stats screen comes up when the player falls")
-	_verdict(screen != null and screen.placement == 3 and screen.field == 4, "and says where they came: third of four (#%s of %s)" % [screen.placement if screen else "?", screen.field if screen else "?"])
+	_verdict(screen != null and screen.placement == World.WIZARDS - 1 and screen.field == World.WIZARDS, "and says where they came: third of the field (#%s of %s)" % [screen.placement if screen else "?", screen.field if screen else "?"])
 	_verdict(not _world.hud.is_game_over(), "no game-over screen while rivals live")
 	_verdict(StatsScreen._clock(83.0) == "1:23", "a time reads as minutes and seconds")
 	_verdict(StatsScreen._round_up(37.0) == 40.0 and StatsScreen._round_up(3.0) == 4.0, "a chart tops out at a round figure")

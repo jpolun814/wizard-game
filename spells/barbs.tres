@@ -8,6 +8,6 @@ spell_name = "Barbs"
 school = "Flora"
 gesture = "flick"
 targeting = "directional"
-cost = 12.0
+cost = 10.0
 effect = "Fling a volley of thorns."
 effect_path = "res://scripts/spells/barbs.gd"

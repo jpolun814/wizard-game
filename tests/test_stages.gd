@@ -39,7 +39,7 @@ func _initialize() -> void:
 			for i in spawns.size():
 				for j in range(i + 1, spawns.size()):
 					apart = mini(apart, absi(spawns[i].x - spawns[j].x))
-			_check(apart >= plan["width"] / 10, "%s: starting places only %d columns apart" % [label, apart])
+			_check(apart >= plan["width"] / (WorldGraph.PLAYERS * 2), "%s: starting places only %d columns apart" % [label, apart])
 			var shut := WorldBuilder.shut(world)
 			var nav := WorldNav.new()
 			nav.build(shut["cells"], world["size"].y, shut["barred"], spawns[0], shut["tolls"], shut["links"], shut["climbs"])
@@ -55,7 +55,7 @@ func _initialize() -> void:
 				_check(graph.rooms.size() == 1 and world["gates"].is_empty(), "%s: the %s is not all open sky" % [label, biome])
 			_check(world["castles"].is_empty() != (biome == "castle"), "%s: %d castles in the %s" % [label, world["castles"].size(), biome])
 			_check(world["roofed"] == (biome == "underground"), "%s: roofed is %s in the %s" % [label, world["roofed"], biome])
-			var dealt := Pages.deal(s, 4)
+			var dealt := Pages.deal(s, WorldGraph.PLAYERS)
 			var layout := Pages.plan(graph, rng, dealt)
 			var known := {}
 			for ledger in dealt:

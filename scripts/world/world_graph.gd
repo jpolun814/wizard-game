@@ -16,7 +16,7 @@ const MAX_ROOMS := 42
 const ENTRANCE_SPACING := 40   # one way down for about this many columns of surface, at the least, in every biome
 const SURFACE_APART := 34       # columns between two ways down from the surface
 const CLUSTER_ROOMS := 8       # a way down is the start of a system of about this many halls
-const PLAYERS := 4
+const PLAYERS := 8  # the wizards of a match: every place that counts them (seats, starting places, looks) follows this
 const MIN_RUN := 22         # the least a tunnel runs between two halls, in columns
 const MAX_RUN := 54
 const SLOPE := 2.0          # columns a gentle tunnel needs for each row it climbs
@@ -108,11 +108,11 @@ func _every_biome_has_a_way_down() -> bool:
 	return true
 
 
-## True when every two starting places are at least 140 columns apart.
+## True when every two starting places are far enough apart (140 columns in a full world for four wizards, less for more).
 func _spawns_apart() -> bool:
 	for i in spawns.size():
 		for j in range(i + 1, spawns.size()):
-			if absi(spawns[i]["x"] - spawns[j]["x"]) < 140 * size.x / FULL.x:
+			if absi(spawns[i]["x"] - spawns[j]["x"]) < 140 * size.x / FULL.x * 4 / PLAYERS:
 				return false
 	return true
 

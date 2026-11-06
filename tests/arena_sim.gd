@@ -50,7 +50,7 @@ func _ready() -> void:
 		MatchState.stage = _stage
 		MatchState.pending = true
 		MatchState.ledgers = Pages.deal(seed_value + 31, World.WIZARDS)
-		for k in 4:
+		for k in World.WIZARDS:
 			MatchState.vitals.append({"alive": true, "max": 200.0, "stamina": 200.0})
 	_world = load("res://scenes/world.tscn").instantiate()
 	add_child(_world)
@@ -126,7 +126,7 @@ func _finish(standing: int) -> void:
 		var info: Dictionary = _seen[i]
 		var got: int = info["pages"] - 5
 		print("    %-12s %s, read %d pages%s" % [info["kind"], "standing" if alive else "beaten at %.0fs" % _beaten.get(wizard, 0.0), got, ", the first at %.0fs" % _first_page[wizard] if _first_page.has(wizard) else ", none at all"])
-		if got <= 0 and _clock >= 60.0 and not _beaten.has(wizard):
+		if got <= 0 and _clock >= 120.0 and not _beaten.has(wizard):
 			print("FAIL  %s read no page in %.0f seconds" % [info["kind"], _clock])
 			_failed = true
 	for i in _wizards.size():

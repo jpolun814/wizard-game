@@ -26,6 +26,7 @@ var lasting := true
 var _floors := PackedFloat32Array()  # the ground under each column, relative to the line
 var _pile := PackedFloat32Array()  # how deep the landed snow is in each column
 var _pile_shapes: Array[CollisionShape2D] = []
+var _shape_heights := PackedFloat32Array()  # the height each column's solid shape was last given
 var _pile_timer := 0.0
 var _dissipating := false
 var _chill := {}  # body -> seconds of cold it has taken, for the lasting storm only
@@ -197,7 +198,7 @@ func _grow_pile(delta: float) -> void:
 		if not reach.has_point(fire["at"]):
 			continue
 		var x: float = fire["at"].x - global_position.x
-		for c in _pile.size():
+		for c in range(maxi(ceili((x - MELT_RADIUS) / STEP), 0), mini(floori((x + MELT_RADIUS) / STEP) + 1, _pile.size())):  # (only the columns it reaches)
 			var distance := absf(c * STEP - x)
 			if distance < MELT_RADIUS:
 				melt[c] = maxf(melt[c], PILE_MELT * fire["heat"] * (1.0 - distance / MELT_RADIUS))
@@ -224,12 +225,21 @@ func _build_pile_body() -> void:
 
 
 func _sync_pile_body() -> void:
+	if _shape_heights.size() != _pile_shapes.size():
+		_shape_heights.resize(_pile_shapes.size())
+		_shape_heights.fill(-10.0)
 	for c in _pile_shapes.size():
 		var shape := _pile_shapes[c]
-		shape.disabled = _pile[c] < 1.0
-		if not shape.disabled:
+		var off := _pile[c] < 1.0
+		if off:
+			if not shape.disabled:
+				shape.disabled = true
+				_shape_heights[c] = -10.0
+		elif absf(_pile[c] - _shape_heights[c]) >= 1.0:  # (the physics engine is told only about a column that has changed by a pixel)
+			shape.disabled = false
 			(shape.shape as RectangleShape2D).size = Vector2(STEP, _pile[c])
 			shape.position = Vector2(c * STEP + STEP * 0.5, _floors[c] - _pile[c] * 0.5)
+			_shape_heights[c] = _pile[c]
 
 
 ## The clouds along the top, a white wash down to the ground, the flakes, and the pile that has landed.

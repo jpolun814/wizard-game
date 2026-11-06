@@ -195,12 +195,12 @@ func _sprawl(s: int, world: Dictionary, graph: WorldGraph, seen: Dictionary) -> 
 		if not WorldBuilder.standing(world["cells"], spawn.x, spawn.y):
 			_fail("seed %d: starting place %d is not on firm ground" % [s, k])
 		for j in range(k + 1, world["spawns"].size()):
-			if absi(world["spawns"][j].x - spawn.x) < 140:
+			if absi(world["spawns"][j].x - spawn.x) < 60:
 				_fail("seed %d: starting places %d and %d are only %d columns apart" % [s, k, j, absi(world["spawns"][j].x - spawn.x)])
 		var halls := 0
 		for room in graph.rooms:
 			halls += 1 if not room.has("surface") and absi(room["cx"] - spawn.x) < 260 else 0
-		if halls < 5:
+		if halls < 4:  # (eight starts share the world, so each has a few fewer)
 			_fail("seed %d: only %d halls within reach of starting place %d" % [s, halls, k])
 		var from_here := WorldBuilder.reachable(world["opened"], spawn, world["size"].y, world["hazards"])
 		for room in graph.rooms:

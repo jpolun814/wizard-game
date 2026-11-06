@@ -16,7 +16,7 @@ var _spot := Vector2.ZERO
 func _ready() -> void:
 	World.random_start = false
 	World.arrive_by_portal = false
-	World.next_seed = 8
+	World.next_seed = 3
 	_world = load("res://scenes/world.tscn").instantiate()
 	add_child(_world)
 	await get_tree().process_frame

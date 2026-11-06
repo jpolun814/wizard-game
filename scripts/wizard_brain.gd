@@ -19,6 +19,9 @@ const WALK_SPEED := 170.0
 const ENGAGE := 620.0         # a wizard this close, and in sight, is a fight; farther off, it is a journey
 const PAGE_REACH := 4          # tiles: a page further than this from any place to stand is not one it can get
 const GOAL_EVERY := 4.0       # seconds between looking for a nearer page
+const PAGE_TOUCH := 20.0         # pixels: a page this near is within reach
+const PAGE_STEPS := 320.0        # pixels: a page this near, and level, is walked to when the way ends short of it
+const PAGE_STEPS_TIME := 3.0     # seconds it tries
 const PORTAL_LEFT := 3.0        # seconds: a portal with less than this left open is not worth the walk
 const PORTAL_CHANCE := 0.75     # how often it takes a portal that is nearer than the page it was after
 const PORTAL_JUMP_FOR := 5.0    # seconds it stands under a portal hung in the air, jumping for it, before it takes it for out of reach
@@ -118,6 +121,7 @@ var _route := WizardRoute.new()
 var _goal := ""                  # what it is travelling to: "page", "foe", or "" for nothing
 var _goal_page: PagePickup
 var _goal_portal: FieldPortal
+var _page_steps := 0.0         # seconds it has spent walking the last steps to a page that lies just off the end of its way
 var _portal_jumping := 0.0     # seconds it has stood under a portal in the air, jumping for it
 var _last_feet := Vector2.INF
 var _goal_timer := 0.0
@@ -336,6 +340,11 @@ func _travel(delta: float) -> float:
 		_skip[_goal_portal.get_instance_id()] = GIVE_UP  # it has come to the portal and nothing came of it
 		_goal = ""
 		_goal_timer = 0.0
+	if _goal == "page" and _route.done() and not _goal_lost() and is_instance_valid(_goal_page):
+		var short: Vector2 = _goal_page.global_position - wizard.global_position
+		if absf(short.x) > PAGE_TOUCH and absf(short.x) < PAGE_STEPS and absf(short.y) < PAGE_STEPS and _page_steps < PAGE_STEPS_TIME:
+			_page_steps += delta  # the way ends a little short of it (the ground it lies on is not on the map): the last steps are walked
+			return signf(short.x) * WALK_SPEED
 	if _goal == "page" and _route.done() and not _goal_lost():  # it has come to the place, and the page is not to be had from there
 		_skip[_goal_page.get_instance_id()] = GIVE_UP
 		_goal = ""
@@ -741,6 +750,8 @@ func _choose_goal() -> void:
 		var path: Array[Vector2i] = []
 		if absi(stand.x - tile.x) + absi(stand.y - tile.y) <= PAGE_REACH:
 			path = _path(start, stand)
+			if path.is_empty() and stand == start:
+				path = [start]  # it stands where the way to the page ends: nothing to walk, though the page may lie a few steps off
 		if path.is_empty():
 			_skip[pickup.get_instance_id()] = GIVE_UP  # no way there that a wizard can walk
 			continue
@@ -757,6 +768,7 @@ func _choose_goal() -> void:
 	if best_page != null:
 		_goal = "page"
 		_goal_page = best_page
+		_page_steps = 0.0
 		_route.set_path(best_path)
 		return
 	if _choose_gate(start):

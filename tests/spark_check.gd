@@ -20,7 +20,7 @@ func _ready() -> void:
 			MatchState.stage = stage
 			MatchState.pending = true
 			MatchState.ledgers = Pages.deal(8 + 31, World.WIZARDS)
-			for k in 4:
+			for k in World.WIZARDS:
 				MatchState.vitals.append({"alive": true, "max": 200.0, "stamina": 200.0})
 		var world: World = load("res://scenes/world.tscn").instantiate()
 		add_child(world)

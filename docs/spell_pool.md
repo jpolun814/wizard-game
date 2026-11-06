@@ -172,3 +172,25 @@ These work, but their pictures are stand-ins for pixel art from a free pack, whi
 
 ## Cut
 - **Tsunami** (2026-10-25): cut for now. Its gesture recognizer (`_big_wave`) is still in the caster, unused.
+
+## Balance pass (2026-11-05)
+The owner asked for costs and damage to follow how strong a spell sounds and how hard it is to use: a spell that must be used up close can be cheap and strong; a spell that reaches anywhere must cost a lot. The real damage numbers live in the effect scripts (and `projectile.gd` for shots); the `damage` text in `spells/*.tres` is stale and not shown to players.
+
+| Spell | Cost | Damage |
+|---|---|---|
+| Pebble | 6 | 8 to 5 |
+| Barbs | 12 to 10 | same |
+| Ignite | 15 to 16 | 12 |
+| Frostbolt | 15 to 14 | 6 to 7 |
+| Fire Breath | 16 to 18 | 16 to 14 a tick |
+| Spark | 10 (the default) to 40 | 20 to 30 |
+| Stonefall | 25 to 30 | same |
+| Hailstorm | 24 to 30 | same |
+| Insect Plague | 34 to 28 | same |
+| Flaming Sphere | 34 to 30 | same |
+| Firewall | 20 to 18 | same |
+| Earthquake | 75 to 60 | same |
+| Black Hole | 80 to 70 | same |
+| Sinkhole | 40 to 35 | same |
+
+Families used for the reasoning: cheap and weak harassment (Pebble, Barbs, Frostbolt, Ignite, Icicles, Stalagmite, Bramble, Spore Puff, Thorn Whip, Firewall); cheap and strong but close (Fire Breath, Burst); dear and strong from anywhere (Spark, Stonefall, Hailstorm, Great Oak); area and zone control; control with no damage; defence and stealth. Untested in play: the AI casts when stamina is at least the cost, so Spark will be cast less often. Regeneration may be raised later (backlog, chapter 16).

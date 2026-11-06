@@ -7,6 +7,6 @@ script = ExtResource("1_spell")
 spell_name = "Insect Plague"
 school = "Flora"
 gesture = "eight"
-cost = 34.0
+cost = 28.0
 effect = "Summon a swarm of stinging insects."
 effect_path = "res://scripts/spells/insect_plague.gd"

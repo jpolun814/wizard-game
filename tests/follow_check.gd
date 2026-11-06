@@ -88,6 +88,7 @@ func _ready() -> void:
 	pads.queue_free()
 
 	# Drain the pool: the fish are stranded.
+	pond.grid.settle()
 	for k in pond.grid.mass.size():
 		pond.grid.mass[k] = 0.0
 	pond.grid.wake()
