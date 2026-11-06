@@ -203,7 +203,7 @@ func _ready() -> void:
 	geyser.queue_free()
 
 	wiz.fade_from_sight(5.0)
-	for k in 3:
+	for k in 40:  # (a wizard hurt a moment ago flashes red, then blinks while it cannot be hurt: both hide the fade, so wait them out)
 		await get_tree().physics_frame
 	_verdict(wiz.is_faded() and wiz.get_node("Look").modulate.a < 0.5, "Sneak leaves the wizard faint")
 	wiz.fade_time = 0.0

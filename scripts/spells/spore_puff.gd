@@ -2,11 +2,11 @@ class_name SporePuff
 extends Node2D
 
 ## Spore Puff: a cone drawn like Fire Breath's, with its point where the spores leave you and its mouth the way they
-## should drift. Poison spores pour out of the caster's mouth for about a second, then hang and drift. Whoever breathes
+## should drift. Every spore leaves the caster's mouth at once, in one burst, and then hangs and drifts. Whoever breathes
 ## them takes damage a little at a time, whoever released them. Ground and walls stop them. Wind (Tornado, Gust) and water
 ## clear them.
 
-const POUR := 0.9
+const PUFFS := 24          # the spores of one cast, all let go together
 const TICK := 0.5
 const DAMAGE := 8
 const SLOW_SECONDS := 1.0  # how long the choking lasts after the last breath of spores
@@ -15,7 +15,6 @@ const MAX_SPREAD := 1.3
 const MIN_REACH := 110.0
 const MAX_REACH := 230.0
 const SPEED := 260.0
-const RATE := 26.0          # spore puffs per second
 const DRAG := 1.4           # they slow quickly, then hang in the air
 const LIFE := 4.5           # how long one puff lives
 const FADE := 0.7           # how long it takes to thin away when the wind takes it
@@ -26,7 +25,6 @@ var spread := 0.8
 var reach := 160.0
 var _age := 0.0
 var _tick := 0.0
-var _emit := 0.0
 var _cast_facing := 1.0
 var _mouth := Vector2.ZERO
 var _thinning := -1.0  # counts down once the wind has taken it
@@ -48,6 +46,8 @@ func _ready() -> void:
 	_cast_facing = _facing()
 	_mouth = _mouth_position()
 	Sfx.play("snow", _mouth, -4.0)
+	for k in PUFFS:
+		_spawn_puff()
 
 
 func _physics_process(delta: float) -> void:
@@ -58,25 +58,14 @@ func _physics_process(delta: float) -> void:
 		if _thinning < 0.0:
 			queue_free()
 		return
-	var pouring := _age < POUR and _caster_alive()
-	if pouring:
-		_mouth = _mouth_position()
-		_emit += delta * RATE
-		while _emit >= 1.0:
-			_emit -= 1.0
-			_spawn_puff()
 	_move_puffs(delta)
 	_tick -= delta
 	if _tick <= 0.0 and not _puffs.is_empty():
 		_tick = TICK
 		_poison()
-	if not pouring and _puffs.is_empty():
+	if _puffs.is_empty():
 		queue_free()
 	queue_redraw()
-
-
-func _caster_alive() -> bool:
-	return is_instance_valid(caster_node) and not caster_node.dead
 
 
 func _facing() -> float:

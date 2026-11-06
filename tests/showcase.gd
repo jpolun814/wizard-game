@@ -646,11 +646,11 @@ func _plan_new_spells() -> void:
 	_at(11.5, func() -> void:
 		check.call("a Faint drops the wizard with no stamina and the maximum kept (max %d, stamina %d)" % [wizard.max_stamina, wizard.stamina], wizard.fainted and wizard.stamina < 10.0 and wizard.max_stamina == memo["max"] - 30.0)
 		_snap("fainted"))
-	_at(12.0, func() -> void:
+	_at(11.6, func() -> void:
 		var pos: Vector2 = wizard.global_position
 		Input.action_press("move_right")
 		memo["x"] = pos.x)
-	_at(12.4, func() -> void:
+	_at(12.1, func() -> void:  # (a faint now lasts about a second: stamina comes back at 28 a second after 0.7 s)
 		Input.action_release("move_right")
 		check.call("a fainted wizard cannot walk", absf(wizard.global_position.x - memo["x"]) < 5.0))
 	_at(14.5, func() -> void: check.call("and stands up once the stamina is back (stamina %d)" % wizard.stamina, not wizard.fainted and wizard.stamina >= 10.0))
@@ -880,7 +880,7 @@ func _plan_checks() -> void:
 	_at(21.7, func() -> void: _cast("Spore Puff", _stroke("cone", _feet(15) + Vector2(60, -40))))
 	_at(23.0, func() -> void:
 		var spores := tree.get_first_node_in_group("clouds")
-		check.call("spores pour out of the mouth and hang in the air", spores is SporePuff and not spores._puffs.is_empty())
+		check.call("the spores all leave the mouth together and hang in the air", spores is SporePuff and spores._puffs.size() >= SporePuff.PUFFS - 2)
 		check.call("spores hurt the dummy they drift over", tree.get_nodes_in_group("mobs").any(func(m: Node) -> bool: return m.kind == "dummy" and m.hp < m.max_hp)))
 	# A fire shot dropped into water goes out.
 	_at(23.5, func() -> void: _reset_room(2, "Ignite"))
