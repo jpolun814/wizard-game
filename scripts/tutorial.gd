@@ -1,60 +1,32 @@
 class_name Tutorial
 extends Lab
 
-## The tutorial room: a level stretch of ground with one place for each school. Standing at one shows a page of the book on screen with the
-## school's mouse, an example spell drawn out and a line to try it on a dummy, a turret or a pond. Two of them go on to a meeting of
-## spells: water laid across a pond, and a vine set alight. It is the waiting room's own ground and targets, but stamina runs out here as it does in
-## a match, and the portal at the far end leads back to the first screen.
+## The tutorial room: a level stretch of ground with something in the way at each place, and the pages that answer it lying at the foot of it. The book
+## starts empty, as in a match; reading a page (Tab) puts its spell in the book. Nothing is explained on screen but the keys to walk and jump at the very
+## start. What shuts the way: a dummy and a skeleton that strike down whoever walks past them standing, a pond and a pit too wide to cross, turrets that
+## hit whoever has no cover, thorns too long to walk through and a cliff too high to jump. It is the waiting room's own ground, but stamina runs out here as
+## it does in a match, and the portal at the far end leads back to the first screen.
 
 const POND_SPAN := Vector2i(24, 44)   # water too wide to jump, and too deep to wade
 const POND_ROWS := 4.0
-const REACH := 5.0  # columns either side of a place within which its page shows
 const CHUNKS := 52  # the room is wide, so that the places are far apart
-const PARCHMENT := Color("#e9d7bb")  # the plate a spell's shape is drawn on
 const PANEL := Color("#1f1528")
-const PANEL_DONE := Color("#1d2c22")
 const WORDS := Color("#efe3cf")
-const LETTERING := Lettering.FACE  # the face of the home screen and the spellbook
-const WORDS_DONE := Color("#a9dc98")
 const MENU := "res://scenes/menu.tscn"
 
-## Each place: the column it stands at, its title and its colour's school, and its steps: the spells to try (one is enough where it says "any").
-## A place with `keys` shows keys and what they do instead of spells. A step whose first entry begins "chant:" is a chant, spoken with Enter.
-## A place's `note` is the line under its steps. A place with a `goal` is done on standing on the ground within ten columns past that column;
-## the Plants place is done when its thorns are gone. Each of those is shut off from the next place by something the spells must clear:
-## water and a pit too wide to cross, turrets, thorns too long to walk through, a cliff too high to jump.
-const PLACES := [
-		{"col": -30, "title": "Controls", "school": "", "door": -26, "keys": [
-		["A D", "Move.", "move"],
-		["W Space", "Jump.", "jump"],
-		["Tab", "Open the spellbook.", "book"],
-		["Enter", "Speak a chant.", "ritual"],
-		["", "Hold a school's mouse buttons and draw its shape."],
-		["", "Watch your stamina at the top left. Spells cost stamina."],
-		["", "Stamina recharges while you stand still."]],
-		"note": "Try each key to open the door."},
-	{"col": -14, "title": "Attack", "school": "Fire", "any": true, "dummy": true, "steps": [
-		["Ignite"], ["Frostbolt"], ["Stonefall"]],
-		"note": "Kill the dummy. It kills you if you walk past it."},
-	{"col": 4, "title": "Maximum Stamina", "school": "Blood", "door": 9, "steps": [
-		["Adrenaline"]],
-		"note": "Cast it to open the door. Necromancy spends maximum stamina, and it does not come back."},
-	{"col": 18, "title": "Cross Water", "school": "Water", "any": true, "goal": 48, "steps": [
-		["Frost Bridge"], ["Lily Pads"]],
-		"note": "Cross the pond."},
-	{"col": 60, "title": "Block Projectiles", "school": "Air", "any": true, "goal": 106, "steps": [
-		["Barrier"], ["Stone Wall"]],
-		"note": "Get past the turrets. One hit kills you."},
-	{"col": 110, "title": "Burn Plants", "school": "Fire", "any": true, "thicket": true, "steps": [
-		["Ignite"], ["Fire Breath"]],
-		"note": "Burn the thorns."},
-	{"col": 160, "title": "Higher Ground", "school": "", "goal": 178, "steps": [
-		["chant:double_jump"]],
-		"note": "Press Enter, type the words, then press Enter. Then climb the cliff."},
-	{"col": 192, "title": "Cross a Pit", "school": "Air", "any": true, "goal": 233, "steps": [
-		["Rocket Jump"], ["Featherfall"], ["Push"]],
-		"note": "Cross the pit."},
+## The pages that lie in the room: the column each lies at and its pages. Pages that go together lie fanned out like cards, as a wizard's first pages do in a
+## match, and one read takes them all; any of them does the work at its place.
+const PAGE_SPOTS := [
+	[-16, ["Ignite", "Frostbolt", "Stonefall"]],
+	[3, ["Faint"]],
+	[17, ["Frost Bridge", "Lily Pads"]],
+	[59, ["Barrier", "Stone Wall"]],
+	[108, ["Ignite", "Fire Breath"]],
+	[156, ["chant:double_jump"]],
+	[192, ["Rocket Jump", "Featherfall", "Push"]],
 ]
+const STARTS := [-31, -22, 0, 12, 54, 104, 154, 186]   # where whoever falls is on their feet again: the start of the place they were working on
+const HINT_UNTIL := -21.0   # the keys to walk and jump show until the wizard has gone this far
 const CLIFF_COL := 170       # from here on the ground is this many rows higher than before: too high to jump, near enough for a second jump
 const CLIFF_ROWS := 7.0
 const GAP_SPAN := Vector2i(204, 229)   # a pit far too wide to jump, on the high ground: the spells listed carry a jump across it
@@ -62,23 +34,18 @@ const GAP_ROWS_DOWN := 4.0
 const THICKET_SPAN := Vector2i(118, 150)   # thorns across the way, far too long to walk through
 const THICKET_LAYERS := 10
 const TURRETS := [70, 82, 94]
-const TURRET_PATIENCE := 0.8   # seconds in the sight of a turret, with nothing in the way, before its shot finds the wizard
-const DUMMIES := [-6]   # the one in the way at the Attack place: whoever walks past it while it stands is struck down
 const TURRET_ZONE := Vector2i(62, 106)   # a hit from a turret here is a death
-const DOOR_HEIGHT := 288.0   # three doors tall: too high to jump, even with the second jump
-const DUMMY_HP := 36  # three fireballs: the tutorial's dummies fall quickly, so each try is seen through
+const TURRET_PATIENCE := 0.8   # seconds in the sight of a turret, with nothing in the way, before its shot finds the wizard
+const DUMMY_COL := -6       # in the way at the first place: whoever walks past it while it stands is struck down
+const SKELETON_COL := 11    # in the way at the second: whoever walks past it while it is awake is struck down
+const DUMMY_HP := 36  # three fireballs: the tutorial's dummy falls quickly, so each try is seen through
 
-var _done := {}      # place index -> {step index: true}
 var _guide: CanvasLayer
-var _panel: PanelContainer
-var _shown := -1     # the place whose page is up, or -1
-var _marks: Array[TutorialMark] = []
+var _hint: PanelContainer   # the keys to walk and jump, at the start
 var _thickets: Array[Bramble] = []
 var _dummy: Mob
+var _skeleton: Mob
 var _exposed := 0.0   # how long the wizard has been in the sight of a turret
-var _doors := {}     # place index -> the door that place opens
-var _pressed := {}   # the keys of the Controls place that have been used
-var _reached := {}   # place index -> true once its goal has been reached
 
 
 func _init() -> void:
@@ -104,25 +71,22 @@ func _build_map() -> Variant:
 func _begin_encounter(camera: Camera2D) -> void:
 	super(camera)
 	player.infinite_time = 0.0  # the waiting room never lets stamina run out, but here it does, as it does in a match: this is where it is learned
+	player.ledger = Ledger.of([])  # and the book is empty, as it is at the start of a match
+	spellbook.refresh()
+	player.damaged.connect(_on_player_hurt)
 	_guide = CanvasLayer.new()
 	_guide.layer = 4
 	add_child(_guide)
-	for k in PLACES.size():
-		var mark := TutorialMark.new()
-		var col: int = PLACES[k]["col"]
-		mark.position = Vector2(ArenaGen.column_x(col), ArenaGen.surface_y(_cells, col))
-		mark.title = PLACES[k]["title"]
-		mark.colour = SpellData.SCHOOL_COLORS[PLACES[k]["school"]] if PLACES[k]["school"] != "" else Color("#c8a8ff")
-		add_child(mark)
-		_marks.append(mark)
-		if PLACES[k].has("door"):
-			var door := TutorialDoor.new()
-			var door_col: int = PLACES[k]["door"]
-			door.position = Vector2(ArenaGen.column_x(door_col), ArenaGen.surface_y(_cells, door_col))
-			door.height = DOOR_HEIGHT
-			add_child(door)
-			_doors[k] = door
-	player.damaged.connect(_on_player_hurt)
+	_show_keys()
+	for spot: Array in PAGE_SPOTS:
+		var page := PagePickup.new()
+		var names: Array = spot[1]
+		page.page = names[0]
+		if names.size() > 1:
+			page.spoils.assign(names)
+			page.fan = true
+		page.position = Vector2(ArenaGen.column_x(spot[0]), ArenaGen.surface_y(_cells, spot[0]))
+		add_child(page)
 
 
 ## A pit of the same shape as the others, dug down from the ground at `base` rows.
@@ -143,13 +107,14 @@ func _add_ponds() -> void:
 
 
 func _add_targets() -> void:
-	for col: int in DUMMIES:
-		var mob := _add_mob("dummy", Vector2(ArenaGen.column_x(col), ArenaGen.surface_y(_cells, col)))
-		mob.max_hp = DUMMY_HP
-		mob.hp = DUMMY_HP
-		mob.facing = -1.0 if col < 0 else 1.0
-		mob.felled_stays = true
-		_dummy = mob
+	_dummy = _add_mob("dummy", Vector2(ArenaGen.column_x(DUMMY_COL), ArenaGen.surface_y(_cells, DUMMY_COL))) as Mob
+	_dummy.max_hp = DUMMY_HP
+	_dummy.hp = DUMMY_HP
+	_dummy.facing = -1.0
+	_dummy.felled_stays = true
+	_skeleton = _add_mob("basic", Vector2(ArenaGen.column_x(SKELETON_COL), ArenaGen.surface_y(_cells, SKELETON_COL))) as Mob
+	_skeleton.facing = -1.0
+	_skeleton.faint_stays = true
 	_plant_thicket()
 	for col: int in TURRETS:
 		var turret := _add_mob("turret", Vector2(ArenaGen.column_x(col), ArenaGen.surface_y(_cells, col)))
@@ -194,35 +159,13 @@ func _on_portal_entered(body: Node2D) -> void:
 	fade.tween_callback(get_tree().change_scene_to_file.bind(MENU))
 
 
-func spawn_spell(spell: String, targeting: String, origin: Vector2, aim: float, info: Dictionary, caster_node: Wizard) -> void:
-	super(spell, targeting, origin, aim, info, caster_node)
-	if caster_node != player:
-		return
-	_try_step(spell)
-
-
-## Marks the step of the place the wizard stands at that asks for this spell (or "chant:" and a chant's id), if there is one not done yet.
-func _try_step(wanted: String) -> void:
-	if _shown < 0:
-		return
-	var steps: Array = PLACES[_shown].get("steps", [])
-	for k in steps.size():
-		if steps[k][0] == wanted and not _done.get(_shown, {}).has(k):
-			if not _done.has(_shown):
-				_done[_shown] = {}
-			_done[_shown][k] = true
-			_marks[_shown].lit = _is_done(_shown)
-			_show(_shown)  # the page is made again, with the step marked done
-			return
-
-
-## Whoever falls is on their feet again at the place they were working on, and has to get past what shut them off.
+## Whoever falls is on their feet again at the start of the place they were working on, with the pages they had read, and has to get past what shut them off.
 func _on_player_died() -> void:
 	var column := player.global_position.x / float(ArenaGen.TILE)
-	var back: int = PLACES[0]["col"]
-	for entry: Dictionary in PLACES:
-		if entry["col"] + 0.5 <= column:
-			back = entry["col"]
+	var back: int = STARTS[0]
+	for start: int in STARTS:
+		if start <= column:
+			back = start
 	super()
 	_return_to.call_deferred(back)
 
@@ -241,66 +184,27 @@ func thorns_left() -> int:
 	return left
 
 
-## Whether everything a place asks has been done: its goal reached, or its spells tried (one of them, where one is enough).
-func _is_done(place: int) -> bool:
-	var entry: Dictionary = PLACES[place]
-	if _reached.has(place):
-		return true
-	if entry.has("keys"):
-		return _keys_used()
-	if entry.has("goal") or entry.get("thicket", false) or entry.get("dummy", false):
-		return false
-	var steps: Array = entry.get("steps", [])
-	var tried: int = _done.get(place, {}).size()
-	return not steps.is_empty() and (tried >= 1 if entry.get("any", false) else tried == steps.size())
-
-
-## A chant spoken well enough to take (the rest of it is the room's own) counts for the step that asks for it.
-func _on_ritual_finished(id: String, acc: float, unfinished: bool) -> void:
-	super(id, acc, unfinished)
-	if not unfinished and acc >= RitualInput.BACKFIRE_BELOW:
-		_try_step("chant:" + id)
-
-
 func _process(delta: float) -> void:
 	super(delta)
-	var near := -1
-	var best := REACH
 	var column := player.global_position.x / float(ArenaGen.TILE)
-	for k in PLACES.size():
-		var distance := absf(column - (PLACES[k]["col"] + 0.5))
-		if distance < best:
-			best = distance
-			near = k
-	_check_goals(column)
+	_rescue_from_pits(column)
 	_guard_the_way(column)
 	_watch_the_turrets(delta, column)
-	_open_doors()
-	if near != _shown:
-		_shown = near
-		_show(near)
+	_clear_spare_pages()
+	if _hint != null and column > HINT_UNTIL:
+		_hint.queue_free()
+		_hint = null
 
 
-## A place with a goal is done when the wizard stands on solid ground within ten columns past the column it names, or, at the Plants place, when the
-## thorns are gone. Whoever has fallen into the pond or the pit is put back on its near edge, where they came from.
-func _check_goals(column: float) -> void:
-	for k in PLACES.size():
-		var entry: Dictionary = PLACES[k]
-		if _reached.has(k):
-			continue
-		var met := false
-		if entry.has("goal"):
-			met = column >= entry["goal"] and column < entry["goal"] + 6.0 and player.is_on_floor()
-		elif entry.get("thicket", false):
-			met = thorns_left() == 0
-		elif entry.get("dummy", false):
-			met = _dummy == null or not is_instance_valid(_dummy) or _dummy.is_dead()
-		if met:
-			_reached[k] = true
-			_marks[k].lit = true
-			Sfx.play("pickup")
-			if _shown == k:
-				_show(k)
+## A page the book already holds is nothing to read, so it is taken away (the Burn Plants place lays Ignite again, for whoever skipped it).
+func _clear_spare_pages() -> void:
+	for pickup: PagePickup in get_tree().get_nodes_in_group("pages"):
+		if not pickup.is_queued_for_deletion() and not pickup.gives(player.ledger):
+			pickup.queue_free()
+
+
+## Whoever has fallen into the pond or the pit is put back on its near edge, where they came from.
+func _rescue_from_pits(column: float) -> void:
 	for pit: Array in [[POND_SPAN, POND_ROWS], [GAP_SPAN, GAP_ROWS_DOWN]]:
 		var span: Vector2i = pit[0]
 		var edge := span.x - 3
@@ -309,16 +213,21 @@ func _check_goals(column: float) -> void:
 			player.velocity = Vector2.ZERO
 
 
-## The dummy at the Attack place strikes down whoever walks past it while it stands.
+## The dummy and the skeleton strike down whoever walks past them while the dummy stands and the skeleton is awake. The skeleton does not leave its place.
 func _guard_the_way(column: float) -> void:
-	if _dummy == null or not is_instance_valid(_dummy) or _dummy.is_dead() or player.dead:
+	if player.dead:
 		return
-	if column > _dummy.global_position.x / float(ArenaGen.TILE) + 1.5:
+	if _dummy != null and is_instance_valid(_dummy) and not _dummy.is_dead() and column > DUMMY_COL + 1.5:
 		player.take_damage(1000, false)
+	if _skeleton != null and is_instance_valid(_skeleton) and not _skeleton.is_dead():
+		if not _skeleton.is_fainted():
+			_skeleton.apply_root(0.5)
+			if column > SKELETON_COL + 1.5:
+				player.take_damage(1000, false)
 
 
-## Whoever stays in sight of a turret, with no Barrier round them and no stone between, is shot, for the turrets
-## fire slowly and a runner could slip every one of them.
+## Whoever stays in sight of a turret, with no Barrier round them and no stone between, is shot, for the turrets fire slowly and a runner could slip every
+## one of them. A hit in this stretch is a death (see _strike_down).
 func _watch_the_turrets(delta: float, column: float) -> void:
 	if player.dead or player.has_shield() or column < TURRET_ZONE.x or column > TURRET_ZONE.y:
 		_exposed = 0.0
@@ -339,7 +248,7 @@ func _watch_the_turrets(delta: float, column: float) -> void:
 		_exposed = 0.0
 		Sfx.play("mob_shoot", watcher.center())
 		Fx.burst(self, player.center(), Color("#7fd8ff"), 8, 120.0, 0.3, true)
-		player.take_damage(6, true, true)  # (and in this stretch a hit is a death, see _strike_down)
+		player.take_damage(6, true, true)
 
 
 ## A hit from a turret kills, in the stretch the turrets guard (the Barrier and the Stone Wall are what turn the shots away).
@@ -353,210 +262,29 @@ func _strike_down() -> void:
 		player.take_damage(1000, false)
 
 
-## A door opens, the first time its place is done.
-func _open_doors() -> void:
-	for place: int in _doors:
-		var door: TutorialDoor = _doors[place]
-		if not door.is_open and _is_done(place):
-			door.open()
-			Sfx.play("pickup")
-			_marks[place].lit = true
-			if _shown == place:
-				_show(place)
-
-
-func _keys_used() -> bool:
-	for key: Array in PLACES[0]["keys"]:
-		if key.size() > 2 and not _pressed.has(key[2]):
-			return false
-	return true
-
-
-func _input(event: InputEvent) -> void:
-	super(event)
-	for action: Array in [["move_left", "move"], ["move_right", "move"], ["jump", "jump"], ["book", "book"], ["start_ritual", "ritual"]]:
-		if event.is_action_pressed(action[0]) and not _pressed.has(action[1]):
-			_pressed[action[1]] = true
-			if _shown == 0:
-				_show(0)
-
-
-## Puts the page for a place up on screen, or takes the page down when the wizard has walked away from every place.
-func _show(place: int) -> void:
-	if _panel != null:
-		_panel.queue_free()
-		_panel = null
-	if place < 0:
-		return
-	var entry: Dictionary = PLACES[place]
-	var school: String = entry["school"]
-	var accent: Color = (SpellData.SCHOOL_COLORS[school] if school != "" else Color("#8a6ac8"))
-	var steps: Array = entry.get("steps", [])
-	_panel = PanelContainer.new()
+## The keys to walk and jump, on screen at the start: the one thing the room does not leave to be found out.
+func _show_keys() -> void:
+	_hint = PanelContainer.new()
 	var style := StyleBoxFlat.new()
-	style.bg_color = PANEL_DONE if _is_done(place) else PANEL
-	style.border_color = accent.lightened(0.3)
+	style.bg_color = PANEL
+	style.border_color = Color("#8a6ac8").lightened(0.3)
 	style.set_border_width_all(3)
 	style.set_corner_radius_all(4)
 	style.set_content_margin_all(14.0)
-	_panel.add_theme_stylebox_override("panel", style)
-	var column := VBoxContainer.new()
-	column.add_theme_constant_override("separation", 8)
-	_panel.add_child(column)
-	var heading := Label.new()
-	heading.text = entry["title"]
-	heading.add_theme_font_override("font", LETTERING)
-	heading.add_theme_font_size_override("font_size", Lettering.size_near(46))
-	heading.add_theme_color_override("font_color", accent)
-	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	column.add_child(heading)
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 26)
-	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	column.add_child(row)
-	if entry.has("keys"):
-		var lines := VBoxContainer.new()
-		lines.add_theme_constant_override("separation", 8)
-		for key: Array in entry["keys"]:
-			var line := HBoxContainer.new()
-			line.add_theme_constant_override("separation", 10)
-			for cap: String in String(key[0]).split(" ", false):
-				line.add_child(Spellbook.KeyCap.new(cap))
-			var words := _ink(key[1], 20, WORDS_DONE if key.size() > 2 and _pressed.has(key[2]) else WORDS)
-			words.autowrap_mode = TextServer.AUTOWRAP_OFF
-			line.add_child(words)
-			lines.add_child(line)
-		row.add_child(lines)
-	for k in steps.size():
-		if k > 0 and entry.get("any", false):
-			var either := _ink("or", 24, accent.lightened(0.25))
-			either.autowrap_mode = TextServer.AUTOWRAP_OFF
-			either.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-			row.add_child(either)
-		row.add_child(_step(steps[k][0], steps[k][1] if steps[k].size() > 1 else "", _done.get(place, {}).has(k), accent))
-	if entry.has("note"):
-		var note := _ink(entry["note"], 19, WORDS)
-		note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		note.custom_minimum_size = Vector2(560.0, 0.0)
-		note.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-		column.add_child(note)
-	_guide.add_child(_panel)
-	_panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP, Control.PRESET_MODE_MINSIZE, 84)
-
-
-## One thing to try: the spell's name beside the mouse that casts it, its shape drawn out on a plate of parchment, and the line that asks for it.
-## A chant has the key that opens the box, and the words to type.
-func _step(page: String, prompt: String, done: bool, accent: Color) -> VBoxContainer:
-	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 6)
-	var top := HBoxContainer.new()
-	top.add_theme_constant_override("separation", 10)
-	var plate := PanelContainer.new()
-	var plate_style := StyleBoxFlat.new()
-	plate_style.bg_color = PARCHMENT
-	plate_style.set_corner_radius_all(4)
-	plate_style.set_content_margin_all(4.0)
-	plate.add_theme_stylebox_override("panel", plate_style)
-	plate.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	var title := ""
-	if page.begins_with("chant:"):
-		var chant: Dictionary = RitualInput.RITUALS[page.trim_prefix("chant:")]
-		title = chant["name"]
-		top.add_child(Spellbook.KeyCap.new("Enter"))
-		var words := _ink(chant["text"], 26, Spellbook.HEADING)
-		words.autowrap_mode = TextServer.AUTOWRAP_OFF
-		plate.add_child(words)
-		plate.custom_minimum_size = Vector2(250.0, 104.0)
-		words.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		words.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	else:
-		var spell: Spell = SpellData.SPELLS[page]
-		title = page
-		top.add_child(Spellbook.MouseIcon.new(spell.buttons, SpellData.SCHOOL_COLORS[spell.school]))
-		var gesture: String = spell.preview if spell.preview != "" else spell.gesture
-		plate.add_child(Spellbook.Preview.new(GestureTemplates.preview_points(gesture), GestureTemplates.preview_ground(gesture), 104.0))
-	var name_label := _ink(title, 26, WORDS_DONE if done else accent.lightened(0.25))
-	name_label.autowrap_mode = TextServer.AUTOWRAP_OFF
-	top.add_child(name_label)  # the mouse (or the key) comes first, with the name beside it
-	top.alignment = BoxContainer.ALIGNMENT_CENTER
-	box.add_child(top)
-	box.add_child(plate)
-	if prompt != "":
-		var text := _ink(prompt, 19, WORDS)
-		text.custom_minimum_size = Vector2(250.0, 0.0)
-		text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		box.add_child(text)
-	return box
-
-
-func _ink(text: String, size: int, colour: Color) -> Label:
-	var label := Label.new()
-	label.text = text
-	label.add_theme_font_size_override("font_size", size)
-	label.add_theme_color_override("font_color", colour)
-	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	return label
-
-
-## A place's mark in the room: its name over a glow of the school's colour, brighter once everything there has been tried.
-class TutorialMark extends Node2D:
-	var title := ""
-	var colour := Color.WHITE
-	var lit := false
-	var _t := 0.0
-
-	func _ready() -> void:
-		z_index = 2
-		var label := Label.new()
-		label.text = title
-		label.theme_type_variation = &"Outlined"
-		label.add_theme_font_size_override("font_size", 22)
-		label.add_theme_color_override("font_color", colour.lightened(0.3))
-		label.position = Vector2(-110.0, -140.0)
-		label.size = Vector2(220.0, 28.0)
-		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		add_child(label)
-
-	func _process(delta: float) -> void:
-		_t += delta
-		queue_redraw()
-
-	func _draw() -> void:
-		var strength := (0.5 if lit else 0.24) + 0.05 * sin(_t * 2.0)
-		Fx.draw_glow(self, Vector2(0.0, -8.0), 46.0, Color(colour.r, colour.g, colour.b, strength))
-		Fx.draw_glow(self, Vector2(0.0, -8.0), 18.0, Color(colour.r, colour.g, colour.b, strength + 0.2))
-
-
-## A door across the way, too tall to jump, shut until its place is done: it then rises and fades.
-class TutorialDoor extends StaticBody2D:
-	const DOOR := preload("res://art/props/door.png")
-	var height := 288.0
-	var is_open := false
-	var _look: Node2D
-
-	func _ready() -> void:
-		var shape := CollisionShape2D.new()
-		var box := RectangleShape2D.new()
-		box.size = Vector2(64.0, height)
-		shape.shape = box
-		shape.position = Vector2(0.0, -height * 0.5)
-		add_child(shape)
-		_look = Node2D.new()
-		_look.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-		add_child(_look)
-		var count := int(ceil(height / (DOOR.get_height() * 2.0)))
-		for k in count:
-			var piece := Sprite2D.new()
-			piece.texture = DOOR
-			piece.scale = Vector2(2.0, 2.0)
-			piece.offset = Vector2(0.0, -DOOR.get_height() * 0.5 + 1.0)
-			piece.position = Vector2(0.0, -k * DOOR.get_height() * 2.0)
-			_look.add_child(piece)
-
-	func open() -> void:
-		is_open = true
-		get_child(0).set_deferred("disabled", true)
-		var tween := create_tween().set_parallel()
-		tween.tween_property(_look, "position:y", -height, 0.8).set_ease(Tween.EASE_IN)
-		tween.tween_property(_look, "modulate:a", 0.0, 0.8)
-		tween.chain().tween_callback(hide)
+	_hint.add_theme_stylebox_override("panel", style)
+	var lines := VBoxContainer.new()
+	lines.add_theme_constant_override("separation", 8)
+	_hint.add_child(lines)
+	for key: Array in [["A D", "Move."], ["W Space", "Jump."]]:
+		var line := HBoxContainer.new()
+		line.add_theme_constant_override("separation", 10)
+		for cap: String in String(key[0]).split(" ", false):
+			line.add_child(Spellbook.KeyCap.new(cap))
+		var words := Label.new()
+		words.text = key[1]
+		words.add_theme_font_size_override("font_size", 20)
+		words.add_theme_color_override("font_color", WORDS)
+		line.add_child(words)
+		lines.add_child(line)
+	_guide.add_child(_hint)
+	_hint.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP, Control.PRESET_MODE_MINSIZE, 84)

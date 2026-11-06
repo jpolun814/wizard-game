@@ -37,7 +37,7 @@ static func _counts() -> bool:
 	if dedicated:
 		return false
 	var scene := (Engine.get_main_loop() as SceneTree).current_scene
-	return scene != null and not scene.scene_file_path.begins_with("res://tests/")
+	return scene != null and not scene.scene_file_path.begins_with("res://tests/") and not scene.scene_file_path.ends_with("tutorial.tscn")  # the tutorial is not a match
 
 
 ## Whether this is a match someone is playing, and not one of the tests.

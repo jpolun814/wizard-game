@@ -232,19 +232,36 @@ func _ready() -> void:
 	_show_spread()
 
 
-## The pages of the book: the cheat sheet, then a page to each spell and chant that is known.
+## The pages of the book: the cheat sheet, then a page to each spell and chant that is known, in the order they were found (by school only in the
+## waiting room, where every page is known).
 func _build_pages() -> void:
 	_pages = [_page_contents]
 	_page_of = {}
-	for school in SCHOOLS:
-		for spell_name in _spells_of(school):
-			if _ledger().knows(spell_name):
-				_page_of[spell_name] = _pages.size()
-				_pages.append(_page_spell.bind(spell_name))  # every spell has a page to itself
-	for ritual_id in RitualInput.RITUALS:
-		if ritual_id != "recall" and _ledger().knows_chant(ritual_id):  # the Return shares the Mark's page: the two work as a pair
-			_page_of["chant:" + ritual_id] = _pages.size()
-			_pages.append(_page_incantation.bind(ritual_id))
+	if _ledger().everything:
+		for school in SCHOOLS:
+			for spell_name in _spells_of(school):
+				_add_spell_page(spell_name)
+		for ritual_id in RitualInput.RITUALS:
+			if ritual_id != "recall":
+				_add_chant_page(ritual_id)
+		return
+	for page: String in _ledger().pages:
+		if page.begins_with("chant:"):
+			_add_chant_page(page.trim_prefix("chant:"))
+		else:
+			_add_spell_page(page)
+
+
+func _add_spell_page(spell_name: String) -> void:
+	if SpellData.SPELLS.has(spell_name) and _ledger().knows(spell_name) and not _page_of.has(spell_name):
+		_page_of[spell_name] = _pages.size()
+		_pages.append(_page_spell.bind(spell_name))  # every spell has a page to itself
+
+
+func _add_chant_page(ritual_id: String) -> void:
+	if RitualInput.RITUALS.has(ritual_id) and ritual_id != "recall" and _ledger().knows_chant(ritual_id) and not _page_of.has("chant:" + ritual_id):  # the Return shares the Mark's page: the two work as a pair
+		_page_of["chant:" + ritual_id] = _pages.size()
+		_pages.append(_page_incantation.bind(ritual_id))
 
 
 ## The ledger of the wizard whose book this is.

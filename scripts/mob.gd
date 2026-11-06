@@ -89,6 +89,7 @@ var hp := 30
 var max_hp := 30
 var stamina := 100.0      # a Faint takes all of it; it comes back as a wizard's does, and the enemy stands up when there is enough
 var _cooldown := 0.0
+var faint_stays := false  # a Faint on it is not slept off (the tutorial's skeleton)
 var felled_stays := false  # a practice dummy that can be beaten: it falls and stays down (the tutorial's)
 var _since_hit := 0.0  # seconds since this enemy was last hurt; a dummy heals once it has been left alone
 var _slow_time: float:
@@ -291,7 +292,7 @@ func _physics_process(delta: float) -> void:
 		_since_stamina += delta
 		if _since_stamina >= 1.0:
 			stamina = minf(STAMINA_CAP, stamina + Wizard.STAMINA_REGEN * delta)
-		if stamina >= GET_UP:
+		if stamina >= GET_UP and not faint_stays:
 			_fainted = false
 			if _visual.sprite_frames.has_animation("idle"):
 				_visual.play("idle")

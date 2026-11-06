@@ -17,14 +17,14 @@ func _ready() -> void:
 	for k in 20:
 		await get_tree().process_frame
 	player = room.player
+	player.ledger = Ledger.complete()  # (what is in the book is tried in tutorial_check: here it is the ground)
 	player.died.connect(func() -> void: _deaths += 1)
 	for f in 90:
 		await get_tree().physics_frame  # (the mobs fade in first)
 	for node: Node in get_tree().get_nodes_in_group("mobs"):
 		node.set_physics_process(false)  # the dummy and the turrets stand quiet: only the ground is tried here
 	await _dummy()
-	await _control_door()
-	await _stamina_door()
+	await _skeleton()
 	await _turrets()
 	await _cliff()
 	await _thorns()
@@ -83,11 +83,10 @@ func _dummy() -> void:
 	_verdict(_deaths > deaths, "walking past the dummy while it stands kills (deaths %d)" % (_deaths - deaths))
 	for f in 10:
 		await get_tree().physics_frame
-	_verdict(not room._reached.has(1), "and the Attack place is not done by that")
 	room._dummy.take_damage(1000)
 	for f in 30:
 		await get_tree().physics_frame
-	_verdict(room._dummy.is_dead() and room._reached.has(1), "killing the dummy finishes the Attack place")
+	_verdict(room._dummy.is_dead(), "the dummy can be killed")
 	deaths = _deaths
 	_put(-12)
 	for f in 20:
@@ -96,47 +95,24 @@ func _dummy() -> void:
 	_verdict(_deaths == deaths and _column() >= at + 6.0, "and then it can be walked past (column %.1f)" % _column())
 
 
-func _control_door() -> void:
-	var col: int = Tutorial.PLACES[0]["door"]
-	player.air_jump_time = 30.0
-	player.air_jump_ready = true
-	_put(col - 8)
+func _skeleton() -> void:
+	var at: int = Tutorial.SKELETON_COL
+	var deaths := _deaths
+	_put(at - 7)
 	for f in 20:
 		await get_tree().physics_frame
-	await _run_until(col + 3.0, 5.0)
-	_verdict(_column() < col, "the door after the controls cannot be passed or jumped (column %.1f)" % _column())
-	for key in ["move", "jump", "book", "ritual"]:
-		room._pressed[key] = true
-	for f in 30:
+	await _run_until(at + 6.0, 6.0)
+	_verdict(_deaths > deaths, "walking past the skeleton while it is awake kills (deaths %d)" % (_deaths - deaths))
+	room.spawn_spell("Faint", "positional", room._skeleton.center(), 0.0, {}, player)
+	for f in 10:
 		await get_tree().physics_frame
-	_verdict(room._doors[0].is_open, "and opens once every key has been used")
-	_put(col - 4)
+	_verdict(room._skeleton.is_fainted(), "a Faint puts it down")
+	deaths = _deaths
+	_put(at - 7)
 	for f in 20:
 		await get_tree().physics_frame
-	await _run_until(col + 3.0, 5.0)
-	_verdict(_column() >= col + 3.0, "and then it can be passed (column %.1f)" % _column())
-	player.air_jump_time = 0.0
-
-
-func _stamina_door() -> void:
-	var col: int = Tutorial.PLACES[2]["door"]
-	player.air_jump_time = 30.0
-	player.air_jump_ready = true
-	_put(col - 6)
-	for f in 20:
-		await get_tree().physics_frame
-	await _run_until(col + 3.0, 5.0)
-	_verdict(_column() < col, "the door at the Maximum Stamina place cannot be passed or jumped (column %.1f)" % _column())
-	room.spawn_spell("Adrenaline", "directional", player.center(), 0.0, {}, player)
-	for f in 30:
-		await get_tree().physics_frame
-	_verdict(room._doors[2].is_open, "and opens once Adrenaline is cast")
-	_put(col - 4)
-	for f in 20:
-		await get_tree().physics_frame
-	await _run_until(col + 3.0, 5.0)
-	_verdict(_column() >= col + 3.0, "and then it can be passed (column %.1f)" % _column())
-	player.air_jump_time = 0.0
+	await _run_until(at + 6.0, 6.0)
+	_verdict(_deaths == deaths and _column() >= at + 6.0, "and then it can be walked past (column %.1f)" % _column())
 
 
 func _turrets() -> void:
