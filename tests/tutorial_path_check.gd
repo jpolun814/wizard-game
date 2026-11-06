@@ -24,7 +24,7 @@ func _ready() -> void:
 	for node: Node in get_tree().get_nodes_in_group("mobs"):
 		node.set_physics_process(false)  # the dummy and the turrets stand quiet: only the ground is tried here
 	await _dummy()
-	await _skeleton()
+	await _giant_gate()
 	await _pond()
 	await _turrets()
 	await _thorns()
@@ -103,18 +103,18 @@ func _dummy() -> void:
 	_verdict(_deaths == deaths and _column() >= at + 6.0, "and then it can be walked past (column %.1f)" % _column())
 
 
-func _skeleton() -> void:
-	var at: int = Tutorial.SKELETON_COL
+func _giant_gate() -> void:
+	var at: int = Tutorial.GIANT_COL
 	var deaths := _deaths
 	_put(at - 7)
 	for f in 20:
 		await get_tree().physics_frame
 	await _run_until(at + 6.0, 6.0)
-	_verdict(_deaths > deaths, "walking past the skeleton while it is awake kills (deaths %d)" % (_deaths - deaths))
-	room.spawn_spell("Faint", "positional", room._skeleton.center(), 0.0, {}, player)
+	_verdict(_deaths > deaths, "walking past the giant while it is awake kills (deaths %d)" % (_deaths - deaths))
+	room.spawn_spell("Faint", "positional", room._giant.center(), 0.0, {}, player)
 	for f in 10:
 		await get_tree().physics_frame
-	_verdict(room._skeleton.is_fainted(), "a Faint puts it down")
+	_verdict(room._giant.is_fainted(), "a Faint puts it down")
 	deaths = _deaths
 	_put(at - 7)
 	for f in 20:
@@ -313,7 +313,7 @@ func _sentinel() -> void:
 	var zone := Tutorial.SENTINEL_ZONE
 	for thorns in room._thickets.duplicate():
 		if is_instance_valid(thorns) and thorns.planted_ground[0].x >= Tutorial.THICKET_SENTINEL.x * 32.0 - 40.0 and thorns.planted_ground[0].x <= Tutorial.THICKET_SENTINEL.x * 32.0 + 40.0:
-			thorns.queue_free()  # (the thorns are tried on their own: here it is the statue)
+			thorns.queue_free()  # (the thorns are tried on their own: here it is the eye)
 	for f in 5:
 		await get_tree().physics_frame
 	var deaths := _deaths
@@ -321,7 +321,7 @@ func _sentinel() -> void:
 	for f in 20:
 		await get_tree().physics_frame
 	await _run_until(zone.y + 3.0, 12.0)
-	_verdict(_deaths > deaths, "crossing the statue's stretch in its sight kills (deaths %d)" % (_deaths - deaths))
+	_verdict(_deaths > deaths, "crossing the eye's stretch in its sight kills (deaths %d)" % (_deaths - deaths))
 	deaths = _deaths
 	for f in 30:
 		await get_tree().physics_frame

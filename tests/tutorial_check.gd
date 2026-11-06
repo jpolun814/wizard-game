@@ -29,9 +29,9 @@ func _ready() -> void:
 		get_viewport().get_texture().get_image().save_png("%s/tutorial_start.png" % _out)
 	if _out != "" and DisplayServer.get_name() != "headless":
 		room._dummy.take_damage(1000)  # (so that the pictures are of the room, not of a wizard struck down)
-		room._skeleton.faint()
+		room._giant.faint()
 		player.veil = 999
-		for look: Array in [[22, "pond"], [214, "dark"], [346, "wall"], [380, "sentinel"], [424, "gas"], [490, "pond2"]]:
+		for look: Array in [[2, "giant"], [22, "pond"], [214, "dark"], [330, "wall"], [380, "sentinel"], [490, "pond2"]]:
 			player.global_position = Vector2(ArenaGen.column_x(look[0]), ArenaGen.surface_y(room._cells, look[0]) - 20.0)
 			player.velocity = Vector2.ZERO
 			if look[1] == "dark":
@@ -44,6 +44,14 @@ func _ready() -> void:
 		player.veil = 0
 		for f in 20:
 			await get_tree().physics_frame
+	player.ledger = Ledger.of(["Ignite"])  # a fan with a page the book has is laid out again with only the new one
+	for f in 10:
+		await get_tree().physics_frame
+	var burn_pages: Array = get_tree().get_nodes_in_group("pages").filter(func(n: PagePickup) -> bool: return not n.is_queued_for_deletion() and absf(n.position.x - ArenaGen.column_x(108)) < 4.0)
+	_verdict(burn_pages.size() == 1 and burn_pages[0].spoils.is_empty() and burn_pages[0].page == "Fire Breath", "a fan with a page the book already holds shows only what is new")
+	player.ledger = Ledger.of([])
+	for f in 10:
+		await get_tree().physics_frame
 	var pickups := get_tree().get_nodes_in_group("pages")
 	_verdict(pickups.size() == Tutorial.PAGE_SPOTS.size(), "a page or a fan of pages lies at each spot (%d)" % pickups.size())
 	for spot: Array in Tutorial.PAGE_SPOTS:
@@ -72,7 +80,7 @@ func _ready() -> void:
 	for f in 20:
 		await get_tree().physics_frame
 	_verdict(player.ledger.knows_spell("Barrier") and player.ledger.knows_spell("Faint"), "whoever falls keeps the spells they had read")
-	_verdict(absf(player.global_position.x / float(ArenaGen.TILE) - 54.0) < 2.0, "and is back at the start of the place (column %.1f)" % (player.global_position.x / float(ArenaGen.TILE)))
+	_verdict(absf(player.global_position.x / float(ArenaGen.TILE) - 47.0) < 2.0, "and is back at the start of the place (column %.1f)" % (player.global_position.x / float(ArenaGen.TILE)))
 	player.ledger = Ledger.of(["Faint", "Ignite", "chant:double_jump", "Barrier"])  # the book holds pages in the order they were found, not by school
 	room.spellbook.refresh()
 	var order: Dictionary = room.spellbook._page_of

@@ -1,7 +1,7 @@
 class_name Sentinel
 extends Node2D
 
-## A hooded statue that stands in a passage and shoots whichever wizard it sees. It sees what stands in the open air within its
+## A great red eye that hangs in a passage and shoots whichever wizard it sees. It sees what stands in the open air within its
 ## range: not through rock, not through smoke or an eclipse. It goes for a decoy it sees before it goes for the wizard,
 ## and wears the decoy down. Its shots are lasers, far too fast to outrun or dodge, and aimed ahead of whoever is moving; but they are like
 ## any other shot: rock and a Barrier stop them, and they hurt anyone they cross.
@@ -12,21 +12,29 @@ const INTERVAL := 0.7
 const DAMAGE := 40        # what a bolt does to the wizard
 const LASER_SPEED := 2400.0
 const DECOY_DAMAGE := 8   # what it does to a decoy, so a decoy buys several seconds
-const ART := preload("res://art/props/statue.png")
+const FRAMES := 8       # the frames of the flying eye
 const HEIGHT := 120.0
 
+var reach := RANGE   # how far it sees
 var _seen_for := 0.0
 var _cool := 0.0
-var _sprite: Sprite2D
+var _sprite: AnimatedSprite2D
 
 
 func _ready() -> void:
 	add_to_group("sentinels")
-	_sprite = Sprite2D.new()
-	_sprite.texture = ART
-	_sprite.scale = Vector2.ONE * (HEIGHT / ART.get_height())
-	_sprite.offset = Vector2(0, -ART.get_height() * 0.5 + 2.0)
+	var frames := SpriteFrames.new()
+	frames.add_animation("watch")
+	frames.set_animation_speed("watch", 8.0)
+	for k in FRAMES:
+		frames.add_frame("watch", load("res://art/mobs/eye/idle_%d.png" % k))
+	_sprite = AnimatedSprite2D.new()
+	_sprite.sprite_frames = frames
+	_sprite.scale = Vector2(2.0, 2.0)
+	_sprite.position = Vector2(0, -HEIGHT * 0.6)
+	_sprite.modulate = Color(1.0, 0.45, 0.4)
 	_sprite.z_index = 1
+	_sprite.play("watch")
 	add_child(_sprite)
 
 
@@ -73,7 +81,7 @@ func _target() -> Node2D:
 
 ## Whether it can see a point: within its range, in the open air, and not through smoke.
 func sees(point: Vector2) -> bool:
-	if center().distance_to(point) > RANGE:
+	if center().distance_to(point) > reach:
 		return false
 	var query := PhysicsRayQueryParameters2D.create(center(), point)
 	query.collision_mask = 1  # terrain only

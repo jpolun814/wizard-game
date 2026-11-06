@@ -3,7 +3,7 @@ extends Lab
 
 ## The tutorial room: a level stretch of ground with something in the way at each place, and the pages that answer it lying at the foot of it. The book
 ## starts empty, as in a match; reading a page (Tab) puts its spell in the book. Nothing is explained on screen but the keys to walk and jump at the very
-## start. What shuts the way: a dummy and a skeleton that strike down whoever walks past them standing, a pond and a pit too wide to cross, turrets that
+## start. What shuts the way: a dummy and a giant that strike down whoever walks past them standing, a pond and a pit too wide to cross, turrets that
 ## hit whoever has no cover, thorns too long to walk through, a cliff too high to jump, a gap too wide for one jump and a dark stretch of hidden spikes. The
 ## last gates ask for two things together (light and fire, a leap and fire). It is the waiting room's own ground, but stamina runs out here as it does in a
 ## match, and the portal at the far end leads back to the first screen.
@@ -19,19 +19,19 @@ const MENU := "res://scenes/menu.tscn"
 ## match, and one read takes them all; any of them does the work at its place.
 const PAGE_SPOTS := [
 	[-16, ["Ignite", "Frostbolt", "Stonefall"]],
-	[3, ["Faint"]],
+	[-2, ["Faint"]],
 	[17, ["Frost Bridge", "Lily Pads", "Spark"]],
-	[59, ["Barrier", "Stone Wall", "Smoke Screen"]],
+	[52, ["Barrier", "Stone Wall", "Smoke Screen"]],
 	[108, ["Ignite", "Fire Breath"]],
 	[158, ["Liana"]],
 	[176, ["chant:double_jump"]],
 	[206, ["Flare", "Glowcap"]],
 	[281, ["Rocket Jump", "Featherfall", "Push"]],
-	[343, ["Earthquake", "Stonefall"]],
-	[362, ["Eclipse", "Decoy"]],
+	[318, ["Earthquake", "Stonefall"]],
+	[350, ["Eclipse", "Decoy"]],
 	[421, ["Gust", "Tornado"]],
 ]
-const STARTS := [-31, -22, 0, 12, 54, 104, 154, 172, 204, 278, 341, 360, 419, 456, 488]   # where whoever falls is on their feet again: the start of the place they were working on
+const STARTS := [-31, -22, 0, 12, 47, 104, 154, 172, 204, 278, 316, 348, 419, 456, 488]   # where whoever falls is on their feet again: the start of the place they were working on
 const HINT_UNTIL := -21.0   # the keys to walk and jump show until the wizard has gone this far
 const CLIFF_COL := 165       # from here on the ground is this many rows higher than before: too high to jump, a vine climbs it
 const CLIFF_ROWS := 7.0
@@ -41,35 +41,38 @@ const GAP_SPAN := Vector2i(288, 313)   # a pit far too wide to jump, on the high
 const GAP_ROWS_DOWN := 4.0
 const THICKET_SPAN := Vector2i(118, 150)   # thorns across the way, far too long to walk through
 const THICKET_DARK := Vector2i(258, 270)   # thorns at the end of the dark stretch
-const THICKET_LAST := Vector2i(322, 336)   # and thorns past the last pit
-const WALL_COL := 352        # a wall of brick three columns thick and ten rows high: no jump clears it, and an earthquake or a boulder brings it down
+const WALL_COL := 324        # a wall of brick three columns thick and ten rows high: no jump clears it, and an earthquake or a boulder brings it down
 const WALL_ROWS := 10
-const SENTINEL_COL := 388     # a statue that shoots whoever it sees, over a stretch with thorns at the far end of it
-const SENTINEL_ZONE := Vector2i(366, 410)
-const THICKET_SENTINEL := Vector2i(396, 408)
+const SENTINEL_COL := 392     # an eye that shoots whoever it sees, over a stretch with thorns at the far end of it
+const SENTINEL_REACH := 480.0
+const SENTINEL_ZONE := Vector2i(376, 408)
+const THICKET_SENTINEL := Vector2i(398, 408)
 const GAS_SPAN := Vector2i(428, 451)    # three banks of poison gas
 const GAS_HEIGHT := 7
 const PIT_TWO := Vector2i(458, 483)     # a second pit, for the same leap
 const POND_TWO := Vector2i(496, 516)    # a pond of piranhas in the dark, for the light and the Spark together
 const DARK_POND := Vector2i(488, 526)
-const THICKETS := [THICKET_SPAN, THICKET_DARK, THICKET_LAST, THICKET_SENTINEL]
+const THICKETS := [THICKET_SPAN, THICKET_DARK, THICKET_SENTINEL]
+const DARK_COLOR := Color(0.03, 0.03, 0.05)   # as dark as it is far under the ground in a match
 const THICKET_LAYERS := 10
 const DARK_SPAN := Vector2i(210, 272)   # where it is dark: the spikes in it are seen only by a light
 const SPIKE_STRIPS := [216, 228, 240, 252]   # the first column of each strip of spikes, each three columns wide
-const TURRETS := [70, 82, 94]
-const TURRET_ZONE := Vector2i(62, 106)   # a hit from a turret here is a death
+const TURRETS := [70, 80, 90]   # (they see 15 columns, so no page lies within sight of them)
+const TURRET_ZONE := Vector2i(60, 106)   # a hit from a turret here is a death
 const TURRET_PATIENCE := 0.8   # seconds in the sight of a turret, with nothing in the way, before its shot finds the wizard
 const DUMMY_COL := -6       # in the way at the first place: whoever walks past it while it stands is struck down
-const SKELETON_COL := 11    # in the way at the second: whoever walks past it while it is awake is struck down
+const GIANT_COL := 6        # in the way at the second: whoever walks past it while it is awake is struck down (it has too much strength to be killed: a Faint is the way)
 const DUMMY_HP := 36  # three fireballs: the tutorial's dummy falls quickly, so each try is seen through
 
 var _guide: CanvasLayer
 var _hint: PanelContainer   # the keys to walk and jump, at the start
 var _thickets: Array[Bramble] = []
 var _dummy: Mob
-var _skeleton: Mob
+var _giant: Mob
 var _exposed := 0.0   # how long the wizard has been in the sight of a turret
 var _shoal: Piranhas
+var _backdrop: Backdrop   # the sky and the hills behind, put out under the rock
+var _darkness := 0.0   # how dark it is round the wizard, 0 to 1
 var _shoal_two: Piranhas
 var _wall: RockWall
 var _gas: Array[GasBank] = []
@@ -96,28 +99,53 @@ func _build_map() -> Variant:
 	_dig_into(heights, GAP_SPAN, 0.0, GAP_ROWS_DOWN)
 	_dig_into(heights, PIT_TWO, 0.0, GAP_ROWS_DOWN)
 	_dig_into(heights, POND_TWO, 0.0, POND_ROWS)
-	return ArenaGen.build(_rng, heights)
+	var cells: Dictionary = ArenaGen.build(_rng, heights)
+	for span: Vector2i in [DARK_SPAN, DARK_POND]:  # the dark stretches are under a roof of rock, as underground
+		for col in range(span.x, span.y + 1):
+			for row in range(ArenaGen.WALL_TOP, -1):
+				cells[Vector2i(col, row)] = ArenaGen.STONE
+	return cells
 
 
 func _begin_encounter(camera: Camera2D) -> void:
 	super(camera)
+	camera.limit_bottom += int(CLIFF_ROWS * ArenaGen.TILE)  # the low ground is seen as high on the screen as the waiting room's, not at its foot
 	player.infinite_time = 0.0  # the waiting room never lets stamina run out, but here it does, as it does in a match: this is where it is learned
 	player.ledger = Ledger.of([])  # and the book is empty, as it is at the start of a match
 	spellbook.refresh()
 	player.damaged.connect(_on_player_hurt)
+	for child in get_children():
+		if child is Backdrop:
+			_backdrop = child
 	_guide = CanvasLayer.new()
 	_guide.layer = 4
 	add_child(_guide)
 	_show_keys()
 	for spot: Array in PAGE_SPOTS:
-		var page := PagePickup.new()
-		var names: Array = spot[1]
-		page.page = names[0]
-		if names.size() > 1:
-			page.spoils.assign(names)
-			page.fan = true
-		page.position = Vector2(ArenaGen.column_x(spot[0]), ArenaGen.surface_y(_cells, spot[0]))
-		add_child(page)
+		_lay_pages(Vector2(ArenaGen.column_x(spot[0]), ArenaGen.surface_y(_cells, spot[0])), spot[1])
+
+
+## Lays pages on the ground at a point: one page, or several fanned out like cards.
+func _lay_pages(at: Vector2, names: Array) -> void:
+	var page := PagePickup.new()
+	page.page = names[0]
+	if names.size() > 1:
+		page.spoils.assign(names)
+		page.fan = true
+	page.position = at
+	add_child(page)
+
+
+## A fan with a page in it that the book already has is laid out again with only what is new.
+func _trim_fans() -> void:
+	for pickup: PagePickup in get_tree().get_nodes_in_group("pages"):
+		if pickup.is_queued_for_deletion() or pickup.spoils.is_empty():
+			continue
+		var fresh := pickup.new_pages(player.ledger)
+		if not fresh.is_empty() and fresh.size() < pickup.spoils.size():
+			var at := pickup.position
+			pickup.queue_free()
+			_lay_pages(at, fresh)
 
 
 ## A pit of the same shape as the others, dug down from the ground at `base` rows.
@@ -158,16 +186,17 @@ func _add_targets() -> void:
 	_dummy.hp = DUMMY_HP
 	_dummy.facing = -1.0
 	_dummy.felled_stays = true
-	_skeleton = _add_mob("basic", Vector2(ArenaGen.column_x(SKELETON_COL), ArenaGen.surface_y(_cells, SKELETON_COL))) as Mob
-	_skeleton.facing = -1.0
-	_skeleton.faint_stays = true
+	_giant = _add_mob("giant", Vector2(ArenaGen.column_x(GIANT_COL), ArenaGen.surface_y(_cells, GIANT_COL))) as Mob
+	_giant.facing = -1.0
+	_giant.faint_stays = true
 	for span: Vector2i in THICKETS:
 		_plant_thicket(span)
 	_lay_spikes()
 	_raise_wall()
-	var statue := Sentinel.new()
-	statue.position = Vector2(ArenaGen.column_x(SENTINEL_COL), ArenaGen.surface_y(_cells, SENTINEL_COL))
-	add_child(statue)
+	var watcher := Sentinel.new()
+	watcher.position = Vector2(ArenaGen.column_x(SENTINEL_COL), ArenaGen.surface_y(_cells, SENTINEL_COL))
+	watcher.reach = SENTINEL_REACH
+	add_child(watcher)
 	_spread_gas()
 	for col: int in TURRETS:
 		var turret := _add_mob("turret", Vector2(ArenaGen.column_x(col), ArenaGen.surface_y(_cells, col)))
@@ -291,7 +320,13 @@ func _process(delta: float) -> void:
 	_guard_the_way(column)
 	_watch_the_turrets(delta, column)
 	_clear_spare_pages()
-	_night.visible = (column >= DARK_SPAN.x and column <= DARK_SPAN.y) or (column >= DARK_POND.x and column <= DARK_POND.y)  # dark only along the dark stretch, and no light of the wizard's own
+	_trim_fans()
+	var under := (column >= DARK_SPAN.x and column <= DARK_SPAN.y) or (column >= DARK_POND.x and column <= DARK_POND.y)  # dark only under the rock, and no light of the wizard's own
+	_darkness = move_toward(_darkness, 1.0 if under else 0.0, delta * 1.5)
+	_night.visible = _darkness > 0.0
+	_night.color = Color.WHITE.lerp(DARK_COLOR, _darkness)
+	if _backdrop != null:
+		_backdrop.set_opacity(1.0 - _darkness)
 	_player_light.enabled = false
 	if _hint != null and column > HINT_UNTIL:
 		_hint.queue_free()
@@ -315,16 +350,16 @@ func _rescue_from_pits(column: float) -> void:
 			player.velocity = Vector2.ZERO
 
 
-## The dummy and the skeleton strike down whoever walks past them while the dummy stands and the skeleton is awake. The skeleton does not leave its place.
+## The dummy and the giant strike down whoever walks past them while the dummy stands and the giant is awake. The giant does not leave its place.
 func _guard_the_way(column: float) -> void:
 	if player.dead:
 		return
 	if _dummy != null and is_instance_valid(_dummy) and not _dummy.is_dead() and column > DUMMY_COL + 1.5:
 		player.take_damage(1000, false)
-	if _skeleton != null and is_instance_valid(_skeleton) and not _skeleton.is_dead():
-		if not _skeleton.is_fainted():
-			_skeleton.apply_root(0.5)
-			if column > SKELETON_COL + 1.5:
+	if _giant != null and is_instance_valid(_giant) and not _giant.is_dead():
+		if not _giant.is_fainted():
+			_giant.apply_root(0.5)
+			if column > GIANT_COL + 1.5:
 				player.take_damage(1000, false)
 
 
@@ -354,7 +389,7 @@ func _watch_the_turrets(delta: float, column: float) -> void:
 
 
 ## A hit is a death in the stretches that are guarded: by the turrets (the Barrier and the Stone Wall turn their shots away), the piranhas, the thorns,
-## the spikes in the dark, the statue and the gas.
+## the spikes in the dark, the eye and the gas.
 func _on_player_hurt(_amount: int) -> void:
 	_strike_down.call_deferred()
 
