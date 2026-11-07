@@ -15,6 +15,8 @@ static func cast(caster: Wizard) -> void:
 	var jet := Fx.trail(Color("#ff8a2a"), 120, 0.65, 22.0, Vector2(0.0, 80.0), "flame_05", 30.0)
 	jet.position = Vector2.ZERO  # at the feet (a wizard's origin is the soles)
 	jet.direction = Vector2.DOWN
+	jet.angle_min = 180.0  # a flame is drawn pointing up: turned over, its tongues stream down from the feet
+	jet.angle_max = 180.0
 	jet.initial_velocity_min = 120.0
 	jet.initial_velocity_max = 220.0
 	caster.add_child(jet)

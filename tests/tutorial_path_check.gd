@@ -312,9 +312,6 @@ func _wall() -> void:
 
 func _sentinel() -> void:
 	var zone := Tutorial.SENTINEL_ZONE
-	for thorns in room._thickets.duplicate():
-		if is_instance_valid(thorns) and thorns.planted_ground[0].x >= Tutorial.THICKET_SENTINEL.x * 32.0 - 40.0 and thorns.planted_ground[0].x <= Tutorial.THICKET_SENTINEL.x * 32.0 + 40.0:
-			thorns.queue_free()  # (the thorns are tried on their own: here it is the eye)
 	for f in 5:
 		await get_tree().physics_frame
 	var deaths := _deaths

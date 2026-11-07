@@ -10,7 +10,7 @@ extends Lab
 
 const POND_SPAN := Vector2i(24, 44)   # water too wide to jump, shallow enough to wade, and full of piranhas
 const POND_ROWS := 2.0
-const CHUNKS := 195  # the room is wide, so that the places are far apart
+const CHUNKS := 175  # the room is wide, so that the places are far apart
 const PANEL := Color("#1f1528")
 const WORDS := Color("#efe3cf")
 const MENU := "res://scenes/menu.tscn"
@@ -31,7 +31,7 @@ const PAGE_SPOTS := [
 	[350, ["Eclipse", "Decoy"]],
 	[421, ["Gust", "Tornado"]],
 ]
-const STARTS := [-31, -22, 0, 12, 47, 104, 154, 172, 204, 278, 316, 348, 382, 419, 456, 488, 542, 570, 588, 626, 666, 684, 770, 830, 912, 998, 1060]   # where whoever falls is on their feet again: the start of the place they were working on
+const STARTS := [-31, -22, 0, 12, 47, 104, 154, 172, 204, 278, 316, 348, 382, 419, 456, 488, 542, 570, 588, 626, 666, 684, 762, 812, 870, 924, 958]   # where whoever falls is on their feet again: the start of the place they were working on
 const HINT_UNTIL := -21.0   # the keys to walk and jump show until the wizard has gone this far
 const CLIFF_COL := 165       # from here on the ground is this many rows higher than before: too high to jump, a vine climbs it
 const CLIFF_ROWS := 7.0
@@ -46,13 +46,12 @@ const WALL_ROWS := 26   # (a rocket jump lifts a wizard about fifteen rows, so a
 const SENTINEL_COL := 402     # an eye that shoots whoever it sees, over a stretch with thorns at the far end of it
 const SENTINEL_REACH := 480.0
 const SENTINEL_ZONE := Vector2i(388, 414)
-const THICKET_SENTINEL := Vector2i(366, 376)
 const GAS_SPAN := Vector2i(428, 451)    # three banks of poison gas
 const GAS_HEIGHT := 7
 const PIT_TWO := Vector2i(458, 483)     # a second pit, for the same leap
 const POND_TWO := Vector2i(506, 524)    # a pond of piranhas in the dark, for the light and the Spark together
 const DARK_POND := Vector2i(488, 534)
-const THICKETS := [THICKET_SPAN, THICKET_DARK, THICKET_SENTINEL]
+const THICKETS := [THICKET_SPAN, THICKET_DARK]
 ## The last place is a run over everything the room has taught, with no page to read: a gap that takes two jumps, a cliff that takes a vine, a pit that takes a leap
 ## (all the same size as the ones met before), and a long thicket on the high ground that takes fire. The ground is never raised above its line, only dug down from it,
 ## so the way in is a drop of the first cliff's height and the cliff is climbed back to the usual level, which runs level to the portal.
@@ -62,31 +61,33 @@ const FINALE_CLIFF := 576      # from here the ground is level again, as high as
 const FINALE_LEAP := Vector2i(592, 617)
 const FINALE_THORNS := Vector2i(630, 662)
 const FINALE_PITS := [[FINALE_GAP, CLIFF_ROWS], [FINALE_LEAP, 0.0]]  # each pit and the level of the ground it is dug from
-## The gauntlet at the end: every kind of gate the room has taught, one after another with hardly a pause, and some of them together (a pit under the
-## fire of turrets, a pond with thorns just past it, a dark stretch with spikes, a pond and thorns all in it, a tall wall and then gas, an eye over thorns,
-## a gap, a pit and a long thicket to finish). There are no pages here: what is needed has been read, and it is for the wizard to know which to use and when.
-const GIANT_TWO_COL := 690
-const TURRETS_TWO := [710, 722, 738]
-const TURRET_ZONE_TWO := Vector2i(702, 756)
-const PIT_THREE := Vector2i(726, 751)            # a leap, under the turrets' fire
-const POND_THREE := Vector2i(776, 799)
-const THICKET_FOUR := Vector2i(807, 821)         # thorns just past the water
-const DARK_THREE := Vector2i(834, 906)
-const SPIKE_STRIPS_TWO := [842, 852, 862]
-const POND_FOUR := Vector2i(871, 889)            # a pond of piranhas in the dark
-const THICKET_FIVE := Vector2i(897, 905)         # and thorns at the end of the dark
-const WALL_TWO_COL := 920
-const GAS_TWO := Vector2i(932, 955)
-const SENTINEL_TWO_COL := 972
-const SENTINEL_ZONE_TWO := Vector2i(960, 996)
-const THICKET_SIX := Vector2i(984, 995)          # thorns inside the eye's sight
-const CHANT_GAP_TWO := Vector2i(1004, 1017)
-const PIT_FOUR := Vector2i(1034, 1059)
-const THICKET_SEVEN := Vector2i(1068, 1096)
+## The gauntlet at the end: the gates the room has taught, but not one after another: each place puts several together, so that the wizard has to know which
+## spell answers which and in what order. A pit that is leapt under the fire of turrets, with a minotaur waiting where the leap lands. Water with a thicket
+## on its far bank and skeletons standing in the thorns. A dark stretch where spikes and a thicket full of skeletons can only be seen by a light. A tall wall
+## with gas behind it and an eye past that. A gap that lands in thorns, then a pit that lands in more thorns. There are no pages here: what is needed has been
+## read, and it is for the wizard to know what to use and when.
+const GIANT_TWO_COL := 746             # waits where the first leap lands, awake, with a swing that reaches four columns
+const TURRETS_TWO := [702, 708]
+const TURRET_ZONE_TWO := Vector2i(696, 757)
+const PIT_THREE := Vector2i(716, 741)  # a leap, under the turrets' fire
+const POND_THREE := Vector2i(766, 789)
+const THICKET_FOUR := Vector2i(792, 804)   # on the far bank, with skeletons standing in it
+const DARK_THREE := Vector2i(814, 866)
+const SPIKE_STRIPS_TWO := [822, 832]
+const THICKET_FIVE := Vector2i(850, 860)   # in the dark, with a skeleton in it
+const WALL_TWO_COL := 876
+const GAS_TWO := Vector2i(882, 897)        # behind the wall
+const SENTINEL_TWO_COL := 912               # an eye past the gas
+const SENTINEL_ZONE_TWO := Vector2i(872, 922)
+const CHANT_GAP_TWO := Vector2i(928, 941)
+const THICKET_SIX := Vector2i(944, 954)    # where the gap lands, with skeletons in it
+const PIT_FOUR := Vector2i(962, 987)
+const THICKET_SEVEN := Vector2i(992, 1002) # where the leap lands
+const SKELETONS := [795, 798, 801, 854, 947, 951, 996]   # standing in the thorns at their posts, who fight whoever comes near
 const GAUNTLET_FROM := 684
 const GAUNTLET_PITS := [[PIT_THREE, GAP_ROWS_DOWN], [CHANT_GAP_TWO, CHANT_GAP_ROWS], [PIT_FOUR, GAP_ROWS_DOWN]]
 const GAUNTLET_THICKETS := [THICKET_FOUR, THICKET_FIVE, THICKET_SIX, THICKET_SEVEN]
-const GAUNTLET_ZONES := [TURRET_ZONE_TWO, POND_THREE, THICKET_FOUR, DARK_THREE, SENTINEL_ZONE_TWO, GAS_TWO, POND_FOUR, THICKET_FIVE, THICKET_SIX, THICKET_SEVEN]
+const GAUNTLET_ZONES := [TURRET_ZONE_TWO, POND_THREE, THICKET_FOUR, DARK_THREE, SENTINEL_ZONE_TWO, GAS_TWO, THICKET_FIVE, THICKET_SIX, THICKET_SEVEN]
 const DARK_COLOR := Color(0.03, 0.03, 0.05)   # as dark as it is far under the ground in a match
 const THICKET_LAYERS := 10
 const DARK_SPAN := Vector2i(210, 272)   # where it is dark: the spikes in it are seen only by a light
@@ -114,10 +115,7 @@ var _wall: RockWall
 var _gas: Array[GasBank] = []
 var _gas_two: Array[GasBank] = []
 var _spikes: SpikeBed
-var _camera: GameCamera
-var _camera_rest := 0.0    # how far the view sits below the wizard, away from the pits
-var _camera_depth := 0.0   # how far it has dropped to show the bottom of a pit that is near
-const PIT_VIEW := 110.0   # how far the view drops by a pit: enough to see the spikes at the bottom from its edge
+const PIT_VIEW := 70.0   # how far below the wizard the view rests: enough to see the spikes at the bottom of a pit from its edge
 var _pit_spikes: SpikeBed   # at the bottom of every pit, in plain sight: the pits are death
 var _giant_two: Mob
 var _gauntlet_thorns: Array[Bramble] = []
@@ -151,7 +149,6 @@ func _build_map() -> Variant:
 	for pit: Array in GAUNTLET_PITS:
 		_dig_into(heights, pit[0], 0.0, pit[1])
 	_dig_into(heights, POND_THREE, 0.0, POND_ROWS)
-	_dig_into(heights, POND_FOUR, 0.0, POND_ROWS)
 	var cells: Dictionary = ArenaGen.build(_rng, heights)
 	for span: Vector2i in [DARK_SPAN, DARK_POND, DARK_THREE]:  # the dark stretches are under a roof of rock, as underground
 		for col in range(span.x, span.y + 1):
@@ -163,9 +160,8 @@ func _build_map() -> Variant:
 func _begin_encounter(camera: Camera2D) -> void:
 	super(camera)
 	camera.limit_bottom += int(CLIFF_ROWS * ArenaGen.TILE)  # the low ground is seen as high on the screen as the waiting room's, not at its foot
-	_camera = camera as GameCamera
-	_camera_rest = _camera.rest_offset().y
-	_camera_depth = 0.0
+	var view := camera as GameCamera
+	view.set_rest_offset(view.rest_offset() + Vector2(0.0, PIT_VIEW))  # the view sits lower, always, so that the floor of a pit is on screen from its edge (it does not move from place to place)
 	player.infinite_time = 0.0  # the waiting room never lets stamina run out, but here it does, as it does in a match: this is where it is learned
 	player.ledger = Ledger.of([])  # and the book is empty, as it is at the start of a match
 	spellbook.refresh()
@@ -216,7 +212,6 @@ func _add_ponds() -> void:
 	_shoal = _add_pond(POND_SPAN, CLIFF_ROWS)
 	_shoal_two = _add_pond(POND_TWO, 0.0)
 	_add_pond(POND_THREE, 0.0)
-	_add_pond(POND_FOUR, 0.0)
 
 
 ## A pond dug into ground `level` rows down, with a shoal of piranhas in it.
@@ -272,6 +267,10 @@ func _add_targets() -> void:
 		add_child(watcher)
 	_spread_gas(GAS_SPAN, _gas)
 	_spread_gas(GAS_TWO, _gas_two)
+	for col: int in SKELETONS:
+		var skeleton := _add_mob("earth_melee", Vector2(ArenaGen.column_x(col), ArenaGen.surface_y(_cells, col))) as Mob
+		skeleton.guards = true
+		skeleton.post_x = skeleton.global_position.x
 	for col: int in TURRETS + TURRETS_TWO:
 		var turret := _add_mob("turret", Vector2(ArenaGen.column_x(col), ArenaGen.surface_y(_cells, col)))
 		turret.facing = -1.0
@@ -315,6 +314,7 @@ func _lay_spikes() -> void:
 			floors.append(roundi(ArenaGen.surface_y(_cells, col + k) / float(ArenaGen.TILE)))
 		strips.append({"x": col, "width": 3, "floors": floors})
 	_spikes = SpikeBed.new()
+	_spikes.rock = _earth_texture()
 	_spikes.strips = strips
 	add_child(_spikes)
 
@@ -332,6 +332,7 @@ func _lay_pit_spikes() -> void:
 			strips.append({"x": col, "width": 3, "floors": floors})
 			col += 3
 	_pit_spikes = SpikeBed.new()
+	_pit_spikes.rock = _earth_texture()
 	_pit_spikes.always_seen = true
 	_pit_spikes.strips = strips
 	add_child(_pit_spikes)
@@ -415,7 +416,6 @@ func _process(delta: float) -> void:
 	super(delta)
 	var column := player.global_position.x / float(ArenaGen.TILE)
 	_rescue_from_pits(column)
-	_show_the_pit_floor(delta, column)
 	_guard_the_way(column)
 	_watch_the_turrets(delta, column)
 	_clear_spare_pages()
@@ -437,15 +437,6 @@ func _clear_spare_pages() -> void:
 	for pickup: PagePickup in get_tree().get_nodes_in_group("pages"):
 		if not pickup.is_queued_for_deletion() and not pickup.gives(player.ledger):
 			pickup.queue_free()
-
-
-## The view drops to show the bottom of a pit as a wizard comes up to it, so the spikes at the bottom are seen before the jump, not after it.
-func _show_the_pit_floor(delta: float, column: float) -> void:
-	if _camera == null:
-		return
-	var near := all_pits().any(func(pit: Array) -> bool: return column >= pit[0].x - 14 and column <= pit[0].y + 6)
-	_camera_depth = move_toward(_camera_depth, PIT_VIEW if near else 0.0, delta * 260.0)
-	_camera.set_rest_offset(Vector2(_camera.rest_offset().x, _camera_rest + _camera_depth))
 
 
 ## Whoever has fallen into the pond or the pit is put back on its near edge, where they came from.

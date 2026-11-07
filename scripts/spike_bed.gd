@@ -10,8 +10,10 @@ const REMEMBER := 8.0    # seconds they stay in view after the light has gone
 const GAP := 0.8         # seconds before the same body is cut again
 const SPRITES := ["rock_spike_1", "rock_spike_2", "rock_spike_3"]
 
+var rock: Texture2D     # the ground's own earth: the spikes are tinted to its colors, whatever world they stand in
 var always_seen := false  # spikes at the bottom of a pit are in plain sight, lit or not
 var strips: Array = []  # {"x": first column, "width": columns, "floors": the floor's row in each of them}
+var _tint := Color(0.62, 0.6, 0.68)
 var _seen := 0.0
 var _hurt := {}  # body -> seconds until it can be cut again
 var _sprites: Array[Sprite2D] = []
@@ -19,6 +21,7 @@ var _boxes: Array[Rect2] = []
 
 
 func _ready() -> void:
+	_tint = _tint_of(rock)
 	collision_mask = 6  # the player and enemies
 	var t := float(ArenaGen.TILE)
 	var rng := RandomNumberGenerator.new()
@@ -48,7 +51,7 @@ func _ready() -> void:
 			sprite.scale = Vector2.ONE * 2.2
 			sprite.flip_h = rng.randf() < 0.5
 			sprite.position = Vector2(x, row * t)
-			sprite.modulate = Color(0.62, 0.6, 0.68, 0.0)
+			sprite.modulate = Color(_tint, 0.0)
 			sprite.z_index = 1
 			add_child(sprite)
 			_sprites.append(sprite)
@@ -62,7 +65,7 @@ func _physics_process(delta: float) -> void:
 		_seen = maxf(_seen - delta, 0.0)
 	var alpha := clampf(_seen / 0.6, 0.0, 1.0)
 	for sprite in _sprites:
-		sprite.modulate.a = alpha
+		sprite.modulate = Color(_tint, alpha)
 	for body in _hurt.keys():
 		_hurt[body] -= delta
 		if _hurt[body] <= 0.0 or not is_instance_valid(body):
@@ -72,6 +75,30 @@ func _physics_process(delta: float) -> void:
 			_hurt[body] = GAP
 			SpellTargets.hurt(body, DAMAGE, "Earth")
 			Fx.burst(get_parent(), SpellTargets.center_of(body), Color("#b04040"), 6, 90.0, 0.3)
+
+
+## What to multiply the grey spike art by so it looks cut from the ground's own rock: the earth's average color, scaled up to the art's brightness.
+static func _tint_of(earth: Texture2D) -> Color:
+	var fallback := Color(0.62, 0.6, 0.68)
+	if earth == null:
+		return fallback
+	var image := earth.get_image()
+	if image == null or image.is_empty():
+		return fallback
+	if image.is_compressed():
+		image.decompress()
+	var sum := Vector3.ZERO
+	var count := 0
+	for y in range(0, image.get_height(), 2):
+		for x in range(0, image.get_width(), 2):
+			var pixel := image.get_pixel(x, y)
+			if pixel.a > 0.5:
+				sum += Vector3(pixel.r, pixel.g, pixel.b)
+				count += 1
+	if count == 0:
+		return fallback
+	var mean := sum / float(count)
+	return Color(minf(mean.x / 0.55, 1.0), minf(mean.y / 0.55, 1.0), minf(mean.z / 0.55, 1.0))
 
 
 ## True when a light is close to one of the strips.

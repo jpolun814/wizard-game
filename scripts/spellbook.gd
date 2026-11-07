@@ -7,7 +7,22 @@ extends CanvasLayer
 ## up, and every spell's shape is drawn on the book's own pixel grid.
 
 const SHIFT_LEAVES := 5  # how many leaves a turn takes with Shift held
-const NEW_STAR := preload("res://art/particles/star_07.png")
+## The star beside "NEW!": an interface element made of pixel squares (O outline, G gold, H highlight, S shade), drawn at three times its size.
+const STAR_ROWS := [
+	".....O.....",
+	"....OGO....",
+	"....OGO....",
+	"...OGGGO...",
+	"OOOOGGGOOOO",
+	".OHHGGGGGSO",
+	"..OHGGGGSO.",
+	"..OGGGGGSO.",
+	".OGGGO.OGSO",
+	".OGGO...OSO",
+	".OO.....OO.",
+]
+const STAR_COLORS := {"O": Color("#3a1d1a"), "G": Color("#f2b81c"), "H": Color("#ffe27a"), "S": Color("#c98a10")}
+const STAR_SCALE := 3
 const NEW_GOLD := Color("#f2b81c")
 const INK := Color("#3a1d1a")
 const TEXT_INK := Color(INK, 0.86)  # the writing is a touch lighter than the drawings, as if the pen was lifted
@@ -520,22 +535,34 @@ func _is_new(page: String) -> bool:
 func _new_badge() -> HBoxContainer:
 	var badge := HBoxContainer.new()
 	badge.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	badge.add_theme_constant_override("separation", 0)
+	badge.add_theme_constant_override("separation", 8)
 	badge.alignment = BoxContainer.ALIGNMENT_CENTER
 	var star := TextureRect.new()
-	star.texture = NEW_STAR
-	star.custom_minimum_size = Vector2(40, 40)
+	star.texture = _star_texture()
+	star.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	star.custom_minimum_size = Vector2(STAR_ROWS[0].length(), STAR_ROWS.size()) * STAR_SCALE
 	star.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	star.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	star.modulate = NEW_GOLD
+	star.stretch_mode = TextureRect.STRETCH_SCALE
+	star.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	badge.add_child(star)
-	var word := _title_label("NEW!", 24, NEW_GOLD)
+	var word := _ink("NEW!", 22, NEW_GOLD)
 	word.autowrap_mode = TextServer.AUTOWRAP_OFF
 	word.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	word.add_theme_color_override("font_outline_color", INK)
 	word.add_theme_constant_override("outline_size", 5)
 	badge.add_child(word)
 	return badge
+
+
+## The star, one pixel to each character of STAR_ROWS.
+static func _star_texture() -> ImageTexture:
+	var image := Image.create(STAR_ROWS[0].length(), STAR_ROWS.size(), false, Image.FORMAT_RGBA8)
+	for y in STAR_ROWS.size():
+		for x in STAR_ROWS[y].length():
+			var key: String = STAR_ROWS[y][x]
+			if STAR_COLORS.has(key):
+				image.set_pixel(x, y, STAR_COLORS[key])
+	return ImageTexture.create_from_image(image)
 
 
 ## An incantation's own page: its name, its words and what it does. Every one is spoken by typing it and pressing Enter,

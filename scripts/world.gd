@@ -246,6 +246,7 @@ func _begin_encounter(camera: Camera2D) -> void:
 			"dark":
 				var bed := SpikeBed.new()
 				bed.strips = entry["strips"]
+				bed.rock = _earth_texture()
 				add_child(bed)
 			"gas":
 				_spread_gas(entry)
