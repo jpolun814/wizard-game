@@ -231,7 +231,27 @@ func _build_wizards() -> void:
 		entry["look"] = styles[k]["look"]
 		entry["palette"] = styles[k]["palette"]
 		_wizards.append(_make_wizard(entry))
-	for entry: Dictionary in EXTRAS:
+	var entries: Array[Dictionary] = []
+	var used := {}  # the looks on the floor: every one of the seven is to be there
+	for k in WIZARDS.size():
+		used[styles[k]["look"]] = true
+	for k in EXTRAS.size():
+		var entry: Dictionary = EXTRAS[k].duplicate()
+		if k < styles.size() - WIZARDS.size():  # the next seats of the match, in the looks and colours they will wear
+			var style: Dictionary = styles[WIZARDS.size() + k]
+			entry["art"] = style["look"]
+			entry["look"] = style["look"]
+			entry["palette"] = style["palette"]
+		used[entry["art"]] = true
+		entries.append(entry)
+	for k in range(EXTRAS.size() - 1, -1, -1):  # a look nobody wears yet takes the place of one of the old recoloured copies
+		for look: String in WizardLook.LOOKS:
+			if not used.has(look) and not entries[k].has("palette"):
+				entries[k]["art"] = look
+				entries[k]["look"] = look
+				entries[k]["palette"] = 3 + k % 4
+				used[look] = true
+	for entry: Dictionary in entries:
 		_extras.append(_make_wizard(entry))
 	_all.append_array(_wizards)
 	_all.append_array(_extras)

@@ -15,6 +15,7 @@ uniform float aura = 0.0;                       // 0 to 1: how strongly a blood 
 uniform vec4 robe_group = vec4(-1.0, 0.0, 0.0, 0.0);   // hue, half-width, least colour, and how much brighter and livelier a dark figure's group is made when it is recoloured (0: not at all)
 uniform vec4 trim_group = vec4(-1.0, 0.0, 0.0, 0.0);
 uniform vec4 shade = vec4(-1.0, 0.0, 0.0, 0.0);        // for a figure whose cloak is black: the hue, colour and brightness its black becomes (hue -1: stays black)
+uniform vec2 caps = vec2(1.0);                          // the brightest a pixel of the robe group and of the trim group can be and still count (skin and hair are brighter than cloth)
 uniform vec4 robe_goal = vec4(-1.0, 1.0, 0.0, 0.0);    // the hue it becomes (-1: unchanged), and how much colour it keeps
 uniform vec4 trim_goal = vec4(-1.0, 1.0, 0.0, 0.0);
 
@@ -36,18 +37,18 @@ vec3 hsv_to_rgb(vec3 c) {
 }
 
 // How much of a pixel belongs to a group of hues: 1 inside it, falling to 0 over a little way past its edge.
-float in_group(vec3 hsv, vec4 group) {
+float in_group(vec3 hsv, vec4 group, float cap) {
 	float apart = abs(hsv.x - group.x);
 	apart = min(apart, 1.0 - apart);
 	float hue_part = 1.0 - smoothstep(group.y, group.y + 0.025, apart);
-	return hue_part * smoothstep(group.z * 0.7, group.z, hsv.y) * step(0.1, hsv.z);
+	return hue_part * smoothstep(group.z * 0.7, group.z, hsv.y) * step(0.1, hsv.z) * (1.0 - smoothstep(cap, cap + 0.06, hsv.z));
 }
 
-vec3 recolour(vec3 rgb, vec3 hsv, vec4 group, vec4 goal) {
+vec3 recolour(vec3 rgb, vec3 hsv, vec4 group, vec4 goal, float cap) {
 	if (goal.x < 0.0 && goal.y >= 1.0) {
 		return rgb;
 	}
-	float part = in_group(hsv, group);
+	float part = in_group(hsv, group, cap);
 	if (part <= 0.0) {
 		return rgb;
 	}
@@ -74,8 +75,8 @@ void fragment() {
 	vec4 c = texture(TEXTURE, UV) * COLOR;
 	if (robe_goal.x >= 0.0 || robe_goal.y < 1.0 || trim_goal.x >= 0.0 || trim_goal.y < 1.0) {
 		vec3 hsv = rgb_to_hsv(c.rgb);
-		c.rgb = recolour(c.rgb, hsv, robe_group, robe_goal);
-		c.rgb = recolour(c.rgb, hsv, trim_group, trim_goal);
+		c.rgb = recolour(c.rgb, hsv, robe_group, robe_goal, caps.x);
+		c.rgb = recolour(c.rgb, hsv, trim_group, trim_goal, caps.y);
 	}
 	if (shade.x >= 0.0) {
 		float top = max(c.r, max(c.g, c.b));

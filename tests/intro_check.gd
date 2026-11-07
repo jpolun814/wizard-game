@@ -107,6 +107,17 @@ func _check_set() -> void:
 		frames[sprite.sprite_frames] = true
 		_verdict(sprite.sprite_frames.has_animation(sprite.animation), "wizard animation '%s' exists" % sprite.animation)
 	_verdict(frames.size() == 4, "the four wizards each have a look of their own (%d)" % frames.size())
+	var figures := {}
+	for wizard in _intro._wizards + _intro._extras:
+		var texture: Texture2D = (wizard.get_child(0) as AnimatedSprite2D).sprite_frames.get_frame_texture("idle", 0)
+		figures[texture.resource_path] = true
+	var seen := 0
+	for look: String in WizardLook.LOOKS:
+		for path: String in figures:
+			if path.begins_with("res://art/chars/" + look + "/") or path.begins_with("res://art/chars/" + look + "_"):
+				seen += 1
+				break
+	_verdict(seen == WizardLook.LOOKS.size(), "all %d figures are among the ten (%d)" % [WizardLook.LOOKS.size(), seen])
 	_verdict(_pages_in_view().size() == Intro.PAGES_IN_PILE, "a pile of %d pages lies on the floor (%d)" % [Intro.PAGES_IN_PILE, _pages_in_view().size()])
 
 
