@@ -10,6 +10,7 @@ const REMEMBER := 8.0    # seconds they stay in view after the light has gone
 const GAP := 0.8         # seconds before the same body is cut again
 const SPRITES := ["rock_spike_1", "rock_spike_2", "rock_spike_3"]
 
+var always_seen := false  # spikes at the bottom of a pit are in plain sight, lit or not
 var strips: Array = []  # {"x": first column, "width": columns, "floors": the floor's row in each of them}
 var _seen := 0.0
 var _hurt := {}  # body -> seconds until it can be cut again
@@ -55,7 +56,7 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
-	if _lit():
+	if always_seen or _lit():
 		_seen = REMEMBER
 	else:
 		_seen = maxf(_seen - delta, 0.0)

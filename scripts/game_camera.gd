@@ -17,6 +17,16 @@ func _ready() -> void:
 	add_to_group("game_camera")
 
 
+## Where the view rests, relative to the wizard it follows (a shake moves it about this).
+func set_rest_offset(rest: Vector2) -> void:
+	_base_offset = rest
+
+
+## The rest offset now.
+func rest_offset() -> Vector2:
+	return _base_offset
+
+
 ## Shakes the view. amount runs from 0 (nothing) to 1 (the biggest shake); shakes add up but never pass 1.
 func shake(amount: float) -> void:
 	_trauma = minf(_trauma + amount, 1.0)

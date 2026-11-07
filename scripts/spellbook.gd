@@ -7,6 +7,8 @@ extends CanvasLayer
 ## up, and every spell's shape is drawn on the book's own pixel grid.
 
 const SHIFT_LEAVES := 5  # how many leaves a turn takes with Shift held
+const NEW_STAR := preload("res://art/particles/star_07.png")
+const NEW_GOLD := Color("#f2b81c")
 const INK := Color("#3a1d1a")
 const TEXT_INK := Color(INK, 0.86)  # the writing is a touch lighter than the drawings, as if the pen was lifted
 const HEADING := Color("#6e1420")
@@ -231,8 +233,9 @@ func _ready() -> void:
 	_show_spread()
 
 
-## The pages of the book: the cheat sheet, then a page to each spell and chant that is known, in the order they were found (by school only in the
-## waiting room, where every page is known).
+## The pages of the book: the cheat sheet, then a page to each spell and chant that is known. In the tutorial they come in the order they were found. In
+## the waiting room, where every page is known, and in a match they are grouped by school, and within a school (in a match) in the order they were found;
+## the chants come last.
 func _build_pages() -> void:
 	_pages = [_page_contents]
 	_page_of = {}
@@ -242,6 +245,15 @@ func _build_pages() -> void:
 				_add_spell_page(spell_name)
 		for ritual_id in RitualInput.RITUALS:
 			_add_chant_page(ritual_id)
+		return
+	if not get_parent() is Tutorial:
+		for school in SCHOOLS:
+			for page: String in _ledger().pages:
+				if SpellData.SPELLS.has(page) and SpellData.SPELLS[page].school == school:
+					_add_spell_page(page)
+		for page: String in _ledger().pages:
+			if page.begins_with("chant:"):
+				_add_chant_page(page.trim_prefix("chant:"))
 		return
 	for page: String in _ledger().pages:
 		if page.begins_with("chant:"):
@@ -489,12 +501,41 @@ func _page_spell(column: VBoxContainer, spell_name: String) -> void:
 	top.add_child(heading)
 	top.add_child(MouseIcon.new(_school_mask(school), SpellData.SCHOOL_COLORS[school]))
 	column.add_child(top)
+	if _is_new(spell_name):
+		column.add_child(_new_badge())
 	var gesture: String = s.preview if s.preview != "" else s.gesture
 	var preview := Preview.new(GestureTemplates.preview_points(gesture), GestureTemplates.preview_ground(gesture), 150.0)
 	preview.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	column.add_child(preview)
 	column.add_child(_ink(s.effect, 22, TEXT_INK))
 	_foot(column, [s.damage_line(), s.cost_line()])
+
+
+## True for a spell or chant that this wizard has not cast yet this game (in the waiting room every page is known and nothing is marked).
+func _is_new(page: String) -> bool:
+	return not _ledger().everything and not _ledger().has_cast(page)
+
+
+## The mark on the page of a spell that has not been cast yet this game: a gold star, and the word beside it.
+func _new_badge() -> HBoxContainer:
+	var badge := HBoxContainer.new()
+	badge.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	badge.add_theme_constant_override("separation", 0)
+	badge.alignment = BoxContainer.ALIGNMENT_CENTER
+	var star := TextureRect.new()
+	star.texture = NEW_STAR
+	star.custom_minimum_size = Vector2(40, 40)
+	star.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	star.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	star.modulate = NEW_GOLD
+	badge.add_child(star)
+	var word := _title_label("NEW!", 24, NEW_GOLD)
+	word.autowrap_mode = TextServer.AUTOWRAP_OFF
+	word.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	word.add_theme_color_override("font_outline_color", INK)
+	word.add_theme_constant_override("outline_size", 5)
+	badge.add_child(word)
+	return badge
 
 
 ## An incantation's own page: its name, its words and what it does. Every one is spoken by typing it and pressing Enter,
@@ -508,6 +549,8 @@ func _page_incantation(column: VBoxContainer, ritual_id: String) -> void:
 	top.add_child(heading)
 	top.add_child(KeyCap.new("Enter"))
 	column.add_child(top)
+	if _is_new("chant:" + ritual_id):
+		column.add_child(_new_badge())
 	column.add_child(_ink("“%s”" % r["text"], 26, TEXT_INK))
 	column.add_child(_ink(ritual_effect(ritual_id), 20, TEXT_INK))
 	_foot(column, [ritual_cost_line(ritual_id)])

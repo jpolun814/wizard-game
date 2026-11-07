@@ -461,8 +461,24 @@ func _finale() -> void:
 			break
 	_verdict(room._finale_thorns.all(func(t) -> bool: return not is_instance_valid(t) or t.is_queued_for_deletion()), "and a fireball burns them away")
 	_put(thorns.y + 2)
-	await _run_until(ArenaGen.right_wall - 6.0, 30.0)
-	_verdict(_column() >= ArenaGen.right_wall - 6.0, "and past them the way runs on to the end of the room (column %.1f)" % _column())
+	await _run_until(Tutorial.GAUNTLET_FROM - 2.0, 30.0)
+	_verdict(_column() >= Tutorial.GAUNTLET_FROM - 2.0, "and past them the way runs on to the gauntlet (column %.1f)" % _column())
+	await _gauntlet()
+
+
+## The gauntlet: a tall wall, a second giant, a pit at the foot of every pit, and each gate kills whoever is caught in it.
+func _gauntlet() -> void:
+	_verdict(Tutorial.WALL_ROWS >= 22, "the tall wall is taller than a rocket jump reaches (%d rows)" % Tutorial.WALL_ROWS)
+	_verdict(room._giant.max_hp >= 10000 and room._giant_two.max_hp >= 10000, "the giants have so much strength that no one would trade blows with them")
+	_verdict(room._pit_spikes != null and room._pit_spikes.always_seen, "there are spikes in plain sight at the bottom of the pits")
+	_put(Tutorial.GIANT_TWO_COL + 4)
+	for f in 30:
+		await get_tree().physics_frame
+	_verdict(player.dead or _column() < Tutorial.GIANT_TWO_COL + 2.0, "the second giant strikes down whoever walks past it awake")
+	var strip_gap: int = Tutorial.THICKET_FIVE.x - (Tutorial.SPIKE_STRIPS_TWO.back() + 3)
+	_verdict(strip_gap >= 8 and Tutorial.THICKET_DARK.x - (Tutorial.SPIKE_STRIPS.back() + 3) >= 8, "the last spikes of the dark are well clear of the thorns (%d columns)" % strip_gap)
+	for zone: Vector2i in Tutorial.GAUNTLET_ZONES:
+		_verdict(zone.x > Tutorial.GAUNTLET_FROM and zone.y < ArenaGen.right_wall - 6, "the gate at columns %d to %d lies inside the room, past the thorns" % [zone.x, zone.y])
 
 
 func _verdict(ok: bool, message: String) -> void:

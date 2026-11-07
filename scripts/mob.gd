@@ -185,8 +185,9 @@ func _build_creature(data: MobKind) -> void:
 	var info: Dictionary = PixelArt.CHARACTERS[art]
 	_visual.sprite_frames = CharFrames.build("res://art/mobs/" + art, CREATURE_ANIMATIONS)
 	if data.effect == "smash":
-		# The lean is slowed to fill the giant's wind-up, so one pass of it lasts as long as the wind-up does.
-		_visual.sprite_frames.set_animation_speed("attack", 7.0)
+		# The lean is slowed to fill the giant's wind-up: the three frames of drawing back last as long as the wind-up does, so the swing down
+		# (the fourth frame) is on screen at the moment the blow lands, not before it.
+		_visual.sprite_frames.set_animation_speed("attack", 3.0 / SMASH_WINDUP)
 	_visual.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST  # scaled-up pixel art stays crisp, not blurred
 	_base_scale = data.scale
 	var body: Rect2 = info["body"]

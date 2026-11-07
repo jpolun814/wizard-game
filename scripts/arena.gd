@@ -488,6 +488,8 @@ func spawn_spell(spell: String, targeting: String, origin: Vector2, aim: float, 
 
 func _spawn_spell(spell: String, targeting: String, origin: Vector2, aim: float, info: Dictionary, caster_node: Wizard) -> void:
 	caster_node.casts_made += 1
+	if caster_node.ledger != null:
+		caster_node.ledger.mark_cast(spell)
 	if caster_node == player and is_in_group(&"world"):
 		Library.record_cast(spell, float(info.get("accuracy", 0.0)))  # only matches count, not the waiting room
 		MatchStats.cast(spell, float(info.get("accuracy", 0.0)))
@@ -1036,6 +1038,7 @@ func _on_ritual_finished(id: String, acc: float, unfinished: bool) -> void:
 		# Stopping a chant partway lets the words fade harmlessly; only a garbled chant backfires.
 		return
 	player.break_sneak()
+	player.ledger.mark_cast("chant:" + id)
 	if data["kind"] == "toggle":
 		_on_toggle_chant(data, acc)
 		return

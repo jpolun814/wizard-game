@@ -7,6 +7,7 @@ extends RefCounted
 
 var everything := false  # the waiting room: no page is missing
 var pages := {}          # page -> true
+var cast := {}           # page -> true, for the spells and chants this wizard has cast or said this game (the book marks the ones that are still new)
 var settled := {}        # chant id -> true, for the chants that, once said, hold for the rest of the match (see Ledger.LASTING)
 
 ## The chants that are said once: the gift stays, through every world of the match.
@@ -50,6 +51,15 @@ func settle(ritual_id: String) -> void:
 
 func is_settled(ritual_id: String) -> bool:
 	return settled.has(ritual_id)
+
+
+## A spell has been cast, or a chant said (a chant by its page, "chant:" and its id).
+func mark_cast(page: String) -> void:
+	cast[page] = true
+
+
+func has_cast(page: String) -> bool:
+	return cast.has(page)
 
 
 func learn(page: String) -> void:

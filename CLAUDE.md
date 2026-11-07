@@ -60,6 +60,8 @@ keep "to" for those bare-noun idioms and for real directions.
 
 **American spelling (owner, 2026-11-07).** Anything a player reads uses American English: "Colors", "Favorite", "gray". The code and its comments may keep "colour".
 
+**The book's order and its NEW mark (owner, 2026-11-07).** In the tutorial the pages are in the order they were found. Everywhere else (a match) they are grouped by school, and within a school in the order found; chants come last (`Spellbook._build_pages`). A page of a spell not yet cast, or a chant not yet said, this game carries a gold star and "NEW!" under its name (`Ledger.mark_cast`, `Spellbook._new_badge`); the waiting room, where every page is known, marks nothing. The star is Kenney's `art/particles/star_07.png`.
+
 **Explicit means the figures, not an explanation. Do not narrate the spell.** The first redo (2026-11-07) wrote every page as a paragraph of mechanics ("the foot of it
 flickers for a second, then the whole wall catches and burns for 4 seconds", "14 damage ... again every half second it stays in them") and the owner said it was "way
 off the charts". Every other rule in this section still stands, and you may not relax a rule that the owner did not name. Specifically:
