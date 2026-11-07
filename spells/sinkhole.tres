@@ -9,5 +9,4 @@ school = "Earth"
 gesture = "pit"
 targeting = "shape"
 cost = 35.0
-effect = "Open a sinkhole in the ground."
-damage = ""
+effect = "Open a sinkhole in the shape of the U you drew, after the ground trembles for a moment. It stays open for good."

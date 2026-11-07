@@ -8,5 +8,4 @@ spell_name = "Updraft"
 school = "Air"
 gesture = "updraft"
 cost = 30.0
-effect = "Raise a column of rising air."
-damage = ""
+effect = "Raise a column of rising air that lifts anyone in it. It stays for the rest of the world."

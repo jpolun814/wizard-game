@@ -8,5 +8,4 @@ spell_name = "Eclipse"
 school = "Shadow"
 gesture = "crescent"
 cost = 22.0
-effect = "Plunge the world around you into darkness."
-damage = "blinds what is inside"
+effect = "Plunge the area around you into darkness for 10 seconds. Anyone inside sees only what is close to them."

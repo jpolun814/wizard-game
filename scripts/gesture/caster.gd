@@ -338,7 +338,7 @@ func _end() -> void:
 			spawn = info["center"]
 		if info.has("aim"):
 			aim = info["aim"]
-		if entry.spell == "Thorn Whip" or entry.spell == "Shadow Bolt":  # a bolt goes the way the arrow points
+		if entry.spell == "Thorn Whip" or entry.spell == "Eldritch Blast":  # a bolt goes the way the arrow points
 			var farthest := relative[0]  # a whip goes the way the wave was drawn, at whatever angle, not only left or right
 			for p in relative:
 				if p.distance_squared_to(relative[0]) > farthest.distance_squared_to(relative[0]):

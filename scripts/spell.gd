@@ -39,6 +39,44 @@ func pays_max() -> bool:
 	return school == "Blood"
 
 
+## What the spellbook says it costs, in plain words: a fixed price, or a range that depends on how it is drawn.
+func cost_line() -> String:
+	var what := "maximum stamina" if pays_max() else "stamina"
+	var how := ""
+	var low := cost
+	var high := cost
+	match size_from:
+		Size.NONE:
+			return "Costs %d %s." % [roundi(cost), what]
+		Size.PIECES:
+			return "Costs %d %s for each one you draw." % [roundi(cost), what]
+		Size.STEP_LENGTH:
+			low = size_min
+			high = roundf(cost * SpellData.STEP_MAX / size_unit)
+			how = "by how far you go"
+		Size.RADIUS:
+			how = "by the size of the circle"
+		Size.REACH:
+			how = "by how far it reaches"
+		Size.LINE_WIDTH:
+			how = "by how wide you draw it"
+		Size.LENGTH:
+			how = "by how long you draw it"
+		_:
+			how = "by how big you draw it"
+	if size_from != Size.STEP_LENGTH:
+		low = roundf(cost * size_min)
+		high = roundf(cost * size_max)
+	if roundi(low) == roundi(high):
+		return "Costs %d %s." % [roundi(low), what]
+	return "Costs %d to %d %s, %s." % [roundi(low), roundi(high), what, how]
+
+
+## What the spellbook says it does to whatever it hurts, or nothing when it hurts nothing.
+func damage_line() -> String:
+	return "Deals %s." % damage if damage != "" else ""
+
+
 ## What it costs when drawn this big. info is what the gesture measured: radius, reach, line, length, rect, pieces.
 func cost_for(info: Dictionary) -> float:
 	var line: PackedVector2Array = info.get("line", PackedVector2Array())

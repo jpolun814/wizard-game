@@ -196,7 +196,7 @@ func _process(_delta: float) -> bool:
 		if _cast != "Fire Breath" or absf(angle_difference(_aim, angle)) > 0.2:
 			_failures += 1
 			print("FAIL Fire Breath pointing %.2f: cast %s aimed %.2f" % [angle, _cast, _aim])
-	# A Shadow Bolt's arrow points the way the bolt is to go: it can be drawn toward any side.
+	# A Eldritch Blast's arrow points the way the bolt is to go: it can be drawn toward any side.
 	for angle in [0.0, PI * 0.5, PI, -PI * 0.5, PI * 0.25, -PI * 0.25]:
 		for size in [0.8, 1.0, 1.5]:
 			_checks += 1
@@ -205,9 +205,9 @@ func _process(_delta: float) -> bool:
 				arrow.append(p.rotated(angle) * size + Vector2(0, -260))
 			_cast = ""
 			_caster.cast_stroke(SpellData.RIGHT | SpellData.MIDDLE, _densify(arrow))
-			if _cast != "Shadow Bolt" or absf(angle_difference(_aim, angle)) > 0.3:
+			if _cast != "Eldritch Blast" or absf(angle_difference(_aim, angle)) > 0.3:
 				_failures += 1
-				print("FAIL Shadow Bolt pointing %.2f at %.1f: cast %s aimed %.2f" % [angle, size, _cast, _aim])
+				print("FAIL Eldritch Blast pointing %.2f at %.1f: cast %s aimed %.2f" % [angle, size, _cast, _aim])
 	print("%d of %d gesture checks passed" % [_checks - _failures, _checks])
 	quit(1 if _failures > 0 else 0)
 	return true

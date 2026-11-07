@@ -36,6 +36,17 @@ trust the code and this file where they disagree.
 
 ## 0. Player-facing words: THE NUMBER ONE PRIORITY
 
+**The spellbook changed on 2026-11-07, and this overrides everything below that says otherwise.** The owner first made the spellbook a canon tome with no
+numbers, and has now reversed that: **a spell's page is explicit.** It says what will really happen, in plain human words, and every page shows two more lines the
+game writes itself from the spell's data (`Spell.damage_line`, `Spell.cost_line`): **what it costs** ("Costs 18 stamina.", or "Costs 25 maximum stamina." for a
+Necromancy spell, which is paid in maximum stamina; a drawn size gives a range) and **what damage it deals** ("Deals 12 damage.", or "Deals 4 damage every half
+second to whoever stands in it."), when it deals any. The description names the thing and says what it does, with the durations and figures that are really
+true ("for 20 seconds", "takes 50% more damage"). Chant pages say what a chant does and "Costs no stamina." (a Rift: "Costs 50 maximum stamina."). The sentences
+still must sound like something a person would say (Test 7, and "Inventing a spell" in section 6): explicit does not mean stiff. Wherever this section says a page has
+no numbers, no cost, no rules or is "a canon tome", it no longer applies to spell and chant pages in the book. It still applies to every other text: banners,
+prompts, tooltips, floating words and the controls list. Keep every figure true: when a spell's numbers change in code, change its page in the same change (the
+description and `damage` in `spells/*.tres`).
+
 **Read this section before writing, changing or reviewing any text a player can read.** It covers spell
 descriptions, spellbook pages, rituals, incantation names, tooltips, banners, prompts and button labels.
 Mistakes here have been the owner's most repeated complaint, and they are the easiest to make. Every line
@@ -198,11 +209,12 @@ unconscious", not "Knock whoever is under it unconscious" (the reader cannot tel
 - Bonfire: "Kindle a bonfire and heal your wounds." (confirmed by the owner). ("Wounds" is the
   in-world word for what costs maximum stamina.)
 
-### The spellbook is a canon tome
+### The spellbook page (decided 2026-11-07; it replaces the earlier "canon tome" rule)
 
-Decided by the owner: the spellbook is an in-world tome only. It holds the spell's name, its drawn picture, and
-one short line of what it is. It has no manual, no cost line, no counters, no numbers and no how-to. The reader
-learns the rest by casting. Do not add anything that makes the book a game guide, even if it would help a player.
+The owner changed their mind: the book should be explicit and say what will really happen, not pretend it exists in a world without stamina bars. A spell's
+page holds: its name and school's mouse buttons, its drawn picture, one or two plain sentences of what it is and what it really does (durations and facts
+included), then its damage line and its cost line. Still not on the page: how-to tips ("use this when"), the stroke (the animation shows it), and team words.
+The first-sentence name of the thing still comes first ("Conjure a dying star."). Chants are the same: what it does, then its cost.
 
 ### What to do before you ship a line of text
 
@@ -260,8 +272,8 @@ spells you do, drawing them visibly. There are no waves and no boss (see `docs/p
 
 ## 2. The eleven rules that matter most
 
-*Where a rule below concerns player-facing text and differs from section 0, section 0 wins. In particular, section 0
-allows no numbers at all (not even damage), and the spellbook is a canon tome with no cost line.*
+*Where a rule below concerns player-facing text and differs from section 0, section 0 wins. The spellbook is the exception that changed on 2026-11-07: its
+spell and chant pages now state the cost, the damage and the real durations (see the start of section 0); everywhere else there are still no numbers.*
 
 1. **Spells must reflect something real, and must be counterable.** Fire Nova (a magic ring blast) was removed
    because it "doesn't seem to reflect anything in real life and is impossible to block."
@@ -306,7 +318,7 @@ allows no numbers at all (not even damage), and the spellbook is a canon tome wi
 10. **Talk to the player, not about the game.** Every sentence of on-screen text is imperative and addressed to the player ("Press Tab to
 	open the spellbook", "Gives you endless stamina"), never a statement about the system ("Tab opens the spellbook", "Snow slows everything under it"). A key
 	and action table may use short verb-first labels. No ALL-CAPS result lines ("The ritual backfired", not "RITUAL BACKFIRED").
-    **Spellbook entries** follow nine more rules (owner-confirmed):
+    **Spellbook entries** (the older nine rules; where they say "no numbers", "no cost" or "never mention cost scaling", the 2026-11-07 decision in section 0 replaces them):
 	1. Start with a verb addressed to the player ("Hurl a bolt of fire").
     2. Say only what the spell does. Never name what counters it, what it combines with, or how to avoid it: the player learns those.
 	3. Never mention self-harm ("you too"); it is implied.
@@ -318,7 +330,7 @@ allows no numbers at all (not even damage), and the spellbook is a canon tome wi
     9. Never describe the stroke: the animation shows it.
 11. **Don't change what they didn't ask about.** When feedback names five things, fix those five, check
     nothing else broke, and report briefly.
-12. **Describe what the thing does to the player, never the numbers behind it.** No multipliers, percentages or comparisons: never "1.6 times faster", "50% more damage", "half damage" or "walks slower". Write "Run faster." The only numbers allowed are damage and durations in seconds. Don't list side effects, weaknesses or interactions (what burns it, what it stops, what it combines with): the player learns those by playing. One effect per spell, in one short line.
+12. **Describe what the thing does to the player, never the numbers behind it** (outside the spellbook's spell and chant pages, which now give their costs, damage and durations, section 0). No multipliers, percentages or comparisons: never "1.6 times faster", "50% more damage", "half damage" or "walks slower". Write "Run faster." The only numbers allowed are damage and durations in seconds. Don't list side effects, weaknesses or interactions (what burns it, what it stops, what it combines with): the player learns those by playing. One effect per spell, in one short line.
 13. **Name no team.** Spell and game text says "anyone", "anything" or "whoever", never "foes", "enemies", "allies" or "rivals" (spells have no teams, see section 5).
 
 ## 3. Run, test and look
@@ -370,7 +382,7 @@ GODOT="/c/Users/Jordan Polun/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.
 "$GODOT" --headless --fixed-fps 60 --path . tests/blizzard_freeze_check.tscn  # a Blizzard chills and then freezes whoever stays in it (add `-- out=DIR` for pictures, needs a window)
 "$GODOT" --headless --fixed-fps 60 --path . tests/group_a_check.tscn  # Barbs, Pebble, Hailstorm and Featherfall
 "$GODOT" --headless --fixed-fps 60 --path . tests/group_b_check.tscn  # Thorn Whip and Insect Plague
-"$GODOT" --headless --fixed-fps 60 --path . tests/group_d_check.tscn  # Shadow Bolt, Hemorrhage, Supernova and Scythe, each cast in a world against a dummy
+"$GODOT" --headless --fixed-fps 60 --path . tests/group_d_check.tscn  # Eldritch Blast, Hemorrhage, Supernova and Scythe, each cast in a world against a dummy
 "$GODOT" --path . tests/attacks_look.tscn -- out=DIR  # pictures of those four (needs a window)
 "$GODOT" --headless --fixed-fps 60 --path . tests/group_c_check.tscn  # Thunderclap (throws everyone near back but the caster, and dazes them) and Rocket Jump (the caster is thrown far up)
 "$GODOT" --headless --fixed-fps 60 --path . tests/leech_check.tscn  # the tether, the split of a spell's cost and what breaks it
@@ -481,7 +493,7 @@ GODOT="/c/Users/Jordan Polun/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.
 | Shadow | Black Hole | inward spiral | a dark knot that pulls everything toward it, fiercely close in and faintly from far off (walls still stop it) | walk out |
 | Shadow | Shadow Step | flick | slipping along the stroke | |
 
-**The spellbook is a canon tome only** (owner decision): in-world text and the drawn picture, no manual, no cost line. What a spell does, what counters it and how much it costs are learned in play. The table above is the first 32 spells. The others (Vacuum, Updraft, Sinkhole, Stalagmite, Silence, Fight or Flight, Sneak, Hunter's Mark, the Blood spells, Tide Surf, Obsidian Armor, Glowcap and Moonbeam) are in `spells/` and `docs/spell_pool.md`.
+**The spellbook is explicit** (owner decision, 2026-11-07): each page has the drawn picture, what the spell is and really does, the damage it deals (or per half second, where it ticks) and its cost in stamina (maximum stamina for Necromancy), see section 0. What counters a spell is still learned in play. The table above is the first 32 spells. The others (Vacuum, Updraft, Sinkhole, Stalagmite, Silence, Fight or Flight, Sneak, Hunter's Mark, the Blood spells, Tide Surf, Obsidian Armor, Glowcap and Moonbeam) are in `spells/` and `docs/spell_pool.md`.
 
 **The schools have new names** (the ids Fire, Water, Air, Earth, Flora, Shadow and Blood stay in code and double as element tags; only what a player reads changed, through `SpellData.school_name`): Pyromancy, Aquamagy, Aerokinesis, Terramancy, Druidry, Umbramancy and Necromancy. The Library gives a title from the casts (`Library.title_of`).
 
@@ -508,12 +520,12 @@ starts a run. The first screen also has a **Tutorial** (`scripts/tutorial.gd`: a
 
 | School | Spell | Shape | Real thing | Counterplay |
 |---|---|---|---|---|
-| Shadow | Shadow Bolt | an arrow (the bolt goes the way it points) | a dart of darkness that bends toward the nearest living thing, wizard or creature, other than the caster (`ShadowBolt`), slower than a runner | outrun it, a wall, a Barrier |
+| Shadow | Eldritch Blast | an arrow (the beam goes the way it points) | a beam of crackling dark energy that strikes the first thing in its way at once, up to 640 px, as the spell of that name in Dungeons & Dragons does (`EldritchBlast`, a ray: no shot to dodge or turn) | a wall, distance |
 | Blood | Hemorrhage | a drop of blood: the flame shape (`flare`), drawn over someone | a wound that bleeds a little at a time for a while (`Hemorrhage`) | it wears off |
-| Fire | Supernova | a ring, then a flat oval round it, like Saturn (`saturn`, one stroke) | a small sun hangs where it was drawn: it burns whoever is close, pulls everything toward it a little, then blows up and throws everyone back (`Supernova`); costs 80 | get clear before it blows; stone or a wall |
-| Blood | Scythe | a crescent (the blade) | one swing in front of the caster, a half circle, that cuts hard (`Scythe`) | stay out of reach, a wall |
+| Fire | Supernova | a ring, then a flat oval round it, like Saturn (`saturn`, one stroke) | a dying star hangs where it was drawn for 5 seconds: it burns whoever is close, pulls everything toward it a little, then explodes, hurting and throwing everyone within about 320 px far away (`Supernova`); costs 80 | get clear before it blows; stone or a wall |
+| Blood | Scythe | a crescent (the blade) | one swing of a real scythe (CC-BY art by Sevarihk, `art/fx/scythe.png`) in a half circle in front of the caster that cuts hard (`Scythe`) | stay out of reach, a wall |
 
-The spellbook lines ("Hurl a bolt of darkness." "Open a wound that will not close." "Conjure a small sun that pulls everything toward it." "Swing a scythe.") are drafts; the owner said the first two read wrong and has not seen the others. A Blood loop the recognizer takes for a flame but is not one is read again as the circle (`Caster._end`), because Hemorrhage's flame shares Blood's buttons with Burst's circle. `tests/attacks_look.tscn -- out=DIR` (needs a window) takes pictures of them.
+The spellbook lines (see the book: every spell now has a plain description, a damage line and a cost line) are drafts until the owner confirms them. A Blood loop the recognizer takes for a flame but is not one is read again as the circle (`Caster._end`), because Hemorrhage's flame shares Blood's buttons with Burst's circle. `tests/attacks_look.tscn -- out=DIR` (needs a window) takes pictures of them.
 
 **Pages per world:** each world lays only `Pages.count_for(biome, width)` pages (graveyard 16, peaks 16, jungle 18, ashlands 12, castle 18, underground 20, portal fields 10, at 1000 tiles wide, fewer in the smaller worlds, never under 6), and which ones is settled when the match begins, from its seed (`Pages.allotment`): each wizard is dealt starting pages of their own, and each world is given pages of its own from the rest, no page in two places, some in none. So a page is never in a world once a wizard holds it, and no two wizards start alike. Pages not laid do not carry over. A kind of gate the world has always keeps a page that opens it, swapped in from the spare pages if need be (`Pages.with_openers`). In a world with no halls, pages lying out in the open are at least `Pages.MIN_APART` (40) columns apart, apart from the three near the start (`tests/pages_spread_look.tscn` prints where they lie).
 
@@ -529,14 +541,18 @@ well. `scripts/spells/spell_targets.gd` decides who can be hurt.
 
 ### Inventing a spell: what the owner has taught (read before you propose anything)
 
-The owner wants agents to learn to invent spells without being told. Until they have shown they can, **never build a spell the owner has not approved as an idea**: first send a short list (the thing in plain words, the school, the gesture as a picture of it, why it is not like a spell we have), and build only what they pick. Keep adding what you learn here. The lessons so far come from an overnight batch of eight (Wind Cutter, Shadow Bolt, Sandblast, Sleet, Meteor, Strangler Vine, Hemorrhage, Steam Burst), most of which the owner vetoed:
+The owner wants agents to learn to invent spells without being told. Until they have shown they can, **never build a spell the owner has not approved as an idea**: first send a short list (the thing in plain words, the school, the gesture as a picture of it, why it is not like a spell we have), and build only what they pick. Keep adding what you learn here. The lessons so far come from an overnight batch of eight (Wind Cutter, Eldritch Blast, Sandblast, Sleet, Meteor, Strangler Vine, Hemorrhage, Steam Burst), most of which the owner vetoed:
 
-- **Name it with a word people already say.** "Meteor", "Bat Swarm", "Lightning". Do not invent a compound ("Wind Cutter", "Shadow Bolt" drew "what is that?"). If a stranger would ask what the name means, the name is wrong.
+- **Name it with a word people already say.** "Meteor", "Bat Swarm", "Lightning". Do not invent a compound ("Wind Cutter", "Eldritch Blast" drew "what is that?"). If a stranger would ask what the name means, the name is wrong.
 - **Write the line the way a person would say it.** Starting with a verb is a habit of the old rules, not the test: the test is whether a human would choose these words. Rejected, though each fits a dictionary: "Hurl a blade of wind", "Hurl a bolt of darkness" (you cannot hurl these, and the reader does not know what they are), "Blast a cloud of sand and grit" (people do not say "blast" for this), "Call down a burning rock from the sky" (everyone knows what a meteor is; you do not "call down" one), "Sprout a coiling vine", "Open a wound that will not close", "Release a column of scalding steam". Do not describe the obvious ("burning rock" for a meteor). Show the owner the line next to the nearest line they already confirmed.
 - **The gesture is a picture of the spell, never a shape that happened to be free in the school.** Hemorrhage's crescent, Steam Burst's wave and Strangler Vine's spiral were chosen because they were unused; the owner noticed.
 - **No near-duplicates.** Sleet was Barbs in ice colours; Strangler Vine was Flytrap. Before proposing, find the nearest existing spell and say what the new one does that it cannot.
 - **A spell must be worth casting.** Steam Burst was too weak to bother with. Say what it can do that nothing else can.
 - **Do not tell a little story in the line.** "Call a wolf to hunt" and "Send a hawk after its prey" were rejected: the line names the thing and what it is, in the plain verb for it (summon, conjure, swing), not what it is for.
+- **When the owner names a spell from another game (Eldritch Blast, Supernova), build it the way it behaves there.** Eldritch Blast is a beam that hits at once, not a slow dart.
+- **A spell that is a real object needs real art, not a particle effect.** The Scythe was a pale smear until it had a scythe: search for free art (CC0, CC-BY or any free licence, section 7) and credit it.
+- **A spell drawn "over" or "around" something must find everything inside the shape that was drawn**, not only what is near its middle (Hemorrhage missed big targets).
+- **A spell with a warning is fairer than one that strikes at once** where it is cast on the spot (the Firewall flickers for a second before it burns).
 - **A homing thing seeks anything alive** (wizards and creatures), not only wizards.
 - **Check the school's name, not only its code id.** Flora is Druidry (nature, animals too), Shadow is Umbramancy, Blood is Necromancy. Animal spells belong in Druidry.
 
@@ -572,9 +588,10 @@ The owner wants agents to learn to invent spells without being told. Until they 
 - **Folder names** the script expects are listed in its docstring.
 - **Downloads are not kept in the repo.** Re-download them into a scratch folder.
 - **Credits:** every source and licence is in `art/CREDITS.md`. Add a line for anything new.
-- **Licences (owner decision, 2026-10-25):** CC0 and CC-BY are both fine, for everything. CC-BY needs a credit line in
-  `art/CREDITS.md` (name the author and link the pack). Prefer CC0 when two assets fit equally. Still skip CC-BY-SA,
-  GPL, "personal use only" and paid packs unless told otherwise.
+- **Licences (owner decisions, 2026-10-25 and 2026-11-07):** we are **not restricted to CC0**. Use any art or sound we are really allowed to use in the game for free:
+  CC0, CC-BY (a credit line in `art/CREDITS.md`: the author, the pack and a link), and any free licence or "free for commercial use" page whose terms we can meet.
+  Read the terms of the page, put every source in `art/CREDITS.md`, and prefer CC0 when two assets fit equally. Do not spend money: a paid pack is not free.
+  Where a licence puts a condition on the game itself (share-alike, GPL, "non-commercial only", "no redistribution"), tell the owner before using it.
 - **Good sources:**
   - kenney.nl: everything is CC0. Its "Tiny Dungeon" and "1-Bit" packs suit the style.
   - opengameart.org: check the licence badge on each page.

@@ -8,5 +8,4 @@ spell_name = "Faint"
 school = "Blood"
 gesture = "spiral"
 cost = 30.0
-effect = "Knock the target unconscious."
-damage = "drops anyone until their stamina returns"
+effect = "Knock the target unconscious. They stay down until a little stamina has come back to them."

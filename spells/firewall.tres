@@ -6,11 +6,11 @@
 script = ExtResource("2_hr1x3")
 spell_name = "Firewall"
 gesture = "flame_wall"
-cost = 18.0
+cost = 30.0
+effect = "Raise a wall of fire along the ground, as wide as the line you draw. The foot of it flickers for a second, then the whole wall catches and burns for 4 seconds. Anyone can walk through it."
+damage = "4 damage every half second to whoever stands in it"
 size_from = 3
 size_unit = 100.0
 size_min = 0.5
 size_max = 5.0
-effect = "Raise a line of fire from the ground."
-damage = "4 damage per half second"
 effect_path = "res://scripts/spells/firewall.gd"

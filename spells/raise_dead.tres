@@ -9,5 +9,4 @@ school = "Blood"
 gesture = "latin_cross"
 targeting = "positional"
 cost = 37.0
-effect = "Raise a skeleton from the dead."
-damage = ""
+effect = "Raise a skeleton from the dead. It has 50 health, fights for you and never hurts you."

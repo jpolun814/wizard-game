@@ -491,6 +491,9 @@ func _page_spell(column: VBoxContainer, spell_name: String) -> void:
 	preview.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	column.add_child(preview)
 	column.add_child(_ink(s.effect, 22, TEXT_INK))
+	if s.damage_line() != "":
+		column.add_child(_ink(s.damage_line(), 20, TEXT_INK))
+	column.add_child(_ink(s.cost_line(), 20, SUBTLE))
 
 
 ## An incantation's own page: its name, its words and what it does. Every one is spoken by typing it and pressing Enter,
@@ -505,7 +508,8 @@ func _page_incantation(column: VBoxContainer, ritual_id: String) -> void:
 	top.add_child(KeyCap.new("Enter"))
 	column.add_child(top)
 	column.add_child(_ink("“%s”" % r["text"], 26, TEXT_INK))
-	column.add_child(_ink(ritual_effect(ritual_id), 20, SUBTLE))
+	column.add_child(_ink(ritual_effect(ritual_id), 20, TEXT_INK))
+	column.add_child(_ink(ritual_cost_line(ritual_id), 20, SUBTLE))
 	if ritual_id == "mark":
 		var back: Dictionary = RitualInput.RITUALS["recall"]
 		var back_top := HBoxContainer.new()
@@ -516,33 +520,34 @@ func _page_incantation(column: VBoxContainer, ritual_id: String) -> void:
 		back_top.add_child(KeyCap.new("Enter"))
 		column.add_child(back_top)
 		column.add_child(_ink("“%s”" % back["text"], 26, TEXT_INK))
-		column.add_child(_ink(ritual_effect("recall"), 20, SUBTLE))
+		column.add_child(_ink(ritual_effect("recall"), 20, TEXT_INK))
+		column.add_child(_ink(ritual_cost_line("recall"), 20, SUBTLE))
 
 
 static func ritual_effect(ritual_id: String) -> String:
 	match ritual_id:
 		"minimap":
-			return "Show the land around you."
+			return "Show a map of the land around you. Chant it again to hide the map."
 		"insight":
-			return "Gain deeper knowledge of those around you."
+			return "Gain deeper knowledge of those around you: see their stamina and weaknesses. Chant it again to stop."
 		"bonfire":
-			return "Kindle a bonfire and heal your wounds."
+			return "Kindle a bonfire that burns for 30 seconds and heals your wounds, 4 a second, while you stand beside it."
 		"boundless":
-			return "Never tire for a while."
+			return "Never tire for 20 seconds: your stamina does not run out."
 		"double_jump":
-			return "Jump again in mid-air."
+			return "Jump again in mid-air for 20 seconds."
 		"rift":
 			return "Tear open a way to a random place. This can be devastating."
 		"haste":
-			return "Run faster."
+			return "Run 60% faster for 20 seconds."
 		"deep_breath":
-			return "Hold your breath for a while."
+			return "Hold your breath for 45 seconds."
 		"mark":
 			return "Mark this place."
 		"scrying_eye":
-			return "Send out an eye to watch another wizard."
+			return "Send out an eye to watch another wizard. Chant it again to call it back."
 		"dowsing":
-			return "Show the way to the nearest page you have not read."
+			return "Show the way to the nearest page you have not read, with an arrow, until you read it."
 		"recall":
 			return "Open a long-lasting portal back to your mark."
 	return ""
@@ -550,3 +555,11 @@ static func ritual_effect(ritual_id: String) -> String:
 
 func _page_blank(_column: VBoxContainer) -> void:
 	pass
+
+
+## What a chant costs, in plain words. Most cost nothing; a Rift wears down the most stamina you can have. How well it is said sets its power, and a garbled
+## chant backfires.
+static func ritual_cost_line(ritual_id: String) -> String:
+	if ritual_id == "rift":
+		return "Costs 50 maximum stamina."
+	return "Costs no stamina."

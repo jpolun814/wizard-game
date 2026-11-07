@@ -1,6 +1,6 @@
 extends Node
 
-## Attacking spells, cast in a real world: Shadow Bolt (it bends toward a rival or a creature), Hemorrhage (a wound that bleeds a little at a time), Supernova (a sun that
+## Attacking spells, cast in a real world: Eldritch Blast (a beam that strikes the first thing in its line and is stopped by a wall), Hemorrhage (a wound that bleeds a little at a time), Supernova (a sun that
 ## pulls and burns, then blows up and throws things back) and Scythe (a swing in front that a wall shelters from) and Firewall (a line up and a line out: a wall of flame as wide as the second line, costing more the wider it is).
 ##
 ##     godot --headless --fixed-fps 60 --path . tests/group_d_check.tscn
@@ -31,7 +31,7 @@ func _ready() -> void:
 	_world.set_process(false)  # or it carries the wizard back to where it began
 	_spot = _player.global_position
 	await _wait(0.5)
-	await _shadow_bolt()
+	await _eldritch_blast()
 	await _hemorrhage()
 	await _supernova()
 	await _scythe()
@@ -68,21 +68,41 @@ func _made(kind: GDScript) -> Array:
 	return _world.get_children().filter(func(n) -> bool: return is_instance_of(n, kind) and not n.is_queued_for_deletion())
 
 
-func _shadow_bolt() -> void:
+func _eldritch_blast() -> void:
+	var near := _dummy(250.0)
+	var behind := _dummy(420.0)
+	await _arrive()
+	_cast("Eldritch Blast", "directional", 0.0)
+	await _wait(0.3)
+	_verdict(_hurt(near) == EldritchBlast.HARM, "a beam strikes the first thing in its line at once (%d hurt)" % _hurt(near))
+	_verdict(_hurt(behind) == 0, "and nothing behind it (%d hurt)" % _hurt(behind))
+	_cast("Eldritch Blast", "directional", -0.6)
+	await _wait(0.3)
+	_verdict(_hurt(near) == EldritchBlast.HARM, "and misses what is not in its line")
+	var wall := StaticBody2D.new()
+	var shape := CollisionShape2D.new()
+	var box := RectangleShape2D.new()
+	box.size = Vector2(20.0, 200.0)
+	shape.shape = box
+	wall.add_child(shape)
+	wall.collision_layer = 1
+	wall.position = _spot + Vector2(150.0, -60.0)
+	_world.add_child(wall)
+	await _wait(0.1)
+	_cast("Eldritch Blast", "directional", 0.0)
+	await _wait(0.3)
+	_verdict(_hurt(near) == EldritchBlast.HARM, "and a wall stops it")
+	wall.queue_free()
+	near.queue_free()
+	behind.queue_free()
 	var rival: Wizard = _world._rivals[0]
-	rival.global_position = _spot + Vector2(320.0, -150.0)
+	rival.global_position = _spot + Vector2(300.0, -8.0)
 	var before := rival.max_stamina
 	await _wait(0.3)
-	_cast("Shadow Bolt", "directional", 0.0)  # flung level, with the rival well above its line
-	await _wait(2.5)
-	_verdict(rival.max_stamina < before, "a bolt of darkness bends toward a rival and hurts them (%.0f to %.0f)" % [before, rival.max_stamina])
+	_cast("Eldritch Blast", "directional", 0.0)
+	await _wait(0.3)
+	_verdict(rival.max_stamina < before, "and it strikes a wizard too (%.0f to %.0f)" % [before, rival.max_stamina])
 	rival.global_position = Vector2(-9000.0, -9000.0)
-	var dummy := _dummy(300.0)
-	await _arrive()
-	_cast("Shadow Bolt", "directional", -0.45)  # flung up and away, with only a creature to bend toward
-	await _wait(2.5)
-	_verdict(_hurt(dummy) == ShadowBolt.HARM, "and it bends toward a creature too (%d hurt)" % _hurt(dummy))
-	dummy.queue_free()
 
 
 func _hemorrhage() -> void:

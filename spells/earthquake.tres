@@ -8,5 +8,4 @@ spell_name = "Earthquake"
 school = "Earth"
 gesture = "earthquake"
 cost = 60.0
-effect = "Shake the world for a little while."
-damage = "shakes the ground"
+effect = "Shake the world for 6 seconds. Walls of stone and ice crack, and anyone casting has a shaky hand."

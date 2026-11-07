@@ -9,5 +9,6 @@ school = "Earth"
 gesture = "flick"
 targeting = "directional"
 cost = 6.0
-effect = "Hurl a pebble."
+effect = "Hurl a pebble. It falls as it flies."
+damage = "5 damage"
 effect_path = "res://scripts/spells/pebble.gd"

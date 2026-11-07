@@ -8,5 +8,5 @@ spell_name = "Flytrap"
 school = "Flora"
 gesture = "jaws"
 cost = 26.0
-effect = "Plant a snapping flytrap on the ground."
-damage = "snaps shut on whoever steps in"
+effect = "Plant a flytrap on the ground. It waits up to a minute, then snaps shut on whoever steps in and holds them for 3 seconds."
+damage = "8 damage for each of its 3 bites"

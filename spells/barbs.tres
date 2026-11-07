@@ -9,5 +9,6 @@ school = "Flora"
 gesture = "flick"
 targeting = "directional"
 cost = 10.0
-effect = "Fling a volley of thorns."
+effect = "Fling five thorns in a fan."
+damage = "3 damage for each thorn that hits"
 effect_path = "res://scripts/spells/barbs.gd"

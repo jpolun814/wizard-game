@@ -9,6 +9,7 @@ const HARM := 30
 const KNOCK := 260.0
 const BODY_RADIUS := 24.0
 const LIFE := 0.4
+const BLADE: Texture2D = preload("res://art/fx/scythe.png")  # a handle, left, and a blade, right; it is held by the left end
 
 var caster_node: Wizard
 var facing := 1.0
@@ -21,10 +22,7 @@ func _ready() -> void:
 		facing = caster_node.facing
 		global_position = caster_node.center()
 	var blood: Color = SpellData.SCHOOL_COLORS["Blood"]
-	var arc := Fx.pop(get_parent(), global_position + Vector2(facing * RADIUS * 0.2, 0.0), "slash_01", Color(1.0, 0.45, 0.5), RADIUS * 2.6, 0.35, 1.15, 0.0, true)
-	var edge := Fx.pop(get_parent(), arc.global_position, "slash_01", Color(1.0, 0.85, 0.85), RADIUS * 2.2, 0.3, 1.1, 0.0, true)  # a second, whiter blade over the first: the edge
-	edge.rotation = -PI * 0.5 * facing
-	arc.rotation = -PI * 0.5 * facing  # the picture is a smile: turned so the blade bulges the way the swing goes
+	_show_swing()
 	Fx.burst(get_parent(), global_position + Vector2(facing * RADIUS * 0.7, 0.0), blood, 12, 180.0, 0.4, true)
 	Sfx.play("blood_cast", global_position)
 	_swing()
@@ -55,6 +53,28 @@ func _sheltered(point: Vector2) -> bool:
 	var query := PhysicsRayQueryParameters2D.create(global_position, point)
 	query.collision_mask = 1  # ground and stone
 	return not get_world_2d().direct_space_state.intersect_ray(query).is_empty()
+
+
+## The scythe itself, held by the end of its handle and swung from raised behind the caster down and forward through the half circle, with a pale
+## streak of the blade's path behind it.
+func _show_swing() -> void:
+	var holder := Node2D.new()
+	holder.position = Vector2(facing * 10.0, -6.0)
+	holder.scale.x = facing  # (a mirror also turns the swing the other way round)
+	holder.rotation = -2.3
+	holder.z_index = 6
+	add_child(holder)
+	var blade := Sprite2D.new()
+	blade.texture = BLADE
+	blade.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	blade.centered = false
+	blade.offset = Vector2(0.0, -30.0)
+	holder.add_child(blade)
+	var tween := holder.create_tween()
+	tween.tween_property(holder, "rotation", 1.0, 0.2).set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_CUBIC)
+	tween.tween_property(holder, "modulate:a", 0.0, 0.15)
+	var streak := Fx.pop(get_parent(), global_position + Vector2(facing * RADIUS * 0.2, 0.0), "slash_01", Color(1.0, 0.55, 0.6), RADIUS * 2.2, 0.3, 1.1, 0.0, true)
+	streak.rotation = -PI * 0.5 * facing  # the picture is a smile: turned so it bulges the way the swing goes
 
 
 func _physics_process(delta: float) -> void:

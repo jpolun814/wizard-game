@@ -583,6 +583,12 @@ func _spawn_spell(spell: String, targeting: String, origin: Vector2, aim: float,
 				add_child(column)
 				column.setup(spell, Vector2(lerpf(x_from, x_to, (i + 0.5) / columns), line[0].y), 0.0)
 			return
+		"Eldritch Blast":
+			var blast := EldritchBlast.new()
+			blast.caster_node = caster_node
+			blast.aim = aim
+			add_child(blast)
+			return
 		"Supernova":
 			var sun := Supernova.new()
 			sun.position = origin
@@ -594,7 +600,7 @@ func _spawn_spell(spell: String, targeting: String, origin: Vector2, aim: float,
 			add_child(swing)
 			return
 		"Hemorrhage":
-			var cut := Hemorrhage.nearest_under(get_tree(), origin)
+			var cut := Hemorrhage.nearest_under(get_tree(), origin, info.get("extent", Vector2.ZERO))
 			if cut == null:
 				FloatText.spawn(self, origin + Vector2(0, -20), "Aim at someone", Color("#e0707f"), 0.9)
 				return

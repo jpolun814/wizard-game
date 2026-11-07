@@ -6,8 +6,8 @@
 script = ExtResource("2_pjj4p")
 spell_name = "Spark"
 gesture = "zigzag"
-effect = "Call down a bolt of lightning from the sky."
-damage = "20 damage"
 colour = Color(1, 0.9098039, 0.3529412, 1)
 cost = 40.0
+effect = "Call down a bolt of lightning from the sky onto the spot you draw. A roof stops it, and it shocks anyone standing in water."
+damage = "30 damage"
 effect_path = "res://scripts/spells/spark_strike.gd"

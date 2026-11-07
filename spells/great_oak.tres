@@ -9,5 +9,5 @@ school = "Flora"
 gesture = "tree"
 targeting = "shape"
 cost = 52.0
-effect = "Grow a great oak."
-damage = "a tree that falls, 35 damage"
+effect = "Grow a great oak that you can stand on and climb. After a while it creaks and falls, crushing everything beneath it."
+damage = "35 damage to whatever it falls on"

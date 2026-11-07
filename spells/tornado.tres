@@ -9,5 +9,4 @@ school = "Air"
 gesture = "tornado"
 targeting = "shape"
 cost = 30.0
-effect = "Summon a whirlwind that flings anything that walks into it."
-damage = "flings anything"
+effect = "Summon a whirlwind that lasts 6 seconds. Anyone who walks into it is flung high into the air."

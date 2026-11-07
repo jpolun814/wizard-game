@@ -8,5 +8,4 @@ spell_name = "Glowcap"
 school = "Flora"
 gesture = "circle"
 cost = 14.0
-effect = "Grow a glowing mushroom to light the way for a while."
-damage = "a green light, harmless"
+effect = "Grow a glowing mushroom that lights the way for 60 seconds. Eating it raises your maximum stamina by 1."

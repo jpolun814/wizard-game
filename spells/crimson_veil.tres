@@ -8,5 +8,4 @@ spell_name = "Crimson Veil"
 school = "Blood"
 gesture = "wall"
 cost = 5.0
-effect = "Wrap yourself in a veil of blood that negates the next few blows."
-damage = "blocks 2 hits"
+effect = "Wrap yourself in a veil of blood that negates the next 2 blows."

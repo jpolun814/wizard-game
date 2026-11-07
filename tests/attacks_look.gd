@@ -1,6 +1,6 @@
 extends Node
 
-## Pictures of the attacking spells (Shadow Bolt, Hemorrhage, Supernova, Scythe), each cast at a dummy in the
+## Pictures of the attacking spells (Eldritch Blast, Hemorrhage, Supernova, Scythe), each cast at a dummy in the
 ## waiting room, to judge how they look.
 ##
 ##     godot --path . tests/attacks_look.tscn -- out=DIR     (needs a window)
@@ -28,8 +28,8 @@ func _ready() -> void:
 	dummy.hp = 5000
 	await get_tree().create_timer(1.8).timeout
 	var from := _player.center()
-	_cast("Shadow Bolt", "directional", from, 0.0, {})
-	await _shots("shadow_bolt", [0.4, 0.8])
+	_cast("Eldritch Blast", "directional", from, 0.0, {})
+	await _shots("eldritch_blast", [0.05, 0.12])
 	_cast("Hemorrhage", "positional", dummy.center(), 0.0, {})
 	await _shots("hemorrhage", [1.2, 2.2])
 	_cast("Supernova", "positional", _feet + Vector2(220.0, -60.0), 0.0, {})
@@ -37,7 +37,10 @@ func _ready() -> void:
 	dummy.global_position = _feet + Vector2(70.0, 0.0)
 	_player.facing = 1.0
 	_cast("Scythe", "positional", from, 0.0, {})
-	await _shots("scythe", [0.08, 0.2])
+	await _shots("scythe", [0.05, 0.1, 0.16, 0.24])
+	var wall_line := PackedVector2Array([_feet + Vector2(120.0, 0.0), _feet + Vector2(120.0, -80.0), _feet + Vector2(330.0, -80.0)])
+	_cast("Firewall", "positional", wall_line[0], 0.0, {"line": wall_line})
+	await _shots("firewall", [0.4, 0.9, 1.5])
 	get_tree().quit()
 
 

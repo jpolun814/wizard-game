@@ -14,12 +14,12 @@ const BURN := 3
 const BURN_GAP := 0.5
 const PULL := 1300.0          # the pull at the sun itself; less the farther off
 const REACH := 560.0          # how far the pull reaches
-const EXPLODE_RADIUS := 260.0
+const EXPLODE_RADIUS := 320.0
 const EXPLODE_DAMAGE := 45
-const KNOCK := 650.0          # how hard a body is thrown at the middle; less toward the edge
-const LIFT := -240.0
+const KNOCK := 1700.0          # how hard a body is thrown at the middle; less toward the edge
+const LIFT := -480.0
 const SHOW_SCALE := 5.0       # the sun's art is 32 px: a whole number of times that
-const DANGER_RADIUS := 300.0  # the AI wizards keep this far away
+const DANGER_RADIUS := 360.0  # the AI wizards keep this far away
 
 var _age := 0.0
 var _burn := 0.0
@@ -108,7 +108,7 @@ func _explode() -> void:
 		if body.is_in_group("mobs"):
 			body.knock_back(Vector2(away.x * KNOCK * share, minf(away.y * KNOCK * share, LIFT * share)))  # thrown first: the blow may be its last
 		else:
-			body.push(Vector2(away.x * KNOCK * share * 0.6, minf(away.y * KNOCK * share * 0.6, LIFT * share)))
+			body.push(Vector2(away.x * KNOCK * share * 0.9, minf(away.y * KNOCK * share * 0.9, LIFT * share)))
 		SpellTargets.hurt(body, EXPLODE_DAMAGE, "Fire", false, false, self)
 	for shot in tree.get_nodes_in_group("shots"):
 		var from: Vector2 = shot.global_position

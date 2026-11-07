@@ -64,7 +64,7 @@
 
 1. **Licence:**
    - CC0 is best, and CC-BY is fine too (the owner approved it for everything, 2026-10-25). CC-BY needs a credit line in `art/CREDITS.md`.
-   - Skip CC-BY-SA, GPL, "personal use only" and paid packs unless told otherwise.
+   - We are not restricted to CC0 (owner, 2026-11-07): any asset free to use in the game will do, with a credit where its licence asks. Tell the owner first about share-alike, GPL, non-commercial or no-redistribution terms; do not buy packs.
    - On itch.io, read the page's "License" line; descriptions and metadata sometimes disagree.
 2. **Style:** dark, gothic, pixel, at a density near the characters (roughly 50–90 px tall people).
 3. **Content:** open it and look at every frame in a contact sheet before using it. Pitfalls already met:

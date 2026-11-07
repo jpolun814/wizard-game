@@ -8,5 +8,4 @@ spell_name = "Adrenaline"
 school = "Blood"
 gesture = "zigzag"
 cost = 15.0
-effect = "Surge with speed for a little while."
-damage = "faster, quicker recovery"
+effect = "Make your blood race for 10 seconds. You run faster and your stamina comes back three times as fast."

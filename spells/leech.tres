@@ -9,5 +9,4 @@ school = "Blood"
 gesture = "tsunami"
 targeting = "directional"
 cost = 24.0
-effect = "Leech someone's strength."
-damage = ""
+effect = "Tether yourself to someone's strength. For up to 24 seconds they pay half the stamina of every spell you cast. It breaks if you lose sight of each other, drift too far apart or either of you falls."

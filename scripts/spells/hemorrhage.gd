@@ -15,13 +15,16 @@ var _clock := 0.0
 var _drip: CPUParticles2D
 
 
-## Whoever is closest to a point, if they are near enough to be under the cut.
-static func nearest_under(tree: SceneTree, point: Vector2) -> Node2D:
+## Whoever is under the cut: anyone whose middle lies inside the shape that was drawn (a little more than the box of it), the one nearest its middle; or,
+## failing that, whoever is closest to its middle, if near enough.
+static func nearest_under(tree: SceneTree, point: Vector2, extent := Vector2.ZERO) -> Node2D:
 	var best: Node2D = null
-	var best_distance := REACH
+	var best_distance := INF
+	var inside := Rect2(point - extent * 0.5 - Vector2(24.0, 24.0), extent + Vector2(48.0, 48.0))
 	for body in SpellTargets.all(tree):
-		var distance := SpellTargets.center_of(body).distance_to(point)
-		if distance < best_distance:
+		var at := SpellTargets.center_of(body)
+		var distance := at.distance_to(point)
+		if distance < best_distance and (distance < REACH or inside.has_point(at)):
 			best_distance = distance
 			best = body
 	return best

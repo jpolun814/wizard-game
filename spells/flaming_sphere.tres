@@ -9,5 +9,5 @@ school = "Fire"
 gesture = "sphere"
 targeting = "directional"
 cost = 30.0
-effect = "Launch a rolling ball of fire."
-damage = ""
+effect = "Launch a ball of fire that rolls along the ground, follows slopes, climbs walls and falls into pits. It burns out after a long roll, and water puts it out."
+damage = "6 damage to whatever it touches, again every 0.8 seconds"

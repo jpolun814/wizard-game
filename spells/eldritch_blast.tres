@@ -4,10 +4,10 @@
 
 [resource]
 script = ExtResource("1_spell")
-spell_name = "Shadow Bolt"
+spell_name = "Eldritch Blast"
 school = "Shadow"
 gesture = "arrow"
 targeting = "directional"
 cost = 16.0
-effect = "Hurl a bolt of darkness."
-effect_path = "res://scripts/spells/shadow_bolt.gd"
+effect = "Fire a beam of crackling dark energy that strikes the first thing in its way at once. Walls stop it."
+damage = "16 damage"

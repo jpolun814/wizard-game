@@ -9,4 +9,5 @@ school = "Blood"
 gesture = "crescent"
 targeting = "positional"
 cost = 30.0
-effect = "Swing a scythe."
+effect = "Swing a scythe in a half circle in front of you. Everything it reaches is knocked back a little."
+damage = "30 damage"

@@ -9,5 +9,4 @@ school = "Water"
 gesture = "tsunami"
 targeting = "directional"
 cost = 30.0
-effect = "Ride a wave along the ground, shoving anyone aside."
-damage = "carries you, shoves anyone"
+effect = "Ride a wave along the ground for 4 seconds. It carries you along and shoves everyone aside."

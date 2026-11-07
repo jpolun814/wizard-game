@@ -9,5 +9,4 @@ school = "Flora"
 gesture = "vine"
 targeting = "shape"
 cost = 18.0
-effect = "Grow a climbable vine."
-damage = "a vine you can climb"
+effect = "Grow a vine you can climb."

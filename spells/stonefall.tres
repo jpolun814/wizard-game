@@ -8,5 +8,5 @@ spell_name = "Stonefall"
 school = "Earth"
 gesture = "stonefall"
 cost = 30.0
-effect = "Drop a boulder from above."
-damage = "30 damage"
+effect = "Drop a boulder from above onto the spot you draw."
+damage = "30 damage where it lands"

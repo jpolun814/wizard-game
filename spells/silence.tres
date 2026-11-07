@@ -8,5 +8,4 @@ spell_name = "Silence"
 school = "Shadow"
 gesture = "silence"
 cost = 40.0
-effect = "Block magic from being cast."
-damage = ""
+effect = "Block magic from being cast: for 12 seconds, nobody inside the ring can cast a spell or a chant."

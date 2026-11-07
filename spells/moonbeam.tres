@@ -8,5 +8,4 @@ spell_name = "Moonbeam"
 school = "Shadow"
 gesture = "wall"
 cost = 16.0
-effect = "Call down a dim, pale moonbeam that lingers for a while."
-damage = "a dim light, harmless"
+effect = "Call down a pale moonbeam that lights the dark for 30 seconds."
