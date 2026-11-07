@@ -108,13 +108,17 @@ func _add_targets() -> void:
 		mob.facing = -1.0
 
 
+## Whether lost maximum stamina grows back by itself. The tutorial turns this off, so a Necromancy spell's cost is seen and kept.
+var heals_wounds := true
+
+
 func _process(delta: float) -> void:
 	super(delta)
 	if _mark != null and _making == null:
 		_show_guide(_mark.is_near(player.center()))
 	# Health comes back by itself a few seconds after a hit, so nothing here can end the visit.
 	_since_hurt += delta
-	if _since_hurt < HEAL_AFTER:
+	if not heals_wounds or _since_hurt < HEAL_AFTER:
 		return
 	_heal += HEAL_PER_SECOND * delta
 	if _heal >= 1.0 and not player.dead:

@@ -455,6 +455,7 @@ func _raise_biome_life() -> void:
 			cave.floors = floors  # (a roofed world keeps no sky of its own: its roof is worked out from the ground)
 			cave.seed_value = seed_value + 61
 			cave.player = player
+			cave.earth = _earth_texture()
 			add_child(cave)
 			_timed.append(cave)
 		"ashlands":

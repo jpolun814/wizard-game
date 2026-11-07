@@ -127,6 +127,7 @@ func is_game_over() -> bool:
 ## Opens or closes the menu. Playing alone it stops the world; in a network game the world goes on for the others.
 func toggle_pause() -> void:
 	_pause.visible = not _pause.visible
+	layer = 8 if _pause.visible else 3  # over the spellbook (5) while paused, under the ritual box (10)
 	get_tree().paused = _pause.visible and not Net.online()
 
 

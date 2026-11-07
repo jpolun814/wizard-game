@@ -10,7 +10,7 @@ extends Lab
 
 const POND_SPAN := Vector2i(24, 44)   # water too wide to jump, shallow enough to wade, and full of piranhas
 const POND_ROWS := 2.0
-const CHUNKS := 175  # the room is wide, so that the places are far apart
+const CHUNKS := 147  # the room is wide, so that the places are far apart
 const PANEL := Color("#1f1528")
 const WORDS := Color("#efe3cf")
 const MENU := "res://scenes/menu.tscn"
@@ -28,10 +28,10 @@ const PAGE_SPOTS := [
 	[206, ["Flare", "Glowcap"]],
 	[281, ["Rocket Jump", "Featherfall", "Push"]],
 	[318, ["Earthquake", "Stonefall"]],
-	[350, ["Eclipse", "Decoy"]],
+	[378, ["Eclipse", "Decoy"]],
 	[421, ["Gust", "Tornado"]],
 ]
-const STARTS := [-31, -22, 0, 12, 47, 104, 154, 172, 204, 278, 316, 348, 382, 419, 456, 488, 542, 570, 588, 626, 666, 684, 762, 812, 870, 924, 958]   # where whoever falls is on their feet again: the start of the place they were working on
+const STARTS := [-31, -22, 0, 12, 47, 104, 154, 172, 204, 278, 316, 376, 382, 419, 456, 488, 542, 570, 588, 626, 666, 684, 748, 794]   # where whoever falls is on their feet again: the start of the place they were working on
 const HINT_UNTIL := -21.0   # the keys to walk and jump show until the wizard has gone this far
 const CLIFF_COL := 165       # from here on the ground is this many rows higher than before: too high to jump, a vine climbs it
 const CLIFF_ROWS := 7.0
@@ -66,28 +66,18 @@ const FINALE_PITS := [[FINALE_GAP, CLIFF_ROWS], [FINALE_LEAP, 0.0]]  # each pit 
 ## on its far bank and skeletons standing in the thorns. A dark stretch where spikes and a thicket full of skeletons can only be seen by a light. A tall wall
 ## with gas behind it and an eye past that. A gap that lands in thorns, then a pit that lands in more thorns. There are no pages here: what is needed has been
 ## read, and it is for the wizard to know what to use and when.
-const GIANT_TWO_COL := 746             # waits where the first leap lands, awake, with a swing that reaches four columns
 const TURRETS_TWO := [702, 708]
-const TURRET_ZONE_TWO := Vector2i(696, 757)
+const TURRET_ZONE_TWO := Vector2i(696, 748)
 const PIT_THREE := Vector2i(716, 741)  # a leap, under the turrets' fire
-const POND_THREE := Vector2i(766, 789)
-const THICKET_FOUR := Vector2i(792, 804)   # on the far bank, with skeletons standing in it
-const DARK_THREE := Vector2i(814, 866)
-const SPIKE_STRIPS_TWO := [822, 832]
-const THICKET_FIVE := Vector2i(850, 860)   # in the dark, with a skeleton in it
-const WALL_TWO_COL := 876
-const GAS_TWO := Vector2i(882, 897)        # behind the wall
-const SENTINEL_TWO_COL := 912               # an eye past the gas
-const SENTINEL_ZONE_TWO := Vector2i(872, 922)
-const CHANT_GAP_TWO := Vector2i(928, 941)
-const THICKET_SIX := Vector2i(944, 954)    # where the gap lands, with skeletons in it
-const PIT_FOUR := Vector2i(962, 987)
-const THICKET_SEVEN := Vector2i(992, 1002) # where the leap lands
-const SKELETONS := [795, 798, 801, 854, 947, 951, 996]   # standing in the thorns at their posts, who fight whoever comes near
+const POND_THREE := Vector2i(752, 773)
+const THICKET_FOUR := Vector2i(776, 788)   # on the far bank, with skeletons standing in it
+const CHANT_GAP_TWO := Vector2i(796, 809)
+const THICKET_SIX := Vector2i(812, 824)    # where the gap lands, with skeletons in it
+const SKELETONS := [779, 782, 785, 815, 819, 822]   # standing in the thorns at their posts, who fight whoever comes near
 const GAUNTLET_FROM := 684
-const GAUNTLET_PITS := [[PIT_THREE, GAP_ROWS_DOWN], [CHANT_GAP_TWO, CHANT_GAP_ROWS], [PIT_FOUR, GAP_ROWS_DOWN]]
-const GAUNTLET_THICKETS := [THICKET_FOUR, THICKET_FIVE, THICKET_SIX, THICKET_SEVEN]
-const GAUNTLET_ZONES := [TURRET_ZONE_TWO, POND_THREE, THICKET_FOUR, DARK_THREE, SENTINEL_ZONE_TWO, GAS_TWO, THICKET_FIVE, THICKET_SIX, THICKET_SEVEN]
+const GAUNTLET_PITS := [[PIT_THREE, GAP_ROWS_DOWN], [CHANT_GAP_TWO, CHANT_GAP_ROWS]]
+const GAUNTLET_THICKETS := [THICKET_FOUR, THICKET_SIX]
+const GAUNTLET_ZONES := [TURRET_ZONE_TWO, POND_THREE, THICKET_FOUR, THICKET_SIX]
 const DARK_COLOR := Color(0.03, 0.03, 0.05)   # as dark as it is far under the ground in a match
 const THICKET_LAYERS := 10
 const DARK_SPAN := Vector2i(210, 272)   # where it is dark: the spikes in it are seen only by a light
@@ -113,13 +103,10 @@ var _darkness := 0.0   # how dark it is round the wizard, 0 to 1
 var _shoal_two: Piranhas
 var _wall: RockWall
 var _gas: Array[GasBank] = []
-var _gas_two: Array[GasBank] = []
 var _spikes: SpikeBed
 const PIT_VIEW := 70.0   # how far below the wizard the view rests: enough to see the spikes at the bottom of a pit from its edge
 var _pit_spikes: SpikeBed   # at the bottom of every pit, in plain sight: the pits are death
-var _giant_two: Mob
 var _gauntlet_thorns: Array[Bramble] = []
-var _gauntlet_walls: Array[RockWall] = []
 
 
 func _init() -> void:
@@ -150,7 +137,7 @@ func _build_map() -> Variant:
 		_dig_into(heights, pit[0], 0.0, pit[1])
 	_dig_into(heights, POND_THREE, 0.0, POND_ROWS)
 	var cells: Dictionary = ArenaGen.build(_rng, heights)
-	for span: Vector2i in [DARK_SPAN, DARK_POND, DARK_THREE]:  # the dark stretches are under a roof of rock, as underground
+	for span: Vector2i in [DARK_SPAN, DARK_POND]:  # the dark stretches are under a roof of rock, as underground
 		for col in range(span.x, span.y + 1):
 			for row in range(ArenaGen.WALL_TOP, -1):
 				cells[Vector2i(col, row)] = ArenaGen.STONE
@@ -244,11 +231,6 @@ func _add_targets() -> void:
 	_giant.faint_stays = true
 	_giant.max_hp = GIANT_HP
 	_giant.hp = GIANT_HP
-	_giant_two = _add_mob("giant", Vector2(ArenaGen.column_x(GIANT_TWO_COL), ArenaGen.surface_y(_cells, GIANT_TWO_COL))) as Mob
-	_giant_two.facing = -1.0
-	_giant_two.faint_stays = true
-	_giant_two.max_hp = GIANT_HP
-	_giant_two.hp = GIANT_HP
 	for span: Vector2i in THICKETS:
 		_plant_thicket(span, _thickets)
 	_plant_thicket(FINALE_THORNS, _finale_thorns)
@@ -257,8 +239,7 @@ func _add_targets() -> void:
 	_lay_spikes()
 	_lay_pit_spikes()
 	_wall = _raise_wall(WALL_COL)
-	_gauntlet_walls.append(_raise_wall(WALL_TWO_COL))
-	for col: int in [SENTINEL_COL, SENTINEL_TWO_COL]:
+	for col: int in [SENTINEL_COL]:
 		var watcher := Sentinel.new()
 		watcher.position = Vector2(ArenaGen.column_x(col), ArenaGen.surface_y(_cells, col))
 		watcher.reach = SENTINEL_REACH
@@ -266,7 +247,6 @@ func _add_targets() -> void:
 		watcher.interval = 1.6
 		add_child(watcher)
 	_spread_gas(GAS_SPAN, _gas)
-	_spread_gas(GAS_TWO, _gas_two)
 	for col: int in SKELETONS:
 		var skeleton := _add_mob("earth_melee", Vector2(ArenaGen.column_x(col), ArenaGen.surface_y(_cells, col))) as Mob
 		skeleton.guards = true
@@ -308,7 +288,7 @@ func _spread_gas(span: Vector2i, into: Array[GasBank]) -> void:
 ## Strips of spikes along the dark stretch, seen only when a light falls on them.
 func _lay_spikes() -> void:
 	var strips := []
-	for col: int in SPIKE_STRIPS + SPIKE_STRIPS_TWO:
+	for col: int in SPIKE_STRIPS:
 		var floors := PackedInt32Array()
 		for k in 3:
 			floors.append(roundi(ArenaGen.surface_y(_cells, col + k) / float(ArenaGen.TILE)))
@@ -420,7 +400,7 @@ func _process(delta: float) -> void:
 	_watch_the_turrets(delta, column)
 	_clear_spare_pages()
 	_trim_fans()
-	var under := [DARK_SPAN, DARK_POND, DARK_THREE].any(func(span: Vector2i) -> bool: return column >= span.x and column <= span.y)  # dark only under the rock, and no light of the wizard's own
+	var under := [DARK_SPAN, DARK_POND].any(func(span: Vector2i) -> bool: return column >= span.x and column <= span.y)  # dark only under the rock, and no light of the wizard's own
 	_darkness = move_toward(_darkness, 1.0 if under else 0.0, delta * 4.0)
 	_night.visible = _darkness > 0.0
 	_night.color = Color.WHITE.lerp(DARK_COLOR, _darkness)
@@ -455,7 +435,7 @@ func _guard_the_way(column: float) -> void:
 		return
 	if _dummy != null and is_instance_valid(_dummy) and not _dummy.is_dead() and column > DUMMY_COL + 1.5:
 		player.take_damage(1000, false)
-	for pair: Array in [[_giant, GIANT_COL], [_giant_two, GIANT_TWO_COL]]:
+	for pair: Array in [[_giant, GIANT_COL]]:
 		var giant: Mob = pair[0]
 		if giant != null and is_instance_valid(giant) and not giant.is_dead() and not giant.is_fainted():
 			giant.apply_root(0.5)

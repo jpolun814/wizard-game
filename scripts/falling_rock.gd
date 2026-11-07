@@ -9,6 +9,7 @@ const RADIUS := 22.0
 const DAMAGE := 10
 const SPRITE := preload("res://art/props/rock_spike_1.png")
 
+var tint := Color(1, 1, 1)  ## set by the cave: the colour of the ground's own rock
 var _speed := 0.0
 var _ground_y := 0.0
 var _struck := false
@@ -21,6 +22,7 @@ func _ready() -> void:
 	sprite.texture = SPRITE
 	sprite.flip_v = true  # its point is down, as a stalactite's is
 	sprite.scale = Vector2(2.0, 2.0)
+	sprite.modulate = tint
 	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	add_child(sprite)
 	_ground_y = SpellTargets.ground_below(get_world_2d(), global_position + Vector2(0.0, 24.0)).y

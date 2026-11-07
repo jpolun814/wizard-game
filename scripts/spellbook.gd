@@ -8,21 +8,11 @@ extends CanvasLayer
 
 const SHIFT_LEAVES := 5  # how many leaves a turn takes with Shift held
 ## The star beside "NEW!": an interface element made of pixel squares (O outline, G gold, H highlight, S shade), drawn at three times its size.
-const STAR_ROWS := [
-	".....O.....",
-	"....OGO....",
-	"....OGO....",
-	"...OGGGO...",
-	"OOOOGGGOOOO",
-	".OHHGGGGGSO",
-	"..OHGGGGSO.",
-	"..OGGGGGSO.",
-	".OGGGO.OGSO",
-	".OGGO...OSO",
-	".OO.....OO.",
-]
-const STAR_COLORS := {"O": Color("#3a1d1a"), "G": Color("#f2b81c"), "H": Color("#ffe27a"), "S": Color("#c98a10")}
-const STAR_SCALE := 3
+const STAR_SIZE := 36   # pixels across; a finer grid than the art around it, so its points stay sharp
+const STAR_OUTLINE := Color("#3a1d1a")
+const STAR_GOLD := Color("#f2b81c")
+const STAR_LIGHT := Color("#ffe27a")
+const STAR_SHADE := Color("#c98a10")
 const NEW_GOLD := Color("#f2b81c")
 const INK := Color("#3a1d1a")
 const TEXT_INK := Color(INK, 0.86)  # the writing is a touch lighter than the drawings, as if the pen was lifted
@@ -540,7 +530,7 @@ func _new_badge() -> HBoxContainer:
 	var star := TextureRect.new()
 	star.texture = _star_texture()
 	star.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	star.custom_minimum_size = Vector2(STAR_ROWS[0].length(), STAR_ROWS.size()) * STAR_SCALE
+	star.custom_minimum_size = Vector2(STAR_SIZE, STAR_SIZE) * 0.75
 	star.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	star.stretch_mode = TextureRect.STRETCH_SCALE
 	star.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -554,14 +544,30 @@ func _new_badge() -> HBoxContainer:
 	return badge
 
 
-## The star, one pixel to each character of STAR_ROWS.
+## The star: five points, outlined, lit from the top left. Each pixel is worked out from where it lies against the star's edges, so the points are sharp.
 static func _star_texture() -> ImageTexture:
-	var image := Image.create(STAR_ROWS[0].length(), STAR_ROWS.size(), false, Image.FORMAT_RGBA8)
-	for y in STAR_ROWS.size():
-		for x in STAR_ROWS[y].length():
-			var key: String = STAR_ROWS[y][x]
-			if STAR_COLORS.has(key):
-				image.set_pixel(x, y, STAR_COLORS[key])
+	var image := Image.create(STAR_SIZE, STAR_SIZE, false, Image.FORMAT_RGBA8)
+	var centre := Vector2(STAR_SIZE, STAR_SIZE) * 0.5
+	var outer := STAR_SIZE * 0.47
+	var inner := outer * 0.4
+	var points := PackedVector2Array()
+	for k in 10:
+		var radius := outer if k % 2 == 0 else inner
+		var angle := -PI * 0.5 + k * PI / 5.0
+		points.append(centre + Vector2(cos(angle), sin(angle)) * radius)
+	var core := PackedVector2Array()
+	for point in points:
+		core.append(centre + (point - centre) * 0.78)
+	for y in STAR_SIZE:
+		for x in STAR_SIZE:
+			var at := Vector2(x + 0.5, y + 0.5)
+			if not Geometry2D.is_point_in_polygon(at, points):
+				continue
+			var colour := STAR_OUTLINE
+			if Geometry2D.is_point_in_polygon(at, core):
+				var light := (at - centre).dot(Vector2(-1.0, -1.0).normalized()) / outer
+				colour = STAR_LIGHT if light > 0.45 else (STAR_SHADE if light < -0.4 else STAR_GOLD)
+			image.set_pixel(x, y, colour)
 	return ImageTexture.create_from_image(image)
 
 

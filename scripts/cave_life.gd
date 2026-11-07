@@ -22,6 +22,8 @@ var first_column := 0             # the column the first of those is (the whole 
 var seed_value := 0
 var seconds := 0.0                # the world's age: the world sets it each frame
 var player: Node2D
+var earth: Texture2D  ## the ground's own rock: the spikes are tinted to match it
+var _tint := Color(0.62, 0.58, 0.7)
 
 var _hangers: Array[Dictionary] = []  # {"sprite", "state": "hanging" | "shaking" | "gone", "wait", "home"}
 var _slot := -1
@@ -35,6 +37,7 @@ func roof_y(column: int) -> float:
 
 
 func _ready() -> void:
+	_tint = SpikeBed._tint_of(earth)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed_value
 	var tile := float(ArenaGen.TILE)
@@ -72,7 +75,7 @@ func _ready() -> void:
 		hanging.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		hanging.offset = Vector2(0.0, hanging.texture.get_height() * 0.5 - 4.0)
 		hanging.position = Vector2(x, top)
-		hanging.modulate = Color(0.62, 0.58, 0.7)
+		hanging.modulate = _tint
 		hanging.z_index = 1
 		add_child(hanging)
 		_hangers.append({"sprite": hanging, "state": "hanging", "wait": 0.0, "home": hanging.position})
@@ -123,6 +126,7 @@ func _watch_stalactites(delta: float) -> void:
 					sprite.visible = false
 					var rock := FallingRock.new()
 					rock.position = hanger["home"] + Vector2(0.0, 20.0)  # (set before it is added: it looks for the ground below when it arrives)
+					rock.tint = _tint
 					get_parent().add_child(rock)
 			"gone":
 				hanger["wait"] -= delta
@@ -155,6 +159,7 @@ func _cave_in(delta: float) -> void:
 		_rocks_left -= 1
 		var rock := FallingRock.new()
 		rock.position = Vector2(_spot + randf_range(-CAVE_IN_SPREAD, CAVE_IN_SPREAD), roof_y(column) + 24.0)
+		rock.tint = _tint
 		get_parent().add_child(rock)
 		GameCamera.shake_scene(get_tree(), 0.15)
 
