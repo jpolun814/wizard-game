@@ -529,14 +529,15 @@ well. `scripts/spells/spell_targets.gd` decides who can be hurt.
 
 The owner wants agents to learn to invent spells without being told. Until they have shown they can, **never build a spell the owner has not approved as an idea**: first send a short list (the thing in plain words, the school, the gesture as a picture of it, why it is not like a spell we have), and build only what they pick. Keep adding what you learn here. The lessons so far come from an overnight batch of eight (Wind Cutter, Shadow Bolt, Sandblast, Sleet, Meteor, Strangler Vine, Hemorrhage, Steam Burst), most of which the owner vetoed:
 
-- **Name it with a word people already say.** "Meteor", "Supernova", "Bat Swarm". Do not invent a compound ("Wind Cutter", "Shadow Bolt" drew "what is that?"). If a stranger would ask what the name means, the name is wrong.
+- **Name it with a word people already say.** "Meteor", "Bat Swarm", "Lightning". Do not invent a compound ("Wind Cutter", "Shadow Bolt" drew "what is that?"). If a stranger would ask what the name means, the name is wrong.
 - **Write the line the way a person would say it.** Starting with a verb is a habit of the old rules, not the test: the test is whether a human would choose these words. Rejected, though each fits a dictionary: "Hurl a blade of wind", "Hurl a bolt of darkness" (you cannot hurl these, and the reader does not know what they are), "Blast a cloud of sand and grit" (people do not say "blast" for this), "Call down a burning rock from the sky" (everyone knows what a meteor is; you do not "call down" one), "Sprout a coiling vine", "Open a wound that will not close", "Release a column of scalding steam". Do not describe the obvious ("burning rock" for a meteor). Show the owner the line next to the nearest line they already confirmed.
-- **The gesture is a picture of the spell, never a shape that happened to be free in the school.** Hemorrhage's crescent, Steam Burst's wave and Strangler Vine's spiral were chosen because they were unused; the owner noticed. Good: a circle crossed by a flat ring, like Saturn, for a supernova.
+- **The gesture is a picture of the spell, never a shape that happened to be free in the school.** Hemorrhage's crescent, Steam Burst's wave and Strangler Vine's spiral were chosen because they were unused; the owner noticed.
 - **No near-duplicates.** Sleet was Barbs in ice colours; Strangler Vine was Flytrap. Before proposing, find the nearest existing spell and say what the new one does that it cannot.
 - **A spell must be worth casting.** Steam Burst was too weak to bother with. Say what it can do that nothing else can.
 - **A homing thing seeks anything alive** (wizards and creatures), not only wizards.
 - **Check the school's name, not only its code id.** Flora is Druidry (nature, animals too), Shadow is Umbramancy, Blood is Necromancy. Animal spells belong in Druidry.
-- **Owner's ideas to build from:** a Supernova (Fire): a small sun appears and hangs there a little while, hurting everyone in a radius and pulling them toward it so it is hard to run; then it explodes, hurting and throwing everyone away. Gesture: a circle with a flat horizontal oval through it, like Saturn seen from the side. Costs a great deal of stamina. (Not built yet.)
+
+### The checklist
 
 1. **Name the real-world thing.** If you can't, stop.
 2. **Pick the school by what it is:**
