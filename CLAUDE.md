@@ -36,16 +36,25 @@ trust the code and this file where they disagree.
 
 ## 0. Player-facing words: THE NUMBER ONE PRIORITY
 
-**The spellbook changed on 2026-11-07, and this overrides everything below that says otherwise.** The owner first made the spellbook a canon tome with no
-numbers, and has now reversed that: **a spell's page is explicit.** It says what will really happen, in plain human words, and every page shows two more lines the
-game writes itself from the spell's data (`Spell.damage_line`, `Spell.cost_line`): **what it costs** ("Costs 18 stamina.", or "Costs 25 maximum stamina." for a
-Necromancy spell, which is paid in maximum stamina; a drawn size gives a range) and **what damage it deals** ("Deals 12 damage.", or "Deals 4 damage every half
-second to whoever stands in it."), when it deals any. The description names the thing and says what it does, with the durations and figures that are really
-true ("for 20 seconds", "takes 50% more damage"). Chant pages say what a chant does and "Costs no stamina." (a Rift: "Costs 50 maximum stamina."). The sentences
-still must sound like something a person would say (Test 7, and "Inventing a spell" in section 6): explicit does not mean stiff. Wherever this section says a page has
-no numbers, no cost, no rules or is "a canon tome", it no longer applies to spell and chant pages in the book. It still applies to every other text: banners,
-prompts, tooltips, floating words and the controls list. Keep every figure true: when a spell's numbers change in code, change its page in the same change (the
-description and `damage` in `spells/*.tres`).
+**The spellbook changed on 2026-11-07, but the change is small: it gained two stat lines and nothing else.** The owner first made the spellbook a canon tome with
+no numbers, then reversed that part. A spell's page now has: (1) **its short description, written as before**: a plain phrase a person would say that names the thing,
+about the length of the old lines ("Hurl a bolt of fire.", "Ignite a column of fire.", "Conjure a dying star."); (2) **a damage line**, in the shortest form, as a rate
+where it ticks ("14 dmg/sec") or a flat figure where it strikes once ("30 dmg"), nothing when it deals none; (3) **a cost line** ("30 stamina", and "maximum stamina"
+for a Necromancy spell, which is paid in maximum stamina; a drawn size gives a range). The two stat lines are written by the game from the spell's data
+(`Spell.damage_line`, `Spell.cost_line`; the exact wording of the cost line is a guess, to be settled with the owner). Chant pages: the short description, and the cost
+(none, except a Rift's maximum stamina).
+
+**Explicit means the figures, not an explanation. Do not narrate the spell.** The first redo (2026-11-07) wrote every page as a paragraph of mechanics ("the foot of it
+flickers for a second, then the whole wall catches and burns for 4 seconds", "14 damage ... again every half second it stays in them") and the owner said it was "way
+off the charts". Every other rule in this section still stands, and you may not relax a rule that the owner did not name. Specifically:
+- **No mechanics narration.** Timings, warm-ups, how it ends, what it follows, what it is stopped by and what stops it are all left to the player to learn by casting.
+  A reader learns "it flickers first" by casting it. The description says what the thing is, and nothing about how it behaves.
+- **Stats are figures, not sentences.** Never "deals 14 damage to everything in the flames, again every half second": write the rate, "14 dmg/sec". Work the rate out
+  from the code (damage per hit and how often it can land; a wizard cannot be hit more than once in `Wizard.HURT_GRACE`, half a second).
+- **Keep the rules that were not reversed:** no how-to, no counters, no team words, no interface talk, no stroke description, nothing about edge cases, short.
+  Durations and other figures beyond cost and damage are not asked for: leave them out unless the owner says a particular one belongs.
+- **When the owner reverses or adds one rule, make the smallest change that does it.** Reading "be explicit" as "explain everything" was the same over-literal mistake as
+  reading "start with a verb" as "never sound human". Ask yourself what the minimal edit is, and make it.
 
 **Read this section before writing, changing or reviewing any text a player can read.** It covers spell
 descriptions, spellbook pages, rituals, incantation names, tooltips, banners, prompts and button labels.
@@ -209,12 +218,11 @@ unconscious", not "Knock whoever is under it unconscious" (the reader cannot tel
 - Bonfire: "Kindle a bonfire and heal your wounds." (confirmed by the owner). ("Wounds" is the
   in-world word for what costs maximum stamina.)
 
-### The spellbook page (decided 2026-11-07; it replaces the earlier "canon tome" rule)
+### The spellbook page (decided 2026-11-07; the "canon tome" rule is amended, not dropped)
 
-The owner changed their mind: the book should be explicit and say what will really happen, not pretend it exists in a world without stamina bars. A spell's
-page holds: its name and school's mouse buttons, its drawn picture, one or two plain sentences of what it is and what it really does (durations and facts
-included), then its damage line and its cost line. Still not on the page: how-to tips ("use this when"), the stroke (the animation shows it), and team words.
-The first-sentence name of the thing still comes first ("Conjure a dying star."). Chants are the same: what it does, then its cost.
+A spell's page holds its name and school's mouse buttons, its drawn picture, its short description (as before), a damage line and a cost line (see the start of this
+section for the form). Nothing else was added: no durations, no mechanics, no tips, no counters, no stroke, no team words. The description is still the part that must
+sound human and name the thing first. The reader still learns how a spell behaves by casting it.
 
 ### What to do before you ship a line of text
 
@@ -273,7 +281,7 @@ spells you do, drawing them visibly. There are no waves and no boss (see `docs/p
 ## 2. The eleven rules that matter most
 
 *Where a rule below concerns player-facing text and differs from section 0, section 0 wins. The spellbook is the exception that changed on 2026-11-07: its
-spell and chant pages now state the cost, the damage and the real durations (see the start of section 0); everywhere else there are still no numbers.*
+spell and chant pages now state the cost and the damage (see the start of section 0); everywhere else there are still no numbers.*
 
 1. **Spells must reflect something real, and must be counterable.** Fire Nova (a magic ring blast) was removed
    because it "doesn't seem to reflect anything in real life and is impossible to block."
@@ -330,7 +338,7 @@ spell and chant pages now state the cost, the damage and the real durations (see
     9. Never describe the stroke: the animation shows it.
 11. **Don't change what they didn't ask about.** When feedback names five things, fix those five, check
     nothing else broke, and report briefly.
-12. **Describe what the thing does to the player, never the numbers behind it** (outside the spellbook's spell and chant pages, which now give their costs, damage and durations, section 0). No multipliers, percentages or comparisons: never "1.6 times faster", "50% more damage", "half damage" or "walks slower". Write "Run faster." The only numbers allowed are damage and durations in seconds. Don't list side effects, weaknesses or interactions (what burns it, what it stops, what it combines with): the player learns those by playing. One effect per spell, in one short line.
+12. **Describe what the thing does to the player, never the numbers behind it** (outside the spellbook's spell and chant pages, which now give their costs and damage, section 0). No multipliers, percentages or comparisons: never "1.6 times faster", "50% more damage", "half damage" or "walks slower". Write "Run faster." The only numbers allowed are damage and durations in seconds. Don't list side effects, weaknesses or interactions (what burns it, what it stops, what it combines with): the player learns those by playing. One effect per spell, in one short line.
 13. **Name no team.** Spell and game text says "anyone", "anything" or "whoever", never "foes", "enemies", "allies" or "rivals" (spells have no teams, see section 5).
 
 ## 3. Run, test and look
@@ -493,7 +501,7 @@ GODOT="/c/Users/Jordan Polun/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.
 | Shadow | Black Hole | inward spiral | a dark knot that pulls everything toward it, fiercely close in and faintly from far off (walls still stop it) | walk out |
 | Shadow | Shadow Step | flick | slipping along the stroke | |
 
-**The spellbook is explicit** (owner decision, 2026-11-07): each page has the drawn picture, what the spell is and really does, the damage it deals (or per half second, where it ticks) and its cost in stamina (maximum stamina for Necromancy), see section 0. What counters a spell is still learned in play. The table above is the first 32 spells. The others (Vacuum, Updraft, Sinkhole, Stalagmite, Silence, Fight or Flight, Sneak, Hunter's Mark, the Blood spells, Tide Surf, Obsidian Armor, Glowcap and Moonbeam) are in `spells/` and `docs/spell_pool.md`.
+**The spellbook page** (owner decision, 2026-11-07): the drawn picture, a short description, the damage it deals ("14 dmg/sec", "30 dmg") and its cost in stamina (maximum stamina for Necromancy), see section 0. Everything else about a spell, what counters it included, is learned in play. The table above is the first 32 spells. The others (Vacuum, Updraft, Sinkhole, Stalagmite, Silence, Fight or Flight, Sneak, Hunter's Mark, the Blood spells, Tide Surf, Obsidian Armor, Glowcap and Moonbeam) are in `spells/` and `docs/spell_pool.md`.
 
 **The schools have new names** (the ids Fire, Water, Air, Earth, Flora, Shadow and Blood stay in code and double as element tags; only what a player reads changed, through `SpellData.school_name`): Pyromancy, Aquamagy, Aerokinesis, Terramancy, Druidry, Umbramancy and Necromancy. The Library gives a title from the casts (`Library.title_of`).
 

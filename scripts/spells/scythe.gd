@@ -4,7 +4,7 @@ extends Node2D
 ## Scythe: one wide swing in front of the caster, a half circle of reach. It cuts whoever is inside it, hard, and drives them back a little.
 ## A wall or the ground between the caster and a body shelters that body. It is over in an instant.
 
-const RADIUS := 120.0
+const RADIUS := 170.0
 const HARM := 30
 const KNOCK := 260.0
 const BODY_RADIUS := 24.0
@@ -67,14 +67,16 @@ func _show_swing() -> void:
 	var blade := Sprite2D.new()
 	blade.texture = BLADE
 	blade.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	blade.centered = false
+	blade.material = Fx.additive()  # it is made of light, not iron: the colours of the art are only its shape
+	blade.modulate = Color(1.0, 0.4, 0.55, 0.9)
+	blade.scale = Vector2(2.0, 2.0)  # whole times the art, so the blade reaches as far as the swing hurts
 	blade.offset = Vector2(0.0, -30.0)
+	blade.centered = false
 	holder.add_child(blade)
 	var tween := holder.create_tween()
-	tween.tween_property(holder, "rotation", 1.0, 0.2).set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_CUBIC)
+	tween.tween_property(holder, "rotation", 0.45, 0.2).set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_CUBIC)
 	tween.tween_property(holder, "modulate:a", 0.0, 0.15)
-	var streak := Fx.pop(get_parent(), global_position + Vector2(facing * RADIUS * 0.2, 0.0), "slash_01", Color(1.0, 0.55, 0.6), RADIUS * 2.2, 0.3, 1.1, 0.0, true)
-	streak.rotation = -PI * 0.5 * facing  # the picture is a smile: turned so it bulges the way the swing goes
+
 
 
 func _physics_process(delta: float) -> void:
