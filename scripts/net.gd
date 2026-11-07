@@ -44,6 +44,8 @@ var farewell := ""  # why the last game ended, for the first screen to say
 ## True on a dedicated server (started with `-- --server`): a host with no person at it. It keeps the waiting room, begins each match when the people who have
 ## joined are in, plays seat 0 with a brain, and keeps nothing in the Library. Everything else is as for any host.
 var dedicated := false
+var _upnp: UPNP
+var _upnp_thread: Thread
 
 
 func _ready() -> void:
@@ -68,8 +70,37 @@ func _start_dedicated() -> void:
 		get_tree().quit(1)
 		return
 	print("server: waiting for wizards on port %d" % port())
+	if OS.get_cmdline_user_args().has("--upnp"):
+		_upnp_thread = Thread.new()
+		_upnp_thread.start(_open_the_router)
 	roster_changed.connect(func() -> void: print("server: %d in the room" % roster.size()))
 	get_tree().change_scene_to_file("res://scenes/lab.tscn")
+
+
+## Asks the home router to send the game port to this machine (UPnP), so friends outside the house can join without any setting changed
+## on the router, and prints the address to give them. Not every router allows it, and a line that shares one address between many
+## houses (carrier-grade NAT) cannot be reached this way: the lines it prints say which. Runs on a thread: finding a router takes seconds.
+func _open_the_router() -> void:
+	var upnp := UPNP.new()
+	var found := upnp.discover()
+	if found != UPNP.UPNP_RESULT_SUCCESS or upnp.get_gateway() == null or not upnp.get_gateway().is_valid_gateway():
+		print("server: no router answered the UPnP call (error %d): the router may have it switched off" % found)
+		return
+	var mapped := upnp.add_port_mapping(port(), port(), "Wizard game", "UDP")
+	if mapped != UPNP.UPNP_RESULT_SUCCESS:
+		print("server: the router refused to open port %d (error %d)" % [port(), mapped])
+		return
+	_upnp = upnp
+	var address := upnp.query_external_address()
+	print("server: port %d is open on the router. Friends join at %s:%d" % [port(), address, port()])
+	print("server: (if that address starts with 10., 100.64 to 100.127, 172.16 to 172.31 or 192.168., the line is shared and it will not work from outside)")
+
+
+func _exit_tree() -> void:
+	if _upnp_thread != null:
+		_upnp_thread.wait_to_finish()
+	if _upnp != null:
+		_upnp.delete_port_mapping(port(), "UDP")  # the router forgets it
 
 
 ## True while this machine hosts a game or is in one.
