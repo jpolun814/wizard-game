@@ -3,8 +3,9 @@
     python tools/prepare_gothic_art.py <downloads dir>
 
 The downloads dir holds the unzipped packs, each in its own folder:
-    wizard-pack/                LuizMelo, Wizard Pack                  (the player)
-    evil_wizard_2/              LuizMelo, Evil Wizard 2                (the dark wizard)
+    craftpix/                   CraftPix freebies, each unzipped into a folder of its own: free-wizard-sprite-sheets-pixel-art, free-skeleton-pixel-art-sprite-sheets,
+                                free-minotaur-sprite-sheet-pixel-art-pack, free-knight-character-sprites-pixel-art, free-werewolf-sprite-sheets-pixel-art
+                                (the wizards, skeletons, giant, knights and werewolf; run with --only=name,name to cut just those)
     monsters-creatures-fantasy/ LuizMelo, Monsters Creatures Fantasy   (the enemies)
     x_gothicvania-cemetery-files, x_swamp, x_church, x_town            ansimuz, GothicVania packs (levels)
     x_spells, x_starsteel, x_lightning, x_explosions, x_fire          spell effects
@@ -15,9 +16,7 @@ The downloads dir holds the unzipped packs, each in its own folder:
     creasta_tornado/            Creasta, Tornado pixel sprite sheet   (the tornado: mytronado.png, 5 x 12 frames)
     pixflame/                   zonked, Pixel Flame VFX (CC0)          (fire-a and fire-b: the breath, trail and wall of fire)
     books/foxel                 Foxel Games, Pixel Art Book           (the spellbook)
-    ogre/                       ansimuz, Gothicvania Legacy Collection, Ogre (the giant: ogre-idle, ogre-walk, ogre-attack, 144 px cells)
     martial-hero-2/             LuizMelo, Martial Hero 2               (the ninjas)
-    evil_wizard_1/ evil_wizard_3/  LuizMelo, Evil Wizard and Evil Wizard 3 (the pyre and bone wizards)
     ninja-throw/                Ninja Throwing Items Kit (CC0)        (the star: Ninja_Star_Pixel.png)
 Some effects are recoloured here to their school's colours (a hue turn, or a ramp from dark to light).
 
@@ -40,24 +39,27 @@ from PIL import Image
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # name: (sheet folder, frame width, frame height, flyer, {animation: (file, frames to keep or None)})
+CRAFTPIX_WIZARDS = "craftpix/free-wizard-sprite-sheets-pixel-art/"
+CRAFTPIX = "craftpix/"  # CraftPix freebies, each pack unzipped into its own folder under <downloads>/craftpix/
 LUIZ_MONSTERS = "monsters-creatures-fantasy/Monsters_Creatures_Fantasy_x/Monsters_Creatures_Fantasy/"
 LUIZ_MONSTERS_13 = "monsters-creatures-fantasy/Monster_Creatures_Fantasy(Version 1.3)_x/Monster_Creatures_Fantasy(Version 1.3)/"
 CHARACTERS = {
-    "wizard": ("wizard-pack/Wizard Pack_x/Wizard Pack/", 231, 190, False, {
-        "idle": "Idle.png", "run": "Run.png", "jump": "Jump.png", "fall": "Fall.png",
-        "cast": "Attack1.png", "release": "Attack2.png", "hit": "Hit.png", "death": "Death.png"}),
-    "dark_wizard": ("evil_wizard_2/EVil Wizard 2_x/EVil Wizard 2/Sprites/", 250, 250, False, {
-        "idle": "Idle.png", "run": "Run.png", "jump": "Jump.png", "fall": "Fall.png",
-        "cast": "Attack1.png", "release": "Attack2.png", "hit": "Take hit.png", "death": "Death.png"}),
-    # The two other wizards that fight like the dark wizard. The fire mage has no jump or fall, so it uses its idle.
-    "pyre_wizard": ("evil_wizard_1/Evil Wizard_x/Evil Wizard/Sprites/", 150, 150, False, {
-        "idle": "Idle.png", "run": "Move.png", "jump": "Idle.png", "fall": "Idle.png",
-        "cast": "Attack.png", "release": "Attack.png", "hit": "Take Hit.png", "death": "Death.png"}),
-    "bone_wizard": ("evil_wizard_3/Evil Wizard 3_x/Evil Wizard 3/Sprites/", 140, 140, False, {
-        "idle": "Idle.png", "run": "Run.png", "jump": "Jump.png", "fall": "Fall.png",
-        "cast": "Attack.png", "release": "Attack.png", "hit": "Get hit.png", "death": "Death.png"}),
-    "skeleton": (LUIZ_MONSTERS + "Skeleton/", 150, 150, False, {
-        "idle": "Idle.png", "walk": "Walk.png", "attack": "Attack.png", "hit": "Take Hit.png", "death": "Death.png"}),
+    # The three wizards are CraftPix's Fire Wizard, Wanderer Magician and Lightning Mage. Each has a run, a jump (cut in two: the rise, then the fall), a hit
+    # and a death; "cast" is the hand coming up while a stroke is drawn and "release" the spell going off (frames of a spell sheet, see CRAFTPIX_WIZARDS).
+    "wizard": (CRAFTPIX_WIZARDS + "Fire Wizard/", 128, 128, False, {
+        "idle": "Idle.png", "run": "Run.png", "jump": ("Jump.png", 0, 0, 5), "fall": ("Jump.png", 0, 6, 7),
+        "cast": ("Fireball.png", 0, 0, 2), "release": ("Fireball.png", 0, 3, 7), "hit": "Hurt.png", "death": "Dead.png"}),
+    "dark_wizard": (CRAFTPIX_WIZARDS + "Wanderer Magican/", 128, 128, False, {
+        "idle": "Idle.png", "run": "Run.png", "jump": ("Jump.png", 0, 0, 5), "fall": ("Jump.png", 0, 6, 7),
+        "cast": ("Attack_1.png", 0, 0, 1), "release": ("Attack_1.png", 0, 2, 6), "hit": "Hurt.png", "death": "Dead.png"}),
+    "pyre_wizard": (CRAFTPIX_WIZARDS + "Lightning Mage/", 128, 128, False, {
+        "idle": "Idle.png", "run": "Run.png", "jump": ("Jump.png", 0, 0, 5), "fall": ("Jump.png", 0, 6, 7),
+        "cast": ("Light_ball.png", 0, 0, 1), "release": ("Light_ball.png", 0, 2, 6), "hit": "Hurt.png", "death": "Dead.png"}),
+    # CraftPix's free skeleton, minotaur, knight and werewolf (see CRAFTPIX below): 128 px cells, feet on the bottom edge.
+    "skeleton": (CRAFTPIX + "free-skeleton-pixel-art-sprite-sheets/Skeleton_Warrior/", 128, 128, False, {
+        "idle": "Idle.png", "walk": "Walk.png", "attack": "Attack_1.png", "hit": "Hurt.png", "death": "Dead.png"}),
+    "knight": (CRAFTPIX + "free-knight-character-sprites-pixel-art/Knight_1/", 128, 128, False, {
+        "idle": "Idle.png", "walk": "Walk.png", "attack": "Attack 1.png", "hit": "Hurt.png", "death": "Dead.png"}),
     "goblin": (LUIZ_MONSTERS + "Goblin/", 150, 150, False, {
         "idle": "Idle.png", "walk": "Run.png", "attack": LUIZ_MONSTERS_13 + "Goblin/Attack3.png",
         "hit": "Take Hit.png", "death": "Death.png"}),
@@ -66,12 +68,12 @@ CHARACTERS = {
     # The ninja is LuizMelo's Martial Hero 2. Its throw uses the sword swing.
     "ninja": ("martial-hero-2/Martial Hero 2_x/Martial Hero 2/Sprites/", 200, 200, False, {
         "idle": "Idle.png", "walk": "Run.png", "attack": "Attack1.png", "hit": "Take hit.png", "death": "Death.png"}),
-    # The giant is the Ogre from the Gothicvania Legacy Collection (ansimuz). It has no hit or death frames.
-    "giant": ("ogre/", 144, 80, False, {
-        "idle": "ogre-idle.png", "walk": "ogre-walk.png", "attack": "ogre-attack.png"}),
+    # The giant is CraftPix's minotaur, drawn twice as large in the game.
+    "giant": (CRAFTPIX + "free-minotaur-sprite-sheet-pixel-art-pack/Minotaur_1/", 128, 128, False, {
+        "idle": "Idle.png", "walk": "Walk.png", "attack": "Attack.png", "hit": "Hurt.png", "death": "Dead.png"}),
 }
-MOBS = ["skeleton", "goblin", "eye", "giant", "ninja"]
-HEROES = ["wizard", "dark_wizard", "pyre_wizard", "bone_wizard"]
+MOBS = ["skeleton", "knight", "goblin", "eye", "giant", "ninja"]
+HEROES = ["wizard", "dark_wizard", "pyre_wizard"]
 
 CEMETERY = "x_gothicvania-cemetery-files/gothicvania-cemetery-files/Assets/Environment/"
 SWAMP = "x_swamp/Gothicvania Swamp files/Evironment/"
@@ -392,8 +394,36 @@ def write_meta(chars, fx):
         f.write("\n".join(lines))
 
 
+def update_meta(name, m):
+    """Rewrites one character's line in pixel_art.gd (or adds it), for a run with --only."""
+    path = os.path.join(ROOT, "scripts", "pixel_art.gd")
+    with open(path, newline="") as f:
+        text = f.read()
+    x, y, w, h = m["body"]
+    line = ('	"%s": {"size": Vector2(%d, %d), "body": Rect2(%.1f, %.1f, %.1f, %.1f), "flyer": %s},'
+            % (name, m["size"][0], m["size"][1], x, y, w, h, "true" if m["flyer"] else "false"))
+    lines = text.split("\n")
+    for i, old in enumerate(lines):
+        if old.startswith('	"%s": {"size"' % name):
+            lines[i] = line
+            break
+    else:
+        at = lines.index("}")
+        lines.insert(at, line)
+    with open(path, "w", newline="") as f:
+        f.write("\n".join(lines))
+    print(name, m)
+
+
 def main():
-    dl = sys.argv[1] if len(sys.argv) > 1 else "."
+    args = [a for a in sys.argv[1:] if not a.startswith("--")]
+    dl = args[0] if args else "."
+    only = [a[len("--only="):].split(",") for a in sys.argv[1:] if a.startswith("--only=")]
+    if only:
+        # Cut just these characters and patch their lines in pixel_art.gd, leaving the rest of the art alone.
+        for name in only[0]:
+            update_meta(name, prepare_character(name, dl))
+        return
     chars = {}
     for name in MOBS + HEROES:
         chars[name] = prepare_character(name, dl)

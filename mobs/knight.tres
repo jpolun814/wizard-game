@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MobKind" format=3]
+
+[ext_resource type="Script" path="res://scripts/mob_kind.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "knight"
+sort_order = 23
+display_name = "Knight"
+desc = "Stands guard until someone comes near."
+role = "melee"
+art = "knight"
+hp = 70
+damage = 14
+speed = 1.0

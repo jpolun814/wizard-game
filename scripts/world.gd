@@ -508,6 +508,7 @@ func _wash_out_the_colour() -> void:
 const DEAD_HEALTH := 15  # what one of the graveyard's skeletons has: a spell or two puts it down
 const DEAD_PER_COLUMNS := 90  # the graveyard has a skeleton for this many columns of its width
 const GIANT_ROOMS := [7, 24, 33, 50, 59, 76]  # columns from a castle's west end to the middle of a ground-floor room with open floor
+const KNIGHT_PER_COLUMNS := 80  # the castle world has a knight on guard for this many columns of its width
 const GIANT_PER_COLUMNS := 300  # the castle world has a giant for this many columns of its width
 const DEAD_KEEP_AWAY := 45    # columns from every starting place that none rise
 ## On the host, tells the others a few times a second where each of the dead is, which way it faces and whether it is drawing back to strike.
@@ -548,6 +549,7 @@ func _raise_the_dead() -> void:
 		_raise_roamers("basic", WorldGraph.size.x / DEAD_PER_COLUMNS, 4409)
 	elif biome == "castle":
 		_raise_roamers("giant", maxi(2, WorldGraph.size.x / GIANT_PER_COLUMNS), 6143)
+		_raise_roamers("knight", maxi(4, WorldGraph.size.x / KNIGHT_PER_COLUMNS), 7919)
 
 
 func _raise_roamers(kind: String, wanted: int, salt: int) -> void:
@@ -570,7 +572,11 @@ func _raise_roamers(kind: String, wanted: int, salt: int) -> void:
 		if kind == "basic":
 			mob.max_hp = DEAD_HEALTH
 			mob.hp = DEAD_HEALTH
-		mob.roams = true
+		if kind == "knight":
+			mob.guards = true
+			mob.post_x = mob.global_position.x
+		else:
+			mob.roams = true
 		mob.shared = true
 		mob.puppet = not Net.is_host()
 		_dead.append(mob)

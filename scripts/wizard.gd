@@ -38,18 +38,11 @@ const STEP_EVERY := 0.32      # seconds between footstep sounds while running
 const CLIMB_SPEED := 170.0    # how fast the wizard climbs a vine
 const ANIMATIONS := {
 	"idle": {"fps": 8.0}, "run": {"fps": 12.0}, "jump": {"fps": 10.0, "loop": false}, "fall": {"fps": 8.0},
-	"cast": {"fps": 8.0, "first": 0, "last": 2},                      # the staff held up while a stroke is drawn
-	"release": {"fps": 18.0, "loop": false, "first": 0, "last": 4},  # thrust forward as the spell goes off
-	"hit": {"fps": 14.0, "loop": false}, "death": {"fps": 10.0, "loop": false},
+	"cast": {"fps": 8.0},                      # the hand held up while a stroke is drawn
+	"release": {"fps": 16.0, "loop": false},  # thrust forward as the spell goes off
+	"hit": {"fps": 12.0, "loop": false}, "death": {"fps": 9.0, "loop": false},
 }
-## The other three looks name some of their frames differently: the staff is held up in "release" and thrust out in "cast".
-const LOOK_ANIMATIONS := {
-	"idle": {"fps": 8.0}, "run": {"fps": 12.0}, "jump": {"fps": 8.0, "loop": false}, "fall": {"fps": 8.0},
-	"cast": {"from": "release", "fps": 8.0, "first": 0, "last": 3},
-	"release": {"from": "cast", "fps": 16.0, "loop": false, "first": 3, "last": 5},
-	"hit": {"fps": 10.0, "loop": false}, "death": {"fps": 8.0, "loop": false},
-}
-const STAFF_HEAD := Vector2(-55, -115)  # where the staff's crystal is in the casting pose, facing right
+const STAFF_HEAD := Vector2(30, -62)  # where the casting hand is, facing right (the glow of a spell being drawn sits there)
 const DRAW_TIME := 0.8        # how long a brain's wizard takes to draw a spell
 const SPAWN_TIME := 0.7       # a wizard summoned into the world arrives out of a circle this long
 const FALL_LIMIT := 800.0     # a wizard below this has fallen off the map (in a world, the bottom of it)
@@ -301,7 +294,7 @@ func _dress() -> void:
 		var data: MobKind = Mob.KINDS[look]
 		art = data.art
 		_sprite.scale = Vector2.ONE * WizardLook.scale_of(look, data.scale)  # the four figures are drawn to one height
-	_sprite.sprite_frames = CharFrames.build("res://art/chars/" + art, ANIMATIONS if look == "wizard" else LOOK_ANIMATIONS)
+	_sprite.sprite_frames = CharFrames.build("res://art/chars/" + art, ANIMATIONS)
 	_sprite.offset = Vector2(0, -PixelArt.CHARACTERS[art]["size"].y * 0.5)  # the frames' bottom edge is the feet
 	_sprite.play("idle")
 	_paint()

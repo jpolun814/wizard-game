@@ -33,7 +33,7 @@ const PULL_HEIGHT := 150.0  # how high over the floor a page must be before it f
 const TORN_PULL := 2600.0  # and once it tears, it draws at everything
 const GOLD := Color("#ffe9a0")
 const SKIP_HINT_AFTER := 1.0
-## The ten wizards: no two alike. Each is one of the four looks (the player's own and the dark, bone and pyre wizards), in its own colours: the
+## The ten wizards: no two alike. Each is one of the three looks (the fire wizard, the wanderer and the lightning mage), in its own colours: the
 ## folders `art/chars/<look>_<colour>` are copies with the colours turned (see tools/make_wizard_colours.py). "colour" is the glow of its magic.
 ## "to" is where it stands in the ring round the pile, "mode" how it comes (run, blink in with a puff of light, or walk), "at" when it does.
 ## The first is whoever is watching: it runs in from far off, and is the one of the four who are left that the camera follows. The first four are
@@ -41,19 +41,19 @@ const SKIP_HINT_AFTER := 1.0
 const WIZARDS := [
 	{"art": "wizard", "look": "wizard", "colour": Color("#b080ff"), "to": -300.0, "from": -1050.0, "mode": "run", "at": 0.0},
 	{"art": "dark_wizard", "look": "dark_wizard", "colour": Color("#d070ff"), "to": -95.0, "mode": "blink", "at": 2.3},
-	{"art": "bone_wizard", "look": "bone_wizard", "colour": Color("#ff4a4a"), "to": 55.0, "from": 560.0, "mode": "walk", "at": 1.2},
+	{"art": "pyre_wizard", "look": "pyre_wizard_green", "colour": Color("#ff4a4a"), "to": 55.0, "from": 560.0, "mode": "walk", "at": 1.2},
 	{"art": "pyre_wizard", "look": "pyre_wizard", "colour": Color("#ffb040"), "to": 375.0, "from": 560.0, "mode": "walk", "at": 2.5},
 ]
 const EXTRAS := [
 	{"art": "wizard", "look": "wizard_emerald", "colour": Color("#5ae05a"), "to": -230.0, "mode": "blink", "at": 1.9},
 	{"art": "dark_wizard", "look": "dark_wizard_teal", "colour": Color("#38d8c8"), "to": -160.0, "mode": "blink", "at": 2.1},
-	{"art": "bone_wizard", "look": "bone_wizard_ice", "colour": Color("#58a8ff"), "to": 120.0, "from": 560.0, "mode": "walk", "at": 1.6},
-	{"art": "pyre_wizard", "look": "pyre_wizard_green", "colour": Color("#b8ff50"), "to": 185.0, "from": 560.0, "mode": "walk", "at": 1.9},
+	{"art": "dark_wizard", "look": "dark_wizard_ice", "colour": Color("#58a8ff"), "to": 120.0, "from": 560.0, "mode": "walk", "at": 1.6},
+	{"art": "pyre_wizard", "look": "pyre_wizard_azure", "colour": Color("#b8ff50"), "to": 185.0, "from": 560.0, "mode": "walk", "at": 1.9},
 	{"art": "wizard", "look": "wizard_amber", "colour": Color("#f0c040"), "to": 250.0, "from": 560.0, "mode": "walk", "at": 2.1},
 	{"art": "pyre_wizard", "look": "pyre_wizard_magenta", "colour": Color("#ff58d8"), "to": 310.0, "from": 560.0, "mode": "walk", "at": 2.3},
 ]
-## How much each look is drawn at, so that all ten bodies are as tall as the wizard's (head to feet; a staff, a flame or a hood's point above the head does not count): the other three's art is smaller.
-const LOOK_SCALE := {"wizard": 1.0, "dark_wizard": 1.6, "bone_wizard": 1.6, "pyre_wizard": 1.8}  # (the four of a match are drawn at WizardLook's sizes instead)
+## How much each look is drawn at, so that all ten bodies are as tall as the wizard's (head to feet; a staff, a flame or a hood's point above the head does not count): the three are drawn smaller than that.
+const LOOK_SCALE := {"wizard": 1.2, "dark_wizard": 1.2, "pyre_wizard": 1.25}  # (the figures of a match are drawn at WizardLook's sizes instead)
 const RUN := 330.0   # pixels a second, running in
 const WALK := 200.0  # and walking in
 const WIDE := 1.4    # how far the camera is zoomed when it shows the whole ring
@@ -254,8 +254,7 @@ func _make_wizard(entry: Dictionary) -> Node2D:
 	body.z_index = 2
 	var sprite := AnimatedSprite2D.new()
 	var art: String = entry["art"]
-	var player := art == "wizard"
-	sprite.sprite_frames = CharFrames.build("res://art/chars/" + String(entry["look"]), Wizard.ANIMATIONS if player else Wizard.LOOK_ANIMATIONS)
+	sprite.sprite_frames = CharFrames.build("res://art/chars/" + String(entry["look"]), Wizard.ANIMATIONS)
 	sprite.offset = Vector2(0.0, -PixelArt.CHARACTERS[art]["size"].y * 0.5)
 	sprite.scale = Vector2.ONE * (WizardLook.scale_of(art) if entry.has("palette") else float(LOOK_SCALE[art]))
 	if entry.has("palette"):

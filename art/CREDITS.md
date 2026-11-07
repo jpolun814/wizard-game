@@ -11,8 +11,7 @@ packed into atlases, effects into strips).
 
 | Where in the project | Source | License |
 |---|---|---|
-| `art/chars/wizard/` (the player) | [Wizard Pack](https://luizmelo.itch.io/wizard-pack) by LuizMelo | CC0 1.0 |
-| `art/chars/dark_wizard/` | [Evil Wizard 2](https://luizmelo.itch.io/evil-wizard-2) by LuizMelo | CC0 1.0 |
+| `art/chars/wizard/`, `dark_wizard/`, `pyre_wizard/`; `art/mobs/skeleton/`, `giant/` (a minotaur), `knight/`; the werewolf of Wild Shape | CraftPix free packs ([Wizard](https://craftpix.net/freebies/free-wizard-sprite-sheets-pixel-art/), [Skeleton](https://craftpix.net/freebies/free-skeleton-pixel-art-sprite-sheets/), [Minotaur](https://craftpix.net/freebies/free-minotaur-sprite-sheet-pixel-art-pack/), [Knight](https://craftpix.net/freebies/free-knight-character-sprites-pixel-art/), [Werewolf](https://craftpix.net/freebies/free-werewolf-sprite-sheets-pixel-art/)) | CraftPix free licence (https://craftpix.net/file-licenses/): free for commercial use, no credit required, art may not be resold or handed on as files, and may not be used to train AI |
 | `art/mobs/` (skeleton, goblin, flying eye), the eye's and goblin's shots | [Monsters Creatures Fantasy](https://luizmelo.itch.io/monsters-creatures-fantasy) by LuizMelo | CC0 1.0 |
 | `art/tiles/cemetery`, cemetery props, `art/backgrounds/cemetery/` | [GothicVania Cemetery](https://ansimuz.itch.io/gothicvania-cemetery) by ansimuz | CC0 1.0 |
 | `art/tiles/swamp`, swamp props, `art/backgrounds/swamp/` | [GothicVania Swamp](https://opengameart.org/content/gotthicvania-swamp) by ansimuz | CC0 1.0 |
@@ -94,15 +93,15 @@ and are no longer drawn by the game.
 
 ## Giant (art/mobs/giant)
 
-- **Giant sprites:** the Ogre from the Gothicvania Legacy Collection by ansimuz (ansimuz.itch.io/gothicvania-patreon-collection), "free for commercial projects"; its licence PDF has not been read yet. It has no hit or death frames. Cut into frames by tools/prepare_gothic_art.py. The old Elthen Cyclops is no longer used.
+- **Giant sprites:** the minotaur from CraftPix (see the table above), drawn twice as large. The old Ogre (ansimuz) and Elthen Cyclops are no longer used.
 
 ## Ninjas (art/mobs/ninja, art/fx/ninja_star.png)
 
 - **Ninja sprites:** Martial Hero 2 by LuizMelo (luizmelo.itch.io/martial-hero-2), CC0. The old Mini Ninja (ivoryred, CC BY 4.0) is no longer used.
 - **Star:** Ninja Throwing Items Kit (opengameart.org/content/ninja-throwing-items-kit-32x32), CC0.
 
-## The pyre and bone wizards (art/chars/pyre_wizard, art/chars/bone_wizard)
-- **Evil Wizard** and **Evil Wizard 3:** LuizMelo (luizmelo.itch.io/evil-wizard, luizmelo.itch.io/evil-wizard-3), CC0. Cut by tools/prepare_gothic_art.py.
+## The wizards (art/chars/wizard, dark_wizard, pyre_wizard)
+- The Fire Wizard, Wanderer Magician and Lightning Mage of CraftPix's Free Wizard Sprite Sheets (table above), cut by tools/prepare_gothic_art.py. They replaced LuizMelo's Wizard Pack and Evil Wizards (CC0), which are no longer used.
 
 ## Biome backdrops and snow (art/backgrounds/mountains, tundra, ashlands; art/tiles/snow.png)
 
@@ -146,7 +145,7 @@ and are no longer drawn by the game.
 `art/ui/wand_cursor.png` is the second wand of "Wands and Magic Stuff (DawnBringer32 Palette)" by BizmasterStudios, https://opengameart.org/content/wands-and-magic-stuff-dawnbringer32-palette, licence CC-BY 4.0. Cut out and doubled in size; `scripts/wand_cursor.gd` recolours its jewel to the school being cast.
 
 ## Wizard colour variants
-`art/chars/wizard_emerald`, `wizard_amber`, `dark_wizard_teal`, `bone_wizard_ice`, `pyre_wizard_green` and `pyre_wizard_magenta` are copies of the existing wizard art with the hue of robes and trim turned, made by `tools/make_wizard_colours.py`. No outside source; used by the opening cut-scene.
+`art/chars/wizard_emerald`, `wizard_amber`, `dark_wizard_teal`, `dark_wizard_ice`, `pyre_wizard_azure`, `pyre_wizard_green` and `pyre_wizard_magenta` are copies of the existing wizard art with the hue of robes and trim turned, made by `tools/make_wizard_colours.py`. No outside source; used by the opening cut-scene.
 
 ## The Flytrap
 `art/props/flytrap.png` is cut by `tools/prepare_flytrap.py` from "Pixel Predator Plant Mob Character" (Craftpix), https://opengameart.org/content/pixel-predator-plant-mob-character, licence OGA-BY 3.0 (credit the author, as for CC-BY). The side-on attack frames of the plant, as they are.

@@ -271,7 +271,7 @@ A 2D side-view last-wizard-standing duel built in Godot 4.7.2 and GDScript. You 
   plus hand-written shape detectors.
 - **Rituals:** press Enter and type a pseudo-Latin chant. Typing accuracy sets the ritual's power.
 
-A match: eight identical wizards (`WorldGraph.PLAYERS`: you and seven AI wizards, or friends over a network with AI wizards in the empty seats; the four figures are shared out and, once they run out, wear other sets of colours, `Net.rival_palette`) race through a generated world for spellbook pages and fight each other. The last one standing wins. The AI wizards cast the same
+A match: eight identical wizards (`WorldGraph.PLAYERS`: you and seven AI wizards, or friends over a network with AI wizards in the empty seats; the three figures (the Fire Wizard, the Wanderer and the Lightning Mage) are shared out and, once they run out, wear other sets of colours, `Net.rival_palette`) race through a generated world for spellbook pages and fight each other. The last one standing wins. The AI wizards cast the same
 spells you do, drawing them visibly. There are no waves and no boss (see `docs/pvp_arena_design.md`).
 
 **The owner's taste, in their words:**
@@ -283,14 +283,14 @@ spells you do, drawing them visibly. There are no waves and no boss (see `docs/p
 - **Biomes** (the look of each place):
   - a blood-moon graveyard.
   - a jungle (rain, great trees with vines hanging from them), snowy peaks and ashlands (embers and lava over dark basalt).
-  - a castle (the whole world is castles side by side, with gothic church interiors, doorways tall enough for a giant, and a giant roaming the ground floors) and the underground (a great cavern under a roof of rock, no sky).
+  - a castle (the whole world is castles side by side, with gothic church interiors, doorways tall enough for a giant, a minotaur giant roaming the ground floors and knights on guard in them, who stand at their posts until a wizard comes near) and the underground (a great cavern under a roof of rock, no sky).
   - **Living scenery** (`World._raise_biome_life`, `docs/handoff/02_codebase_map.md`): the graveyard has low mist (`MistBank`), bats (`CritterFlock`) and crypts (`Crypt`, each with a page and a skeleton guard); the jungle has rope bridges between neighbouring great trees (`CanopyBridge`), light shafts, fireflies, swaying vines, birds that burst away and downpours (`Squall`); the peaks have avalanches (`Avalanche`), sheets of ice that make a wizard slide (`IceSheet`) and an aurora; the ashlands have lava lakes that swell (`LavaSurge`), ash storms with falling embers (`EmberRain`) and volcanoes that rumble and shake the world, send up a plume of smoke (`SmokePlume`: no one sees through more than a little of it; on a person's own screen `SmokeVeil` hides what lies past it behind a paler haze, so the dark column and the haze are told apart) and pour lava over the rim that cools to a crust and goes (`Eruption`); the underground has glowing crystals, drips, stalactites that fall on whoever walks under (`FallingRock`) and cave-ins (`CaveLife`). Storms, avalanches, swells and cave-ins follow the world's age, so every machine of a match sees them at the same time. Run `tests/showcase.tscn -- scenario=life` with `WORLD_SEED` (0 jungle, 1 graveyard, 4 mountains, 5 ashlands, 13 underground).
   - Each world of a match is one of these six, in an order the seed picks; the last, small world is all open sky, one of the first four.
   - **Each biome has landmarks of its own, not just a reskin; only the underground has tunnels.** The graveyard is dark with rain and fog, and its skeletons roam
     (`Mob.roams`). The ashlands have volcanoes that erupt now and then (`Eruption`) and pits of lava. The snowy peaks are mountains to climb (`MountainGale`: wind that grows toward the summits and pushes a wizard without the run animation, seen as streaks; `SnowCloud`: clouds that drift past in front of whoever is in them), with a page on each
     summit. The jungle has pits of mud (`Mudslide`, dug by the world), thickets of thorns (`Bramble`) and great trees (`JungleTree`: dense, in two sizes and mirrored or not, every one with the oak's ledges to hop between and a vine to climb to the high one, where most of the pages lie; the AI climbs the vines; the ponds are full of `Piranhas`). Its art is still named for the swamp it was cut from. The castle is a row of castles with six floors: a cellar down a
     stairwell, the ground floor and four floors over it, three rooms to a floor (see `docs/world_generation.md`).
-- **Characters and art:** LuizMelo characters, Ansimuz GothicVania environments, and CC0 pixel effects.
+- **Characters and art:** CraftPix's free packs (the wizards, skeletons, minotaur giant, knights and werewolf: 128 px cells, `python tools/prepare_gothic_art.py <dir> --only=name,name`), LuizMelo's goblin, eye and ninja, Ansimuz GothicVania environments, and CC0 pixel effects. The CraftPix licence is in `art/CREDITS.md`: free for the game, but the art must not be resold or offered as files, and the repo's visibility is the owner's call.
 
 ## 2. The eleven rules that matter most
 
@@ -426,6 +426,7 @@ GODOT="/c/Users/Jordan Polun/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.
 "$GODOT" --headless --fixed-fps 60 --path . tests/parity_check.tscn  # Push, Geyser, Tornado, Tide Surf and a shot do the same to a person's wizard and the brain's
 "$GODOT" --headless --fixed-fps 60 --path . tests/brain_spells_check.tscn  # the brain knows every spell: each is given alone to an AI wizard in the place it wants it, and cast (add `-- only=Hex,Sneak` for some)
 "$GODOT" --path . tests/eclipse_check.tscn  # an Eclipse darkens the screen of the one inside it (add `-- out=DIR` for pictures)
+"$GODOT" --headless --fixed-fps 60 --path . tests/knight_check.tscn  # a castle knight stands at its post until a wizard comes near, fights them, and walks back
 "$GODOT" --headless --fixed-fps 60 --path . tests/sentinel_check.tscn  # a sentinel shoots a rival wizard in range, not one out of range
 "$GODOT" --headless --fixed-fps 60 --path . tests/cross_check.tscn -- seed=4 kind=flood spells=Frost%Bridge  # a wizard crosses a gate with a spell (kind=chasm, flood, piranhas, sentinel, wall or gas; spells=chant:deep_breath for a chant; no spells= and it stays put)
 "$GODOT" --headless --fixed-fps 60 --path . tests/route_check.tscn -- seed=3 moves=500  # every kind of move works in real physics (`trace=X,Y,TX,TY` follows one)

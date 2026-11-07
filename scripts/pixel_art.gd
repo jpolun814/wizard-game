@@ -5,15 +5,15 @@ class_name PixelArt
 ## bottom middle of the frame for walkers, the middle for flyers). FX: each effect strip's frame size and count.
 
 const CHARACTERS := {
-	"skeleton": {"size": Vector2(146, 59), "body": Rect2(-14.9, -51.0, 27.0, 51.0), "flyer": false},
+	"skeleton": {"size": Vector2(114, 79), "body": Rect2(-12.0, -58.0, 31.0, 58.0), "flyer": false},
 	"goblin": {"size": Vector2(72, 41), "body": Rect2(-10.4, -36.0, 21.0, 36.0), "flyer": false},
 	"eye": {"size": Vector2(60, 52), "body": Rect2(-18.7, -15.5, 27.0, 31.0), "flyer": true},
-	"giant": {"size": Vector2(132, 78), "body": Rect2(-12.7, -58.0, 38.0, 58.0), "flyer": false},
+	"giant": {"size": Vector2(146, 96), "body": Rect2(-23.1, -92.0, 50.0, 92.0), "flyer": false},
 	"ninja": {"size": Vector2(168, 67), "body": Rect2(-5.4, -56.0, 13.0, 56.0), "flyer": false},
-	"wizard": {"size": Vector2(254, 138), "body": Rect2(-20.9, -86.0, 37.0, 86.0), "flyer": false},
-	"dark_wizard": {"size": Vector2(238, 143), "body": Rect2(-13.7, -95.0, 42.0, 95.0), "flyer": false},
-	"pyre_wizard": {"size": Vector2(134, 71), "body": Rect2(-11.1, -57.0, 21.0, 55.0), "flyer": false},
-	"bone_wizard": {"size": Vector2(140, 68), "body": Rect2(-9.0, -53.0, 15.0, 53.0), "flyer": false},
+	"wizard": {"size": Vector2(98, 74), "body": Rect2(-8.2, -66.0, 19.0, 66.0), "flyer": false},
+	"dark_wizard": {"size": Vector2(126, 101), "body": Rect2(-9.9, -66.0, 30.0, 66.0), "flyer": false},
+	"pyre_wizard": {"size": Vector2(84, 69), "body": Rect2(-6.5, -63.0, 16.0, 63.0), "flyer": false},
+	"knight": {"size": Vector2(182, 76), "body": Rect2(-13.7, -64.0, 22.0, 64.0), "flyer": false},
 }
 
 const FX := {

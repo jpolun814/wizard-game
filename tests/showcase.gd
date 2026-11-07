@@ -421,7 +421,7 @@ func _plan() -> void:
 		"world":
 			_at(0.4, func() -> void:
 				var x: float = _player().global_position.x
-				var kinds := ["fire_melee", "ice_ranged", "earth_melee", "storm_flyer", "force_ranged", "dark_wizard", "pyre_wizard", "bone_wizard", "ninja"]
+				var kinds := ["fire_melee", "ice_ranged", "earth_melee", "storm_flyer", "force_ranged", "dark_wizard", "pyre_wizard", "knight", "ninja"]
 				for i in kinds.size():
 					var mob := _summon_at(kinds[i], x + (i - 4.5) * 90.0)
 					mob.set_physics_process(false)
@@ -443,7 +443,7 @@ func _plan() -> void:
 				var x: float = _player().global_position.x - 330.0
 				var i := 0
 				for kind in Mob.KINDS:
-					if Mob.KINDS[kind].role == "flyer":
+					if Mob.KINDS[kind].role in ["flyer", "wizard"]:
 						continue
 					var mob := _summon_at(kind, x + i * 60.0)
 					if mob is Mob:
@@ -516,7 +516,7 @@ func _plan() -> void:
 			# A mixed group comes for a player who stands still, to watch them chase, wind up, shoot and dive.
 			_at(0.3, func() -> void:
 				var x: float = _player().global_position.x
-				for entry in [["ninja", -180.0], ["giant", 260.0], ["pyre_wizard", -330.0], ["bone_wizard", 420.0], ["fire_melee", 120.0]]:
+				for entry in [["ninja", -180.0], ["giant", 260.0], ["pyre_wizard", -330.0], ["knight", 420.0], ["fire_melee", 120.0]]:
 					_summon_at(entry[0], x + entry[1]))
 			for i in 12:
 				_at(1.2 + i * 0.6, func() -> void: _snap())

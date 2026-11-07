@@ -31,7 +31,7 @@ const GIVE_UP_MS := 8000  # a host that has not answered for this long is taken 
 const VIRTUAL_CARDS := ["vethernet", "virtual", "vmware", "vbox", "hyper-v", "wsl", "loopback", "docker", "tailscale", "zerotier"]
 const RIVAL_PALETTES := [0, 4, 5, 2]  # the sets of colours (see WizardLook.PALETTES) brains wear in turn once the figures are used up
 const SEATS := WorldGraph.PLAYERS  # wizards in a match; the seats nobody takes are played by brains
-const LOOKS := ["wizard", "dark_wizard", "pyre_wizard", "bone_wizard"]  # the look of each seat, in order
+const LOOKS := ["wizard", "dark_wizard", "pyre_wizard"]  # the look of each seat, in order
 
 ## The people in the game, by peer id, in the order they came: the host first. A person's seat is their place in this list. Someone who
 ## leaves during a match leaves a 0 in their seat, so nobody else's seat changes; the waiting room closes the gaps.

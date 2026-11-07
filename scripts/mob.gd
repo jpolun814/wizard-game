@@ -49,6 +49,7 @@ const MOB_JUMP := -420.0      # enough to clear two blocks
 const MOB_JUMP_HIGH := -560.0 # enough to reach a platform when the player is up on one
 const BURST_DAMAGE := 6       # a Stormrunner's explosion hurts everything close by this much
 const BURST_RADIUS := 60.0
+const GUARD_NOTICE := 330.0    # a guard (a knight) notices a wizard this close, and goes back to its post once they are farther than that
 const ROAM_NOTICE := 560.0     # a roaming enemy notices the player this close, and loses them again past a little farther
 const FOLLOW_GAP := 110.0      # a raised skeleton with no one to fight keeps about this close to its master
 const FOLLOW_REACH := 1100.0   # and goes no farther than this to find them
@@ -72,6 +73,8 @@ const CREATURE_ANIMATIONS := {
 }
 var kind := "basic"  # set before the mob enters the tree
 var player: Node2D
+var guards := false  # a knight at its post: it stands still until a wizard comes near, then fights them, and walks back to its post afterwards
+var post_x := 0.0  # where a guard stands
 var roams := false  # one the world left wandering (the graveyard's dead): it ambles about until a wizard comes near, then gives chase
 var _swing_seen := false  # a puppet: the host's was drawing back at the last news
 var shared := false  # the world keeps its place in step across the network (a roamer or a crypt guard): its fall is told to the other machines
@@ -254,7 +257,7 @@ func _physics_process(delta: float) -> void:
 	if puppet:
 		_glide(delta)
 		return
-	if roams:
+	if roams or guards:
 		_pick_prey(delta)
 	if master != null and (not is_instance_valid(master) or master.dead) and not _dead:
 		_die()  # it was held up by its master's will: when the master is beaten it falls
@@ -343,6 +346,9 @@ func _walk(delta: float) -> void:
 	var shooter: bool = data.role == "ranged"
 	var sees := target != null and _sees(target)
 	var stands_to_shoot: bool = shooter and distance < SPIT_STAND_RANGE and sees and data.effect != "ninja"
+	if guards and distance > GUARD_NOTICE:
+		_hold_post(speed)
+		return
 	if roams and distance > ROAM_NOTICE:
 		if master != null:
 			_follow_master(speed)
@@ -476,6 +482,13 @@ func _amble(delta: float, speed: float) -> void:
 	if is_on_wall():
 		_wander = -_wander
 	velocity.x = _wander * speed * 0.35 + _knock_x + _drift.x
+	move_and_slide()
+
+
+## A guard with nobody near stands at its post, facing the way it was put, and walks back to it if it was drawn away.
+func _hold_post(speed: float) -> void:
+	var off := post_x - global_position.x
+	velocity.x = (signf(off) * speed if absf(off) > 6.0 else 0.0) + _knock_x + _drift.x
 	move_and_slide()
 
 
@@ -786,7 +799,7 @@ func is_training_dummy() -> bool:
 ## A defeated enemy bursts into smoke and its school's sparks, plays its death tumble, then disappears.
 func _die() -> void:
 	_dead = true
-	if (roams or shared) and not puppet:
+	if (roams or shared or guards) and not puppet:
 		Net.send(self, &"_fell")  # the others' puppets of it fall too
 	remove_from_group("mobs")
 	set_physics_process(false)

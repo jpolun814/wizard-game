@@ -33,9 +33,9 @@ func _ready() -> void:
 		_verdict(absf(high - 79.0) <= 4.0, "%s stands %.0f from feet to head (79 is the mark)" % [look, high])
 
 	_verdict(Net.rival_look(1) != Net.look_of(Net.my_id()) and Net.rival_look(2) != Net.look_of(Net.my_id()) and Net.rival_look(3) != Net.look_of(Net.my_id()), "no brain wears the figure the person plays")
-	GameSettings.set_value("look", "bone_wizard")
+	GameSettings.set_value("look", "pyre_wizard")
 	var rivals := [Net.rival_look(1), Net.rival_look(2), Net.rival_look(3)]
-	_verdict(not rivals.has("bone_wizard") and rivals.size() == 3 and rivals[0] != rivals[1] and rivals[1] != rivals[2], "and with another chosen they still share none (%s)" % str(rivals))
+	_verdict(not rivals.has("pyre_wizard") and rivals.size() == 3 and rivals[0] != rivals[1] and rivals[1] != rivals[2], "and with another chosen they still share none (%s)" % str(rivals))
 	GameSettings.set_value("look", "")
 
 	var lab: Lab = load("res://scenes/lab.tscn").instantiate()

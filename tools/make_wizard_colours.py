@@ -21,7 +21,8 @@ VARIANTS = {
     "wizard_emerald": ("wizard", 0.56),
     "wizard_amber": ("wizard", 0.36),
     "dark_wizard_teal": ("dark_wizard", -0.17),
-    "bone_wizard_ice": ("bone_wizard", 0.58),
+    "dark_wizard_ice": ("dark_wizard", 0.58),
+    "pyre_wizard_azure": ("pyre_wizard", 0.58),
     "pyre_wizard_green": ("pyre_wizard", 0.30),
     "pyre_wizard_magenta": ("pyre_wizard", 0.82),
 }
