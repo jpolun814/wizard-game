@@ -92,7 +92,7 @@ const USES := {
 	"Stalagmite": "attack", "Bramble": "attack", "Flytrap": "attack", "Icicles": "attack under a ceiling", "Sinkhole": "attack", "Tornado": "attack, and a way up",
 	"Ice Prison": "attack", "Blizzard": "attack", "Mudslide": "attack", "Black Hole": "attack", "Earthquake": "attack", "Hex": "attack", "Vacuum": "attack",
 	"Faint": "attack", "Fight or Flight": "attack", "Silence": "attack", "Tide Surf": "attack", "Burst": "attack", "Thunderclap": "attack",
-	"Barbs": "attack", "Pebble": "attack", "Hailstorm": "attack", "Thorn Whip": "attack", "Insect Plague": "attack", "Leech": "attack", "Raise Dead": "attack", "Flaming Sphere": "attack", "Shadow Bolt": "attack", "Hemorrhage": "attack", "Mirage": "attack",
+	"Barbs": "attack", "Pebble": "attack", "Hailstorm": "attack", "Thorn Whip": "attack", "Insect Plague": "attack", "Leech": "attack", "Raise Dead": "attack", "Flaming Sphere": "attack", "Shadow Bolt": "attack", "Hemorrhage": "attack", "Supernova": "attack", "Scythe": "attack", "Mirage": "attack",
 	"Barrier": "defence", "Gust": "defence", "Shadow Step": "defence, and a way over a chasm", "Push": "repel, and a way up", "Rocket Jump": "a way up", "Geyser": "repel, and a way up",
 	"Stone Wall": "tend", "Smoke Screen": "tend", "Decoy": "tend", "Eclipse": "tend", "Crimson Veil": "tend", "Obsidian Armor": "tend, and a way through lava",
 	"Adrenaline": "tend", "Offering": "tend", "Sneak": "tend", "Hunter's Mark": "tend", "Flare": "tend", "Glowcap": "tend", "Moonbeam": "tend",
@@ -928,9 +928,9 @@ func _gate_stroke(spell_name: String, point: Vector2) -> PackedVector2Array:
 			return _offset(GestureTemplates.preview_points("stonefall"), Vector2(point.x, point.y - 130.0), 0.8)
 		"Earthquake":
 			return _offset(GestureTemplates.preview_points("earthquake"), Vector2(point.x, point.y - 120.0), 1.0)
-		"Firewall":
+		"Firewall":  # a line up and then a line out over the place: a short wall
 			var ground := _ground_under(point)
-			return _line(Vector2(point.x, ground - 110.0), Vector2(point.x, ground - 20.0))
+			return _offset(GestureTemplates.preview_points("flame_wall"), Vector2(point.x - 40.0, ground - 50.0), 0.8)
 		"Tornado":
 			return _offset(GestureTemplates.preview_points("tornado"), Vector2(point.x, _ground_under(point) - 90.0), 0.9)
 		"Spark":
@@ -1214,7 +1214,7 @@ func _attack(to_player: Vector2, sees: bool) -> bool:
 	var grounded: bool = foe.stands()
 	var same_ground: bool = grounded and wizard.is_on_floor() and absf(foe.global_position.y - wizard.global_position.y) < 8.0
 	var closing: bool = signf(foe.velocity.x) == signf(-to_player.x) and absf(foe.velocity.x) > 60.0
-	var aim_ok := absf(to_player.normalized().x) > 0.4  # a near-vertical stroke would draw a Firewall instead
+	var aim_ok := absf(to_player.normalized().x) > 0.4  # a near-vertical stroke is a poor flick
 	var scores := {
 		"Ignite": (2.0 if gap > 140.0 else 0.8) if sees and aim_ok else 0.0,
 		"Frostbolt": (0.4 if foe.is_slowed() else 1.6) if sees else 0.0,
@@ -1253,13 +1253,15 @@ func _attack(to_player: Vector2, sees: bool) -> bool:
 		"Leech": 1.0 if sees and aim_ok and gap < Leech.REACH - 40.0 and Leech.held_by(wizard.get_tree(), wizard) == null else 0.0,
 		"Shadow Bolt": 1.4 if sees and gap > 120.0 and gap < 560.0 else 0.0,  # slow, and it bends toward you
 		"Hemorrhage": 1.2 if sees and gap < 420.0 else 0.0,
+		"Supernova": 1.4 if gap < 560.0 and wizard.max_stamina > 140.0 and not _sheltered() else 0.0,  # a sun that hangs about: it likes a rival who stays near
+		"Scythe": 2.0 if sees and gap < 110.0 else 0.0,  # only at arm's length
 	}
 	if _sheltered():
 		# Under a platform: lightning from above cannot reach you.
 		scores["Spark"] = 0.0
 	if not sees:
 		# Behind cover: only spells that come from above or along the ground reach you.
-		for spell_name in ["Ignite", "Frostbolt", "Ice Prison", "Black Hole", "Firewall", "Fire Breath", "Barbs", "Thorn Whip", "Leech", "Shadow Bolt", "Hemorrhage"]:
+		for spell_name in ["Ignite", "Frostbolt", "Ice Prison", "Black Hole", "Firewall", "Fire Breath", "Barbs", "Thorn Whip", "Leech", "Shadow Bolt", "Hemorrhage", "Scythe"]:
 			scores[spell_name] = 0.0
 	for spell_name in scores.keys():
 		if not _ready_to_cast(spell_name):
@@ -1342,7 +1344,8 @@ func _attack_stroke(spell_name: String) -> PackedVector2Array:
 			return _offset(spiral, spot - (spiral[spiral.size() - 1] - _centre_of(spiral)), 1.0)
 		"Firewall":
 			var x: float = lerpf(wizard.global_position.x, foe.global_position.x, 0.5)
-			return _line(Vector2(x, feet.y - 110.0), Vector2(x, feet.y - 20.0))
+			var toward := signf(foe.global_position.x - wizard.global_position.x)  # a wall between them: up from the ground, then out across the way
+			return _offset(_facing_flipped(GestureTemplates.preview_points("flame_wall"), toward), Vector2(x - toward * 50.0, feet.y - 50.0), 0.8)
 		"Blizzard":
 			return _offset(GestureTemplates.preview_points("snowfall"), Vector2(feet.x - 30.0, foe.center().y - 70.0), 0.8)
 		"Fire Breath", "Spore Puff":
@@ -1382,8 +1385,12 @@ func _attack_stroke(spell_name: String) -> PackedVector2Array:
 		"Shadow Bolt":  # an arrow pointing at the rival
 			var pointing: float = (_predict(0.4) - wizard.center()).angle() + _rng.randfn(0.0, 0.1 * (1.0 - skill))
 			return _offset(_turned(GestureTemplates.preview_points("arrow"), pointing), wizard.center(), 0.8)
-		"Hemorrhage":  # a crescent drawn over the rival
-			return _offset(GestureTemplates.preview_points("crescent"), foe.center(), 0.6)
+		"Hemorrhage":  # a drop of blood drawn over the rival
+			return _offset(GestureTemplates.preview_points("flare"), foe.center(), 0.6)
+		"Supernova":  # a planet and its ring, drawn where the sun should hang: over the rival
+			return _offset(GestureTemplates.preview_points("saturn"), _predict(ATTACK_DRAW), 0.8)
+		"Scythe":  # a crescent drawn in front of the wizard
+			return _offset(GestureTemplates.preview_points("crescent"), wizard.center() + Vector2(facing * 40.0, 0.0), 0.8)
 		"Thunderclap":  # a cloud and a bolt, drawn on itself
 			return _offset(GestureTemplates.preview_points("thunderclap"), wizard.center() + Vector2(0.0, -30.0), 0.8)
 	return PackedVector2Array()

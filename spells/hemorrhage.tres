@@ -6,7 +6,7 @@
 script = ExtResource("1_spell")
 spell_name = "Hemorrhage"
 school = "Blood"
-gesture = "crescent"
+gesture = "flare"
 targeting = "positional"
 cost = 20.0
 effect = "Open a wound that will not close."

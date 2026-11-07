@@ -17,7 +17,7 @@ const SCENES := {
 	"Offering": {"tired": true}, "Adrenaline": {"tired": true}, "Sneak": {"low": true},
 	"Hunter's Mark": {"gap": 720.0},
 	"Mirage": {"gap": 400.0, "page": true, "seed": 3},  # a rival some way off, and a real page by it for the false one to pass for
-	"Burst": {"gap": 80.0, "rush": true}, "Thunderclap": {"gap": 120.0, "rush": true}, "Silence": {"gap": 270.0}, "Tide Surf": {"gap": 220.0},
+	"Burst": {"gap": 80.0, "rush": true}, "Scythe": {"gap": 80.0, "rush": true}, "Thunderclap": {"gap": 120.0, "rush": true}, "Silence": {"gap": 270.0}, "Tide Surf": {"gap": 220.0},
 	"Stone Wall": {"shot_at": true}, "Smoke Screen": {"shot_at": true}, "Decoy": {"shot_at": true}, "Crimson Veil": {"shot_at": true},
 	"Obsidian Armor": {"shot_at": true}, "Eclipse": {"shot_at": true, "gap": 300.0, "seed": 3},
 	"Barrier": {"shot_at": true, "gap": 400.0, "hold": true}, "Gust": {"shot_at": true, "gap": 400.0, "hold": true}, "Shadow Step": {"shot_at": true},

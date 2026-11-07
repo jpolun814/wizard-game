@@ -12,7 +12,7 @@ const ALIASES := {"line": "flick", "zig_tall": "zigzag",
 	"vine_cw": "vine", "vine_ccw": "vine",
 	"star_0": "pentagram", "star_1": "pentagram", "star_2": "pentagram", "star_3": "pentagram", "star_4": "pentagram",
 	"star_0r": "pentagram", "star_1r": "pentagram", "star_2r": "pentagram", "star_3r": "pentagram", "star_4r": "pentagram",
-	"crescent_cw": "crescent", "crescent_ccw": "crescent",
+	"crescent_cw": "crescent", "crescent_ccw": "crescent", "saturn_a": "saturn", "saturn_b": "saturn", "saturn_c": "saturn", "saturn_d": "saturn",
 	"lungs_a": "lungs", "lungs_b": "lungs", "lungs_c": "lungs", "lungs_d": "lungs", "lungs_e": "lungs", "lungs_f": "lungs",
 	"silence_cw": "silence", "silence_ccw": "silence", "question_r": "question", "earthquake_r": "earthquake", "arrow_r2": "arrow", "arrow_l": "arrow", "arrow_l2": "arrow"}
 
@@ -48,6 +48,10 @@ static func recognizer_templates() -> Dictionary:
 		"star_3r": _pentagram(3, true),
 		"star_4r": _pentagram(4, true),
 		"crescent_cw": _crescent(false),
+		"saturn_a": _saturn(false, false),
+		"saturn_b": _saturn(true, false),
+		"saturn_c": _saturn(false, true),
+		"saturn_d": _saturn(true, true),
 		"crescent_ccw": _crescent(true),
 		"updraft": _arrow_up(),
 		"rocket": _arrow_up(),  # the flame going up, drawn with the fire button
@@ -133,6 +137,10 @@ static func preview_points(gesture: String) -> PackedVector2Array:
 			return _eight(0.0, false)
 		"crescent":
 			return _crescent(false)
+		"saturn":
+			return _saturn(false, false)
+		"flame_wall":
+			return _up_and_out()
 		"pentagram":
 			return _pentagram(0, false)
 		"lungs":
@@ -401,6 +409,32 @@ static func _pentagram(start: int, ccw: bool) -> PackedVector2Array:
 	for step in 6:
 		var k := (start + step * (3 if ccw else 2)) % 5
 		pts.append(Vector2.from_angle(-PI / 2.0 + TAU * k / 5.0) * 50.0)
+	return pts
+
+
+## A line up and then a line out along the top, in one stroke: the height of the flames, then the width of the wall.
+static func _up_and_out() -> PackedVector2Array:
+	var pts := PackedVector2Array()
+	for i in range(9):
+		pts.append(Vector2(0.0, 40.0 - 80.0 * i / 8.0))
+	for i in range(1, 13):
+		pts.append(Vector2(120.0 * i / 12.0, -40.0))
+	return pts
+
+
+## A planet with its ring seen edge on, in one stroke: a round ring begun at its outer edge, then a line out to the tip of a flat oval that is drawn
+## all the way round it. flipped turns both loops the other way; mirrored begins on the right.
+static func _saturn(flipped: bool, mirrored: bool) -> PackedVector2Array:
+	var pts := PackedVector2Array()
+	for i in range(33):
+		pts.append(Vector2.from_angle(PI + TAU * i / 32.0) * 30.0)
+	for i in range(1, 7):
+		pts.append(Vector2(-(30.0 + 56.0 * i / 6.0), 0.0))
+	for i in range(1, 41):
+		var a := PI + TAU * i / 40.0
+		pts.append(Vector2(cos(a) * 86.0, sin(a) * 16.0))
+	for k in pts.size():
+		pts[k] = Vector2(-pts[k].x if mirrored else pts[k].x, -pts[k].y if flipped else pts[k].y)
 	return pts
 
 

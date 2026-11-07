@@ -1,6 +1,7 @@
 extends Node
 
-## Two attacking spells, cast in a real world: Shadow Bolt (it bends toward a rival or a creature) and Hemorrhage (a wound that bleeds a little at a time).
+## Attacking spells, cast in a real world: Shadow Bolt (it bends toward a rival or a creature), Hemorrhage (a wound that bleeds a little at a time), Supernova (a sun that
+## pulls and burns, then blows up and throws things back) and Scythe (a swing in front that a wall shelters from) and Firewall (a line up and a line out: a wall of flame as wide as the second line, costing more the wider it is).
 ##
 ##     godot --headless --fixed-fps 60 --path . tests/group_d_check.tscn
 ## It prints PASS or FAIL for each check and exits with code 1 if any failed.
@@ -32,6 +33,9 @@ func _ready() -> void:
 	await _wait(0.5)
 	await _shadow_bolt()
 	await _hemorrhage()
+	await _supernova()
+	await _scythe()
+	await _firewall()
 	print("the attacking spells work" if _failures == 0 else "%d FAILED" % _failures)
 	get_tree().quit(1 if _failures > 0 else 0)
 
@@ -98,6 +102,83 @@ func _hemorrhage() -> void:
 	_verdict(Hemorrhage.nearest_under(get_tree(), _spot + Vector2(0.0, -3000.0)) == null, "and a cut drawn over no one finds no one to bleed")
 	cut.queue_free()
 	away.queue_free()
+
+
+func _supernova() -> void:
+	var near := _dummy(420.0)
+	var distant := _dummy(1500.0)
+	await _arrive()
+	var came_from := _player.global_position.x
+	var sun := Supernova.new()
+	sun.position = _spot + Vector2(300.0, -20.0)
+	_world.add_child(sun)
+	await _wait(Supernova.RISE + 2.0)
+	_verdict(_hurt(near) >= Supernova.BURN, "a sun scorches whoever is close (%d hurt)" % _hurt(near))
+	_verdict(_player.global_position.x > came_from + 10.0, "and draws a wizard some way off toward it (%.0f px)" % (_player.global_position.x - came_from))
+	_verdict(_hurt(distant) == 0, "and leaves those well away alone")
+	var before := near.hp
+	await _wait(Supernova.HANG)
+	_verdict(near.hp <= before - Supernova.EXPLODE_DAMAGE, "then blows up and hurts what is near (%d hurt in all)" % (before - near.hp))
+	near.queue_free()
+	distant.queue_free()
+
+
+func _scythe() -> void:
+	_player.global_position = _spot  # the blast of the sun threw the wizard
+	_player.velocity = Vector2.ZERO
+	await _wait(0.5)
+	var cut := _dummy(70.0)
+	var behind := _dummy(-70.0)
+	var far := _dummy(260.0)
+	_player.facing = 1.0
+	await _arrive()
+	_cast("Scythe", "positional", 0.0)
+	await _wait(0.6)
+	_verdict(_hurt(cut) == Scythe.HARM, "a swing of the scythe cuts what is in front (%d hurt)" % _hurt(cut))
+	_verdict(_hurt(behind) == 0 and _hurt(far) == 0, "and not what is behind or out of reach")
+	var screen := StaticBody2D.new()
+	var shape := CollisionShape2D.new()
+	var box := RectangleShape2D.new()
+	box.size = Vector2(16.0, 200.0)
+	shape.shape = box
+	screen.add_child(shape)
+	screen.collision_layer = 1
+	screen.position = _spot + Vector2(36.0, -40.0)
+	_world.add_child(screen)
+	var before := cut.hp
+	await _wait(0.2)
+	_cast("Scythe", "positional", 0.0)
+	await _wait(0.6)
+	_verdict(cut.hp == before, "and a wall shelters whoever is behind it")
+	screen.queue_free()
+	cut.queue_free()
+	behind.queue_free()
+	far.queue_free()
+
+
+## The strokes of a Firewall, as the caster measures them: from the foot, up to the corner, then out to the end.
+func _flame_line(from_x: float, width: float) -> PackedVector2Array:
+	return PackedVector2Array([Vector2(from_x, _spot.y), Vector2(from_x, _spot.y - 80.0), Vector2(from_x + width, _spot.y - 80.0)])
+
+
+func _firewall() -> void:
+	var narrow_spell: Spell = SpellData.SPELLS["Firewall"]
+	var short := _flame_line(_spot.x + 100.0, 60.0)
+	var wide := _flame_line(_spot.x + 100.0, 400.0)
+	_verdict(narrow_spell.cost_for({"line": wide}) > narrow_spell.cost_for({"line": short}), "a wider wall costs more (%.0f against %.0f)" % [narrow_spell.cost_for({"line": wide}), narrow_spell.cost_for({"line": short})])
+	var at_start := _dummy(120.0)
+	var at_end := _dummy(450.0)
+	await _arrive()
+	_world.spawn_spell("Firewall", "positional", short[0], 0.0, {"line": short, "length": 60.0}, _player)
+	await _wait(1.2)
+	_verdict(_hurt(at_start) > 0 and _hurt(at_end) == 0, "a short wall of flame burns what stands in it and not what stands past it (%d and %d hurt)" % [_hurt(at_start), _hurt(at_end)])
+	await _wait(4.0)
+	_world.spawn_spell("Firewall", "positional", wide[0], 0.0, {"line": wide, "length": 400.0}, _player)
+	await _wait(1.2)
+	_verdict(_hurt(at_end) > 0, "and a wide one reaches the far end (%d hurt)" % _hurt(at_end))
+	at_start.queue_free()
+	at_end.queue_free()
+
 
 
 func _wait(seconds: float) -> void:

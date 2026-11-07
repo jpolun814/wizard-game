@@ -370,8 +370,8 @@ GODOT="/c/Users/Jordan Polun/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.
 "$GODOT" --headless --fixed-fps 60 --path . tests/blizzard_freeze_check.tscn  # a Blizzard chills and then freezes whoever stays in it (add `-- out=DIR` for pictures, needs a window)
 "$GODOT" --headless --fixed-fps 60 --path . tests/group_a_check.tscn  # Barbs, Pebble, Hailstorm and Featherfall
 "$GODOT" --headless --fixed-fps 60 --path . tests/group_b_check.tscn  # Thorn Whip and Insect Plague
-"$GODOT" --headless --fixed-fps 60 --path . tests/group_d_check.tscn  # Shadow Bolt and Hemorrhage, each cast in a world against a dummy
-"$GODOT" --path . tests/attacks_look.tscn -- out=DIR  # pictures of those two (needs a window)
+"$GODOT" --headless --fixed-fps 60 --path . tests/group_d_check.tscn  # Shadow Bolt, Hemorrhage, Supernova and Scythe, each cast in a world against a dummy
+"$GODOT" --path . tests/attacks_look.tscn -- out=DIR  # pictures of those four (needs a window)
 "$GODOT" --headless --fixed-fps 60 --path . tests/group_c_check.tscn  # Thunderclap (throws everyone near back but the caster, and dazes them) and Rocket Jump (the caster is thrown far up)
 "$GODOT" --headless --fixed-fps 60 --path . tests/leech_check.tscn  # the tether, the split of a spell's cost and what breaks it
 "$GODOT" --headless --fixed-fps 60 --path . tests/raise_dead_check.tscn  # a skeleton with a master: never touches them, fights a rival and a rival's skeleton, follows, falls with its master
@@ -445,7 +445,7 @@ GODOT="/c/Users/Jordan Polun/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.
 | School | Spell | Shape | Real thing | Counterplay |
 |---|---|---|---|---|
 | Fire | Ignite | straight flick | thrown fireball | dodge, Gust, walls |
-| Fire | Firewall | vertical line | burning brush line | it's passable and only burns; walk out of it |
+| Fire | Firewall | a line up, then a line out to either side: the second line is how wide the wall is, and the wider it is the more it costs (`Caster._up_and_out`, one `Firewall` column every 26 px along it) | burning brush line | it's passable and only burns; walk out of it |
 | Fire | Fire Breath | cone `<` | flamethrower from the mouth (follows facing, rises on a jump) | cover, Barrier, distance |
 | Fire | Smoke Screen | wavy line going up | a bank of smoke enemies cannot see through | wind (Tornado, Gust), Tsunami |
 | Fire | Flare | flame: a loop with its point up | a small harmless flame that follows you and lights the dark | it burns out |
@@ -504,14 +504,16 @@ GODOT="/c/Users/Jordan Polun/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.
 boss and the solo roguelite loop of `docs/roguelite_exploration_design.md`) is in `docs/pvp_arena_design.md`. The waiting room (`scenes/lab.tscn`, `scripts/lab.gd`) is where every spell is tried; the portal there
 starts a run. The first screen also has a **Tutorial** (`scripts/tutorial.gd`: a book that starts empty and a row of things in the way, each with the pages that answer it lying at its foot; only the keys to walk and jump are on screen. A dummy and a giant (too strong to kill: a Faint puts it down) strike down whoever walks past them, a pond of piranhas (waded after a Spark, or crossed on ice or pads), turrets that hit whoever has no cover, thorns too long to walk through, a cliff only a vine climbs, a gap only the double jump chant crosses, a dark stretch of spikes only a light shows, a gate that asks for two spells together (a light then fire), a pit and past it a wall of brick (a leap, then a quake or a boulder), an eye that shoots (cover, then fire on the thorns), poison gas (wind, fire or a Barrier) with a second pit after it, and a pond of piranhas in the dark (a light, then a Spark). Whoever falls keeps the pages they read) and a **Library** (`scripts/library.gd`, `library_screen.gd`: what this machine remembers of the matches played on it, in `user://library.json`: matches played and won, and for each page how often it was found, its spell cast, and a match won with it in the book. Only the person at the machine, only in real matches; the tests never touch it).
 
-**Two attacking spells from an overnight batch of eight were kept (2026-11-06; the owner vetoed the other six on 2026-11-07, see "Inventing a spell" in section 6; each kept spell has a test in `tests/group_d_check.tscn`):**
+**Attacking spells from the overnight batch of eight (2026-11-06; the owner vetoed six of them on 2026-11-07, see "Inventing a spell" in section 6) and the two the owner then approved (Supernova and Scythe). Each has a test in `tests/group_d_check.tscn`:**
 
 | School | Spell | Shape | Real thing | Counterplay |
 |---|---|---|---|---|
 | Shadow | Shadow Bolt | an arrow (the bolt goes the way it points) | a dart of darkness that bends toward the nearest living thing, wizard or creature, other than the caster (`ShadowBolt`), slower than a runner | outrun it, a wall, a Barrier |
-| Blood | Hemorrhage | a crescent drawn over someone (the owner doubts the crescent fits; the gesture is open) | a wound that bleeds a little at a time for a while (`Hemorrhage`) | it wears off |
+| Blood | Hemorrhage | a drop of blood: the flame shape (`flare`), drawn over someone | a wound that bleeds a little at a time for a while (`Hemorrhage`) | it wears off |
+| Fire | Supernova | a ring, then a flat oval round it, like Saturn (`saturn`, one stroke) | a small sun hangs where it was drawn: it burns whoever is close, pulls everything toward it a little, then blows up and throws everyone back (`Supernova`); costs 80 | get clear before it blows; stone or a wall |
+| Blood | Scythe | a crescent (the blade) | one swing in front of the caster, a half circle, that cuts hard (`Scythe`) | stay out of reach, a wall |
 
-The spellbook lines of these two ("Hurl a bolt of darkness." "Open a wound that will not close.") are drafts and the owner has already said the wording is wrong: the names and lines still need to be redone with the owner (section 6). `tests/attacks_look.tscn -- out=DIR` (needs a window) takes pictures of them.
+The spellbook lines ("Hurl a bolt of darkness." "Open a wound that will not close." "Conjure a small sun that pulls everything toward it." "Swing a scythe.") are drafts; the owner said the first two read wrong and has not seen the others. A Blood loop the recognizer takes for a flame but is not one is read again as the circle (`Caster._end`), because Hemorrhage's flame shares Blood's buttons with Burst's circle. `tests/attacks_look.tscn -- out=DIR` (needs a window) takes pictures of them.
 
 **Pages per world:** each world lays only `Pages.count_for(biome, width)` pages (graveyard 16, peaks 16, jungle 18, ashlands 12, castle 18, underground 20, portal fields 10, at 1000 tiles wide, fewer in the smaller worlds, never under 6), and which ones is settled when the match begins, from its seed (`Pages.allotment`): each wizard is dealt starting pages of their own, and each world is given pages of its own from the rest, no page in two places, some in none. So a page is never in a world once a wizard holds it, and no two wizards start alike. Pages not laid do not carry over. A kind of gate the world has always keeps a page that opens it, swapped in from the spare pages if need be (`Pages.with_openers`). In a world with no halls, pages lying out in the open are at least `Pages.MIN_APART` (40) columns apart, apart from the three near the start (`tests/pages_spread_look.tscn` prints where they lie).
 
@@ -534,6 +536,7 @@ The owner wants agents to learn to invent spells without being told. Until they 
 - **The gesture is a picture of the spell, never a shape that happened to be free in the school.** Hemorrhage's crescent, Steam Burst's wave and Strangler Vine's spiral were chosen because they were unused; the owner noticed.
 - **No near-duplicates.** Sleet was Barbs in ice colours; Strangler Vine was Flytrap. Before proposing, find the nearest existing spell and say what the new one does that it cannot.
 - **A spell must be worth casting.** Steam Burst was too weak to bother with. Say what it can do that nothing else can.
+- **Do not tell a little story in the line.** "Call a wolf to hunt" and "Send a hawk after its prey" were rejected: the line names the thing and what it is, in the plain verb for it (summon, conjure, swing), not what it is for.
 - **A homing thing seeks anything alive** (wizards and creatures), not only wizards.
 - **Check the school's name, not only its code id.** Flora is Druidry (nature, animals too), Shadow is Umbramancy, Blood is Necromancy. Animal spells belong in Druidry.
 

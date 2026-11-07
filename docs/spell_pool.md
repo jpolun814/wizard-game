@@ -198,3 +198,5 @@ Families used for the reasoning: cheap and weak harassment (Pebble, Barbs, Frost
 ## Attacking spells kept from the overnight batch (2026-11-06)
 
 Shadow Bolt (Shadow, arrow) and Hemorrhage (Blood, crescent) were kept; the owner vetoed Wind Cutter, Sandblast, Sleet, Meteor, Strangler Vine and Steam Burst on 2026-11-07 and they were removed. The lessons are in `CLAUDE.md` section 6 ("Inventing a spell"). Next idea from the owner: Supernova (Fire).
+
+Approved by the owner 2026-11-07: Supernova (Fire, a ring crossed by a flat oval) and Scythe (Blood, a crescent). Hemorrhage's gesture moved from the crescent to the drop-of-blood flame shape to free the crescent. Still open: Wild Shape (Druidry: the wizard becomes a bear, a different stamina pool, claw swipes only; the owner's idea, needs art and decisions), Molotov (wording unsettled).

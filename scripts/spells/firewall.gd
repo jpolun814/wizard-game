@@ -7,6 +7,7 @@ const LIFE := 4.0
 const TICK := 0.5
 const DAMAGE := 4
 const HEIGHT := 120.0
+const SPACING := 26.0  # a wall drawn wide is a row of these, this far apart
 
 
 func _begin(origin: Vector2, _aim_angle: float) -> void:

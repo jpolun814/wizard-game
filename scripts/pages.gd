@@ -12,15 +12,15 @@ extends RefCounted
 ## incantations of the bonfire and of the rift. Every spell in these lists works alone.
 const ATTACKS := ["Ignite", "Fire Breath", "Spark", "Frostbolt", "Stonefall", "Spore Puff", "Firewall", "Stalagmite", "Bramble", "Flytrap",
 		"Barbs", "Pebble", "Hailstorm", "Thorn Whip", "Insect Plague", "Flaming Sphere", "Thunderclap", "Raise Dead",
-		"Shadow Bolt", "Hemorrhage"]
+		"Shadow Bolt", "Hemorrhage", "Supernova", "Scythe"]
 ## Attacks that reach a rival from a distance: every wizard starts with one of these (see deal), so nobody begins with only spells that need an enemy close by.
-const RANGED := ["Ignite", "Spark", "Frostbolt", "Stonefall", "Barbs", "Pebble", "Hailstorm", "Thorn Whip", "Flaming Sphere", "Shadow Bolt"]
+const RANGED := ["Ignite", "Spark", "Frostbolt", "Stonefall", "Barbs", "Pebble", "Hailstorm", "Thorn Whip", "Flaming Sphere", "Shadow Bolt", "Supernova"]
 const MOVES := ["Shadow Step", "Push", "Liana", "Geyser", "Updraft", "Tornado", "Great Oak", "Rocket Jump"]
 const DEFENCES := ["Barrier", "Decoy", "Stone Wall", "Smoke Screen", "Gust", "Eclipse", "Sneak", "Featherfall", "Mirage"]
 const CHANTS := ["chant:bonfire", "chant:rift"]
 ## Spells that open no gate, and chants that do not: the ones that may lie in a locked area.
 const LOCKABLE := ["Frostbolt", "Icicles", "Ice Prison", "Blizzard", "Stonefall", "Mudslide", "Earthquake", "Stalagmite", "Bramble", "Spore Puff",
-		"Flytrap", "Hex", "Black Hole", "Tide Surf", "Offering", "Burst", "Crimson Veil", "Adrenaline", "Faint", "Vacuum", "Fight or Flight", "Sneak", "Hunter's Mark", "Barbs", "Pebble", "Hailstorm", "Featherfall", "Thunderclap", "Thorn Whip", "Insect Plague", "Leech", "Raise Dead", "Mirage", "Shadow Bolt", "Hemorrhage", "chant:boundless", "chant:double_jump", "chant:haste", "chant:dowsing", "chant:scrying_eye"]
+		"Flytrap", "Hex", "Black Hole", "Tide Surf", "Offering", "Burst", "Crimson Veil", "Adrenaline", "Faint", "Vacuum", "Fight or Flight", "Sneak", "Hunter's Mark", "Barbs", "Pebble", "Hailstorm", "Featherfall", "Thunderclap", "Thorn Whip", "Insect Plague", "Leech", "Raise Dead", "Mirage", "Shadow Bolt", "Hemorrhage", "Supernova", "Scythe", "chant:boundless", "chant:double_jump", "chant:haste", "chant:dowsing", "chant:scrying_eye"]
 ## How many pages lie in a world of each biome, in a world 1000 tiles wide: the ones with little height to spread through (a volcano's
 ## slopes, the portal fields) hold fewer than those with room to climb or dig. Smaller worlds hold fewer (see count_for). The pages that
 ## are not laid are simply not in that world: nothing carries over. Which pages each world lays is settled when the match begins (see allotment).

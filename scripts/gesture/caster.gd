@@ -160,11 +160,14 @@ func _end() -> void:
 	var hail := _hailstorm(relative) if options.has("hailstorm") else {}
 	var feather := _feather(relative) if options.has("feather") else {}
 	var latin := options.has("latin_cross") and _is_cross(relative)
+	var flame_wall := _up_and_out(relative) if options.has("flame_wall") else PackedVector2Array()
 	var thunder := options.has("thunderclap") and _is_thunderclap(relative)
 	var portrait := options.has("portrait") and _is_portrait_box(relative)
 	var ring_split := _ring_then_line_split(relative) if (options.has("circle_push") or options.has("sphere")) and spiral.is_empty() and feather.is_empty() else -1
 	if ring_split >= 0 and options.has("sphere") and not options.has("circle_push") and not _runs_level(relative.slice(ring_split)):
 		ring_split = -1  # a ball of fire is pushed along the ground: the line out of the ring must run level
+	if ring_split >= 0 and options.has("saturn") and gesture == "saturn" and score >= tolerance:
+		ring_split = -1  # a ring and a flat oval round it is a sun, not a ring with a line out of it
 	var ring_centre := Vector2.ZERO
 	# Icicles are open V strokes. A closed loop (a circle, a crystal) is never an icicle.
 	var extent := _extent(relative)
@@ -193,6 +196,10 @@ func _end() -> void:
 	elif thunder:
 		gesture = "thunderclap"  # a cloud, and a bolt of lightning down out of it
 		score = 1.0
+	elif not flame_wall.is_empty():
+		gesture = "flame_wall"  # a line up and a line out: a wall of flame as wide as the second line
+		score = 1.0
+		info["line"] = _to_world(flame_wall)
 	elif latin:
 		gesture = "latin_cross"  # an upright stem with a bar across it, nearer the top: read before the recognizer's guess
 		score = 1.0
@@ -292,6 +299,11 @@ func _end() -> void:
 		score = 0.0  # a stem alone, or any stroke the recognizer likes, is not a cross
 	if gesture == "flare" and not _flame_points_up(relative):
 		score = 0.0  # a plain loop, or a drop, is not a flame
+		if options.has("circle"):  # where a circle is also drawn, a loop the recognizer took for a flame is read again without the flames
+			var rest := _templates_for(options).filter(func(n: String) -> bool: return not n.begins_with("flame"))
+			var again := recognizer.recognize(relative, rest)
+			gesture = GestureTemplates.ALIASES.get(again.name, again.name)
+			score = again.score
 	var entry = options.get(gesture)
 	# A cast that works shows its name where it was drawn (the arena does that), so only failures are reported here.
 	# Earth Fall's circle and drop are hard to draw cleanly, so it is read with a looser eye than the other shapes.
@@ -730,6 +742,39 @@ func _cone(points: PackedVector2Array) -> Dictionary:
 	if spread < deg_to_rad(18.0) or spread > deg_to_rad(120.0):
 		return {}
 	return {"aim": ((a + b) * 0.5 - tip).angle(), "spread": spread, "reach": first + second}
+
+
+## A line up and then a line out to either side, each straight: returns where it began, where it turned and where it ended, or nothing.
+func _up_and_out(points: PackedVector2Array) -> PackedVector2Array:
+	if points.size() < 6:
+		return PackedVector2Array()
+	var a := points[0]
+	var b := points[points.size() - 1]
+	var chord := b - a
+	if chord.length() < 40.0:
+		return PackedVector2Array()
+	var corner := 0
+	var far := 0.0
+	for i in points.size():
+		var away := absf(chord.cross(points[i] - a)) / chord.length()
+		if away > far:
+			far = away
+			corner = i
+	var up := points.slice(0, corner + 1)
+	var out := points.slice(corner)
+	if up.size() < 2 or out.size() < 2:
+		return PackedVector2Array()
+	var rise := points[corner] - a
+	var run := b - points[corner]
+	if rise.length() < 30.0 or run.length() < 30.0:
+		return PackedVector2Array()
+	if rise.y >= 0.0 or absf(rise.x) > absf(rise.y) * 0.55:
+		return PackedVector2Array()  # the first line goes up
+	if absf(run.y) > absf(run.x) * 0.55:
+		return PackedVector2Array()  # and the second goes out, level
+	if _max_deviation(up) > rise.length() * 0.2 or _max_deviation(out) > run.length() * 0.2:
+		return PackedVector2Array()  # and each is straight
+	return PackedVector2Array([a, points[corner], b])
 
 
 ## How close a stroke is to the spell's own picture, from 0 to 1. Shapes the recognizer matched report its score; shapes

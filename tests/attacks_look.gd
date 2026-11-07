@@ -1,6 +1,6 @@
 extends Node
 
-## Pictures of the attacking spells (Shadow Bolt, Hemorrhage), each cast at a dummy in the
+## Pictures of the attacking spells (Shadow Bolt, Hemorrhage, Supernova, Scythe), each cast at a dummy in the
 ## waiting room, to judge how they look.
 ##
 ##     godot --path . tests/attacks_look.tscn -- out=DIR     (needs a window)
@@ -32,6 +32,12 @@ func _ready() -> void:
 	await _shots("shadow_bolt", [0.4, 0.8])
 	_cast("Hemorrhage", "positional", dummy.center(), 0.0, {})
 	await _shots("hemorrhage", [1.2, 2.2])
+	_cast("Supernova", "positional", _feet + Vector2(220.0, -60.0), 0.0, {})
+	await _shots("supernova", [1.2, 3.0, 5.7, 6.0, 6.3])
+	dummy.global_position = _feet + Vector2(70.0, 0.0)
+	_player.facing = 1.0
+	_cast("Scythe", "positional", from, 0.0, {})
+	await _shots("scythe", [0.08, 0.2])
 	get_tree().quit()
 
 

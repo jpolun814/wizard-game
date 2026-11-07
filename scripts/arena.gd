@@ -570,6 +570,29 @@ func _spawn_spell(spell: String, targeting: String, origin: Vector2, aim: float,
 			flare.caster_node = caster_node
 			add_child(flare)
 			return
+		"Firewall":
+			# A wall of flame along the second line of the stroke, a column every little way, each standing on the ground beneath it.
+			var line: PackedVector2Array = info.get("line", PackedVector2Array())
+			if line.size() < 3:
+				return
+			var x_from := line[1].x
+			var x_to := line[2].x
+			var columns := maxi(1, ceili(absf(x_to - x_from) / Firewall.SPACING))
+			for i in columns:
+				var column := Firewall.new()
+				add_child(column)
+				column.setup(spell, Vector2(lerpf(x_from, x_to, (i + 0.5) / columns), line[0].y), 0.0)
+			return
+		"Supernova":
+			var sun := Supernova.new()
+			sun.position = origin
+			add_child(sun)
+			return
+		"Scythe":
+			var swing := Scythe.new()
+			swing.caster_node = caster_node
+			add_child(swing)
+			return
 		"Hemorrhage":
 			var cut := Hemorrhage.nearest_under(get_tree(), origin)
 			if cut == null:
