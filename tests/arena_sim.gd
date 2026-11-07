@@ -5,7 +5,7 @@ extends Node
 ## for balancing them. It needs the game's own scenes, so it runs as a scene, and with a fixed frame rate so that a minute of play takes seconds:
 ##
 ##     godot --headless --path . --fixed-fps 60 tests/arena_sim.tscn -- seed=7 seconds=240
-## Other arguments: report=SECONDS between reports (default 30), keep=1 to leave the player's wizard in play as a target that stands still.
+## Other arguments: watch=1 follows a wizard with a camera (run without --headless to see it), report=SECONDS between reports (default 30), keep=1 to leave the player's wizard in play as a target that stands still.
 ## It prints a summary at the end and exits with code 1 when a wizard never gets going (reads no page in the time) or falls out of the world.
 
 var seed_value := 7
@@ -25,6 +25,8 @@ var _sketch := Vector2i(-1, -1)  # sketch=X,Y prints the map round that tile at 
 var _finished := false
 var _seen: Array[Dictionary] = []  # for each wizard, in the order of _wizards: {"kind", "pages": how many it held when last seen}
 var _set_up := false
+var _watch := false  # watch=1: a camera follows a wizard still standing, for looking at the match in a window
+var _camera: Camera2D
 
 
 func _ready() -> void:
@@ -41,6 +43,8 @@ func _ready() -> void:
 			_shot = arg.substr(5)
 		elif arg.begins_with("sketch="):
 			_sketch = Vector2i(int(arg.get_slice(",", 0).substr(7)), int(arg.get_slice(",", 1)))
+		elif arg == "watch=1":
+			_watch = true
 		elif arg == "keep=1":
 			keep_player = true
 	seed(seed_value)  # the starting places are chosen with the global rng
@@ -62,6 +66,12 @@ func _ready() -> void:
 	for wizard: Wizard in get_tree().get_nodes_in_group("wizards"):
 		if wizard != _world.player:
 			_wizards.append(wizard)
+	if _watch:
+		_camera = Camera2D.new()
+		_camera.zoom = Vector2(1.5, 1.5)
+		_camera.position_smoothing_enabled = true
+		add_child(_camera)
+		_camera.make_current()
 	_set_up = true
 	print("seed %d: %d wizards in a world of %s tiles; the player stands at %s" % [seed_value, _wizards.size(), str(ArenaGen.world_size), str(_world.player.global_position)])
 	for wizard in _wizards:
@@ -76,6 +86,14 @@ func _physics_process(delta: float) -> void:
 		_fail_to_start()
 		return
 	_clock += delta
+	if _camera != null:
+		var followed := _wizards.filter(func(w) -> bool: return is_instance_valid(w) and not w.dead)
+		if not followed.is_empty():
+			var target: Wizard = _camera.get_meta(&"target", null) if _camera.has_meta(&"target") else null
+			if target == null or not is_instance_valid(target) or target.dead:
+				target = followed[0]
+				_camera.set_meta(&"target", target)
+			_camera.global_position = target.global_position
 	if _shot != "" and _clock > 2.0:
 		get_viewport().get_texture().get_image().save_png(_shot)
 		_shot = ""
