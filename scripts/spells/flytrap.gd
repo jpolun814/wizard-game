@@ -13,8 +13,8 @@ const BITE_GAP := 0.9
 const PLANT := preload("res://art/props/flytrap.png")  # six frames of 64 px: three of the open mouth swaying, three of the lunge that shuts it
 const FRAME := 64
 const SIZE := 2.0   # drawn at twice its size, like the other props
-const LURKING := 0.55  # how much of its height shows while it lies in wait: it crouches in the ground, its open mouth plainly above it
-const LURKING_TINT := Color(0.7, 0.8, 0.66, 0.9)  # and takes on a little of the colour of the ground and leaves round it, but is easy to pick out
+const LURKING := 0.3  # how much of its height shows while it lies in wait: it crouches in the ground, with only a hint of it above
+const LURKING_TINT := Color(0.5, 0.58, 0.46, 0.7)  # and takes on the colour of the ground and leaves round it: a careful eye finds it
 const SOIL := 51.0  # the row of a frame the plant's foot stands on
 
 var _state := "growing"  # growing, waiting, holding
@@ -41,7 +41,7 @@ func _ready() -> void:
 	_picture.material.set_shader_parameter("soil_row", SOIL)
 	_picture.modulate = LURKING_TINT
 	_picture.play("waiting")
-	_picture.speed_scale = 0.6  # its open mouth sways slowly, so it can be seen where it lies
+	_picture.speed_scale = 0.0  # it does not sway while it hides
 	add_child(_picture)
 	_sunk = SOIL
 	_sink(SOIL)

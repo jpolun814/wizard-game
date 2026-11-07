@@ -48,6 +48,11 @@ func _initialize() -> void:
 		_check(attacks_dealt.size() == 4, "seed %d: the four wizards do not start with four different attacks" % seed_value)
 		_check(moves_dealt.size() == 4, "seed %d: the four wizards do not start with four different moves" % seed_value)
 		_check(defences_dealt.size() == 4,"seed %d: the four wizards do not start with four different defences" % seed_value)
+	# A match has eight wizards, and the pages lying by each one's spawn (their cluster) always hold an attack, one that reaches a rival from afar.
+	for seed_value in 200:
+		for seat in 8:
+			var cluster := Pages.cluster_of(seed_value, seat, 8)
+			_check(cluster.any(func(p: String) -> bool: return Pages.RANGED.has(p)), "seed %d: the cluster of seat %d holds no attack" % [seed_value, seat])
 	# A ledger knows what it holds, and learns more; one wizard's learning is not another's.
 	var ledgers := Pages.deal(1, 2)
 	var page := "Glowcap"

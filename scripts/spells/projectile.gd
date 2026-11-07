@@ -134,6 +134,7 @@ func _impact_effect() -> void:
 		SpellTargets.douse(get_tree(), global_position, 50.0)
 	else:
 		PixelFx.play_square(get_parent(), global_position, "pimen_firebolt_hit", 18.0, 2.0, aim.angle())
+		Blizzard.melt_at(get_tree(), global_position)  # a fireball that hits a snowbank bites a piece out of it
 		Fx.smoke(get_parent(), global_position, Color(0.3, 0.25, 0.25, 0.4), 3, 18.0, 30.0)
 		Sfx.play("fire_hit", global_position)
 

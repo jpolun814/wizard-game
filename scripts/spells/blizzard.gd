@@ -15,8 +15,10 @@ const SLOW_SECONDS := 2.0
 const STEP := 6.0  # the ground under the snow is measured, and the pile kept, in columns this wide
 const PILE_GROW := 2.0  # landed snow builds up this many pixels a second, at most up to the clouds
 const REPOSE := 4.0  # the steepest a heap may be, in pixels of height from one column to the next, before it slides
-const MELT_RADIUS := 40.0  # fire melts snow this far from itself
-const PILE_MELT := 35.0  # pixels a second a flame melts at its hottest
+const MELT_RADIUS := 60.0  # fire melts snow this far from itself
+const PILE_MELT := 90.0  # pixels a second a flame melts at its hottest
+const BLAST_MELT := 40.0   # pixels of snow a fire shot that strikes the bank melts away at the spot, falling off to the sides
+const BLAST_RADIUS := 36.0
 const SNOW_TOP := -50.0  # where the flakes start, just under the clouds
 const CLOUDS := [preload("res://art/props/cloud_snow_big.png"), preload("res://art/props/cloud_snow_small_1.png"),
 		preload("res://art/props/cloud_snow_small_2.png")]
@@ -208,6 +210,22 @@ func _grow_pile(delta: float) -> void:
 	if _pile_timer <= 0.0:
 		_pile_timer = 0.1
 		_sync_pile_body()
+
+
+## A fire that strikes the bank (a fireball against its wall) melts the snow there at once: a bite out of it, deepest where it struck.
+static func melt_at(tree: SceneTree, point: Vector2) -> void:
+	for cloud: Node in tree.get_nodes_in_group("clouds"):
+		if cloud is Blizzard and cloud.lasting:
+			cloud._bite(point)
+
+
+func _bite(point: Vector2) -> void:
+	var x := point.x - global_position.x
+	for c in range(maxi(ceili((x - BLAST_RADIUS) / STEP), 0), mini(floori((x + BLAST_RADIUS) / STEP) + 1, _pile.size())):
+		var distance := absf(c * STEP - x)
+		if distance < BLAST_RADIUS and absf(point.y - global_position.y - _floors[c]) < _pile[c] + 30.0:
+			_pile[c] = maxf(_pile[c] - BLAST_MELT * (1.0 - distance / BLAST_RADIUS), 0.0)
+	_sync_pile_body()
 
 
 ## The landed snow is solid: one stretch per column, which follows the height of the pile.

@@ -83,6 +83,7 @@ and are no longer drawn by the game.
 |---|---|
 | `spark` (lightning strike) | a synthesized crack, `groundhit` from the [Electricity Game Sound Pack](https://opengameart.org/node/150369) by faxcorp (CC0), and the thunder from 100 CC0 SFX #2 |
 | `blink` (teleport zip) | `teleport` from the Electricity Game Sound Pack, and an air rush from 100 CC0 SFX #2 |
+| `eldritch` (Eldritch Blast) | `hit` from the Electricity Game Sound Pack by faxcorp (CC0), used as it is |
 | `push` (force push) | a synthesized thump and whump, and an air rush from 100 CC0 SFX #2 |
 | `fire_breath` (jet of flame) | `thrusterFire_003` from Kenney – Sci-fi Sounds, and a burst from [Fire Staff Sound Effects](https://opengameart.org/content/fire-staff-sound-effects) by LEGIT Audio (CC0) |
 
@@ -175,4 +176,4 @@ Drawn pixel by pixel by `tools/make_shot_art.py`. No outside source and nothing 
 
 `art/mobs/sentinel/` (the sentinel's eye) is cut from [Floating Eyeball Enemy](https://blueapollo.itch.io/floating-eyeball-enemy) by blueapollo (CC0): its first eight frames are the watching loop and the third row is the flash of a shot. The sheet is not kept in the repo.
 
-`art/fx/scythe.png` (the Scythe spell's blade) is pixel art drawn for the game (`tools/make_scythe.py`).
+`art/fx/scythe.png` (the Scythe spell's blade) is pixel art drawn for the game (`tools/make_scythe.py`; the owner approved it, but agents should not draw art).

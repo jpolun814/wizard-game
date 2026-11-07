@@ -10,7 +10,7 @@ extends Lab
 
 const POND_SPAN := Vector2i(24, 44)   # water too wide to jump, shallow enough to wade, and full of piranhas
 const POND_ROWS := 2.0
-const CHUNKS := 96  # the room is wide, so that the places are far apart
+const CHUNKS := 120  # the room is wide, so that the places are far apart
 const PANEL := Color("#1f1528")
 const WORDS := Color("#efe3cf")
 const MENU := "res://scenes/menu.tscn"
@@ -31,7 +31,7 @@ const PAGE_SPOTS := [
 	[350, ["Eclipse", "Decoy"]],
 	[421, ["Gust", "Tornado"]],
 ]
-const STARTS := [-31, -22, 0, 12, 47, 104, 154, 172, 204, 278, 316, 348, 382, 419, 456, 488]   # where whoever falls is on their feet again: the start of the place they were working on
+const STARTS := [-31, -22, 0, 12, 47, 104, 154, 172, 204, 278, 316, 348, 382, 419, 456, 488, 542, 570, 588, 626, 666]   # where whoever falls is on their feet again: the start of the place they were working on
 const HINT_UNTIL := -21.0   # the keys to walk and jump show until the wizard has gone this far
 const CLIFF_COL := 165       # from here on the ground is this many rows higher than before: too high to jump, a vine climbs it
 const CLIFF_ROWS := 7.0
@@ -53,6 +53,15 @@ const PIT_TWO := Vector2i(458, 483)     # a second pit, for the same leap
 const POND_TWO := Vector2i(506, 524)    # a pond of piranhas in the dark, for the light and the Spark together
 const DARK_POND := Vector2i(488, 534)
 const THICKETS := [THICKET_SPAN, THICKET_DARK, THICKET_SENTINEL]
+## The last place is a run over everything the room has taught, with no page to read: a gap that takes two jumps, a cliff that takes a vine, a pit that takes a leap
+## (all the same size as the ones met before), and a long thicket on the high ground that takes fire. The ground is never raised above its line, only dug down from it,
+## so the way in is a drop of the first cliff's height and the cliff is climbed back to the usual level, which runs level to the portal.
+const FINALE_LOW := 536        # from here to the cliff the ground is as low as the room's first stretch
+const FINALE_GAP := Vector2i(548, 561)
+const FINALE_CLIFF := 576      # from here the ground is level again, as high as the first cliff
+const FINALE_LEAP := Vector2i(592, 617)
+const FINALE_THORNS := Vector2i(630, 662)
+const FINALE_PITS := [[FINALE_GAP, CLIFF_ROWS], [FINALE_LEAP, 0.0]]  # each pit and the level of the ground it is dug from
 const DARK_COLOR := Color(0.03, 0.03, 0.05)   # as dark as it is far under the ground in a match
 const THICKET_LAYERS := 10
 const DARK_SPAN := Vector2i(210, 272)   # where it is dark: the spikes in it are seen only by a light
@@ -67,6 +76,7 @@ const DUMMY_HP := 36  # three fireballs: the tutorial's dummy falls quickly, so 
 var _guide: CanvasLayer
 var _hint: PanelContainer   # the keys to walk and jump, at the start
 var _thickets: Array[Bramble] = []
+var _finale_thorns: Array[Bramble] = []   # the long thicket of the last place (kept apart from the first three, which the Plants place counts)
 var _dummy: Mob
 var _giant: Mob
 var _exposed := 0.0   # how long the wizard has been in the sight of a turret
@@ -99,6 +109,10 @@ func _build_map() -> Variant:
 	_dig_into(heights, GAP_SPAN, 0.0, GAP_ROWS_DOWN)
 	_dig_into(heights, PIT_TWO, 0.0, GAP_ROWS_DOWN)
 	_dig_into(heights, POND_TWO, 0.0, POND_ROWS)
+	for col in range(FINALE_LOW, FINALE_CLIFF):
+		heights[col - ArenaGen.FIRST_COL] = CLIFF_ROWS  # the low ground the last place begins on
+	for pit: Array in FINALE_PITS:
+		_dig_into(heights, pit[0], pit[1], GAP_ROWS_DOWN)
 	var cells: Dictionary = ArenaGen.build(_rng, heights)
 	for span: Vector2i in [DARK_SPAN, DARK_POND]:  # the dark stretches are under a roof of rock, as underground
 		for col in range(span.x, span.y + 1):
@@ -191,6 +205,7 @@ func _add_targets() -> void:
 	_giant.faint_stays = true
 	for span: Vector2i in THICKETS:
 		_plant_thicket(span)
+	_plant_thicket(FINALE_THORNS, true)
 	_lay_spikes()
 	_raise_wall()
 	var watcher := Sentinel.new()
@@ -247,7 +262,7 @@ func _lay_spikes() -> void:
 
 
 ## Thorns across the way: planted like the world's own, so fire burns them away.
-func _plant_thicket(span: Vector2i) -> void:
+func _plant_thicket(span: Vector2i, finale := false) -> void:
 	var points := PackedVector2Array()
 	for col in range(span.x, span.y + 1):
 		for half in 2:
@@ -257,7 +272,7 @@ func _plant_thicket(span: Vector2i) -> void:
 		var thorns := Bramble.new()
 		thorns.planted_ground = points
 		add_child(thorns)
-		_thickets.append(thorns)
+		(_finale_thorns if finale else _thickets).append(thorns)
 
 
 func _title() -> String:
@@ -344,7 +359,7 @@ func _clear_spare_pages() -> void:
 
 ## Whoever has fallen into the pond or the pit is put back on its near edge, where they came from.
 func _rescue_from_pits(column: float) -> void:
-	for pit: Array in [[CHANT_GAP, CHANT_GAP_ROWS], [GAP_SPAN, GAP_ROWS_DOWN], [PIT_TWO, GAP_ROWS_DOWN]]:
+	for pit: Array in [[CHANT_GAP, CHANT_GAP_ROWS], [GAP_SPAN, GAP_ROWS_DOWN], [PIT_TWO, GAP_ROWS_DOWN], [FINALE_GAP, GAP_ROWS_DOWN], [FINALE_LEAP, GAP_ROWS_DOWN]]:
 		var span: Vector2i = pit[0]
 		var edge := span.x - 3
 		if column >= span.x and column <= span.y and player.global_position.y > ArenaGen.surface_y(_cells, edge) + (float(pit[1]) - 1.0) * ArenaGen.TILE:
@@ -400,7 +415,7 @@ func _strike_down() -> void:
 	var column := player.global_position.x / float(ArenaGen.TILE)
 	if player.dead:
 		return
-	for zone: Vector2i in [TURRET_ZONE, POND_SPAN, DARK_SPAN, SENTINEL_ZONE, GAS_SPAN, POND_TWO] + THICKETS:
+	for zone: Vector2i in [TURRET_ZONE, POND_SPAN, DARK_SPAN, SENTINEL_ZONE, GAS_SPAN, POND_TWO, FINALE_THORNS] + THICKETS:
 		if column >= zone.x and column <= zone.y:
 			player.take_damage(1000, false)
 			return

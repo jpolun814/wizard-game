@@ -37,6 +37,7 @@ func _ready() -> void:
 	await _gas()
 	await _second_pit()
 	await _dark_pond()
+	await _finale()
 	print("the tutorial room is shut off place from place" if _failures == 0 else "%d FAILED" % _failures)
 	get_tree().quit(1 if _failures > 0 else 0)
 
@@ -384,6 +385,84 @@ func _dark_pond() -> void:
 		await get_tree().physics_frame
 	await _run_until(span.y + 3.0, 12.0)
 	_verdict(_deaths == deaths and _column() >= span.y + 3.0, "and after a Spark it is waded across (column %.1f)" % _column())
+
+
+## The last place: a gap that takes two jumps, a cliff that takes a vine, a pit that takes a leap, and thorns that take fire, one after another.
+func _finale() -> void:
+	var gap := Tutorial.FINALE_GAP
+	_put(gap.x - 5)
+	for f in 20:
+		await get_tree().physics_frame
+	await _run_and_jump(6.0, false, gap.y + 3.0)
+	_verdict(_column() < gap.y, "the last place: its first gap cannot be jumped (column %.1f)" % _column())
+	player.air_jump_time = 30.0
+	player.air_jump_ready = true
+	_put(gap.x - 5)
+	for f in 20:
+		await get_tree().physics_frame
+	await _run_and_jump(8.0, true, gap.y + 3.0)
+	_verdict(_column() >= gap.y + 3.0, "and can with the double jump (column %.1f)" % _column())
+	player.air_jump_time = 0.0
+	var cliff := Tutorial.FINALE_CLIFF
+	_put(cliff - 6)
+	for f in 20:
+		await get_tree().physics_frame
+	await _run_and_jump(6.0, false, cliff + 2.0)
+	_verdict(_column() < cliff, "its cliff cannot be climbed with a jump (column %.1f)" % _column())
+	var foot := Vector2(ArenaGen.column_x(cliff - 3), ArenaGen.surface_y(room._cells, cliff - 3))
+	var vine := Liana.new()
+	vine.line = PackedVector2Array([foot, foot + Vector2(0.0, -380.0)])
+	room.add_child(vine)
+	_put(cliff - 3)
+	for f in 20:
+		await get_tree().physics_frame
+	Input.action_press("move_up")
+	for f in 60 * 4:
+		await get_tree().physics_frame
+		if player.global_position.y < foot.y - 340.0:
+			break
+	Input.action_release("move_up")
+	Input.action_press("move_right")
+	for f in 60 * 3:
+		await get_tree().physics_frame
+		if _column() > cliff + 2.0 and player.is_on_floor():
+			break
+	Input.action_release("move_right")
+	_verdict(_column() > cliff + 2.0, "and a vine climbs it (column %.1f)" % _column())
+	vine.queue_free()
+	var leap := Tutorial.FINALE_LEAP
+	_put(leap.x - 3)
+	for f in 20:
+		await get_tree().physics_frame
+	await _run_and_jump(6.0, true, leap.y + 2.0)
+	_verdict(_column() < leap.y, "its pit cannot be jumped (column %.1f)" % _column())
+	var thorns := Tutorial.FINALE_THORNS
+	_put(thorns.x - 3)
+	for f in 20:
+		await get_tree().physics_frame
+	Input.action_press("move_right")
+	var died := false
+	for f in 60 * 40:
+		await get_tree().physics_frame
+		if _column() < thorns.x - 3.0:
+			died = true
+			break
+		if _column() > thorns.y + 1:
+			break
+	Input.action_release("move_right")
+	_verdict(died, "its thorns kill whoever walks into them (column %.1f)" % _column())
+	_put(thorns.x - 6)
+	for f in 20:
+		await get_tree().physics_frame
+	room.spawn_spell("Ignite", "directional", player.center() + Vector2(10.0, 0.0), 0.0, {}, player)
+	for f in 60 * 12:
+		await get_tree().physics_frame
+		if room._finale_thorns.all(func(t) -> bool: return not is_instance_valid(t) or t.is_queued_for_deletion()):
+			break
+	_verdict(room._finale_thorns.all(func(t) -> bool: return not is_instance_valid(t) or t.is_queued_for_deletion()), "and a fireball burns them away")
+	_put(thorns.y + 2)
+	await _run_until(ArenaGen.right_wall - 6.0, 30.0)
+	_verdict(_column() >= ArenaGen.right_wall - 6.0, "and past them the way runs on to the end of the room (column %.1f)" % _column())
 
 
 func _verdict(ok: bool, message: String) -> void:
