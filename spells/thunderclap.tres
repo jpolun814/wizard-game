@@ -8,5 +8,5 @@ spell_name = "Thunderclap"
 school = "Air"
 gesture = "thunderclap"
 cost = 35.0
-effect = "Evoke thunder. Everyone near you is thrown back and dazed for 4 seconds, slowed and unable to cast. You are not."
+effect = "Evoke thunder, throwing and dazing everything around you."
 effect_path = "res://scripts/spells/thunderclap.gd"

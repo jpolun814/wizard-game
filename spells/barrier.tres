@@ -8,4 +8,4 @@ spell_name = "Barrier"
 school = "Air"
 gesture = "circle"
 cost = 35.0
-effect = "Raise a shell of air around yourself for 6 seconds. It turns shots aside and keeps gas out."
+effect = "Raise a shell of air around yourself."

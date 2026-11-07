@@ -9,5 +9,5 @@ school = "Blood"
 gesture = "flare"
 targeting = "positional"
 cost = 20.0
-effect = "Open a wound on whoever the drop is drawn over. It bleeds for 8 seconds."
-damage = "3 damage every second"
+effect = "Make someone bleed."
+damage = "3 dmg/sec"

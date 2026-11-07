@@ -8,5 +8,5 @@ spell_name = "Vacuum"
 school = "Air"
 gesture = "lungs"
 cost = 30.0
-effect = "Draw the air out of someone's lungs. They cannot chant, and after a while they suffocate. It ends when you cast something else or are hurt."
-damage = "up to 3 damage a second once they suffocate"
+effect = "Draw the air out of someone's lungs."
+damage = "3 dmg/sec"

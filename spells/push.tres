@@ -13,4 +13,4 @@ size_unit = 40.0
 size_min = 0.5
 size_max = 4.0
 effect_path = "res://scripts/spells/push_zone.gd"
-effect = "Send out a rush of air that shoves everything in its path."
+effect = "Blast out a rush of air that shoves everything in its path."

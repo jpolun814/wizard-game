@@ -8,4 +8,4 @@ spell_name = "Black Hole"
 school = "Shadow"
 gesture = "spiral"
 cost = 70.0
-effect = "Open a black hole for 5 seconds. It pulls everything toward it, harder the closer it is, and swallows shots."
+effect = "Open a black hole that pulls everything toward it."

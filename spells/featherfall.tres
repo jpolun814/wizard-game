@@ -8,4 +8,4 @@ spell_name = "Featherfall"
 school = "Air"
 gesture = "feather"
 cost = 18.0
-effect = "Fall as light as a feather for 15 seconds: you never fall faster than a slow drift."
+effect = "Fall as light as a feather."

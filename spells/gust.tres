@@ -9,5 +9,5 @@ school = "Air"
 gesture = "flick"
 targeting = "directional"
 cost = 14.0
-effect = "Blow a gust of wind along the line you draw. It turns shots aside and sweeps along flying things, smoke and wizards."
+effect = "Blow a gust of wind."
 effect_path = "res://scripts/spells/gust.gd"

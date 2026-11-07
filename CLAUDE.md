@@ -41,7 +41,7 @@ no numbers, then reversed that part. A spell's page now has: (1) **its short des
 about the length of the old lines ("Hurl a bolt of fire.", "Ignite a column of fire.", "Conjure a dying star."); (2) **a damage line**, in the shortest form, as a rate
 where it ticks ("14 dmg/sec") or a flat figure where it strikes once ("30 dmg"), nothing when it deals none; (3) **a cost line** ("30 stamina", and "maximum stamina"
 for a Necromancy spell, which is paid in maximum stamina; a drawn size gives a range). The two stat lines are written by the game from the spell's data
-(`Spell.damage_line`, `Spell.cost_line`; the exact wording of the cost line is a guess, to be settled with the owner). Chant pages: the short description, and the cost
+(`Spell.damage_line`, `Spell.cost_line`; the owner settled the wording: "30 stamina" and "30 max stamina", with no durations for now). Chant pages: the short description, and the cost
 (none, except a Rift's maximum stamina).
 
 **Explicit means the figures, not an explanation. Do not narrate the spell.** The first redo (2026-11-07) wrote every page as a paragraph of mechanics ("the foot of it

@@ -8,4 +8,4 @@ spell_name = "Fight or Flight"
 school = "Blood"
 gesture = "question"
 cost = 30.0
-effect = "Stir the blood of someone for 6 seconds. They either fight, casting at whatever is near, or flee."
+effect = "Stir the blood of someone to fight or to flee."

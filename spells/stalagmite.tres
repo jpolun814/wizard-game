@@ -9,5 +9,5 @@ school = "Earth"
 gesture = "stalagmite"
 targeting = "shape"
 cost = 20.0
-effect = "Raise spikes of stone from the ground, one for each peak you draw."
-damage = "6 damage every half second to whoever touches one"
+effect = "Raise spikes of stone from the ground."
+damage = "12 dmg/sec"

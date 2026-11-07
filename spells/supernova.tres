@@ -9,5 +9,5 @@ school = "Fire"
 gesture = "saturn"
 targeting = "positional"
 cost = 80.0
-effect = "Conjure a dying star. It hangs where you drew it for 5 seconds, burning everyone close and pulling everything toward it. Then it explodes, throwing everyone near it far away."
-damage = "3 damage every half second while it burns, and 45 damage when it explodes"
+effect = "Conjure a dying star."
+damage = "6 dmg/sec + 45 dmg"

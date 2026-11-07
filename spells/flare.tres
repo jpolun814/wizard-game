@@ -7,4 +7,4 @@ script = ExtResource("1_7rrmy")
 spell_name = "Flare"
 gesture = "flare"
 cost = 9.0
-effect = "Conjure a small flame that follows you and lights the dark."
+effect = "Conjure a small flame that follows you."

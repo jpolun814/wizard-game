@@ -8,4 +8,4 @@ spell_name = "Offering"
 school = "Blood"
 gesture = "cross"
 cost = 20.0
-effect = "Give blood now, and draw on its strength once the rest is spent: you gain 30 extra stamina, used last."
+effect = "Give blood now, and draw on its strength once the rest is spent."

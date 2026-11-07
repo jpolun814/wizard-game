@@ -39,42 +39,30 @@ func pays_max() -> bool:
 	return school == "Blood"
 
 
-## What the spellbook says it costs, in plain words: a fixed price, or a range that depends on how it is drawn.
+## What the spellbook says it costs: "30 stamina", or "30 max stamina" for a spell paid in maximum stamina; a range when the size drawn sets the price.
 func cost_line() -> String:
-	var what := "maximum stamina" if pays_max() else "stamina"
-	var how := ""
+	var what := "max stamina" if pays_max() else "stamina"
 	var low := cost
 	var high := cost
 	match size_from:
 		Size.NONE:
-			return "Costs %d %s." % [roundi(cost), what]
+			pass
 		Size.PIECES:
-			return "Costs %d %s for each one you draw." % [roundi(cost), what]
+			pass  # each piece costs this much
 		Size.STEP_LENGTH:
 			low = size_min
 			high = roundf(cost * SpellData.STEP_MAX / size_unit)
-			how = "by how far you go"
-		Size.RADIUS:
-			how = "by the size of the circle"
-		Size.REACH:
-			how = "by how far it reaches"
-		Size.LINE_WIDTH:
-			how = "by how wide you draw it"
-		Size.LENGTH:
-			how = "by how long you draw it"
 		_:
-			how = "by how big you draw it"
-	if size_from != Size.STEP_LENGTH:
-		low = roundf(cost * size_min)
-		high = roundf(cost * size_max)
+			low = roundf(cost * size_min)
+			high = roundf(cost * size_max)
 	if roundi(low) == roundi(high):
-		return "Costs %d %s." % [roundi(low), what]
-	return "Costs %d to %d %s, %s." % [roundi(low), roundi(high), what, how]
+		return "%d %s" % [roundi(low), what]
+	return "%d to %d %s" % [roundi(low), roundi(high), what]
 
 
-## What the spellbook says it does to whatever it hurts, or nothing when it hurts nothing.
+## What the spellbook says it deals ("14 dmg/sec", "30 dmg"), or nothing when it deals no damage.
 func damage_line() -> String:
-	return "Deals %s." % damage if damage != "" else ""
+	return damage
 
 
 ## What it costs when drawn this big. info is what the gesture measured: radius, reach, line, length, rect, pieces.

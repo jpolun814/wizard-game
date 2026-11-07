@@ -8,4 +8,4 @@ spell_name = "Hunter's Mark"
 school = "Blood"
 gesture = "arrow"
 cost = 20.0
-effect = "Catch the scent of the nearest wizard. For 20 seconds an arrow shows the way to them, even if they hide."
+effect = "Catch the scent of the nearest wizard."

@@ -8,4 +8,4 @@ spell_name = "Rocket Jump"
 school = "Fire"
 gesture = "rocket"
 cost = 30.0
-effect = "Launch yourself into the sky on a jet of flame. For about a second and a half you rise faster and faster."
+effect = "Launch into the sky like a rocket."

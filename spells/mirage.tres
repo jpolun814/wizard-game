@@ -9,4 +9,4 @@ school = "Shadow"
 gesture = "portrait"
 targeting = "positional"
 cost = 40.0
-effect = "Create a mirage of what wizards desire most: a false page. It fades when anyone comes near, or after 30 seconds."
+effect = "Create a mirage of what wizards desire most."

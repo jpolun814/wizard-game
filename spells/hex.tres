@@ -8,4 +8,4 @@ spell_name = "Hex"
 school = "Shadow"
 gesture = "pentagram"
 cost = 20.0
-effect = "Curse someone with a dark star for 30 seconds: they take 50% more damage and cannot hide from you."
+effect = "Curse someone with a dark star: they take extra damage and cannot hide from you."

@@ -8,4 +8,4 @@ spell_name = "Decoy"
 school = "Shadow"
 gesture = "eight"
 cost = 20.0
-effect = "Conjure a shadow of yourself that lasts 24 seconds. Enemies attack it instead of you, and it falls after taking 40 damage."
+effect = "Conjure a shadow of yourself."

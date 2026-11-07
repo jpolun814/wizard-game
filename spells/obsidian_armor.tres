@@ -8,4 +8,4 @@ spell_name = "Obsidian Armor"
 school = "Earth"
 gesture = "circle"
 cost = 40.0
-effect = "Turn your body to black glass for 20 seconds. Shots do half damage and lava cannot hurt you, but you walk slower."
+effect = "Turn your body to black glass."

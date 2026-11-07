@@ -9,4 +9,4 @@ school = "Water"
 gesture = "geyser"
 targeting = "shape"
 cost = 20.0
-effect = "Burst a jet of water up from the ground, after the ground bubbles for a moment. It throws high anyone standing on it."
+effect = "Burst a jet of water up from the ground."
