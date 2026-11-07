@@ -3,6 +3,7 @@
     python tools/prepare_gothic_art.py <downloads dir>
 
 The downloads dir holds the unzipped packs, each in its own folder:
+    wizard-pack/ evil_wizard_1/ evil_wizard_2/ evil_wizard_3/  LuizMelo, Wizard Pack and Evil Wizards 1 to 3 (the four older wizards)
     craftpix/                   CraftPix freebies, each unzipped into a folder of its own: free-wizard-sprite-sheets-pixel-art, free-skeleton-pixel-art-sprite-sheets,
                                 free-minotaur-sprite-sheet-pixel-art-pack, free-knight-character-sprites-pixel-art, free-werewolf-sprite-sheets-pixel-art
                                 (the wizards, skeletons, giant, knights and werewolf; run with --only=name,name to cut just those)
@@ -44,15 +45,28 @@ CRAFTPIX = "craftpix/"  # CraftPix freebies, each pack unzipped into its own fol
 LUIZ_MONSTERS = "monsters-creatures-fantasy/Monsters_Creatures_Fantasy_x/Monsters_Creatures_Fantasy/"
 LUIZ_MONSTERS_13 = "monsters-creatures-fantasy/Monster_Creatures_Fantasy(Version 1.3)_x/Monster_Creatures_Fantasy(Version 1.3)/"
 CHARACTERS = {
-    # The three wizards are CraftPix's Fire Wizard, Wanderer Magician and Lightning Mage. Each has a run, a jump (cut in two: the rise, then the fall), a hit
+    "wizard": ("wizard-pack/Wizard Pack_x/Wizard Pack/", 231, 190, False, {
+        "idle": "Idle.png", "run": "Run.png", "jump": "Jump.png", "fall": "Fall.png",
+        "cast": "Attack1.png", "release": "Attack2.png", "hit": "Hit.png", "death": "Death.png"}),
+    "dark_wizard": ("evil_wizard_2/EVil Wizard 2_x/EVil Wizard 2/Sprites/", 250, 250, False, {
+        "idle": "Idle.png", "run": "Run.png", "jump": "Jump.png", "fall": "Fall.png",
+        "cast": "Attack1.png", "release": "Attack2.png", "hit": "Take hit.png", "death": "Death.png"}),
+    # The two other wizards that fight like the dark wizard. The fire mage has no jump or fall, so it uses its idle.
+    "pyre_wizard": ("evil_wizard_1/Evil Wizard_x/Evil Wizard/Sprites/", 150, 150, False, {
+        "idle": "Idle.png", "run": "Move.png", "jump": "Idle.png", "fall": "Idle.png",
+        "cast": "Attack.png", "release": "Attack.png", "hit": "Take Hit.png", "death": "Death.png"}),
+    "bone_wizard": ("evil_wizard_3/Evil Wizard 3_x/Evil Wizard 3/Sprites/", 140, 140, False, {
+        "idle": "Idle.png", "run": "Run.png", "jump": "Jump.png", "fall": "Fall.png",
+        "cast": "Attack.png", "release": "Attack.png", "hit": "Get hit.png", "death": "Death.png"}),
+    # The three newer wizards are CraftPix's Fire Wizard, Wanderer Magician and Lightning Mage. Each has a run, a jump (cut in two: the rise, then the fall), a hit
     # and a death; "cast" is the hand coming up while a stroke is drawn and "release" the spell going off (frames of a spell sheet, see CRAFTPIX_WIZARDS).
-    "wizard": (CRAFTPIX_WIZARDS + "Fire Wizard/", 128, 128, False, {
+    "fire_wizard": (CRAFTPIX_WIZARDS + "Fire Wizard/", 128, 128, False, {
         "idle": "Idle.png", "run": "Run.png", "jump": ("Jump.png", 0, 0, 5), "fall": ("Jump.png", 0, 6, 7),
         "cast": ("Fireball.png", 0, 0, 2), "release": ("Fireball.png", 0, 3, 7), "hit": "Hurt.png", "death": "Dead.png"}),
-    "dark_wizard": (CRAFTPIX_WIZARDS + "Wanderer Magican/", 128, 128, False, {
+    "wanderer": (CRAFTPIX_WIZARDS + "Wanderer Magican/", 128, 128, False, {
         "idle": "Idle.png", "run": "Run.png", "jump": ("Jump.png", 0, 0, 5), "fall": ("Jump.png", 0, 6, 7),
         "cast": ("Attack_1.png", 0, 0, 1), "release": ("Attack_1.png", 0, 2, 6), "hit": "Hurt.png", "death": "Dead.png"}),
-    "pyre_wizard": (CRAFTPIX_WIZARDS + "Lightning Mage/", 128, 128, False, {
+    "lightning_mage": (CRAFTPIX_WIZARDS + "Lightning Mage/", 128, 128, False, {
         "idle": "Idle.png", "run": "Run.png", "jump": ("Jump.png", 0, 0, 5), "fall": ("Jump.png", 0, 6, 7),
         "cast": ("Light_ball.png", 0, 0, 1), "release": ("Light_ball.png", 0, 2, 6), "hit": "Hurt.png", "death": "Dead.png"}),
     # CraftPix's free skeleton, minotaur, knight and werewolf (see CRAFTPIX below): 128 px cells, feet on the bottom edge.
@@ -77,7 +91,7 @@ CHARACTERS = {
         "idle": "Idle.png", "walk": "Walk.png", "attack": "Attack.png", "hit": "Hurt.png", "death": "Dead.png"}),
 }
 MOBS = ["skeleton", "knight", "goblin", "eye", "giant", "ninja"]
-HEROES = ["wizard", "dark_wizard", "pyre_wizard", "werewolf"]
+HEROES = ["wizard", "dark_wizard", "pyre_wizard", "bone_wizard", "fire_wizard", "wanderer", "lightning_mage", "werewolf"]
 
 CEMETERY = "x_gothicvania-cemetery-files/gothicvania-cemetery-files/Assets/Environment/"
 SWAMP = "x_swamp/Gothicvania Swamp files/Evironment/"

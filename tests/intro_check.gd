@@ -106,7 +106,7 @@ func _check_set() -> void:
 		var sprite: AnimatedSprite2D = wizard.get_child(0)
 		frames[sprite.sprite_frames] = true
 		_verdict(sprite.sprite_frames.has_animation(sprite.animation), "wizard animation '%s' exists" % sprite.animation)
-	_verdict(frames.size() == WizardLook.LOOKS.size(), "the four wizards wear every figure there is (%d)" % frames.size())  # (three figures, so two share one, in other colours)
+	_verdict(frames.size() == 4, "the four wizards each have a look of their own (%d)" % frames.size())
 	_verdict(_pages_in_view().size() == Intro.PAGES_IN_PILE, "a pile of %d pages lies on the floor (%d)" % [Intro.PAGES_IN_PILE, _pages_in_view().size()])
 
 

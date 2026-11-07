@@ -51,16 +51,13 @@ func _process(delta: float) -> void:
 				Fx.burst(get_parent(), body.global_position + Vector2(0.0, -30.0), CRACKLE_COLOUR, 3, 80.0, 0.3, true)
 
 
-## Draws these wizards into the portal: they can no longer act, rise through the world to it (slowly at first, then faster and faster) and fade as they go.
+## Draws these wizards into the portal: they rise through the world to it (slowly at first, then faster and faster), whole and solid, and can still cast and
+## fight each other on the way up.
 func pull(wizards: Array) -> void:
 	for body: Node2D in wizards:
 		_pulled.append(body)
-		body.set_physics_process(false)
-		body.collision_layer = 0  # nothing in the way, and nothing in the way of it
-		body.collision_mask = 0
-		if "movement_enabled" in body:
-			body.movement_enabled = false
+		body.collision_mask = 0  # nothing in the way of the climb (a shot can still hit them: their own layer is kept)
+		body.drawn = true  # the portal carries them: no walking, no falling
 		var tween := body.create_tween().set_parallel()
 		tween.tween_property(body, "global_position", global_position + Vector2(0.0, 30.0), PULL).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-		tween.tween_property(body, "modulate:a", 0.0, PULL * 0.4).set_delay(PULL * 0.6)
 	Sfx.play("portal_enter", global_position, -2.0)

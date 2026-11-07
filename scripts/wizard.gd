@@ -36,12 +36,30 @@ const JUMP_BUFFER := 0.12     # a jump pressed this long before landing happens 
 const HURT_GRACE := 0.5       # after a hit, further hits are ignored this long
 const STEP_EVERY := 0.32      # seconds between footstep sounds while running
 const CLIMB_SPEED := 170.0    # how fast the wizard climbs a vine
+## The animations of the three newer figures (and the werewolf), whose frames are cut to these names.
 const ANIMATIONS := {
 	"idle": {"fps": 8.0}, "run": {"fps": 12.0}, "jump": {"fps": 10.0, "loop": false}, "fall": {"fps": 8.0},
 	"cast": {"fps": 8.0},                      # the hand held up while a stroke is drawn
 	"release": {"fps": 16.0, "loop": false},  # thrust forward as the spell goes off
 	"hit": {"fps": 12.0, "loop": false}, "death": {"fps": 9.0, "loop": false},
 }
+## The older wizard's (LuizMelo's) animations.
+const OLD_ANIMATIONS := {
+	"idle": {"fps": 8.0}, "run": {"fps": 12.0}, "jump": {"fps": 10.0, "loop": false}, "fall": {"fps": 8.0},
+	"cast": {"fps": 8.0, "first": 0, "last": 2},                      # the staff held up while a stroke is drawn
+	"release": {"fps": 18.0, "loop": false, "first": 0, "last": 4},  # thrust forward as the spell goes off
+	"hit": {"fps": 14.0, "loop": false}, "death": {"fps": 10.0, "loop": false},
+}
+## The other three older looks name some of their frames differently: the staff is held up in "release" and thrust out in "cast".
+const OLD_LOOK_ANIMATIONS := {
+	"idle": {"fps": 8.0}, "run": {"fps": 12.0}, "jump": {"fps": 8.0, "loop": false}, "fall": {"fps": 8.0},
+	"cast": {"from": "release", "fps": 8.0, "first": 0, "last": 3},
+	"release": {"from": "cast", "fps": 16.0, "loop": false, "first": 3, "last": 5},
+	"hit": {"fps": 10.0, "loop": false}, "death": {"fps": 8.0, "loop": false},
+}
+const OLD_ART := ["wizard", "dark_wizard", "pyre_wizard", "bone_wizard"]  # the folders of the four older figures
+const STAFF_HEAD := Vector2(-55, -115)  # where the casting glow sits for an older figure: the staff's crystal, facing right
+const HAND := Vector2(30, -62)          # and for a newer one: the casting hand
 const WILD_STAMINA := 100.0  # the werewolf (Wild Shape) has a pool of strength of its own, and the wizard keeps theirs aside until it is gone
 const WILD_DRAIN := 5.0      # per second: the shape does not last for ever
 const WILD_SPEED := 1.25     # how much faster a werewolf runs
@@ -51,7 +69,6 @@ const CLAW_DAMAGE := 22
 const CLAW_COOLDOWN := 0.55
 const CLAW_REACH := 80.0     # from the middle of the body, to the front
 const CLAW_DELAY := 0.15     # the swipe lands this long after it begins
-const STAFF_HEAD := Vector2(30, -62)  # where the casting hand is, facing right (the glow of a spell being drawn sits there)
 const DRAW_TIME := 0.8        # how long a brain's wizard takes to draw a spell
 const SPAWN_TIME := 0.7       # a wizard summoned into the world arrives out of a circle this long
 const FALL_LIMIT := 800.0     # a wizard below this has fallen off the map (in a world, the bottom of it)
@@ -179,6 +196,8 @@ var _jump_buffer := 0.0
 var _step := 0.0
 var casting := false      # true while the caster has a stroke in progress (set by the arena)
 var casts_made := 0       # the spells this wizard has cast, for the tests that watch a match
+var drawn := false  # the portal of a collapsing world is carrying the wizard up: they cast and fight, but cannot walk or fall
+var _art := "wizard"  # the folder of frames it wears now
 var wild := false  # the wizard has taken the shape of a werewolf (Wild Shape)
 var _kept_stamina := 0.0  # what stamina and most stamina the wizard had before, which they have again when the shape is gone
 var _kept_max := 0.0
@@ -303,6 +322,13 @@ func _ready() -> void:
 
 
 ## Puts on the frames of the wizard's look. A network game gives each seat its own look, after the scene's wizard is ready.
+## The animations a folder of frames is cut to: the older figures' differ from the newer.
+static func animations_for(art: String) -> Dictionary:
+	if art == "wizard":
+		return OLD_ANIMATIONS
+	return OLD_LOOK_ANIMATIONS if OLD_ART.has(art) else ANIMATIONS
+
+
 func _dress() -> void:
 	var art := "wizard"
 	_sprite.scale = Vector2.ONE
@@ -313,7 +339,8 @@ func _dress() -> void:
 		var data: MobKind = Mob.KINDS[look]
 		art = data.art
 		_sprite.scale = Vector2.ONE * WizardLook.scale_of(look, data.scale)  # the three figures are drawn to one height
-	_sprite.sprite_frames = CharFrames.build("res://art/chars/" + art, ANIMATIONS)
+	_art = art
+	_sprite.sprite_frames = CharFrames.build("res://art/chars/" + art, animations_for(art))
 	_sprite.offset = Vector2(0, -PixelArt.CHARACTERS[art]["size"].y * 0.5)  # the frames' bottom edge is the feet
 	_sprite.play("idle")
 	_paint()
@@ -883,6 +910,8 @@ func _physics_process(delta: float) -> void:
 	# Walking into a ledge one tile high: a small hop lifts the AI wizards up it. A person jumps for themselves.
 	if brain != null and is_on_floor() and is_on_wall() and absf(velocity.x) > 10.0 and not dead and sink_time <= 0.0 and tangle_time <= 0.0:
 		velocity.y = minf(velocity.y, -330.0)
+	if drawn:
+		velocity = Vector2.ZERO
 	move_and_slide()
 	# A character pushed out of the map's sides is put back inside.
 	global_position.x = clampf(global_position.x, ArenaGen.left_edge() + 12.0, ArenaGen.right_edge() - 12.0)
@@ -1030,7 +1059,8 @@ func _animate(delta: float) -> void:
 	_sprite.flip_h = facing < 0.0
 	_glow.visible = casting and not dead
 	if _glow.visible:
-		_glow.position = Vector2(STAFF_HEAD.x * facing, STAFF_HEAD.y)
+		var spot := STAFF_HEAD if OLD_ART.has(_art) else HAND
+		_glow.position = Vector2(spot.x * facing, spot.y)
 		_glow.modulate = Color(cast_color, 0.9)
 	_flash = maxf(_flash - delta, 0.0)
 	# After a hit the wizard blinks while it can't be hurt again.

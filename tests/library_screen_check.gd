@@ -76,7 +76,7 @@ func _ready() -> void:
 	var line: Array = []
 	for k in 24:
 		line.append(k * 9)
-	Library.record_match_end({"when": 1793800000, "place": 3, "field": 4, "seconds": 412, "worlds": ["graveyard", "jungle"], "stages": [["graveyard", 0], ["jungle", 150]], "kills": 1, "dealt": 120, "taken": 260,
+	Library.record_match_end({"when": 1793800000, "place": 3, "field": 4, "seconds": 412, "worlds": ["graveyard", "jungle"], "stages": [["graveyard", 0], ["jungle", 150], ["mountains", 405], ["ashlands", 408], ["castle", 410]], "kills": 1, "dealt": 120, "taken": 260,
 		"casts": 40, "misses": 3, "accuracy": 0.81, "pages": 9, "favourites": [["Ignite", 22]], "online": false, "dealt_line": line, "taken_line": line})
 	Library.record_match_end({"when": 1793900000, "place": 1, "field": 4, "seconds": 1260, "worlds": ["castle"], "stages": [["castle", 0]], "kills": 3, "dealt": 900, "taken": 300,
 		"casts": 150, "misses": 9, "accuracy": 0.9, "pages": 20, "favourites": [["Push", 40], ["Ignite", 30]], "online": true, "dealt_line": line, "taken_line": line})

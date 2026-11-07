@@ -43,7 +43,7 @@ func _ready() -> void:
 		var data: MobKind = Mob.KINDS[look]
 		art = data.art
 		_body.scale = Vector2.ONE * WizardLook.scale_of(look, data.scale)
-	_body.sprite_frames = CharFrames.build("res://art/chars/" + art, Wizard.ANIMATIONS)
+	_body.sprite_frames = CharFrames.build("res://art/chars/" + art, Wizard.animations_for(art))
 	_body.offset = Vector2(0, -PixelArt.CHARACTERS[art]["size"].y * 0.5)
 	_body.material = WizardLook.material_for(look, palette)
 	_body.modulate = Color(0.5, 0.35, 0.75, 0.0)

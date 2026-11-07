@@ -38,7 +38,7 @@ func _swing() -> void:
 			continue
 		SpellTargets.hurt(body, HARM, "Blood", false, false, self)
 		var push := Vector2(facing * KNOCK, -60.0)
-		if body.is_in_group("mobs"):
+		if body is Mob:  # (not the group: a mob the blow has just beaten has left it)
 			body.knock_back(push)
 		else:
 			body.push(push)

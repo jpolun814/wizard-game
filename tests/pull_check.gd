@@ -61,7 +61,7 @@ func _ready() -> void:
 	_verdict(nearer == wizards.size(), "they are on their way up to it (%d of %d nearer)" % [nearer, wizards.size()])
 	await tree.create_timer(load("res://scripts/portal_collapse.gd").PULL * 0.55).timeout
 	_verdict(world.player.global_position.distance_to(world._tear.global_position) < player_start * 0.2 or player_start < 600.0, "the player is nearly there, and was not put back on the ground (%.0f of %.0f px left)" % [world.player.global_position.distance_to(world._tear.global_position), player_start])
-	_verdict(world.player.modulate.a < 0.9, "they fade as they go in")
+	_verdict(world.player.modulate.a > 0.99, "they stay whole as they go in, not faded")
 	var seen_loading := false
 	frames = 0
 	var next: World = null

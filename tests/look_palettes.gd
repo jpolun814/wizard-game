@@ -25,7 +25,7 @@ func _ready() -> void:
 		var look: String = WizardLook.LOOKS[row]
 		for palette in WizardLook.PALETTES.size():
 			var sprite := AnimatedSprite2D.new()
-			sprite.sprite_frames = CharFrames.build("res://art/chars/" + look, Wizard.ANIMATIONS)
+			sprite.sprite_frames = CharFrames.build("res://art/chars/" + look, Wizard.animations_for(look))
 			sprite.offset = Vector2(0, -PixelArt.CHARACTERS[look]["size"].y * 0.5)
 			sprite.scale = Vector2.ONE * WizardLook.scale_of(look)
 			sprite.material = WizardLook.material_for(look, palette)

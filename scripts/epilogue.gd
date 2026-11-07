@@ -134,7 +134,7 @@ func _build_winner() -> void:
 	_winner.position = Vector2(WINNER_FROM, FLOOR_Y)
 	_winner.z_index = 2
 	_sprite = AnimatedSprite2D.new()
-	_sprite.sprite_frames = CharFrames.build("res://art/chars/" + art, Wizard.ANIMATIONS)
+	_sprite.sprite_frames = CharFrames.build("res://art/chars/" + art, Wizard.animations_for(art))
 	_sprite.offset = Vector2(0.0, -PixelArt.CHARACTERS[art]["size"].y * 0.5)
 	_sprite.scale = Vector2.ONE * size
 	_sprite.material = WizardLook.material_for(look, palette)

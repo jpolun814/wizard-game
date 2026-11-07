@@ -1,20 +1,24 @@
 class_name WizardLook
 extends RefCounted
 
-## What a wizard can look like: one of three figures, in one of a few sets of colours. Every figure is drawn to the same height, from the feet to the top
+## What a wizard can look like: one of seven figures, in one of a few sets of colours. Every figure is drawn to the same height, from the feet to the top
 ## of the head (their staffs and flames rise above that, and are not counted), so the choice is only for looks. A set of colours turns two groups of the
 ## figure's own colours (its robe and its trim, picked out by hue) to new hues, in the sprite's shader (see wet.gdshader); skin, wood and outlines stay.
 
-const LOOKS := ["wizard", "dark_wizard", "pyre_wizard"]  # in the order the seats of a match have them
-const SCALE := {"wizard": 1.2, "dark_wizard": 1.2, "pyre_wizard": 1.25}  # what each is drawn at, to make them one height
-const NAMES := {"wizard": "Fire", "dark_wizard": "Wanderer", "pyre_wizard": "Lightning"}
+const LOOKS := ["wizard", "dark_wizard", "pyre_wizard", "bone_wizard", "fire_wizard", "wanderer", "lightning_mage"]  # in the order the seats of a match have them
+const SCALE := {"wizard": 1.0, "dark_wizard": 1.5, "pyre_wizard": 1.7, "bone_wizard": 1.5, "fire_wizard": 1.2, "wanderer": 1.2, "lightning_mage": 1.25}  # what each is drawn at, to make them one height
+const NAMES := {"wizard": "Wizard", "dark_wizard": "Hooded", "pyre_wizard": "Pyre", "bone_wizard": "Pale", "fire_wizard": "Fire", "wanderer": "Wanderer", "lightning_mage": "Lightning"}
 
 ## Each figure's two groups of colours: the hue at the middle of the group and how far either side of it the group reaches (both in turns of the
 ## colour wheel), and the least colour a pixel must have to be counted. The first is the robe, the second the trim.
 const GROUPS := {
-	"wizard": [[0.62, 0.05, 0.12], [0.08, 0.04, 0.45]],         # the fire wizard's slate robe, and the orange scarf
-	"dark_wizard": [[0.62, 0.06, 0.1], [0.98, 0.05, 0.35]],     # the wanderer's dark blue robe, and the red of the cloth
-	"pyre_wizard": [[0.03, 0.04, 0.35], [0.95, 0.04, 0.4]],     # the lightning mage's brown robe, and the crimson scarf
+	"wizard": [[0.75, 0.14, 0.25], [0.125, 0.04, 0.35]],        # the purple hood and cloak, and the gold edging
+	"dark_wizard": [[0.79, 0.17, 0.15], [0.09, 0.04, 0.35]],    # the purple robe and staff, and the orange trim
+	"pyre_wizard": [[0.0, 0.06, 0.3], [0.13, 0.05, 0.3]],       # the red robe, and the gold and flame
+	"bone_wizard": [[0.0, 0.06, 0.3], [0.7, 0.09, 0.08]],       # the red cloth, and the grey-blue bone
+	"fire_wizard": [[0.62, 0.05, 0.12], [0.08, 0.04, 0.45]],    # the slate robe, and the orange scarf
+	"wanderer": [[0.62, 0.06, 0.1], [0.98, 0.05, 0.35]],        # the dark blue robe, and the red of the cloth
+	"lightning_mage": [[0.03, 0.04, 0.35], [0.95, 0.04, 0.4]],  # the brown robe, and the crimson scarf
 }
 
 ## The sets of colours, the same for every figure: a name, the hue the robe turns to and how much colour it keeps, and the same for the trim. The

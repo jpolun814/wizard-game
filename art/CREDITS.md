@@ -11,7 +11,7 @@ packed into atlases, effects into strips).
 
 | Where in the project | Source | License |
 |---|---|---|
-| `art/chars/wizard/`, `dark_wizard/`, `pyre_wizard/`; `art/mobs/skeleton/`, `giant/` (a minotaur), `knight/`; the werewolf of Wild Shape | CraftPix free packs ([Wizard](https://craftpix.net/freebies/free-wizard-sprite-sheets-pixel-art/), [Skeleton](https://craftpix.net/freebies/free-skeleton-pixel-art-sprite-sheets/), [Minotaur](https://craftpix.net/freebies/free-minotaur-sprite-sheet-pixel-art-pack/), [Knight](https://craftpix.net/freebies/free-knight-character-sprites-pixel-art/), [Werewolf](https://craftpix.net/freebies/free-werewolf-sprite-sheets-pixel-art/)) | CraftPix free licence (https://craftpix.net/file-licenses/): free for commercial use, no credit required, art may not be resold or handed on as files, and may not be used to train AI |
+| `art/chars/fire_wizard/`, `wanderer/`, `lightning_mage/`; `art/mobs/skeleton/`, `giant/` (a minotaur), `knight/`; the werewolf of Wild Shape | CraftPix free packs ([Wizard](https://craftpix.net/freebies/free-wizard-sprite-sheets-pixel-art/), [Skeleton](https://craftpix.net/freebies/free-skeleton-pixel-art-sprite-sheets/), [Minotaur](https://craftpix.net/freebies/free-minotaur-sprite-sheet-pixel-art-pack/), [Knight](https://craftpix.net/freebies/free-knight-character-sprites-pixel-art/), [Werewolf](https://craftpix.net/freebies/free-werewolf-sprite-sheets-pixel-art/)) | CraftPix free licence (https://craftpix.net/file-licenses/): free for commercial use, no credit required, art may not be resold or handed on as files, and may not be used to train AI |
 | `art/mobs/` (skeleton, goblin, flying eye), the eye's and goblin's shots | [Monsters Creatures Fantasy](https://luizmelo.itch.io/monsters-creatures-fantasy) by LuizMelo | CC0 1.0 |
 | `art/tiles/cemetery`, cemetery props, `art/backgrounds/cemetery/` | [GothicVania Cemetery](https://ansimuz.itch.io/gothicvania-cemetery) by ansimuz | CC0 1.0 |
 | `art/tiles/swamp`, swamp props, `art/backgrounds/swamp/` | [GothicVania Swamp](https://opengameart.org/content/gotthicvania-swamp) by ansimuz | CC0 1.0 |
@@ -100,8 +100,9 @@ and are no longer drawn by the game.
 - **Ninja sprites:** Martial Hero 2 by LuizMelo (luizmelo.itch.io/martial-hero-2), CC0. The old Mini Ninja (ivoryred, CC BY 4.0) is no longer used.
 - **Star:** Ninja Throwing Items Kit (opengameart.org/content/ninja-throwing-items-kit-32x32), CC0.
 
-## The wizards (art/chars/wizard, dark_wizard, pyre_wizard)
-- The Fire Wizard, Wanderer Magician and Lightning Mage of CraftPix's Free Wizard Sprite Sheets (table above), cut by tools/prepare_gothic_art.py. They replaced LuizMelo's Wizard Pack and Evil Wizards (CC0), which are no longer used.
+## The wizards (seven figures)
+- art/chars/fire_wizard, wanderer, lightning_mage: the Fire Wizard, Wanderer Magician and Lightning Mage of CraftPix's Free Wizard Sprite Sheets (table above), cut by tools/prepare_gothic_art.py.
+- art/chars/wizard, dark_wizard, pyre_wizard, bone_wizard: LuizMelo's Wizard Pack and Evil Wizards 2, 1 and 3 (luizmelo.itch.io), CC0.
 
 ## Biome backdrops and snow (art/backgrounds/mountains, tundra, ashlands; art/tiles/snow.png)
 
