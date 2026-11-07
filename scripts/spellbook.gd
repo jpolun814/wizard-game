@@ -536,7 +536,7 @@ static func ritual_effect(ritual_id: String) -> String:
 		"bonfire":
 			return "Kindle a bonfire and heal your wounds."
 		"boundless":
-			return "Gain unlimited stamina."
+			return "Gain unlimited stamina for a short amount of time."
 		"double_jump":
 			return "Jump again in mid-air."
 		"rift":

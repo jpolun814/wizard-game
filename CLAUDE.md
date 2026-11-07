@@ -207,7 +207,7 @@ unconscious", not "Knock whoever is under it unconscious" (the reader cannot tel
 - Use **sprout**, **grow**, **raise**, **summon** for things that come up out of the world.
 - Use **negate** rather than **catch**, **absorb** or **block** when a spell stops harm ("Wrap yourself in a veil
   of blood that negates the next few attacks.").
-- Do not write "for a while", "for a little while" or "for a short amount of time" (owner, 2026-11-07: "I don't like the wording"). Leave the length out: the player learns it by casting.
+- Do not write "for a while" or "for a little while" (owner, 2026-11-07: "I don't like the wording"). Leave the length out: the player learns it by casting. The one exception is where leaving it out would make a spell read as far too strong: Vires Fluant says "for a short amount of time".
 - Use **the target** or **anyone** instead of **it**, **whoever** or **them** when the referent is unclear.
 
 ### The owner's standing corrections (each one is a rule)
@@ -223,7 +223,7 @@ unconscious", not "Knock whoever is under it unconscious" (the reader cannot tel
 - Frostbolt: "Shoot", not "Hurl". Flare: "Light a small flame to light your way." Barrier: "Protect yourself from projectiles by blowing them away." Earthquake: "Shake the earth."
   Moonbeam: no "that lingers for a while". Silence: "Block magic from being cast in the area." Sneak: "Become invisible until your next spell interrupts it." Adrenaline: it makes you
   faster, hurt less and hit harder, and the line says so. Fight or Flight: "Trigger the target's fight or flight response." Raise Dead: "Summon an undead servant."
-- Chants: Rite of the Land "Reveal a map of the world."; Vires Fluant "Gain unlimited stamina."; Locum Muta "Teleport to a random location. WARNING: this can be
+- Chants: Rite of the Land "Reveal a map of the world."; Vires Fluant "Gain unlimited stamina for a short amount of time." (without the words it reads as overpowered); Locum Muta "Teleport to a random location. WARNING: this can be
   devastating." (the owner wants the warning back); Oculum Mitto "Spy on another wizard."
 - Black Hole (formerly Abyss): name it Black Hole, and describe it as a black hole, not as a "knot of darkness".
 - Eclipse: the whole world goes dark (for as long as an Earthquake lasts, at the cost of one), so the line says so: "Plunge the whole world into darkness." Not "around you".
