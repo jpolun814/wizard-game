@@ -5,11 +5,11 @@ extends Node2D
 ## A wall or the ground between the caster and a body shelters that body. It is over in an instant.
 
 const RADIUS := 170.0
-const HARM := 30
+const HARM := 45
 const KNOCK := 260.0
 const BODY_RADIUS := 24.0
 const LIFE := 0.4
-const BLADE: Texture2D = preload("res://art/fx/scythe.png")  # a handle, left, and a blade, right; it is held by the left end
+const BLADE: Texture2D = preload("res://art/fx/scythe.png")  # a shaft, left, and a curved blade hooking down at its end, right; it is held by the left end, and the blade leads the swing (pixel art made for the game, tools/make_scythe.py)
 
 var caster_node: Wizard
 var facing := 1.0
@@ -60,8 +60,8 @@ func _sheltered(point: Vector2) -> bool:
 func _show_swing() -> void:
 	var holder := Node2D.new()
 	holder.position = Vector2(facing * 10.0, -6.0)
-	holder.scale.x = facing  # (a mirror also turns the swing the other way round)
-	holder.rotation = -2.3
+	holder.scale.x = facing
+	holder.rotation = -2.3 * facing  # raised behind the caster: a mirror does not turn the swing round by itself, so the angles are mirrored too
 	holder.z_index = 6
 	add_child(holder)
 	var blade := Sprite2D.new()
@@ -74,7 +74,7 @@ func _show_swing() -> void:
 	blade.centered = false
 	holder.add_child(blade)
 	var tween := holder.create_tween()
-	tween.tween_property(holder, "rotation", 0.45, 0.2).set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_CUBIC)
+	tween.tween_property(holder, "rotation", 0.45 * facing, 0.22).set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)  # an even sweep, so the whole arc is seen
 	tween.tween_property(holder, "modulate:a", 0.0, 0.15)
 
 

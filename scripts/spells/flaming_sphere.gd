@@ -14,8 +14,9 @@ const CLIMB_LIMIT := 4.0       # seconds up a wall before it gives up and turns 
 const RADIUS := 14.0
 const SUN: Texture2D = preload("res://art/fx/sun.png")  # the ball is a sun, which turns as it rolls
 const REACH := 4300.0          # how far it rolls before it burns out: about a hundred and thirty tiles
-const BURN := 6
-const BURN_GAP := 0.8          # seconds before it burns the same one again
+const BURN := 35               # one heavy blow, not a burn that ticks: the sphere rolls on and leaves them behind
+const BURN_GAP := 1.5          # seconds before it can strike the same one again: a victim thrown up lands in its path and meets it again
+const KNOCK := Vector2(430.0, -430.0)  # how it throws whoever it strikes, away from the way it rolls and up
 const STEEP := 0.8             # a face whose normal is this sideways or more is a wall to climb, not a slope to roll up
 const RAIN_LEVEL := 0.35
 const PUFF_GAP := 0.07         # seconds between the licks of flame it leaves behind
@@ -102,7 +103,7 @@ func _move(delta: float) -> void:
 	_rolled += global_position.distance_to(before)
 
 
-## Burns every wizard and enemy it touches, once in a while each.
+## Strikes every wizard and enemy it touches, hard, and throws them off ahead of it. Once in a while for each.
 func _burn() -> void:
 	for body: Node2D in SpellTargets.all(get_tree()):
 		if not SpellTargets.affects(body) or _burnt.has(body.get_instance_id()):
@@ -110,6 +111,11 @@ func _burn() -> void:
 		if SpellTargets.center_of(body).distance_to(global_position) < RADIUS + 18.0:
 			_burnt[body.get_instance_id()] = BURN_GAP
 			SpellTargets.hurt(body, BURN, "Fire", false, true, self)
+			var throw := Vector2(direction * KNOCK.x, KNOCK.y)
+			if body.is_in_group("mobs"):
+				body.knock_back(throw)
+			else:
+				body.push(throw)
 
 
 func _under_rain() -> bool:

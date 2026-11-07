@@ -9,4 +9,5 @@ school = "Water"
 gesture = "geyser"
 targeting = "shape"
 cost = 20.0
-effect = "Burst a jet of water up from the ground."
+effect = "A jet of scalding water shoots up from the ground."
+damage = "1 dmg/sec"

@@ -33,19 +33,6 @@ func _ready() -> void:
 	_say("bonfire")
 	await _frames(3)
 	_verdict(get_tree().get_nodes_in_group("fires").any(func(n: Node) -> bool: return n is Bonfire), "the Bonfire kindles a fire")
-	# The mark and the return: two portals, a pair, at the mark and where the wizard stands.
-	_say("mark")
-	await _frames(3)
-	player.global_position += Vector2(400.0, 0.0)
-	await _frames(10)
-	_say("recall")
-	await _frames(3)
-	var gateways: Array = _arena.get_children().filter(func(n: Node) -> bool: return n is Gateway)
-	_verdict(gateways.size() == 2 and gateways[0].partner == gateways[1], "the Return opens a pair of portals, one at the mark")
-	# Walking into one end comes out of the other.
-	player.global_position = gateways[0].global_position + Vector2(0.0, Portal.RY)
-	await _frames(12)
-	_verdict(player.global_position.distance_to(gateways[1].global_position) < 160.0, "stepping into one portal comes out of the other")
 	# The rift tears the wizard away, wearing them down.
 	var before: Vector2 = player.global_position
 	var wear: float = player.max_stamina

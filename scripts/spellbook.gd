@@ -217,12 +217,11 @@ func _ready() -> void:
 		_faces.append(face)
 		_title_faces.append(Lettering.FACE)
 
-	var viewport_size := get_viewport().get_visible_rect().size
 	_book = BookArt.new()
 	_book.size = FRAME * SCALE
-	# The open book sits in the middle of the screen; its frame has an empty margin round it, partly off screen.
-	_book.position = (viewport_size * 0.5 - OPEN_MIDDLE * SCALE).floor()
 	add_child(_book)
+	_centre_book()
+	get_viewport().size_changed.connect(_centre_book)  # a window made full screen keeps the book in the middle
 	_left = _page_column(PAGES[0])
 	_right = _page_column(PAGES[1])
 	_use_face(0)
@@ -242,8 +241,7 @@ func _build_pages() -> void:
 			for spell_name in _spells_of(school):
 				_add_spell_page(spell_name)
 		for ritual_id in RitualInput.RITUALS:
-			if ritual_id != "recall":
-				_add_chant_page(ritual_id)
+			_add_chant_page(ritual_id)
 		return
 	for page: String in _ledger().pages:
 		if page.begins_with("chant:"):
@@ -259,7 +257,7 @@ func _add_spell_page(spell_name: String) -> void:
 
 
 func _add_chant_page(ritual_id: String) -> void:
-	if RitualInput.RITUALS.has(ritual_id) and ritual_id != "recall" and _ledger().knows_chant(ritual_id) and not _page_of.has("chant:" + ritual_id):  # the Return shares the Mark's page: the two work as a pair
+	if RitualInput.RITUALS.has(ritual_id) and _ledger().knows_chant(ritual_id) and not _page_of.has("chant:" + ritual_id):
 		_page_of["chant:" + ritual_id] = _pages.size()
 		_pages.append(_page_incantation.bind(ritual_id))
 
@@ -341,6 +339,11 @@ func _turn(leaves: int) -> void:
 func _set_writing(on: bool) -> void:
 	_left.get_parent().visible = on
 	_right.get_parent().visible = on
+
+
+## The open book sits in the middle of the screen; its frame has an empty margin round it, partly off screen.
+func _centre_book() -> void:
+	_book.position = (get_viewport().get_visible_rect().size * 0.5 - OPEN_MIDDLE * SCALE).floor()
 
 
 ## The writing area of one page. Anything too long is cut off at the page's edge, so a page never grows.
@@ -491,9 +494,7 @@ func _page_spell(column: VBoxContainer, spell_name: String) -> void:
 	preview.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	column.add_child(preview)
 	column.add_child(_ink(s.effect, 22, TEXT_INK))
-	if s.damage_line() != "":
-		column.add_child(_ink(s.damage_line(), 20, TEXT_INK))
-	column.add_child(_ink(s.cost_line(), 20, SUBTLE))
+	_foot(column, [s.damage_line(), s.cost_line()])
 
 
 ## An incantation's own page: its name, its words and what it does. Every one is spoken by typing it and pressing Enter,
@@ -509,47 +510,45 @@ func _page_incantation(column: VBoxContainer, ritual_id: String) -> void:
 	column.add_child(top)
 	column.add_child(_ink("“%s”" % r["text"], 26, TEXT_INK))
 	column.add_child(_ink(ritual_effect(ritual_id), 20, TEXT_INK))
-	if ritual_cost_line(ritual_id) != "":
-		column.add_child(_ink(ritual_cost_line(ritual_id), 20, SUBTLE))
-	if ritual_id == "mark":
-		var back: Dictionary = RitualInput.RITUALS["recall"]
-		var back_top := HBoxContainer.new()
-		back_top.add_theme_constant_override("separation", 10)
-		var back_heading := _heading(back["name"], 32)
-		back_heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		back_top.add_child(back_heading)
-		back_top.add_child(KeyCap.new("Enter"))
-		column.add_child(back_top)
-		column.add_child(_ink("“%s”" % back["text"], 26, TEXT_INK))
-		column.add_child(_ink(ritual_effect("recall"), 20, TEXT_INK))
+	_foot(column, [ritual_cost_line(ritual_id)])
+
+
+## The figures of a page, always at its foot just above the page number, so a reader knows where to look: damage first, then cost.
+## Lines that are empty are left out.
+func _foot(column: VBoxContainer, lines: Array) -> void:
+	var gap := Control.new()
+	gap.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	column.add_child(gap)
+	for line: String in lines:
+		if line != "":
+			column.add_child(_ink(line, 20, SUBTLE if line == lines[lines.size() - 1] else TEXT_INK))
+	var margin := Control.new()
+	margin.custom_minimum_size = Vector2(0, 50)  # the room the page number takes
+	column.add_child(margin)
 
 
 static func ritual_effect(ritual_id: String) -> String:
 	match ritual_id:
 		"minimap":
-			return "Show the land around you."
+			return "Reveal a map of the world."
 		"insight":
 			return "Gain deeper knowledge of those around you."
 		"bonfire":
 			return "Kindle a bonfire and heal your wounds."
 		"boundless":
-			return "Never tire for a while."
+			return "Gain unlimited stamina for a short amount of time."
 		"double_jump":
 			return "Jump again in mid-air."
 		"rift":
-			return "Tear open a way to a random place. This can be devastating."
+			return "Teleport to a random location. WARNING: this can be devastating."
 		"haste":
 			return "Run faster."
 		"deep_breath":
 			return "Hold your breath for a while."
-		"mark":
-			return "Mark this place."
 		"scrying_eye":
-			return "Send out an eye to watch another wizard."
+			return "Spy on another wizard."
 		"dowsing":
 			return "Show the way to the nearest page you have not read."
-		"recall":
-			return "Open a long-lasting portal back to your mark."
 	return ""
 
 
@@ -559,4 +558,4 @@ func _page_blank(_column: VBoxContainer) -> void:
 
 ## What a chant costs, or nothing when it costs no stamina (most do not): a Rift wears down the most stamina you can have.
 static func ritual_cost_line(ritual_id: String) -> String:
-	return "50 max stamina" if ritual_id == "rift" else ""
+	return "35 max stamina" if ritual_id == "rift" else ""

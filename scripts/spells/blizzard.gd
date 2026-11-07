@@ -274,13 +274,15 @@ func _draw() -> void:
 		fall += f - SNOW_TOP
 	fall /= maxf(float(_floors.size()), 1.0)
 	var gust := sin(_age * 0.35) * 16.0 + sin(_age * 1.3) * 5.0
-	for k in clampi(int(_width() * fall / 20.0), 30, 1600):
+	for k in clampi(int(_width() * fall / 30.0), 30, 1100):
 		var depth := 0.35 + 0.65 * float(k % 3) / 2.0
-		var drift := fmod(k * 37.0 + _age * (7.0 + 14.0 * depth), span)
+		var rx := fposmod(sin(k * 12.9898) * 43758.5453, 1.0)  # where each flake begins is scattered, so the snow is not laid out in rows and columns
+		var ry := fposmod(sin(k * 78.233 + 3.1) * 24634.6345, 1.0)
+		var drift := fmod(rx * span + _age * (7.0 + 14.0 * depth), span)
 		var fx := floorf(clampf(drift + sin(_age * (0.7 + depth) + k * 1.7) * (6.0 + 10.0 * depth) + gust * depth, 0.0, span))
 		var column := clampi(int(fx / STEP), 0, _floors.size() - 1)
 		var landing := _floors[column] - _pile[column]
-		var fy := floorf(fmod(_age * (38.0 + 80.0 * depth) + k * 23.0, landing - SNOW_TOP) + SNOW_TOP)
+		var fy := floorf(fmod(_age * (38.0 + 80.0 * depth) + ry * (landing - SNOW_TOP), landing - SNOW_TOP) + SNOW_TOP)
 		var size := 2.0 if depth < 0.7 else 4.0  # whole pixel blocks
 		var edge := smoothstep(0.0, 50.0, fx) * smoothstep(0.0, 50.0, span - fx)
 		var a := fade * grow * edge * clampf((fy - SNOW_TOP) / 14.0, 0.0, 1.0) * (0.5 + 0.5 * depth)

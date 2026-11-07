@@ -33,7 +33,7 @@ has Godot's `OfflineMultiplayerPeer`, this machine is peer 1 and the authority o
 no-op.
 
 **What is synced** (`Wizard.share`): `net_position` (a likeness glides to it, or snaps past `SNAP` px), velocity, facing, stamina,
-max stamina, Offering stamina, the cast colour and the casting pose every frame; death, fainting, the animation, the stroke being
+max stamina, the cast colour and the casting pose every frame; death, fainting, the animation, the stroke being
 drawn (`shown_stroke`, thinned to points 8 px apart), `marks`, visibility and modulate when they change. Hurt flashes, "Interrupted!"
 and chants are one-off rpcs (`_show_hurt`, `_show_interrupt`, `_show_chant`).
 

@@ -22,7 +22,8 @@ const MAX_STAMINA := 200.0  # what you start with, and the most you can ever hav
 const STAMINA_REGEN := 20.0   # per second
 const REGEN_DELAY := 1.0      # seconds after a spell (or a faint, or a blow) before regen starts; walking and jumping do not make it wait
 const SHIELD_RADIUS := 50.0
-const ADRENALINE_REGEN := 3.0   # how many times faster stamina comes back under Adrenaline
+const ADRENALINE_TAKEN := 0.6   # how much of a blow gets through under Adrenaline
+const ADRENALINE_DEALT := 1.5   # and how much harder the wizard's own blows land
 const ICE_GRIP := 650.0         # how fast a wizard on ice can change speed, in pixels a second each second
 const OBSIDIAN_SPEED := 0.75    # how fast the wizard walks in black glass
 const OBSIDIAN_SHOTS := 0.5     # and how much of a shot's damage gets through
@@ -111,7 +112,7 @@ var haste_time: float: # the Chant of Swift Feet: faster on foot while this last
 var air_jump_time: float: # the Blessing of Skystep: a jump in the air is allowed while this lasts
 	get: return _status.left(&"air_jump") if not ledger.is_settled("double_jump") else 1.0e9
 	set(seconds): _status.set_left(&"air_jump", seconds)
-var adrenaline_time: float: # Adrenaline: stamina comes back quicker and the wizard is hasted while this lasts
+var adrenaline_time: float: # Adrenaline: the wizard is hasted, takes less damage and deals more while this lasts
 	get: return _status.left(&"adrenaline")
 	set(seconds): _status.set_left(&"adrenaline", seconds)
 var obsidian_time: float: # Obsidian Armor: shots do half, lava does nothing, and the wizard is slower while this lasts
@@ -130,7 +131,6 @@ var feather_time: float: # Featherfall: the wizard falls as slowly as a feather 
 	get: return _status.left(&"feather")
 	set(seconds): _status.set_left(&"feather", seconds)
 var surf_dir := 1.0
-var temp_stamina := 0.0  # stamina from an Offering: spent once the usual stamina is gone, never comes back by itself, and may pass the most
 var veil := 0  # hits a Crimson Veil will still turn away
 var _veil_cool := 0.0  # a moment after one is turned away, in which a burn or a second blow is turned away with it
 var fainted := false  # knocked out by a Faint: down on the ground until the stamina comes back
@@ -356,7 +356,7 @@ func thaw() -> void:
 func spend(amount: float, makes_wait := true) -> bool:
 	if infinite_time > 0.0:
 		return true
-	if stamina + temp_stamina < amount:
+	if stamina < amount:
 		return false
 	drain(amount, makes_wait)
 	return true
@@ -367,19 +367,9 @@ func spend(amount: float, makes_wait := true) -> bool:
 func drain(amount: float, makes_wait := true) -> void:
 	if infinite_time > 0.0 or is_likeness():
 		return
-	var short := maxf(amount - stamina, 0.0)  # what the usual stamina could not cover is taken from the offering
 	stamina = maxf(stamina - amount, 0.0)
-	temp_stamina = maxf(temp_stamina - short, 0.0)
 	if makes_wait:
 		_since_spend = 0.0
-
-
-## An Offering: stamina on top of the bar that is used last and not given back.
-func gain_temp_stamina(amount: float) -> void:
-	if is_likeness():
-		return
-	temp_stamina += amount
-	FloatText.spawn(get_parent(), center() + Vector2(0, -24), "+%d" % roundi(amount), Color("#ff9aa8"), 1.0)
 
 
 func restore_stamina(amount: float) -> void:
@@ -424,6 +414,8 @@ func take_damage(amount: int, grace_hit := true, projectile := false) -> void:
 		return
 	if projectile and obsidian_time > 0.0:
 		amount = maxi(1, roundi(amount * OBSIDIAN_SHOTS))  # black glass takes half of what a shot would
+	if adrenaline_time > 0.0:
+		amount = maxi(1, roundi(amount * ADRENALINE_TAKEN))  # a racing heart feels less
 	amount = roundi(amount * Hex.multiplier(get_tree(), self))  # a hexed wizard takes half again as much
 	var had := maxf(max_stamina, 0.0)
 	max_stamina -= amount
@@ -562,7 +554,6 @@ func faint() -> void:
 		return
 	fainted = true
 	stamina = 0.0
-	temp_stamina = 0.0
 	_since_spend = 0.0
 	casting = false
 	_draw_time = 0.0
@@ -725,7 +716,7 @@ func _physics_process(delta: float) -> void:
 		stamina = max_stamina
 	_since_spend += delta
 	if _since_spend >= REGEN_DELAY and not _stepping:  # it comes back the moment the wizard stops moving their body
-		restore_stamina(STAMINA_REGEN * (ADRENALINE_REGEN if adrenaline_time > 0.0 else 1.0) * delta)
+		restore_stamina(STAMINA_REGEN * delta)
 	queue_redraw()
 	_shield.queue_redraw()
 
@@ -1114,7 +1105,7 @@ func is_likeness() -> bool:
 ## machine that drives it, many times a second. Things that change now and then are sent only when they change.
 func share() -> void:
 	var config := SceneReplicationConfig.new()
-	for property in ["net_position", "velocity", "facing", "stamina", "max_stamina", "temp_stamina", "cast_color", "casting"]:
+	for property in ["net_position", "velocity", "facing", "stamina", "max_stamina", "cast_color", "casting"]:
 		config.add_property(NodePath(".:" + property))
 		config.property_set_replication_mode(NodePath(".:" + property), SceneReplicationConfig.REPLICATION_MODE_ALWAYS)
 	for property in ["dead", "fainted", "shown_anim", "shown_stroke", "marks", "visible", "modulate", "look", "palette"]:

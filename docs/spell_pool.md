@@ -121,7 +121,7 @@ nothing is paid for a Faint that finds no one. There is no bleeding. Blood is mo
 | Spell | Shape | Pictures | Counter | Max cost |
 |---|---|---|---|---|
 | Offering | a cross in one stroke | gives up 20 of the most stamina for 30 **temporary** stamina on top of the bar (it may pass 200): spent after the usual stamina, and never comes back | it is only spent | 20 |
-| Burst | circle | 40 blood damage in a ring, throws away everyone and everything in it but the caster, and turns shots back | stay out of it | 25 |
+| ~~Burst~~ (removed 2026-11-07) | circle | 40 blood damage in a ring, throws away everyone and everything in it but the caster, and turns shots back | stay out of it | 25 |
 | Crimson Veil | vertical line | the next two times you would take damage, you take none | it is only two hits | 5 |
 | Adrenaline | tall zigzag | faster on foot and stamina three times as quick for 10 seconds | it ends | 15 |
 | Faint | spiral | all the target's current stamina goes and they drop (the death animation) until their stamina has recovered to 10; the maximum is kept | the target gets up by itself; it cannot walk, cast or chant meanwhile | 30 |

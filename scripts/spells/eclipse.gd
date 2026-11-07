@@ -1,13 +1,12 @@
 class_name Eclipse
 extends Node2D
 
-## Eclipse: darkness settles over the area you drew the crescent in. Anyone inside sees only what is close to them, so
-## enemies in it lose sight of you beyond a few steps. A flare lights its patch of the dark and cuts through.
+## Eclipse: the whole world goes dark, as long as an earthquake lasts. Everyone sees only what is close to them, so no one can pick out anyone
+## beyond a few steps. A flare lights its patch of the dark and cuts through.
 
-const LIFE := 10.0
+const LIFE := 6.0  # as long as an Earthquake
 const DEEPEN := 1.8  # seconds the dark takes to settle in full
 const SIGHT := 90.0  # how far you can see inside an eclipse
-const COLOR := Color(0.05, 0.0, 0.12)
 const VEIL_LIGHTS := 6  # the most lit patches the veil cuts out of the dark at once
 const VEIL_SHADER := """
 shader_type canvas_item;
@@ -26,62 +25,31 @@ void fragment() {
 }
 """
 
-var radius := 110.0  # set from how big the crescent was drawn
 var _age := 0.0
-var _veil: ColorRect  # the darkness over the screen, while the one watching is in the eclipse
+var _veil: ColorRect  # the darkness over the screen of the one watching
 var _veil_strength := 0.0
 
 
 func _ready() -> void:
-	radius = clampf(radius, 70.0, 200.0)
 	add_to_group("eclipses")
 	add_to_group("lasting")
-	z_index = 8
-	# Dark wisps turning slowly inside it.
-	var wisps := CPUParticles2D.new()
-	wisps.amount = 18
-	wisps.lifetime = 3.0
-	wisps.emission_shape = CPUParticles2D.EMISSION_SHAPE_SPHERE
-	wisps.emission_sphere_radius = radius * 0.8
-	wisps.direction = Vector2.UP
-	wisps.spread = 180.0
-	wisps.initial_velocity_min = 4.0
-	wisps.initial_velocity_max = 14.0
-	wisps.gravity = Vector2.ZERO
-	wisps.tangential_accel_min = 10.0
-	wisps.tangential_accel_max = 30.0
-	wisps.texture = Fx.tex("smoke_04")
-	wisps.scale_amount_min = radius * 0.5 / Fx.TEX_SIZE
-	wisps.scale_amount_max = radius * 0.9 / Fx.TEX_SIZE
-	var ramp := Gradient.new()
-	ramp.colors = PackedColorArray([Color(0.1, 0.0, 0.2, 0.0), Color(0.1, 0.0, 0.2, 0.5), Color(0.1, 0.0, 0.2, 0.0)])
-	ramp.offsets = PackedFloat32Array([0.0, 0.4, 1.0])
-	wisps.color_ramp = ramp
-	add_child(wisps)
-	wisps.emitting = true
 	_make_veil()
 	Sfx.play("gravity", global_position, -8.0)
 
 
 func _physics_process(delta: float) -> void:
 	_age += delta
-	queue_redraw()
 	_update_veil(delta)
 	if _age >= LIFE:
 		queue_free()
 
 
-## True when a point is in the dark.
-func covers(point: Vector2) -> bool:
-	return _age > 0.3 and point.distance_to(global_position) <= radius
+## The whole world is in the dark while an eclipse lasts, wherever the spell was drawn.
+func covers(_point: Vector2) -> bool:
+	return _age > 0.3
 
 
-func _draw() -> void:
-	var grow := clampf(_age / DEEPEN, 0.0, 1.0) * clampf((LIFE - _age) / 1.0, 0.0, 1.0)
-	draw_texture_rect(Fx.tex("circle_05"), Rect2(-Vector2.ONE * radius * 1.2, Vector2.ONE * radius * 2.4), false, Color(COLOR.r, COLOR.g, COLOR.b, 0.9 * grow))
-
-
-## The world goes dark around whoever is watching from inside it, leaving a dim ring of sight about them.
+## The world goes dark round whoever is watching, leaving a dim ring of sight about them.
 func _make_veil() -> void:
 	var layer := CanvasLayer.new()
 	layer.layer = 2  # over the world, under the interface
@@ -97,10 +65,10 @@ func _make_veil() -> void:
 	_veil.visible = false
 
 
-## Fades the veil in while the watched wizard is inside, out when it is not, and keeps the ring on them and the holes on the lit patches.
+## Fades the veil in as the dark settles and out as it lifts, and keeps the ring on the watched wizard and the holes on the lit patches.
 func _update_veil(delta: float) -> void:
 	var watched := get_tree().get_first_node_in_group("player") as Wizard
-	var inside := watched != null and not watched.dead and covers(watched.global_position)
+	var inside := watched != null and not watched.dead
 	var fade := clampf(_age / DEEPEN, 0.0, 1.0) * clampf((LIFE - _age) / 1.0, 0.0, 1.0)
 	_veil_strength = move_toward(_veil_strength, fade if inside else 0.0, delta * 3.0)
 	_veil.visible = _veil_strength > 0.0

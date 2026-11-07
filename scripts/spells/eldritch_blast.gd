@@ -37,7 +37,7 @@ func _ready() -> void:
 		Fx.impact(get_parent(), tip, COLOR, 36.0)
 	else:
 		Fx.burst(get_parent(), tip, COLOR, 6, 80.0, 0.3, true)
-	Sfx.play("gravity", from, -4.0)
+	Sfx.play("eldritch", from, -2.0)
 	get_tree().create_timer(0.5).timeout.connect(queue_free)
 
 

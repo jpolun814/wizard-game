@@ -37,7 +37,7 @@ func _ready() -> void:
 	dummy.global_position = _feet + Vector2(70.0, 0.0)
 	_player.facing = 1.0
 	_cast("Scythe", "positional", from, 0.0, {})
-	await _shots("scythe", [0.05, 0.1, 0.16, 0.24])
+	await _shots("scythe", [0.04, 0.08, 0.13, 0.19])
 	var wall_line := PackedVector2Array([_feet + Vector2(120.0, 0.0), _feet + Vector2(120.0, -80.0), _feet + Vector2(330.0, -80.0)])
 	_cast("Firewall", "positional", wall_line[0], 0.0, {"line": wall_line})
 	await _shots("firewall", [0.4, 0.9, 1.5])

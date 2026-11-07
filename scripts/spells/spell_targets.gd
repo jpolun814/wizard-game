@@ -14,11 +14,27 @@ static func affects(body: Node) -> bool:
 	return body.is_in_group("mobs") and not body.is_dead()
 
 
+## The wizard whose blow this is: the wizard themselves, or the one whose spell (it knows its caster) did it. Nothing for an enemy's or the world's.
+static func striker_of(by: Node) -> Wizard:
+	if by == null:
+		return null
+	if by is Wizard:
+		return by
+	for property in ["caster_node", "caster"]:
+		var owner: Variant = by.get(property)
+		if owner is Wizard:
+			return owner
+	return null
+
+
 ## Hurts the body. Enemies take school damage (weak, resisted); a wizard, whoever plays it, takes it plain. A shot's hurt
 ## (shot true) is stopped by a wizard's Barrier, as every shot is.
 static func hurt(body: Node, amount: int, school: String, shot := false, lava := false, by: Node = null) -> void:
 	if not affects(body):
 		return
+	var striker := striker_of(by)
+	if striker != null and striker.adrenaline_time > 0.0:
+		amount = roundi(amount * Wizard.ADRENALINE_DEALT)  # blood racing in the one who struck
 	if lava and body.has_method("lava_proof") and body.lava_proof():
 		return  # black glass: the lava runs off it
 	if body.is_in_group("wizards"):

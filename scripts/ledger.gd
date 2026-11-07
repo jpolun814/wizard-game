@@ -39,7 +39,7 @@ func knows_spell(spell: String) -> bool:
 
 ## A chant, by its id.
 func knows_chant(ritual_id: String) -> bool:
-	return knows("chant:" + ("mark" if ritual_id == "recall" else ritual_id))
+	return knows("chant:" + ritual_id)
 
 
 ## A chant of the LASTING kind has been said: its gift stays from now on.

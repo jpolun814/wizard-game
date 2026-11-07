@@ -31,12 +31,8 @@ const RITUALS := {
 		"text": "celeriter curre"},
 	"deep_breath": {"kind": "ritual", "name": "Blessing of the Deep Breath",
 		"text": "sub aqua spiro"},
-	"mark": {"kind": "ritual", "name": "Rite of the Cairn",
-		"text": "locum signo"},
 	"dowsing": {"kind": "ritual", "name": "Chant of Dowsing",
 		"text": "paginam quaero"},
-	"recall": {"kind": "ritual", "name": "Rite of Return",
-		"text": "locum peto"},
 	"scrying_eye": {"kind": "toggle", "module": "scrying_eye", "name": "Chant of the Scrying Eye",
 		"text": "oculum mitto"},
 }

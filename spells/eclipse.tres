@@ -6,6 +6,6 @@
 script = ExtResource("1_63o8v")
 spell_name = "Eclipse"
 school = "Shadow"
-gesture = "crescent"
-cost = 22.0
-effect = "Plunge the world around you into darkness."
+gesture = "eclipse"
+cost = 60.0
+effect = "Plunge the whole world into darkness."

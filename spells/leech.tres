@@ -9,4 +9,4 @@ school = "Blood"
 gesture = "tsunami"
 targeting = "directional"
 cost = 24.0
-effect = "Leech someone's strength."
+effect = "Tether yourself to someone, and they pay half the cost of every spell you cast."

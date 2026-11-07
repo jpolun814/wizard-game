@@ -9,6 +9,6 @@ school = "Water"
 gesture = "flick"
 targeting = "directional"
 cost = 14.0
-effect = "Hurl a chilling bolt of ice."
+effect = "Shoot a chilling bolt of ice."
 damage = "7 dmg"
 effect_path = "res://scripts/spells/projectile.gd"

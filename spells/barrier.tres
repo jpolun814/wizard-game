@@ -8,4 +8,4 @@ spell_name = "Barrier"
 school = "Air"
 gesture = "circle"
 cost = 35.0
-effect = "Raise a shell of air around yourself."
+effect = "Protect yourself from projectiles by blowing them away."

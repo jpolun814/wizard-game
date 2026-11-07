@@ -8,4 +8,4 @@ spell_name = "Silence"
 school = "Shadow"
 gesture = "silence"
 cost = 40.0
-effect = "Block magic from being cast."
+effect = "Block magic from being cast in the area."

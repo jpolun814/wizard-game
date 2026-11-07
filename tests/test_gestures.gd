@@ -11,7 +11,7 @@ extends SceneTree
 const GROUND_Y := 0.0  # in this test the ground is the line y = 0; everything below it is solid
 ## The gestures that mean the same drawn backwards or mirrored.
 const MIRRORED := ["circle", "flick", "pit", "icicles", "spiral", "cone", "smoke", "flare", "wave", "geyser",
-	"vine", "tsunami", "tornado", "bramble", "jaws", "pads", "tree", "eight", "crescent", "saturn", "flame_wall", "pentagram", "lungs", "silence", "question", "arrow", "earthquake"]
+	"vine", "tsunami", "tornado", "bramble", "jaws", "pads", "tree", "eight", "crescent", "saturn", "eclipse", "flame_wall", "pentagram", "lungs", "silence", "question", "arrow", "earthquake"]
 
 var _caster: Caster
 var _cast := ""

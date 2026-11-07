@@ -9,10 +9,11 @@ class_name GestureTemplates
 const ALIASES := {"line": "flick", "zig_tall": "zigzag",
 	"circle_cw": "circle", "circle_ccw": "circle", "flame_cw": "flare", "flame_ccw": "flare",
 	"eight_top_cw": "eight", "eight_top_ccw": "eight", "eight_mid_cw": "eight", "eight_mid_ccw": "eight",
-	"vine_cw": "vine", "vine_ccw": "vine",
+	"vine_cw": "vine", "vine_ccw": "vine", "vine_cw_r": "vine", "vine_ccw_r": "vine",
 	"star_0": "pentagram", "star_1": "pentagram", "star_2": "pentagram", "star_3": "pentagram", "star_4": "pentagram",
 	"star_0r": "pentagram", "star_1r": "pentagram", "star_2r": "pentagram", "star_3r": "pentagram", "star_4r": "pentagram",
 	"crescent_cw": "crescent", "crescent_ccw": "crescent", "saturn_a": "saturn", "saturn_b": "saturn", "saturn_c": "saturn", "saturn_d": "saturn",
+	"eclipse_a": "eclipse", "eclipse_b": "eclipse", "eclipse_c": "eclipse", "eclipse_d": "eclipse",
 	"lungs_a": "lungs", "lungs_b": "lungs", "lungs_c": "lungs", "lungs_d": "lungs", "lungs_e": "lungs", "lungs_f": "lungs",
 	"silence_cw": "silence", "silence_ccw": "silence", "question_r": "question", "earthquake_r": "earthquake", "arrow_r2": "arrow", "arrow_l": "arrow", "arrow_l2": "arrow"}
 
@@ -37,6 +38,8 @@ static func recognizer_templates() -> Dictionary:
 		"geyser": _arrow_up(),  # the jet going up, drawn with the water button
 		"vine_cw": _leaf_and_stem(false),
 		"vine_ccw": _leaf_and_stem(true),
+		"vine_cw_r": _leaf_and_stem(false, true),
+		"vine_ccw_r": _leaf_and_stem(true, true),
 		"star_0": _pentagram(0, false),
 		"star_1": _pentagram(1, false),
 		"star_2": _pentagram(2, false),
@@ -52,6 +55,10 @@ static func recognizer_templates() -> Dictionary:
 		"saturn_b": _saturn(true, false),
 		"saturn_c": _saturn(false, true),
 		"saturn_d": _saturn(true, true),
+		"eclipse_a": _eclipse(false, false),
+		"eclipse_b": _eclipse(true, false),
+		"eclipse_c": _eclipse(false, true),
+		"eclipse_d": _eclipse(true, true),
 		"crescent_ccw": _crescent(true),
 		"updraft": _arrow_up(),
 		"rocket": _arrow_up(),  # the flame going up, drawn with the fire button
@@ -139,6 +146,8 @@ static func preview_points(gesture: String) -> PackedVector2Array:
 			return _crescent(false)
 		"saturn":
 			return _saturn(false, false)
+		"eclipse":
+			return _eclipse(false, false)
 		"flame_wall":
 			return _up_and_out()
 		"pentagram":
@@ -438,6 +447,23 @@ static func _saturn(flipped: bool, mirrored: bool) -> PackedVector2Array:
 	return pts
 
 
+## The moon over the sun, in one stroke: the outline of a crescent, drawn from its top tip round the outside to the bottom tip and back up the inside.
+## flipped begins at the bottom tip; mirrored bows to the right instead of the left.
+static func _eclipse(flipped: bool, mirrored: bool) -> PackedVector2Array:
+	var pts := PackedVector2Array()
+	for i in range(21):
+		var a := deg_to_rad(-90.0 - 180.0 * i / 20.0)
+		pts.append(Vector2(cos(a), sin(a)) * 50.0)
+	var centre := Vector2(52.5, 0.0)  # the inner edge is a wider circle through the same two tips, so the crescent has points
+	var from := (Vector2(0.0, 50.0) - centre).angle()
+	var to := (Vector2(0.0, -50.0) - centre).angle() + TAU
+	for i in range(1, 21):
+		pts.append(centre + Vector2.from_angle(lerpf(from, to, i / 20.0)) * 72.5)
+	for k in pts.size():
+		pts[k] = Vector2(-pts[k].x if mirrored else pts[k].x, -pts[k].y if flipped else pts[k].y)
+	return pts
+
+
 ## A crescent: an open curve like a C, about two thirds of a circle.
 static func _crescent(ccw: bool) -> PackedVector2Array:
 	var pts := PackedVector2Array()
@@ -466,19 +492,22 @@ static func _sine(width: float, height: float, waves: float) -> PackedVector2Arr
 	return pts
 
 
-## A leaf and the vine growing from it: an almond standing on its point, drawn from the bottom point up one side, over the
-## top and back down the other, then a straight line up from that point through the leaf and on above it.
-static func _leaf_and_stem(ccw: bool) -> PackedVector2Array:
+## A leaf and the vine growing from it: an almond lying on its side, drawn from its left point along the top to its right point and back along the
+## bottom, then a straight line up from the left point. ccw draws the bottom first; mirrored begins at the right point instead.
+static func _leaf_and_stem(ccw: bool, mirrored := false) -> PackedVector2Array:
 	var pts := PackedVector2Array()
 	var side := -1.0 if ccw else 1.0
 	for i in 21:
 		var t := float(i) / 20.0
-		pts.append(Vector2(side * 20.0 * sin(PI * t), 50.0 - 100.0 * t))
+		pts.append(Vector2(-50.0 + 100.0 * t, -side * 20.0 * sin(PI * t)))
 	for i in range(1, 21):
 		var t := 1.0 - float(i) / 20.0
-		pts.append(Vector2(-side * 20.0 * sin(PI * t), 50.0 - 100.0 * t))
+		pts.append(Vector2(-50.0 + 100.0 * t, side * 20.0 * sin(PI * t)))
 	for i in range(1, 17):
-		pts.append(Vector2(0.0, 50.0 - 150.0 * i / 16.0))
+		pts.append(Vector2(-50.0, -150.0 * i / 16.0))
+	if mirrored:
+		for k in pts.size():
+			pts[k] = Vector2(-pts[k].x, pts[k].y)
 	return pts
 
 

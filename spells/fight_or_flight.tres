@@ -7,5 +7,5 @@ script = ExtResource("1_fof")
 spell_name = "Fight or Flight"
 school = "Blood"
 gesture = "question"
-cost = 30.0
-effect = "Stir the blood of someone to fight or to flee."
+cost = 20.0
+effect = "Trigger the target's fight or flight response."

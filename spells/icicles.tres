@@ -9,6 +9,6 @@ school = "Water"
 gesture = "icicles"
 targeting = "shape"
 cost = 16.0
-effect = "Grow icicles down from the ceiling."
+effect = "Icicles grow down from the ceiling."
 damage = "12 dmg/sec"
 size_from = 8

@@ -6,7 +6,7 @@
 script = ExtResource("1_spell")
 spell_name = "Insect Plague"
 school = "Flora"
-gesture = "eight"
+gesture = "lungs"
 cost = 28.0
 effect = "Summon a swarm of stinging insects."
 damage = "2 dmg/sec"

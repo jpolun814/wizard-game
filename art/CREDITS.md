@@ -175,4 +175,4 @@ Drawn pixel by pixel by `tools/make_shot_art.py`. No outside source and nothing 
 
 `art/mobs/sentinel/` (the sentinel's eye) is cut from [Floating Eyeball Enemy](https://blueapollo.itch.io/floating-eyeball-enemy) by blueapollo (CC0): its first eight frames are the watching loop and the third row is the flash of a shot. The sheet is not kept in the repo.
 
-`art/fx/scythe.png` (the Scythe spell's blade) is the first frame of [Swinging Scythe Trap](https://opengameart.org/content/swinging-scythe-trap) by Sevarihk, licensed CC-BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Cropped from the original; not otherwise changed.
+`art/fx/scythe.png` (the Scythe spell's blade) is pixel art drawn for the game (`tools/make_scythe.py`).

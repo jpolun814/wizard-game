@@ -8,4 +8,4 @@ spell_name = "Sneak"
 school = "Shadow"
 gesture = "wave"
 cost = 30.0
-effect = "Fade from sight for a while."
+effect = "Become invisible until your next spell is cast."

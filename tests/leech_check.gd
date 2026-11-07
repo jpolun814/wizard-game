@@ -85,7 +85,6 @@ func _leech() -> void:
 	_verdict(_player.max_stamina < max_before, "and it costs maximum stamina (%.0f)" % (max_before - _player.max_stamina))
 	# The split.
 	_player.stamina = _player.max_stamina
-	_player.temp_stamina = 0.0
 	_rival.stamina = _rival.max_stamina
 	var cost: float = SpellData.SPELLS["Ignite"].cost_for({"length": 90.0, "accuracy": 0.9})
 	var mine := _player.stamina

@@ -55,9 +55,8 @@ func _initialize() -> void:
 	ledgers[0].learn(page)
 	_check(ledgers[0].knows(page) and not ledgers[1].knows(page), "learning a page taught it to someone else")
 	_check(ledgers[0].knows_spell(page), "knows_spell disagrees with knows")
-	ledgers[0].learn("chant:mark")
-	_check(ledgers[0].knows_chant("recall") and ledgers[0].knows_chant("mark"), "the Return does not share the Mark's page")
-	_check(not ledgers[1].knows_chant("recall"), "a wizard who lacks the Mark casts the Return")
+	ledgers[0].learn("chant:dowsing")
+	_check(ledgers[0].knows_chant("dowsing") and not ledgers[1].knows_chant("dowsing"), "a chant learned by one wizard is known by another")
 	ledgers[0].settle("haste")
 	ledgers[0].settle("rift")
 	_check(ledgers[0].is_settled("haste") and not ledgers[0].is_settled("rift") and not ledgers[1].is_settled("haste"), "a chant that lasts is not settled for one wizard only, or a chant that does not last is")
@@ -65,7 +64,7 @@ func _initialize() -> void:
 	_check(ledgers[0].count() == Pages.every().size(), "learn_all does not give every page")
 	# The waiting room: every page, with nothing to find.
 	var room := Ledger.complete()
-	_check(room.knows("Glowcap") and room.knows_chant("rift") and room.knows_chant("recall"), "the waiting room lacks a page")
+	_check(room.knows("Glowcap") and room.knows_chant("rift") and room.knows_chant("dowsing"), "the waiting room lacks a page")
 	_check(room.count() == Pages.every().size(), "the waiting room's count is not every page")
 	# A world lays only so many pages: more in a big world, fewer where there is little room, never fewer than the least, and a kind of gate
 	# the world has always keeps a page that opens it.

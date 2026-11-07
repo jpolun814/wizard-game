@@ -9,4 +9,4 @@ school = "Blood"
 gesture = "latin_cross"
 targeting = "positional"
 cost = 37.0
-effect = "Raise a skeleton from the dead."
+effect = "Summon an undead servant."

@@ -48,8 +48,8 @@ It's the owner's favourite part. It plays like a skilled human:
 - **Art:** LuizMelo Evil Wizard 2 at 2x. It channels shadow while drawing and bursts when a spell fires.
 
 - **Every spell has a use** (`WizardBrain.USES` names it; `tests/brain_spells_check.tscn` gives each spell, alone, to a brain and sees it cast it):
-  - *attack* spells are scored in `_attack` and drawn in `_attack_stroke` (the traps, Stalagmite, Sinkhole, Hex, Vacuum, Faint, Silence, Burst and the rest);
-  - *repel* spells (Push, Geyser, Burst, Tide Surf, Spore Puff, Fire Breath) are chosen when a rival is on top of it (`_choose_repel`);
+  - *attack* spells are scored in `_attack` and drawn in `_attack_stroke` (the traps, Stalagmite, Sinkhole, Hex, Vacuum, Faint, Silence and the rest);
+  - *repel* spells (Push, Geyser, Tide Surf, Spore Puff, Fire Breath) are chosen when a rival is on top of it (`_choose_repel`);
   - *defence* spells (Barrier, Gust, Shadow Step) answer an incoming shot (`_choose_defence`);
   - *tend* spells are cast for its own needs by `_tend`: light in the dark (Flare, Glowcap, Moonbeam), strength (Offering, Adrenaline), hiding when badly hurt (Sneak), and something between it and a rival who keeps shooting (Stone Wall, Smoke Screen, Decoy, Eclipse, Crimson Veil, Obsidian Armor); Hunter's Mark lets it find a wizard who has faded from sight;
   - *ways up* (`LIFTS`: Geyser, Updraft, Push, Liana, Great Oak, Tornado) raise it over a wall (`WAYS["wall"]`) or up to a rival standing over its head (`_chase`); Frost Bridge and Lily Pads cross water (`cross_check`).

@@ -8,4 +8,4 @@ spell_name = "Glowcap"
 school = "Flora"
 gesture = "circle"
 cost = 14.0
-effect = "Grow a glowing mushroom to light the way for a while."
+effect = "A glowing mushroom grows from the ground."

@@ -25,14 +25,10 @@ func _ready() -> void:
 	var tree := get_tree()
 	var feet: Vector2 = world.player.global_position
 	var eclipse := Eclipse.new()
-	eclipse.position = feet + Vector2(600.0, 0.0)  # cast away from the watcher
+	eclipse.position = feet + Vector2(600.0, 0.0)  # cast far from the watcher: the whole world goes dark all the same
 	world.add_child(eclipse)
-	await _wait(1.0)
-	_verdict(_veil_strength(eclipse) == 0.0, "no darkness over the screen of one watching from outside it")
-	_picture(out, "outside")
-	eclipse.global_position = feet
-	await _wait(1.0)
-	_verdict(_veil_strength(eclipse) > 0.9, "the screen goes dark for one watching from inside it (%.2f)" % _veil_strength(eclipse))
+	await _wait(2.5)
+	_verdict(_veil_strength(eclipse) > 0.9, "the screen goes dark for one watching from far off (%.2f)" % _veil_strength(eclipse))
 	_verdict(SpellTargets.sight_blocked(tree, feet, feet + Vector2(300.0, 0.0)), "someone inside cannot see far")
 	_verdict(not SpellTargets.sight_blocked(tree, feet, feet + Vector2(40.0, 0.0)), "someone inside sees what is close")
 	_picture(out, "inside")
@@ -42,7 +38,7 @@ func _ready() -> void:
 	await _wait(0.5)
 	_picture(out, "flare")
 	flare.queue_free()
-	await _wait(11.0)  # the eclipse runs out
+	await _wait(6.0)  # the eclipse runs out
 	_verdict(not is_instance_valid(eclipse), "the eclipse ends")
 	print("eclipse darkens the screen" if _failures == 0 else "%d FAILED" % _failures)
 	tree.quit(1 if _failures > 0 else 0)

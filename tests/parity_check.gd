@@ -1,6 +1,6 @@
 extends Node
 
-## A wizard is a wizard: Push, Geyser, Burst, Tornado, Tide Surf and a damaging shot do the same to the one a person plays and to one the brain plays.
+## A wizard is a wizard: Push, Geyser, Tornado, Tide Surf and a damaging shot do the same to the one a person plays and to one the brain plays.
 ## Each spell is cast at the same spot twice, at each of them in turn, and how far each was thrown and how much each lost are compared.
 ##
 ##     godot --headless --path . --fixed-fps 60 tests/parity_check.tscn
@@ -54,7 +54,7 @@ func _ready() -> void:
 	caster.brain = QuietBrain.new(caster)
 	var spot: Vector2 = person.global_position
 	world.set_process(false)  # or it carries the person back from the place it is put away to the place it began
-	for spell in ["Push", "Geyser", "Burst", "Tornado", "Tide Surf", "Ignite"]:
+	for spell in ["Push", "Geyser", "Tornado", "Tide Surf", "Ignite"]:
 		var seen := {}
 		for body: Wizard in [person, brain_wizard, person, brain_wizard]:  # the first pair settles the world, the second pair is compared
 			await _set_down(body, [person, brain_wizard, caster], spot, caster)
@@ -94,8 +94,6 @@ func _cast_at(world: World, spell: String, target: Wizard, caster: Wizard) -> Di
 			var geyser := Geyser.new()
 			geyser.position = start
 			world.add_child(geyser)
-		"Burst":
-			world.spawn_spell(spell, "positional", middle + Vector2(-50.0, 0.0), 0.0, {}, caster)
 		"Tornado":
 			var tornado := Tornado.new()
 			tornado.position = start

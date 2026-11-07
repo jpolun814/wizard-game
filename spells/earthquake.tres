@@ -8,4 +8,4 @@ spell_name = "Earthquake"
 school = "Earth"
 gesture = "earthquake"
 cost = 60.0
-effect = "Shake the world for a little while."
+effect = "Shake the earth."

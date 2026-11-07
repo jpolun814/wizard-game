@@ -42,7 +42,21 @@ about the length of the old lines ("Hurl a bolt of fire.", "Ignite a column of f
 where it ticks ("14 dmg/sec") or a flat figure where it strikes once ("30 dmg"), nothing when it deals none; (3) **a cost line** ("30 stamina", and "maximum stamina"
 for a Necromancy spell, which is paid in maximum stamina; a drawn size gives a range). The two stat lines are written by the game from the spell's data
 (`Spell.damage_line`, `Spell.cost_line`; the owner settled the wording: "30 stamina" and "30 max stamina", with no durations for now). Chant pages: the short description, and the cost
-(none, except a Rift's maximum stamina).
+(none, except a Rift's maximum stamina). **The two stat lines always sit at the foot of the page, just above the page number, damage first and cost last** (`Spellbook._foot`),
+so a reader always knows where to look for them, whatever the length of the description above.
+
+**A line does not have to begin with a verb (owner, 2026-11-07).** It can, but the test is whether a person would say it. A thing that happens in the world is
+often better said as a plain statement: "A jet of scalding water shoots up from the ground.", "Icicles grow down from the ceiling.", "Thorny brambles sprout from the
+ground.", "A glowing mushroom grows from the ground.", "A stream of rising air." Use a command ("Shake the earth.", "Cover your body in obsidian.", "Summon an undead
+servant.") where the reader does the thing. Do not force a verb on a line that reads better without one, and do not reach for a verb that does not fit the noun
+("Raise a column of rising air" says "raise" twice and makes no sense of a stream of air). Interface lines (prompts, buttons) stay in the imperative.
+
+**"Into" for what something becomes, "to" for a direction (owner, 2026-11-07).** "Turn the ground to sticky mud" is wrong to the ear and "Turn the ground into sticky mud"
+is right. Both are "turn" followed by a result, but they are two different constructions. *Into* is the preposition of transformation: it takes any phrase that names what the
+thing becomes, however long ("into sticky mud", "into a block of ice"). *To* after "turn" survives only in a few fixed phrases with a bare noun and no adjective ("turn to
+stone", "turn to dust", "turn to ash"); everywhere else it means a direction or a recipient ("turn to the left", "turn to face"). Put an adjective in the phrase ("sticky mud")
+and the fixed phrase no longer applies, the reader takes "to" as a direction, and the sentence snags. So: when a line says what a thing becomes, write "into" (or "become");
+keep "to" for those bare-noun idioms and for real directions.
 
 **Explicit means the figures, not an explanation. Do not narrate the spell.** The first redo (2026-11-07) wrote every page as a paragraph of mechanics ("the foot of it
 flickers for a second, then the whole wall catches and burns for 4 seconds", "14 damage ... again every half second it stays in them") and the owner said it was "way
@@ -138,11 +152,10 @@ This is the rule for all on-screen text, not just spellbook pages. Apply it befo
 
 ### The seven tests (apply all of them to every line)
 
-**Test 1: Is it said to the reader, in the imperative?**
-Every line starts with a verb addressed to the reader: "Hurl a bolt of fire.", "Kindle a bonfire and heal
-your wounds.", "Press Tab to open the spellbook." Lines that describe the system fail, even when they are
-grammatical: "Tab opens the spellbook." "Fire does 12 damage." "Speed is increased." A reader is a person
-doing something, not an observer of a machine.
+**Test 1: Is it said to the reader, or about the world, and never about the machine?**
+A line is either addressed to the reader ("Shoot a chilling bolt of ice.", "Kindle a bonfire and heal your wounds.", "Press Tab to open the spellbook.") or a plain
+statement of what happens in the world ("Icicles grow down from the ceiling."). A verb first is common but not required (see the start of this section). What fails is a line that
+describes the system: "Tab opens the spellbook." "Fire does 12 damage." "Speed is increased." A reader is a person doing something, or watching magic, not an observer of a machine.
 
 **Test 2: Does it name the thing, rather than its effect on other things?**
 Say what the spell *is*, or what it brings about. Do not say what it does to whatever it touches.
@@ -165,7 +178,7 @@ Meta information is anything about the game rather than the world: how to use a 
 counters it, what it combines with, how it interacts with the stamina bar, the cost, the maximum, the
 mechanics. Fails: "to draw attacks", "in the direction you draw", "costs no stamina", "lowers your maximum",
 "spent last", "walk slower", "the caster is spared" (state it as the spell's own effect instead, or leave it).
-Passes: "Burst a ring of blood outward, throwing back everything near you." A wizard in the world would know
+Passes: "Wrap yourself in a veil of blood that negates the next few attacks." A wizard in the world would know
 that from the spell itself.
 
 **Test 5: Is it written for a world where the spell is knowledge, not a weapon?**
@@ -188,19 +201,17 @@ unconscious", not "Knock whoever is under it unconscious" (the reader cannot tel
 
 ### Vocabulary that works
 
-- Use **conjure** for a summoned thing ("Conjure a shadow of yourself.").
+- Use **conjure** for a summoned thing ("Conjure a shadow of yourself."), and **summon** for a being or a star that is called ("Summon a dying star.", "Summon an undead servant.").
 - Use **kindle** for fire ("Kindle a bonfire.").
-- Use **burst** for a blast ("Burst a ring of blood outward.").
 - Use **freeze** for ice ("Freeze the surface of a body of water.").
 - Use **sprout**, **grow**, **raise**, **summon** for things that come up out of the world.
 - Use **negate** rather than **catch**, **absorb** or **block** when a spell stops harm ("Wrap yourself in a veil
-  of blood that negates the next few blows.").
+  of blood that negates the next few attacks.").
 - Use **a little while** or **for a while** instead of a number.
 - Use **the target** or **anyone** instead of **it**, **whoever** or **them** when the referent is unclear.
 
 ### The owner's standing corrections (each one is a rule)
 
-- "Burst" lines: "everything near you", not "everything near". The reader needs to know whose surroundings.
 - Decoy: "Conjure a shadow of yourself." Not "to draw attacks", which explains why and how to use it.
 - Faint: "Knock the target unconscious." Not "Draw the strength out of whoever is under it".
 - Frost Bridge: "Freeze the surface of a body of water." Not "Freeze the water into a bridge of ice".
@@ -208,11 +219,15 @@ unconscious", not "Knock whoever is under it unconscious" (the reader cannot tel
 - Gust: "Blow a gust of wind." Not "in the direction you draw".
 - Hex: "Curse someone with a dark star: they take extra damage and cannot hide from you." The owner suggested this.
 - Ice Prison: "Freeze things in a block of solid ice." Not "Lock anything inside the circle".
-- Crimson Veil: "negates", not "catches".
+- Crimson Veil: "negates", not "catches"; "attacks", not "blows".
+- Frostbolt: "Shoot", not "Hurl". Flare: "Light a small flame to light your way." Barrier: "Protect yourself from projectiles by blowing them away." Earthquake: "Shake the earth."
+  Moonbeam: no "that lingers for a while". Silence: "Block magic from being cast in the area." Sneak: "Become invisible until your next spell is cast." Adrenaline: it makes you
+  faster, hurt less and hit harder, and the line says so. Fight or Flight: "Trigger the target's fight or flight response." Raise Dead: "Summon an undead servant."
+- Chants: Rite of the Land "Reveal a map of the world."; Vires Fluant "Gain unlimited stamina for a short amount of time."; Locum Muta "Teleport to a random location. WARNING: this can be
+  devastating." (the owner wants the warning back); Oculum Mitto "Spy on another wizard."
 - Black Hole (formerly Abyss): name it Black Hole, and describe it as a black hole, not as a "knot of darkness".
-- Eclipse: the owner's described effect (the world goes dark around the player, with a dim ring) is a mechanic
-  (built: `Eclipse` darkens the watcher's screen), not a line to write yet. Do not describe the mechanic on the page.
-- Rituals: "Tear open a way to a random place. This can be devastating." (the owner dropped the "Warning:" label). "Gain deeper knowledge of those around you."
+- Eclipse: the whole world goes dark (for as long as an Earthquake lasts, at the cost of one), so the line says so: "Plunge the whole world into darkness." Not "around you".
+- Rituals: "Gain deeper knowledge of those around you."
   "Never tire for a while." "Jump again in mid-air for a while." "Hold your breath for a while."
   "Open a long-lasting portal back to your mark." "Mark this place." "Show the land around you."
 - Bonfire: "Kindle a bonfire and heal your wounds." (confirmed by the owner). ("Wounds" is the
@@ -406,7 +421,7 @@ GODOT="/c/Users/Jordan Polun/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.
 "$GODOT" --headless --fixed-fps 60 --path . tests/castle_sinkhole_fall_check.tscn  # a wizard dropped into a castle pit sinks into it and stays, or falls through to the floor below
 "$GODOT" --path . tests/castle_sinkhole_look.tscn -- out=DIR  # pictures of a Sinkhole dug in every kind of castle floor (needs a window)
 "$GODOT" --headless --fixed-fps 60 --path . tests/biome_jump_check.tscn  # the F1 panel goes to a world of any biome, whatever the seed deals
-"$GODOT" --headless --fixed-fps 60 --path . tests/parity_check.tscn  # Push, Geyser, Burst, Tornado, Tide Surf and a shot do the same to a person's wizard and the brain's
+"$GODOT" --headless --fixed-fps 60 --path . tests/parity_check.tscn  # Push, Geyser, Tornado, Tide Surf and a shot do the same to a person's wizard and the brain's
 "$GODOT" --headless --fixed-fps 60 --path . tests/brain_spells_check.tscn  # the brain knows every spell: each is given alone to an AI wizard in the place it wants it, and cast (add `-- only=Hex,Sneak` for some)
 "$GODOT" --path . tests/eclipse_check.tscn  # an Eclipse darkens the screen of the one inside it (add `-- out=DIR` for pictures)
 "$GODOT" --headless --fixed-fps 60 --path . tests/sentinel_check.tscn  # a sentinel shoots a rival wizard in range, not one out of range
@@ -475,7 +490,7 @@ GODOT="/c/Users/Jordan Polun/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.
 | Water | Ice Prison | circle | freezing whoever is inside solid | Push or Earth shatter; Barrier |
 | Water | Blizzard | star then a level line | snow cloud | leave the area |
 | Water | Frost Bridge | wavy line across water | freezing a pond so you can cross | fire melts it |
-| Water | Geyser | an arrow pointing up | a jet of water that throws what stands on it | step off while it bubbles |
+| Water | Geyser | an arrow pointing up | a jet of scalding water that throws what stands on it and scalds it (1 dmg/sec), with steam coming off it | step off while it bubbles |
 | Air | Push | circle then a line out | a shove of air; the only spell that lifts you | positioning |
 | Air | Barrier | circle | a shield bubble | wait it out |
 | Air | Tornado | tall narrow coil going down | a whirlwind | avoid it |
@@ -490,12 +505,12 @@ GODOT="/c/Users/Jordan Polun/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.
 | Earth | Sinkhole | U | the ground opens: `Terrain.dig` cuts a pit the shape of the U that was drawn (`Sinkhole.profile_of`) in the open ground and the rock is cut again (permanent) | jump out, fly |
 | Flora | Bramble | low sawtooth | a thicket of thorns: slows and pricks | jump it; fire |
 | Flora | Spore Puff | cone `<` (as Fire Breath) | poison spores poured from your mouth | wind, water |
-| Flora | Liana | leaf and line: an almond on its point, then a line up | a vine to climb | fire |
+| Flora | Liana | leaf and line: an almond lying on its side, then a line up from its left point (a vine) | a vine to climb | fire |
 | Flora | Great Oak | trunk drawn up into a round crown | a tree: ledges and a wall, and when it falls it crushes | fire, Earthquake, Stonefall; it creaks first |
 | Flora | Flytrap | tall narrow W | a trap that snaps shut on whoever steps in | jump, fire |
 | Flora | Lily Pads | a ring (the pad), then a level line across the water where they grow | floating leaves to cross water or a pit | fire; they sink after 8 s |
 | Shadow | Decoy | figure of eight | a shadow that draws enemies' attacks | it wears out |
-| Shadow | Eclipse | crescent | darkness: enemies inside see only what is close | Flare |
+| Shadow | Eclipse | the outline of a crescent moon, drawn in one stroke | the whole world goes dark for as long as an Earthquake lasts (6 s); everyone sees only what is close; costs 60, as an Earthquake does | Flare |
 | Shadow | Hex | pentagram (five-point star, one stroke) | a curse: 50% more damage | short time |
 | Shadow | Silence | circle with a line struck through it | a ring where nothing can be cast, spell or chant (`Wizard.silenced`) | step out; it fades |
 | Shadow | Black Hole | inward spiral | a dark knot that pulls everything toward it, fiercely close in and faintly from far off (walls still stop it) | walk out |
@@ -515,7 +530,7 @@ GODOT="/c/Users/Jordan Polun/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.
 | Flora | Barbs | a flick | a short spread of thorns | stone, fire |
 | Earth | Pebble | a flick | a stone that falls as it flies (goes over a wall that stops a flat shot) | cover |
 | Flora | Thorn Whip | the Tide Surf wave | a lash that drags the first thing it meets toward the caster (a wizard, an enemy, a loose page) | a wall, fire; a giant is too heavy |
-| Flora | Insect Plague | an eight | a stinging swarm, one cloud that ticks, drawn as insects; it follows the nearest wizard (the caster after a few seconds) | one hit, fire, water, smoke, wind |
+| Flora | Insect Plague | an infinity sign, like a bee's wings | a stinging swarm, one cloud that ticks, drawn as insects; it follows the nearest wizard (the caster after a few seconds) | one hit, fire, water, smoke, wind |
 | Necromancy | Leech | the Tide Surf wave, aimed at a wizard | a tether (`Leech`): while it holds, every stamina spell the caster casts is paid half by the caster and half by the other end; it breaks when they lose sight of each other, move too far apart, or either falls | a wall, distance |
 | Air | Thunderclap | a cloud (a ring begun at its bottom), then a lightning bolt: a zigzag down out of it | thunder (a recording): throws back everyone near except the caster (no harm) and dazes them (`Wizard.daze_time`: slow, and no spell or chant) | stay out of its reach |
 | Fire | Rocket Jump | an arrow pointing up (drawn with the fire button) | flame from the feet lifts the caster slowly at first and then faster, about 480 px up (`RocketJump`, `Wizard.rocket_time`) | none needed |
@@ -531,7 +546,7 @@ starts a run. The first screen also has a **Tutorial** (`scripts/tutorial.gd`: a
 | Shadow | Eldritch Blast | an arrow (the beam goes the way it points) | a beam of crackling dark energy that strikes the first thing in its way at once, up to 640 px, as the spell of that name in Dungeons & Dragons does (`EldritchBlast`, a ray: no shot to dodge or turn) | a wall, distance |
 | Blood | Hemorrhage | a drop of blood: the flame shape (`flare`), drawn over someone | a wound that bleeds a little at a time for a while (`Hemorrhage`) | it wears off |
 | Fire | Supernova | a ring, then a flat oval round it, like Saturn (`saturn`, one stroke) | a dying star hangs where it was drawn for 5 seconds: it burns whoever is close, pulls everything toward it a little, then explodes, hurting and throwing everyone within about 320 px far away (`Supernova`); costs 80 | get clear before it blows; stone or a wall |
-| Blood | Scythe | a crescent (the blade) | one swing of a real scythe (CC-BY art by Sevarihk, `art/fx/scythe.png`) in a half circle in front of the caster that cuts hard (`Scythe`) | stay out of reach, a wall |
+| Blood | Scythe | a crescent (the blade) | one swing of a real scythe (pixel art drawn for the game, `art/fx/scythe.png`, a pale ghost blade) in a half circle in front of the caster that cuts hard (45) and drives them back (`Scythe`) | stay out of reach, a wall |
 
 The spellbook lines (see the book: every spell now has a plain description, a damage line and a cost line) are drafts until the owner confirms them. A Blood loop the recognizer takes for a flame but is not one is read again as the circle (`Caster._end`), because Hemorrhage's flame shares Blood's buttons with Burst's circle. `tests/attacks_look.tscn -- out=DIR` (needs a window) takes pictures of them.
 
@@ -574,7 +589,8 @@ The owner wants agents to learn to invent spells without being told. Until they 
    - Earth: stone, ground, sand, weight.
    - Flora: plants: things that grow, hold and trap, and all burn.
    - Shadow: sight, decoys, curses and gravity.
-3. **Draw what it looks like.** The stroke should be the thing's silhouette or its motion.
+3. **Draw what it looks like.** The stroke should be the thing's silhouette or its motion. **The dearer the spell, the more involved the stroke** (owner, 2026-11-07): a cheap spell is a flick or a
+   single curve, a spell that costs a great deal (an Earthquake, an Eclipse, a Supernova) is drawn with a long, many-part stroke. Power and effort go together.
 4. **Make sure the shape is distinguishable from every other shape on the same button(s).** The recognizer
    only compares within the held button combination. Add a test case to `tests/test_gestures.gd` and add the
    preview to `GestureTemplates.preview_points`. The dark wizard draws from those previews too.
@@ -586,7 +602,7 @@ The owner wants agents to learn to invent spells without being told. Until they 
    couldn't listen to it.
 9. **Teach the dark wizard to use it** (`scripts/wizard_brain.gd`): a score in `_attack` and a stroke in
    `_attack_stroke`.
-10. **Spellbook:** the stats line comes from `SpellData.DAMAGE`. Keep it short.
+10. **Spellbook:** a short description, and the damage and cost lines from the spell's data, at the foot of the page. Keep it short.
 
 ## 7. Art: where it comes from and how it's built
 

@@ -3,7 +3,7 @@ extends Node2D
 
 ## Geyser: a jet of water bursts from the ground under the middle of the peak you drew. The ground bubbles first, so there is
 ## time to step off; whoever is standing on it when it bursts is thrown high into the air. That is anyone: you
-## included. It does no damage itself. Then it sinks, rests, bubbles and bursts again, for as long as the world lasts.
+## included. The water is scalding, so whoever is in the column is hurt a little each second, and steam pours off it while it stands. Then it sinks, rests, bubbles and bursts again, for as long as the world lasts.
 ## The water is real (see LiquidGrid): a burst lifts what water there is at its foot, and it falls back as the column sinks. On dry ground the
 ## first burst brings a little up from below, which then runs over the ground and is lifted again.
 
@@ -19,6 +19,7 @@ const RISE := 0.2   # how fast the column shoots up
 const DROP := WARNING + 1.0  # when the column starts to sink
 const LIFT := 1.6     # how much liquid a burst lifts (a cell holds 1)
 const SPRING := 1.6   # and how much comes up from below the first time, where there was none
+const SCALD := 1      # damage a second to whoever is in the column
 const DROPLET := preload("res://art/fx/water_drop.png")  # DevWizard's water orb, one frame
 
 var ground: Terrain  # the ground the geyser stands in; the water it spills runs over it
@@ -27,6 +28,8 @@ var _burst := false
 var _lifted := 0.0   # water in the column, on its way back down
 var _sprung := false # true once water has come up from below
 var _hiss: CPUParticles2D
+var _scalded := {}  # body -> when the water last scalded it
+var _steam: CPUParticles2D
 var _riders := {}  # body -> when the column last threw it up, so a body that stays in the water is not thrown every frame
 
 
@@ -54,6 +57,23 @@ func _ready() -> void:
 	_hiss.scale_amount_max = 0.6
 	_hiss.color_ramp = Fx.fade_ramp(Color(0.8, 0.95, 1.0, 0.9))
 	add_child(_hiss)
+	# Steam pours off the water while the column stands.
+	_steam = CPUParticles2D.new()
+	_steam.amount = 34
+	_steam.lifetime = 1.1
+	_steam.direction = Vector2.UP
+	_steam.spread = 35.0
+	_steam.initial_velocity_min = 30.0
+	_steam.initial_velocity_max = 90.0
+	_steam.gravity = Vector2(0, -30)
+	_steam.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
+	_steam.emission_rect_extents = Vector2(WIDTH * 0.5, 40)
+	_steam.texture = Fx.tex("smoke_01")
+	_steam.scale_amount_min = 44.0 / Fx.TEX_SIZE
+	_steam.scale_amount_max = 90.0 / Fx.TEX_SIZE
+	_steam.color_ramp = Fx.fade_ramp(Color(0.97, 0.98, 1.0, 0.85))
+	_steam.emitting = false
+	add_child(_steam)
 	_begin_cycle()
 
 
@@ -72,6 +92,8 @@ func _physics_process(delta: float) -> void:
 		_begin_cycle()
 	if _lifted > 0.0 and _age >= LIFE:
 		_let_fall()  # (a column cut short still lets the water go)
+	_steam.emitting = _burst and _age < DROP + 0.5
+	_steam.position.y = -_height() * 0.5
 	if _age >= LIFE:
 		return  # resting: nothing shows
 	if not _burst:
@@ -135,6 +157,9 @@ func _carry_riders() -> void:
 	for body in SpellTargets.all(get_tree()):
 		if body.is_in_group("mobs") and body.KINDS[body.kind].role == "flyer":
 			continue
+		if column.has_point(SpellTargets.center_of(body)) and now - int(_scalded.get(body, -10000)) >= 1000:
+			_scalded[body] = now
+			SpellTargets.hurt(body, SCALD, "Water", false, false, self)
 		if not column.has_point(SpellTargets.center_of(body)) or now - int(_riders.get(body, -10000)) < 350:
 			continue
 		_riders[body] = now

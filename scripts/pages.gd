@@ -20,7 +20,7 @@ const DEFENCES := ["Barrier", "Decoy", "Stone Wall", "Smoke Screen", "Gust", "Ec
 const CHANTS := ["chant:bonfire", "chant:rift"]
 ## Spells that open no gate, and chants that do not: the ones that may lie in a locked area.
 const LOCKABLE := ["Frostbolt", "Icicles", "Ice Prison", "Blizzard", "Stonefall", "Mudslide", "Earthquake", "Stalagmite", "Bramble", "Spore Puff",
-		"Flytrap", "Hex", "Black Hole", "Tide Surf", "Offering", "Burst", "Crimson Veil", "Adrenaline", "Faint", "Vacuum", "Fight or Flight", "Sneak", "Hunter's Mark", "Barbs", "Pebble", "Hailstorm", "Featherfall", "Thunderclap", "Thorn Whip", "Insect Plague", "Leech", "Raise Dead", "Mirage", "Eldritch Blast", "Hemorrhage", "Supernova", "Scythe", "chant:boundless", "chant:double_jump", "chant:haste", "chant:dowsing", "chant:scrying_eye"]
+		"Flytrap", "Hex", "Black Hole", "Tide Surf", "Crimson Veil", "Adrenaline", "Faint", "Vacuum", "Fight or Flight", "Sneak", "Hunter's Mark", "Barbs", "Pebble", "Hailstorm", "Featherfall", "Thunderclap", "Thorn Whip", "Insect Plague", "Leech", "Raise Dead", "Mirage", "Eldritch Blast", "Hemorrhage", "Supernova", "Scythe", "chant:boundless", "chant:double_jump", "chant:haste", "chant:dowsing", "chant:scrying_eye"]
 ## How many pages lie in a world of each biome, in a world 1000 tiles wide: the ones with little height to spread through (a volcano's
 ## slopes, the portal fields) hold fewer than those with room to climb or dig. Smaller worlds hold fewer (see count_for). The pages that
 ## are not laid are simply not in that world: nothing carries over. Which pages each world lays is settled when the match begins (see allotment).
@@ -129,8 +129,7 @@ static func every() -> Array[String]:
 	for spell in SpellData.SPELLS:
 		out.append(spell)
 	for id in RitualInput.RITUALS:
-		if id != "recall":
-			out.append("chant:" + id)
+		out.append("chant:" + id)
 	return out
 
 

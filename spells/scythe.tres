@@ -10,4 +10,4 @@ gesture = "crescent"
 targeting = "positional"
 cost = 30.0
 effect = "Swing a scythe."
-damage = "30 dmg"
+damage = "45 dmg"

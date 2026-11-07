@@ -9,5 +9,5 @@ school = "Fire"
 gesture = "saturn"
 targeting = "positional"
 cost = 80.0
-effect = "Conjure a dying star."
+effect = "Summon a dying star."
 damage = "6 dmg/sec + 45 dmg"

@@ -10,4 +10,4 @@ gesture = "sphere"
 targeting = "directional"
 cost = 30.0
 effect = "Launch a rolling ball of fire."
-damage = "7.5 dmg/sec"
+damage = "35 dmg"

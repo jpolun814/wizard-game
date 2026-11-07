@@ -4,8 +4,7 @@ extends Node2D
 ## Arena: the map, the player,
 ## fast spells, rituals and the spellbook.
 
-const GATEWAY_APART := 300.0  # the least distance between the two ends of a pair of portals
-const RIFT_WEAR := 50.0  # what a Rift takes off the most stamina you can have
+const RIFT_WEAR := 35.0  # what a Rift takes off the most stamina you can have
 const RIFT_LEAST := 20.0  # the least stamina a Rift can be cast with, and the least it leaves as the most
 const PERFECT_CAST := 0.95  # accuracy a cast needs for the flourish
 const MOB_SCENE := preload("res://scenes/mob.tscn")
@@ -17,7 +16,6 @@ const STALAGMITE_MAX := 200.0  # and the tallest a stalagmite rises
 const MUZZLE_OFFSET := 26.0  # spawn directional spells just outside the caster's body
 const BARRIER_SECONDS := 6.0
 const MISFIRE_COST := 10.0
-const OFFERING_GAIN := 30.0  # the temporary stamina an Offering gives, for the 20 most it costs
 const STEP_DAMAGE := 8
 const INSIGHT_REACH := 40.0  # how close the pointer must be to an enemy for Insight to show it
 const RAISED_HEALTH := 50  # what a skeleton raised from the dead has, always
@@ -41,8 +39,6 @@ var _insight_text: RichTextLabel
 var _revealed := {"minimap": false, "insight": false, "scrying_eye": false}
 var _rng := RandomNumberGenerator.new()
 var debug_panel: DebugPanel  # F1 opens it: buttons that summon enemies for testing
-var _gateway_hue := randf()
-var _marked := Vector2.INF  # where the Rite of the Cairn was spoken, until the Return is
 var _cells: Variant = {}  # the generated arena's tiles: a Dictionary (see ArenaGen) or a TileGrid
 var _ground: Terrain
 var tiled_ground := false  # true when the ground is tiles all the way, as in a generated world; set by _build_map
@@ -625,8 +621,6 @@ func _spawn_spell(spell: String, targeting: String, origin: Vector2, aim: float,
 			return
 		"Eclipse":
 			var eclipse := Eclipse.new()
-			var size: Vector2 = info.get("extent", Vector2(100, 100))
-			eclipse.radius = maxf(size.x, size.y) * 0.6
 			eclipse.position = origin
 			add_child(eclipse)
 			return
@@ -689,10 +683,6 @@ func _spawn_spell(spell: String, targeting: String, origin: Vector2, aim: float,
 			caster_node.veil = 2
 			Fx.burst(self, caster_node.center(), SpellData.SCHOOL_COLORS["Blood"], 16, 120.0, 0.5, true)
 			Sfx.play("blood_cast", caster_node.center(), -4.0)
-			return
-		"Offering":
-			caster_node.gain_temp_stamina(OFFERING_GAIN)
-			_offer(caster_node)
 			return
 		"Faint":
 			var down := _blood_target(spell, origin)
@@ -792,25 +782,6 @@ func _blood_target(spell: String, origin: Vector2) -> Node2D:
 			best_distance = distance
 			best = body
 	return best
-
-
-## An Offering: drops of blood gather from round the caster and sink into them.
-func _offer(taker: Node2D) -> void:
-	var to := SpellTargets.center_of(taker)
-	for k in 12:
-		var drop := Sprite2D.new()
-		drop.texture = Fx.tex("circle_05")
-		drop.material = Fx.additive()
-		drop.modulate = SpellData.SCHOOL_COLORS["Blood"].lightened(0.2)
-		drop.scale = Vector2.ONE * (10.0 / Fx.TEX_SIZE)
-		drop.position = to + Vector2.from_angle(k * TAU / 12.0) * 80.0
-		drop.z_index = 8
-		add_child(drop)
-		var flight := create_tween()
-		flight.tween_property(drop, "position", to, 0.45).set_ease(Tween.EASE_IN)
-		flight.tween_callback(drop.queue_free)
-	Sfx.play("blood_cast", to, -4.0)
-	Sfx.play("pickup", to, -4.0)
 
 
 ## A skeleton rises from the ground for a wizard. It is named after the wizard and the cast, which are the same on every machine, so the
@@ -1081,11 +1052,6 @@ func _on_ritual_finished(id: String, acc: float, unfinished: bool) -> void:
 	Net.send(self, &"_show_chant", [String(player.name)])
 	_grant_chant(player, id)
 	match id:
-		"mark":
-			_mark_here()
-		"recall":
-			if not _open_gateways():
-				return
 		"rift":
 			_rift()
 		"dowsing":
@@ -1183,47 +1149,6 @@ func _bonfire_spot() -> Vector2:
 		if hit.y < from.y + 200.0 and absf(hit.y - player.global_position.y) < 120.0:
 			return hit
 	return player.global_position
-
-
-## The Rite of the Cairn: the place you stand on is remembered, until the Return is spoken.
-func _mark_here() -> void:
-	_marked = _ground_below(player.center())
-	var colour: Color = SpellData.SCHOOL_COLORS["Shadow"]
-	Fx.pop(self, _marked + Vector2(0, -20), "twirl_02", colour, 40.0, 0.4, 0.5, 4.0)
-
-
-## The Rite of Return: a portal opens at the mark and another where you stand. They are a pair, in a colour of
-## their own, and stay open for anyone to use. False when there is no mark, or it is too close to be worth a portal.
-func _open_gateways() -> bool:
-	if _marked == Vector2.INF:
-		_on_feedback("Mark a place first.", Color.GRAY)
-		return false
-	var here := _ground_below(player.center())
-	if here.distance_to(_marked) < GATEWAY_APART:
-		_on_feedback("Move farther from your mark.", Color.GRAY)
-		return false
-	# Each pair's hue is a golden-ratio step from the last, so any two pairs, however many, are as far apart in colour as can be.
-	_gateway_hue = fposmod(_gateway_hue + 0.618034, 1.0)
-	_open_pair(_marked, here, _gateway_hue)
-	Net.send(self, &"_open_pair", [_marked, here, _gateway_hue])
-	_marked = Vector2.INF
-	return true
-
-
-## A pair of portals opens between two spots, on every machine of a network game.
-@rpc("any_peer", "call_remote", "reliable")
-func _open_pair(from: Vector2, to: Vector2, hue: float) -> void:
-	var tint := Color.from_hsv(hue, 0.7, 1.0)
-	var pair: Array[Gateway] = []
-	for spot in [from, to]:
-		var gateway := Gateway.new()
-		gateway.tint = tint
-		gateway.position = spot - Vector2(0.0, Portal.RY + 4.0)
-		add_child(gateway)
-		gateway.open()
-		pair.append(gateway)
-	pair[0].partner = pair[1]
-	pair[1].partner = pair[0]
 
 
 ## The Rift: the wizard is torn away and set down somewhere else, with no stamina left and 20 less to ever have.

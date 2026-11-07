@@ -382,7 +382,7 @@ func _plan() -> void:
 				var before := get_tree().get_nodes_in_group("pages").size()
 				_arena.learn_every_page()
 				var after := get_tree().get_nodes_in_group("pages").size()
-				var all: bool = _player().ledger.count() == Pages.every().size() and _player().ledger.knows_chant("recall")
+				var all: bool = _player().ledger.count() == Pages.every().size() and _player().ledger.knows_chant("dowsing")
 				print("%s  the F1 button gives every spell and leaves the pages on the map (%d, then %d)" % ["PASS" if all and before == after else "FAIL", before, after])
 				if not (all and before == after):
 					_exit_code = 1)
@@ -566,47 +566,6 @@ func _plan_new_spells() -> void:
 				kept = true
 		wizard.infinite_time = 0.0
 	_arena._since_hurt = -100000.0  # the waiting room heals a wizard after a few seconds; here the damage has to stay
-	# Burst: everyone near is hurt and thrown away from the middle, the caster too, and a shot in the air is turned back.
-	_at(2.6, func() -> void:
-		reset.call(15, "Burst")
-		wizard.max_stamina = 200.0
-		dummy.call().global_position = _feet(19)
-		memo["hp"] = dummy.call().hp
-		memo["x"] = dummy.call().global_position.x
-		memo["wx"] = wizard.global_position.x
-		memo["max"] = wizard.max_stamina)
-	_at(3.0, func() -> void:
-		var bolt := EnemyBolt.fire(_arena, _feet(19) + Vector2(60, -60), _feet(19) + Vector2(-400, -60), Color.RED, 5)
-		memo["bolt"] = bolt
-		var walker: Node2D = _arena._add_mob("basic", _feet(19) + Vector2(30, -4))
-		walker._spawn = 0.0  # already up, not rising
-		walker.max_hp = 500
-		walker.hp = 500  # and tough enough to be thrown rather than killed
-		memo["walker"] = walker
-		memo["walker_x"] = walker.global_position.x
-		_cast("Burst", _stroke("circle", _feet(19) + Vector2(0, -30), 0.9)))
-	_at(3.4, func() -> void:
-		check.call("a Burst does 40 to anyone in it (hp %d -> %d)" % [memo["hp"], dummy.call().hp], memo["hp"] - dummy.call().hp == 40)
-		check.call("and throws them away from the middle (x %d -> %d)" % [memo["walker_x"], memo["walker"].global_position.x], memo["walker"].global_position.x - memo["walker_x"] > 20.0)
-		check.call("and the caster pays 25 of their most and is neither hurt nor thrown (%d, x %d)" % [wizard.max_stamina, wizard.global_position.x], wizard.max_stamina == memo["max"] - 25.0 and absf(wizard.global_position.x - memo["wx"]) < 5.0)
-		check.call("and turns back a shot in the air", is_instance_valid(memo["bolt"]) and memo["bolt"].heading().x > 0.0)
-		_arena._since_hurt = -100000.0  # the blast hurt the wizard too: the waiting room must not heal that
-		memo["bolt"].queue_free()
-		memo["walker"].queue_free()
-		_snap("burst"))
-	# Offering: the most stamina falls by 20 and 30 more is kept apart, spent last.
-	_at(3.8, func() -> void:
-		reset.call(15, "Offering")
-		wizard.max_stamina = 200.0
-		wizard.stamina = 200.0
-		wizard.temp_stamina = 0.0)
-	_at(4.0, func() -> void: _arena.caster.cast_stroke(SpellData.SPELLS["Offering"].buttons, _stroke("cross", wizard.center() + Vector2(0, -4), 0.8)))
-	_at(4.2, func() -> void:
-		check.call("an Offering lowers the most stamina by 20 (%d)" % wizard.max_stamina, wizard.max_stamina == 180.0)
-		check.call("and gives 30 extra (%d)" % wizard.temp_stamina, wizard.temp_stamina == 30.0)
-		wizard.spend(wizard.stamina + 10.0)
-		check.call("the extra is spent once the usual stamina is gone (%d, %d)" % [wizard.stamina, wizard.temp_stamina], wizard.stamina == 0.0 and wizard.temp_stamina == 20.0)
-		_snap("offering"))
 	# Crimson Veil: the next two hits do nothing, the third lands.
 	_at(4.3, func() -> void:
 		reset.call(15, "Crimson Veil")
@@ -632,7 +591,7 @@ func _plan_new_spells() -> void:
 	_at(4.6, func() -> void: reset.call(15, "Adrenaline"))
 	_at(4.8, func() -> void: _cast("Adrenaline", _stroke("zigzag", _feet(15) + Vector2(60, -80), 1.0)))
 	_at(5.1, func() -> void:
-		check.call("Adrenaline hastes the wizard and quickens recovery", wizard.adrenaline_time > 5.0 and wizard.haste_time > 5.0)
+		check.call("Adrenaline hastes the wizard", wizard.adrenaline_time > 5.0 and wizard.haste_time > 5.0)
 		_snap("adrenaline"))
 	# Faint: the wizard drops, and stands up again once stamina has come back to 10.
 	_at(11.0, func() -> void:
@@ -769,7 +728,7 @@ func _plan_spells() -> void:
 		["Flytrap", 14, func(f: Vector2) -> PackedVector2Array: return _stroke("jaws", Vector2(ArenaGen.column_x(16), f.y - 40.0)), [1.0, 1.9]],
 		["Lily Pads", -13, func(f: Vector2) -> PackedVector2Array: return _stroke("pads", Vector2(ArenaGen.column_x(-7), ArenaGen.GROUND_Y - 30.0), 1.6), [0.6]],
 		["Decoy", 14, func(f: Vector2) -> PackedVector2Array: return _stroke("eight", f + Vector2(90, -50), 0.8), [0.6]],
-		["Eclipse", 14, func(f: Vector2) -> PackedVector2Array: return _stroke("crescent", f + Vector2(110, -60), 1.2), [1.0]],
+		["Eclipse", 14, func(f: Vector2) -> PackedVector2Array: return _stroke("eclipse", f + Vector2(110, -60), 1.2), [1.0]],
 		["Hex", 14, func(f: Vector2) -> PackedVector2Array: return _stroke("pentagram", Vector2(ArenaGen.column_x(16), f.y - 40.0), 0.8), [0.7]],
 		["Vacuum", 14, func(f: Vector2) -> PackedVector2Array: return _stroke("lungs", Vector2(ArenaGen.column_x(16), f.y - 40.0), 0.8), [0.7, 2.0]],
 		["Black Hole", 14, func(f: Vector2) -> PackedVector2Array: return _stroke("spiral", f + Vector2(110, -40), 1.2), [0.9]],
@@ -1112,21 +1071,8 @@ func _plan_cave() -> void:
 		var home: Vector2 = wizard.global_position
 		_arena._on_ritual_finished("haste", 1.0, false)
 		print("%s  the Chant of Swift Feet makes the wizard faster for a while" % ["PASS" if wizard.haste_time > 15.0 else "FAIL"])
-		_arena._on_ritual_finished("recall", 1.0, false)
-		var nothing: bool = _arena.get_tree().get_nodes_in_group("gateways").is_empty()
-		_arena._on_ritual_finished("mark", 1.0, false)
-		wizard.global_position = home + Vector2(700.0, -40.0)
-		_arena._on_ritual_finished("recall", 1.0, false)
-		var pair := _arena.get_tree().get_nodes_in_group("gateways")
-		var linked: bool = pair.size() == 2 and pair[0].partner == pair[1] and pair[1].partner == pair[0] and pair[0].tint == pair[1].tint
-		print("%s  the Return opens a linked pair of portals only after a mark (none before: %s, pair: %d)" % ["PASS" if nothing and linked else "FAIL", str(nothing), pair.size()])
-		if linked:
-			pair[0]._on_body_entered(wizard)
-			print("%s  stepping into one portal comes out of the other" % ["PASS" if wizard.global_position.distance_to(pair[1].global_position) < 80.0 else "FAIL"])
 		wizard.global_position = home
-		wizard.haste_time = 0.0
-		for gateway in pair:
-			gateway.queue_free())
+		wizard.haste_time = 0.0)
 	_at(0.89, func() -> void:
 		var empty := 0
 		var total := 0
