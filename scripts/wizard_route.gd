@@ -110,7 +110,7 @@ func steer(body: CharacterBody2D, delta: float) -> Dictionary:
 	if absi(down) >= CLIMB_ROWS and across == absi(down):  # a stair: walk its slope
 		out["dir"] = signf((goal_tile.x + 0.5) * TILE - feet.x)
 		return _track(out, feet, goal_tile, delta)
-	var leaps := across >= 2 or down <= -2  # not a step, a slope or a fall
+	var leaps := (across >= 2 and down < across) or down <= -2  # not a step, a slope or a fall (a drop as deep as it is wide is walked off the edge: it needs no jump)
 	var goal_x := (goal_tile.x + 0.5) * TILE
 	if leaps:
 		goal_x += signf(goal_tile.x - from.x) * LEAN  # the edge of a ledge is rounded off: land a little way in
