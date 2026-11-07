@@ -570,6 +570,45 @@ func _spawn_spell(spell: String, targeting: String, origin: Vector2, aim: float,
 			flare.caster_node = caster_node
 			add_child(flare)
 			return
+		"Sandblast":
+			var blast := Sandblast.new()
+			blast.caster_node = caster_node
+			blast.aim = aim
+			blast.spread = info.get("spread", 0.6)
+			blast.reach = info.get("reach", 150.0)
+			add_child(blast)
+			return
+		"Sleet":
+			var sleet := Sleet.new()
+			sleet.caster = caster_node
+			add_child(sleet)
+			sleet.setup(spell, from, 0.0 if caster_node.facing >= 0.0 else PI)  # the spray goes the way the caster faces
+			return
+		"Meteor":
+			var meteor := Meteor.new()
+			meteor.position = origin
+			add_child(meteor)
+			return
+		"Strangler Vine":
+			var vine := StranglerVine.new()
+			vine.position = origin
+			add_child(vine)
+			return
+		"Steam Burst":
+			var steam := SteamBurst.new()
+			steam.position = origin
+			add_child(steam)
+			return
+		"Hemorrhage":
+			var cut := Hemorrhage.nearest_under(get_tree(), origin)
+			if cut == null:
+				FloatText.spawn(self, origin + Vector2(0, -20), "Aim at someone", Color("#e0707f"), 0.9)
+				return
+			var wound := Hemorrhage.new()
+			wound.target = cut
+			wound.position = SpellTargets.center_of(cut)
+			add_child(wound)
+			return
 		"Spore Puff":
 			# The spores pour out of the caster, toward the cone's open end, like Fire Breath.
 			var spores := SporePuff.new()

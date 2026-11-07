@@ -862,6 +862,11 @@ func is_rooted() -> bool:
 	return _root_time > 0.0
 
 
+## Lets go of an enemy that is held (a vine that burns away frees what it held).
+func free_from_root() -> void:
+	_root_time = 0.0
+
+
 func apply_root(seconds: float) -> void:
 	_root_time = maxf(_root_time, seconds)
 	_knock_x = 0.0

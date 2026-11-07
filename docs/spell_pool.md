@@ -194,3 +194,10 @@ The owner asked for costs and damage to follow how strong a spell sounds and how
 | Sinkhole | 40 to 35 | same |
 
 Families used for the reasoning: cheap and weak harassment (Pebble, Barbs, Frostbolt, Ignite, Icicles, Stalagmite, Bramble, Spore Puff, Thorn Whip, Firewall); cheap and strong but close (Fire Breath, Burst); dear and strong from anywhere (Spark, Stonefall, Hailstorm, Great Oak); area and zone control; control with no damage; defence and stealth. Untested in play: the AI casts when stamina is at least the cost, so Spark will be cast less often. Regeneration may be raised later (backlog, chapter 16).
+
+## Eight attacking spells (2026-11-06)
+
+Wind Cutter (Air, crescent), Shadow Bolt (Shadow, arrow), Sandblast (Earth, cone), Sleet (Water, zigzag), Meteor (Fire, circle), Strangler Vine (Flora, spiral),
+Hemorrhage (Blood, crescent) and Steam Burst (Water, the rising wave). Costs: 14, 16, 18, 18, 34, 26, 20 (in maximum stamina) and 24. Real thing and counter for each are in
+`CLAUDE.md` section 5. Ideas from the backlog list that were not taken: Tidal Wave, Lightning Chain, Rockslide, Stone Spear, Seed Bomb, Nettle Cloud, Nightmare, Grasp,
+Thorn Ring.

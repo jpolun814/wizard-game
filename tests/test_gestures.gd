@@ -196,6 +196,27 @@ func _process(_delta: float) -> bool:
 		if _cast != "Fire Breath" or absf(angle_difference(_aim, angle)) > 0.2:
 			_failures += 1
 			print("FAIL Fire Breath pointing %.2f: cast %s aimed %.2f" % [angle, _cast, _aim])
+	# A Wind Cutter's crescent bulges the way the blade is to go, and a Shadow Bolt's arrow points the way the bolt is to go: either can be drawn toward any side.
+	for angle in [0.0, PI * 0.5, PI, -PI * 0.5, PI * 0.25, -PI * 0.25]:
+		for size in [0.8, 1.0, 1.5]:
+			_checks += 1
+			var crescent := PackedVector2Array()
+			for p in GestureTemplates.preview_points("crescent"):
+				crescent.append(p.rotated(angle - PI) * size + Vector2(0, -260))
+			_cast = ""
+			_caster.cast_stroke(SpellData.MIDDLE, _densify(crescent))
+			if _cast != "Wind Cutter" or absf(angle_difference(_aim, angle)) > 0.3:
+				_failures += 1
+				print("FAIL Wind Cutter bulging %.2f at %.1f: cast %s aimed %.2f" % [angle, size, _cast, _aim])
+			_checks += 1
+			var arrow := PackedVector2Array()
+			for p in GestureTemplates.preview_points("arrow"):
+				arrow.append(p.rotated(angle) * size + Vector2(0, -260))
+			_cast = ""
+			_caster.cast_stroke(SpellData.RIGHT | SpellData.MIDDLE, _densify(arrow))
+			if _cast != "Shadow Bolt" or absf(angle_difference(_aim, angle)) > 0.3:
+				_failures += 1
+				print("FAIL Shadow Bolt pointing %.2f at %.1f: cast %s aimed %.2f" % [angle, size, _cast, _aim])
 	print("%d of %d gesture checks passed" % [_checks - _failures, _checks])
 	quit(1 if _failures > 0 else 0)
 	return true

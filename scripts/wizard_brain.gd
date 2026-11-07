@@ -92,7 +92,7 @@ const USES := {
 	"Stalagmite": "attack", "Bramble": "attack", "Flytrap": "attack", "Icicles": "attack under a ceiling", "Sinkhole": "attack", "Tornado": "attack, and a way up",
 	"Ice Prison": "attack", "Blizzard": "attack", "Mudslide": "attack", "Black Hole": "attack", "Earthquake": "attack", "Hex": "attack", "Vacuum": "attack",
 	"Faint": "attack", "Fight or Flight": "attack", "Silence": "attack", "Tide Surf": "attack", "Burst": "attack", "Thunderclap": "attack",
-	"Barbs": "attack", "Pebble": "attack", "Hailstorm": "attack", "Thorn Whip": "attack", "Insect Plague": "attack", "Leech": "attack", "Raise Dead": "attack", "Flaming Sphere": "attack", "Mirage": "attack",
+	"Barbs": "attack", "Pebble": "attack", "Hailstorm": "attack", "Thorn Whip": "attack", "Insect Plague": "attack", "Leech": "attack", "Raise Dead": "attack", "Flaming Sphere": "attack", "Wind Cutter": "attack", "Shadow Bolt": "attack", "Sandblast": "attack", "Sleet": "attack", "Meteor": "attack", "Strangler Vine": "attack", "Hemorrhage": "attack", "Steam Burst": "attack", "Mirage": "attack",
 	"Barrier": "defence", "Gust": "defence", "Shadow Step": "defence, and a way over a chasm", "Push": "repel, and a way up", "Rocket Jump": "a way up", "Geyser": "repel, and a way up",
 	"Stone Wall": "tend", "Smoke Screen": "tend", "Decoy": "tend", "Eclipse": "tend", "Crimson Veil": "tend", "Obsidian Armor": "tend, and a way through lava",
 	"Adrenaline": "tend", "Offering": "tend", "Sneak": "tend", "Hunter's Mark": "tend", "Flare": "tend", "Glowcap": "tend", "Moonbeam": "tend",
@@ -1251,13 +1251,21 @@ func _attack(to_player: Vector2, sees: bool) -> bool:
 		"Mirage": 0.9 if gap > 250.0 and grounded and _real_page_near(500.0) and _mirages_set() < 2 else 0.0,  # a bait set among real pages, with the rival still some way off; nonsense at arm's length, or where no page lies
 		"Raise Dead": 1.2 if gap < 560.0 and grounded and wizard.max_stamina > 120.0 and _own_raised() < 2 else 0.0,
 		"Leech": 1.0 if sees and aim_ok and gap < Leech.REACH - 40.0 and Leech.held_by(wizard.get_tree(), wizard) == null else 0.0,
+		"Wind Cutter": 1.7 if sees and gap < 620.0 else 0.0,  # thin and fast: it needs a clear line
+		"Shadow Bolt": 1.4 if sees and gap > 120.0 and gap < 560.0 else 0.0,  # slow, and it bends toward you
+		"Sandblast": 1.7 if sees and gap < 190.0 else 0.0,  # a short blast: only at close quarters
+		"Sleet": 1.6 if sees and aim_ok and gap < 300.0 else 0.0,
+		"Meteor": (2.0 if still or stuck else 0.9) if gap < 700.0 and not _sheltered() else 0.0,  # it takes a moment to fall, so it likes a rival who stands still
+		"Strangler Vine": 1.5 if grounded and (still or stuck) and gap < 420.0 else 0.0,
+		"Hemorrhage": 1.2 if sees and gap < 420.0 else 0.0,
+		"Steam Burst": 1.4 if grounded and (still or stuck) and gap < 420.0 else 0.0,
 	}
 	if _sheltered():
 		# Under a platform: lightning from above cannot reach you.
 		scores["Spark"] = 0.0
 	if not sees:
 		# Behind cover: only spells that come from above or along the ground reach you.
-		for spell_name in ["Ignite", "Frostbolt", "Ice Prison", "Black Hole", "Firewall", "Fire Breath", "Barbs", "Thorn Whip", "Leech"]:
+		for spell_name in ["Ignite", "Frostbolt", "Ice Prison", "Black Hole", "Firewall", "Fire Breath", "Barbs", "Thorn Whip", "Leech", "Wind Cutter", "Shadow Bolt", "Sandblast", "Sleet", "Hemorrhage"]:
 			scores[spell_name] = 0.0
 	for spell_name in scores.keys():
 		if not _ready_to_cast(spell_name):
@@ -1377,9 +1385,35 @@ func _attack_stroke(spell_name: String) -> PackedVector2Array:
 			return _offset(GestureTemplates.preview_points("eight"), wizard.center() + Vector2(facing * 50.0, -10.0), 0.7)
 		"Burst":
 			return _offset(GestureTemplates.preview_points("circle"), wizard.center(), 0.7)
+		"Wind Cutter":  # a crescent that bulges toward the rival: the blade goes the way it bulges
+			var toward: float = (_predict(0.3) - wizard.center()).angle() + _rng.randfn(0.0, 0.1 * (1.0 - skill))
+			return _offset(_turned(GestureTemplates.preview_points("crescent"), toward - PI), wizard.center(), 0.9)
+		"Shadow Bolt":  # an arrow pointing at the rival
+			var pointing: float = (_predict(0.4) - wizard.center()).angle() + _rng.randfn(0.0, 0.1 * (1.0 - skill))
+			return _offset(_turned(GestureTemplates.preview_points("arrow"), pointing), wizard.center(), 0.8)
+		"Sandblast":
+			return _breath_stroke(foe.center())
+		"Sleet":  # a zigzag drawn beside the wizard: the shards fly the way it faces
+			return _offset(GestureTemplates.preview_points("zigzag"), wizard.center() + Vector2(facing * 40.0, 0.0), 0.8)
+		"Meteor":  # a ring round where the rival will be when it lands
+			return _offset(GestureTemplates.preview_points("circle"), _predict(ATTACK_DRAW + 0.9), 0.7)
+		"Strangler Vine":
+			return _offset(GestureTemplates.preview_points("spiral"), Vector2(_predict(ATTACK_DRAW * 0.6).x, feet.y - 40.0), 0.6)
+		"Hemorrhage":  # a crescent drawn over the rival
+			return _offset(GestureTemplates.preview_points("crescent"), foe.center(), 0.6)
+		"Steam Burst":  # a wavy line rising from the ground under the rival
+			return _offset(GestureTemplates.preview_points("smoke"), Vector2(_predict(ATTACK_DRAW * 0.6).x, feet.y - 50.0), 0.9)
 		"Thunderclap":  # a cloud and a bolt, drawn on itself
 			return _offset(GestureTemplates.preview_points("thunderclap"), wizard.center() + Vector2(0.0, -30.0), 0.8)
 	return PackedVector2Array()
+
+
+## A stroke turned by an angle, about its own origin.
+func _turned(points: PackedVector2Array, angle: float) -> PackedVector2Array:
+	var out := PackedVector2Array()
+	for p in points:
+		out.append(p.rotated(angle))
+	return out
 
 
 ## A Tide Surf drawn toward one side: the wave runs the way the stroke runs.
