@@ -58,6 +58,10 @@ CHARACTERS = {
     # CraftPix's free skeleton, minotaur, knight and werewolf (see CRAFTPIX below): 128 px cells, feet on the bottom edge.
     "skeleton": (CRAFTPIX + "free-skeleton-pixel-art-sprite-sheets/Skeleton_Warrior/", 128, 128, False, {
         "idle": "Idle.png", "walk": "Walk.png", "attack": "Attack_1.png", "hit": "Hurt.png", "death": "Dead.png"}),
+    # The werewolf of Wild Shape: it wears a wizard's animation names, and "release" is its claw swipe.
+    "werewolf": (CRAFTPIX + "free-werewolf-sprite-sheets-pixel-art/Black_Werewolf/", 128, 128, False, {
+        "idle": "Idle.png", "run": "Run.png", "jump": ("Jump.png", 0, 0, 5), "fall": ("Jump.png", 0, 6, 8),
+        "release": "Attack_1.png", "hit": "Hurt.png", "death": "Dead.png"}),
     "knight": (CRAFTPIX + "free-knight-character-sprites-pixel-art/Knight_1/", 128, 128, False, {
         "idle": "Idle.png", "walk": "Walk.png", "attack": "Attack 1.png", "hit": "Hurt.png", "death": "Dead.png"}),
     "goblin": (LUIZ_MONSTERS + "Goblin/", 150, 150, False, {
@@ -73,7 +77,7 @@ CHARACTERS = {
         "idle": "Idle.png", "walk": "Walk.png", "attack": "Attack.png", "hit": "Hurt.png", "death": "Dead.png"}),
 }
 MOBS = ["skeleton", "knight", "goblin", "eye", "giant", "ninja"]
-HEROES = ["wizard", "dark_wizard", "pyre_wizard"]
+HEROES = ["wizard", "dark_wizard", "pyre_wizard", "werewolf"]
 
 CEMETERY = "x_gothicvania-cemetery-files/gothicvania-cemetery-files/Assets/Environment/"
 SWAMP = "x_swamp/Gothicvania Swamp files/Evironment/"

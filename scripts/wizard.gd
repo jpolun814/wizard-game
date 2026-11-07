@@ -42,6 +42,15 @@ const ANIMATIONS := {
 	"release": {"fps": 16.0, "loop": false},  # thrust forward as the spell goes off
 	"hit": {"fps": 12.0, "loop": false}, "death": {"fps": 9.0, "loop": false},
 }
+const WILD_STAMINA := 100.0  # the werewolf (Wild Shape) has a pool of strength of its own, and the wizard keeps theirs aside until it is gone
+const WILD_DRAIN := 5.0      # per second: the shape does not last for ever
+const WILD_SPEED := 1.25     # how much faster a werewolf runs
+const WILD_SCALE := 1.4      # the werewolf is drawn this large
+const CLAW_COST := 3.0       # what a swipe of the claws takes from the pool
+const CLAW_DAMAGE := 22
+const CLAW_COOLDOWN := 0.55
+const CLAW_REACH := 80.0     # from the middle of the body, to the front
+const CLAW_DELAY := 0.15     # the swipe lands this long after it begins
 const STAFF_HEAD := Vector2(30, -62)  # where the casting hand is, facing right (the glow of a spell being drawn sits there)
 const DRAW_TIME := 0.8        # how long a brain's wizard takes to draw a spell
 const SPAWN_TIME := 0.7       # a wizard summoned into the world arrives out of a circle this long
@@ -170,6 +179,12 @@ var _jump_buffer := 0.0
 var _step := 0.0
 var casting := false      # true while the caster has a stroke in progress (set by the arena)
 var casts_made := 0       # the spells this wizard has cast, for the tests that watch a match
+var wild := false  # the wizard has taken the shape of a werewolf (Wild Shape)
+var _kept_stamina := 0.0  # what stamina and most stamina the wizard had before, which they have again when the shape is gone
+var _kept_max := 0.0
+var _claw_cool := 0.0
+var _claw_in := -1.0  # time until a swipe that has begun lands
+var _was_left := false  # the left button was down the last frame (a swipe is a click)
 var _releasing := 0.0     # time left of the thrust that plays when a spell goes off
 var _hurt_anim := 0.0     # time left of the flinch after a hit
 var cast_color := Color.WHITE  # the school being drawn (set by the arena); the staff's glow takes it
@@ -195,6 +210,7 @@ const ROOTED := 32
 const SLOWED := 64
 const FADED := 128
 const VEILED := 256
+const WILD := 512
 var _hidden := false  # not drawn: faded from sight, and not the wizard at this machine
 const UNSEEN_BUMP := 50.0  # how near a wizard faded from sight must be to be felt rather than seen
 const FADE_ALPHA := 0.35  # how much of a veiled wizard shows
@@ -290,10 +306,13 @@ func _ready() -> void:
 func _dress() -> void:
 	var art := "wizard"
 	_sprite.scale = Vector2.ONE
-	if look != "wizard":
+	if wild:
+		art = "werewolf"
+		_sprite.scale = Vector2.ONE * WILD_SCALE
+	elif look != "wizard":
 		var data: MobKind = Mob.KINDS[look]
 		art = data.art
-		_sprite.scale = Vector2.ONE * WizardLook.scale_of(look, data.scale)  # the four figures are drawn to one height
+		_sprite.scale = Vector2.ONE * WizardLook.scale_of(look, data.scale)  # the three figures are drawn to one height
 	_sprite.sprite_frames = CharFrames.build("res://art/chars/" + art, ANIMATIONS)
 	_sprite.offset = Vector2(0, -PixelArt.CHARACTERS[art]["size"].y * 0.5)  # the frames' bottom edge is the feet
 	_sprite.play("idle")
@@ -303,7 +322,7 @@ func _dress() -> void:
 ## Puts its set of colours on the sprite (the material is made a little after the frames are put on).
 func _paint() -> void:
 	if _wet_material != null:
-		WizardLook.paint(_wet_material, look, palette)
+		WizardLook.paint(_wet_material, look, 0 if wild else palette)  # a werewolf keeps its own colours
 
 
 ## Where the wizard's mouth is, for Fire Breath.
@@ -429,6 +448,9 @@ func take_damage(amount: int, grace_hit := true, projectile := false) -> void:
 
 
 func _check_death() -> void:
+	if wild and max_stamina <= 0.0 and not dead:
+		end_wild()  # the wolf is beaten, and not the wizard
+		return
 	if max_stamina <= 0.0 and not dead:
 		max_stamina = 0.0
 		dead = true
@@ -525,7 +547,7 @@ func is_muted() -> bool:
 
 ## True while the wizard stands in a ring of Silence, or is dazed by thunder: they can cast nothing.
 func silenced() -> bool:
-	return daze_time > 0.0 or Silence.covers(get_tree(), center())
+	return daze_time > 0.0 or wild or Silence.covers(get_tree(), center())
 
 
 ## Pays for a spell in maximum stamina, which only healing brings back. Never takes the last of it: false, and nothing paid, if the
@@ -541,10 +563,87 @@ func pay_max(amount: float) -> bool:
 	return true
 
 
+## Wild Shape: the wizard becomes a werewolf. Their own stamina is put aside, the wolf has a pool of its own, and it can only run, jump and claw. When the
+## pool is gone, from time, swipes or blows, the wizard is back with what they had.
+func become_wild() -> void:
+	if wild or dead or is_likeness():
+		return
+	wild = true
+	_kept_stamina = stamina
+	_kept_max = max_stamina
+	max_stamina = WILD_STAMINA
+	stamina = WILD_STAMINA
+	casting = false
+	_draw_time = 0.0
+	_stroke = PackedVector2Array()
+	_claw_cool = 0.0
+	_claw_in = -1.0
+	_dress()
+	Fx.burst(get_parent(), center(), Color(0.55, 0.5, 0.7), 18, 160.0, 0.5, true)
+	Sfx.play("summon", center())
+
+
+## The wolf is gone: the wizard stands as they were, with the stamina they had.
+func end_wild() -> void:
+	if not wild:
+		return
+	wild = false
+	max_stamina = _kept_max
+	stamina = minf(_kept_stamina, max_stamina)
+	_claw_in = -1.0
+	_dress()
+	Fx.burst(get_parent(), center(), Color(0.55, 0.5, 0.7), 18, 160.0, 0.5, true)
+
+
+## What a werewolf's frame does: the pool drains, a click of the left button swipes, a swipe lands a moment after it begins.
+func _be_wild(delta: float) -> void:
+	max_stamina -= WILD_DRAIN * delta
+	stamina = max_stamina
+	_claw_cool -= delta
+	if _claw_in >= 0.0:
+		_claw_in -= delta
+		if _claw_in < 0.0:
+			_claw_land()
+	var left := Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) and is_person()
+	if left and not _was_left:
+		claw()
+	_was_left = left
+	if max_stamina <= 0.0:
+		end_wild()
+
+
+## A swipe of the claws, which a person asks for with a click and a brain asks for in reach of a rival.
+func claw() -> void:
+	if not wild or dead or fainted or _claw_cool > 0.0:
+		return
+	_claw_cool = CLAW_COOLDOWN
+	_claw_in = CLAW_DELAY
+	_releasing = 0.4
+	max_stamina -= CLAW_COST
+	stamina = max_stamina
+	Sfx.play("mob_hurt", center(), 3.0)
+
+
+## The claws reach whoever is in front of the wizard, close enough, and in the open.
+func _claw_land() -> void:
+	for body in SpellTargets.all(get_tree()):
+		if body == self:
+			continue
+		var at := SpellTargets.center_of(body)
+		var to := at - center()
+		if absf(to.x) > CLAW_REACH + 20.0 or absf(to.y) > 60.0 or to.x * facing < -10.0:
+			continue
+		if SpellTargets.sight_blocked(get_tree(), center(), at):
+			continue
+		SpellTargets.hurt(body, CLAW_DAMAGE, "", false, false, self)
+		Fx.burst(get_parent(), at, Color(0.9, 0.25, 0.3), 6, 120.0, 0.3, true)
+
+
 ## A Faint: all the stamina goes, and the wizard drops. They stand up when the stamina has come back to GET_UP.
 func faint() -> void:
 	if dead or fainted or is_likeness():
 		return
+	end_wild()  # the wolf is knocked out of the wizard
 	fainted = true
 	stamina = 0.0
 	_since_spend = 0.0
@@ -691,6 +790,7 @@ func _physics_process(delta: float) -> void:
 		_follow()
 		return
 	if brain != null and global_position.y > (ArenaGen.world_size.y * float(ArenaGen.TILE) if ArenaGen.world_size.y > 0 else FALL_LIMIT) and not dead:
+		wild = false  # (nothing turns back from this)
 		max_stamina = 0.0  # off the bottom of the map
 		_check_death()
 	if brain != null and not dead:
@@ -708,7 +808,9 @@ func _physics_process(delta: float) -> void:
 	if infinite_time > 0.0:
 		stamina = max_stamina
 	_since_spend += delta
-	if _since_spend >= REGEN_DELAY and not _stepping:  # it comes back the moment the wizard stops moving their body
+	if wild:
+		_be_wild(delta)
+	elif _since_spend >= REGEN_DELAY and not _stepping:  # it comes back the moment the wizard stops moving their body
 		restore_stamina(STAMINA_REGEN * delta)
 	queue_redraw()
 	_shield.queue_redraw()
@@ -755,7 +857,7 @@ func _physics_process(delta: float) -> void:
 		if brain == null and Input.is_action_just_released("jump") and velocity.y < JUMP_VELOCITY * 0.4:
 			velocity.y = JUMP_VELOCITY * 0.4
 		# Walking is free; running drains stamina. With none left you still walk, at half speed.
-		var speed := (SPEED if stamina > 0.0 else SPEED * 0.5) * (0.5 if slow_time > 0.0 else 1.0) * (0.4 if sink_time > 0.0 else 1.0) * (0.3 if tangle_time > 0.0 else 1.0) * (HASTE if haste_time > 0.0 else 1.0) * (OBSIDIAN_SPEED if obsidian_time > 0.0 else 1.0)
+		var speed := (SPEED if stamina > 0.0 else SPEED * 0.5) * (0.5 if slow_time > 0.0 else 1.0) * (0.4 if sink_time > 0.0 else 1.0) * (0.3 if tangle_time > 0.0 else 1.0) * (HASTE if haste_time > 0.0 else 1.0) * (OBSIDIAN_SPEED if obsidian_time > 0.0 else 1.0) * (WILD_SPEED if wild else 1.0)
 		velocity.x = Input.get_axis("move_left", "move_right") * speed if brain == null else clampf(_walk, -speed, speed)
 		_stepping = absf(velocity.x) > 10.0
 		if is_on_floor() and absf(velocity.x) > 10.0 and stamina > 0.0:
@@ -1116,7 +1218,7 @@ func share() -> void:
 ## On the machine that drives the wizard: what the others are sent (see share).
 func _tell_others() -> void:
 	net_position = global_position
-	marks = (FROZEN if is_frozen() else 0) | (SHIELDED if has_shield() else 0) | (OBSIDIAN if obsidian_time > 0.0 else 0) | (STUCK if _stuck_time > 0.0 else 0) 			| (GROUNDED if is_on_floor() else 0) | (ROOTED if is_rooted() else 0) | (SLOWED if is_slowed() else 0) | (FADED if fade_time > 0.0 else 0) | (VEILED if veil > 0 else 0)
+	marks = (FROZEN if is_frozen() else 0) | (SHIELDED if has_shield() else 0) | (OBSIDIAN if obsidian_time > 0.0 else 0) | (STUCK if _stuck_time > 0.0 else 0) 			| (GROUNDED if is_on_floor() else 0) | (ROOTED if is_rooted() else 0) | (SLOWED if is_slowed() else 0) | (FADED if fade_time > 0.0 else 0) | (VEILED if veil > 0 else 0) | (WILD if wild else 0)
 	if brain != null:
 		shown_stroke = _drawn_so_far()
 
@@ -1133,6 +1235,9 @@ func _drawn_so_far() -> PackedVector2Array:
 ## is heard as it begins, as a brain's is on the host, whoever is drawing.
 func _follow() -> void:
 	_was_casting = casting
+	if wild != (marks & WILD != 0):
+		wild = marks & WILD != 0  # the driving machine has changed shape
+		_dress()
 	if global_position.distance_to(net_position) > SNAP:
 		global_position = net_position
 		reset_physics_interpolation()

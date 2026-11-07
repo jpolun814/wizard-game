@@ -14,6 +14,7 @@ const CHARACTERS := {
 	"dark_wizard": {"size": Vector2(126, 101), "body": Rect2(-9.9, -66.0, 30.0, 66.0), "flyer": false},
 	"pyre_wizard": {"size": Vector2(84, 69), "body": Rect2(-6.5, -63.0, 16.0, 63.0), "flyer": false},
 	"knight": {"size": Vector2(182, 76), "body": Rect2(-13.7, -64.0, 22.0, 64.0), "flyer": false},
+	"werewolf": {"size": Vector2(134, 91), "body": Rect2(-13.0, -57.0, 38.0, 57.0), "flyer": false},
 }
 
 const FX := {

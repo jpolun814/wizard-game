@@ -512,6 +512,20 @@ func _plan() -> void:
 					_cast(spell_name, _stroke(gesture, spot, rng.randf_range(0.8, 1.3)))
 					_player().max_stamina = 9999.0)
 			_at(13.0, func() -> void: print("soak done, %d enemies left" % [_arena.get_tree().get_nodes_in_group("mobs").size()]))
+		"wild":
+			# Wild Shape: the wizard turns into a werewolf and claws a skeleton.
+			_at(0.3, func() -> void:
+				_player().ledger.learn_all()
+				_cast("Wild Shape", _stroke("eclipse", _player().global_position + Vector2(0, -60), 1.0)))
+			_at(0.8, func() -> void:
+				var mob := _summon_at("basic", _player().global_position.x + 60.0)
+				mob.max_hp = 500
+				mob.hp = 500
+				_player().facing = 1.0)
+			for i in 6:
+				_at(1.2 + i * 0.35, func() -> void:
+					_player().claw()
+					_snap("wild"))
 		"brawl":
 			# A mixed group comes for a player who stands still, to watch them chase, wind up, shoot and dive.
 			_at(0.3, func() -> void:

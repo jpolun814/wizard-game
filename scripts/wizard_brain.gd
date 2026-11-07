@@ -84,7 +84,7 @@ const LIFT_STAND := {"Updraft": 0.0}  # how close to a rival on a ledge it stand
 const CHASE_REST := 10.0        # seconds between two tries at a way up to a rival
 const OAK_CHASE_MAX := 190.0    # pixels up to a rival that an oak can still be climbed for (its low ledge, and a jump from it)
 const LIFTS := ["Geyser", "Updraft", "Rocket Jump", "Push", "Liana", "Great Oak", "Tornado"]  # what raises it up a wall or to a rival, the one it likes best first
-const TEND_REST := {"Flare": 40.0, "Glowcap": 60.0, "Moonbeam": 30.0, "Adrenaline": 25.0, "Sneak": 25.0, "Crimson Veil": 8.0, "Obsidian Armor": 25.0,
+const TEND_REST := {"Flare": 40.0, "Glowcap": 60.0, "Moonbeam": 30.0, "Adrenaline": 25.0, "Wild Shape": 30.0, "Sneak": 25.0, "Crimson Veil": 8.0, "Obsidian Armor": 25.0,
 		"Featherfall": 20.0, "Decoy": 8.0, "Stone Wall": 6.0, "Smoke Screen": 10.0, "Eclipse": 14.0, "Hunter's Mark": 25.0}  # seconds before it looks to the same need with the same spell again
 ## What the brain does with every spell there is (a test holds it to this: a spell with no line here is one it would never cast, and each line is met by a check).
 const USES := {
@@ -95,7 +95,7 @@ const USES := {
 	"Barbs": "attack", "Pebble": "attack", "Hailstorm": "attack", "Thorn Whip": "attack", "Insect Plague": "attack", "Leech": "attack", "Raise Dead": "attack", "Flaming Sphere": "attack", "Eldritch Blast": "attack", "Hemorrhage": "attack", "Supernova": "attack", "Scythe": "attack", "Mirage": "attack",
 	"Barrier": "defence", "Gust": "defence", "Shadow Step": "defence, and a way over a chasm", "Push": "repel, and a way up", "Rocket Jump": "a way up", "Geyser": "repel, and a way up",
 	"Stone Wall": "tend", "Smoke Screen": "tend", "Decoy": "tend", "Eclipse": "tend", "Crimson Veil": "tend", "Obsidian Armor": "tend, and a way through lava",
-	"Adrenaline": "tend", "Sneak": "tend", "Hunter's Mark": "tend", "Flare": "tend", "Glowcap": "tend", "Moonbeam": "tend",
+	"Adrenaline": "tend", "Wild Shape": "tend, and fights as a werewolf", "Sneak": "tend", "Hunter's Mark": "tend", "Flare": "tend", "Glowcap": "tend", "Moonbeam": "tend",
 	"Featherfall": "tend, in a long fall", "Updraft": "a way up", "Great Oak": "a way up", "Liana": "a way up", "Frost Bridge": "a way over water", "Lily Pads": "a way over water",
 }
 
@@ -237,6 +237,10 @@ func think(delta: float) -> void:
 		if _tend(to_player, sees, fighting):
 			_tend_cooldown = 1.4 + _rng.randf() * 0.8
 
+	if wizard.wild and fighting:
+		_wolf(to_player, sees)  # a werewolf has no spells: it runs at the rival and claws
+		return
+
 	# Footwork, or the journey.
 	var run: float
 	if not _lift.is_empty():
@@ -260,6 +264,15 @@ func think(delta: float) -> void:
 			_cast_cooldown = lerpf(2.8, 1.5, skill) + _rng.randf() * 0.8
 		else:
 			_cast_cooldown = 0.4
+
+
+## A werewolf's turn: straight at the rival, and a swipe once they are in reach.
+func _wolf(to_player: Vector2, sees: bool) -> void:
+	var near := absf(to_player.x) < Wizard.CLAW_REACH * 0.8
+	wizard.walk(0.0 if near else signf(to_player.x) * Wizard.SPEED * Wizard.WILD_SPEED)
+	wizard.facing = signf(to_player.x) if to_player.x != 0.0 else wizard.facing
+	if sees and absf(to_player.x) < Wizard.CLAW_REACH and absf(to_player.y) < 60.0:
+		wizard.claw()
 
 
 func _reaction_time() -> float:
@@ -1552,6 +1565,8 @@ func _tend(to_player: Vector2, sees: bool, fighting: bool) -> bool:
 		weights["Featherfall"] = 4.0  # a long fall
 	if (tired or (fighting and gap > FAR)) and wizard.adrenaline_time <= 0.0:
 		weights["Adrenaline"] = 1.2
+	if fighting and sees and gap < 260.0 and wizard.max_stamina > 90.0 and not wizard.wild:
+		weights["Wild Shape"] = 1.1  # a rival close at hand: it comes at them with claws
 	if _goal != "page" and _scent <= 0.0:
 		weights["Hunter's Mark"] = 1.0
 	if fighting:
@@ -1595,6 +1610,8 @@ func _tend_stroke(spell_name: String, to_player: Vector2) -> PackedVector2Array:
 			return _line(Vector2(at.x, at.y - 70.0), Vector2(at.x, at.y + 10.0))
 		"Adrenaline":
 			return _offset(GestureTemplates.preview_points("zigzag"), here, 0.6)
+		"Wild Shape":
+			return _offset(GestureTemplates.preview_points("eclipse"), here, 0.9)
 		"Hunter's Mark":
 			return _offset(GestureTemplates.preview_points("arrow"), here, 0.6)
 		"Sneak":  # a wave deep enough not to be read as a flick, which is a Shadow Step on the same buttons

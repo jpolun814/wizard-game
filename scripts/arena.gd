@@ -674,6 +674,9 @@ func _spawn_spell(spell: String, targeting: String, origin: Vector2, aim: float,
 			Fx.burst(self, caster_node.center(), Color(0.45, 0.4, 0.6), 16, 120.0, 0.5, true)
 			Sfx.play("glass", caster_node.center())
 			return
+		"Wild Shape":
+			caster_node.become_wild()
+			return
 		"Adrenaline":
 			caster_node.grant_adrenaline(10.0)
 			Fx.burst(self, caster_node.center(), SpellData.SCHOOL_COLORS["Blood"], 14, 150.0, 0.5, true)
