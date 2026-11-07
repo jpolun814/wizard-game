@@ -169,9 +169,9 @@ collapses without its effect, it is describing the rule, not the spell.
 **Test 3: Are there no numbers?**
 No counts, durations, percentages, multipliers, distances, costs or damage figures. Not "for 10 seconds",
 not "50% more damage", not "1.6 times faster", not "6 damage each", not "two hits". Words such as "a little
-while" and "for a while" are fine; they are how a person speaks. The owner's example of what not to write:
+while" and "for a while" are not wanted either (see the vocabulary list). The owner's example of what not to write:
 "move 1.6 times faster, allowing you to run past poison clouds without losing all max stamina". The right
-version is "Run faster." or "Surge with speed for a little while."
+version is "Run faster."
 
 **Test 4: Is there no meta information?**
 Meta information is anything about the game rather than the world: how to use a spell, when to use it, what
@@ -195,7 +195,7 @@ enemy, so the text must not imply it can.
 Read the line aloud as a sentence someone might actually speak. Fails: "Quicken your feet." (nobody says this),
 "Hold your breath for a while, even under water." (the phrase "even under water" implies water was not
 included, so the reader doubts the claim), "Offering" (a label, not an action).
-Passes: "Run faster for a while." "Hold your breath for a while." "Give blood now, and draw on its strength once
+Passes: "Run faster." "Hold your breath." "Give blood now, and draw on its strength once
 the rest is spent." (confirmed by the owner). Pronouns must be clear: "Knock the target
 unconscious", not "Knock whoever is under it unconscious" (the reader cannot tell what "it" means).
 
@@ -207,7 +207,7 @@ unconscious", not "Knock whoever is under it unconscious" (the reader cannot tel
 - Use **sprout**, **grow**, **raise**, **summon** for things that come up out of the world.
 - Use **negate** rather than **catch**, **absorb** or **block** when a spell stops harm ("Wrap yourself in a veil
   of blood that negates the next few attacks.").
-- Use **a little while** or **for a while** instead of a number.
+- Do not write "for a while", "for a little while" or "for a short amount of time" (owner, 2026-11-07: "I don't like the wording"). Leave the length out: the player learns it by casting.
 - Use **the target** or **anyone** instead of **it**, **whoever** or **them** when the referent is unclear.
 
 ### The owner's standing corrections (each one is a rule)
@@ -221,15 +221,14 @@ unconscious", not "Knock whoever is under it unconscious" (the reader cannot tel
 - Ice Prison: "Freeze things in a block of solid ice." Not "Lock anything inside the circle".
 - Crimson Veil: "negates", not "catches"; "attacks", not "blows".
 - Frostbolt: "Shoot", not "Hurl". Flare: "Light a small flame to light your way." Barrier: "Protect yourself from projectiles by blowing them away." Earthquake: "Shake the earth."
-  Moonbeam: no "that lingers for a while". Silence: "Block magic from being cast in the area." Sneak: "Become invisible for a while, until your next spell interrupts it." Adrenaline: it makes you
+  Moonbeam: no "that lingers for a while". Silence: "Block magic from being cast in the area." Sneak: "Become invisible until your next spell interrupts it." Adrenaline: it makes you
   faster, hurt less and hit harder, and the line says so. Fight or Flight: "Trigger the target's fight or flight response." Raise Dead: "Summon an undead servant."
-- Chants: Rite of the Land "Reveal a map of the world."; Vires Fluant "Gain unlimited stamina for a short amount of time."; Locum Muta "Teleport to a random location. WARNING: this can be
+- Chants: Rite of the Land "Reveal a map of the world."; Vires Fluant "Gain unlimited stamina."; Locum Muta "Teleport to a random location. WARNING: this can be
   devastating." (the owner wants the warning back); Oculum Mitto "Spy on another wizard."
 - Black Hole (formerly Abyss): name it Black Hole, and describe it as a black hole, not as a "knot of darkness".
 - Eclipse: the whole world goes dark (for as long as an Earthquake lasts, at the cost of one), so the line says so: "Plunge the whole world into darkness." Not "around you".
 - Rituals: "Gain deeper knowledge of those around you."
-  "Never tire for a while." "Jump again in mid-air for a while." "Hold your breath for a while."
-  "Open a long-lasting portal back to your mark." "Mark this place." "Show the land around you."
+  "Jump again in mid-air." "Hold your breath."
 - Bonfire: "Kindle a bonfire and heal your wounds." (confirmed by the owner). ("Wounds" is the
   in-world word for what costs maximum stamina.)
 

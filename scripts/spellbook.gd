@@ -536,7 +536,7 @@ static func ritual_effect(ritual_id: String) -> String:
 		"bonfire":
 			return "Kindle a bonfire and heal your wounds."
 		"boundless":
-			return "Gain unlimited stamina for a short amount of time."
+			return "Gain unlimited stamina."
 		"double_jump":
 			return "Jump again in mid-air."
 		"rift":
@@ -544,7 +544,7 @@ static func ritual_effect(ritual_id: String) -> String:
 		"haste":
 			return "Run faster."
 		"deep_breath":
-			return "Hold your breath for a while."
+			return "Hold your breath."
 		"scrying_eye":
 			return "Spy on another wizard."
 		"dowsing":
