@@ -10,16 +10,20 @@ const SCALE := {"wizard": 1.0, "dark_wizard": 1.5, "pyre_wizard": 1.7, "bone_wiz
 const NAMES := {"wizard": "Wizard", "dark_wizard": "Hooded", "pyre_wizard": "Pyre", "bone_wizard": "Pale", "fire_wizard": "Fire", "wanderer": "Wanderer", "lightning_mage": "Lightning"}
 
 ## Each figure's two groups of colours: the hue at the middle of the group and how far either side of it the group reaches (both in turns of the
-## colour wheel), and the least colour a pixel must have to be counted. The first is the robe, the second the trim.
+## colour wheel), and the least colour a pixel must have to be counted. A fourth number, for the figures drawn in dark colours, is how much brighter that group is made when a set of colours recolours it. The first is the robe, the second the trim.
 const GROUPS := {
 	"wizard": [[0.75, 0.14, 0.25], [0.125, 0.04, 0.35]],        # the purple hood and cloak, and the gold edging
 	"dark_wizard": [[0.79, 0.17, 0.15], [0.09, 0.04, 0.35]],    # the purple robe and staff, and the orange trim
 	"pyre_wizard": [[0.0, 0.06, 0.3], [0.13, 0.05, 0.3]],       # the red robe, and the gold and flame
 	"bone_wizard": [[0.0, 0.06, 0.3], [0.7, 0.09, 0.08]],       # the red cloth, and the grey-blue bone
-	"fire_wizard": [[0.62, 0.05, 0.12], [0.08, 0.04, 0.45]],    # the slate robe, and the orange scarf
-	"wanderer": [[0.62, 0.06, 0.1], [0.98, 0.05, 0.35]],        # the dark blue robe, and the red of the cloth
-	"lightning_mage": [[0.03, 0.04, 0.35], [0.95, 0.04, 0.4]],  # the brown robe, and the crimson scarf
+	"fire_wizard": [[0.65, 0.08, 0.12, 2.2], [0.98, 0.07, 0.25, 1.8]],        # the slate robe, and the red cloth
+	"wanderer": [[0.64, 0.07, 0.12, 3.0], [0.04, 0.06, 0.15, 2.4]],            # the dark blue robe, and the brown hood and cloth
+	"lightning_mage": [[0.995, 0.03, 0.35, 1.6], [0.93, 0.02, 0.3, 1.7]],       # the brown-red robe and the red scarf, and the dark crimson of the cloak
 }
+
+## A figure whose cloak is drawn in plain black has no hue to turn, so in a set of colours its black becomes a very dark shade of the robe's hue:
+## how much colour, and how bright.
+const BLACK_CLOAKS := {"wanderer": [0.75, 0.2]}
 
 ## The sets of colours, the same for every figure: a name, the hue the robe turns to and how much colour it keeps, and the same for the trim. The
 ## first leaves the figure as it was drawn. (A hue of -1 leaves a group alone.)
@@ -64,8 +68,12 @@ static func paint(material: ShaderMaterial, look: String, palette: int) -> void:
 	var set: Dictionary = PALETTES[clampi(palette, 0, PALETTES.size() - 1)]
 	var robe: Array = groups[0]
 	var trim: Array = groups[1]
-	material.set_shader_parameter("robe_group", Vector4(robe[0], robe[1], robe[2], 0.0))
-	material.set_shader_parameter("trim_group", Vector4(trim[0], trim[1], trim[2], 0.0))
+	material.set_shader_parameter("robe_group", Vector4(robe[0], robe[1], robe[2], robe[3] if robe.size() > 3 else 0.0))
+	material.set_shader_parameter("trim_group", Vector4(trim[0], trim[1], trim[2], trim[3] if trim.size() > 3 else 0.0))
+	var shade := Vector4(-1.0, 0.0, 0.0, 0.0)
+	if BLACK_CLOAKS.has(look) and set["robe"][0] >= 0.0:
+		shade = Vector4(set["robe"][0], BLACK_CLOAKS[look][0], BLACK_CLOAKS[look][1], 0.0)
+	material.set_shader_parameter("shade", shade)
 	material.set_shader_parameter("robe_goal", Vector4(set["robe"][0], set["robe"][1], 0.0, 0.0))
 	material.set_shader_parameter("trim_goal", Vector4(set["trim"][0], set["trim"][1], 0.0, 0.0))
 

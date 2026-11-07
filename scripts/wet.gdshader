@@ -12,8 +12,9 @@ uniform float aura = 0.0;                       // 0 to 1: how strongly a blood 
 // The wizard's colours (see WizardLook): two groups of the picture's colours, each picked out by its hue (centre and half-width, in turns of the
 // colour wheel, and the least colour a pixel must have to count), are turned to a new hue and made more or less colourful. Skin, wood and
 // outlines are in neither group, so they stay as they were. A hue of -1 leaves a group as it is.
-uniform vec4 robe_group = vec4(-1.0, 0.0, 0.0, 0.0);   // hue, half-width, least colour, (unused)
+uniform vec4 robe_group = vec4(-1.0, 0.0, 0.0, 0.0);   // hue, half-width, least colour, and how much brighter and livelier a dark figure's group is made when it is recoloured (0: not at all)
 uniform vec4 trim_group = vec4(-1.0, 0.0, 0.0, 0.0);
+uniform vec4 shade = vec4(-1.0, 0.0, 0.0, 0.0);        // for a figure whose cloak is black: the hue, colour and brightness its black becomes (hue -1: stays black)
 uniform vec4 robe_goal = vec4(-1.0, 1.0, 0.0, 0.0);    // the hue it becomes (-1: unchanged), and how much colour it keeps
 uniform vec4 trim_goal = vec4(-1.0, 1.0, 0.0, 0.0);
 
@@ -55,6 +56,10 @@ vec3 recolour(vec3 rgb, vec3 hsv, vec4 group, vec4 goal) {
 		moved.x = fract(hsv.x + goal.x - group.x);
 	}
 	moved.y = clamp(hsv.y * goal.y, 0.0, 1.0);
+	if (goal.x >= 0.0 && group.w > 1.0) {
+		moved.z = clamp(hsv.z * group.w, 0.0, 1.0);
+		moved.y = clamp(moved.y * (1.0 + (group.w - 1.0) * 0.6), 0.0, 1.0);
+	}
 	return mix(rgb, hsv_to_rgb(moved), part);
 }
 
@@ -71,6 +76,11 @@ void fragment() {
 		vec3 hsv = rgb_to_hsv(c.rgb);
 		c.rgb = recolour(c.rgb, hsv, robe_group, robe_goal);
 		c.rgb = recolour(c.rgb, hsv, trim_group, trim_goal);
+	}
+	if (shade.x >= 0.0) {
+		float top = max(c.r, max(c.g, c.b));
+		float dark = 1.0 - smoothstep(0.03, 0.12, top);
+		c.rgb = mix(c.rgb, hsv_to_rgb(vec3(shade.x, shade.y, shade.z)), dark);
 	}
 	if (world_y > water_y) {
 		c.rgb *= water_tint.rgb;

@@ -16,11 +16,12 @@ func _ready() -> void:
 	back.size = Vector2(1280, 720)
 	back.z_index = -10
 	add_child(back)
-	var line := ColorRect.new()
-	line.color = Color(1, 1, 0, 0.5)
-	line.position = Vector2(0, 700.0 - 79.0 * 1.0)
-	line.size = Vector2(1280, 1)
-	add_child(line)
+	for row in WizardLook.LOOKS.size():  # a line over each row at the height of the head
+		var line := ColorRect.new()
+		line.color = Color(1, 1, 0, 0.5)
+		line.position = Vector2(0, 100.0 + row * 100.0 - 79.0)
+		line.size = Vector2(1280, 1)
+		add_child(line)
 	for row in WizardLook.LOOKS.size():
 		var look: String = WizardLook.LOOKS[row]
 		for palette in WizardLook.PALETTES.size():
@@ -29,7 +30,7 @@ func _ready() -> void:
 			sprite.offset = Vector2(0, -PixelArt.CHARACTERS[look]["size"].y * 0.5)
 			sprite.scale = Vector2.ONE * WizardLook.scale_of(look)
 			sprite.material = WizardLook.material_for(look, palette)
-			sprite.position = Vector2(80.0 + palette * 150.0, 160.0 + row * 170.0)
+			sprite.position = Vector2(80.0 + palette * 150.0, 100.0 + row * 100.0)
 			sprite.play("idle")
 			add_child(sprite)
 	for k in 6:
