@@ -25,6 +25,8 @@ var _sketch := Vector2i(-1, -1)  # sketch=X,Y prints the map round that tile at 
 var _finished := false
 var _seen: Array[Dictionary] = []  # for each wizard, in the order of _wizards: {"kind", "pages": how many it held when last seen}
 var _set_up := false
+var _kill_at := -1.0  # kill=SECONDS fells the wizard with the most pages then, and reports whether anyone reads the book it drops
+var _killed := false
 var _watch := false  # watch=1: a camera follows a wizard still standing, for looking at the match in a window
 var _camera: Camera2D
 
@@ -43,6 +45,8 @@ func _ready() -> void:
 			_shot = arg.substr(5)
 		elif arg.begins_with("sketch="):
 			_sketch = Vector2i(int(arg.get_slice(",", 0).substr(7)), int(arg.get_slice(",", 1)))
+		elif arg.begins_with("kill="):
+			_kill_at = float(arg.substr(5))
 		elif arg == "watch=1":
 			_watch = true
 		elif arg == "keep=1":
@@ -110,6 +114,19 @@ func _physics_process(delta: float) -> void:
 			_beaten[wizard] = _clock
 			if is_instance_valid(wizard):
 				print("        %s fell at tile (%d, %d)" % [wizard.look, wizard.global_position.x / 32.0, wizard.global_position.y / 32.0])
+	if _kill_at >= 0.0 and _clock >= _kill_at and not _killed:
+		_killed = true
+		var richest: Wizard = null
+		for w in _wizards:
+			if is_instance_valid(w) and not w.dead and (richest == null or w.ledger.count() > richest.ledger.count()):
+				richest = w
+		if richest != null:
+			print("KILL %s at tile (%d, %d) holding %d pages" % [richest.look, richest.global_position.x / 32.0, richest.global_position.y / 32.0, richest.ledger.count()])
+			richest.take_damage(100000, false)
+	if _killed and fmod(_clock, 10.0) < delta:
+		for pickup: PagePickup in get_tree().get_nodes_in_group("pages"):
+			if not pickup.spoils.is_empty():
+				print("SPOILS still lie at tile (%d, %d) at %.0fs" % [pickup.global_position.x / 32.0, pickup.global_position.y / 32.0, _clock])
 	if _clock >= _next_report:
 		_next_report += report
 		_print_state()

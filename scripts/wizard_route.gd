@@ -63,6 +63,11 @@ func status() -> String:
 
 
 ## The tile the path ends at, or (-1, -1) with no path.
+## It is standing still on purpose (waiting for something to pass): that is not being stuck.
+func wait() -> void:
+	_stuck = 0.0
+
+
 func goal() -> Vector2i:
 	return _path[_path.size() - 1] if not _path.is_empty() else WorldNav.NONE
 

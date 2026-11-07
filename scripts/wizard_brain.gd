@@ -25,6 +25,7 @@ const PAGE_STEPS_TIME := 3.0     # seconds it tries
 const PORTAL_LEFT := 3.0        # seconds: a portal with less than this left open is not worth the walk
 const PORTAL_CHANCE := 0.75     # how often it takes a portal that is nearer than the page it was after
 const PORTAL_JUMP_FOR := 5.0    # seconds it stands under a portal hung in the air, jumping for it, before it takes it for out of reach
+const DANGER_WAIT_MAX := 12.0  # seconds it waits before something dangerous on its way (an erupting volcano, a fire) before it goes on regardless
 const GIVE_UP := 45.0         # seconds a page it could not reach stays off its list
 const NEAR := 190.0           # closer than this it backs away
 const FAR := 330.0            # farther than this it closes in
@@ -115,6 +116,7 @@ var _strafe_timer := 0.0
 var _escape_time := 0.0
 var _escape_dir := 0.0
 var _jump_cooldown := 0.0
+var _danger_wait := 0.0       # seconds it has stood waiting for danger on its way to pass
 var _hop_timer := 1.5  # counting down to its next hop while it walks
 var _pressure := 0.0          # how many shots you have thrown at it lately
 var _seen_shots := {}
@@ -402,6 +404,14 @@ func _travel(delta: float) -> float:
 	if steer["replan"]:
 		stuck_at.append("%s %s" % [str(_tile_of(wizard.global_position)), _route.status()])
 		_stuck_on_goal()
+	var ahead := signf(steer["dir"])
+	if ahead != 0.0 and wizard.is_on_floor() and _in_danger(wizard.global_position + Vector2(ahead * 48.0, -10.0)) and not _in_danger(wizard.global_position + Vector2(0, -6)):
+		if _danger_wait < DANGER_WAIT_MAX:  # something burning or erupting lies on the way: it waits for it to pass, and goes on when it has waited long enough
+			_danger_wait += delta
+			_route.wait()
+			return 0.0
+	else:
+		_danger_wait = 0.0
 	if steer["jump"] and wizard.is_on_floor():
 		wizard.request_jump()
 	wizard.climb_up = steer["climb"]  # at the foot of a rope ladder, the way up it
@@ -810,6 +820,7 @@ func _choose_goal() -> void:
 		return
 	var best_page: PagePickup = null
 	var best_path: Array[Vector2i] = []
+	var best_worth := INF
 	for pickup: PagePickup in wizard.get_tree().get_nodes_in_group("pages"):
 		if not pickup.gives(wizard.ledger) or _skip.has(pickup.get_instance_id()) or (pickup is Mirage and _wise_to_mirages):
 			continue
@@ -823,9 +834,11 @@ func _choose_goal() -> void:
 		if path.is_empty():
 			_skip[pickup.get_instance_id()] = GIVE_UP  # no way there that a wizard can walk
 			continue
-		if best_page == null or path.size() < best_path.size():
+		var worth := path.size() / sqrt(maxf(1.0, float(pickup.new_pages(wizard.ledger).size())))  # a dropped book is worth the walk: the more pages it would give, the nearer it counts
+		if best_page == null or worth < best_worth:
 			best_page = pickup
 			best_path = path
+			best_worth = worth
 	var portal := _nearest_portal(start)
 	if portal.has("portal") and (best_page == null or (portal["path"].size() < best_path.size() and _rng.randf() < PORTAL_CHANCE)):
 		_goal = "portal"
