@@ -98,7 +98,7 @@ func gate_target(entry: Dictionary) -> Vector2:
 		if is_instance_valid(node) and not node.is_queued_for_deletion():
 			var point: Vector2 = node.global_position
 			if node is RockWall:
-				point = Vector2((float(entry["first"]) + 0.5) * ArenaGen.TILE, (float(node.columns[0]["top"]) + float(node.columns[0]["bottom"])) * 0.5 * ArenaGen.TILE)
+				point = Vector2((float(entry["first"]) + 0.5) * ArenaGen.TILE, maxf((float(node.columns[0]["top"]) + float(node.columns[0]["bottom"])) * 0.5, float(node.columns[0]["bottom"]) - 5.0) * ArenaGen.TILE)  # (a tall wall is struck at its foot, within reach)
 			elif node is Bramble:
 				point = node.planted_ground[node.planted_ground.size() / 2] + Vector2(0.0, -17.0)
 				var cols: PackedVector2Array = node.planted_ground
@@ -259,6 +259,7 @@ func _place_lectern() -> void:
 	var far_right: bool = player.global_position.x < 0.0
 	var col := ArenaGen.right_wall - 3 if far_right else ArenaGen.LEFT_WALL + 3
 	_lectern.position = Vector2(ArenaGen.column_x(col), ArenaGen.surface_y(_cells, col))
+	_lectern.add_to_group(&"exit_points")  # where a brain goes when there is nothing left to take
 	_lectern.body_entered.connect(_on_book_touched)
 	add_child(_lectern)
 	hud.point_to_portal(_lectern)  # the arrow at the edge of the screen points at it

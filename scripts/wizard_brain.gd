@@ -44,7 +44,7 @@ const CLEARS := {  # the gates a wizard clears, and the spells that do it, best 
 	"giant": ["Faint"],  # what has too much strength to kill is put to sleep
 }
 const WAYS := {  # the spells (and chants) that get a wizard past each crossing that no one clears, the one it likes best first
-	"chasm": ["Shadow Step", "chant:double_jump", "Obsidian Armor"],  # (a Gust shoves a wizard too little to carry it over; the glass wades through the lava, and needs a way up the far side)
+	"chasm": ["Shadow Step", "chant:double_jump", "leap:air", "Obsidian Armor"],  # (a Gust shoves a wizard too little to carry it over; the glass wades through the lava, and needs a way up the far side)
 	"flood": ["Frost Bridge", "Lily Pads", "Shadow Step"],
 	"piranhas": ["Frost Bridge", "Lily Pads", "Shadow Step"],
 	"sentinel": ["Smoke Screen", "Eclipse", "Barrier", "Decoy"],
@@ -211,6 +211,10 @@ func think(delta: float) -> void:
 		_eye_time = EYE_SECONDS  # it has lost track of everyone: it sends out an eye
 		_foe = _nearest_foe()
 	if _foe == null:  # the last wizard standing, or the others are faded from sight: it goes about its journey
+		if _react > 0.0:  # (a reaction it has planned still comes: nothing else counts it down here)
+			_react -= delta
+			if _react <= 0.0:
+				_act(_reaction)
 		wizard.walk(_travel(delta) if SpellTargets.wizards(wizard.get_tree()).size() > 1 or wizard.get_tree().get_first_node_in_group(&"gate_source") != null else 0.0)  # (alone in a match it has won; alone in a room it goes on)
 		return
 	var foe: Wizard = _foe
@@ -387,7 +391,7 @@ func _travel(delta: float) -> float:
 		_gate_tries = 0
 		_clear_gate(creature["target"])
 		return 0.0
-	if (_goal == "" and _goal_timer <= 0.0) or _goal_lost() or (_goal == "foe" and (_goal_timer <= 0.0 or _route.done())):
+	if (_goal == "" and _goal_timer <= 0.0) or _goal_lost() or ((_goal == "foe" or _goal == "exit") and (_goal_timer <= 0.0 or _route.done())):
 		_choose_goal()
 	if _goal != "" and not _route.done() and wizard.is_on_floor():  # (a wizard in the air cannot stop for it; after the goal is chosen, so that a gate on the way is seen before the first step towards it)
 		var crossing := _crossing_ahead()
@@ -509,6 +513,20 @@ func _cross(crossing: Dictionary) -> bool:
 				_cross_run = dir * WALK_SPEED
 			elif wizard.is_on_floor() and (wizard.air_jump_time > 0.0 or wizard.chant("double_jump")):
 				_leap = {"dir": dir, "key": crossing["key"], "steps": 0, "span": span, "jumped": false, "air": 0.0, "double": true}
+		"leap:air":  # it jumps from the edge, and in the air a rocket throws it up and a feather lets it drift down, across
+			var edge := span.position.x if dir > 0 else span.end.x
+			if (edge - wizard.global_position.x) * dir > 20.0:
+				_cross_run = dir * WALK_SPEED
+			elif wizard.is_on_floor():
+				var air: Array[String] = []
+				for helper: String in ["Rocket Jump", "Featherfall"]:
+					if _knows(helper):
+						air.append(helper)
+				var cost := 0.0
+				for helper in air:
+					cost += SpellData.SPELLS[helper].cost
+				if wizard.stamina >= cost:
+					_leap = {"dir": dir, "key": crossing["key"], "steps": 0, "span": span, "jumped": false, "air": 0.0, "helpers": air}
 		"Lily Pads":  # a row at a time, as far as it reaches, and the next when it has come to the end of that
 			if wizard.stamina >= SpellData.SPELLS[spell_name].cost:
 				var reach := span.grow_individual(WizardRoute.TILE, 0.0, WizardRoute.TILE, 0.0)  # pads run a tile onto the bank at each end
@@ -588,6 +606,16 @@ func _leaping(delta: float) -> float:
 		wizard.request_jump()
 		return dir * WizardRoute.MAX_AIR_SPEED
 	_leap["air"] += delta
+	var helpers: Array = _leap.get("helpers", [])
+	if not helpers.is_empty() and not wizard.is_drawing():
+		if helpers[0] == "Rocket Jump" and wizard.velocity.y < -40.0 and _leap["air"] > 0.12:
+			helpers.pop_front()
+			_begin_cast("Rocket Jump", _offset(GestureTemplates.preview_points("rocket"), wizard.center(), 0.6), LEAP_DRAW)
+		elif helpers[0] == "Featherfall" and wizard.velocity.y > -20.0:
+			helpers.pop_front()
+			_begin_cast("Featherfall", _tend_stroke("Featherfall", Vector2.ZERO), LEAP_DRAW)
+		elif helpers[0] == "Rocket Jump" and wizard.velocity.y > -20.0 and _leap["air"] > 0.5:
+			helpers.pop_front()  # (it missed the moment)
 	if _leap.get("double", false) and wizard.air_jump_ready and wizard.velocity.y > -20.0:
 		wizard.request_jump()  # the second jump, at the top of the first
 		_leap["double"] = false
@@ -813,6 +841,13 @@ func _choose_goal() -> void:
 		return
 	if _choose_gate(start):
 		return
+	var exit := wizard.get_tree().get_first_node_in_group(&"exit_points")  # a room's way out, when nothing is left to take
+	if exit != null:
+		var way: Array[Vector2i] = _path(start, wizard.nav.nearest(_tile_of(exit.global_position)))
+		if not way.is_empty():
+			_goal = "exit"
+			_route.set_path(way)
+			return
 	if _foe != null:
 		var path: Array[Vector2i] = _path(start, wizard.nav.nearest(_tile_of(_foe.global_position)))
 		if not path.is_empty():
@@ -908,6 +943,8 @@ func _way_up() -> String:
 
 ## Whether it can cross with a spell: it holds the page, and for black glass, a way up the far side of the pit as well.
 func _usable(spell_name: String) -> bool:
+	if spell_name == "leap:air":
+		return _knows("Rocket Jump") or _knows("Featherfall")
 	return _knows(spell_name) and (spell_name != "Obsidian Armor" or _way_up() != "")
 
 

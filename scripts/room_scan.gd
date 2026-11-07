@@ -49,7 +49,11 @@ func _read(tree: SceneTree, cells: Dictionary, start: Vector2i) -> void:
 	_faces_and_pits(tree, floors, plain)
 	_shoals(tree, floors)
 	_finish(floors)
-	signature = "%d/%d/%d" % [gates.filter(func(gate: Dictionary) -> bool: return not gate.has("mob")).size(), crossings.size(), barred.size()]  # (a creature is not part of the map: it comes and goes)
+	var parts: Array[String] = []
+	for gate in gates:
+		if not gate.has("mob"):  # (a creature is not part of the map: it comes and goes)
+			parts.append("%s %d %d %d" % [gate["kind"], gate["first"], gate["last"], gate["nodes"].size()])
+	signature = "|".join(parts) + "/%d/%d" % [crossings.size(), barred.size()]
 
 
 ## Thorns, gas, walls and eyes: what the room has put in the way.
