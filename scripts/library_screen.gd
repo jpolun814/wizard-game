@@ -639,7 +639,7 @@ func _write_match(area: Control, index: int) -> void:
 		["Pages held", str(int(m.get("pages", 0)))],
 	]
 	if favourite != "":
-		rows.append(["Favourite", favourite])
+		rows.append(["Favorite", favourite])
 	for entry in rows:
 		var row := HBoxContainer.new()
 		row.add_child(_ink(entry[0], 19, Spellbook.SUBTLE))

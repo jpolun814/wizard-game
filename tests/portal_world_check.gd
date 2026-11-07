@@ -124,6 +124,16 @@ func _run(world: World) -> void:
 					if p != gate and fired.global_position.distance_to(p.global_position) < 90.0:
 						came_out = true
 		_check(came_out, "a shot that flies into one comes out of another")
+		await get_tree().create_timer(PortalField.COOLDOWN + 0.3).timeout  # the rider's cooldown is over
+		var open_now := field.open_portals().filter(func(p: FieldPortal) -> bool: return not p.is_closing() and p.remaining() > 3.0)
+		if open_now.size() >= 2:
+			field.stable = true  # the match is decided
+			var spot: Vector2 = open_now[0].global_position + Vector2(0.0, Portal.RY)
+			world.player.global_position = spot
+			for k in 12:
+				await get_tree().physics_frame
+			_check(world.player.global_position.distance_to(spot) < 40.0, "once the match is won, a portal carries no one")
+			field.stable = false
 	var riders := {}
 	var player := world.player
 	field.carried.connect(func(body: Node2D) -> void: riders[body] = riders.get(body, 0) + 1)

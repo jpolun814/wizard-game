@@ -21,7 +21,7 @@ const KILLS := Color("#ffd85a")
 const BODY: Font = preload("res://fonts/Jersey15-Regular.ttf")  # numbers and small words
 const HEAD: Font = Lettering.FACE  # the big words and the title of each page
 const MIST: Shader = preload("res://scripts/hud/crystal_ball.gdshader")
-const PAGES := ["The end", "Blows struck", "Spells learned", "Casting", "The fallen", "The tally", "Favourites"]
+const PAGES := ["The end", "Blows struck", "Spells learned", "Casting", "The fallen", "The tally", "Favorites"]
 const BLOCK := 4.0  # the size of a block of the ball's mist, in pixels
 
 var placement := 1

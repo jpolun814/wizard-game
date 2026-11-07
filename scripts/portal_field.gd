@@ -29,10 +29,21 @@ var margin := 40           # columns at either end of the world where none open
 
 var _open := {}            # portal id -> FieldPortal
 var _recent := {}          # body -> seconds left before it may go in again
+var _had_rivals := false   # more than one wizard has stood in this world
+var stable := false        # the match is decided: the portals carry no one any more
+var _since_count := 0.0
 
 
 func _process(delta: float) -> void:
 	_sync()
+	_since_count += delta
+	if _since_count >= 0.5 and not stable:
+		_since_count = 0.0
+		var standing := SpellTargets.wizards(get_tree()).size()
+		if standing > 1:
+			_had_rivals = true
+		elif _had_rivals:
+			stable = true  # someone has won
 	for body in _recent.keys():
 		_recent[body] -= delta
 		if _recent[body] <= 0.0 or not is_instance_valid(body):
@@ -137,7 +148,7 @@ func _sync() -> void:
 ## A shot that flies into a portal comes out of another one, flying the way it was going. (A shot is not a body, so the portal itself does not notice it.)
 func _physics_process(_delta: float) -> void:
 	var portals := open_portals()
-	if portals.size() < 2:
+	if portals.size() < 2 or stable:
 		return
 	for shot in get_tree().get_nodes_in_group("shots"):
 		if not shot is Node2D or _recent.has(shot) or not shot.has_method("heading"):
@@ -161,7 +172,7 @@ func _physics_process(_delta: float) -> void:
 
 ## Someone stepped into a portal: they come out of another that is open, if there is one.
 func _on_entered(portal: FieldPortal, body: Node2D) -> void:
-	if _recent.has(body):
+	if _recent.has(body) or stable:
 		return
 	if body is Wizard and body.is_likeness():
 		return  # another machine drives that wizard, and moves it through on its own copy of the portal

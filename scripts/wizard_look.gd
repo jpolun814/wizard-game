@@ -14,8 +14,8 @@ const NAMES := {"wizard": "Wizard", "dark_wizard": "Hooded", "pyre_wizard": "Pyr
 const GROUPS := {
 	"wizard": [[0.75, 0.14, 0.25], [0.125, 0.04, 0.35]],        # the purple hood and cloak, and the gold edging
 	"dark_wizard": [[0.79, 0.17, 0.15], [0.09, 0.04, 0.35]],    # the purple robe and staff, and the orange trim
-	"pyre_wizard": [[0.0, 0.06, 0.3], [0.13, 0.05, 0.52]],       # the red robe, and the gold and flame
-	"bone_wizard": [[0.0, 0.06, 0.3], [0.7, 0.09, 0.08]],       # the red cloth, and the grey-blue bone
+	"pyre_wizard": [[0.0, 0.06, 0.3], [0.13, 0.05, 0.62]],       # the red robe, and the gold and flame
+	"bone_wizard": [[0.0, 0.06, 0.3], [0.7, 0.0, 2.0]],         # the red cloth (the pale skin and bone are left as they are: no trim)
 	"fire_wizard": [[0.65, 0.08, 0.12, 2.2], [0.97, 0.035, 0.42, 1.3]],        # the slate robe, and the red cloth
 	"wanderer": [[0.64, 0.07, 0.12, 3.0], [0.04, 0.06, 0.15, 2.4, 0.5]],            # the dark blue robe, and the brown hood and cloth
 	"lightning_mage": [[0.985, 0.03, 0.42, 1.6], [0.1, 0.012, 0.3, 1.0]],       # the brown-red robe and the red scarf, and the blond hair

@@ -49,7 +49,7 @@ func _ready() -> void:
 	column.add_child(figures)
 	for look: String in WizardLook.LOOKS:
 		figures.add_child(_figure_button(look))
-	column.add_child(_heading("Colours", 22, GOLD))
+	column.add_child(_heading("Colors", 22, GOLD))
 	var grid := GridContainer.new()
 	grid.columns = 4
 	grid.add_theme_constant_override("h_separation", 8)
