@@ -26,7 +26,7 @@ var _best := INF
 var _air_speed := WALK
 var _jumped := false  # this move's jump has been made, and the wizard is not down yet
 var _hop := 0.0
-var _ride := Vector2i(-1, -1)  # the landing it is crossing a swinging stair to: once begun, it is carried through whatever else the wizard decides
+var _ride := WorldNav.NONE  # the landing it is crossing a swinging stair to: once begun, it is carried through whatever else the wizard decides
 var _ride_from := 0           # the row it began from
 var _gravity: float = ProjectSettings.get_setting("physics/2d/default_gravity")
 
@@ -47,7 +47,7 @@ func clear() -> void:
 
 ## The tile a number of moves on from the one it is going to (0 is that one), or (-1, -1) when the path is not so long.
 func ahead(moves: int) -> Vector2i:
-	return _path[_next + moves] if _next + moves < _path.size() else Vector2i(-1, -1)
+	return _path[_next + moves] if _next + moves < _path.size() else WorldNav.NONE
 
 
 ## True when there is no path, or the wizard has come to the end of it.
@@ -64,7 +64,7 @@ func status() -> String:
 
 ## The tile the path ends at, or (-1, -1) with no path.
 func goal() -> Vector2i:
-	return _path[_path.size() - 1] if not _path.is_empty() else Vector2i(-1, -1)
+	return _path[_path.size() - 1] if not _path.is_empty() else WorldNav.NONE
 
 
 ## What the body should do this frame: {"dir": -1, 0 or 1, "speed", "jump": leave the ground now, "replan": it is getting nowhere}.
@@ -73,10 +73,10 @@ func steer(body: CharacterBody2D, delta: float) -> Dictionary:
 	_hop = maxf(_hop - delta, 0.0)
 	var feet := body.global_position
 	var grounded := body.is_on_floor()
-	if _ride.x >= 0:  # across a swinging stair: walk to the far landing, whatever has been decided since
+	if _ride != WorldNav.NONE:  # across a swinging stair: walk to the far landing, whatever has been decided since
 		out["dir"] = signf((_ride.x + 0.5) * TILE - feet.x)
 		if _reached(feet, _ride) or feet.y > float(maxi(_ride_from, _ride.y) + 4) * TILE:  # arrived, or thrown off
-			_ride = Vector2i(-1, -1)
+			_ride = WorldNav.NONE
 		_stuck = 0.0
 		return out
 	while _next < _path.size() and (grounded or not _jumped) and _reached(feet, _path[_next]):  # after a jump, it has to be down

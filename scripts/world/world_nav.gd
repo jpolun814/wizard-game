@@ -4,9 +4,15 @@ extends RefCounted
 ## The ways about a world for a wizard on foot: every tile one can stand on, joined by the moves between them (see Walkways), and a search for
 ## the shortest way from one to another. Building it takes a fraction of a second.
 
+## What is given when there is no tile (a room's tiles run negative, so (-1, -1) is a place).
+const NONE := Vector2i(-1000000, -1000000)
+
 var _ways: Walkways
 var _astar := AStar2D.new()
 var _width := 0
+## Where the map's own (0, 0) lies in the world's tiles. A world's map starts at its corner (so this is zero); a room whose columns and rows run negative
+## (the tutorial) builds its map from the corner and sets this, and everything asked of the map and given back by it is in the world's tiles.
+var origin := Vector2i.ZERO
 var version := 0  # counts the times the map has been built, so that a wizard can tell the ways have changed
 var _tolls := {}  # key -> the ids of the tiles that cross a gate a wizard needs a spell to pass
 var _toll_at := {}  # id -> key
@@ -116,24 +122,27 @@ func _tile(id: int) -> Vector2i:
 
 ## The tile to stand on that is nearest a point given in tiles, or (-1, -1) when the map is empty.
 func nearest(tile: Vector2i, standing := false) -> Vector2i:
+	tile -= origin
 	if _astar.get_point_count() == 0:
-		return Vector2i(-1, -1)
+		return NONE
 	if standing and _toll_at.has(_id(tile)) and _astar.has_point(_id(tile)):  # `standing`: the tile is where a wizard is, and it is on a crossing already (on top of a wall it was lifted over): that is where it stands
-		return tile
-	return _tile(_astar.get_closest_point(Vector2(tile)))
+		return tile + origin
+	return _tile(_astar.get_closest_point(Vector2(tile))) + origin
 
 
 ## The tiles to go through, from one tile to another, the first being where it starts; empty when there is no way. `shut` lists the
 ## crossings (by key) that the one asking cannot pass: the way does not go over them, and nearest() never lands on one.
 func path(from: Vector2i, to: Vector2i, shut := []) -> Array[Vector2i]:
 	var out: Array[Vector2i] = []
+	from -= origin
+	to -= origin
 	if not _astar.has_point(_id(from)) or not _astar.has_point(_id(to)):
 		return out
 	for key: String in _tolls:
 		for id in _tolls[key]:
 			_astar.set_point_disabled(id, shut.has(key))
 	for id in _astar.get_id_path(_id(from), _id(to)):
-		out.append(_tile(id))
+		out.append(_tile(id) + origin)
 	for key: String in _tolls:
 		for id in _tolls[key]:
 			_astar.set_point_disabled(id, true)
@@ -142,19 +151,24 @@ func path(from: Vector2i, to: Vector2i, shut := []) -> Array[Vector2i]:
 
 ## The key of the crossing a tile lies on, or "".
 func toll_at(tile: Vector2i) -> String:
+	tile -= origin
 	return _toll_at.get(_id(tile), "")
 
 
 ## The tiles one can get to from a tile in one move.
 func moves(tile: Vector2i) -> Array[Vector2i]:
-	return _ways.moves(tile)
+	var out: Array[Vector2i] = []
+	for to in _ways.moves(tile - origin):
+		out.append(to + origin)
+	return out
 
 
 ## A picture of the map round a tile (see Walkways.sketch).
 func sketch(at: Vector2i) -> String:
-	return _ways.sketch(at)
+	return _ways.sketch(at - origin)
 
 
 ## True when one can stand on this tile.
 func can_stand(tile: Vector2i) -> bool:
+	tile -= origin
 	return _astar.has_point(_id(tile))

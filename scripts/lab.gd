@@ -46,6 +46,77 @@ func _build_map() -> Variant:
 	return cells
 
 
+## What the brains of this room are told about it, as a world tells them (see RoomScan): the map of the ways, and the gates and crossings in it. Kept up to date:
+## when something that bars the way has gone, the map is made again.
+var nav := WorldNav.new()
+var _scan: RoomScan
+var _scan_wait := 0.0
+var _scan_start := Vector2i.ZERO
+
+
+func _enter_tree() -> void:
+	add_to_group(&"gate_source")
+
+
+func read_room(start: Vector2i) -> void:
+	_scan_start = start
+	_scan = RoomScan.read(get_tree(), _cells, start)
+	_scan.build_nav(nav, start)
+
+
+func _watch_the_room(delta: float) -> void:
+	if _scan == null:
+		return
+	_scan_wait -= delta
+	if _scan_wait > 0.0:
+		return
+	_scan_wait = 0.5
+	var again := RoomScan.read(get_tree(), _cells, _scan_start)
+	if again.signature != _scan.signature:
+		_scan = again
+		_scan.build_nav(nav, _scan_start)
+
+
+func crossings() -> Array[Dictionary]:
+	return _scan.crossings if _scan != null else ([] as Array[Dictionary])
+
+
+func closed_gates() -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	if _scan == null:
+		return out
+	for gate in _scan.gates:
+		out.append({"kind": gate["kind"], "outside": gate["outside"], "target": gate_target(gate), "entry": gate})
+	return out
+
+
+## The point of a gate to strike: the middle of the piece of it nearest the way in.
+func gate_target(entry: Dictionary) -> Vector2:
+	var best: Vector2 = Vector2(entry["outside"] * ArenaGen.TILE)
+	var near := INF
+	for node in entry.get("nodes", []):
+		if is_instance_valid(node) and not node.is_queued_for_deletion():
+			var point: Vector2 = node.global_position
+			if node is RockWall:
+				point = Vector2((float(entry["first"]) + 0.5) * ArenaGen.TILE, (float(node.columns[0]["top"]) + float(node.columns[0]["bottom"])) * 0.5 * ArenaGen.TILE)
+			elif node is Bramble:
+				point = node.planted_ground[node.planted_ground.size() / 2] + Vector2(0.0, -17.0)
+				var cols: PackedVector2Array = node.planted_ground
+				var wanted: float = float(entry["outside"].x) * ArenaGen.TILE
+				for ground in cols:
+					if absf(ground.x - wanted) < absf(point.x - wanted):
+						point = ground + Vector2(0.0, -17.0)
+			elif node is GasBank:
+				point = node.box.get_center()
+			elif node is Mob:
+				point = node.center()
+			var apart: float = absf(point.x - float(entry["outside"].x) * ArenaGen.TILE)
+			if apart < near:
+				near = apart
+				best = point
+	return best
+
+
 ## Pushes the ground down (or up, if rows is negative) between two columns, with a smooth slope into it at each end.
 func _dig(heights: PackedFloat32Array, span: Vector2i, rows: float) -> void:
 	for col in range(span.x, span.y + 1):
@@ -114,6 +185,7 @@ var heals_wounds := true
 
 func _process(delta: float) -> void:
 	super(delta)
+	_watch_the_room(delta)
 	if _mark != null and _making == null:
 		_show_guide(_mark.is_near(player.center()))
 	# Health comes back by itself a few seconds after a hit, so nothing here can end the visit.

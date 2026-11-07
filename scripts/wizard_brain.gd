@@ -40,9 +40,11 @@ const CLEARS := {  # the gates a wizard clears, and the spells that do it, best 
 	"ice": ["Fire Breath", "Firewall", "Ignite", "Stonefall", "Earthquake"],
 	"wall": ["Stonefall", "Earthquake"],
 	"piranhas": ["Spark"],
+	"creature": ["Ignite", "Frostbolt", "Fire Breath", "Spark", "Stonefall"],  # anything that stands in the way and can be killed
+	"giant": ["Faint"],  # what has too much strength to kill is put to sleep
 }
 const WAYS := {  # the spells (and chants) that get a wizard past each crossing that no one clears, the one it likes best first
-	"chasm": ["Shadow Step", "Obsidian Armor"],  # (a Gust shoves a wizard too little to carry it over; the glass wades through the lava, and needs a way up the far side)
+	"chasm": ["Shadow Step", "chant:double_jump", "Obsidian Armor"],  # (a Gust shoves a wizard too little to carry it over; the glass wades through the lava, and needs a way up the far side)
 	"flood": ["Frost Bridge", "Lily Pads", "Shadow Step"],
 	"piranhas": ["Frost Bridge", "Lily Pads", "Shadow Step"],
 	"sentinel": ["Smoke Screen", "Eclipse", "Barrier", "Decoy"],
@@ -50,18 +52,20 @@ const WAYS := {  # the spells (and chants) that get a wizard past each crossing 
 	"gas": ["chant:deep_breath"],  # walked through with the breath held (a chant, not a spell)  # thrown up over the top of it
 }
 const LASTS := {"Frost Bridge": 25.0, "Lily Pads": 6.0, "Smoke Screen": 11.0, "Eclipse": 5.0, "Barrier": 5.0, "Decoy": 3.0}  # seconds that the way a spell makes lasts
+const COVER_ALL := ["Barrier", "Smoke Screen", "Eclipse", "Decoy"]  # when there are several shooters
 const COVERS := ["Smoke Screen", "Eclipse", "Barrier", "Decoy"]  # the spells that keep a sentinel from hitting it, best first
 const REST_BELOW := 20.0      # stamina: below this a wizard that is only travelling stops to get its breath back,
 const REST_UNTIL := 90.0      # and walks on again when it has this much (a jump and a spell both cost stamina, and it comes back only while standing)
 const SETTLE := 1.0           # seconds from drawing a way over water to its being there to walk on
 const PADS_REACH := 480.0     # pixels of pit that one row of Lily Pads covers, no further apart than a wizard can step
+const DOUBLE_JUMP_REACH := 460.0  # pixels of pit that two jumps carry it over
 const LEAP_STEPS := 2         # Shadow Steps at least that it makes in the air to get over a pit: a jump and two of them carry it 900 px
 const LEAP_AIR_MAX := 4.0     # seconds in the air after which a leap is given up
 const LEAP_DRAW := 0.15       # seconds to draw one: it falls the while
 const SENTINEL_LOOKOUT := 40  # tiles of the way it looks ahead along for a sentinel
 const COVER_RANGE := 780.0    # it draws its cover when it is this close to a sentinel, a little before the sentinel sees it (700)
 const CLEAR_TRIES := 14       # casts at one gate before it gives up on it for a while
-const STRIKE_REACH := {"Fire Breath": 5, "Ignite": 12, "Stonefall": 10, "Earthquake": 10, "Firewall": 8, "Gust": 7, "Tornado": 6, "Spark": 40}  # tiles: how far off a spell strikes a gate
+const STRIKE_REACH := {"Fire Breath": 5, "Ignite": 12, "Stonefall": 10, "Earthquake": 10, "Firewall": 8, "Gust": 7, "Tornado": 6, "Spark": 40, "Frostbolt": 12, "Faint": 8}  # tiles: how far off a spell strikes a gate
 const LIFT_WAIT := 1.6         # seconds it stands on a Geyser it has drawn, waiting to be thrown, before it takes it for a miss
 const SHOVE_WAIT := 1.0         # seconds it waits to be off the ground after shoving itself up, before it takes it for a miss
 const VINE_SCALE := 2.4          # how much bigger than its picture it draws a vine, to grow it taller than a wall
@@ -207,7 +211,7 @@ func think(delta: float) -> void:
 		_eye_time = EYE_SECONDS  # it has lost track of everyone: it sends out an eye
 		_foe = _nearest_foe()
 	if _foe == null:  # the last wizard standing, or the others are faded from sight: it goes about its journey
-		wizard.walk(_travel(delta) if SpellTargets.wizards(wizard.get_tree()).size() > 1 else 0.0)
+		wizard.walk(_travel(delta) if SpellTargets.wizards(wizard.get_tree()).size() > 1 or wizard.get_tree().get_first_node_in_group(&"gate_source") != null else 0.0)  # (alone in a match it has won; alone in a room it goes on)
 		return
 	var foe: Wizard = _foe
 	var to_player: Vector2 = foe.center() - wizard.center()
@@ -313,6 +317,13 @@ func _held(foe: Wizard) -> bool:
 	return foe.is_rooted() or foe.is_slowed()
 
 
+## What tells it of the gates about it: a match's world, or a room that has read itself (see RoomScan).
+func _world() -> Node:
+	var tree := wizard.get_tree()
+	var found := tree.get_first_node_in_group(&"world")
+	return found if found != null else tree.get_first_node_in_group(&"gate_source")
+
+
 ## The tile a body stands in, from its feet.
 func _tile_of(feet: Vector2) -> Vector2i:
 	return Vector2i(floori(feet.x / WizardRoute.TILE), floori((feet.y - 1.0) / WizardRoute.TILE))
@@ -363,12 +374,19 @@ func _travel(delta: float) -> float:
 		_goal = ""
 		_goal_timer = 0.0
 	if _goal == "gate":
-		if _goal_gate["entry"].get("open", false):
+		if _gate_open(_goal_gate["entry"]):
 			_goal = ""
 			_goal_timer = 0.0
 		elif _route.done():
 			_work_gate()
 			return 0.0
+	var creature := _creature_ahead()
+	if not creature.is_empty():
+		_goal_gate = creature
+		_goal = "gate"
+		_gate_tries = 0
+		_clear_gate(creature["target"])
+		return 0.0
 	if (_goal == "" and _goal_timer <= 0.0) or _goal_lost() or (_goal == "foe" and (_goal_timer <= 0.0 or _route.done())):
 		_choose_goal()
 	if _goal != "" and not _route.done() and wizard.is_on_floor():  # (a wizard in the air cannot stop for it; after the goal is chosen, so that a gate on the way is seen before the first step towards it)
@@ -390,7 +408,7 @@ func _travel(delta: float) -> float:
 ## The crossing the way goes over soon, if the way over it is not made: {"kind", "key", "span", "post"}. A pit counts when it is the next few tiles
 ## off, a sentinel from much farther, for it sees a long way.
 func _crossing_ahead() -> Dictionary:
-	var world := wizard.get_tree().get_first_node_in_group(&"world")
+	var world := _world()
 	for moves in SENTINEL_LOOKOUT:
 		var key := _toll_between(_route.ahead(moves - 1) if moves > 0 else wizard.nav.nearest(_tile_of(wizard.global_position), true), _route.ahead(moves))
 		if key == "" or _bridged.has(key):
@@ -406,7 +424,7 @@ func _crossing_ahead() -> Dictionary:
 func _walking_pads() -> bool:
 	if _pad_walk.is_empty() or not wizard.is_on_floor():
 		return false
-	var world := wizard.get_tree().get_first_node_in_group(&"world")
+	var world := _world()
 	for crossing: Dictionary in world.crossings():
 		if not _pad_walk.has(crossing["key"]):
 			continue
@@ -423,7 +441,7 @@ func _walking_pads() -> bool:
 
 ## The crossing whose toll lies on a move from one tile to the next, or "": a long jump over a pit passes over tiles that the path never names.
 func _toll_between(from: Vector2i, to: Vector2i) -> String:
-	if to.x < 0:
+	if to == WorldNav.NONE:
 		return ""
 	for step in range(1, absi(to.x - from.x) + 1):
 		var key: String = wizard.nav.toll_at(Vector2i(from.x + step * signi(to.x - from.x), to.y if step == absi(to.x - from.x) else from.y))
@@ -441,12 +459,12 @@ func _cross(crossing: Dictionary) -> bool:
 	if kind == "sentinel":
 		if wizard.center().distance_to(crossing["post"].center()) > COVER_RANGE:
 			return false
-		var used := _cover(crossing["post"])
+		var used := _cover(crossing["post"], int(crossing.get("posts", 1)) > 1)
 		if used == "":
 			return false
 		_bridged[crossing["key"]] = LASTS[used]
 		return true
-	var spell_name := _way(kind)
+	var spell_name := _way_over(crossing)
 	if spell_name == "":
 		return false
 	var span: Rect2 = crossing["span"]
@@ -485,6 +503,12 @@ func _cross(crossing: Dictionary) -> bool:
 			elif wizard.is_on_floor() and wizard.stamina >= 2.0 * SpellData.SPELLS[spell_name].cost:
 				var steps := clampi(ceili((span.size.x - 200.0) / 300.0), LEAP_STEPS, 5)
 				_leap = {"dir": dir, "key": crossing["key"], "steps": steps, "span": span, "jumped": false, "air": 0.0}
+		"chant:double_jump":  # it walks to the edge, says the chant, and jumps, and jumps again at the top
+			var edge := span.position.x if dir > 0 else span.end.x
+			if (edge - wizard.global_position.x) * dir > 20.0:
+				_cross_run = dir * WALK_SPEED
+			elif wizard.is_on_floor() and (wizard.air_jump_time > 0.0 or wizard.chant("double_jump")):
+				_leap = {"dir": dir, "key": crossing["key"], "steps": 0, "span": span, "jumped": false, "air": 0.0, "double": true}
 		"Lily Pads":  # a row at a time, as far as it reaches, and the next when it has come to the end of that
 			if wizard.stamina >= SpellData.SPELLS[spell_name].cost:
 				var reach := span.grow_individual(WizardRoute.TILE, 0.0, WizardRoute.TILE, 0.0)  # pads run a tile onto the bank at each end
@@ -564,6 +588,9 @@ func _leaping(delta: float) -> float:
 		wizard.request_jump()
 		return dir * WizardRoute.MAX_AIR_SPEED
 	_leap["air"] += delta
+	if _leap.get("double", false) and wizard.air_jump_ready and wizard.velocity.y > -20.0:
+		wizard.request_jump()  # the second jump, at the top of the first
+		_leap["double"] = false
 	if _leap["air"] > LEAP_AIR_MAX:  # held against a rock face: it lets go of the jump and falls
 		_cannot[_leap["key"]] = GIVE_UP
 		_leap = {}
@@ -697,8 +724,8 @@ func _bridge_stroke(spell_name: String, span: Rect2) -> PackedVector2Array:
 
 
 ## Draws what keeps a sentinel from hitting it: smoke over the statue, or a Barrier, or a Decoy. The name of the spell, or "" when it can do none.
-func _cover(post: Node2D) -> String:
-	for spell_name: String in COVERS:
+func _cover(post: Node2D, many := false) -> String:
+	for spell_name: String in (COVER_ALL if many else COVERS):  # (a screen over one shooter does nothing against the rest: a shield goes with the wizard)
 		if not _knows(spell_name) or wizard.stamina < SpellData.SPELLS[spell_name].cost:
 			continue
 		var around: Vector2 = wizard.center()
@@ -751,7 +778,7 @@ func _choose_goal() -> void:
 	_goal_timer = GOAL_EVERY
 	_goal = ""
 	var start: Vector2i = wizard.nav.nearest(_tile_of(wizard.global_position), true)
-	if start.x < 0:
+	if start == WorldNav.NONE:
 		return
 	var best_page: PagePickup = null
 	var best_path: Array[Vector2i] = []
@@ -810,7 +837,7 @@ func _nearest_portal(start: Vector2i) -> Dictionary:
 
 ## When no page is to be had, the nearest gate that it holds a spell for: it goes to the place short of it. True when it has set out.
 func _choose_gate(start: Vector2i) -> bool:
-	var world := wizard.get_tree().get_first_node_in_group(&"world")
+	var world := _world()
 	if world == null:
 		return false
 	var best := {}
@@ -842,10 +869,10 @@ func _choose_gate(start: Vector2i) -> bool:
 ## The way from one tile to another that it can walk: not over a crossing it holds no spell for.
 func _path(from: Vector2i, to: Vector2i) -> Array[Vector2i]:
 	var shut := []
-	var world := wizard.get_tree().get_first_node_in_group(&"world")
+	var world := _world()
 	if world != null:
 		for crossing: Dictionary in world.crossings():
-			if not _can_cross(crossing["kind"]) or _cannot.has(crossing["key"]):
+			if _way_over(crossing) == "" or _cannot.has(crossing["key"]):
 				shut.append(crossing["key"])
 	return wizard.nav.path(from, to, shut)
 
@@ -853,6 +880,14 @@ func _path(from: Vector2i, to: Vector2i) -> Array[Vector2i]:
 ## Whether it holds a page for crossing this kind of gate.
 func _can_cross(kind: String) -> bool:
 	return WAYS.get(kind, []).any(_usable)
+
+
+## The way it will go over this crossing, the one it likes best of those it knows and that will carry it so far, or "".
+func _way_over(crossing: Dictionary) -> String:
+	for spell_name: String in WAYS.get(crossing["kind"], []):
+		if _usable(spell_name) and (spell_name != "chant:double_jump" or (crossing["span"] as Rect2).size.x <= DOUBLE_JUMP_REACH):
+			return spell_name
+	return ""
 
 
 ## The spell it will make its way over a crossing with, the one it likes best of those it knows, or "".
@@ -883,7 +918,7 @@ func _gate_key(gate: Dictionary) -> String:
 
 ## At the gate: strikes it when it is near enough, and otherwise steps up to it, for the part of it that is left may lie farther in.
 func _work_gate() -> void:
-	var world := wizard.get_tree().get_first_node_in_group(&"world")
+	var world := _world()
 	var target: Vector2 = world.gate_target(_goal_gate["entry"])
 	var across: float = target.x - wizard.global_position.x
 	var reach: int = STRIKE_REACH.get(_clearing_spell(_goal_gate["kind"]), 5)
@@ -900,6 +935,34 @@ func _work_gate() -> void:
 		_goal_timer = 0.0
 	else:
 		_route.set_path(path)
+
+
+## Whether a gate has been cleared: a piece of the world marks itself open; a creature in the way is cleared when it is dead or asleep.
+func _gate_open(entry: Dictionary) -> bool:
+	if entry.get("open", false):
+		return true
+	if entry.has("mob"):
+		var mob = entry["mob"]
+		return not is_instance_valid(mob) or mob.is_dead() or mob.is_fainted()
+	return false
+
+
+## A creature in the way ahead that it holds a spell for: it deals with it where it stands before it walks on.
+func _creature_ahead() -> Dictionary:
+	var world := _world()
+	if world == null or not wizard.is_on_floor():
+		return {}
+	var toward := signf(float(_route.ahead(1).x - _tile_of(wizard.global_position).x)) if not _route.done() and _route.ahead(1) != WorldNav.NONE else wizard.facing
+	for gate: Dictionary in world.closed_gates():
+		if gate["kind"] != "creature" and gate["kind"] != "giant":
+			continue
+		var spell_name := _clearing_spell(gate["kind"])
+		if spell_name == "" or _gate_open(gate["entry"]):
+			continue
+		var apart: Vector2 = gate["target"] - wizard.center()
+		if signf(apart.x) == toward and absf(apart.x) < float(STRIKE_REACH.get(spell_name, 8)) * WizardRoute.TILE * 0.7 and absf(apart.y) < 120.0:
+			return gate
+	return {}
 
 
 ## The spell it will clear this kind of gate with: one it knows and can pay for, or "".
@@ -932,9 +995,11 @@ func _clear_gate(target: Vector2) -> void:
 ## The stroke of a spell that strikes a point.
 func _gate_stroke(spell_name: String, point: Vector2) -> PackedVector2Array:
 	match spell_name:
-		"Ignite":
+		"Ignite", "Frostbolt":
 			var start: Vector2 = wizard.center() + Vector2(signf(point.x - wizard.center().x) * 12.0, -6.0)
 			return _line(start, start + (point - start).normalized() * 90.0)
+		"Faint":
+			return _offset(GestureTemplates.preview_points("spiral"), point, 0.5)
 		"Fire Breath":
 			return _breath_stroke(point)
 		"Stonefall":
