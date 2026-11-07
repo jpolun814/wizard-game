@@ -92,7 +92,7 @@ func _open_the_router() -> void:
 		return
 	_upnp = upnp
 	var address := upnp.query_external_address()
-	print("server: port %d is open on the router. Friends join at %s:%d" % [port(), address, port()])
+	print("server: port %d is open on the router. Join at %s:%d" % [port(), address, port()])
 	print("server: (if that address starts with 10., 100.64 to 100.127, 172.16 to 172.31 or 192.168., the line is shared and it will not work from outside)")
 
 
