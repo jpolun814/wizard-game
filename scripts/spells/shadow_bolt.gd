@@ -1,7 +1,7 @@
 class_name ShadowBolt
 extends Projectile
 
-## Shadow Bolt: a dart of darkness, slow enough to outrun, that bends toward the nearest wizard other than whoever threw it. Ground and stone stop it and a
+## Shadow Bolt: a dart of darkness, slow enough to outrun, that bends toward the nearest living thing other than whoever threw it: a wizard or a creature. Ground and stone stop it and a
 ## Barrier turns it. It fades if it finds nobody.
 
 const SPEED := 270.0
@@ -46,17 +46,17 @@ func _act(delta: float) -> void:
 	super._act(delta)
 
 
-## The nearest wizard it can bend toward: not whoever threw it, and not one beyond its notice.
+## The nearest living thing it can bend toward: not whoever threw it (nor a skeleton it raised), and not one beyond its notice.
 func _nearest() -> Node2D:
 	var best: Node2D = null
 	var best_distance := NOTICE
-	for wizard: Node2D in SpellTargets.wizards(get_tree()):
-		if wizard == caster:
+	for prey: Node2D in SpellTargets.all(get_tree()):
+		if prey == caster or (prey is Mob and prey.master == caster):
 			continue
-		var away := SpellTargets.center_of(wizard).distance_to(global_position)
+		var away := SpellTargets.center_of(prey).distance_to(global_position)
 		if away < best_distance:
 			best_distance = away
-			best = wizard
+			best = prey
 	return best
 
 

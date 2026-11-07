@@ -326,8 +326,6 @@ func _end() -> void:
 			spawn = info["center"]
 		if info.has("aim"):
 			aim = info["aim"]
-		if entry.spell == "Wind Cutter":
-			aim = _bulge_direction(relative)  # the blade goes the way the crescent bulges
 		if entry.spell == "Thorn Whip" or entry.spell == "Shadow Bolt":  # a bolt goes the way the arrow points
 			var farthest := relative[0]  # a whip goes the way the wave was drawn, at whatever angle, not only left or right
 			for p in relative:
@@ -732,15 +730,6 @@ func _cone(points: PackedVector2Array) -> Dictionary:
 	if spread < deg_to_rad(18.0) or spread > deg_to_rad(120.0):
 		return {}
 	return {"aim": ((a + b) * 0.5 - tip).angle(), "spread": spread, "reach": first + second}
-
-
-## The way a curved stroke bulges: from the middle of its two ends toward the middle of the stroke itself.
-func _bulge_direction(points: PackedVector2Array) -> float:
-	var centre := Vector2.ZERO
-	for p in points:
-		centre += p
-	centre /= float(points.size())
-	return (centre - (points[0] + points[points.size() - 1]) * 0.5).angle()
 
 
 ## How close a stroke is to the spell's own picture, from 0 to 1. Shapes the recognizer matched report its score; shapes

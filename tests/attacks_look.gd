@@ -1,6 +1,6 @@
 extends Node
 
-## Pictures of the eight attacking spells (Wind Cutter, Shadow Bolt, Sandblast, Sleet, Meteor, Strangler Vine, Hemorrhage, Steam Burst), each cast at a dummy in the
+## Pictures of the attacking spells (Shadow Bolt, Hemorrhage), each cast at a dummy in the
 ## waiting room, to judge how they look.
 ##
 ##     godot --path . tests/attacks_look.tscn -- out=DIR     (needs a window)
@@ -28,22 +28,10 @@ func _ready() -> void:
 	dummy.hp = 5000
 	await get_tree().create_timer(1.8).timeout
 	var from := _player.center()
-	_cast("Wind Cutter", "directional", from, 0.0, {})
-	await _shots("wind_cutter", [0.12, 0.2])
 	_cast("Shadow Bolt", "directional", from, 0.0, {})
 	await _shots("shadow_bolt", [0.4, 0.8])
-	_cast("Sandblast", "cone", from, 0.0, {"aim": 0.0, "spread": 0.7, "reach": 220.0})
-	await _shots("sandblast", [0.15, 0.3])
-	_cast("Sleet", "positional", from, 0.0, {})
-	await _shots("sleet", [0.1, 0.25])
-	_cast("Meteor", "positional", _feet + Vector2(220.0, -40.0), 0.0, {})
-	await _shots("meteor", [0.6, 1.5, 1.8])
-	_cast("Strangler Vine", "positional", _feet + Vector2(220.0, -10.0), 0.0, {})
-	await _shots("vine", [0.3, 1.2])
 	_cast("Hemorrhage", "positional", dummy.center(), 0.0, {})
 	await _shots("hemorrhage", [1.2, 2.2])
-	_cast("Steam Burst", "positional", _feet + Vector2(220.0, -10.0), 0.0, {})
-	await _shots("steam", [0.5, 1.5])
 	get_tree().quit()
 
 

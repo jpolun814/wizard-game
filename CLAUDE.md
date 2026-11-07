@@ -370,8 +370,8 @@ GODOT="/c/Users/Jordan Polun/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.
 "$GODOT" --headless --fixed-fps 60 --path . tests/blizzard_freeze_check.tscn  # a Blizzard chills and then freezes whoever stays in it (add `-- out=DIR` for pictures, needs a window)
 "$GODOT" --headless --fixed-fps 60 --path . tests/group_a_check.tscn  # Barbs, Pebble, Hailstorm and Featherfall
 "$GODOT" --headless --fixed-fps 60 --path . tests/group_b_check.tscn  # Thorn Whip and Insect Plague
-"$GODOT" --headless --fixed-fps 60 --path . tests/group_d_check.tscn  # Wind Cutter, Shadow Bolt, Sandblast, Sleet, Meteor, Strangler Vine, Hemorrhage and Steam Burst, each cast in a world against a dummy
-"$GODOT" --path . tests/attacks_look.tscn -- out=DIR  # pictures of those eight (needs a window)
+"$GODOT" --headless --fixed-fps 60 --path . tests/group_d_check.tscn  # Shadow Bolt and Hemorrhage, each cast in a world against a dummy
+"$GODOT" --path . tests/attacks_look.tscn -- out=DIR  # pictures of those two (needs a window)
 "$GODOT" --headless --fixed-fps 60 --path . tests/group_c_check.tscn  # Thunderclap (throws everyone near back but the caster, and dazes them) and Rocket Jump (the caster is thrown far up)
 "$GODOT" --headless --fixed-fps 60 --path . tests/leech_check.tscn  # the tether, the split of a spell's cost and what breaks it
 "$GODOT" --headless --fixed-fps 60 --path . tests/raise_dead_check.tscn  # a skeleton with a master: never touches them, fights a rival and a rival's skeleton, follows, falls with its master
@@ -504,20 +504,14 @@ GODOT="/c/Users/Jordan Polun/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.
 boss and the solo roguelite loop of `docs/roguelite_exploration_design.md`) is in `docs/pvp_arena_design.md`. The waiting room (`scenes/lab.tscn`, `scripts/lab.gd`) is where every spell is tried; the portal there
 starts a run. The first screen also has a **Tutorial** (`scripts/tutorial.gd`: a book that starts empty and a row of things in the way, each with the pages that answer it lying at its foot; only the keys to walk and jump are on screen. A dummy and a giant (too strong to kill: a Faint puts it down) strike down whoever walks past them, a pond of piranhas (waded after a Spark, or crossed on ice or pads), turrets that hit whoever has no cover, thorns too long to walk through, a cliff only a vine climbs, a gap only the double jump chant crosses, a dark stretch of spikes only a light shows, a gate that asks for two spells together (a light then fire), a pit and past it a wall of brick (a leap, then a quake or a boulder), an eye that shoots (cover, then fire on the thorns), poison gas (wind, fire or a Barrier) with a second pit after it, and a pond of piranhas in the dark (a light, then a Spark). Whoever falls keeps the pages they read) and a **Library** (`scripts/library.gd`, `library_screen.gd`: what this machine remembers of the matches played on it, in `user://library.json`: matches played and won, and for each page how often it was found, its spell cast, and a match won with it in the book. Only the person at the machine, only in real matches; the tests never touch it).
 
-**Eight attacking spells were added (2026-11-06, the owner asked for "8 or so more attack spells" overnight; each has a test in `tests/group_d_check.tscn`):**
+**Two attacking spells from an overnight batch of eight were kept (2026-11-06; the owner vetoed the other six on 2026-11-07, see "Inventing a spell" in section 6; each kept spell has a test in `tests/group_d_check.tscn`):**
 
 | School | Spell | Shape | Real thing | Counterplay |
 |---|---|---|---|---|
-| Air | Wind Cutter | a crescent (the blade bulges the way it flies: `Caster._bulge_direction`) | a blade of wind: a fast thin shot (`WindBlade`, a `Projectile`) | a wall, a Barrier turns it, dodge |
-| Shadow | Shadow Bolt | an arrow (the bolt goes the way it points) | a dart of darkness that bends toward the nearest other wizard (`ShadowBolt`), slower than a runner | outrun it, a wall, a Barrier |
-| Earth | Sandblast | a cone `<` (as Fire Breath) | a short hard gust of sand and grit out of the caster's mouth (`Sandblast`) | distance, a wall, stone |
-| Water | Sleet | a zigzag, drawn beside the caster; it flies the way the caster faces | a spray of ice shards that sink as they fly (`Sleet` throws seven `SleetShard`s) | a wall, a Barrier, a flame melts them |
-| Fire | Meteor | a circle | a burning rock from the sky onto the spot: a glow marks it, then a ball of lava falls (`Meteor`, `LavaBall`) | step away, a roof between the sky and the spot |
-| Flora | Strangler Vine | a spiral | vines burst out of the ground there a moment later and hold and squeeze whoever is in reach (`StranglerVine`) | step clear before it springs, fire (frees whoever it held) |
-| Blood | Hemorrhage | a crescent drawn over someone | a wound that bleeds a little at a time for a while (`Hemorrhage`) | it wears off |
-| Water | Steam Burst | the rising wavy line (as Smoke Screen) | a column of scalding steam for a few seconds (`SteamBurst`) | step out, wind (Gust, Tornado) clears it |
+| Shadow | Shadow Bolt | an arrow (the bolt goes the way it points) | a dart of darkness that bends toward the nearest living thing, wizard or creature, other than the caster (`ShadowBolt`), slower than a runner | outrun it, a wall, a Barrier |
+| Blood | Hemorrhage | a crescent drawn over someone (the owner doubts the crescent fits; the gesture is open) | a wound that bleeds a little at a time for a while (`Hemorrhage`) | it wears off |
 
-The spellbook lines: "Hurl a blade of wind." "Hurl a bolt of darkness." "Blast a cloud of sand and grit." "Spray a shower of ice shards." "Call down a burning rock from the sky." "Sprout a coiling vine from the ground." "Open a wound that will not close." "Release a column of scalding steam." They are drafts until the owner confirms them (section 0). All art is the game's own: `wind_bolt`, `magic_bolt`, `hailstone`, the lava ball's fire, `dusk_vine` and the particle sheets. The AI wizards use all eight (`WizardBrain`), they are in `Pages.ATTACKS` and `Pages.LOCKABLE`, and none opens a gate. `tests/attacks_look.tscn -- out=DIR` (needs a window) takes pictures of them.
+The spellbook lines of these two ("Hurl a bolt of darkness." "Open a wound that will not close.") are drafts and the owner has already said the wording is wrong: the names and lines still need to be redone with the owner (section 6). `tests/attacks_look.tscn -- out=DIR` (needs a window) takes pictures of them.
 
 **Pages per world:** each world lays only `Pages.count_for(biome, width)` pages (graveyard 16, peaks 16, jungle 18, ashlands 12, castle 18, underground 20, portal fields 10, at 1000 tiles wide, fewer in the smaller worlds, never under 6), and which ones is settled when the match begins, from its seed (`Pages.allotment`): each wizard is dealt starting pages of their own, and each world is given pages of its own from the rest, no page in two places, some in none. So a page is never in a world once a wizard holds it, and no two wizards start alike. Pages not laid do not carry over. A kind of gate the world has always keeps a page that opens it, swapped in from the spare pages if need be (`Pages.with_openers`). In a world with no halls, pages lying out in the open are at least `Pages.MIN_APART` (40) columns apart, apart from the three near the start (`tests/pages_spread_look.tscn` prints where they lie).
 
@@ -530,6 +524,19 @@ it hits them if it comes back. Blink and Fire Breath start on the caster's body,
 well. `scripts/spells/spell_targets.gd` decides who can be hurt.
 
 ## 6. Designing a new spell: checklist
+
+### Inventing a spell: what the owner has taught (read before you propose anything)
+
+The owner wants agents to learn to invent spells without being told. Until they have shown they can, **never build a spell the owner has not approved as an idea**: first send a short list (the thing in plain words, the school, the gesture as a picture of it, why it is not like a spell we have), and build only what they pick. Keep adding what you learn here. The lessons so far come from an overnight batch of eight (Wind Cutter, Shadow Bolt, Sandblast, Sleet, Meteor, Strangler Vine, Hemorrhage, Steam Burst), most of which the owner vetoed:
+
+- **Name it with a word people already say.** "Meteor", "Supernova", "Bat Swarm". Do not invent a compound ("Wind Cutter", "Shadow Bolt" drew "what is that?"). If a stranger would ask what the name means, the name is wrong.
+- **Write the line the way a person would say it.** Starting with a verb is a habit of the old rules, not the test: the test is whether a human would choose these words. Rejected, though each fits a dictionary: "Hurl a blade of wind", "Hurl a bolt of darkness" (you cannot hurl these, and the reader does not know what they are), "Blast a cloud of sand and grit" (people do not say "blast" for this), "Call down a burning rock from the sky" (everyone knows what a meteor is; you do not "call down" one), "Sprout a coiling vine", "Open a wound that will not close", "Release a column of scalding steam". Do not describe the obvious ("burning rock" for a meteor). Show the owner the line next to the nearest line they already confirmed.
+- **The gesture is a picture of the spell, never a shape that happened to be free in the school.** Hemorrhage's crescent, Steam Burst's wave and Strangler Vine's spiral were chosen because they were unused; the owner noticed. Good: a circle crossed by a flat ring, like Saturn, for a supernova.
+- **No near-duplicates.** Sleet was Barbs in ice colours; Strangler Vine was Flytrap. Before proposing, find the nearest existing spell and say what the new one does that it cannot.
+- **A spell must be worth casting.** Steam Burst was too weak to bother with. Say what it can do that nothing else can.
+- **A homing thing seeks anything alive** (wizards and creatures), not only wizards.
+- **Check the school's name, not only its code id.** Flora is Druidry (nature, animals too), Shadow is Umbramancy, Blood is Necromancy. Animal spells belong in Druidry.
+- **Owner's ideas to build from:** a Supernova (Fire): a small sun appears and hangs there a little while, hurting everyone in a radius and pulling them toward it so it is hard to run; then it explodes, hurting and throwing everyone away. Gesture: a circle with a flat horizontal oval through it, like Saturn seen from the side. Costs a great deal of stamina. (Not built yet.)
 
 1. **Name the real-world thing.** If you can't, stop.
 2. **Pick the school by what it is:**
