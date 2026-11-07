@@ -17,6 +17,7 @@ var _tint := Color(0.62, 0.6, 0.68)
 var _seen := 0.0
 var _hurt := {}  # body -> seconds until it can be cut again
 var _sprites: Array[Sprite2D] = []
+const SINK := 6.0
 var _boxes: Array[Rect2] = []
 
 
@@ -50,9 +51,9 @@ func _ready() -> void:
 			sprite.offset = Vector2(0, -sprite.texture.get_height() * 0.5 + 2.0)  # it stands on the floor
 			sprite.scale = Vector2.ONE * 2.2
 			sprite.flip_h = rng.randf() < 0.5
-			sprite.position = Vector2(x, row * t)
+			sprite.position = Vector2(x, row * t + SINK)  # its foot is under the ground's own tiles, so it grows out of the rock
 			sprite.modulate = Color(_tint, 0.0)
-			sprite.z_index = 1
+			sprite.z_index = -1
 			add_child(sprite)
 			_sprites.append(sprite)
 			x += 26.0
@@ -98,7 +99,7 @@ static func _tint_of(earth: Texture2D) -> Color:
 	if count == 0:
 		return fallback
 	var mean := sum / float(count)
-	return Color(minf(mean.x / 0.55, 1.0), minf(mean.y / 0.55, 1.0), minf(mean.z / 0.55, 1.0))
+	return Color(minf(mean.x / 0.4, 1.0), minf(mean.y / 0.4, 1.0), minf(mean.z / 0.4, 1.0))
 
 
 ## True when a light is close to one of the strips.

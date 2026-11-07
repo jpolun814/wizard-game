@@ -10,7 +10,7 @@ extends Lab
 
 const POND_SPAN := Vector2i(24, 44)   # water too wide to jump, shallow enough to wade, and full of piranhas
 const POND_ROWS := 2.0
-const CHUNKS := 147  # the room is wide, so that the places are far apart
+const CHUNKS := 139  # the room is wide, so that the places are far apart
 const PANEL := Color("#1f1528")
 const WORDS := Color("#efe3cf")
 const MENU := "res://scenes/menu.tscn"
@@ -28,10 +28,10 @@ const PAGE_SPOTS := [
 	[206, ["Flare", "Glowcap"]],
 	[281, ["Rocket Jump", "Featherfall", "Push"]],
 	[318, ["Earthquake", "Stonefall"]],
-	[378, ["Eclipse", "Decoy"]],
-	[421, ["Gust", "Tornado"]],
+	[332, ["Eclipse", "Decoy"]],
+	[373, ["Gust", "Tornado"]],
 ]
-const STARTS := [-31, -22, 0, 12, 47, 104, 154, 172, 204, 278, 316, 376, 382, 419, 456, 488, 542, 570, 588, 626, 666, 684, 748, 794]   # where whoever falls is on their feet again: the start of the place they were working on
+const STARTS := [-31, -22, 0, 12, 47, 104, 154, 172, 204, 278, 316, 328, 334, 371, 408, 440, 494, 522, 540, 578, 618, 636, 700, 746]   # where whoever falls is on their feet again: the start of the place they were working on
 const HINT_UNTIL := -21.0   # the keys to walk and jump show until the wizard has gone this far
 const CLIFF_COL := 165       # from here on the ground is this many rows higher than before: too high to jump, a vine climbs it
 const CLIFF_ROWS := 7.0
@@ -43,38 +43,38 @@ const THICKET_SPAN := Vector2i(118, 150)   # thorns across the way, far too long
 const THICKET_DARK := Vector2i(258, 270)   # thorns at the end of the dark stretch
 const WALL_COL := 324        # a wall of brick three columns thick and ten rows high: no jump clears it, and an earthquake or a boulder brings it down
 const WALL_ROWS := 26   # (a rocket jump lifts a wizard about fifteen rows, so a wall that can be rocket-jumped is not tall enough)
-const SENTINEL_COL := 402     # an eye that shoots whoever it sees, over a stretch with thorns at the far end of it
+const SENTINEL_COL := 354     # an eye that shoots whoever it sees, over a stretch with thorns at the far end of it
 const SENTINEL_REACH := 480.0
-const SENTINEL_ZONE := Vector2i(388, 414)
-const GAS_SPAN := Vector2i(428, 451)    # three banks of poison gas
+const SENTINEL_ZONE := Vector2i(340, 366)
+const GAS_SPAN := Vector2i(380, 403)    # three banks of poison gas
 const GAS_HEIGHT := 7
-const PIT_TWO := Vector2i(458, 483)     # a second pit, for the same leap
-const POND_TWO := Vector2i(506, 524)    # a pond of piranhas in the dark, for the light and the Spark together
-const DARK_POND := Vector2i(488, 534)
+const PIT_TWO := Vector2i(410, 435)     # a second pit, for the same leap
+const POND_TWO := Vector2i(458, 476)    # a pond of piranhas in the dark, for the light and the Spark together
+const DARK_POND := Vector2i(440, 486)
 const THICKETS := [THICKET_SPAN, THICKET_DARK]
 ## The last place is a run over everything the room has taught, with no page to read: a gap that takes two jumps, a cliff that takes a vine, a pit that takes a leap
 ## (all the same size as the ones met before), and a long thicket on the high ground that takes fire. The ground is never raised above its line, only dug down from it,
 ## so the way in is a drop of the first cliff's height and the cliff is climbed back to the usual level, which runs level to the portal.
-const FINALE_LOW := 536        # from here to the cliff the ground is as low as the room's first stretch
-const FINALE_GAP := Vector2i(548, 561)
-const FINALE_CLIFF := 576      # from here the ground is level again, as high as the first cliff
-const FINALE_LEAP := Vector2i(592, 617)
-const FINALE_THORNS := Vector2i(630, 662)
+const FINALE_LOW := 488        # from here to the cliff the ground is as low as the room's first stretch
+const FINALE_GAP := Vector2i(500, 513)
+const FINALE_CLIFF := 528      # from here the ground is level again, as high as the first cliff
+const FINALE_LEAP := Vector2i(544, 569)
+const FINALE_THORNS := Vector2i(582, 614)
 const FINALE_PITS := [[FINALE_GAP, CLIFF_ROWS], [FINALE_LEAP, 0.0]]  # each pit and the level of the ground it is dug from
 ## The gauntlet at the end: the gates the room has taught, but not one after another: each place puts several together, so that the wizard has to know which
 ## spell answers which and in what order. A pit that is leapt under the fire of turrets, with a minotaur waiting where the leap lands. Water with a thicket
 ## on its far bank and skeletons standing in the thorns. A dark stretch where spikes and a thicket full of skeletons can only be seen by a light. A tall wall
 ## with gas behind it and an eye past that. A gap that lands in thorns, then a pit that lands in more thorns. There are no pages here: what is needed has been
 ## read, and it is for the wizard to know what to use and when.
-const TURRETS_TWO := [702, 708]
-const TURRET_ZONE_TWO := Vector2i(696, 748)
-const PIT_THREE := Vector2i(716, 741)  # a leap, under the turrets' fire
-const POND_THREE := Vector2i(752, 773)
-const THICKET_FOUR := Vector2i(776, 788)   # on the far bank, with skeletons standing in it
-const CHANT_GAP_TWO := Vector2i(796, 809)
-const THICKET_SIX := Vector2i(812, 824)    # where the gap lands, with skeletons in it
-const SKELETONS := [779, 782, 785, 815, 819, 822]   # standing in the thorns at their posts, who fight whoever comes near
-const GAUNTLET_FROM := 684
+const TURRETS_TWO := [654, 660]
+const TURRET_ZONE_TWO := Vector2i(648, 700)
+const PIT_THREE := Vector2i(668, 693)  # a leap, under the turrets' fire
+const POND_THREE := Vector2i(704, 725)
+const THICKET_FOUR := Vector2i(728, 740)   # on the far bank, with skeletons standing in it
+const CHANT_GAP_TWO := Vector2i(748, 761)
+const THICKET_SIX := Vector2i(764, 776)    # where the gap lands, with skeletons in it
+const SKELETONS := [731, 734, 737, 767, 771, 774]   # standing in the thorns at their posts, who fight whoever comes near
+const GAUNTLET_FROM := 636
 const GAUNTLET_PITS := [[PIT_THREE, GAP_ROWS_DOWN], [CHANT_GAP_TWO, CHANT_GAP_ROWS]]
 const GAUNTLET_THICKETS := [THICKET_FOUR, THICKET_SIX]
 const GAUNTLET_ZONES := [TURRET_ZONE_TWO, POND_THREE, THICKET_FOUR, THICKET_SIX]
@@ -110,6 +110,7 @@ var _gauntlet_thorns: Array[Bramble] = []
 
 
 func _init() -> void:
+	heals_wounds = false
 	ArenaGen.chunk_count = CHUNKS
 	ArenaGen.right_wall = ArenaGen.FIRST_COL + ArenaGen.CHUNK_WIDTH * CHUNKS
 

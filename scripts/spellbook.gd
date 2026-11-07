@@ -8,11 +8,9 @@ extends CanvasLayer
 
 const SHIFT_LEAVES := 5  # how many leaves a turn takes with Shift held
 ## The star beside "NEW!": an interface element made of pixel squares (O outline, G gold, H highlight, S shade), drawn at three times its size.
-const STAR_SIZE := 36   # pixels across; a finer grid than the art around it, so its points stay sharp
-const STAR_OUTLINE := Color("#3a1d1a")
-const STAR_GOLD := Color("#f2b81c")
-const STAR_LIGHT := Color("#ffe27a")
-const STAR_SHADE := Color("#c98a10")
+const SPARKLE_ROWS := ["...O...", "...G...", "..OGO..", "OGGHGGO", "..OGO..", "...G...", "...O..."]   # a tiny four-point twinkle, as coarse as the art round it
+const SPARKLE_COLORS := {"O": Color("#8a5a10"), "G": Color("#f2b81c"), "H": Color("#fff2b0")}
+const SPARKLE_SCALE := 2
 const NEW_GOLD := Color("#f2b81c")
 const INK := Color("#3a1d1a")
 const TEXT_INK := Color(INK, 0.86)  # the writing is a touch lighter than the drawings, as if the pen was lifted
@@ -527,48 +525,33 @@ func _new_badge() -> HBoxContainer:
 	badge.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	badge.add_theme_constant_override("separation", 8)
 	badge.alignment = BoxContainer.ALIGNMENT_CENTER
-	var star := TextureRect.new()
-	star.texture = _star_texture()
-	star.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	star.custom_minimum_size = Vector2(STAR_SIZE, STAR_SIZE) * 0.75
-	star.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	star.stretch_mode = TextureRect.STRETCH_SCALE
-	star.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	badge.add_child(star)
+	badge.add_child(_sparkle())
 	var word := _ink("NEW!", 22, NEW_GOLD)
 	word.autowrap_mode = TextServer.AUTOWRAP_OFF
 	word.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	word.add_theme_color_override("font_outline_color", INK)
 	word.add_theme_constant_override("outline_size", 5)
 	badge.add_child(word)
+	badge.add_child(_sparkle())
 	return badge
 
 
-## The star: five points, outlined, lit from the top left. Each pixel is worked out from where it lies against the star's edges, so the points are sharp.
-static func _star_texture() -> ImageTexture:
-	var image := Image.create(STAR_SIZE, STAR_SIZE, false, Image.FORMAT_RGBA8)
-	var centre := Vector2(STAR_SIZE, STAR_SIZE) * 0.5
-	var outer := STAR_SIZE * 0.47
-	var inner := outer * 0.4
-	var points := PackedVector2Array()
-	for k in 10:
-		var radius := outer if k % 2 == 0 else inner
-		var angle := -PI * 0.5 + k * PI / 5.0
-		points.append(centre + Vector2(cos(angle), sin(angle)) * radius)
-	var core := PackedVector2Array()
-	for point in points:
-		core.append(centre + (point - centre) * 0.78)
-	for y in STAR_SIZE:
-		for x in STAR_SIZE:
-			var at := Vector2(x + 0.5, y + 0.5)
-			if not Geometry2D.is_point_in_polygon(at, points):
-				continue
-			var colour := STAR_OUTLINE
-			if Geometry2D.is_point_in_polygon(at, core):
-				var light := (at - centre).dot(Vector2(-1.0, -1.0).normalized()) / outer
-				colour = STAR_LIGHT if light > 0.45 else (STAR_SHADE if light < -0.4 else STAR_GOLD)
-			image.set_pixel(x, y, colour)
-	return ImageTexture.create_from_image(image)
+## One of the little twinkles either side of NEW!.
+static func _sparkle() -> TextureRect:
+	var image := Image.create(SPARKLE_ROWS[0].length(), SPARKLE_ROWS.size(), false, Image.FORMAT_RGBA8)
+	for y in SPARKLE_ROWS.size():
+		for x in SPARKLE_ROWS[y].length():
+			var key: String = SPARKLE_ROWS[y][x]
+			if SPARKLE_COLORS.has(key):
+				image.set_pixel(x, y, SPARKLE_COLORS[key])
+	var twinkle := TextureRect.new()
+	twinkle.texture = ImageTexture.create_from_image(image)
+	twinkle.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	twinkle.custom_minimum_size = Vector2(image.get_width(), image.get_height()) * SPARKLE_SCALE
+	twinkle.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	twinkle.stretch_mode = TextureRect.STRETCH_SCALE
+	twinkle.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	return twinkle
 
 
 ## An incantation's own page: its name, its words and what it does. Every one is spoken by typing it and pressing Enter,
