@@ -396,6 +396,12 @@ func _tile_of(feet: Vector2) -> Vector2i:
 ## mended, as a person does. Returns the speed to walk at, or NAN when it is not mending.
 func _mend(delta: float, fighting: bool) -> float:
 	_mend_wait -= delta
+	if (_typing != "" or _camped or _settle > 0.0) and (_assailant() != null or _scorched() or _bitten()):  # it does not sit and chant with a blade or a flame on it
+		_typing = ""
+		_settle = 0.0
+		_camped = false
+		_mend_wait = 3.0
+		return NAN
 	if _typing != "":  # it is typing the chant: it stands, and the words take hold when it has finished, unless someone comes at it first
 		if fighting:
 			_typing = ""
