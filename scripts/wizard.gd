@@ -641,7 +641,6 @@ func claw() -> void:
 	_claw_cool = CLAW_COOLDOWN
 	_claw_in = CLAW_DELAY
 	_releasing = 0.4
-	Sfx.play("mob_hurt", center(), 3.0)
 
 
 ## The claws reach whoever is in front of the wizard, close enough, and in the open.
@@ -656,6 +655,7 @@ func _claw_land() -> void:
 		if SpellTargets.sight_blocked(get_tree(), center(), at):
 			continue
 		SpellTargets.hurt(body, CLAW_DAMAGE, "", false, false, self)
+		Sfx.play("mob_hurt", at, 3.0)  # only a swipe that lands is heard
 		Fx.burst(get_parent(), at, Color(0.9, 0.25, 0.3), 6, 120.0, 0.3, true)
 
 
@@ -862,7 +862,7 @@ func _physics_process(delta: float) -> void:
 	if can_move:
 		if brain == null and Input.is_action_just_pressed("jump"):
 			request_jump()
-		if _jump_buffer > 0.0 and _coyote > 0.0 and sink_time <= 0.0 and tangle_time <= 0.0 and spend(JUMP_COST, false):
+		if _jump_buffer > 0.0 and _coyote > 0.0 and sink_time <= 0.0 and tangle_time <= 0.0 and (wild or spend(JUMP_COST, false)):
 			velocity.y = JUMP_VELOCITY * _jump_strength
 			_jump_buffer = 0.0
 			_coyote = 0.0
@@ -877,10 +877,10 @@ func _physics_process(delta: float) -> void:
 		if brain == null and Input.is_action_just_released("jump") and velocity.y < JUMP_VELOCITY * 0.4:
 			velocity.y = JUMP_VELOCITY * 0.4
 		# Walking is free; running drains stamina. With none left you still walk, at half speed.
-		var speed := (SPEED if stamina > 0.0 else SPEED * 0.5) * (0.5 if slow_time > 0.0 else 1.0) * (0.4 if sink_time > 0.0 else 1.0) * (0.3 if tangle_time > 0.0 else 1.0) * (HASTE if haste_time > 0.0 else 1.0) * (OBSIDIAN_SPEED if obsidian_time > 0.0 else 1.0) * (WILD_SPEED if wild else 1.0)
+		var speed := (SPEED if stamina > 0.0 or wild else SPEED * 0.5) * (0.5 if slow_time > 0.0 else 1.0) * (0.4 if sink_time > 0.0 else 1.0) * (0.3 if tangle_time > 0.0 else 1.0) * (HASTE if haste_time > 0.0 else 1.0) * (OBSIDIAN_SPEED if obsidian_time > 0.0 else 1.0) * (WILD_SPEED if wild else 1.0)
 		velocity.x = Input.get_axis("move_left", "move_right") * speed if brain == null else clampf(_walk, -speed, speed)
 		_stepping = absf(velocity.x) > 10.0
-		if is_on_floor() and absf(velocity.x) > 10.0 and stamina > 0.0:
+		if is_on_floor() and absf(velocity.x) > 10.0 and stamina > 0.0 and not wild:
 			drain(RUN_COST * delta, false)
 	else:
 		velocity.x = 0.0
