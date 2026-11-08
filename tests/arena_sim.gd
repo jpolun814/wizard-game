@@ -31,6 +31,9 @@ var _log: FileAccess  # log=FILE writes what every wizard does, four times a sec
 var _log_t := 0.0
 var _shot_at := 2.0  # shotat=SECONDS: when shot= takes its picture
 var _follow := -1  # follow=N: the camera stays on the Nth wizard
+var _probe := Vector2(-1, 0)  # probe=N,SECONDS prints every variable of the Nth wizard's brain at that time
+var _probed := false
+var _zoom := 1.5
 var _watch := false  # watch=1: a camera follows a wizard still standing, for looking at the match in a window
 var _camera: Camera2D
 
@@ -57,6 +60,10 @@ func _ready() -> void:
 			_shot_at = float(arg.substr(7))
 		elif arg.begins_with("follow="):
 			_follow = int(arg.substr(7))
+		elif arg.begins_with("probe="):
+			_probe = Vector2(int(arg.substr(6).get_slice(",", 0)), float(arg.substr(6).get_slice(",", 1)))
+		elif arg.begins_with("zoom="):
+			_zoom = float(arg.substr(5))
 		elif arg == "watch=1":
 			_watch = true
 		elif arg == "keep=1":
@@ -88,7 +95,7 @@ func _ready() -> void:
 			w.damaged.connect(func(amount: int) -> void: _log.store_line("D %.2f %s %d" % [_clock, who, amount]))
 	if _watch:
 		_camera = Camera2D.new()
-		_camera.zoom = Vector2(1.5, 1.5)
+		_camera.zoom = Vector2(_zoom, _zoom)
 		_camera.position_smoothing_enabled = true
 		add_child(_camera)
 		_camera.make_current()
@@ -131,7 +138,7 @@ func _physics_process(delta: float) -> void:
 				if w.brain._foe != null and is_instance_valid(w.brain._foe):
 					foe_gap = int(w.center().distance_to(w.brain._foe.center()))
 					foe_at = _wizards.find(w.brain._foe)
-				_log.store_line("S %.2f %s%d %d %d %d %d %d %d %d %d %d %d %s" % [_clock, w.look, i, w.global_position.x, w.global_position.y, w.velocity.x, w.velocity.y, 1 if w.is_on_floor() else 0, w.stamina, w.max_stamina, foe_at, foe_gap, 1 if w.is_drawing() else 0, w.brain.status()])
+				_log.store_line("S %.2f %s%d %d %d %d %d %d %d %d %d %d %d %s %s" % [_clock, w.look, i, w.global_position.x, w.global_position.y, w.velocity.x, w.velocity.y, 1 if w.is_on_floor() else 0, w.stamina, w.max_stamina, foe_at, foe_gap, 1 if w.is_drawing() else 0, _flags(w), w.brain.status()])
 	for i in _wizards.size():
 		var wizard := _wizards[i]
 		if is_instance_valid(wizard) and not wizard.dead:
@@ -158,6 +165,18 @@ func _physics_process(delta: float) -> void:
 		for pickup: PagePickup in get_tree().get_nodes_in_group("pages"):
 			if not pickup.spoils.is_empty():
 				print("SPOILS still lie at tile (%d, %d) at %.0fs" % [pickup.global_position.x / 32.0, pickup.global_position.y / 32.0, _clock])
+	if _probe.x >= 0 and not _probed and _clock >= _probe.y:
+		_probed = true
+		var b: Object = _wizards[int(_probe.x)].brain
+		for prop in b.get_property_list():
+			if prop["usage"] & PROPERTY_USAGE_SCRIPT_VARIABLE:
+				var v: Variant = b.get(prop["name"])
+				if v is Object or v is Callable:
+					continue
+				print("PROBE ", prop["name"], " = ", str(v).substr(0, 160))
+		if b._goal_page != null and is_instance_valid(b._goal_page):
+			print("PROBE page at ", b._goal_page.global_position / 32.0, " ", b._goal_page.name, " spoils ", b._goal_page.spoils.size())
+		print("PROBE pos ", _wizards[int(_probe.x)].global_position / 32.0, " floor ", _wizards[int(_probe.x)].is_on_floor())
 	if _clock >= _next_report:
 		_next_report += report
 		_print_state()
@@ -214,3 +233,21 @@ func _hit(wizard: Wizard) -> String:
 		var hit := wizard.get_slide_collision(k)
 		out += "%s at %s normal %s; " % [hit.get_collider(), str(hit.get_position()), str(hit.get_normal())]
 	return out
+
+
+## A letter for each thing that holds a wizard back, for the log: Rooted, Sinking, Tangled, Fainted, Frozen, slowed (Mud), Waiting for danger, Settling, Off the map, Wandering.
+func _flags(w: Wizard) -> String:
+	var out := ""
+	if w.root_time > 0.0: out += "R"
+	if w.sink_time > 0.0: out += "S"
+	if w.tangle_time > 0.0: out += "T"
+	if w.fainted: out += "F"
+	if w.is_frozen(): out += "Z"
+	if w.is_slowed(): out += "M"
+	var b: WizardBrain = w.brain
+	if b._danger_wait > 0.5: out += "W"
+	if b._settle > 0.0: out += "s"
+	if b._off_map: out += "O"
+	if b._wander_time > 0.0: out += "w"
+	if b._resting: out += "r"
+	return out if out != "" else "-"

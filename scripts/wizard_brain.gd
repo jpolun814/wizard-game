@@ -26,6 +26,8 @@ const PORTAL_LEFT := 3.0        # seconds: a portal with less than this left ope
 const PORTAL_CHANCE := 0.75     # how often it takes a portal that is nearer than the page it was after
 const PORTAL_JUMP_FOR := 5.0    # seconds it stands under a portal hung in the air, jumping for it, before it takes it for out of reach
 const PUSH_THROUGH_FOR := 5.0   # seconds it goes on through danger after backing out of it over and over
+const STUCK_RADIUS := 260.0  # pixels it must get from where it was in STUCK_FOR seconds, or it has got nowhere
+const STUCK_FOR := 20.0
 const VOLCANO_KEEP_OFF := 520.0  # pixels: a page this near a volcano that is awake is left alone
 const VOLCANO_FLEE := 440.0     # pixels: it goes away from a volcano that is awake when it is this near
 const DANGER_WAIT_MAX := 12.0  # seconds it waits before lava on its way before it gives up that way
@@ -122,6 +124,13 @@ var _jump_cooldown := 0.0
 var _escape_commit := 0.0     # seconds it keeps the way it chose out of danger
 var _push_through := 0.0     # seconds left that it walks on through what it would back out of
 var _escapes := 0.0           # how often it has backed out of danger lately
+var _anchor := Vector2.INF       # where it was when it last moved any distance
+var _anchored_for := 0.0         # seconds it has stayed within STUCK_RADIUS of it
+var _unsticks := 0               # times in a row it has had to drop what it was after
+var _wander_dir := 1.0
+var _wander_time := 0.0
+var _off_map := false           # it stands on something the map does not hold, over ground that it does
+var _off_map_check := 0.0
 var _danger_wait := 0.0       # seconds it has stood waiting for danger on its way to pass
 var _hop_timer := 1.5  # counting down to its next hop while it walks
 var _pressure := 0.0          # how many shots you have thrown at it lately
@@ -348,6 +357,34 @@ func _tile_of(feet: Vector2) -> Vector2i:
 	return Vector2i(floori(feet.x / WizardRoute.TILE), floori((feet.y - 1.0) / WizardRoute.TILE))
 
 
+## When it has got nowhere for a long time (a way its map has wrong, a ledge it cannot reach, a wind it cannot walk against), it drops what it was
+## after and goes after something else, and if that does not help either it wanders a few steps, as a person does who has no idea what is wrong.
+func _watch_progress(delta: float) -> void:
+	if wizard.global_position.distance_to(_anchor) > STUCK_RADIUS or _resting or _goal == "":
+		_anchor = wizard.global_position
+		_anchored_for = 0.0
+		return
+	_anchored_for += delta
+	if _anchored_for < STUCK_FOR:
+		return
+	_anchored_for = 0.0
+	_unsticks += 1
+	if _goal == "page" and is_instance_valid(_goal_page):
+		_skip[_goal_page.get_instance_id()] = GIVE_UP
+	elif _goal == "portal" and is_instance_valid(_goal_portal):
+		_skip[_goal_portal.get_instance_id()] = GIVE_UP
+	elif _goal == "gate":
+		_skip[_gate_key(_goal_gate)] = GIVE_UP
+	_goal = ""
+	_goal_timer = 0.0
+	_route.clear()
+	if _unsticks >= 2:
+		_unsticks = 0
+		_wander_dir = -1.0 if _rng.randf() < 0.5 else 1.0
+		_wander_time = _rng.randf_range(1.5, 3.0)
+		wizard.request_jump()
+
+
 ## Walks the way to what it is after, and reads a page when it stands under one. Returns the speed to walk at.
 func _travel(delta: float) -> float:
 	if not _leap.is_empty():
@@ -360,6 +397,13 @@ func _travel(delta: float) -> float:
 		return 0.0
 	if wizard.is_drawing():
 		return 0.0
+	_watch_progress(delta)
+	if _wander_time > 0.0:
+		_wander_time -= delta
+		if wizard.is_on_floor() and _jump_cooldown <= 0.0 and wizard.is_on_wall():
+			wizard.request_jump()
+			_jump_cooldown = 0.6
+		return _wander_dir * WALK_SPEED
 	if _escape_time > 0.0:
 		return _escape_dir * WALK_SPEED * 1.3
 	if _walking_pads():
@@ -413,6 +457,15 @@ func _travel(delta: float) -> float:
 		_cross_run = 0.0
 		if not crossing.is_empty() and _cross(crossing):
 			return _cross_run
+	# Standing on a wooden platform or a ridge that the map does not know, high over the ground it does know: it steps down through it.
+	_off_map_check -= delta
+	if _off_map_check <= 0.0 and wizard.is_on_floor():
+		_off_map_check = 0.4
+		var here := _tile_of(wizard.global_position)
+		var known: Vector2i = wizard.nav.nearest(here, true)
+		_off_map = known != WorldNav.NONE and known.y - here.y >= 3 and absi(known.x - here.x) <= 6
+	if _off_map and wizard.is_on_floor():
+		wizard.drop_through()
 	var volcano := _volcano_near(wizard.global_position, VOLCANO_FLEE) if _lift.is_empty() and _leap.is_empty() and _wade.is_empty() else Vector2.INF
 	if volcano != Vector2.INF and not wizard.lava_proof() and wizard.is_on_floor():
 		_goal = ""  # a volcano is awake close by: it goes away from it, and chooses what to do when it is far enough off
@@ -1382,10 +1435,10 @@ func _scorched() -> bool:
 	return false
 
 
-## True over an erupting volcano (or one about to), a lake of lava or one that swells: nothing walks on into it.
+## True over a volcano that is awake, or lava from one that still runs: it passes, and nothing walks on into it meanwhile.
 func _lethal_at(point: Vector2) -> bool:
 	for node in wizard.get_tree().get_nodes_in_group("danger"):
-		if (node is Eruption or node is LavaSurge or (node is Pond and node.molten())) and node.danger_at(point):
+		if ((node is Eruption and node.is_awake()) or (node is Pond and node.cools and node.molten())) and node.danger_at(point):
 			return true
 	return false
 
