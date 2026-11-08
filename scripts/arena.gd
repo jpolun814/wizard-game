@@ -89,10 +89,7 @@ func _ready() -> void:
 	add_child(ritual)
 	ritual.finished.connect(_on_ritual_finished)
 	player.damaged.connect(_on_player_damaged)
-	var recorder := PlayRecorder.new()  # F9 records how this person plays (see PlayRecorder)
-	recorder.wizard = player
-	recorder.ritual = ritual
-	add_child(recorder)
+	PlayRecorder.attach(self, player, ritual)  # F9 records how this person plays, through every world (see PlayRecorder)
 	player.debuff_applied.connect(_on_debuff_applied)
 	player.died.connect(_on_player_died)
 

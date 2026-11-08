@@ -6,7 +6,7 @@ func _ready() -> void:
 	var arena: Node = load("res://scenes/lab.tscn").instantiate()
 	add_child(arena)
 	await get_tree().create_timer(1.0).timeout
-	var recorder: PlayRecorder = _find(arena)
+	var recorder: PlayRecorder = get_tree().root.get_node_or_null("PlayRecorder")
 	var ok := recorder != null
 	if ok:
 		var f9 := InputEventKey.new()
@@ -20,6 +20,10 @@ func _ready() -> void:
 		d.pressed = true
 		recorder._input(d)
 		await get_tree().create_timer(1.0).timeout
+		var second: Node = load("res://scenes/lab.tscn").instantiate()  # the next world: the recording goes on in it
+		arena.queue_free()
+		add_child(second)
+		await get_tree().create_timer(0.5).timeout
 		recorder._input(f9)
 		var dir := DirAccess.open("user://play_logs")
 		var text := ""
@@ -29,7 +33,7 @@ func _ready() -> void:
 				if name > newest:
 					newest = name
 			text = FileAccess.get_file_as_string("user://play_logs/" + newest)
-		ok = text.contains("K key D down") and text.contains(" S ") and text.contains(" G ") and text.contains("WORLD") and text.contains("END")
+		ok = text.contains("K key D down") and text.contains(" S ") and text.contains(" G ") and text.contains("WORLD") and text.contains("END") and text.count("WORLD") >= 2
 		if not ok:
 			print("log was: ", text.substr(0, 600))
 	print("PASS recorder writes keys and state" if ok else "FAIL recorder")

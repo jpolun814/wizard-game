@@ -23,6 +23,8 @@ const GROUPS := ["mobs", "projectiles", "danger", "fires", "pages", "lasting", "
 
 var wizard: Wizard
 var ritual: RitualInput
+var arena: Node  # the world being played now
+var _flush_in := 2.0
 var _file: FileAccess
 var _clock := 0.0
 var _state_in := 0.0
@@ -33,6 +35,31 @@ var _spell := ""
 var _typed := ""
 var _seen := {}  # instance id -> true, for what has already been written as new
 var _fallen := {}
+
+
+## Hands the recording to the world now being played. The recorder lives on the tree's root, so that one recording runs through every world of a
+## match (and the waiting room, and the next match) until F9 is pressed again.
+static func attach(to_arena: Node, person: Wizard, box: RitualInput) -> void:
+	var root := to_arena.get_tree().root
+	var recorder: PlayRecorder = root.get_node_or_null("PlayRecorder")
+	if recorder == null:
+		recorder = PlayRecorder.new()
+		recorder.name = "PlayRecorder"
+		recorder.arena = to_arena
+		recorder.wizard = person
+		recorder.ritual = box
+		root.add_child.call_deferred(recorder)  # (the root is busy while a scene is being set up)
+		return
+	recorder.rebind(to_arena, person, box)
+
+
+func rebind(to_arena: Node, person: Wizard, box: RitualInput) -> void:
+	arena = to_arena
+	wizard = person
+	ritual = box
+	_spell = ""
+	if _file != null:
+		_start_world()
 
 
 func _input(event: InputEvent) -> void:
@@ -51,6 +78,10 @@ func _process(delta: float) -> void:
 	if _file == null or not is_instance_valid(wizard):
 		return
 	_clock += delta
+	_flush_in -= delta
+	if _flush_in <= 0.0:
+		_flush_in = 2.0
+		_file.flush()  # (a recording that is cut short keeps what it had)
 	_state_in -= delta
 	_mouse_in -= delta
 	_near_in -= delta
@@ -110,7 +141,7 @@ func _near() -> void:
 
 ## Anything new in the world since the last look: a spell cast by someone, a creature, a page.
 func _news() -> void:
-	for node in get_parent().get_children():
+	for node in arena.get_children():
 		var id := node.get_instance_id()
 		if _seen.has(id) or not node is Node2D or node == wizard:
 			continue
@@ -157,6 +188,8 @@ func _world_mouse() -> Vector2:
 
 
 func _toggle() -> void:
+	if _file == null and arena == null:
+		return
 	if _file != null:
 		_line("END")
 		_file.close()
@@ -168,16 +201,21 @@ func _toggle() -> void:
 	_file = FileAccess.open("user://play_logs/play_%s.log" % stamp, FileAccess.WRITE)
 	_clock = 0.0
 	_spell = ""
-	_typed = ""
+	_line("START %s" % ProjectSettings.globalize_path("user://play_logs"))
+	_start_world()
+	print("play recording started: ", ProjectSettings.globalize_path("user://play_logs"))
+
+
+## Notes the world being played, and starts looking at it afresh.
+func _start_world() -> void:
 	_seen.clear()
 	_fallen.clear()
-	for node in get_parent().get_children():
+	_typed = ""
+	for node in arena.get_children():
 		_seen[node.get_instance_id()] = true  # (what is already there is not news)
 	if is_instance_valid(wizard) and not wizard.damaged.is_connected(_on_hurt):
 		wizard.damaged.connect(_on_hurt)
-	_line("START %s" % ProjectSettings.globalize_path("user://play_logs"))
-	_line("WORLD %s biome %s" % [get_parent().name, str(get_parent().get("grade_biome"))])
-	print("play recording started: ", ProjectSettings.globalize_path("user://play_logs"))
+	_line("WORLD %s biome %s" % [arena.name, str(arena.get("grade_biome"))])
 
 
 func _on_hurt(amount: int) -> void:
