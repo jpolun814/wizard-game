@@ -274,10 +274,13 @@ func think(delta: float) -> void:
 		if not shot.is_empty() and _defend_cooldown <= 0.0:
 			_threat_dir = shot["dir"]
 			_plan(_choose_defence(shot["eta"]), _reaction_time())
-		elif _scorched() or (_push_through <= 0.0 and (_in_danger(wizard.global_position + Vector2(0, -6)) or _in_danger(wizard.center()))):
+		elif _scorched() or _bitten() or (_push_through <= 0.0 and (_in_danger(wizard.global_position + Vector2(0, -6)) or _in_danger(wizard.center()))):
 			_plan("escape", _reaction_time() * 0.6)
+			_settle = 0.0  # nobody stands in the fire to finish a chant
+			_typing = ""
+			_camped = false
 			_escapes += 1.0
-			if _escapes > 3.0 and not _scorched():  # it keeps backing out of the same thing that lies on its way: it goes through it this once
+			if _escapes > 3.0 and not _scorched() and not _bitten():  # it keeps backing out of the same thing that lies on its way: it goes through it this once
 				_push_through = PUSH_THROUGH_FOR
 				_escapes = 0.0
 		elif _defend_cooldown <= 0.0 and not _watchers().is_empty():
@@ -501,6 +504,9 @@ func _travel(delta: float) -> float:
 			_jump_cooldown = 0.6
 		return _wander_dir * WALK_SPEED
 	if _escape_time > 0.0:
+		if wizard.is_on_wall() and wizard.is_on_floor() and _jump_cooldown <= 0.0:  # a bank too steep to walk up: it hops
+			wizard.request_jump()
+			_jump_cooldown = 0.5
 		return _escape_dir * WALK_SPEED * 1.3
 	if _walking_pads():
 		return _cross_run
@@ -583,6 +589,10 @@ func _travel(delta: float) -> float:
 				_danger_wait = 0.0
 				if _goal == "page" and is_instance_valid(_goal_page):
 					_skip[_goal_page.get_instance_id()] = GIVE_UP
+				elif _goal == "explore":  # it will not look that way again: it turns round and tries the other side
+					for k in range(0, 3):
+						_explored[_square_of(wizard.global_position + Vector2(ahead * k * 600.0, 0.0))] = true
+					_explore_dir = -ahead
 				_goal = ""
 				_goal_timer = 0.0
 				_route.clear()
@@ -1545,19 +1555,25 @@ func _over_ground(dx: float) -> Vector2:
 ## Which way is away from danger: the way to the nearest ground that is not burning or dangerous. It looks as far as a few hundred pixels,
 ## because a flow of lava down a slope is wider than a step.
 func _safe_side() -> float:
+	var volcano := _volcano_near(wizard.global_position, 900.0)  # lava from a volcano pours down its flanks: running up toward it is running into more of it
+	if volcano != Vector2.INF and absf(wizard.global_position.x - volcano.x) > 40.0:
+		return signf(wizard.global_position.x - volcano.x)
 	var reach := [INF, INF]
 	for k in 2:
 		var dir := -1.0 if k == 0 else 1.0
 		for step in range(30, 811, 30):
 			var spot := _over_ground(dir * step)
-			if not _in_danger(spot) and not _in_danger(spot + Vector2(0.0, 12.0)):
+			if not _in_danger(spot) and not _in_danger(spot + Vector2(0.0, 12.0)) and not _in_shoal(spot):
 				reach[k] = float(step)
 				break
 	if reach[0] == reach[1]:
 		if _escape_dir != 0.0:
 			return _escape_dir
 		return -signf(_foe.global_position.x - wizard.global_position.x) if _foe != null else 1.0
-	return -1.0 if reach[0] < reach[1] else 1.0
+	var best := -1.0 if reach[0] < reach[1] else 1.0
+	if _escape_dir != 0.0 and reach[0 if _escape_dir < 0.0 else 1] <= reach[0 if best < 0.0 else 1] * 1.6 + 60.0:
+		return _escape_dir  # the way it was already running is nearly as good: it does not turn back and forth in the flow
+	return best
 
 
 ## True when anything that hurts (any spell, its own included) would reach it at this point.
@@ -1591,10 +1607,20 @@ func _lethal_at(point: Vector2) -> bool:
 	for node in wizard.get_tree().get_nodes_in_group("danger"):
 		if ((node is Eruption and node.is_awake()) or (node is Pond and node.cools and node.molten())) and node.danger_at(point):
 			return true
+	return _in_shoal(point)
+
+
+## True in water with piranhas in it.
+func _in_shoal(point: Vector2) -> bool:
 	for shoal: Piranhas in wizard.get_tree().get_nodes_in_group("shoals"):  # water with fish in it is not waded
 		if shoal.alive() and shoal.is_biting_at(point):
 			return true
 	return false
+
+
+## True while it stands in water with piranhas in it: it gets out by the nearest bank, hopping the edge when it must.
+func _bitten() -> bool:
+	return _in_shoal(wizard.global_position + Vector2(0.0, -6.0)) or _in_shoal(wizard.center())
 
 
 func _in_danger(point: Vector2) -> bool:
