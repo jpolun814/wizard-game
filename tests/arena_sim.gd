@@ -29,6 +29,8 @@ var _kill_at := -1.0  # kill=SECONDS fells the wizard with the most pages then, 
 var _killed := false
 var _log: FileAccess  # log=FILE writes what every wizard does, four times a second, and each cast and wound, for studying how they behave
 var _log_t := 0.0
+var _shot_at := 2.0  # shotat=SECONDS: when shot= takes its picture
+var _follow := -1  # follow=N: the camera stays on the Nth wizard
 var _watch := false  # watch=1: a camera follows a wizard still standing, for looking at the match in a window
 var _camera: Camera2D
 
@@ -51,6 +53,10 @@ func _ready() -> void:
 			_kill_at = float(arg.substr(5))
 		elif arg.begins_with("log="):
 			_log = FileAccess.open(arg.substr(4), FileAccess.WRITE)
+		elif arg.begins_with("shotat="):
+			_shot_at = float(arg.substr(7))
+		elif arg.begins_with("follow="):
+			_follow = int(arg.substr(7))
 		elif arg == "watch=1":
 			_watch = true
 		elif arg == "keep=1":
@@ -101,14 +107,17 @@ func _physics_process(delta: float) -> void:
 		return
 	_clock += delta
 	if _camera != null:
+		if _follow >= 0 and is_instance_valid(_wizards[_follow]):
+			_camera.global_position = _wizards[_follow].global_position
 		var followed := _wizards.filter(func(w) -> bool: return is_instance_valid(w) and not w.dead)
 		if not followed.is_empty():
 			var target: Wizard = _camera.get_meta(&"target", null) if _camera.has_meta(&"target") else null
 			if target == null or not is_instance_valid(target) or target.dead:
 				target = followed[0]
 				_camera.set_meta(&"target", target)
-			_camera.global_position = target.global_position
-	if _shot != "" and _clock > 2.0:
+			if _follow < 0:
+				_camera.global_position = target.global_position
+	if _shot != "" and _clock > _shot_at:
 		get_viewport().get_texture().get_image().save_png(_shot)
 		_shot = ""
 	_log_t += delta
@@ -117,7 +126,12 @@ func _physics_process(delta: float) -> void:
 		for i in _wizards.size():
 			var w := _wizards[i]
 			if is_instance_valid(w) and not w.dead:
-				_log.store_line("S %.2f %s%d %d %d %d %d %d %d %d %s" % [_clock, w.look, i, w.global_position.x, w.global_position.y, w.velocity.x, w.velocity.y, 1 if w.is_on_floor() else 0, w.stamina, w.max_stamina, w.brain.status()])
+				var foe_gap := -1
+				var foe_at := -1
+				if w.brain._foe != null and is_instance_valid(w.brain._foe):
+					foe_gap = int(w.center().distance_to(w.brain._foe.center()))
+					foe_at = _wizards.find(w.brain._foe)
+				_log.store_line("S %.2f %s%d %d %d %d %d %d %d %d %d %d %d %s" % [_clock, w.look, i, w.global_position.x, w.global_position.y, w.velocity.x, w.velocity.y, 1 if w.is_on_floor() else 0, w.stamina, w.max_stamina, foe_at, foe_gap, 1 if w.is_drawing() else 0, w.brain.status()])
 	for i in _wizards.size():
 		var wizard := _wizards[i]
 		if is_instance_valid(wizard) and not wizard.dead:

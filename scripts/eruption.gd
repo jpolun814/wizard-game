@@ -115,6 +115,11 @@ func _pour_lava() -> void:
 		pool.cools = true
 
 
+## True from the first rumble until the eruption is over: the time to be somewhere else.
+func is_awake() -> bool:
+	return _state != "sleeping"
+
+
 ## True while it is erupting.
 func is_erupting() -> bool:
 	return _state == "erupting"

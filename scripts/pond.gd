@@ -508,7 +508,7 @@ func _age_ice(delta: float) -> void:
 
 func danger_at(point: Vector2) -> bool:
 	if grid != null:
-		return molten() and grid.wet_at(point + Vector2(0.0, 20.0))
+		return molten() and (grid.wet_at(point + Vector2(0.0, 20.0)) or wet_at(point) or wet_at(point + Vector2(0.0, -4.0)))  # (lava lying over the ground is in it, as well as lava a step below)
 	return molten() and point.x >= global_position.x and point.x <= global_position.x + width and point.y > global_position.y - 20.0 and point.y < global_position.y + depth
 
 

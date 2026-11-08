@@ -26,7 +26,9 @@ const PORTAL_LEFT := 3.0        # seconds: a portal with less than this left ope
 const PORTAL_CHANCE := 0.75     # how often it takes a portal that is nearer than the page it was after
 const PORTAL_JUMP_FOR := 5.0    # seconds it stands under a portal hung in the air, jumping for it, before it takes it for out of reach
 const PUSH_THROUGH_FOR := 5.0   # seconds it goes on through danger after backing out of it over and over
-const DANGER_WAIT_MAX := 12.0  # seconds it waits before an erupting volcano on its way before it goes on regardless
+const VOLCANO_KEEP_OFF := 520.0  # pixels: a page this near a volcano that is awake is left alone
+const VOLCANO_FLEE := 440.0     # pixels: it goes away from a volcano that is awake when it is this near
+const DANGER_WAIT_MAX := 12.0  # seconds it waits before lava on its way before it gives up that way
 const GIVE_UP := 45.0         # seconds a page it could not reach stays off its list
 const NEAR := 190.0           # closer than this it backs away
 const FAR := 330.0            # farther than this it closes in
@@ -117,6 +119,7 @@ var _strafe_timer := 0.0
 var _escape_time := 0.0
 var _escape_dir := 0.0
 var _jump_cooldown := 0.0
+var _escape_commit := 0.0     # seconds it keeps the way it chose out of danger
 var _push_through := 0.0     # seconds left that it walks on through what it would back out of
 var _escapes := 0.0           # how often it has backed out of danger lately
 var _danger_wait := 0.0       # seconds it has stood waiting for danger on its way to pass
@@ -228,6 +231,7 @@ func think(delta: float) -> void:
 	var fighting := sees and to_player.length() < ENGAGE
 
 	_push_through -= delta
+	_escape_commit -= delta
 	_escapes = maxf(_escapes - delta * 0.5, 0.0)
 	# Reactions.
 	if _react > 0.0:
@@ -239,10 +243,10 @@ func think(delta: float) -> void:
 		if not shot.is_empty() and _defend_cooldown <= 0.0:
 			_threat_dir = shot["dir"]
 			_plan(_choose_defence(shot["eta"]), _reaction_time())
-		elif _push_through <= 0.0 and (_in_danger(wizard.global_position + Vector2(0, -6)) or _in_danger(wizard.center())):
+		elif _scorched() or (_push_through <= 0.0 and (_in_danger(wizard.global_position + Vector2(0, -6)) or _in_danger(wizard.center()))):
 			_plan("escape", _reaction_time() * 0.6)
 			_escapes += 1.0
-			if _escapes > 3.0:  # it keeps backing out of the same thing that lies on its way: it goes through it this once
+			if _escapes > 3.0 and not _scorched():  # it keeps backing out of the same thing that lies on its way: it goes through it this once
 				_push_through = PUSH_THROUGH_FOR
 				_escapes = 0.0
 		elif _defend_cooldown <= 0.0 and not _watchers().is_empty():
@@ -409,16 +413,32 @@ func _travel(delta: float) -> float:
 		_cross_run = 0.0
 		if not crossing.is_empty() and _cross(crossing):
 			return _cross_run
+	var volcano := _volcano_near(wizard.global_position, VOLCANO_FLEE) if _lift.is_empty() and _leap.is_empty() and _wade.is_empty() else Vector2.INF
+	if volcano != Vector2.INF and not wizard.lava_proof() and wizard.is_on_floor():
+		_goal = ""  # a volcano is awake close by: it goes away from it, and chooses what to do when it is far enough off
+		_goal_timer = 0.5
+		return signf(wizard.global_position.x - volcano.x) * WALK_SPEED
 	var steer := _route.steer(wizard, delta)
 	if steer["replan"]:
 		stuck_at.append("%s %s" % [str(_tile_of(wizard.global_position)), _route.status()])
 		_stuck_on_goal()
 	var ahead := signf(steer["dir"])
-	if ahead != 0.0 and wizard.is_on_floor() and _erupting_at(wizard.global_position + Vector2(ahead * 48.0, -10.0)) and not _erupting_at(wizard.global_position + Vector2(0, -6)):
-		if _danger_wait < DANGER_WAIT_MAX:  # a volcano is erupting on the way: it waits for it to pass, and goes on when it has waited long enough
+	if ahead != 0.0 and wizard.is_on_floor() and not _lethal_at(wizard.global_position + Vector2(0, -6)):
+		var near := _lethal_at(_over_ground(ahead * 40.0)) or _lethal_at(_over_ground(ahead * 72.0))
+		if near or _lethal_at(_over_ground(ahead * 110.0)):
+			# lava or an eruption lies on the way: it keeps its distance, backing away if it is close, and waits for it to pass or cool; when that takes
+			# too long it looks for another way
 			_danger_wait += delta
 			_route.wait()
-			return 0.0
+			if _danger_wait > DANGER_WAIT_MAX:
+				_danger_wait = 0.0
+				if _goal == "page" and is_instance_valid(_goal_page):
+					_skip[_goal_page.get_instance_id()] = GIVE_UP
+				_goal = ""
+				_goal_timer = 0.0
+				_route.clear()
+			return -ahead * WALK_SPEED * 0.8 if near else 0.0
+		_danger_wait = maxf(_danger_wait - delta, 0.0)
 	else:
 		_danger_wait = 0.0
 	if steer["drop"]:
@@ -835,6 +855,8 @@ func _choose_goal() -> void:
 	for pickup: PagePickup in wizard.get_tree().get_nodes_in_group("pages"):
 		if not pickup.gives(wizard.ledger) or _skip.has(pickup.get_instance_id()) or (pickup is Mirage and _wise_to_mirages):
 			continue
+		if _volcano_near(pickup.global_position, VOLCANO_KEEP_OFF) != Vector2.INF and not wizard.lava_proof():
+			continue  # a page by a volcano that is erupting is left until it is over
 		var tile := _tile_of(pickup.global_position)
 		var stand: Vector2i = wizard.nav.nearest(tile)
 		var path: Array[Vector2i] = []
@@ -1216,10 +1238,13 @@ func _act(reaction: String) -> void:
 			_blink_away(foe)
 			_defend_cooldown = 1.6
 		"escape":
-			_escape_dir = _safe_side()
+			if _escape_commit <= 0.0 or _escape_dir == 0.0:
+				_escape_dir = _safe_side()  # (once it has chosen a way out, it keeps to it for a while rather than turning back at every lick of flame)
+				_escape_commit = 1.8
 			_escape_time = 0.6
 			if _knows("Shadow Step") and wizard.stamina >= 12.0 and _rng.randf() < skill * 0.6:
-				_blink_away(foe)
+				var from: Vector2 = wizard.center()
+				_begin_cast("Shadow Step", _line(from, from + Vector2(_escape_dir * 240.0, -12.0)), QUICK_DRAW)  # (to the safe side, not away from the rival)
 			_defend_cooldown = 0.6
 		"push":
 			var away: Vector2 = (foe.center() - wizard.center()).normalized()
@@ -1306,25 +1331,61 @@ func _footwork(delta: float, to_player: Vector2, sees: bool) -> float:
 	return dir * speed
 
 
-## Which way is away from danger: the side with fewer dangerous spots near it.
+## The point just over the ground at a distance sideways: on a slope, the ground there is higher or lower than where it stands.
+func _over_ground(dx: float) -> Vector2:
+	var from := Vector2(wizard.global_position.x + dx, wizard.global_position.y - 140.0)
+	var ground := SpellTargets.ground_below(wizard.get_world_2d(), from, 420.0)
+	return Vector2(from.x, ground.y - 10.0)
+
+
+## Which way is away from danger: the way to the nearest ground that is not burning or dangerous. It looks as far as a few hundred pixels,
+## because a flow of lava down a slope is wider than a step.
 func _safe_side() -> float:
-	var left := 0
-	var right := 0
-	for step in [30.0, 60.0, 90.0]:
-		if _in_danger(wizard.global_position + Vector2(-step, -10.0)):
-			left += 1
-		if _in_danger(wizard.global_position + Vector2(step, -10.0)):
-			right += 1
-	if left == right:
-		return -signf(_foe.global_position.x - wizard.global_position.x)
-	return -1.0 if left < right else 1.0
+	var reach := [INF, INF]
+	for k in 2:
+		var dir := -1.0 if k == 0 else 1.0
+		for step in range(30, 811, 30):
+			var spot := _over_ground(dir * step)
+			if not _in_danger(spot) and not _in_danger(spot + Vector2(0.0, 12.0)):
+				reach[k] = float(step)
+				break
+	if reach[0] == reach[1]:
+		if _escape_dir != 0.0:
+			return _escape_dir
+		return -signf(_foe.global_position.x - wizard.global_position.x) if _foe != null else 1.0
+	return -1.0 if reach[0] < reach[1] else 1.0
 
 
 ## True when anything that hurts (any spell, its own included) would reach it at this point.
-## True over an erupting volcano (or one about to): it passes, so the way is worth waiting for.
-func _erupting_at(point: Vector2) -> bool:
+## Where a volcano that is awake (or lava from one that is still running and cooling) lies within reach of a point, or Vector2.INF.
+func _volcano_near(point: Vector2, reach: float) -> Vector2:
+	var best := Vector2.INF
+	var best_gap := reach
 	for node in wizard.get_tree().get_nodes_in_group("danger"):
-		if node is Eruption and node.danger_at(point):
+		var source := node as Node2D
+		if source == null or not ((node is Eruption and node.is_awake()) or (node is Pond and node.cools and node.molten())):
+			continue
+		var gap := absf(source.global_position.x - point.x)
+		if gap < best_gap and absf(source.global_position.y - point.y) < 900.0:
+			best = source.global_position
+			best_gap = gap
+	return best
+
+
+## True while lava is burning it: that is never walked on through.
+func _scorched() -> bool:
+	if wizard.lava_proof():
+		return false
+	for node in wizard.get_tree().get_nodes_in_group("danger"):
+		if node is Pond and node.molten() and node.holds(wizard):
+			return true
+	return false
+
+
+## True over an erupting volcano (or one about to), a lake of lava or one that swells: nothing walks on into it.
+func _lethal_at(point: Vector2) -> bool:
+	for node in wizard.get_tree().get_nodes_in_group("danger"):
+		if (node is Eruption or node is LavaSurge or (node is Pond and node.molten())) and node.danger_at(point):
 			return true
 	return false
 
