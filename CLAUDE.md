@@ -730,3 +730,4 @@ What the brain does now that it did not:
 Seen and left alone: long waits for swinging castle stairs (legitimate, up to about 78 s), the rift, boundless and dowsing chants are unused, foe hunting still knows where rivals are.
 The quick check set is the safety net; run `python tools/run_checks.py --full tutorial_ai brain_spells route_check test_nav cross gate` after touching the brain.
 
+- **Recording a person:** press F9 in a game to record (`PlayRecorder`, `tests/recorder_check.tscn`); F9 again stops. It writes `user://play_logs/play_*.log` (on Windows: `%APPDATA%\Godotpp_userdata\<project name>\play_logs`): K lines for every key and mouse press, M the mouse in the world, S the wizard ten times a second, C spells, R chant words as typed, D damage. Compare a person's jump rate, waits and fight rhythm with the AI's before judging the AI human.
