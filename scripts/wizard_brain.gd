@@ -15,7 +15,7 @@ extends RefCounted
 ##   Attacks: each spell is scored for the situation (are you moving, behind cover, rooted, close, far?) and one is
 ##     picked by weight. Projectiles are aimed where you are going, not where you are.
 
-const WALK_SPEED := 170.0
+const WALK_SPEED := 300.0
 const ENGAGE := 620.0         # a wizard this close, and in sight, is a fight; farther off, it is a journey
 const PAGE_REACH := 4          # tiles: a page further than this from any place to stand is not one it can get
 const GOAL_EVERY := 4.0       # seconds between looking for a nearer page
@@ -30,9 +30,9 @@ const SIGHT_X := 620.0   # pixels sideways that it sees a page lying: a little p
 const SIGHT_Y := 380.0
 const EXPLORE_FLOOR := 12     # tiles between one floor of a tall building and the next, when it looks for pages above or below
 const EXPLORE_STEP := 20    # tiles between the places it picks to look at, going along
-const TYPING_PER_LETTER := 0.07  # seconds it takes to type a letter of a chant
+const TYPING_PER_LETTER := 0.4  # seconds a letter takes to type: 30 words a minute, about what a person types words of a language that is not theirs
 const HASTE_FROM := 60       # moves left on a journey before it says the chant of swift feet
-const MEND_BELOW := 0.65   # a wizard worn down below this share of the greatest maximum lights a bonfire and rests by it
+const MEND_BELOW := 0.5    # a wizard worn down below this share of the greatest maximum lights a bonfire and rests by it
 const MEND_UNTIL := 0.92
 const MEND_MAX := 40.0     # seconds it rests at most
 const STUCK_RADIUS := 260.0  # pixels it must get from where it was in STUCK_FOR seconds, or it has got nowhere

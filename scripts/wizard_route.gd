@@ -7,7 +7,7 @@ extends RefCounted
 ## the next. When the wizard stops making headway the route says so, and the one who owns it finds another.
 
 const TILE := float(ArenaGen.TILE)
-const WALK := 170.0         # a wizard's walking speed
+const WALK := 300.0         # a wizard's walking speed
 const JUMP_SPEED := 520.0   # how fast a jump leaves the ground, the same as the player's
 const FALL_SPEED := 60.0   # how fast to drift across while falling
 const MAX_AIR_SPEED := 330.0
