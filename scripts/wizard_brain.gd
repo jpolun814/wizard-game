@@ -48,6 +48,11 @@ const DANGER_WAIT_MAX := 7.0  # seconds it waits before lava on its way before i
 const GIVE_UP := 45.0         # seconds a page it could not reach stays off its list
 const NEAR := 190.0           # closer than this it backs away
 const FAR := 330.0            # farther than this it closes in
+const HUNT_PAGE_NEAR := 14    # (a page this many steps away or nearer is taken first, even by one that is hunting)
+const BOLD_ABOVE := 0.62      # it thinks itself strong enough to go looking for rivals
+const TIMID_BELOW := 0.3      # it thinks itself too weak to stand and fight, and keeps away while it can
+const TIMID_HESITATE := 3.0   # seconds a timid wizard stands its ground before it turns away
+const TIMID_STAND := 260.0    # (a timid wizard that is this close, or closer, fights, since it cannot get away)
 const TOO_CLOSE := 95.0       # this close it acts to get you off it
 const INTERRUPT_DAMAGE := 6   # a hit this big while it draws breaks the spell
 const QUICK_DRAW := 0.35      # defensive signs are drawn quickly
@@ -125,6 +130,9 @@ const USES := {
 
 var wizard: Wizard            # the body it plays
 var skill := 0.6              # 0 to 1: how quick its reactions are and how true its aim is
+var _strength := 0.5          # 0 to 1: how strong it thinks it is (see _feel_strength); a strong wizard hunts, a weak one looks for pages and keeps away
+var _strength_in := 0.0
+var _daunted := 0.0           # seconds it has faced a rival it feels too weak for, at a distance: it hesitates (and may cast to hide or mend) before it turns away
 var _cast_cooldown := 1.8
 var _react := 0.0             # counting down to a planned reaction
 var _reaction := ""
@@ -309,6 +317,10 @@ func think(delta: float) -> void:
 		_skip.clear()  # a gate has been cleared: pages that could not be reached may be reachable now
 	_track_shots()
 	_foe = _nearest_foe()
+	_strength_in -= delta
+	if _strength_in <= 0.0:
+		_strength_in = 1.0
+		_strength = _feel_strength(_foe)
 	if _foe == null and _eye_time <= 0.0 and SpellTargets.wizards(wizard.get_tree()).size() > 1 and wizard.ledger.knows_chant("scrying_eye") and wizard.chant("scrying_eye"):
 		_eye_time = EYE_SECONDS  # it has lost track of everyone: it sends out an eye
 		_foe = _nearest_foe()
@@ -374,12 +386,15 @@ func think(delta: float) -> void:
 	if not _lift.is_empty():
 		run = _lifting(delta)  # a throw, a climb or a lift up to you goes on, fight or no
 	else:
-		run = _footwork(delta, to_player, sees) if fighting else _travel(delta)  # (both may jump: the speed is written after they have)
+		var daunted := fighting and _strength < TIMID_BELOW and to_player.length() > TIMID_STAND
+		_daunted = _daunted + delta if daunted else 0.0
+		var standing_to_fight := fighting and (not daunted or _daunted < TIMID_HESITATE)  # (one that feels weak, after a moment, goes on with its journey and keeps away)
+		run = _footwork(delta, to_player, sees) if standing_to_fight else _travel(delta)  # (both may jump: the speed is written after they have)
 	wizard.walk(run)
 	# A wizard faces the way it runs; it turns to its rival only while standing still or drawing a spell, so it never backpedals.
 	var running := run != 0.0 and not wizard.is_drawing()
 	wizard.facing = signf(run) if running else (signf(to_player.x) if fighting or wizard.is_drawing() else wizard.facing)
-	if not fighting:
+	if not fighting or (_strength < TIMID_BELOW and to_player.length() > TIMID_STAND and _daunted >= TIMID_HESITATE):
 		return
 
 	# Attacks.
@@ -420,6 +435,24 @@ func _knows(spell_name: String) -> bool:
 	if spell_name.begins_with("chant:"):
 		return wizard.ledger.knows_chant(spell_name.substr(6))
 	return wizard.ledger.knows_spell(spell_name)
+
+
+## How strong it thinks it is, 0 to 1, as a person feels it: from the attacking pages in its book, how much strength it has left, and how it stands beside the
+## nearest rival (their strength, and how many pages each holds). Good attack spells and plenty of strength make a wizard bold; a bare book makes it timid.
+func _feel_strength(rival: Wizard) -> float:
+	var arms := 0.0
+	for page: String in wizard.ledger.pages:
+		var spell: Spell = SpellData.SPELLS.get(page)
+		if spell == null or spell.damage.is_empty():
+			continue
+		var figure := spell.damage.get_slice(" ", 0).to_float()
+		arms += clampf(figure, 4.0, 40.0) / 40.0  # a weak spell counts for little, a strong one for a good deal
+	var armed := 1.0 if wizard.ledger.everything else clampf(arms / 2.5, 0.0, 1.0)  # (in the waiting room every page is held)
+	var health := clampf(wizard.max_stamina / Wizard.MAX_STAMINA, 0.0, 1.0) * 0.7 + clampf(wizard.stamina / maxf(wizard.max_stamina, 1.0), 0.0, 1.0) * 0.3
+	var edge := 0.5
+	if rival != null and is_instance_valid(rival):
+		edge = clampf(0.5 + (wizard.max_stamina - rival.max_stamina) / 200.0 + float(wizard.ledger.count() - rival.ledger.count()) * 0.04, 0.0, 1.0)
+	return armed * 0.5 + health * 0.3 + edge * 0.2
 
 
 ## The nearest of the other wizards still standing, or null when it is the last.
@@ -1210,6 +1243,12 @@ func _choose_goal() -> void:
 		_portal_jumping = 0.0
 		_route.set_path(portal["path"])
 		return
+	if _foe != null and _strength >= BOLD_ABOVE and (best_page == null or best_path.size() > HUNT_PAGE_NEAR):  # feeling strong, it goes after a rival rather than a page that lies far off
+		var hunt: Array[Vector2i] = _path(start, wizard.nav.nearest(_tile_of(_foe.global_position)))
+		if not hunt.is_empty():
+			_goal = "foe"
+			_route.set_path(hunt)
+			return
 	if best_page != null:
 		_goal = "page"
 		_goal_page = best_page

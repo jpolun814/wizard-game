@@ -6,6 +6,7 @@ extends Node
 ##   START / WORLD   where the file is, the world and its biome
 ##   K    a key or mouse button went down or up (the mouse's place in the world, for buttons)
 ##   M    the mouse in the world, ten times a second
+##   P    the pages in the book (spell names with _ for spaces, chants as chant:id, joined by |), each time they change
 ##   S    the wizard of the person, ten times a second: place, speed, on the ground or in the air, stamina, maximum, drawing, pages, animation
 ##   G    the ground about the wizard (how many pixels below the feet, every 64 px sideways) twice a second
 ##   W    every other wizard near, four times a second: name, who plays it, place from the person, stamina, maximum, wolf, state, last spell
@@ -42,6 +43,7 @@ var _mouse_in := 0.0
 var _near_in := 0.0
 var _ground_in := 0.0
 var _sense_in := 0.0
+var _held := ""  # the pages in the book as last written (P), so that a line is written only when the book changes
 var _spell := ""
 var _typed := ""
 var _seen := {}  # instance id -> true, for what has already been written as new
@@ -152,6 +154,7 @@ func rebind(to_arena: Node, person: Wizard, box: RitualInput) -> void:
 	wizard = person
 	ritual = box
 	_spell = ""
+	_held = ""  # (a new world: the book is written again)
 	if _file != null:
 		_start_world()
 
@@ -202,12 +205,23 @@ func _process(delta: float) -> void:
 	if _sense_in <= 0.0:
 		_sense_in = SENSE_GAP
 		_sense()
+		_book()
 	if _ground_in <= 0.0:
 		_ground_in = GROUND_GAP
 		_ground()
 	if _near_in <= 0.0:
 		_near_in = NEAR_GAP
 		_near()
+
+
+## The pages in the book, whenever they change (and when a world begins, since the line is written again for a new wizard): which spells the person has decides how they play.
+func _book() -> void:
+	var names: Array = wizard.ledger.pages.keys()
+	names.sort()
+	var held := "|".join(PackedStringArray(names)).replace(" ", "_")
+	if held != _held:
+		_held = held
+		_line("P " + (held if held != "" else "-"))
 
 
 ## What the wizard senses (see Sensing), as one line.
