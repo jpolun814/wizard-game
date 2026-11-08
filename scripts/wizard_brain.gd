@@ -26,6 +26,14 @@ const PORTAL_LEFT := 3.0        # seconds: a portal with less than this left ope
 const PORTAL_CHANCE := 0.75     # how often it takes a portal that is nearer than the page it was after
 const PORTAL_JUMP_FOR := 5.0    # seconds it stands under a portal hung in the air, jumping for it, before it takes it for out of reach
 const PUSH_THROUGH_FOR := 5.0   # seconds it goes on through danger after backing out of it over and over
+const SIGHT_X := 620.0   # pixels sideways that it sees a page lying: a little past the edge of the screen, since a page shines
+const SIGHT_Y := 380.0
+const EXPLORE_STEP := 20    # tiles between the places it picks to look at, going along
+const TYPING_PER_LETTER := 0.07  # seconds it takes to type a letter of a chant
+const HASTE_FROM := 60       # moves left on a journey before it says the chant of swift feet
+const MEND_BELOW := 0.65   # a wizard worn down below this share of the greatest maximum lights a bonfire and rests by it
+const MEND_UNTIL := 0.92
+const MEND_MAX := 40.0     # seconds it rests at most
 const STUCK_RADIUS := 260.0  # pixels it must get from where it was in STUCK_FOR seconds, or it has got nowhere
 const STUCK_FOR := 20.0
 const VOLCANO_KEEP_OFF := 520.0  # pixels: a page this near a volcano that is awake is left alone
@@ -131,6 +139,15 @@ var _wander_dir := 1.0
 var _wander_time := 0.0
 var _off_map := false           # it stands on something the map does not hold, over ground that it does
 var _off_map_check := 0.0
+var _camped := false             # it rests by a bonfire to mend
+var _camped_for := 0.0
+var _mend_wait := 0.0
+var _typing := ""                # the chant it is typing, and will say when _settle has run out
+var _haste_wait := 0.0
+var _seen_pages := {}            # the pages it has set eyes on, and not read (id -> true): in a match it goes only for those
+var _explored := {}              # the squares of the world it has been to ((x / 16, y / 12) -> true)
+var _explore_dir := 0.0
+var _sight_timer := 0.0
 var _danger_wait := 0.0       # seconds it has stood waiting for danger on its way to pass
 var _hop_timer := 1.5  # counting down to its next hop while it walks
 var _pressure := 0.0          # how many shots you have thrown at it lately
@@ -201,6 +218,7 @@ func think(delta: float) -> void:
 	_tend_cooldown -= delta
 	_scent -= delta
 	_eye_time -= delta
+	_note_sights(delta)
 	_pressure *= exp(-delta / 3.0)
 	for spell_name in _rest.keys():
 		_rest[spell_name] -= delta
@@ -232,6 +250,10 @@ func think(delta: float) -> void:
 			_react -= delta
 			if _react <= 0.0:
 				_act(_reaction)
+		var mending := _mend(delta, false) if _lift.is_empty() and _leap.is_empty() and _wade.is_empty() else NAN
+		if not is_nan(mending):
+			wizard.walk(mending)
+			return
 		wizard.walk(_travel(delta) if SpellTargets.wizards(wizard.get_tree()).size() > 1 or wizard.get_tree().get_first_node_in_group(&"gate_source") != null else 0.0)  # (alone in a match it has won; alone in a room it goes on)
 		return
 	var foe: Wizard = _foe
@@ -275,6 +297,10 @@ func think(delta: float) -> void:
 
 	# Footwork, or the journey.
 	var run: float
+	var mend := _mend(delta, fighting) if _lift.is_empty() and _leap.is_empty() and _wade.is_empty() and _react <= 0.0 else NAN
+	if not is_nan(mend):
+		wizard.walk(mend)
+		return
 	if not _lift.is_empty():
 		run = _lifting(delta)  # a throw, a climb or a lift up to you goes on, fight or no
 	else:
@@ -357,6 +383,67 @@ func _tile_of(feet: Vector2) -> Vector2i:
 	return Vector2i(floori(feet.x / WizardRoute.TILE), floori((feet.y - 1.0) / WizardRoute.TILE))
 
 
+## Wounds: a wizard worn down to a small maximum, with no one at its heels, lights a bonfire (or goes to one that burns) and rests by it until it has
+## mended, as a person does. Returns the speed to walk at, or NAN when it is not mending.
+func _mend(delta: float, fighting: bool) -> float:
+	_mend_wait -= delta
+	if _typing != "":  # it is typing the chant: it stands, and the words take hold when it has finished, unless someone comes at it first
+		if fighting:
+			_typing = ""
+			_settle = 0.0
+			return NAN
+		if _settle > 0.0:
+			return 0.0
+		var said := _typing
+		_typing = ""
+		if wizard.chant(said) and said == "bonfire":
+			_camped = true
+			_camped_for = 0.0
+		return 0.0
+	var fire := _bonfire_near(wizard.global_position, 900.0)
+	if _camped:
+		_camped_for += delta
+		var healed := wizard.max_stamina >= Wizard.MAX_STAMINA * MEND_UNTIL
+		if fighting or healed or _camped_for > MEND_MAX or fire == null or wizard.wild:
+			_camped = false
+			_mend_wait = 12.0
+			return NAN
+		var off := fire.global_position.x - wizard.global_position.x
+		if absf(off) > 50.0:
+			return signf(off) * WALK_SPEED * 0.8
+		return 0.0
+	if fighting or _mend_wait > 0.0 or wizard.max_stamina >= Wizard.MAX_STAMINA * MEND_BELOW or not wizard.is_on_floor() or wizard.is_drawing() or wizard.wild:
+		return NAN
+	if fire != null and absf(fire.global_position.y - wizard.global_position.y) < 120.0:
+		_camped = true
+		_camped_for = 0.0
+		return 0.0
+	if _knows("chant:bonfire"):
+		_typing = "bonfire"
+		_settle = _typing_time("bonfire")
+		return 0.0
+	_mend_wait = 30.0
+	return NAN
+
+
+## How long a person takes to type a chant: it stands where it is while it does.
+func _typing_time(id: String) -> float:
+	return float(RitualInput.RITUALS[id]["text"].length()) * TYPING_PER_LETTER
+
+
+## The nearest bonfire that burns, within reach of a point, or null.
+func _bonfire_near(point: Vector2, reach: float) -> Bonfire:
+	var best: Bonfire = null
+	var best_gap := reach
+	for node in wizard.get_tree().get_nodes_in_group("fires"):
+		if node is Bonfire and not node.is_queued_for_deletion():
+			var gap: float = node.global_position.distance_to(point)
+			if gap < best_gap:
+				best = node
+				best_gap = gap
+	return best
+
+
 ## When it has got nowhere for a long time (a way its map has wrong, a ledge it cannot reach, a wind it cannot walk against), it drops what it was
 ## after and goes after something else, and if that does not help either it wanders a few steps, as a person does who has no idea what is wrong.
 func _watch_progress(delta: float) -> void:
@@ -397,7 +484,16 @@ func _travel(delta: float) -> float:
 		return 0.0
 	if wizard.is_drawing():
 		return 0.0
+	if _typing == "haste" and _settle <= 0.0:
+		_typing = ""
+		wizard.chant("haste")
 	_watch_progress(delta)
+	if _goal != "" and _route.remaining() > HASTE_FROM and wizard.haste_time <= 0.0 and _haste_wait <= 0.0 and _knows("chant:haste") and wizard.is_on_floor():
+		_haste_wait = 25.0
+		_typing = "haste"
+		_settle = _typing_time("haste")  # (it stops to say it, as a person does)
+		return 0.0
+	_haste_wait -= delta
 	if _wander_time > 0.0:
 		_wander_time -= delta
 		if wizard.is_on_floor() and _jump_cooldown <= 0.0 and wizard.is_on_wall():
@@ -450,7 +546,7 @@ func _travel(delta: float) -> float:
 		_gate_tries = 0
 		_clear_gate(creature["target"])
 		return 0.0
-	if (_goal == "" and _goal_timer <= 0.0) or _goal_lost() or ((_goal == "foe" or _goal == "exit") and (_goal_timer <= 0.0 or _route.done())):
+	if (_goal == "" and _goal_timer <= 0.0) or _goal_lost() or ((_goal == "foe" or _goal == "exit" or _goal == "explore") and (_goal_timer <= 0.0 or _route.done())):
 		_choose_goal()
 	if _goal != "" and not _route.done() and wizard.is_on_floor():  # (a wizard in the air cannot stop for it; after the goal is chosen, so that a gate on the way is seen before the first step towards it)
 		var crossing := _crossing_ahead()
@@ -898,6 +994,8 @@ func _goal_lost() -> bool:
 ## Picks what to go for: the page nearest by the way it must walk, and when there is none to be had, the nearest wizard.
 func _choose_goal() -> void:
 	_goal_timer = GOAL_EVERY
+	_sight_timer = 0.0
+	_note_sights(0.0)  # (what lies in view now is known now)
 	_goal = ""
 	var start: Vector2i = wizard.nav.nearest(_tile_of(wizard.global_position), true)
 	if start == WorldNav.NONE:
@@ -908,6 +1006,8 @@ func _choose_goal() -> void:
 	for pickup: PagePickup in wizard.get_tree().get_nodes_in_group("pages"):
 		if not pickup.gives(wizard.ledger) or _skip.has(pickup.get_instance_id()) or (pickup is Mirage and _wise_to_mirages):
 			continue
+		if _sight_is_limited() and not _seen_pages.has(pickup.get_instance_id()):
+			continue  # it has not set eyes on that one
 		if _volcano_near(pickup.global_position, VOLCANO_KEEP_OFF) != Vector2.INF and not wizard.lava_proof():
 			continue  # a page by a volcano that is erupting is left until it is over
 		var tile := _tile_of(pickup.global_position)
@@ -938,6 +1038,8 @@ func _choose_goal() -> void:
 		_page_steps = 0.0
 		_route.set_path(best_path)
 		return
+	if _choose_explore(start):
+		return
 	if _choose_gate(start):
 		return
 	var exit := wizard.get_tree().get_first_node_in_group(&"exit_points")  # a room's way out, when nothing is left to take
@@ -952,6 +1054,55 @@ func _choose_goal() -> void:
 		if not path.is_empty():
 			_goal = "foe"
 			_route.set_path(path)
+
+
+## In a match a wizard knows of a page only when it has seen it, as a person does, and goes looking when it knows of none.
+func _sight_is_limited() -> bool:
+	return wizard.get_tree().get_first_node_in_group(&"world") != null
+
+
+func _note_sights(delta: float) -> void:
+	_sight_timer -= delta
+	if _sight_timer > 0.0:
+		return
+	_sight_timer = 0.4
+	var at := wizard.center()
+	for pickup: PagePickup in wizard.get_tree().get_nodes_in_group("pages"):
+		if absf(pickup.global_position.x - at.x) < SIGHT_X and absf(pickup.global_position.y - at.y) < SIGHT_Y:
+			_seen_pages[pickup.get_instance_id()] = true
+	_explored[_square_of(wizard.global_position)] = true
+	if _seen_pages.size() > 400:
+		_seen_pages.clear()
+
+
+func _square_of(point: Vector2) -> Vector2i:
+	return Vector2i(floori(point.x / (16.0 * WizardRoute.TILE)), floori(point.y / (12.0 * WizardRoute.TILE)))
+
+
+## Goes to look at a part of the world it has not been to: along the way it was going, or the other way when that is shut off.
+func _choose_explore(start: Vector2i) -> bool:
+	if not _sight_is_limited():
+		return false
+	if _explore_dir == 0.0:
+		_explore_dir = -1.0 if _rng.randf() < 0.5 else 1.0
+	for round in 2:
+		for dir: float in [_explore_dir, -_explore_dir]:
+			for k in range(1, 10):
+				var aim := Vector2i(start.x + int(dir) * k * EXPLORE_STEP, start.y)
+				var tile: Vector2i = wizard.nav.nearest(aim, true)
+				if tile == WorldNav.NONE or absi(tile.x - start.x) < EXPLORE_STEP / 2:
+					continue
+				if _explored.has(_square_of(Vector2(tile.x * WizardRoute.TILE, tile.y * WizardRoute.TILE))):
+					continue
+				var path: Array[Vector2i] = _path(start, tile)
+				if path.is_empty():
+					continue
+				_explore_dir = dir
+				_goal = "explore"
+				_route.set_path(path)
+				return true
+		_explored.clear()  # it has been everywhere it can get to: it looks again
+	return false
 
 
 ## The open portal nearest by the way it must walk, as {"portal", "path"}, or nothing when fewer than two are open (one leads nowhere).
@@ -1359,8 +1510,8 @@ func _footwork(delta: float, to_player: Vector2, sees: bool) -> float:
 	else:
 		_strafe_timer -= delta
 		if _strafe_timer <= 0.0:
-			_strafe_timer = _rng.randf_range(0.6, 1.4)
-			_strafe = [-1.0, 0.0, 0.0, 1.0][_rng.randi() % 4]
+			_strafe_timer = _rng.randf_range(1.3, 3.2)  # (a person holds a direction, or stands, for a while: they do not change their mind every second)
+			_strafe = [-1.0, 0.0, 0.0, 0.0, 1.0][_rng.randi() % 5]
 		dir = _strafe
 	# Never back into the edge of the map; it would rather stand its ground there.
 	var x: float = wizard.global_position.x
@@ -1373,11 +1524,11 @@ func _footwork(delta: float, to_player: Vector2, sees: bool) -> float:
 		var blocked: bool = dir != 0.0 and wizard.is_on_wall()
 		# Up onto a ledge you are standing on, whether or not it can see you, or when it is blocked.
 		var above: bool = to_player.y < -50.0 and absf(to_player.x) < 260.0 and _ready_lift() == ""  # (with a way up to cast, it does not hop at the ledge)
-		# While it moves it hops every second or two, so it is never a statue on the ground.
+		# Now and then, while it moves, it hops: a person does, but not every second.
 		_hop_timer -= delta
 		var hop: bool = dir != 0.0 and _hop_timer <= 0.0
 		if hop:
-			_hop_timer = _rng.randf_range(1.0, 2.2) - 0.3 * skill
+			_hop_timer = _rng.randf_range(5.0, 12.0)
 		if blocked or above or hop:
 			wizard.request_jump()
 			_jump_cooldown = 0.9

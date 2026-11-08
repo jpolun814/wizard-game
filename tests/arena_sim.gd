@@ -34,6 +34,9 @@ var _follow := -1  # follow=N: the camera stays on the Nth wizard
 var _probe := Vector2(-1, 0)  # probe=N,SECONDS prints every variable of the Nth wizard's brain at that time
 var _probed := false
 var _zoom := 1.5
+var _fight_dir := ""  # fightshots=DIR: pictures of the first wizards who come to blows
+var _fight_frames := 0
+var _fight_t := 0.0
 var _watch := false  # watch=1: a camera follows a wizard still standing, for looking at the match in a window
 var _camera: Camera2D
 
@@ -64,6 +67,9 @@ func _ready() -> void:
 			_probe = Vector2(int(arg.substr(6).get_slice(",", 0)), float(arg.substr(6).get_slice(",", 1)))
 		elif arg.begins_with("zoom="):
 			_zoom = float(arg.substr(5))
+		elif arg.begins_with("fightshots="):
+			_fight_dir = arg.substr(11)
+			_watch = true
 		elif arg == "watch=1":
 			_watch = true
 		elif arg == "keep=1":
@@ -177,6 +183,23 @@ func _physics_process(delta: float) -> void:
 		if b._goal_page != null and is_instance_valid(b._goal_page):
 			print("PROBE page at ", b._goal_page.global_position / 32.0, " ", b._goal_page.name, " spoils ", b._goal_page.spoils.size())
 		print("PROBE pos ", _wizards[int(_probe.x)].global_position / 32.0, " floor ", _wizards[int(_probe.x)].is_on_floor())
+	if _fight_dir != "" and _camera != null:
+		_fight_t -= delta
+		var best := 1e9
+		var pair: Array = []
+		for a in _wizards:
+			for b in _wizards:
+				if a != b and is_instance_valid(a) and is_instance_valid(b) and not a.dead and not b.dead:
+					var d: float = a.global_position.distance_to(b.global_position)
+					if d < best:
+						best = d
+						pair = [a, b]
+		if pair.size() == 2 and (best < 380.0 or _fight_frames > 0) and _fight_frames < 14:
+			_camera.global_position = (pair[0].global_position + pair[1].global_position) * 0.5 - Vector2(0, 40)
+			if _fight_t <= 0.0:
+				_fight_t = 0.35
+				get_viewport().get_texture().get_image().save_png("%s/f%02d.png" % [_fight_dir, _fight_frames])
+				_fight_frames += 1
 	if _clock >= _next_report:
 		_next_report += report
 		_print_state()
@@ -204,6 +227,13 @@ func _print_state() -> void:
 
 func _finish(standing: int) -> void:
 	_finished = true
+	for w in _wizards:
+		if is_instance_valid(w):
+			var known := []
+			for id in RitualInput.RITUALS:
+				if w.ledger.knows_chant(id):
+					known.append(id)
+			print("CHANTS ", w.look, " ", known, " spells ", w.ledger.count())
 	if _log != null:
 		_log.close()
 	print("--- after %.0f seconds: %d of %d wizards standing" % [_clock, standing, _wizards.size()])
@@ -250,4 +280,5 @@ func _flags(w: Wizard) -> String:
 	if b._off_map: out += "O"
 	if b._wander_time > 0.0: out += "w"
 	if b._resting: out += "r"
+	if b._camped: out += "c"
 	return out if out != "" else "-"

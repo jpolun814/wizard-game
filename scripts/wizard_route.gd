@@ -68,6 +68,11 @@ func wait() -> void:
 	_stuck = 0.0
 
 
+## Moves still to make along the way.
+func remaining() -> int:
+	return maxi(_path.size() - _next, 0)
+
+
 func goal() -> Vector2i:
 	return _path[_path.size() - 1] if not _path.is_empty() else WorldNav.NONE
 

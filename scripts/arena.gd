@@ -1103,9 +1103,14 @@ func _grant_chant(speaker: Wizard, id: String) -> void:
 			speaker.grant_haste(20.0)
 		"deep_breath":
 			speaker.grant_deep_breath(speaker.DEEP_BREATH)
+		"bonfire":
+			if speaker.brain != null:  # (the person's own bonfire is made by their ritual, with the power of how well they said it)
+				var spot := _bonfire_spot(speaker)
+				_kindle(spot, 1.0)
+				Net.send(self, &"_kindle", [spot, 1.0])
 
 
-## A brain's wizard says one of the chants that give a gift (the others make marks and portals, which have only the player's own).
+## A brain's wizard says one of the chants that give a gift, or lights a bonfire (the others make marks and portals, which have only the player's own).
 ## It says it perfectly. False when it does not know the chant, cannot speak or is under water.
 func chant_by(speaker: Wizard, id: String) -> bool:
 	if not is_instance_valid(speaker) or speaker.dead or not speaker.ledger.knows_chant(id) or speaker.is_muted() or speaker.is_frozen() or speaker.holding_breath():
@@ -1148,13 +1153,14 @@ func _show_chant(speaker_name: String) -> void:
 
 
 ## Where a bonfire is made: on the ground 80 px in front of the wizard, or behind them when there is a drop or a wall there.
-func _bonfire_spot() -> Vector2:
-	for side: float in [float(player.facing), -float(player.facing)]:
-		var from: Vector2 = player.global_position + Vector2(side * 80.0, -48.0)  # above the ground there, even where it rises
+func _bonfire_spot(of: Wizard = null) -> Vector2:
+	var who: Wizard = of if of != null else player
+	for side: float in [float(who.facing), -float(who.facing)]:
+		var from: Vector2 = who.global_position + Vector2(side * 80.0, -48.0)  # above the ground there, even where it rises
 		var hit := _ground_below(from)
-		if hit.y < from.y + 200.0 and absf(hit.y - player.global_position.y) < 120.0:
+		if hit.y < from.y + 200.0 and absf(hit.y - who.global_position.y) < 120.0:
 			return hit
-	return player.global_position
+	return who.global_position
 
 
 ## The Rift: the wizard is torn away and set down somewhere else, with no stamina left and 20 less to ever have.

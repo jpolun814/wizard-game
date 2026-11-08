@@ -22,7 +22,7 @@ const LOG_FILTERS := {
 
 var power := 1.0             # set from the chant's accuracy: a truer chant warms more
 var _age := 0.0
-var _heal_carry := 0.0       # fractional healing kept between frames
+var _heal_carry := {}        # wizard -> fractional healing kept between frames
 var _flames: Node2D
 
 
@@ -51,13 +51,15 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	_age += delta
-	var player := get_tree().get_first_node_in_group("player") as Node2D
-	if player and player.global_position.distance_to(global_position) <= REACH and player.max_stamina < player.MAX_STAMINA:
-		_heal_carry += HEAL_PER_SECOND * power * delta
-		var whole := int(_heal_carry)
+	for wizard: Wizard in get_tree().get_nodes_in_group("wizards"):  # it warms whoever stands by it, like any fire: no one's own
+		if wizard.dead or wizard.is_likeness() or wizard.max_stamina >= Wizard.MAX_STAMINA or wizard.global_position.distance_to(global_position) > REACH:
+			continue
+		var carried: float = float(_heal_carry.get(wizard, 0.0)) + HEAL_PER_SECOND * power * delta
+		var whole := int(carried)
 		if whole > 0:
-			player.heal(whole)
-			_heal_carry -= whole
+			wizard.heal(whole)
+			carried -= whole
+		_heal_carry[wizard] = carried
 	modulate.a = _fade()
 	_flames.queue_redraw()
 	if _age >= LIFE:
