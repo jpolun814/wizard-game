@@ -250,6 +250,17 @@ func _finish(standing: int) -> void:
 		if is_instance_valid(_wizards[i]):
 			var held: Array[String] = _wizards[i].brain.stuck_at
 			print("    %s was held up %d times%s" % [_seen[i]["kind"], held.size(), (": " + "; ".join(held.slice(0, 4))) if not held.is_empty() else ""])
+	for pickup: PagePickup in get_tree().get_nodes_in_group("pages"):  # the pages still lying about at the end, and whether anyone standing could walk to them
+		var tile := Vector2i(floori(pickup.global_position.x / 32.0), floori(pickup.global_position.y / 32.0))
+		var line := "    page left at tile %s (%s)" % [tile, pickup.name]
+		for i in _wizards.size():
+			if is_instance_valid(_wizards[i]) and not _wizards[i].dead:
+				var brain: WizardBrain = _wizards[i].brain
+				var from: Vector2i = _world.nav.nearest(Vector2i(floori(_wizards[i].global_position.x / 32.0), floori(_wizards[i].global_position.y / 32.0)), true)
+				var to: Vector2i = _world.nav.nearest(tile)
+				line += " | %s: seen %s path %d" % [_seen[i]["kind"].substr(0, 4), brain._seen_pages.has(pickup.get_instance_id()), _world.nav.path(from, to, []).size()]
+				break
+		print(line)
 	if _sketch.x >= 0:
 		print(_world.nav.sketch(_sketch))
 	print("the wizards' play looks right" if not _failed else "something is wrong")

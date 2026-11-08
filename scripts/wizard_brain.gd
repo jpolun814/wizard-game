@@ -28,6 +28,7 @@ const PORTAL_JUMP_FOR := 5.0    # seconds it stands under a portal hung in the a
 const PUSH_THROUGH_FOR := 5.0   # seconds it goes on through danger after backing out of it over and over
 const SIGHT_X := 620.0   # pixels sideways that it sees a page lying: a little past the edge of the screen, since a page shines
 const SIGHT_Y := 380.0
+const EXPLORE_FLOOR := 12     # tiles between one floor of a tall building and the next, when it looks for pages above or below
 const EXPLORE_STEP := 20    # tiles between the places it picks to look at, going along
 const TYPING_PER_LETTER := 0.07  # seconds it takes to type a letter of a chant
 const HASTE_FROM := 60       # moves left on a journey before it says the chant of swift feet
@@ -1164,21 +1165,33 @@ func _choose_explore(start: Vector2i) -> bool:
 	if _explore_dir == 0.0:
 		_explore_dir = -1.0 if _rng.randf() < 0.5 else 1.0
 	for round in 2:
-		for dir: float in [_explore_dir, -_explore_dir]:
-			for k in range(1, 10):
-				var aim := Vector2i(start.x + int(dir) * k * EXPLORE_STEP, start.y)
-				var tile: Vector2i = wizard.nav.nearest(aim, true)
-				if tile == WorldNav.NONE or absi(tile.x - start.x) < EXPLORE_STEP / 2:
-					continue
-				if _explored.has(_square_of(Vector2(tile.x * WizardRoute.TILE, tile.y * WizardRoute.TILE))):
-					continue
-				var path: Array[Vector2i] = _path(start, tile)
-				if path.is_empty():
-					continue
-				_explore_dir = dir
-				_goal = "explore"
-				_route.set_path(path)
-				return true
+		# It looks at what lies near first (to either side, and up or down a floor), and likes to go on the way it was going.
+		var best_path: Array[Vector2i] = []
+		var best_cost := INF
+		var best_dir := _explore_dir
+		for dy in [0, -EXPLORE_FLOOR, EXPLORE_FLOOR, -2 * EXPLORE_FLOOR, 2 * EXPLORE_FLOOR]:
+			for dir: float in [_explore_dir, -_explore_dir]:
+				for k in range(0 if dy != 0 else 1, 10):
+					var aim := Vector2i(start.x + int(dir) * k * EXPLORE_STEP, start.y + dy)
+					var tile: Vector2i = wizard.nav.nearest(aim, true)
+					if tile == WorldNav.NONE or (absi(tile.x - start.x) < EXPLORE_STEP / 2 and absi(tile.y - start.y) < EXPLORE_FLOOR / 2):
+						continue
+					if _explored.has(_square_of(Vector2(tile.x * WizardRoute.TILE, tile.y * WizardRoute.TILE))):
+						continue
+					var path: Array[Vector2i] = _path(start, tile)
+					if path.is_empty():
+						continue
+					var cost := float(path.size()) + _rng.randf() * 12.0 - (14.0 if dir == _explore_dir else 0.0)
+					if cost < best_cost:
+						best_cost = cost
+						best_path = path
+						best_dir = dir
+					break  # (the nearest unexplored square this way on this floor is the one to weigh)
+		if not best_path.is_empty():
+			_explore_dir = best_dir
+			_goal = "explore"
+			_route.set_path(best_path)
+			return true
 		_explored.clear()  # it has been everywhere it can get to: it looks again
 	return false
 
@@ -1673,7 +1686,7 @@ func _scorched() -> bool:
 ## True over a volcano that is awake, or lava from one that still runs: it passes, and nothing walks on into it meanwhile.
 func _lethal_at(point: Vector2) -> bool:
 	for node in wizard.get_tree().get_nodes_in_group("danger"):
-		if ((node is Eruption and node.is_awake()) or (node is Pond and node.cools and node.molten())) and node.danger_at(point):
+		if ((node is Eruption and node.is_awake()) or (node is Pond and node.cools and node.molten()) or (node is Bramble and _clearing_spell("brambles") == "")) and node.danger_at(point):  # (thorns are not walked into by someone with no fire to burn them)
 			return true
 	return _in_shoal(point)
 
