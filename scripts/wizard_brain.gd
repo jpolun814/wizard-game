@@ -41,6 +41,9 @@ const VOLCANO_KEEP_OFF := 520.0  # pixels: a page this near a volcano that is aw
 const VOLCANO_FLEE := 440.0     # pixels: it goes away from a volcano that is awake when it is this near
 const ASSAIL_REACH := 150.0   # how near a creature must come before it is dealt with
 const STAIR_PATIENCE := 10.0  # seconds it waits for a stair when it is only looking round, before it looks the other way
+const DASH_AFTER := 2.0        # seconds it waits at lava on its way before it runs across, if the lava is narrow
+const DASH_MAX := 150.0        # pixels of lava that it will run across (a hit or two) rather than wait
+const DASH_MIN_MAX := 70.0     # the least maximum stamina it will run lava with
 const DANGER_WAIT_MAX := 7.0  # seconds it waits before lava on its way before it gives up that way
 const GIVE_UP := 45.0         # seconds a page it could not reach stays off its list
 const NEAR := 190.0           # closer than this it backs away
@@ -154,6 +157,7 @@ var _sight_timer := 0.0
 var _assail_commit := 0.0       # seconds it keeps running from a creature after it is out of reach
 var _assail_dir := 0.0
 var _stair_wait := 0.0          # seconds it has stood at a swinging stair on its way to look at somewhere new
+var _dash := 0.0               # seconds it runs on across lava, whatever it does to it
 var _danger_wait := 0.0       # seconds it has stood waiting for danger on its way to pass
 var _hop_timer := 1.5  # counting down to its next hop while it walks
 var _pressure := 0.0          # how many shots you have thrown at it lately
@@ -253,6 +257,7 @@ func _quiet_here() -> bool:
 
 func think(delta: float) -> void:
 	_hurt_age += delta
+	_dash -= delta
 	if _typing != "" and _typing_disturbed():  # it breaks off the chant, and will not try it here again for a while
 		_typing = ""
 		_settle = 0.0
@@ -326,7 +331,7 @@ func think(delta: float) -> void:
 		if not shot.is_empty() and _defend_cooldown <= 0.0:
 			_threat_dir = shot["dir"]
 			_plan(_choose_defence(shot["eta"]), _reaction_time())
-		elif _scorched() or _bitten() or (_push_through <= 0.0 and (_in_danger(wizard.global_position + Vector2(0, -6)) or _in_danger(wizard.center()))):
+		elif (_dash <= 0.0 and _scorched()) or _bitten() or (_push_through <= 0.0 and (_in_danger(wizard.global_position + Vector2(0, -6)) or _in_danger(wizard.center()))):
 			_plan("escape", _reaction_time() * 0.6)
 			_settle = 0.0  # nobody stands in the fire to finish a chant
 			_typing = ""
@@ -706,13 +711,17 @@ func _travel(delta: float) -> float:
 	else:
 		_stair_wait = 0.0
 	var ahead := signf(steer["dir"])
-	if ahead != 0.0 and wizard.is_on_floor() and not _lethal_at(wizard.global_position + Vector2(0, -6)):
+	if ahead != 0.0 and wizard.is_on_floor() and _dash <= 0.0 and not _lethal_at(wizard.global_position + Vector2(0, -6)):
 		var near := _lethal_at(_over_ground(ahead * 40.0)) or _lethal_at(_over_ground(ahead * 72.0))
 		if near or _lethal_at(_over_ground(ahead * 110.0)):
 			# lava or an eruption lies on the way: it keeps its distance, backing away if it is close, and waits for it to pass or cool; when that takes
 			# too long it looks for another way
 			_danger_wait += delta
 			_route.wait()
+			if _danger_wait > DASH_AFTER and wizard.max_stamina >= DASH_MIN_MAX and _lethal_stretch(ahead) <= DASH_MAX:  # a narrow stretch is not worth a wait: a person runs over it and takes the hit
+				_dash = 1.6
+				_danger_wait = 0.0
+				return steer["dir"] * WALK_SPEED
 			if _danger_wait > DANGER_WAIT_MAX:
 				_danger_wait = 0.0
 				if _goal == "page" and is_instance_valid(_goal_page):
@@ -735,6 +744,21 @@ func _travel(delta: float) -> float:
 	wizard.climb_up = steer["climb"]  # at the foot of a rope ladder, the way up it
 	wizard.let_go = steer["let_go"]  # and the hop off it at the top
 	return steer["dir"] * steer["speed"]
+
+
+## The width in pixels of the lava (or other danger) that starts within reach ahead, or INF when it is wider than it is worth, or no ground lies past it.
+func _lethal_stretch(ahead: float) -> float:
+	var start := -1.0
+	var d := 16.0
+	while d <= 480.0:
+		var bad := _lethal_at(_over_ground(ahead * d))
+		if bad and start < 0.0:
+			start = d
+		elif not bad and start >= 0.0:
+			var landing := _over_ground(ahead * (d + 32.0))
+			return d - start if not _lethal_at(landing) and absf(landing.y - wizard.global_position.y) < 120.0 else INF
+		d += 16.0
+	return INF
 
 
 ## The crossing the way goes over soon, if the way over it is not made: {"kind", "key", "span", "post"}. A pit counts when it is the next few tiles
