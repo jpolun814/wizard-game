@@ -64,7 +64,7 @@ func _apply(mask: int, step: int) -> void:
 	_shown_step = step
 	var key := mask * 1000 + step
 	if not _cache.has(key):
-		_cache[key] = ImageTexture.create_from_image(_turned(_tinted(mask), float(step) * 360.0 / float(STEPS)))
+		_cache[key] = ImageTexture.create_from_image(_outlined(_turned(_tinted(mask), float(step) * 360.0 / float(STEPS))))
 	Input.set_custom_mouse_cursor(_cache[key], Input.CURSOR_ARROW, TIP)
 
 
@@ -97,6 +97,27 @@ func _turned(wand: Image, degrees: float) -> Image:
 			var sy := floori(back.y)
 			if sx >= 0 and sy >= 0 and sx < wand.get_width() and sy < wand.get_height():
 				out.set_pixel(x, y, wand.get_pixel(sx, sy))
+	return out
+
+
+## The wand with a slight outline all round it: a dark line next to it, and a pale one outside that, so that it shows against any background, dark or light.
+func _outlined(wand: Image) -> Image:
+	var out := wand.duplicate() as Image
+	var width := wand.get_width()
+	var height := wand.get_height()
+	for ring in 2:
+		var source := out.duplicate() as Image
+		var colour := Color(0.05, 0.03, 0.03, 0.95) if ring == 0 else Color(0.93, 0.9, 0.82, 0.7)
+		for y in height:
+			for x in width:
+				if source.get_pixel(x, y).a > 0.0:
+					continue
+				for step in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+					var nx: int = x + step.x
+					var ny: int = y + step.y
+					if nx >= 0 and ny >= 0 and nx < width and ny < height and source.get_pixel(nx, ny).a > 0.5 and (ring == 0 or source.get_pixel(nx, ny).r < 0.2):
+						out.set_pixel(x, y, colour)
+						break
 	return out
 
 

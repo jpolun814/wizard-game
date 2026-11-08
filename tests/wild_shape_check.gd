@@ -1,7 +1,7 @@
 extends Node
 
-## Wild Shape: the wizard becomes a werewolf with a pool of strength of its own, cannot cast, claws whoever is in front, and turns back with the
-## stamina they had before when the pool is gone (from time, swipes or blows), without dying of the blow that ends it.
+## Wild Shape: the wizard becomes a werewolf that cannot cast and claws whoever is in front, until the first blow lands, which turns them back
+## with the stamina they had before, without their dying of it.
 ##
 ##     godot --headless --fixed-fps 60 --path . tests/wild_shape_check.tscn
 ## It prints PASS or FAIL for each check and exits with code 1 if any failed.
@@ -39,7 +39,7 @@ func _ready() -> void:
 	_world.spawn_spell("Wild Shape", "positional", _player.center(), 0.0, {"accuracy": 0.9}, _player)
 	await _wait(0.3)
 	_verdict(_player.wild, "the spell turns the wizard into a werewolf")
-	_verdict(is_equal_approx(_player.max_stamina, Wizard.WILD_STAMINA - Wizard.WILD_DRAIN * 0.3) or absf(_player.max_stamina - Wizard.WILD_STAMINA) < 3.0, "the wolf has a pool of its own (%.0f)" % _player.max_stamina)
+	_verdict(is_equal_approx(_player.max_stamina, Wizard.WILD_STAMINA), "the wolf has a pool of its own (%.0f)" % _player.max_stamina)
 	_verdict(_player.silenced() and _player.is_muted(), "and can cast and chant nothing")
 	_verdict(String(_player._sprite.sprite_frames.resource_path) != "" or _player._sprite.sprite_frames.has_animation("release"), "and wears the wolf's frames")
 	var dummy: Mob = _world._add_mob("basic", _spot + Vector2(50.0, 0.0))
@@ -53,7 +53,7 @@ func _ready() -> void:
 	_player.claw()
 	await _wait(0.5)
 	_verdict(dummy.hp < 500, "a swipe of the claws hurts whoever is in front (%d of 500 left)" % dummy.hp)
-	_verdict(_player.max_stamina < pool, "and takes from the pool")
+	_verdict(_player.wild and _player.max_stamina == pool, "and does not use up the pool")
 	var far: Mob = _world._add_mob("basic", _spot + Vector2(-400.0, 0.0))
 	far._spawn = 0.0
 	far.set_physics_process(false)
@@ -63,21 +63,13 @@ func _ready() -> void:
 	_player.claw()
 	await _wait(0.5)
 	_verdict(far.hp == 500, "a body far off or behind is not touched")
-	# A blow that would end the pool turns the wolf back and does not kill the wizard.
-	_player.max_stamina = 6.0
-	_player.stamina = 6.0
-	await _wait(0.7)
-	_player.take_damage(30)
+	# Time and swipes do not end it; a single blow does, and does not kill the wizard.
+	await _wait(6.0)
+	_verdict(_player.wild and _player.max_stamina == Wizard.WILD_STAMINA, "the shape stays as long as no blow lands")
+	_player.take_damage(1)
 	await _wait(0.2)
-	_verdict(not _player.wild and not _player.dead, "a blow that ends the pool turns the wizard back, and does not kill them")
+	_verdict(not _player.wild and not _player.dead, "one blow turns the wizard back, and does not kill them")
 	_verdict(absf(_player.stamina - had) < 8.0 and _player.max_stamina == 170.0, "with the stamina they had before (%.0f of %.0f, had %.0f)" % [_player.stamina, _player.max_stamina, had])
-	# Time alone ends it.
-	_world.spawn_spell("Wild Shape", "positional", _player.center(), 0.0, {"accuracy": 0.9}, _player)
-	await _wait(0.2)
-	_player.max_stamina = 1.0
-	_player.stamina = 1.0
-	await _wait(0.6)
-	_verdict(not _player.wild and _player.max_stamina == 170.0, "and so does time, when the pool has run out")
 	print("Wild Shape works" if _failures == 0 else "%d FAILED" % _failures)
 	get_tree().quit(1 if _failures > 0 else 0)
 

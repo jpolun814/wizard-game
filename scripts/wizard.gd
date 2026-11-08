@@ -60,11 +60,9 @@ const OLD_LOOK_ANIMATIONS := {
 const OLD_ART := ["wizard", "dark_wizard", "pyre_wizard", "bone_wizard"]  # the folders of the four older figures
 const STAFF_HEAD := Vector2(-55, -115)  # where the casting glow sits for an older figure: the staff's crystal, facing right
 const HAND := Vector2(30, -62)          # and for a newer one: the casting hand
-const WILD_STAMINA := 100.0  # the werewolf (Wild Shape) has a pool of strength of its own, and the wizard keeps theirs aside until it is gone
-const WILD_DRAIN := 5.0      # per second: the shape does not last for ever
+const WILD_STAMINA := 1.0    # the werewolf (Wild Shape) has a pool of strength of its own, and the wizard keeps theirs aside: a single blow ends the shape, and nothing else does
 const WILD_SPEED := 1.25     # how much faster a werewolf runs
 const WILD_SCALE := 1.4      # the werewolf is drawn this large
-const CLAW_COST := 3.0       # what a swipe of the claws takes from the pool
 const CLAW_DAMAGE := 22
 const CLAW_COOLDOWN := 0.55
 const CLAW_REACH := 80.0     # from the middle of the body, to the front
@@ -529,10 +527,10 @@ func underwater() -> bool:
 	return _liquid_time > 0.0 and not _in_lava and global_position.y - BODY_HEIGHT + 10.0 > _liquid_y
 
 
-## True while the wizard holds their breath, for any reason: under water, in the Blessing of the Deep Breath, or with the air drawn out of them.
+## True while the wizard holds their breath, for any reason: under water, in the Blessing of the Deep Breath, in a block of ice, or with the air drawn out of them.
 ## Gas does no harm to anyone holding their breath, and nobody can chant.
 func holding_breath() -> bool:
-	return underwater() or smothered or deep_breath_time > 0.0
+	return underwater() or smothered or deep_breath_time > 0.0 or is_frozen()
 
 
 ## The air is drawn out of the wizard's lungs, or let back in. They hold their breath as they do under water, with what air they have.
@@ -623,10 +621,8 @@ func end_wild() -> void:
 	Fx.burst(get_parent(), center(), Color(0.55, 0.5, 0.7), 18, 160.0, 0.5, true)
 
 
-## What a werewolf's frame does: the pool drains, a click of the left button swipes, a swipe lands a moment after it begins.
+## What a werewolf's frame does: a click of the left button swipes, a swipe lands a moment after it begins.
 func _be_wild(delta: float) -> void:
-	max_stamina -= WILD_DRAIN * delta
-	stamina = max_stamina
 	_claw_cool -= delta
 	if _claw_in >= 0.0:
 		_claw_in -= delta
@@ -636,8 +632,6 @@ func _be_wild(delta: float) -> void:
 	if left and not _was_left:
 		claw()
 	_was_left = left
-	if max_stamina <= 0.0:
-		end_wild()
 
 
 ## A swipe of the claws, which a person asks for with a click and a brain asks for in reach of a rival.
@@ -647,8 +641,6 @@ func claw() -> void:
 	_claw_cool = CLAW_COOLDOWN
 	_claw_in = CLAW_DELAY
 	_releasing = 0.4
-	max_stamina -= CLAW_COST
-	stamina = max_stamina
 	Sfx.play("mob_hurt", center(), 3.0)
 
 
@@ -776,7 +768,7 @@ func _breathe(delta: float) -> void:
 		return
 	if deep_breath_time > 0.0:
 		breath = BREATH
-	elif underwater() or smothered:
+	elif underwater() or smothered or is_frozen():  # (in a block of ice there is no breathing either)
 		if breath > 0.0:
 			breath = maxf(breath - delta, 0.0)
 		else:
