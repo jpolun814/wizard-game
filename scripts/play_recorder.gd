@@ -14,6 +14,10 @@ extends Node
 ##   C    the last spell of the person changed; R the chant words as they are typed
 ##   D    the person was hurt: how much, and everything within reach that could have done it
 ##   N    a wizard fell, and who and what was near
+const SOLO_KEEP := 30
+
+## True in a check that wants the automatic recording that only a match someone is playing makes.
+static var force_auto := false
 const STATE_GAP := 0.1
 const NEAR_GAP := 0.25
 const GROUND_GAP := 0.5
@@ -25,6 +29,7 @@ var wizard: Wizard
 var ritual: RitualInput
 var arena: Node  # the world being played now
 var _flush_in := 2.0
+var _solo := false  # the automatic recording of a game on this machine alone: it is kept here (user://play_logs/solo_*.log), the last SOLO_KEEP of them
 var _auto := false  # a recording made by itself in a network match, to be sent when the person is out or has won (F9 makes the other kind: kept on this machine)
 var _path := ""
 var _file: FileAccess
@@ -59,21 +64,48 @@ static func attach(to_arena: Node, person: Wizard, box: RitualInput) -> void:
 ## In a network match, a person who has not turned it off is recorded from the start of the world, and the file goes to the machine that keeps the game when they are out
 ## (or have won). Whatever an earlier match left behind, because the game was left or the machine cut off, is sent first.
 func _maybe_begin_auto() -> void:
-	if arena == null or not arena is World or not is_instance_valid(wizard) or wizard.dead or not Net.online() or Net.dedicated or not GameSettings.get_value("share_logs"):
+	if arena == null or not arena is World or not is_instance_valid(wizard) or wizard.dead or Net.dedicated or _file != null:
 		return
-	_send_leftovers()
-	if _file != null:
+	if not force_auto and (not Library.real_match() or _run_by_a_check()):
+		return  # (the checks play worlds too, and are not recorded)
+	var online := Net.online()
+	if online and not GameSettings.get_value("share_logs"):
 		return
+	if online:
+		_send_leftovers()
 	DirAccess.make_dir_recursive_absolute("user://play_logs")
-	_path = "user://play_logs/net_%s.log" % Time.get_datetime_string_from_system().replace(":", "-")
+	_path = "user://play_logs/%s_%s.log" % ["net" if online else "solo", Time.get_datetime_string_from_system().replace(":", "-")]
 	_file = FileAccess.open(_path, FileAccess.WRITE)
 	if _file == null:
 		return
 	_auto = true
+	_solo = not online
 	_clock = 0.0
 	_spell = ""
 	_line("START %s" % ProjectSettings.globalize_path("user://play_logs"))
 	_start_world()
+	if _solo:
+		_forget_old_solo_logs()
+
+
+## True when the game was started to run one of the tests (a scene or script under tests/ is on its command line).
+static func _run_by_a_check() -> bool:
+	for arg in OS.get_cmdline_args() + OS.get_cmdline_user_args():
+		if arg.contains("tests/"):
+			return true
+	return false
+
+
+## A game alone is only kept: the newest SOLO_KEEP are left, so that they do not pile up.
+func _forget_old_solo_logs() -> void:
+	var dir := DirAccess.open("user://play_logs")
+	var names := PackedStringArray()
+	for name in dir.get_files():
+		if name.begins_with("solo_") and name.ends_with(".log") and "user://play_logs/" + name != _path:
+			names.append(name)
+	names.sort()
+	for i in range(0, names.size() - SOLO_KEEP + 1):
+		dir.remove(names[i])
 
 
 ## The person is out of the match, or has won: the recording ends and is sent.
@@ -88,7 +120,9 @@ func _close_and_send() -> void:
 	_file.close()
 	_file = null
 	_auto = false
-	_send(_path)
+	if not _solo:
+		_send(_path)
+	_solo = false
 
 
 ## Packs a log and gives it to Net, which sends it and deletes the file once the other machine has it.
