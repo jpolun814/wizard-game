@@ -28,6 +28,7 @@ func _ready() -> void:
 		if wizard == _world.player or wizard.brain == null:
 			continue
 		wizard.brain = LearnedBrain.new(wizard)
+		wizard.keep_when_dead = true
 		var agent := WizardAgent.new()
 		wizard.add_child(agent)
 		agent.init_for(wizard)

@@ -47,6 +47,9 @@ func get_obs() -> Dictionary:
 		else:
 			obs.append_array([clampf(float(tile.x - here.x) / 12.0, -2.0, 2.0), clampf(float(tile.y - here.y) / 12.0, -2.0, 2.0), 1.0])
 	obs.append(clampf(float(brain._route.remaining()) / 100.0, 0.0, 2.0) if brain != null else 0.0)
+	for i in obs.size():
+		if is_nan(obs[i]) or is_inf(obs[i]):
+			obs[i] = 0.0  # (a number that is not a number turns the whole message to nothing on the way to the trainer)
 	return {"obs": obs}
 
 
@@ -78,7 +81,7 @@ func get_reward() -> float:
 	_gather()
 	var out := _spent
 	_spent = 0.0
-	return out
+	return 0.0 if is_nan(out) or is_inf(out) else out
 
 
 ## Adds up what has happened since the last look.

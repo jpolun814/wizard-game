@@ -72,22 +72,24 @@ def main():
     ap.add_argument("--epochs", type=int, default=40)
     args = ap.parse_args()
 
-    X, M, J, per_file = [], [], [], []
+    X, M, J, per_file, ends = [], [], [], [], []
     for path in find_logs(args.logs):
         xs, ms, js = examples(path)
         if xs:
             per_file.append((path, len(xs)))
             X += xs; M += ms; J += js
+            ends.append(len(X))
     if len(X) < 200:
         sys.exit("only %d examples: record more games (single-player records by itself)" % len(X))
     for path, n in per_file:
         print("%6d  %s" % (n, os.path.basename(path)))
-    X = np.array(X, dtype=np.float32); M = np.array(M); J = np.array(J)
+    X = np.array(X, dtype=np.float32); M = np.array(M, dtype=np.int64); J = np.array(J, dtype=np.int64)
     print("examples", len(X), "inputs", X.shape[1])
 
     # Whole recordings are held out for the test, as the policy must copy a game it has not seen.
     n = len(X)
-    cut = int(n * 0.85)
+    big = [e for (_, c), e in zip(per_file, ends) if c >= 500]
+    cut = ends[ends.index(big[-1]) - 1] if len(big) >= 2 and ends.index(big[-1]) > 0 else int(n * 0.85)  # the last whole game when there are two, else the last part
     Xt, Mt, Jt, Xv, Mv, Jv = X[:cut], M[:cut], J[:cut], X[cut:], M[cut:], J[cut:]
 
     net = nn.Sequential(nn.Linear(X.shape[1], 128), nn.ReLU(), nn.Linear(128, 64), nn.ReLU(), nn.Linear(64, 5))
