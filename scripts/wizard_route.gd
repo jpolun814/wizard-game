@@ -50,6 +50,11 @@ func ahead(moves: int) -> Vector2i:
 	return _path[_next + moves] if _next + moves < _path.size() else WorldNav.NONE
 
 
+## The last tile of the way, or NONE when there is none.
+func last() -> Vector2i:
+	return _path[_path.size() - 1] if not _path.is_empty() else WorldNav.NONE
+
+
 ## True when there is no path, or the wizard has come to the end of it.
 func done() -> bool:
 	return _next >= _path.size()
@@ -77,6 +82,10 @@ func goal() -> Vector2i:
 	return _path[_path.size() - 1] if not _path.is_empty() else WorldNav.NONE
 
 
+const RIDE_GIVE_UP := 7.0  # seconds a crossing may take before it is given up as one that never began
+var _ride_time := 0.0
+
+
 ## True while it stands at the landing of a swinging stair, waiting for it to come.
 var waiting_for_stair := false
 
@@ -89,8 +98,10 @@ func steer(body: CharacterBody2D, delta: float) -> Dictionary:
 	var feet := body.global_position
 	var grounded := body.is_on_floor()
 	if _ride != WorldNav.NONE:  # across a swinging stair: walk to the far landing, whatever has been decided since
-		out["dir"] = signf((_ride.x + 0.5) * TILE - feet.x)
-		if _reached(feet, _ride) or feet.y > float(maxi(_ride_from, _ride.y) + 4) * TILE:  # arrived, or thrown off
+		var along := (_ride.x + 0.5) * TILE - feet.x
+		out["dir"] = 0.0 if absf(along) < 4.0 else signf(along)
+		_ride_time += delta
+		if _reached(feet, _ride) or feet.y > float(maxi(_ride_from, _ride.y) + 4) * TILE or _ride_time > RIDE_GIVE_UP:  # arrived, thrown off, or it never boarded
 			_ride = WorldNav.NONE
 		_stuck = 0.0
 		return out
@@ -112,6 +123,7 @@ func steer(body: CharacterBody2D, delta: float) -> Dictionary:
 		elif SwingStair.is_joined(body.get_tree(), from, goal_tile, Vector2(goal_tile - from).length() * TILE / WALK + CROSSING_MARGIN):
 			_ride = goal_tile
 			_ride_from = from.y
+			_ride_time = 0.0
 		_stuck = 0.0  # waiting is not being stuck
 		waiting_for_stair = at_landing
 		return out

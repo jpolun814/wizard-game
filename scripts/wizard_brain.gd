@@ -638,6 +638,9 @@ func _travel(delta: float) -> float:
 		_stair_wait += delta
 		if _stair_wait > STAIR_PATIENCE:  # a person does not stand at a stair for half a minute just to see what lies past it: they look elsewhere
 			_stair_wait = 0.0
+			var far := _route.last()
+			if far != WorldNav.NONE:  # the place it was going to is given up (a floor above or below as well as one along)
+				_explored[_square_of(Vector2(far.x * WizardRoute.TILE, far.y * WizardRoute.TILE))] = true
 			for k in range(0, 3):
 				_explored[_square_of(wizard.global_position + Vector2(signf(_explore_dir) * k * 600.0, 0.0))] = true
 			_explore_dir = -_explore_dir
