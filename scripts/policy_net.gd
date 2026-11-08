@@ -6,6 +6,7 @@ extends RefCounted
 
 var _layers: Array = []   # each {"w": PackedFloat32Array (rows of outputs), "b": PackedFloat32Array, "in": int, "out": int}
 var _relu := false
+var _sample := false      # pick among the choices at random, weighted by how likely each is, as the network was trained to (a person does not always do the likeliest thing; a network that always does never jumps)
 var _groups := {}          # name -> [from, to) among the outputs
 
 
@@ -17,6 +18,7 @@ static func load_file(path: String) -> PolicyNet:
 		return null
 	var net := PolicyNet.new()
 	net._relu = data.get("activation", "relu") == "relu"
+	net._sample = bool(data.get("sample", false))
 	for layer: Dictionary in data["layers"]:
 		var rows: Array = layer["w"]
 		var flat := PackedFloat32Array()
@@ -54,11 +56,25 @@ func forward(obs: PackedFloat32Array) -> PackedFloat32Array:
 	return x
 
 
-## The index chosen within one named group of outputs (the likeliest).
-func choose(logits: PackedFloat32Array, group: String) -> int:
+## The index chosen within one named group of outputs: the likeliest, or (for a network trained to act at random) one drawn by weight.
+func choose(logits: PackedFloat32Array, group: String, at_random := false) -> int:
 	var span: Array = _groups[group]
+	var from: int = int(span[0])
+	var count: int = int(span[1]) - from
 	var best := 0
-	for k in range(1, int(span[1]) - int(span[0])):
-		if logits[int(span[0]) + k] > logits[int(span[0]) + best]:
+	for k in range(1, count):
+		if logits[from + k] > logits[from + best]:
 			best = k
+	if not (_sample and at_random):
+		return best
+	var weights := PackedFloat32Array()
+	var total := 0.0
+	for k in count:
+		weights.append(exp(logits[from + k] - logits[from + best]))
+		total += weights[k]
+	var roll := randf() * total
+	for k in count:
+		roll -= weights[k]
+		if roll <= 0.0:
+			return k
 	return best

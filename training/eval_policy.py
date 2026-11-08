@@ -22,7 +22,7 @@ for i in range(n):
     if model is None:
         actions = np.array([env.action_space.sample() for _ in range(env.num_envs)])
     else:
-        actions, _ = model.predict(obs, deterministic=True)
+        actions, _ = model.predict(obs, deterministic=os.environ.get("STOCH") is None)
     obs, rew, done, info = env.step(actions)
     total += float(np.sum(rew)); count += len(rew); deaths += int(np.sum(done)); last = info
 pages = sum(i.get("pages", 0) for i in last); jumps = sum(i.get("jumps", 0) for i in last)

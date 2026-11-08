@@ -10,6 +10,8 @@ var jump := false  # a jump asked for, made once when the wizard is on the groun
 var learned := false  # a policy has given its first action: until then the scripted legs play
 var policy: PolicyNet  # a trained network run here, in the game; when the trainer drives it (training/wizard_agent.gd) this stays empty
 var _decide_in := 0.0
+var _disagreed := 0.0  # seconds the legs have gone against the route
+var _own_way := 0.0    # seconds left that the scripted legs take over, when the network could not follow the route
 static var _shared_net: PolicyNet
 
 
@@ -20,6 +22,8 @@ static func footwork() -> PolicyNet:
 	return _shared_net
 
 const WAYPOINTS := 4
+const DISAGREE_LIMIT := 1.5  # seconds of going against the route before the scripted legs take over for a while
+const OWN_WAY_FOR := 2.5
 const DECISION_EVERY := 0.1  # seconds between the policy's choices
 
 
@@ -48,7 +52,7 @@ func _decide(delta: float) -> void:
 		obs.resize(Sensing.SIZE)  # (a policy learned from people's recordings sees only what the recording held)
 	var logits := policy.forward(obs)
 	move = float(policy.choose(logits, "move") - 1)
-	if policy.choose(logits, "jump") == 1:
+	if policy.choose(logits, "jump", true) == 1:
 		jump = true
 	learned = true
 
@@ -57,8 +61,19 @@ func _steer(delta: float) -> Dictionary:
 	var steer := _route.steer(wizard, delta)
 	if policy != null:
 		_decide(delta)
+	if _own_way > 0.0:
+		_own_way -= delta
+		return steer
 	if not learned or _route.riding() or steer["climb"] or steer["let_go"] or steer["drop"] or steer["replan"] or _route.waiting_for_stair:
 		return steer
+	if absf(float(steer["dir"])) > 0.0 and move != float(steer["dir"]):
+		_disagreed += delta
+		if _disagreed > DISAGREE_LIMIT:
+			_disagreed = 0.0
+			_own_way = OWN_WAY_FOR
+			return steer
+	else:
+		_disagreed = 0.0
 	steer["dir"] = move
 	steer["speed"] = WALK_SPEED
 	steer["jump"] = jump and wizard.is_on_floor()

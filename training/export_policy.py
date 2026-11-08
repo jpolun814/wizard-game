@@ -11,5 +11,5 @@ for name in ("mlp_extractor.policy_net.0", "mlp_extractor.policy_net.2", "action
         module = getattr(module, part) if not part.isdigit() else module[int(part)]
     layers.append({"w": module.weight.detach().numpy().tolist(), "b": module.bias.detach().numpy().tolist()})
 out = sys.argv[2] if len(sys.argv) > 2 else "ppo_policy.json"
-json.dump({"activation": "tanh", "layers": layers, "outputs": {"move": [0, 3], "jump": [3, 5]}}, open(out, "w"))
+json.dump({"activation": "tanh", "sample": True, "layers": layers, "outputs": {"move": [0, 3], "jump": [3, 5]}}, open(out, "w"))
 print("wrote", out, [len(l["b"]) for l in layers])

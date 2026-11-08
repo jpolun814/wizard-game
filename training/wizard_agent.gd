@@ -110,8 +110,6 @@ func _gather() -> void:
 		done = true
 		_fallen = true
 		deaths += 1
-		if deaths == 6:
-			print("AGENT ", wizard.name, " dead ", wizard.dead, " at ", wizard.global_position, " max ", wizard.max_stamina, " start ", start, " fallen ", _fallen, " needs ", needs_reset, " layer ", wizard.collision_layer)
 
 
 ## Godot RL Agents sets the flag when the time is up but leaves the standing up to the agent; a wizard that has fallen stands up again after the trainer has been told.
