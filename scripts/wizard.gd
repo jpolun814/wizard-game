@@ -237,6 +237,7 @@ var peer := 0  # the machine that drives this wizard, as a peer id; 0 for this m
 var human := true  # a person plays this wizard, here or on another machine; false for one a brain plays (on the host)
 var net_position := Vector2.ZERO  # where the driving machine has the wizard; a likeness glides there
 var shown_anim := &"idle"  # the animation the driving machine plays
+var shown_words := ""  # the chant being typed so far, shown over the head for others to read (as a stroke is for others to read); empty when none
 var shown_stroke := PackedVector2Array()  # the stroke being drawn, in the world, for others to see and read
 var marks := 0  # FROZEN, SHIELDED, OBSIDIAN, STUCK, GROUNDED, ROOTED and SLOWED, as the driving machine has them
 var _was_casting := false  # a likeness was drawing the frame before
@@ -765,7 +766,7 @@ func _draw_breath() -> void:
 		var at := Vector2((i - (count - 1) * 0.5) * width, -BODY_HEIGHT - 20.0)
 		draw_texture_rect(bubble, Rect2(at - Vector2(size, size) * 0.5, Vector2(size, size)), false, Color(0.75, 0.92, 1.0, 0.9))
 	if left <= 0.0:
-		draw_texture_rect(bubble, Rect2(Vector2(-6, -BODY_HEIGHT - 26.0), Vector2(12, 12)), false, Color(1.0, 0.4, 0.4, 0.9))
+		draw_texture_rect(bubble, Rect2(Vector2(-6, -BODY_HEIGHT - 14.0), Vector2(12, 12)), false, Color(1.0, 0.4, 0.4, 0.9))
 
 
 ## While the breath is held (under water, or with the air drawn out) the air runs down, and once it is gone the most stamina does too,
@@ -1186,6 +1187,13 @@ func _show_interrupt() -> void:
 func _draw_overlay() -> void:
 	if dead:
 		return
+	if shown_words != "" and not is_person():  # the words of a chant, as they are typed: a stroke is seen being drawn, and so are these
+		var font := ThemeDB.fallback_font
+		var size := 13
+		var width := font.get_string_size(shown_words, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x
+		var at := Vector2(clampf(-width * 0.5, -150.0, 0.0), -BODY_HEIGHT - 26.0)
+		_overlay.draw_string_outline(font, at, shown_words, HORIZONTAL_ALIGNMENT_LEFT, 300.0, size, 4, Color(0.05, 0.03, 0.02, 0.9))
+		_overlay.draw_string(font, at, shown_words, HORIZONTAL_ALIGNMENT_LEFT, 300.0, size, Color(0.93, 0.85, 0.62))
 	if shown_stroke.size() >= 2 and not is_person():
 		var local := PackedVector2Array()
 		for point in shown_stroke:
@@ -1239,7 +1247,7 @@ func share() -> void:
 	for property in ["net_position", "velocity", "facing", "stamina", "max_stamina", "cast_color", "casting"]:
 		config.add_property(NodePath(".:" + property))
 		config.property_set_replication_mode(NodePath(".:" + property), SceneReplicationConfig.REPLICATION_MODE_ALWAYS)
-	for property in ["dead", "fainted", "shown_anim", "shown_stroke", "marks", "visible", "modulate", "look", "palette"]:
+	for property in ["dead", "fainted", "shown_anim", "shown_stroke", "marks", "visible", "modulate", "look", "palette", "shown_words"]:
 		config.add_property(NodePath(".:" + property))
 		config.property_set_replication_mode(NodePath(".:" + property), SceneReplicationConfig.REPLICATION_MODE_ON_CHANGE)
 	var sync := MultiplayerSynchronizer.new()

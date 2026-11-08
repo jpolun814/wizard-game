@@ -71,6 +71,11 @@ func _ready() -> void:
 	column.add_child(_line)
 
 
+## The words in the box as they stand, or nothing while it is shut: the arena shows them over the wizard's head for the others to read.
+func typed() -> String:
+	return _line.text if visible else ""
+
+
 func open() -> void:
 	_line.text = ""
 	visible = true

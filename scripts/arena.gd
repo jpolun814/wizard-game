@@ -306,6 +306,7 @@ func _process(_delta: float) -> void:
 	caster.anchor = player.center()
 	caster.blocked_rects = _visible_hud_rects()
 	caster.hide_trail = player.is_blind()
+	player.shown_words = ritual.typed()  # and the words of a chant, as they are typed
 	player.casting = caster.is_drawing()  # the wizard holds the staff up while a stroke is drawn
 	player.cast_color = caster.drawing_color()  # and the crystal shows the school being drawn
 	if Net.online():

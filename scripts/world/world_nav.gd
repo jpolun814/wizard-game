@@ -8,7 +8,7 @@ extends RefCounted
 const NONE := Vector2i(-1000000, -1000000)
 
 var _ways: Walkways
-var _astar := AStar2D.new()
+var _astar := _Search.new()
 var _width := 0
 ## Where the map's own (0, 0) lies in the world's tiles. A world's map starts at its corner (so this is zero); a room whose columns and rows run negative
 ## (the tutorial) builds its map from the corner and sets this, and everything asked of the map and given back by it is in the world's tiles.
@@ -26,6 +26,7 @@ func build(cells: TileGrid, bottom: int, blocked := {}, anchor := Vector2i(-1, -
 	_toll_at.clear()
 	version += 1
 	_width = cells.size.x
+	_astar.width = _width
 	_ways = Walkways.new(cells, bottom, blocked)
 	var tiles := _ways.standing()
 	var out := {}  # id -> the ids it leads to
@@ -172,3 +173,23 @@ func sketch(at: Vector2i) -> String:
 func can_stand(tile: Vector2i) -> bool:
 	tile -= origin
 	return _astar.has_point(_id(tile))
+
+
+## What a jump really costs over a walk, in tiles of walking: it spends stamina (Wizard.JUMP_COST), which comes back only while standing still (at
+## Wizard.STAMINA_REGEN a second), and a wizard in the air goes no faster than it walks, so a jump is never quicker, only dearer.
+const JUMP_COST := Wizard.JUMP_COST / Wizard.STAMINA_REGEN * WizardRoute.WALK / WizardRoute.TILE
+
+const SHORT_JUMP := 4  # columns: a jump this short or less might be a walk instead
+
+
+## The search itself: each move costs its length, and a jump what it costs besides, so a way that can be walked is walked.
+class _Search extends AStar2D:
+	var width := 1
+
+	func _compute_cost(from_id: int, to_id: int) -> float:
+		var dx := absi(from_id % width - to_id % width)
+		var dy := to_id / width - from_id / width
+		var dist := sqrt(float(dx * dx + dy * dy))
+		if dx >= 2 and dx <= SHORT_JUMP and absi(dy) < WizardRoute.CLIMB_ROWS:  # (a long leap over a pit has no walk to be chosen instead)
+			return dist + JUMP_COST
+		return dist

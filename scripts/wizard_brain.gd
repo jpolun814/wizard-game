@@ -41,7 +41,7 @@ const VOLCANO_KEEP_OFF := 520.0  # pixels: a page this near a volcano that is aw
 const VOLCANO_FLEE := 440.0     # pixels: it goes away from a volcano that is awake when it is this near
 const ASSAIL_REACH := 150.0   # how near a creature must come before it is dealt with
 const STAIR_PATIENCE := 10.0  # seconds it waits for a stair when it is only looking round, before it looks the other way
-const DANGER_WAIT_MAX := 12.0  # seconds it waits before lava on its way before it gives up that way
+const DANGER_WAIT_MAX := 7.0  # seconds it waits before lava on its way before it gives up that way
 const GIVE_UP := 45.0         # seconds a page it could not reach stays off its list
 const NEAR := 190.0           # closer than this it backs away
 const FAR := 330.0            # farther than this it closes in
@@ -214,6 +214,30 @@ func on_hurt(amount: int) -> void:
 		_plan("blink_away", 0.25)
 
 
+## The chant it is typing, as far as it has got, over its head: a person's words are seen as they are typed, and so are these.
+func _show_words() -> void:
+	if _typing == "" or not RitualInput.RITUALS.has(_typing):
+		wizard.shown_words = ""
+		return
+	var text: String = RitualInput.RITUALS[_typing]["text"]
+	var total := _typing_time(_typing)
+	var done := 1.0 - clampf(_settle / maxf(total, 0.01), 0.0, 1.0)
+	wizard.shown_words = text.substr(0, int(ceil(text.length() * done)))
+
+
+## A Flaming Sphere rolling at it along the ground: a person jumps over it, as over a rolling log, instead of standing in its way or running from it.
+func _hurdle() -> void:
+	if not wizard.is_on_floor() or _jump_cooldown > 0.0 or wizard.wild:
+		return
+	for node in wizard.get_tree().get_nodes_in_group("fires"):
+		if node is FlamingSphere:
+			var gap: Vector2 = node.global_position - wizard.global_position
+			if absf(gap.y) < 50.0 and absf(gap.x) < 120.0 and signf(-gap.x) == signf(node.direction):
+				wizard.request_jump()
+				_jump_cooldown = 0.8
+				return
+
+
 func think(delta: float) -> void:
 	_cast_cooldown -= delta
 	_defend_cooldown -= delta
@@ -225,6 +249,8 @@ func think(delta: float) -> void:
 	_scent -= delta
 	_eye_time -= delta
 	_note_sights(delta)
+	_hurdle()
+	_show_words()
 	_pressure *= exp(-delta / 3.0)
 	for spell_name in _rest.keys():
 		_rest[spell_name] -= delta
@@ -675,7 +701,7 @@ func _travel(delta: float) -> float:
 				_goal_timer = 0.0
 				_route.clear()
 			return -ahead * WALK_SPEED * 0.8 if near else 0.0
-		_danger_wait = maxf(_danger_wait - delta, 0.0)
+		_danger_wait = maxf(_danger_wait - delta * 0.15, 0.0)  # (backing off and coming back does not start the waiting over)
 	else:
 		_danger_wait = 0.0
 	if steer["drop"]:
