@@ -711,3 +711,20 @@ When unsure, ask the owner one clear question rather than guessing big.
 ## 11. The AI reads any room (added 2026-11-07)
 
 The brain used to plan only from a match world's gate lists. `scripts/room_scan.gd` (`RoomScan.read`) now reads a hand-built room the same way: its ground, plus live thorns, gas, brick walls, ponds with fish, turrets, eyes, creatures, deep pits and sheer cliffs, and gives the same gates and crossings a World does. A room hosts it by joining group `gate_source` (the `Lab` and so the `Tutorial` do; it rescans every 0.5 s) and puts its exit in group `exit_points`. `WorldNav` has an `origin` (rooms run in negative columns) and `WorldNav.NONE` for "no tile". New brain skills: clearing creatures, Faint on giants, Barrier against several shooters, the double-jump chant, a rocket plus Featherfall leap, striking tall walls at the foot, gas banks, walking to the exit. The brain has no code for the tutorial itself: change the tutorial and the same wizard should still finish it (`tests/tutorial_ai_check.tscn`). The tutorial keeps lost maximum stamina (`Lab.heals_wounds = false`) and its gauntlet is shorter, with no second giant, dark stage, wall-gas-eye stage or last pit. Not yet general: spike beds are not read as hazards, and match worlds were left as they were.
+
+## 12. The AI plays like a person (added 2026-11-07 and 08)
+
+The owner wants the AI wizards to be indistinguishable from people, judged by what a human would find odd, not by what the code says. The method: run
+`tests/arena_sim.tscn -- seed=N seconds=360 log=FILE` headless on many seeds (`log=` writes a line four times a second for each wizard: position, velocity,
+stamina, foe, flags, goal, plus `C` cast and `D` damage lines; `probe=N,SEC` prints a brain's variables, `kill=SEC`, `sketch=X,Y` prints the nav map, `shot=FILE shotat=SEC follow=N` takes a picture, `fightshots=DIR`),
+read the logs for stalls, jitter, pointless deaths and idling, and fix what a person would not do. Worlds are not deterministic run to run, even with one seed.
+What the brain does now that it did not:
+- **Sight and exploring** (matches only, `_sight_is_limited()`): it knows only the pages it has seen (`_note_sights`), and otherwise walks to unexplored squares (`_choose_explore`). When a way is shut by danger or by a stair that will not come, it marks that side explored and goes the other way.
+- **Fire, lava, volcanoes, piranhas:** it will not wade piranha water (`_in_shoal`, `_bitten`), keeps off an awake volcano and flees it downhill (`_safe_side`), never stands chanting in fire (an escape cancels `_settle`, `_typing`, `_camped`), and does not turn back and forth while fleeing (hysteresis in `_safe_side`).
+- **Creatures that attack** (`_assailed`): it strikes one down with a spell that kills, or runs.
+- **Mending:** a worn-down wizard lights a bonfire (chant) and rests at it (`_mend`); a wizard rests when stamina is low (thresholds scale with maximum stamina).
+- **Footwork:** it walks, hops rarely (jumping is a last resort), strafes in a fight in slow turns, draws attack strokes with a hand's wobble (`_handed`), and takes a person's time to type a chant.
+- **Watchdog:** `_watch_progress` gives up a goal after 20 s with no progress; `WizardRoute.wait()` marks a wait as not being stuck.
+Seen and left alone: long waits for swinging castle stairs (legitimate, up to about 78 s), the rift, boundless and dowsing chants are unused, foe hunting still knows where rivals are.
+The quick check set is the safety net; run `python tools/run_checks.py --full tutorial_ai brain_spells route_check test_nav cross gate` after touching the brain.
+
