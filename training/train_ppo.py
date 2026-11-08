@@ -33,6 +33,6 @@ class Rewards(BaseCallback):
 
 env = StableBaselinesGodotEnv(env_path="godot", n_parallel=1, port=int(sys.argv[3]) if len(sys.argv) > 3 else 11009, show_window=False, speedup=8, action_repeat=6, framerate=60, world_seed=seed)
 model = PPO("MultiInputPolicy", env, n_steps=256, batch_size=128, learning_rate=3e-4, ent_coef=0.01, verbose=1, device="cpu")
-model.learn(total_timesteps=steps, callback=[Rewards(), CheckpointCallback(save_freq=5000, save_path=os.path.join(here, "ckpt"), name_prefix="ppo")])
-model.save(os.path.join(here, "ppo_footwork"))
+model.learn(total_timesteps=steps, callback=[Rewards(), CheckpointCallback(save_freq=5000, save_path=os.path.join(here, "ckpt"), name_prefix=(sys.argv[4] if len(sys.argv) > 4 else "ppo"))])
+model.save(os.path.join(here, sys.argv[4] if len(sys.argv) > 4 else "ppo_footwork"))
 env.close()
