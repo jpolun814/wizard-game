@@ -77,9 +77,14 @@ func goal() -> Vector2i:
 	return _path[_path.size() - 1] if not _path.is_empty() else WorldNav.NONE
 
 
+## True while it stands at the landing of a swinging stair, waiting for it to come.
+var waiting_for_stair := false
+
+
 ## What the body should do this frame: {"dir": -1, 0 or 1, "speed", "jump": leave the ground now, "replan": it is getting nowhere}.
 func steer(body: CharacterBody2D, delta: float) -> Dictionary:
 	var out := {"dir": 0.0, "speed": WALK, "jump": false, "replan": false, "climb": false, "let_go": false, "drop": false}
+	waiting_for_stair = false
 	_hop = maxf(_hop - delta, 0.0)
 	var feet := body.global_position
 	var grounded := body.is_on_floor()
@@ -108,6 +113,7 @@ func steer(body: CharacterBody2D, delta: float) -> Dictionary:
 			_ride = goal_tile
 			_ride_from = from.y
 		_stuck = 0.0  # waiting is not being stuck
+		waiting_for_stair = at_landing
 		return out
 	if -down >= CLIMB_ROWS and across <= 2:
 		_climb(feet, grounded, from, goal_tile, out)

@@ -38,6 +38,8 @@ const STUCK_RADIUS := 260.0  # pixels it must get from where it was in STUCK_FOR
 const STUCK_FOR := 20.0
 const VOLCANO_KEEP_OFF := 520.0  # pixels: a page this near a volcano that is awake is left alone
 const VOLCANO_FLEE := 440.0     # pixels: it goes away from a volcano that is awake when it is this near
+const ASSAIL_REACH := 150.0   # how near a creature must come before it is dealt with
+const STAIR_PATIENCE := 10.0  # seconds it waits for a stair when it is only looking round, before it looks the other way
 const DANGER_WAIT_MAX := 12.0  # seconds it waits before lava on its way before it gives up that way
 const GIVE_UP := 45.0         # seconds a page it could not reach stays off its list
 const NEAR := 190.0           # closer than this it backs away
@@ -148,6 +150,9 @@ var _seen_pages := {}            # the pages it has set eyes on, and not read (i
 var _explored := {}              # the squares of the world it has been to ((x / 16, y / 12) -> true)
 var _explore_dir := 0.0
 var _sight_timer := 0.0
+var _assail_commit := 0.0       # seconds it keeps running from a creature after it is out of reach
+var _assail_dir := 0.0
+var _stair_wait := 0.0          # seconds it has stood at a swinging stair on its way to look at somewhere new
 var _danger_wait := 0.0       # seconds it has stood waiting for danger on its way to pass
 var _hop_timer := 1.5  # counting down to its next hop while it walks
 var _pressure := 0.0          # how many shots you have thrown at it lately
@@ -475,6 +480,54 @@ func _watch_progress(delta: float) -> void:
 		wizard.request_jump()
 
 
+## A creature close by that would strike it: the nearest one that is awake and not its own, or null.
+func _assailant() -> Mob:
+	var best: Mob = null
+	var gap := ASSAIL_REACH
+	for mob: Mob in wizard.get_tree().get_nodes_in_group("mobs"):
+		if mob.is_dead() or mob.is_fainted() or mob.master == wizard or mob.kind == "turret" or not (Mob.KINDS[mob.kind].role in ["melee", "ranged"]):
+			continue
+		var apart := absf(mob.global_position.x - wizard.global_position.x)
+		if apart < gap and absf(mob.global_position.y - wizard.global_position.y) < 100.0:
+			best = mob
+			gap = apart
+	return best
+
+
+## A creature is on it: it does what a person does, and strikes it down with a spell that kills, or, with none to hand, runs. Returns the
+## speed to walk at, or NAN when nothing is upon it.
+func _assailed(delta: float) -> float:
+	_assail_commit -= delta
+	var mob := _assailant()
+	if mob == null:
+		if _assail_commit > 0.0 and _assail_dir != 0.0:
+			return _assail_dir * WALK_SPEED * 1.2  # (it runs on a moment, and does not turn straight back to it)
+		return NAN
+	_settle = 0.0  # no one stands typing with a blade at their back
+	_typing = ""
+	_camped = false
+	_resting = false
+	var away := signf(wizard.global_position.x - mob.global_position.x)
+	if away == 0.0:
+		away = -wizard.facing
+	var spell_name := _clearing_spell("giant" if mob.max_hp >= 1000 else "creature")
+	if spell_name != "" and not wizard.is_drawing() and _cast_cooldown <= 0.0 and _react <= 0.0:
+		_goal_gate = {"kind": "giant" if mob.max_hp >= 1000 else "creature", "entry": {"mob": mob, "nodes": [mob]}, "target": mob.center()}
+		_cast_cooldown = 1.4
+		_begin_cast(spell_name, _gate_stroke(spell_name, mob.center()), ATTACK_DRAW)
+		return 0.0
+	if wizard.is_drawing():
+		return 0.0
+	if spell_name != "" and mob.max_hp < 1000.0:
+		return away * WALK_SPEED * 0.6 if absf(mob.global_position.x - wizard.global_position.x) < 70.0 else 0.0  # it gives ground while its spell is ready again
+	_assail_dir = away
+	_assail_commit = 1.2
+	if wizard.is_on_wall() and wizard.is_on_floor() and _jump_cooldown <= 0.0:
+		wizard.request_jump()
+		_jump_cooldown = 0.5
+	return away * WALK_SPEED * 1.2
+
+
 ## Walks the way to what it is after, and reads a page when it stands under one. Returns the speed to walk at.
 func _travel(delta: float) -> float:
 	if not _leap.is_empty():
@@ -483,6 +536,9 @@ func _travel(delta: float) -> float:
 		return _wading(delta)
 	if not _lift.is_empty():
 		return _lifting(delta)
+	var assailed := _assailed(delta)
+	if not is_nan(assailed):
+		return assailed
 	if _settle > 0.0:
 		return 0.0
 	if wizard.is_drawing():
@@ -577,6 +633,18 @@ func _travel(delta: float) -> float:
 	if steer["replan"]:
 		stuck_at.append("%s %s" % [str(_tile_of(wizard.global_position)), _route.status()])
 		_stuck_on_goal()
+	if _route.waiting_for_stair and _goal == "explore":
+		_stair_wait += delta
+		if _stair_wait > STAIR_PATIENCE:  # a person does not stand at a stair for half a minute just to see what lies past it: they look elsewhere
+			_stair_wait = 0.0
+			for k in range(0, 3):
+				_explored[_square_of(wizard.global_position + Vector2(signf(_explore_dir) * k * 600.0, 0.0))] = true
+			_explore_dir = -_explore_dir
+			_goal = ""
+			_goal_timer = 0.0
+			_route.clear()
+	else:
+		_stair_wait = 0.0
 	var ahead := signf(steer["dir"])
 	if ahead != 0.0 and wizard.is_on_floor() and not _lethal_at(wizard.global_position + Vector2(0, -6)):
 		var near := _lethal_at(_over_ground(ahead * 40.0)) or _lethal_at(_over_ground(ahead * 72.0))
@@ -590,7 +658,7 @@ func _travel(delta: float) -> float:
 				if _goal == "page" and is_instance_valid(_goal_page):
 					_skip[_goal_page.get_instance_id()] = GIVE_UP
 				elif _goal == "explore":  # it will not look that way again: it turns round and tries the other side
-					for k in range(0, 3):
+					for k in range(0, 7):
 						_explored[_square_of(wizard.global_position + Vector2(ahead * k * 600.0, 0.0))] = true
 					_explore_dir = -ahead
 				_goal = ""
