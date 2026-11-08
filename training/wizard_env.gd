@@ -13,6 +13,8 @@ func _ready() -> void:
 	for arg in OS.get_cmdline_args() + OS.get_cmdline_user_args():
 		if arg.begins_with("--world_seed="):
 			seed_value = int(arg.get_slice("=", 1))
+		elif arg.begins_with("--scripted"):
+			WizardAgent.scripted = true
 		elif arg.begins_with("--stage="):
 			MatchState.stage = int(arg.get_slice("=", 1))
 	seed(seed_value)
