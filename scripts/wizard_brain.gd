@@ -1591,6 +1591,9 @@ func _lethal_at(point: Vector2) -> bool:
 	for node in wizard.get_tree().get_nodes_in_group("danger"):
 		if ((node is Eruption and node.is_awake()) or (node is Pond and node.cools and node.molten())) and node.danger_at(point):
 			return true
+	for shoal: Piranhas in wizard.get_tree().get_nodes_in_group("shoals"):  # water with fish in it is not waded
+		if shoal.alive() and shoal.is_biting_at(point):
+			return true
 	return false
 
 
@@ -1680,7 +1683,7 @@ func _attack(to_player: Vector2, sees: bool) -> bool:
 	_recent.push_front(choice)
 	if _recent.size() > 2:
 		_recent.pop_back()
-	_begin_cast(choice, _attack_stroke(choice), ATTACK_DRAW)
+	_begin_cast(choice, _attack_stroke(choice), ATTACK_DRAW, true)
 	return true
 
 
@@ -1881,14 +1884,37 @@ func _push_stroke(around: Vector2, away: Vector2) -> PackedVector2Array:
 
 
 ## Starts the wizard drawing a spell's gesture. The spell happens when the drawing is done, if nothing breaks it.
-func _begin_cast(spell_name: String, stroke: PackedVector2Array, draw_time: float) -> void:
+func _begin_cast(spell_name: String, stroke: PackedVector2Array, draw_time: float, sloppy := false) -> void:
 	if stroke.size() < 2 or wizard.silenced() or wizard.rage_time > 0.0:
 		return
 	var data: Spell = SpellData.SPELLS[spell_name]
 	var mask: int = data.buttons
 	var caster: Caster = wizard.caster
 	wizard.start_drawing(stroke, SpellData.SCHOOL_COLORS[data.school], func(points: PackedVector2Array) -> void:
-		caster.cast_stroke(mask, _shaken(points)), draw_time)
+		caster.cast_stroke(mask, _shaken(_handed(points) if sloppy else points)), draw_time)
+
+
+## A hand is not a template: the stroke wanders a little, as a stroke drawn with a mouse does, and now and then goes badly wrong, so that
+## the spell does not come, or another does. The hastier the wizard (the less skilled), the more it wanders. Only in a fight: the strokes it
+## draws to cross a gate or to get on are drawn with care.
+func _handed(points: PackedVector2Array) -> PackedVector2Array:
+	var wander := lerpf(5.0, 2.0, skill)
+	var phase_a := _rng.randf() * TAU
+	var phase_b := _rng.randf() * TAU
+	var botched := _rng.randf() < lerpf(0.10, 0.04, skill)
+	var squash := Vector2(_rng.randf_range(0.55, 0.75), _rng.randf_range(0.8, 1.2)) if botched else Vector2.ONE
+	var turn := _rng.randf_range(-0.6, 0.6) if botched else 0.0
+	var middle := Vector2.ZERO
+	for p in points:
+		middle += p
+	middle /= maxf(float(points.size()), 1.0)
+	var out := PackedVector2Array()
+	for i in points.size():
+		var k := float(i) / maxf(float(points.size() - 1), 1.0)
+		var off := Vector2(sin(k * 7.0 + phase_a), cos(k * 5.0 + phase_b)) * wander + Vector2(_rng.randf_range(-1.0, 1.0), _rng.randf_range(-1.0, 1.0)) * 0.8
+		var rel := (points[i] - middle) * squash
+		out.append(middle + rel.rotated(turn) + off)
+	return out
 
 
 ## While the ground shakes, each point of the wizard's stroke is nudged by the screen's shake, the same amount the

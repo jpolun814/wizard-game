@@ -193,6 +193,13 @@ func _prey() -> Array:
 	return out
 
 
+## True when someone standing at this point would be in the water the fish can bite them in.
+func is_biting_at(point: Vector2) -> bool:
+	if _follows_liquid():
+		return pond.wet_at(point + Vector2(0.0, 8.0))
+	return point.x > water.position.x and point.x < water.end.x and point.y > water.position.y + 8.0 and point.y < water.end.y + 40.0
+
+
 ## True while any fish is alive.
 func alive() -> bool:
 	return not _fish.is_empty()
