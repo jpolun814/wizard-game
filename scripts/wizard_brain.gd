@@ -250,9 +250,19 @@ func _typing_disturbed() -> bool:
 	return not wizard.is_on_floor() or _hurt_age < 0.5 or absf(wizard.velocity.x) > 40.0 or wizard.is_drawing() or wizard.is_frozen() or _in_danger(wizard.center())
 
 
-## Whether this is a place to stand and type: nothing has hurt it lately, it stands on the ground, and nothing that burns or shoves is by.
+## Whether this is a place to stand and type: it stands on the ground and is not being hurt, no creature or rival is near enough to come at it, and
+## nothing that burns, shoves or bites lies within a few paces. It looks at what is there, not at a clock.
 func _quiet_here() -> bool:
-	return _hurt_age > 8.0 and wizard.is_on_floor() and absf(wizard.velocity.x) < 30.0 and not _in_danger(wizard.center()) and not _in_danger(wizard.global_position + Vector2(0, -6))
+	if not wizard.is_on_floor() or absf(wizard.velocity.x) > 30.0 or _hurt_age < 1.5:
+		return false
+	if _assailant() != null:
+		return false
+	if _foe != null and is_instance_valid(_foe) and not _foe.dead and _foe.center().distance_to(wizard.center()) < 450.0 and _clear_line(wizard.center(), _foe.center()):
+		return false
+	for dx in [-200.0, -120.0, -60.0, 0.0, 60.0, 120.0, 200.0]:
+		if _in_danger(wizard.center() + Vector2(dx, 0.0)) or _in_danger(wizard.global_position + Vector2(dx, -6.0)):
+			return false
+	return true
 
 
 func think(delta: float) -> void:
