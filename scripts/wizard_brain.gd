@@ -179,6 +179,8 @@ var _nav_version := -1           # which build of the ways its list of pages it 
 var _bridged := {}               # crossing (by key) -> seconds more that the way over it, which this wizard made, will last
 var _cross_run := 0.0            # the speed it goes at while it makes its way over a crossing
 var _pad_walk := {}              # crossing (by key) -> {"dir", "end"}: the row of pads laid over it, and the x it walks along them to
+var _hurt_age := 99.0            # seconds since it was last hurt
+var _chant_breaks := 0          # chants broken off lately: the more, the longer before it tries again, and the farther from the trouble
 var _settle := 0.0               # seconds it stands still while a way over water grows
 var _resting := false            # it has stopped to get its breath back
 var _pads := {}                  # crossing (by key) -> {"dir", "front"}: the row of Lily Pads it has made so far over a long pit
@@ -207,6 +209,7 @@ func catch_scent(seconds: float) -> void:
 ## Called when the wizard takes damage. A real hit while it draws breaks its spell, and being badly hurt makes it
 ## want to get away.
 func on_hurt(amount: int) -> void:
+	_hurt_age = 0.0
 	if wizard.is_drawing() and amount >= INTERRUPT_DAMAGE:
 		wizard.interrupt_cast()
 		_cast_cooldown = maxf(_cast_cooldown, 0.9)
@@ -238,7 +241,24 @@ func _hurdle() -> void:
 				return
 
 
+## A person cannot type a chant on the move, in the air or under blows, and stops when any of them happens. True while the way it stands lets it type.
+func _typing_disturbed() -> bool:
+	return not wizard.is_on_floor() or _hurt_age < 0.5 or absf(wizard.velocity.x) > 40.0 or wizard.is_drawing() or wizard.is_frozen() or _in_danger(wizard.center())
+
+
+## Whether this is a place to stand and type: nothing has hurt it lately, it stands on the ground, and nothing that burns or shoves is by.
+func _quiet_here() -> bool:
+	return _hurt_age > 8.0 and wizard.is_on_floor() and absf(wizard.velocity.x) < 30.0 and not _in_danger(wizard.center()) and not _in_danger(wizard.global_position + Vector2(0, -6))
+
+
 func think(delta: float) -> void:
+	_hurt_age += delta
+	if _typing != "" and _typing_disturbed():  # it breaks off the chant, and will not try it here again for a while
+		_typing = ""
+		_settle = 0.0
+		_chant_breaks = mini(_chant_breaks + 1, 4)
+		_mend_wait = maxf(_mend_wait, 10.0 * _chant_breaks)
+		_haste_wait = maxf(_haste_wait, 10.0 * _chant_breaks)
 	_cast_cooldown -= delta
 	_defend_cooldown -= delta
 	_jump_cooldown -= delta
@@ -437,6 +457,7 @@ func _mend(delta: float, fighting: bool) -> float:
 			return 0.0
 		var said := _typing
 		_typing = ""
+		_chant_breaks = 0
 		if wizard.chant(said) and said == "bonfire":
 			_camped = true
 			_camped_for = 0.0
@@ -460,6 +481,9 @@ func _mend(delta: float, fighting: bool) -> float:
 		_camped_for = 0.0
 		return 0.0
 	if _knows("chant:bonfire"):
+		if not _quiet_here():  # not here: it goes on a while, and tries again
+			_mend_wait = 5.0
+			return NAN
 		_typing = "bonfire"
 		_settle = _typing_time("bonfire")
 		return 0.0
@@ -580,7 +604,7 @@ func _travel(delta: float) -> float:
 		_typing = ""
 		wizard.chant("haste")
 	_watch_progress(delta)
-	if _goal != "" and _route.remaining() > HASTE_FROM and wizard.haste_time <= 0.0 and _haste_wait <= 0.0 and _knows("chant:haste") and wizard.is_on_floor():
+	if _goal != "" and _route.remaining() > HASTE_FROM and wizard.haste_time <= 0.0 and _haste_wait <= 0.0 and _knows("chant:haste") and _quiet_here():
 		_haste_wait = 25.0
 		_typing = "haste"
 		_settle = _typing_time("haste")  # (it stops to say it, as a person does)
