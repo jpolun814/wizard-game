@@ -725,6 +725,8 @@ What the brain does now that it did not:
 - **Mending:** a worn-down wizard lights a bonfire (chant) and rests at it (`_mend`); a wizard rests when stamina is low (thresholds scale with maximum stamina).
 - **Footwork:** it walks, hops rarely (jumping is a last resort), strafes in a fight in slow turns, draws attack strokes with a hand's wobble (`_handed`), and takes a person's time to type a chant.
 - **Watchdog:** `_watch_progress` gives up a goal after 20 s with no progress; `WizardRoute.wait()` marks a wait as not being stuck.
+- **Floors:** exploring weighs nearby unexplored squares on other floors as well as along the way (`_choose_explore`, `EXPLORE_FLOOR`), so the castle's upper and lower halls get visited; a stair that does not come in `STAIR_PATIENCE` seconds, or a ride that never began (`WizardRoute.RIDE_GIVE_UP`), is given up. `tests/arena_sim.tscn` prints the pages still lying at the end and whether anyone could walk to them.
+- **Thorns:** with no fire to burn them, it does not walk into world thorns (`_lethal_at`); it stops camping or chanting when a creature, fire or fish is on it (`_mend`).
 Seen and left alone: long waits for swinging castle stairs (legitimate, up to about 78 s), the rift, boundless and dowsing chants are unused, foe hunting still knows where rivals are.
 The quick check set is the safety net; run `python tools/run_checks.py --full tutorial_ai brain_spells route_check test_nav cross gate` after touching the brain.
 
