@@ -30,10 +30,10 @@ func _ready() -> void:
 		if dir != null:
 			var newest := ""
 			for name in dir.get_files():
-				if name > newest:
+				if name.begins_with("play_") and name > newest:
 					newest = name
 			text = FileAccess.get_file_as_string("user://play_logs/" + newest)
-		ok = text.contains("K key D down") and text.contains(" S ") and text.contains(" G ") and text.contains("WORLD") and text.contains("END") and text.count("WORLD") >= 2
+		ok = text.contains("K key D down") and text.contains(" S ") and text.contains(" G ") and text.contains(" O ") and text.contains(" A ") and text.contains("WORLD") and text.contains("END") and text.count("WORLD") >= 2
 		if not ok:
 			print("log was: ", text.substr(0, 600))
 	print("PASS recorder writes keys and state" if ok else "FAIL recorder")

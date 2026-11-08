@@ -9,9 +9,6 @@ extends AIController2D
 ## Asks: left, stand or right; and a jump or not.
 ## Rewarded for: getting along its way, reading pages, and keeping its stamina; punished for being hurt and for jumping (it costs stamina), and for dying.
 
-const GRID_W := 15  # tiles each side of the feet, so GRID_W across
-const GRID_UP := 7  # tiles above the feet that it looks at
-const GRID_DOWN := 3
 const WAYPOINTS := 4
 const SEE_RIVAL := 700.0
 
@@ -39,50 +36,18 @@ func get_obs_space() -> Dictionary:
 	return {"obs": {"size": [get_obs()["obs"].size()], "space": "box"}}
 
 
+## What it senses (Sensing, which is also what is written into a person's recording), and the next few tiles of the way the scripted route is going, as a hint.
 func get_obs() -> Dictionary:
-	var obs: Array = []
-	if wizard == null or not is_instance_valid(wizard) or brain == null:
-		obs.resize(_obs_size())
-		obs.fill(0.0)
-		return {"obs": obs}
-	obs.append(wizard.velocity.x / 300.0)
-	obs.append(clampf(wizard.velocity.y / 600.0, -2.0, 2.0))
-	obs.append(1.0 if wizard.is_on_floor() else 0.0)
-	obs.append(wizard.stamina / 200.0)
-	obs.append(wizard.max_stamina / 200.0)
-	obs.append(wizard.facing)
-	obs.append(1.0 if wizard.air_jump_ready else 0.0)
-	var here := Vector2i(floori(wizard.global_position.x / WizardRoute.TILE), floori((wizard.global_position.y - 1.0) / WizardRoute.TILE))
+	var obs: Array = Array(Sensing.observe(wizard))
+	var here := Vector2i(floori(wizard.global_position.x / WizardRoute.TILE), floori((wizard.global_position.y - 1.0) / WizardRoute.TILE)) if wizard != null and is_instance_valid(wizard) else Vector2i.ZERO
 	for i in WAYPOINTS:
-		var tile := brain._route.ahead(i)
+		var tile := brain._route.ahead(i) if brain != null else WorldNav.NONE
 		if tile == WorldNav.NONE:
 			obs.append_array([0.0, 0.0, 0.0])
 		else:
 			obs.append_array([clampf(float(tile.x - here.x) / 12.0, -2.0, 2.0), clampf(float(tile.y - here.y) / 12.0, -2.0, 2.0), 1.0])
-	obs.append(clampf(float(brain._route.remaining()) / 100.0, 0.0, 2.0))
-	var space := wizard.get_world_2d().direct_space_state
-	for dy in range(-GRID_UP, GRID_DOWN + 1):
-		for dx in range(-GRID_W / 2, GRID_W / 2 + 1):
-			var point := Vector2((here.x + dx + 0.5) * WizardRoute.TILE, (here.y + dy + 0.5) * WizardRoute.TILE)
-			var query := PhysicsPointQueryParameters2D.new()
-			query.position = point
-			query.collision_mask = 1 | 16
-			var solid := 0.0
-			for hit in space.intersect_point(query, 2):
-				solid = maxf(solid, 0.5 if (hit["collider"] is CollisionObject2D and hit["collider"].collision_layer & 16 != 0 and hit["collider"].collision_layer & 1 == 0) else 1.0)
-			obs.append(solid)
-			obs.append(1.0 if brain._lethal_at(point) else 0.0)
-	var rival := _nearest_rival()
-	if rival == null:
-		obs.append_array([0.0, 0.0, 0.0])
-	else:
-		var off := rival.center() - wizard.center()
-		obs.append_array([clampf(off.x / SEE_RIVAL, -1.0, 1.0), clampf(off.y / SEE_RIVAL, -1.0, 1.0), 1.0])
+	obs.append(clampf(float(brain._route.remaining()) / 100.0, 0.0, 2.0) if brain != null else 0.0)
 	return {"obs": obs}
-
-
-func _obs_size() -> int:
-	return 7 + WAYPOINTS * 3 + 1 + (GRID_UP + GRID_DOWN + 1) * (GRID_W / 2 * 2 + 1) * 2 + 3
 
 
 func _nearest_rival() -> Wizard:

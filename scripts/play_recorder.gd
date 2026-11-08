@@ -11,6 +11,8 @@ extends Node
 ##   W    every other wizard near, four times a second: name, who plays it, place from the person, stamina, maximum, wolf, state, last spell
 ##   E    everything else near, four times a second: creatures, spells in the world, pages and fires, as a class and a place from the person
 ##   X    a spell or anything else new in the world, with the wizard who made it and the place it was made
+##   O    what the wizard senses, as Sensing gives it (the numbers a learner sees), five times a second: the 7 about itself, the ground box as digits (0 open, 1 platform, 2 solid, +4 lethal), then the rest; to learn from
+##   A    what the person asks of the body, ten times a second: left or right (-1, 0, 1), jump held, and the buttons held (1 left, 2 right, 4 middle); to learn from
 ##   C    the last spell of the person changed; R the chant words as they are typed
 ##   D    the person was hurt: how much, and everything within reach that could have done it
 ##   N    a wizard fell, and who and what was near
@@ -20,6 +22,7 @@ const SOLO_KEEP := 30
 static var force_auto := false
 const STATE_GAP := 0.1
 const NEAR_GAP := 0.25
+const SENSE_GAP := 0.2
 const GROUND_GAP := 0.5
 const SEE := 900.0
 const HURT_REACH := 170.0
@@ -38,6 +41,7 @@ var _state_in := 0.0
 var _mouse_in := 0.0
 var _near_in := 0.0
 var _ground_in := 0.0
+var _sense_in := 0.0
 var _spell := ""
 var _typed := ""
 var _seen := {}  # instance id -> true, for what has already been written as new
@@ -88,10 +92,10 @@ func _maybe_begin_auto() -> void:
 		_forget_old_solo_logs()
 
 
-## True when the game was started to run one of the tests (a scene or script under tests/ is on its command line).
+## True when the game was started to run one of the tests (a scene or script under tests/ or training/ is on its command line).
 static func _run_by_a_check() -> bool:
 	for arg in OS.get_cmdline_args() + OS.get_cmdline_user_args():
-		if arg.contains("tests/"):
+		if arg.contains("tests/") or arg.contains("training/"):
 			return true
 	return false
 
@@ -176,6 +180,7 @@ func _process(delta: float) -> void:
 	_mouse_in -= delta
 	_near_in -= delta
 	_ground_in -= delta
+	_sense_in -= delta
 	if _mouse_in <= 0.0:
 		_mouse_in = STATE_GAP
 		_line("M %d %d" % [_world_mouse().x, _world_mouse().y])
@@ -191,12 +196,34 @@ func _process(delta: float) -> void:
 		_line("S %d %d %d %d %s %d %d %d %d %s" % [wizard.global_position.x, wizard.global_position.y, wizard.velocity.x, wizard.velocity.y,
 			"floor" if wizard.is_on_floor() else "air", wizard.stamina, wizard.max_stamina, 1 if wizard.is_drawing() or wizard.casting else 0,
 			wizard.ledger.count(), String(wizard.shown_anim)])
+	if _state_in > STATE_GAP - 0.001:  # (the tick that has just written the state)
+		var buttons := (1 if Input.is_action_pressed("school_left") else 0) | (2 if Input.is_action_pressed("school_right") else 0) | (4 if Input.is_action_pressed("school_middle") else 0)
+		_line("A %d %d %d" % [roundi(Input.get_axis("move_left", "move_right")), 1 if Input.is_action_pressed("jump") else 0, buttons])
+	if _sense_in <= 0.0:
+		_sense_in = SENSE_GAP
+		_sense()
 	if _ground_in <= 0.0:
 		_ground_in = GROUND_GAP
 		_ground()
 	if _near_in <= 0.0:
 		_near_in = NEAR_GAP
 		_near()
+
+
+## What the wizard senses (see Sensing), as one line.
+func _sense() -> void:
+	var obs := Sensing.observe(wizard)
+	var head := PackedStringArray()
+	for i in 7:
+		head.append("%.2f" % obs[i])
+	var cells := Sensing.GRID_W * Sensing.GRID_ROWS
+	var grid := ""
+	for i in cells:
+		grid += str(roundi(obs[7 + i * 2] * 2.0) + (4 if obs[8 + i * 2] > 0.5 else 0))
+	var rest := PackedStringArray()
+	for i in range(7 + cells * 2, obs.size()):
+		rest.append("%.2f" % obs[i])
+	_line("O %s %s %s" % [",".join(head), grid, ",".join(rest)])
 
 
 ## How far down the ground lies from a height just over the feet, at steps either side ("x" where there is none).
