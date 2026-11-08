@@ -29,9 +29,9 @@ func _ready() -> void:
 				if name > newest:
 					newest = name
 			text = FileAccess.get_file_as_string("user://play_logs/" + newest)
-		ok = text.contains("K key D down") and text.contains(" S ") and text.contains("END")
+		ok = text.contains("K key D down") and text.contains(" S ") and text.contains(" G ") and text.contains("WORLD") and text.contains("END")
 		if not ok:
-			print("log was: ", text.substr(0, 300))
+			print("log was: ", text.substr(0, 600))
 	print("PASS recorder writes keys and state" if ok else "FAIL recorder")
 	get_tree().quit()
 
