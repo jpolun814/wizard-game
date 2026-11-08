@@ -25,6 +25,8 @@ var wizard: Wizard
 var ritual: RitualInput
 var arena: Node  # the world being played now
 var _flush_in := 2.0
+var _auto := false  # a recording made by itself in a network match, to be sent when the person is out or has won (F9 makes the other kind: kept on this machine)
+var _path := ""
 var _file: FileAccess
 var _clock := 0.0
 var _state_in := 0.0
@@ -49,8 +51,62 @@ static func attach(to_arena: Node, person: Wizard, box: RitualInput) -> void:
 		recorder.wizard = person
 		recorder.ritual = box
 		root.add_child.call_deferred(recorder)  # (the root is busy while a scene is being set up)
+	else:
+		recorder.rebind(to_arena, person, box)
+	recorder.call_deferred(&"_maybe_begin_auto")
+
+
+## In a network match, a person who has not turned it off is recorded from the start of the world, and the file goes to the machine that keeps the game when they are out
+## (or have won). Whatever an earlier match left behind, because the game was left or the machine cut off, is sent first.
+func _maybe_begin_auto() -> void:
+	if arena == null or not arena is World or not is_instance_valid(wizard) or wizard.dead or not Net.online() or Net.dedicated or not GameSettings.get_value("share_logs"):
 		return
-	recorder.rebind(to_arena, person, box)
+	_send_leftovers()
+	if _file != null:
+		return
+	DirAccess.make_dir_recursive_absolute("user://play_logs")
+	_path = "user://play_logs/net_%s.log" % Time.get_datetime_string_from_system().replace(":", "-")
+	_file = FileAccess.open(_path, FileAccess.WRITE)
+	if _file == null:
+		return
+	_auto = true
+	_clock = 0.0
+	_spell = ""
+	_line("START %s" % ProjectSettings.globalize_path("user://play_logs"))
+	_start_world()
+
+
+## The person is out of the match, or has won: the recording ends and is sent.
+static func finish(tree: SceneTree) -> void:
+	var recorder: PlayRecorder = tree.root.get_node_or_null("PlayRecorder")
+	if recorder != null and recorder._auto and recorder._file != null:
+		recorder._close_and_send()
+
+
+func _close_and_send() -> void:
+	_line("END")
+	_file.close()
+	_file = null
+	_auto = false
+	_send(_path)
+
+
+## Packs a log and gives it to Net, which sends it and deletes the file once the other machine has it.
+func _send(path: String) -> void:
+	var raw := FileAccess.get_file_as_bytes(path)
+	if raw.is_empty():
+		DirAccess.remove_absolute(path)
+		return
+	Net.send_play_log("%s.gz" % path.get_file(), raw.compress(FileAccess.COMPRESSION_GZIP), path)
+
+
+func _send_leftovers() -> void:
+	var dir := DirAccess.open("user://play_logs")
+	if dir == null:
+		return
+	for name in dir.get_files():
+		if name.begins_with("net_") and name.ends_with(".log") and "user://play_logs/" + name != _path:
+			_send("user://play_logs/" + name)
 
 
 func rebind(to_arena: Node, person: Wizard, box: RitualInput) -> void:
@@ -188,8 +244,8 @@ func _world_mouse() -> Vector2:
 
 
 func _toggle() -> void:
-	if _file == null and arena == null:
-		return
+	if (_file == null and arena == null) or _auto:
+		return  # (a recording that makes itself is not stopped by hand)
 	if _file != null:
 		_line("END")
 		_file.close()

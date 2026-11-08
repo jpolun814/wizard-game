@@ -303,6 +303,58 @@ func send(node: Node, method: StringName, args: Array = []) -> void:
 		node.callv(&"rpc_id", [peer, method] + args)
 
 
+# --- Play logs (see PlayRecorder) -------------------------------------------------------------------------------------
+
+## Where the machine that keeps the game stores the logs sent to it. It is not the folder a person's own recording is made in (user://play_logs), so a
+## machine that hosts and plays at once never deletes what it keeps.
+const LOG_DIR := "user://received_logs"
+const LOG_MAX_BYTES := 6 * 1024 * 1024
+const LOG_MAX_FILES := 3000
+
+var _logs_sent := {}  # the name a log was sent under -> where it lies on this machine, until the one that keeps it says it has it
+
+
+## Sends a finished play log (already packed) to the machine that keeps the game, and deletes the local file once that machine says it has it.
+func send_play_log(name: String, packed: PackedByteArray, local_path: String) -> void:
+	if not online():
+		return
+	if is_host():  # this machine keeps the game: it keeps its own log too, in the folder for kept logs
+		_keep_play_log(name, packed, my_id())
+		DirAccess.remove_absolute(local_path)
+		return
+	_logs_sent[name] = local_path
+	_receive_play_log.rpc_id(1, name, packed)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _receive_play_log(name: String, packed: PackedByteArray) -> void:
+	if not is_host():
+		return
+	var sender := multiplayer.get_remote_sender_id()
+	_keep_play_log(name, packed, sender)
+	_play_log_kept.rpc_id(sender, name)
+
+
+@rpc("authority", "call_remote", "reliable")
+func _play_log_kept(name: String) -> void:
+	if _logs_sent.has(name):
+		DirAccess.remove_absolute(_logs_sent[name])
+		_logs_sent.erase(name)
+
+
+## Writes a received log into LOG_DIR, as a file of the machine that sent it. Too large a log, or too many, are thrown away (and still said to be kept, so the sender lets them go).
+func _keep_play_log(name: String, packed: PackedByteArray, sender: int) -> void:
+	if packed.size() > LOG_MAX_BYTES:
+		return
+	DirAccess.make_dir_recursive_absolute(LOG_DIR)
+	var dir := DirAccess.open(LOG_DIR)
+	if dir == null or dir.get_files().size() >= LOG_MAX_FILES:
+		return
+	var file := FileAccess.open("%s/peer%d_%s" % [LOG_DIR, sender, name.get_file().validate_filename()], FileAccess.WRITE)
+	if file != null:
+		file.store_buffer(packed)
+
+
 @rpc("any_peer", "call_remote", "reliable")
 func _said_scene(name: String) -> void:
 	_scenes[multiplayer.get_remote_sender_id()] = name

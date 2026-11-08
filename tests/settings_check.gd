@@ -43,7 +43,7 @@ func _ready() -> void:
 	var panels := menu.find_children("*", "SettingsPanel", true, false)
 	_verdict(panels.size() == 1, "it opens the page of settings")
 	var toggles := (panels[0] as Node).find_children("*", "CheckButton", true, false) if panels.size() == 1 else []
-	_verdict(toggles.size() == 3, "three switches (%d)" % toggles.size())
+	_verdict(toggles.size() == 4, "four switches (%d)" % toggles.size())  # vertical sync, share play logs, skip the opening, skip the ending
 	if out != "":
 		await get_tree().create_timer(0.6).timeout
 		get_viewport().get_texture().get_image().save_png(out + "/settings_menu.png")

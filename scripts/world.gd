@@ -1225,6 +1225,7 @@ func gate_target(entry: Dictionary) -> Vector2:
 func _on_player_died() -> void:
 	if Net.dedicated:
 		return  # nobody is here to watch the others, or to see the stats: the match goes on for the people on other machines
+	PlayRecorder.finish(get_tree())  # (in a network match the person's play is sent to the machine that keeps the game)
 	_record_match(_living().size() + 1)
 	_show_stats()
 	if _living().is_empty():
@@ -1335,6 +1336,7 @@ func _count_wizards(delta: float) -> void:
 		hud.banner("Last wizard standing", "You win")
 		Library.record_win(player.ledger.pages.keys())
 		MatchStats.finish()  # the clock stops where the match was won
+		PlayRecorder.finish(get_tree())
 		_record_match(1)
 		_win_stats_due = true
 		get_tree().create_timer(STATS_AFTER).timeout.connect(_show_win_stats)
