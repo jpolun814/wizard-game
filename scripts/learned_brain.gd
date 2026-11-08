@@ -10,6 +10,14 @@ var jump := false  # a jump asked for, made once when the wizard is on the groun
 var learned := false  # a policy has given its first action: until then the scripted legs play
 var policy: PolicyNet  # a trained network run here, in the game; when the trainer drives it (training/wizard_agent.gd) this stays empty
 var _decide_in := 0.0
+static var _shared_net: PolicyNet
+
+
+## The network that plays the legs of a match's AI wizards when the setting asks for it (ai/footwork.json, written by training/export_policy.py).
+static func footwork() -> PolicyNet:
+	if _shared_net == null:
+		_shared_net = PolicyNet.load_file("res://ai/footwork.json")
+	return _shared_net
 
 const WAYPOINTS := 4
 const DECISION_EVERY := 0.1  # seconds between the policy's choices

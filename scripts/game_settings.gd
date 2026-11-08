@@ -15,6 +15,7 @@ const DEFAULTS := {
 	"window": WINDOWED, "vsync": true, "frame_cap": 0,
 	"skip_opening": false, "skip_ending": false,
 	"share_logs": true,  # after a match in a network game, how this person played is sent to the machine that keeps the game (see PlayRecorder)
+	"learned_ai": false,  # EXPERIMENTAL: the AI wizards' legs follow a trained network (ai/footwork.json) instead of the scripted walk; for finding what it does wrong
 	"rival_skill": 1,  # how well the AI wizards play: 0 easy, 1 normal, 2 hard (in a network game the host's choice rules, since the host plays them)
 	"look": "", "palette": 0,  # the wizard this person plays (see WizardLook); no look chosen yet is ""
 }
