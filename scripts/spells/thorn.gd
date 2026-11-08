@@ -31,6 +31,10 @@ func _begin(origin: Vector2, aim_angle: float) -> void:
 	add_child(picture)
 
 
+func lands_through_grace() -> bool:
+	return true  # every thorn of a volley that finds its mark counts, so a volley at close range does the sum of them
+
+
 func damage() -> int:
 	return HARM
 

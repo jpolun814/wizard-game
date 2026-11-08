@@ -52,6 +52,11 @@ func _begin(origin: Vector2, aim_angle: float) -> void:
 	Sfx.play("cast_ice" if spell == "Frostbolt" else "cast_fire", origin)
 
 
+## Whether it lands on a wizard even in the moment of safety after a hit: a volley of thorns, each of which counts.
+func lands_through_grace() -> bool:
+	return false
+
+
 func damage() -> int:
 	return STATS[spell]["damage"]
 
@@ -107,7 +112,7 @@ func _on_hit(body: Node2D) -> void:
 			return
 		_spent = true
 		MatchStats.strike(self)
-		body.take_damage(damage(), true, true)
+		body.take_damage(damage(), not lands_through_grace(), true)
 		if spell == "Frostbolt":
 			body.apply_debuff("slow", SLOW_SECONDS)
 	elif body.is_in_group("mobs"):

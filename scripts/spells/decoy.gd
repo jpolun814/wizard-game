@@ -87,7 +87,7 @@ func _physics_process(delta: float) -> void:
 
 ## The arrow keys walk it, over the ground and up and down its slopes, and stopped by a wall; it drops when the ground ends.
 func _walk(delta: float) -> void:
-	var dir := Input.get_axis("decoy_left", "decoy_right")
+	var dir := Input.get_axis("decoy_left", "decoy_right") if mine else 0.0  # only the one who cast it walks it
 	var space := get_world_2d().direct_space_state
 	var walking := false
 	if dir != 0.0:

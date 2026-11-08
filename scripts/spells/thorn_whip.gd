@@ -11,7 +11,8 @@ const COAST := 1000.0         # how fast a dragged body slows once let go, in pi
 const PAGE_HALF_WIDTH := 32.0 # half the width a page takes up, and how far over its floating height
 const LASH := 0.12            # seconds the whip takes to reach its end
 const HOLD := 0.7             # the longest it drags for
-const DRAG := 2600.0          # the pull on a wizard or an enemy, in pixels a second each second
+const DRAG := 4200.0          # the pull on a wizard or an enemy, in pixels a second each second
+const YANK := 950.0           # the jerk the lash gives a wizard the moment it takes hold, in pixels a second
 const PAGE_SPEED := 420.0     # how fast a page is dragged
 const LINK := 50.0            # each piece of vine is this long
 const VINE := preload("res://art/props/dusk_vine.png")
@@ -105,6 +106,8 @@ func _act(delta: float) -> void:
 		_bitten = true
 		SpellTargets.hurt(_held, HARM, "Flora", false, false, self)
 		Fx.burst(get_parent(), SpellTargets.center_of(_held), Color("#8fd35a"), 6, 70.0, 0.3, false)
+		if _held is Wizard and caster != null and is_instance_valid(caster):
+			_held.push((caster.global_position + Vector2(0.0, -20.0) - SpellTargets.center_of(_held)).normalized() * YANK)  # a yank, not a tug
 	var home: Vector2 = caster.global_position + Vector2(0.0, -20.0) if caster != null and is_instance_valid(caster) else _from
 	if _holds_page:
 		var to_home := home - _held.global_position

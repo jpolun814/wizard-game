@@ -96,6 +96,17 @@ func _barbs() -> void:
 		flame.queue_free()
 	_verdict(get_tree().get_nodes_in_group("shots").is_empty(), "no thorn is left flying")
 	dummy.queue_free()
+	# A rival wizard at close range takes the thorns that find it one after another, not only the first.
+	var rival: Wizard = _world._rivals[0]
+	rival.global_position = _spot + Vector2(40.0, 0.0)
+	rival.velocity = Vector2.ZERO
+	var before := rival.max_stamina
+	await _wait(0.2)
+	_cast("Barbs", "directional", 0.0)
+	await _wait(0.6)
+	var lost := before - rival.max_stamina
+	_verdict(lost > Thorn.HARM and int(lost) % Thorn.HARM == 0, "at close range several thorns land on a wizard (%d of at most %d)" % [lost, Thorn.HARM * Barbs.COUNT])
+	rival.global_position = Vector2(-9000.0, -9000.0)
 
 
 func _pebble() -> void:
