@@ -701,7 +701,7 @@ func _travel(delta: float) -> float:
 		_goal = ""  # a volcano is awake close by: it goes away from it, and chooses what to do when it is far enough off
 		_goal_timer = 0.5
 		return signf(wizard.global_position.x - volcano.x) * WALK_SPEED
-	var steer := _route.steer(wizard, delta)
+	var steer := _steer(delta)
 	if steer["replan"]:
 		stuck_at.append("%s %s" % [str(_tile_of(wizard.global_position)), _route.status()])
 		_stuck_on_goal()
@@ -769,6 +769,12 @@ func _lethal_stretch(ahead: float) -> float:
 			return d - start if not _lethal_at(landing) and absf(landing.y - wizard.global_position.y) < 120.0 else INF
 		d += 16.0
 	return INF
+
+
+## What the legs do along the route this frame: {"dir", "speed", "jump", "drop", "climb", "let_go", "replan"}. Here, what the route says; a wizard whose footwork is learned
+## (LearnedBrain) decides for itself.
+func _steer(delta: float) -> Dictionary:
+	return _route.steer(wizard, delta)
 
 
 ## The crossing the way goes over soon, if the way over it is not made: {"kind", "key", "span", "post"}. A pit counts when it is the next few tiles
