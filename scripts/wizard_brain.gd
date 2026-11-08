@@ -1637,7 +1637,7 @@ func _footwork(delta: float, to_player: Vector2, sees: bool) -> float:
 		_strafe_timer -= delta
 		if _strafe_timer <= 0.0:
 			_strafe_timer = _rng.randf_range(1.3, 3.2)  # (a person holds a direction, or stands, for a while: they do not change their mind every second)
-			_strafe = [-1.0, 0.0, 0.0, 0.0, 1.0][_rng.randi() % 5]
+			_strafe = [-1.0, -1.0, 0.0, 0.0, 0.0, 1.0, 1.0][_rng.randi() % 7]  # (a recorded person stood still 47% of a fight and went each way about a quarter)
 		dir = _strafe
 	# Never back into the edge of the map; it would rather stand its ground there.
 	var x: float = wizard.global_position.x
@@ -1654,7 +1654,7 @@ func _footwork(delta: float, to_player: Vector2, sees: bool) -> float:
 		_hop_timer -= delta
 		var hop: bool = dir != 0.0 and _hop_timer <= 0.0
 		if hop:
-			_hop_timer = _rng.randf_range(5.0, 12.0)
+			_hop_timer = _rng.randf_range(2.0, 5.0)  # (a recorded person hops about every three seconds in a fight)
 		if blocked or above or hop:
 			wizard.request_jump()
 			_jump_cooldown = 0.9
