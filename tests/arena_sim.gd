@@ -27,6 +27,8 @@ var _seen: Array[Dictionary] = []  # for each wizard, in the order of _wizards: 
 var _set_up := false
 var _kill_at := -1.0  # kill=SECONDS fells the wizard with the most pages then, and reports whether anyone reads the book it drops
 var _killed := false
+var _log: FileAccess  # log=FILE writes what every wizard does, four times a second, and each cast and wound, for studying how they behave
+var _log_t := 0.0
 var _watch := false  # watch=1: a camera follows a wizard still standing, for looking at the match in a window
 var _camera: Camera2D
 
@@ -47,6 +49,8 @@ func _ready() -> void:
 			_sketch = Vector2i(int(arg.get_slice(",", 0).substr(7)), int(arg.get_slice(",", 1)))
 		elif arg.begins_with("kill="):
 			_kill_at = float(arg.substr(5))
+		elif arg.begins_with("log="):
+			_log = FileAccess.open(arg.substr(4), FileAccess.WRITE)
 		elif arg == "watch=1":
 			_watch = true
 		elif arg == "keep=1":
@@ -70,6 +74,12 @@ func _ready() -> void:
 	for wizard: Wizard in get_tree().get_nodes_in_group("wizards"):
 		if wizard != _world.player:
 			_wizards.append(wizard)
+	if _log != null:
+		for w in _wizards:
+			var who: String = w.look + str(_wizards.find(w))
+			if w.caster != null:
+				w.caster.cast_resolved.connect(func(spell: String, _t: String, _o: Vector2, _a: float, _i: Dictionary) -> void: _log.store_line("C %.2f %s %s" % [_clock, who, spell]))
+			w.damaged.connect(func(amount: int) -> void: _log.store_line("D %.2f %s %d" % [_clock, who, amount]))
 	if _watch:
 		_camera = Camera2D.new()
 		_camera.zoom = Vector2(1.5, 1.5)
@@ -101,6 +111,13 @@ func _physics_process(delta: float) -> void:
 	if _shot != "" and _clock > 2.0:
 		get_viewport().get_texture().get_image().save_png(_shot)
 		_shot = ""
+	_log_t += delta
+	if _log != null and _log_t >= 0.25:
+		_log_t = 0.0
+		for i in _wizards.size():
+			var w := _wizards[i]
+			if is_instance_valid(w) and not w.dead:
+				_log.store_line("S %.2f %s%d %d %d %d %d %d %d %d %s" % [_clock, w.look, i, w.global_position.x, w.global_position.y, w.velocity.x, w.velocity.y, 1 if w.is_on_floor() else 0, w.stamina, w.max_stamina, w.brain.status()])
 	for i in _wizards.size():
 		var wizard := _wizards[i]
 		if is_instance_valid(wizard) and not wizard.dead:
@@ -154,6 +171,8 @@ func _print_state() -> void:
 
 func _finish(standing: int) -> void:
 	_finished = true
+	if _log != null:
+		_log.close()
 	print("--- after %.0f seconds: %d of %d wizards standing" % [_clock, standing, _wizards.size()])
 	for i in _wizards.size():
 		var wizard := _wizards[i]

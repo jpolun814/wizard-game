@@ -25,7 +25,8 @@ const PAGE_STEPS_TIME := 3.0     # seconds it tries
 const PORTAL_LEFT := 3.0        # seconds: a portal with less than this left open is not worth the walk
 const PORTAL_CHANCE := 0.75     # how often it takes a portal that is nearer than the page it was after
 const PORTAL_JUMP_FOR := 5.0    # seconds it stands under a portal hung in the air, jumping for it, before it takes it for out of reach
-const DANGER_WAIT_MAX := 12.0  # seconds it waits before something dangerous on its way (an erupting volcano, a fire) before it goes on regardless
+const PUSH_THROUGH_FOR := 5.0   # seconds it goes on through danger after backing out of it over and over
+const DANGER_WAIT_MAX := 12.0  # seconds it waits before an erupting volcano on its way before it goes on regardless
 const GIVE_UP := 45.0         # seconds a page it could not reach stays off its list
 const NEAR := 190.0           # closer than this it backs away
 const FAR := 330.0            # farther than this it closes in
@@ -116,6 +117,8 @@ var _strafe_timer := 0.0
 var _escape_time := 0.0
 var _escape_dir := 0.0
 var _jump_cooldown := 0.0
+var _push_through := 0.0     # seconds left that it walks on through what it would back out of
+var _escapes := 0.0           # how often it has backed out of danger lately
 var _danger_wait := 0.0       # seconds it has stood waiting for danger on its way to pass
 var _hop_timer := 1.5  # counting down to its next hop while it walks
 var _pressure := 0.0          # how many shots you have thrown at it lately
@@ -224,6 +227,8 @@ func think(delta: float) -> void:
 	var sees := _clear_line(wizard.center(), foe.center()) and not SpellTargets.sight_blocked(wizard.get_tree(), wizard.center(), foe.center())
 	var fighting := sees and to_player.length() < ENGAGE
 
+	_push_through -= delta
+	_escapes = maxf(_escapes - delta * 0.5, 0.0)
 	# Reactions.
 	if _react > 0.0:
 		_react -= delta
@@ -234,8 +239,12 @@ func think(delta: float) -> void:
 		if not shot.is_empty() and _defend_cooldown <= 0.0:
 			_threat_dir = shot["dir"]
 			_plan(_choose_defence(shot["eta"]), _reaction_time())
-		elif _in_danger(wizard.global_position + Vector2(0, -6)) or _in_danger(wizard.center()):
+		elif _push_through <= 0.0 and (_in_danger(wizard.global_position + Vector2(0, -6)) or _in_danger(wizard.center())):
 			_plan("escape", _reaction_time() * 0.6)
+			_escapes += 1.0
+			if _escapes > 3.0:  # it keeps backing out of the same thing that lies on its way: it goes through it this once
+				_push_through = PUSH_THROUGH_FOR
+				_escapes = 0.0
 		elif _defend_cooldown <= 0.0 and not _watchers().is_empty():
 			_plan("cover", _reaction_time())
 		elif fighting and to_player.length() < TOO_CLOSE and _defend_cooldown <= 0.0:
@@ -351,9 +360,9 @@ func _travel(delta: float) -> float:
 		return _escape_dir * WALK_SPEED * 1.3
 	if _walking_pads():
 		return _cross_run
-	if _resting and wizard.stamina >= REST_UNTIL:
+	if _resting and wizard.stamina >= minf(REST_UNTIL, wizard.max_stamina * 0.9):  # (a wizard worn down to a small maximum rests up to that, not up to more than it can ever hold)
 		_resting = false
-	elif not _resting and wizard.stamina < REST_BELOW and wizard.is_on_floor():
+	elif not _resting and wizard.stamina < minf(REST_BELOW, wizard.max_stamina * 0.3) and wizard.is_on_floor():
 		_resting = true
 	if _resting:
 		return 0.0
@@ -405,13 +414,15 @@ func _travel(delta: float) -> float:
 		stuck_at.append("%s %s" % [str(_tile_of(wizard.global_position)), _route.status()])
 		_stuck_on_goal()
 	var ahead := signf(steer["dir"])
-	if ahead != 0.0 and wizard.is_on_floor() and _in_danger(wizard.global_position + Vector2(ahead * 48.0, -10.0)) and not _in_danger(wizard.global_position + Vector2(0, -6)):
-		if _danger_wait < DANGER_WAIT_MAX:  # something burning or erupting lies on the way: it waits for it to pass, and goes on when it has waited long enough
+	if ahead != 0.0 and wizard.is_on_floor() and _erupting_at(wizard.global_position + Vector2(ahead * 48.0, -10.0)) and not _erupting_at(wizard.global_position + Vector2(0, -6)):
+		if _danger_wait < DANGER_WAIT_MAX:  # a volcano is erupting on the way: it waits for it to pass, and goes on when it has waited long enough
 			_danger_wait += delta
 			_route.wait()
 			return 0.0
 	else:
 		_danger_wait = 0.0
+	if steer["drop"]:
+		wizard.drop_through()
 	if steer["jump"] and wizard.is_on_floor():
 		wizard.request_jump()
 	wizard.climb_up = steer["climb"]  # at the foot of a rope ladder, the way up it
@@ -1310,6 +1321,14 @@ func _safe_side() -> float:
 
 
 ## True when anything that hurts (any spell, its own included) would reach it at this point.
+## True over an erupting volcano (or one about to): it passes, so the way is worth waiting for.
+func _erupting_at(point: Vector2) -> bool:
+	for node in wizard.get_tree().get_nodes_in_group("danger"):
+		if node is Eruption and node.danger_at(point):
+			return true
+	return false
+
+
 func _in_danger(point: Vector2) -> bool:
 	for node in wizard.get_tree().get_nodes_in_group("danger"):
 		if node.danger_at(point):

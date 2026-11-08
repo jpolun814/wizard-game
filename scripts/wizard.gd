@@ -1136,6 +1136,12 @@ func walk(speed: float) -> void:
 
 
 ## A jump, asked for as a person asks with the key: it happens if the wizard is on the ground (or just left it) and has the stamina.
+## A brain steps down through the wooden platform it stands on (a person holds S).
+func drop_through() -> void:
+	if is_on_floor():
+		_drop_time = 0.3
+
+
 ## A brain asks for a part of a full jump for a hop.
 func request_jump(strength := 1.0) -> void:
 	_jump_buffer = JUMP_BUFFER

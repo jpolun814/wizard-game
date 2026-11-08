@@ -74,7 +74,7 @@ func goal() -> Vector2i:
 
 ## What the body should do this frame: {"dir": -1, 0 or 1, "speed", "jump": leave the ground now, "replan": it is getting nowhere}.
 func steer(body: CharacterBody2D, delta: float) -> Dictionary:
-	var out := {"dir": 0.0, "speed": WALK, "jump": false, "replan": false, "climb": false, "let_go": false}
+	var out := {"dir": 0.0, "speed": WALK, "jump": false, "replan": false, "climb": false, "let_go": false, "drop": false}
 	_hop = maxf(_hop - delta, 0.0)
 	var feet := body.global_position
 	var grounded := body.is_on_floor()
@@ -116,6 +116,8 @@ func steer(body: CharacterBody2D, delta: float) -> Dictionary:
 		goal_x += signf(goal_tile.x - from.x) * LEAN  # the edge of a ledge is rounded off: land a little way in
 	var gap := goal_x - feet.x
 	out["dir"] = 0.0 if absf(gap) < 4.0 else signf(gap)
+	if grounded and down >= 2 and across <= 1 and _stuck > 0.3 and feet.y < float(goal_tile.y) * TILE - 24.0:
+		out["drop"] = true  # the way down lies through the wooden platform it stands on
 	if grounded and leaps and not _jumped:
 		out["jump"] = true
 		out["speed"] = _air_speed_for(absf(gap), float(from.y - goal_tile.y) * TILE)
