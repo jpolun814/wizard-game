@@ -132,6 +132,13 @@ func _ready() -> void:
 	_verdict(brain._lure != seen, "one it watched come out of nothing is known for a shadow")
 	seen.queue_free()
 
+	# A page just read is looked at before its spell is drawn.
+	looker.ledger.learn("Ignite")
+	await _frames(2)
+	_verdict(not brain._ready_to_cast("Ignite"), "a spell whose page was just read is not drawn at once")
+	await _frames(int(WizardBrain.READ_MAX * 60.0) + 5)
+	_verdict(brain._ready_to_cast("Ignite"), "but is once the page has been looked at")
+
 	print("a brain is held to a person's limits" if _failures == 0 else "%d FAILED" % _failures)
 	get_tree().quit(1 if _failures > 0 else 0)
 

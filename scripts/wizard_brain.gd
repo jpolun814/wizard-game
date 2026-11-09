@@ -31,11 +31,17 @@ const PAGE_GLOW := 120.0  # a page shines: its glow shows at the edge of the scr
 const EXPLORE_FLOOR := 12     # tiles between one floor of a tall building and the next, when it looks for pages above or below
 const EXPLORE_STEP := 20    # tiles between the places it picks to look at, going along
 const DRIFT_FILE := "res://ai/stroke_drift.json"
+const HUMAN_FILE := "res://ai/human_limits.json"  # what people's bodies were measured to do (training/measure_human.py)
+const CHORD_GAP_MIN := 0.01  # seconds between the first button of a chord and the last (the middle half of 135 chords recorded)
+const CHORD_GAP_MAX := 0.05
+const READ_MIN := 0.87       # seconds a new page is looked at before its spell is drawn (the middle half of the recordings)
+const READ_MAX := 1.55
 const DRAG_MARGIN := 0.7  # it keeps well inside what a shape stands
 const LONG_FALL := 300.0  # a drop this deep below its feet is a long fall, worth a Featherfall
 const HOLD_STILL := 0.4   # seconds it stands still when a stroke would be dragged out of shape
 const STOPPING := 0.35  # seconds to come to a stop before the first letter of a chant (a person stops walking, then types)
-const TYPING_PER_LETTER := 0.25  # seconds a letter takes to type: 48 words a minute (the owner found 30 too slow), about what a person types words of a language that is not theirs
+const TYPING_FASTEST := 0.08  # seconds a letter takes to type, from the quick end of the people recorded to the slow end (the middle half of
+const TYPING_SLOWEST := 0.15  # 1,493 letters: training/measure_human.py, ai/human_limits.json); a skilled wizard types at the quick end
 const HASTE_FROM := 160      # moves left on a journey before it says the chant of swift feet (it takes 30 words a minute to say: shorter than this it saves no time)
 const MEND_BELOW := 0.5    # a wizard worn down below this share of the greatest maximum lights a bonfire and rests by it
 const MEND_UNTIL := 0.92
@@ -163,9 +169,15 @@ var _camped_for := 0.0
 var _mend_wait := 0.0
 var _typing := ""                # the chant it is typing, and will say when _settle has run out
 var _hold_still := 0.0
+static var _human := {}
+var _clock := 0.0                 # seconds this brain has been thinking
+var _read_until := {}             # page -> the time on _clock until which it is still reading it (see _note_new_pages)
+var _pages_noted := -1
+var _ledger_noted: Ledger
 var _pending := {}                # a stroke it stopped to draw: drawn as soon as it stands still enough (see _draw_when_still)
 static var _drift := {}
-var _typing_age := 0.0           # seconds since the chant box was opened
+var _typing_age := 0.0
+var _typing_total := 1.0           # seconds since the chant box was opened
 var _said := {}                   # chant id -> whether it took, for a chant just typed and said, until whoever asked for it looks (see _type_then_say)
 var _said_failed := {}            # chant id -> seconds before it is tried again, after it was typed and came to nothing
 var _haste_wait := 0.0
@@ -249,7 +261,7 @@ func _show_words() -> void:
 		wizard.shown_words = ""
 		return
 	var text: String = RitualInput.RITUALS[_typing]["text"]
-	var total := _typing_time(_typing)
+	var total := _typing_total
 	var done := 1.0 - clampf(_settle / maxf(total, 0.01), 0.0, 1.0)
 	wizard.shown_words = text.substr(0, int(ceil(text.length() * done)))
 
@@ -290,6 +302,7 @@ func _quiet_here() -> bool:
 
 func think(delta: float) -> void:
 	_hurt_age += delta
+	_note_new_pages(delta)
 	_dash -= delta
 	_hold_still -= delta
 	_draw_when_still()
@@ -450,8 +463,10 @@ func _wolf(to_player: Vector2, sees: bool) -> void:
 		wizard.claw()
 
 
+## How long it takes to answer something it has seen: the middle half of the reactions recorded from people runs from a quarter of a second to
+## over three quarters (training/measure_human.py); a skilled wizard is at the quick end of that, never quicker than the quickest people.
 func _reaction_time() -> float:
-	return lerpf(0.4, 0.15, skill) + _rng.randf() * 0.12
+	return lerpf(0.45, 0.25, skill) + _rng.randf() * 0.2
 
 
 func _plan(reaction: String, delay: float) -> void:
@@ -626,7 +641,7 @@ func _mend(delta: float, fighting: bool) -> float:
 
 ## How long a person takes to type a chant: it stands where it is while it does.
 func _typing_time(id: String) -> float:
-	return float(RitualInput.RITUALS[id]["text"].length()) * TYPING_PER_LETTER
+	return float(RitualInput.RITUALS[id]["text"].length()) * lerpf(TYPING_SLOWEST, TYPING_FASTEST, skill)
 
 
 ## True while the chant box is open and it is typing.
@@ -691,7 +706,8 @@ func _type_then_say(id: String) -> bool:
 func _open_chant(id: String) -> void:
 	_typing = id
 	_typing_age = 0.0
-	_settle = _typing_time(id) + STOPPING
+	_typing_total = _typing_time(id) + STOPPING
+	_settle = _typing_total
 
 
 ## The nearest bonfire that burns, within reach of a point, or null.
@@ -2290,6 +2306,9 @@ func _begin_cast(spell_name: String, stroke: PackedVector2Array, draw_time: floa
 	var data: Spell = SpellData.SPELLS[spell_name]
 	var mask: int = data.buttons
 	var caster: Caster = wizard.caster
+	draw_time = maxf(draw_time, _quickest_stroke(spell_name))  # never quicker than people draw it
+	if mask & (mask - 1) != 0:
+		draw_time += _rng.randf_range(CHORD_GAP_MIN, CHORD_GAP_MAX)  # the buttons of a chord go down one after another, not in one instant
 	return wizard.start_drawing(stroke, SpellData.SCHOOL_COLORS[data.school], func(points: PackedVector2Array) -> void:
 		caster.cast_stroke(mask, _shaken(_handed(points) if sloppy else points)), draw_time)
 
@@ -2354,6 +2373,36 @@ func _catch_fall() -> void:
 	if not _drag_ok("Featherfall", QUICK_DRAW) or _drop_below() <= LONG_FALL:
 		return
 	_begin_cast("Featherfall", _tend_stroke("Featherfall", Vector2.ZERO), QUICK_DRAW)
+
+
+## The quickest a person draws a spell: the quick end (the 25th percentile) of the strokes recorded for it, where there are enough of them
+## (ai/human_limits.json, from training/measure_human.py). Spells people were not recorded drawing often have no floor.
+static func _quickest_stroke(spell_name: String) -> float:
+	if _human.is_empty():
+		var file := FileAccess.open(HUMAN_FILE, FileAccess.READ)
+		var parsed = JSON.parse_string(file.get_as_text()) if file != null else null
+		_human = parsed if parsed is Dictionary else {"strokes": {}}
+	var row = _human.get("strokes", {}).get(spell_name)
+	if row is Dictionary and row.get("n", 0) >= 3:
+		return row["p25"]
+	return 0.0
+
+
+## A page newly in its book is looked at before its spell can be drawn: a person reads the picture first, about a second (the book stays open
+## at a new page for 0.87 to 1.55 s in the middle half of the recordings). The pages it starts with are known already.
+func _note_new_pages(delta: float) -> void:
+	_clock += delta
+	if wizard.ledger == null:
+		return
+	var pages: Dictionary = wizard.ledger.pages
+	var fresh := wizard.ledger != _ledger_noted  # a book handed over whole (a new match, the waiting room's): its pages are known already
+	if pages.size() == _pages_noted and not fresh:
+		return
+	_ledger_noted = wizard.ledger
+	_pages_noted = pages.size()
+	for page in pages:
+		if not _read_until.has(page):
+			_read_until[page] = 0.0 if fresh else _clock + _rng.randf_range(READ_MIN, READ_MAX)
 
 
 ## True while it stands still to draw.
@@ -2434,6 +2483,8 @@ func _ceiling_over(point: Vector2) -> bool:
 func _ready_to_cast(spell_name: String) -> bool:
 	if not _knows(spell_name) or _rest.has(spell_name) or wizard.silenced() or wizard.rage_time > 0.0:
 		return false
+	if _read_until.get(spell_name, 0.0) > _clock:
+		return false  # a page just read: it is still looking at the picture
 	var spell: Spell = SpellData.SPELLS[spell_name]
 	if spell.pays_max():
 		return wizard.max_stamina > spell.cost + 40.0
