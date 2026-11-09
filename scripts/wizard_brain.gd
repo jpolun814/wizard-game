@@ -36,6 +36,8 @@ const CHORD_GAP_MIN := 0.01  # seconds between the first button of a chord and t
 const CHORD_GAP_MAX := 0.05
 const READ_MIN := 0.87       # seconds a new page is looked at before its spell is drawn (the middle half of the recordings)
 const READ_MAX := 1.55
+const ATTENTION_CONE := 0.8  # radians either side of the way to its rival that it watches closely
+const ATTENTION_LAG := 0.25  # seconds before it takes in a shot from elsewhere (on top of the time it takes to answer it)
 const DRAG_MARGIN := 0.7  # it keeps well inside what a shape stands
 const LONG_FALL := 300.0  # a drop this deep below its feet is a long fall, worth a Featherfall
 const HOLD_STILL := 0.4   # seconds it stands still when a stroke would be dragged out of shape
@@ -171,6 +173,7 @@ var _typing := ""                # the chant it is typing, and will say when _se
 var _hold_still := 0.0
 static var _human := {}
 var _clock := 0.0                 # seconds this brain has been thinking
+var _first_seen := {}             # shot instance id -> the time on _clock it first came on its screen (see _noticed)
 var _read_until := {}             # page -> the time on _clock until which it is still reading it (see _note_new_pages)
 var _pages_noted := -1
 var _ledger_noted: Ledger
@@ -1452,6 +1455,15 @@ func _note_sights(delta: float) -> void:
 		if wizard.eyes.rect().grow(PAGE_GLOW).has_point(pickup.global_position) and not SpellTargets.sight_blocked(wizard.get_tree(), at, pickup.global_position):
 			_seen_pages[pickup.get_instance_id()] = true
 	_explored[_square_of(wizard.global_position)] = true
+	# Everything on its screen has been seen: the squares whose middles lie on it are explored too.
+	var view := wizard.eyes.rect()
+	var square := Vector2(16.0 * WizardRoute.TILE, 12.0 * WizardRoute.TILE)
+	var first := _square_of(view.position)
+	var last := _square_of(view.end)
+	for sx in range(first.x, last.x + 1):
+		for sy in range(first.y, last.y + 1):
+			if view.has_point((Vector2(sx, sy) + Vector2(0.5, 0.5)) * square):
+				_explored[Vector2i(sx, sy)] = true
 	if _seen_pages.size() > 400:
 		_seen_pages.clear()
 
@@ -1481,7 +1493,7 @@ func _choose_explore(start: Vector2i) -> bool:
 					if _explored.has(_square_of(Vector2(tile.x * WizardRoute.TILE, tile.y * WizardRoute.TILE))):
 						continue
 					var path: Array[Vector2i] = _path(start, tile)
-					if path.is_empty():
+					if path.is_empty() or not _through_known(path, start, tile):
 						continue
 					var cost := float(path.size()) + _rng.randf() * 12.0 - (14.0 if dir == _explore_dir else 0.0)
 					if cost < best_cost:
@@ -1496,6 +1508,20 @@ func _choose_explore(start: Vector2i) -> bool:
 			return true
 		_explored.clear()  # it has been everywhere it can get to: it looks again
 	return false
+
+
+## Whether a way to an unexplored square goes only over ground it has seen, and the square itself or ground next to where it stands: a person
+## exploring knows the ground they have seen, not the ground beyond, so they go to the edge of what they know and look. (The map of the ways is
+## the whole world's; this keeps the brain to the part a person would know.)
+func _through_known(path: Array[Vector2i], start: Vector2i, target: Vector2i) -> bool:
+	var here := _square_of(Vector2(start.x * WizardRoute.TILE, start.y * WizardRoute.TILE))
+	var there := _square_of(Vector2(target.x * WizardRoute.TILE, target.y * WizardRoute.TILE))
+	for tile in path:
+		var sq := _square_of(Vector2(tile.x * WizardRoute.TILE, tile.y * WizardRoute.TILE))
+		if _explored.has(sq) or (absi(sq.x - there.x) <= 1 and absi(sq.y - there.y) <= 1) or (absi(sq.x - here.x) <= 1 and absi(sq.y - here.y) <= 1):
+			continue
+		return false
+	return true
 
 
 ## The open portal nearest by the way it must walk, as {"portal", "path"}, or nothing when fewer than two are open (one leads nowhere).
@@ -1748,6 +1774,8 @@ func _incoming_shot() -> Dictionary:
 	for node in wizard.get_tree().get_nodes_in_group("projectiles"):
 		if node.caster == wizard or not wizard.eyes.sees_node(node):
 			continue  # (a shot off its screen, or in smoke or the dark, is not seen coming)
+		if not _noticed(node):
+			continue
 		var velocity: Vector2 = node.velocity()
 		var rel: Vector2 = wizard.center() - node.global_position
 		var closing := rel.dot(velocity.normalized())
@@ -1758,6 +1786,24 @@ func _incoming_shot() -> Dictionary:
 		if eta < 0.9 and miss < 28.0 and (best.is_empty() or eta < best["eta"]):
 			best = {"eta": eta, "dir": velocity.normalized()}
 	return best
+
+
+## Attention: a person watches the rival they are fighting, and takes in what comes from elsewhere a moment late. A shot from the side of its rival is
+## seen at once; one from anywhere else only after it has been on the screen a little while.
+func _noticed(node: Node2D) -> bool:
+	var id := node.get_instance_id()
+	if not _first_seen.has(id):
+		_first_seen[id] = _clock
+		if _first_seen.size() > 64:
+			_first_seen.clear()
+			_first_seen[id] = _clock
+	if _foe == null or not is_instance_valid(_foe):
+		return true  # nothing holds its eye: it sees what comes
+	var to_foe := _seen_center(_foe) - wizard.center()
+	var to_shot := node.global_position - wizard.center()
+	if to_foe.length() < 1.0 or absf(to_foe.angle_to(to_shot)) < ATTENTION_CONE:
+		return true
+	return _clock - float(_first_seen[id]) >= ATTENTION_LAG
 
 
 ## The sentinels that have it in sight, when it holds a spell to meet them with.

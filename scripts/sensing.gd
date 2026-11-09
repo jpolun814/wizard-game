@@ -5,7 +5,8 @@ extends RefCounted
 ## wizard a policy plays (read by the agent in training and in a match), so that what is learned from people is what the learner sees.
 ##
 ## Layout (all about -1..1): the wizard itself (7), a box of ground tiles about the feet with what is solid and what is lethal (GRID_W x GRID_ROWS, two each),
-## the nearest pages (3), the nearest rivals (2), and the nearest creatures and things that hurt (4).
+## the nearest pages (3), the nearest rivals (2: where, drawing a stroke, a wolf), and the nearest creatures and things that hurt (4). Only what the
+## wizard's screen shows is in it (Eyes): no page, rival or danger off the screen, in smoke or in the dark, no one under Sneak, no rival's strength.
 
 const GRID_W := 11     # tiles across, the feet in the middle one
 const GRID_UP := 5     # tiles above the feet that are looked at
@@ -78,9 +79,10 @@ static func _sensor_for(wizard: Wizard) -> WizardBrain:
 
 static func _nearest_pages(wizard: Wizard, obs: PackedFloat32Array) -> void:
 	var found: Array = []
+	var view := wizard.eyes.rect().grow(WizardBrain.PAGE_GLOW)  # a page shines: its glow shows from a little past the edge of the screen
 	for pickup: Node2D in wizard.get_tree().get_nodes_in_group("pages"):
 		var off := pickup.global_position - wizard.center()
-		if off.length() < SEE:
+		if off.length() < SEE and view.has_point(pickup.global_position) and not SpellTargets.sight_blocked(wizard.get_tree(), wizard.center(), pickup.global_position):
 			found.append(off)
 	found.sort_custom(func(a: Vector2, b: Vector2) -> bool: return a.length() < b.length())
 	for i in PAGES:
@@ -93,7 +95,7 @@ static func _nearest_pages(wizard: Wizard, obs: PackedFloat32Array) -> void:
 static func _nearest_rivals(wizard: Wizard, obs: PackedFloat32Array) -> void:
 	var found: Array = []
 	for other: Wizard in SpellTargets.wizards(wizard.get_tree()):
-		if other != wizard and not other.dead and other.visible:
+		if other != wizard and not other.dead and wizard.eyes.sees_wizard(other):  # only who is on its screen and in plain sight
 			var off := other.center() - wizard.center()
 			if off.length() < SEE:
 				found.append([off, other])
@@ -101,7 +103,7 @@ static func _nearest_rivals(wizard: Wizard, obs: PackedFloat32Array) -> void:
 	for i in RIVALS:
 		if i < found.size():
 			var other: Wizard = found[i][1]
-			obs.append_array([found[i][0].x / SEE, found[i][0].y / SEE, other.stamina / 200.0, 1.0 if other.wild else 0.0, 1.0])
+			obs.append_array([found[i][0].x / SEE, found[i][0].y / SEE, 1.0 if other.is_drawing() else 0.0, 1.0 if other.wild else 0.0, 1.0])  # (a rival's strength is not seen; a stroke being drawn is)
 		else:
 			obs.append_array([0.0, 0.0, 0.0, 0.0, 0.0])
 
@@ -114,7 +116,7 @@ static func _nearest_threats(wizard: Wizard, obs: PackedFloat32Array) -> void:
 			if node == wizard or not is_instance_valid(node):
 				continue
 			var off := node.global_position - wizard.center()
-			if off.length() < SEE_THREAT:
+			if off.length() < SEE_THREAT and wizard.eyes.sees_point(node.global_position):
 				found.append([off, 1.0 if group == "mobs" else 0.5])
 	found.sort_custom(func(a: Array, b: Array) -> bool: return a[0].length() < b[0].length())
 	for i in THREATS:

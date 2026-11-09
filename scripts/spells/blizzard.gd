@@ -251,10 +251,11 @@ func _sync_pile_body() -> void:
 		var off := _pile[c] < 1.0
 		if off:
 			if not shape.disabled:
-				shape.disabled = true
+				shape.set_deferred("disabled", true)  # (deferred: this can run while a shot's hit is being worked out, when the physics may not be changed)
 				_shape_heights[c] = -10.0
 		elif absf(_pile[c] - _shape_heights[c]) >= 1.0:  # (the physics engine is told only about a column that has changed by a pixel)
-			shape.disabled = false
+			if shape.disabled:
+				shape.set_deferred("disabled", false)
 			(shape.shape as RectangleShape2D).size = Vector2(STEP, _pile[c])
 			shape.position = Vector2(c * STEP + STEP * 0.5, _floors[c] - _pile[c] * 0.5)
 			_shape_heights[c] = _pile[c]
