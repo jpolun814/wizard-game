@@ -988,7 +988,7 @@ func _fade_from_black() -> void:
 ## Counts down to the collapse of the portal: the warning, the shaking, and then the new world.
 func _watch_portal(delta: float) -> void:
 	var seconds: float = MatchState.plan()["seconds"] * MatchState.hurry
-	if seconds <= 0.0 or (player.dead and not _spectating):
+	if seconds <= 0.0 or (player.dead and not _spectating and not Net.dedicated):  # (a server's own wizard may fall, and the clock goes on for the people on other machines)
 		return
 	_stage_time += delta
 	if _collapse_in < 0.0 and _stage_time >= seconds - MatchState.WARNING and Net.is_host():  # in a network game the host's clock is the one that counts
