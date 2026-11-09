@@ -15,6 +15,7 @@ var hp := HEALTH
 var mine := false  # true on the machine of the wizard who cast it: only they see it as a ghost, the rest see a wizard
 var look := "wizard"  # the figure of the wizard who cast it, and the colours worn: a decoy is a shadow of the caster as they look
 var palette := 0
+var caster: Wizard  # whose shadow it is (a brain fooled by it takes it for them)
 var _age := 0.0
 var _dead := false
 var _body: AnimatedSprite2D
@@ -55,6 +56,11 @@ func _ready() -> void:
 
 func center() -> Vector2:
 	return global_position + Vector2(0, -Wizard.BODY_HEIGHT * 0.5)
+
+
+## Seconds since it was conjured: one seen coming out of nothing is known for a shadow.
+func age() -> float:
+	return _age
 
 
 func is_dead() -> bool:

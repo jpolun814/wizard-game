@@ -639,6 +639,7 @@ func _spawn_spell(spell: String, targeting: String, origin: Vector2, aim: float,
 			decoy.position = _ground_below(origin)
 			decoy.mine = caster_node == player
 			if caster_node is Wizard:
+				decoy.caster = caster_node
 				decoy.look = caster_node.look
 				decoy.palette = caster_node.palette
 			add_child(decoy)

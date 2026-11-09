@@ -77,15 +77,24 @@ func _eye() -> void:
 	_verdict(watched.get_node_or_null("EyeMark") == null or watched.get_node("EyeMark").is_queued_for_deletion(), "and the eye leaves the fallen")
 	watched.dead = false
 	# A brain that has lost track of everyone sends out an eye.
-	var seer: Wizard = _world._rivals[1]
+	var seer: Wizard = null
+	for other: Wizard in _world._rivals:
+		if is_instance_valid(other) and other != watched and other != next and not other.dead:
+			seer = other  # one that was not carried far off above (it would be falling where no ground is made)
+	seer.global_position = _player.global_position + Vector2(60.0, -4.0)
+	seer.velocity = Vector2.ZERO
 	seer.set_physics_process(true)
 	seer.ledger.learn("chant:scrying_eye")
 	var brain: WizardBrain = seer.brain
 	for other: Wizard in _world._rivals:
 		if is_instance_valid(other) and other != seer:
 			other.fade_time = 100.0  # out of sight
-	_player.dead = true  # a person is never out of sight, so the only ones left to lose track of are wizards that are
-	await _wait(1.5)
+			other.set_physics_process(false)  # and still: they would come at the seer, who stands typing in plain sight of them
+	_player.dead = true  # (out of the way: only the faded wizards are left to lose track of)
+	for i in 24:  # it stops and types the words, as a person does
+		await _wait(0.5)
+		if brain._eye_time > 0.0:
+			break
 	_verdict(brain._eye_time > 0.0, "a brain that has lost track of everyone sends out an eye (%.1f s left)" % brain._eye_time)
 	_player.dead = false
 

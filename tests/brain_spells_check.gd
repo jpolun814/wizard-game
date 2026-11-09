@@ -16,11 +16,11 @@ const SCENES := {
 	"Flare": {"dark": true}, "Glowcap": {"dark": true}, "Moonbeam": {"dark": true},
 	"Adrenaline": {"tired": true}, "Sneak": {"low": true},
 	"Hunter's Mark": {"gap": 720.0},
-	"Mirage": {"gap": 400.0, "page": true, "seed": 3},  # a rival some way off, and a real page by it for the false one to pass for
+	"Mirage": {"gap": 330.0, "page": true, "page_at": -300.0, "hold": true, "seed": 3},  # a rival some way off (in sight), and a real page for the false one to pass for
 	"Scythe": {"gap": 80.0, "rush": true}, "Thunderclap": {"gap": 120.0, "rush": true}, "Silence": {"gap": 270.0}, "Tide Surf": {"gap": 220.0},
 	"Stone Wall": {"shot_at": true}, "Smoke Screen": {"shot_at": true}, "Decoy": {"shot_at": true}, "Crimson Veil": {"shot_at": true},
-	"Obsidian Armor": {"shot_at": true}, "Eclipse": {"shot_at": true, "gap": 300.0, "seed": 3},
-	"Barrier": {"shot_at": true, "gap": 400.0, "hold": true}, "Gust": {"shot_at": true, "gap": 400.0, "hold": true}, "Shadow Step": {"shot_at": true},
+	"Obsidian Armor": {"shot_at": true}, "Eclipse": {"shot_at": true, "gap": 300.0, "seed": 3, "hold": true},
+	"Barrier": {"shot_at": true, "gap": 340.0, "hold": true}, "Gust": {"shot_at": true, "gap": 340.0, "hold": true}, "Shadow Step": {"shot_at": true},
 	"Featherfall": {"fall": true}, "Geyser": {"up": true}, "Updraft": {"up": true}, "Push": {"up": true}, "Rocket Jump": {"up": true}, "Liana": {"up": true}, "Great Oak": {"up": true}, "Tornado": {"up": true},
 }
 
@@ -34,7 +34,7 @@ class QuietBrain extends WizardBrain:
 		wizard.walk(0.0)
 
 
-## A rival that stands still and throws a fireball at whoever is nearest, now and then.
+## A rival that stands still and throws a fireball at the wizard under test, now and then.
 class ShootingBrain extends WizardBrain:
 	var _timer := 1.0
 
@@ -51,7 +51,9 @@ class ShootingBrain extends WizardBrain:
 			return
 		_timer = 1.3
 		var start: Vector2 = wizard.center() + Vector2(signf(target.center().x - wizard.center().x) * 12.0, -6.0)
-		_begin_cast("Ignite", _line(start, start + (target.center() - start).normalized() * 90.0), QUICK_DRAW)
+		# A prop, not a wizard under test: the shot goes off at once, straight at the target (a stroke drawn while the test carries this wizard
+		# about would be dragged by its view, as any wizard's is, and the shots would go astray).
+		wizard.caster.cast_stroke(SpellData.SPELLS["Ignite"].buttons, _line(start, start + (target.center() - start).normalized() * 90.0))
 
 
 var _dice := 0  # dice=N rolls the dice differently, to look for a roll that fails
@@ -160,7 +162,7 @@ func _try(spell_name: String) -> void:
 	if scene.get("page", false):
 		var real := PagePickup.new()
 		real.page = "Ignite"
-		real.position = spot + Vector2(-120.0, 0.0)
+		real.position = spot + Vector2(scene.get("page_at", -120.0), 0.0)
 		world.add_child(real)
 	if scene.get("dark", false):
 		for node in tree.get_nodes_in_group("darkness"):

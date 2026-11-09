@@ -94,9 +94,9 @@ func _mirage() -> void:
 	_cast(250.0)
 	await _wait(0.3)
 	mirage = _mirages()[0]
-	_rival.global_position = _spot + Vector2(600.0, 0.0)
+	_rival.global_position = _spot + Vector2(400.0, 0.0)  # near enough to see it on the screen, too far for it to waver
 	_rival.velocity = Vector2.ZERO
-	await _wait(0.3)
+	await _wait(0.6)
 	_rival.brain._choose_goal()
 	_verdict(_rival.brain._goal != "page" or _rival.brain._goal_page != mirage, "a brain that has seen one fade does not go for the next")
 	_rival.brain._wise_to_mirages = false

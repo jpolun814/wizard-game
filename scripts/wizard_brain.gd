@@ -16,6 +16,7 @@ extends RefCounted
 ##     picked by weight. Projectiles are aimed where you are going, not where you are.
 
 const WALK_SPEED := 300.0
+const REMEMBER := 8.0         # seconds a rival gone out of sight is still thought to be where it was last seen
 const ENGAGE := 620.0         # a wizard this close, and in sight, is a fight; farther off, it is a journey
 const PAGE_REACH := 4          # tiles: a page further than this from any place to stand is not one it can get
 const GOAL_EVERY := 4.0       # seconds between looking for a nearer page
@@ -26,10 +27,14 @@ const PORTAL_LEFT := 3.0        # seconds: a portal with less than this left ope
 const PORTAL_CHANCE := 0.75     # how often it takes a portal that is nearer than the page it was after
 const PORTAL_JUMP_FOR := 5.0    # seconds it stands under a portal hung in the air, jumping for it, before it takes it for out of reach
 const PUSH_THROUGH_FOR := 5.0   # seconds it goes on through danger after backing out of it over and over
-const SIGHT_X := 620.0   # pixels sideways that it sees a page lying: a little past the edge of the screen, since a page shines
-const SIGHT_Y := 380.0
+const PAGE_GLOW := 120.0  # a page shines: its glow shows at the edge of the screen when it lies this far past it
 const EXPLORE_FLOOR := 12     # tiles between one floor of a tall building and the next, when it looks for pages above or below
 const EXPLORE_STEP := 20    # tiles between the places it picks to look at, going along
+const DRIFT_FILE := "res://ai/stroke_drift.json"
+const DRAG_MARGIN := 0.7  # it keeps well inside what a shape stands
+const LONG_FALL := 300.0  # a drop this deep below its feet is a long fall, worth a Featherfall
+const HOLD_STILL := 0.4   # seconds it stands still when a stroke would be dragged out of shape
+const STOPPING := 0.35  # seconds to come to a stop before the first letter of a chant (a person stops walking, then types)
 const TYPING_PER_LETTER := 0.25  # seconds a letter takes to type: 48 words a minute (the owner found 30 too slow), about what a person types words of a language that is not theirs
 const HASTE_FROM := 160      # moves left on a journey before it says the chant of swift feet (it takes 30 words a minute to say: shorter than this it saves no time)
 const MEND_BELOW := 0.5    # a wizard worn down below this share of the greatest maximum lights a bonfire and rests by it
@@ -114,7 +119,7 @@ const CHASE_REST := 10.0        # seconds between two tries at a way up to a riv
 const OAK_CHASE_MAX := 190.0    # pixels up to a rival that an oak can still be climbed for (its low ledge, and a jump from it)
 const LIFTS := ["Geyser", "Updraft", "Rocket Jump", "Push", "Liana", "Great Oak", "Tornado"]  # what raises it up a wall or to a rival, the one it likes best first
 const TEND_REST := {"Flare": 40.0, "Glowcap": 60.0, "Moonbeam": 30.0, "Adrenaline": 25.0, "Wild Shape": 30.0, "Sneak": 25.0, "Crimson Veil": 8.0, "Obsidian Armor": 25.0,
-		"Featherfall": 20.0, "Decoy": 8.0, "Stone Wall": 6.0, "Smoke Screen": 10.0, "Eclipse": 14.0, "Hunter's Mark": 25.0}  # seconds before it looks to the same need with the same spell again
+		"Decoy": 8.0, "Stone Wall": 6.0, "Smoke Screen": 10.0, "Eclipse": 14.0, "Hunter's Mark": 25.0}  # seconds before it looks to the same need with the same spell again
 ## What the brain does with every spell there is (a test holds it to this: a spell with no line here is one it would never cast, and each line is met by a check).
 const USES := {
 	"Ignite": "attack", "Frostbolt": "attack", "Spark": "attack", "Stonefall": "attack", "Fire Breath": "attack", "Firewall": "attack", "Spore Puff": "attack",
@@ -157,6 +162,12 @@ var _camped := false             # it rests by a bonfire to mend
 var _camped_for := 0.0
 var _mend_wait := 0.0
 var _typing := ""                # the chant it is typing, and will say when _settle has run out
+var _hold_still := 0.0
+var _pending := {}                # a stroke it stopped to draw: drawn as soon as it stands still enough (see _draw_when_still)
+static var _drift := {}
+var _typing_age := 0.0           # seconds since the chant box was opened
+var _said := {}                   # chant id -> whether it took, for a chant just typed and said, until whoever asked for it looks (see _type_then_say)
+var _said_failed := {}            # chant id -> seconds before it is tried again, after it was typed and came to nothing
 var _haste_wait := 0.0
 var _seen_pages := {}            # the pages it has set eyes on, and not read (id -> true): in a match it goes only for those
 var _explored := {}              # the squares of the world it has been to ((x / 16, y / 12) -> true)
@@ -172,7 +183,10 @@ var _pressure := 0.0          # how many shots you have thrown at it lately
 var _seen_shots := {}
 var _recent: Array[String] = []  # its last two attacks, which it avoids repeating
 var _rng := RandomNumberGenerator.new()
-var _foe: Wizard                 # the wizard it is dealing with: the nearest of the others
+var _foe: Wizard                 # the wizard it is dealing with: the nearest of the others it knows of
+var _lure: Decoy                 # a shadow it takes for a rival, and deals with as if it were them (see _notice_decoys)
+var _shadows := {}                # decoy instance id -> true when it knows it for a shadow, false when it is fooled
+var _known := {}                  # rival instance id -> {"wizard", "at" (feet when last seen), "age" (seconds since)} (see _look_about)
 var _route := WizardRoute.new()
 var _goal := ""                  # what it is travelling to: "page", "foe", or "" for nothing
 var _goal_page: PagePickup
@@ -254,8 +268,9 @@ func _hurdle() -> void:
 
 
 ## A person cannot type a chant on the move, in the air or under blows, and stops when any of them happens. True while the way it stands lets it type.
+## (A wizard that has just opened the box is still coming to a stop: its steps do not break the words for the first moment.)
 func _typing_disturbed() -> bool:
-	return not wizard.is_on_floor() or _hurt_age < 0.5 or absf(wizard.velocity.x) > 40.0 or wizard.is_drawing() or wizard.is_frozen() or _in_danger(wizard.center())
+	return not wizard.is_on_floor() or _hurt_age < 0.5 or (absf(wizard.velocity.x) > 40.0 and _typing_age > STOPPING) or wizard.is_drawing() or wizard.is_frozen() or _in_danger(wizard.center())
 
 
 ## Whether this is a place to stand and type: it stands on the ground and is not being hurt, no creature or rival is near enough to come at it, and
@@ -265,7 +280,7 @@ func _quiet_here() -> bool:
 		return false
 	if _assailant() != null:
 		return false
-	if _foe != null and is_instance_valid(_foe) and not _foe.dead and _foe.center().distance_to(wizard.center()) < 450.0 and _clear_line(wizard.center(), _foe.center()):
+	if _foe != null and is_instance_valid(_foe) and not _foe.dead and _foe_feet().distance_to(wizard.global_position) < 450.0:
 		return false
 	for dx in [-200.0, -120.0, -60.0, 0.0, 60.0, 120.0, 200.0]:
 		if _in_danger(wizard.center() + Vector2(dx, 0.0)) or _in_danger(wizard.global_position + Vector2(dx, -6.0)):
@@ -276,6 +291,9 @@ func _quiet_here() -> bool:
 func think(delta: float) -> void:
 	_hurt_age += delta
 	_dash -= delta
+	_hold_still -= delta
+	_draw_when_still()
+	_catch_fall()
 	if _typing != "" and _typing_disturbed():  # it breaks off the chant, and will not try it here again for a while
 		_typing = ""
 		_settle = 0.0
@@ -291,6 +309,10 @@ func think(delta: float) -> void:
 	_tend_cooldown -= delta
 	_scent -= delta
 	_eye_time -= delta
+	for id in _said_failed.keys():
+		_said_failed[id] -= delta
+		if _said_failed[id] <= 0.0:
+			_said_failed.erase(id)
 	_note_sights(delta)
 	_hurdle()
 	_show_words()
@@ -316,19 +338,28 @@ func think(delta: float) -> void:
 		_nav_version = wizard.nav.version
 		_skip.clear()  # a gate has been cleared: pages that could not be reached may be reachable now
 	_track_shots()
-	_foe = _nearest_foe()
+	_look_about(delta)
+	_notice_decoys()
+	_foe = _lure.caster if _lure != null else _nearest_foe()
 	_strength_in -= delta
 	if _strength_in <= 0.0:
 		_strength_in = 1.0
 		_strength = _feel_strength(_foe)
-	if _foe == null and _eye_time <= 0.0 and SpellTargets.wizards(wizard.get_tree()).size() > 1 and wizard.ledger.knows_chant("scrying_eye") and wizard.chant("scrying_eye"):
-		_eye_time = EYE_SECONDS  # it has lost track of everyone: it sends out an eye
-		_foe = _nearest_foe()
-	if _foe == null:  # the last wizard standing, or the others are faded from sight: it goes about its journey
+	if _typing != "":  # the chant box is open: it can only type, or close the box to do something else (see _while_typing)
+		_while_typing()
+		return
+	if _foe == null and _eye_time <= 0.0 and SpellTargets.wizards(wizard.get_tree()).size() > 1 and wizard.ledger.knows_chant("scrying_eye"):
+		_type_then_say("scrying_eye")  # it has lost track of everyone: it sends out an eye (see _while_typing)
+	if _foe == null:  # the last wizard standing, or it knows of no one else (none in sight): it goes about its journey
 		if _react > 0.0:  # (a reaction it has planned still comes: nothing else counts it down here)
 			_react -= delta
 			if _react <= 0.0:
 				_act(_reaction)
+		# It still looks after itself: a light in the dark, its strength, the scent of whoever it has lost.
+		if _react <= 0.0 and _tend_cooldown <= 0.0 and not wizard.is_drawing() and _lift.is_empty() and _leap.is_empty() and _wade.is_empty() and not _smothering():
+			_tend_cooldown = 0.6 + _rng.randf() * 0.6
+			if _tend(Vector2.ZERO, false, false):
+				_tend_cooldown = 1.4 + _rng.randf() * 0.8
 		var mending := _mend(delta, false) if _lift.is_empty() and _leap.is_empty() and _wade.is_empty() else NAN
 		if not is_nan(mending):
 			wizard.walk(mending)
@@ -336,8 +367,9 @@ func think(delta: float) -> void:
 		wizard.walk(_travel(delta) if SpellTargets.wizards(wizard.get_tree()).size() > 1 or wizard.get_tree().get_first_node_in_group(&"gate_source") != null else 0.0)  # (alone in a match it has won; alone in a room it goes on)
 		return
 	var foe: Wizard = _foe
-	var to_player: Vector2 = foe.center() - wizard.center()
-	var sees := _clear_line(wizard.center(), foe.center()) and not SpellTargets.sight_blocked(wizard.get_tree(), wizard.center(), foe.center())
+	var in_view := wizard.eyes.sees_point(_lure.center()) if _lure != null else eyes_see(foe)
+	var to_player: Vector2 = _seen_center(foe) - wizard.center()
+	var sees := in_view and _clear_line(wizard.center(), _seen_center(foe))
 	var fighting := sees and to_player.length() < ENGAGE
 
 	_push_through -= delta
@@ -437,9 +469,8 @@ func _knows(spell_name: String) -> bool:
 	return wizard.ledger.knows_spell(spell_name)
 
 
-## How strong it thinks it is, 0 to 1, as a person feels it: from the attacking pages in its book, how much strength it has left, and how it stands beside the
-## nearest rival (their strength, and how many pages each holds). Good attack spells and plenty of strength make a wizard bold; a bare book makes it timid.
-func _feel_strength(rival: Wizard) -> float:
+## How strong it thinks it is, 0 to 1, as a person feels it: from the attacking pages in its book and how much strength it has left. Good attack spells and plenty of strength make a wizard bold; a bare book makes it timid.
+func _feel_strength(_rival: Wizard) -> float:
 	var arms := 0.0
 	for page: String in wizard.ledger.pages:
 		var spell: Spell = SpellData.SPELLS.get(page)
@@ -449,22 +480,91 @@ func _feel_strength(rival: Wizard) -> float:
 		arms += clampf(figure, 4.0, 40.0) / 40.0  # a weak spell counts for little, a strong one for a good deal
 	var armed := 1.0 if wizard.ledger.everything else clampf(arms / 2.5, 0.0, 1.0)  # (in the waiting room every page is held)
 	var health := clampf(wizard.max_stamina / Wizard.MAX_STAMINA, 0.0, 1.0) * 0.7 + clampf(wizard.stamina / maxf(wizard.max_stamina, 1.0), 0.0, 1.0) * 0.3
-	var edge := 0.5
-	if rival != null and is_instance_valid(rival):
-		edge = clampf(0.5 + (wizard.max_stamina - rival.max_stamina) / 200.0 + float(wizard.ledger.count() - rival.ledger.count()) * 0.04, 0.0, 1.0)
+	# A rival's strength and book are not seen (no bar hangs over them): it judges itself against what a rival is like, not against this one.
+	var edge := clampf(0.5 + (wizard.max_stamina - Wizard.MAX_STAMINA * 0.75) / 200.0, 0.0, 1.0)
 	return armed * 0.5 + health * 0.3 + edge * 0.2
 
 
-## The nearest of the other wizards still standing, or null when it is the last.
+## What it knows of the others, as a person knows it: where each was when it last saw them. A rival on its screen and in plain sight is seen
+## where they are; one that goes out of sight is thought to be where it was last seen, and is forgotten after a while. A scent (Hunter's Mark) or
+## an eye sent out (the Chant of the Scrying Eye) shows them wherever they are, as it would show a person.
+func _look_about(delta: float) -> void:
+	for other: Wizard in SpellTargets.wizards(wizard.get_tree()):
+		if other == wizard:
+			continue
+		var id := other.get_instance_id()
+		if (eyes_see(other) or _scent > 0.0 or _eye_time > 0.0) and not (_lure != null and _lure.caster == other):
+			_known[id] = {"wizard": other, "at": other.global_position, "age": 0.0}
+		elif _known.has(id):
+			_known[id]["age"] += delta
+	for id in _known.keys():
+		var entry: Dictionary = _known[id]
+		if entry["age"] > REMEMBER or not is_instance_valid(entry["wizard"]) or entry["wizard"].dead:
+			_known.erase(id)
+
+
+## Where it thinks its rival stands: where they are when it sees them, where it last saw them, or where the shadow it takes for them stands.
+func _foe_feet() -> Vector2:
+	if _foe == null or not is_instance_valid(_foe):
+		return wizard.global_position
+	return _seen_feet(_foe)
+
+
+## Where a rival looks to be standing, to it (see _foe_feet).
+func _seen_feet(other: Wizard) -> Vector2:
+	if other == null or not is_instance_valid(other):
+		return wizard.global_position
+	if other == _foe and _lure != null and is_instance_valid(_lure) and not _lure.is_dead():
+		return _lure.global_position
+	var entry: Dictionary = _known.get(other.get_instance_id(), {})
+	return entry["at"] if entry.get("age", 0.0) > 0.0 else other.global_position
+
+
+## The middle of a rival's body, where it thinks they stand.
+func _seen_center(other: Wizard) -> Vector2:
+	return _seen_feet(other) + other.center_offset()
+
+
+## A Decoy looks like any wizard to everyone but its caster. It takes one for its caster unless it saw it come out of nothing, or it is its own;
+## the nearest figure it sees, real or shadow, is the one it deals with. A shadow that wears through is known for what it was.
+func _notice_decoys() -> void:
+	if _lure != null and (not is_instance_valid(_lure) or _lure.is_dead()):
+		_lure = null
+	var nearest_gap := INF
+	for id in _known:
+		if _known[id]["age"] <= 0.0:
+			nearest_gap = minf(nearest_gap, wizard.global_position.distance_to(_known[id]["at"]))
+	var best: Decoy = null
+	for node in wizard.get_tree().get_nodes_in_group("decoys"):
+		var decoy := node as Decoy
+		if decoy.is_dead() or decoy.caster == null or not is_instance_valid(decoy.caster) or decoy.caster == wizard:
+			continue
+		var id := decoy.get_instance_id()
+		var seen := wizard.eyes.sees_point(decoy.center())
+		if seen and not _shadows.has(id):
+			_shadows[id] = decoy.age() < 0.4  # it watched it come: it knows it for a shadow
+		if not seen or _shadows.get(id, true):
+			continue
+		var gap := wizard.global_position.distance_to(decoy.global_position)
+		if gap < nearest_gap:
+			nearest_gap = gap
+			best = decoy
+	_lure = best
+	if _lure != null:
+		_known[_lure.caster.get_instance_id()] = {"wizard": _lure.caster, "at": _lure.global_position, "age": 0.0}
+	if _shadows.size() > 64:
+		_shadows.clear()
+
+
+## The nearest of the other wizards it knows of (sees, or saw a little while ago), or null when it knows of none.
 func _nearest_foe() -> Wizard:
 	var best: Wizard = null
 	var best_gap := INF
-	for other: Wizard in SpellTargets.wizards(wizard.get_tree()):
-		if other == wizard or (_scent <= 0.0 and _eye_time <= 0.0 and not other.is_seen_from(wizard.center())):
-			continue  # a wizard faded from sight is not there to be found, unless it has the scent
-		var gap: float = wizard.center().distance_to(other.center())
+	for id in _known:
+		var entry: Dictionary = _known[id]
+		var gap: float = wizard.global_position.distance_to(entry["at"])
 		if gap < best_gap:
-			best = other
+			best = entry["wizard"]
 			best_gap = gap
 	return best
 
@@ -496,20 +596,6 @@ func _mend(delta: float, fighting: bool) -> float:
 		_camped = false
 		_mend_wait = 3.0
 		return NAN
-	if _typing != "":  # it is typing the chant: it stands, and the words take hold when it has finished, unless someone comes at it first
-		if fighting:
-			_typing = ""
-			_settle = 0.0
-			return NAN
-		if _settle > 0.0:
-			return 0.0
-		var said := _typing
-		_typing = ""
-		_chant_breaks = 0
-		if wizard.chant(said) and said == "bonfire":
-			_camped = true
-			_camped_for = 0.0
-		return 0.0
 	var fire := _bonfire_near(wizard.global_position, 900.0)
 	if _camped:
 		_camped_for += delta
@@ -532,8 +618,7 @@ func _mend(delta: float, fighting: bool) -> float:
 		if not _quiet_here():  # not here: it goes on a while, and tries again
 			_mend_wait = 5.0
 			return NAN
-		_typing = "bonfire"
-		_settle = _typing_time("bonfire")
+		_open_chant("bonfire")
 		return 0.0
 	_mend_wait = 30.0
 	return NAN
@@ -542,6 +627,71 @@ func _mend(delta: float, fighting: bool) -> float:
 ## How long a person takes to type a chant: it stands where it is while it does.
 func _typing_time(id: String) -> float:
 	return float(RitualInput.RITUALS[id]["text"].length()) * TYPING_PER_LETTER
+
+
+## True while the chant box is open and it is typing.
+func is_typing() -> bool:
+	return _typing != ""
+
+
+## The chant box open: the wizard stands and types. A person with the box open cannot walk, jump or draw (the keys type letters), so it does
+## none of them; when something comes at it, it closes the box, as a person would, and the words are lost. When the last letter is typed the chant
+## is said.
+func _while_typing() -> void:
+	wizard.walk(0.0)
+	_typing_age += wizard.get_physics_process_delta_time()
+	var shot := _incoming_shot()
+	var threatened := not shot.is_empty() or (_foe != null and is_instance_valid(_foe) and eyes_see(_foe) and _foe.center().distance_to(wizard.center()) < TOO_CLOSE)
+	if threatened:
+		_break_typing()
+		return
+	if _settle > 0.0:
+		return
+	var said := _typing
+	_typing = ""
+	_chant_breaks = 0
+	var done := wizard.chant(said)
+	_said[said] = done
+	if done and said == "bonfire":
+		_camped = true
+		_camped_for = 0.0
+	if done and said == "scrying_eye":
+		_eye_time = EYE_SECONDS  # (the eye shows the others at once, so whoever asked for it may not ask again)
+		_said.erase(said)
+
+
+## True when it can make out another wizard: on its screen, in plain sight, not faded from sight.
+func eyes_see(other: Wizard) -> bool:
+	return wizard.eyes.sees_wizard(other)
+
+
+## It closes the chant box before the words are done.
+func _break_typing() -> void:
+	_typing = ""
+	_settle = 0.0
+
+
+## A chant asked for where it is needed (a gate, a lost rival): it types it first. True once it has been said; false while it is being typed, or
+## when the last try at it came to nothing.
+func _type_then_say(id: String) -> bool:
+	if _said.has(id):
+		var done: bool = _said[id]
+		_said.erase(id)
+		if not done:
+			_said_failed[id] = 3.0
+		return done
+	if _said_failed.get(id, 0.0) > 0.0 or not RitualInput.RITUALS.has(id):
+		return false
+	if _typing == "" and wizard.is_on_floor() and not wizard.is_drawing():
+		_open_chant(id)
+	return false
+
+
+## It opens the chant box: it stops, and types the words.
+func _open_chant(id: String) -> void:
+	_typing = id
+	_typing_age = 0.0
+	_settle = _typing_time(id) + STOPPING
 
 
 ## The nearest bonfire that burns, within reach of a point, or null.
@@ -648,14 +798,10 @@ func _travel(delta: float) -> float:
 		return 0.0
 	if wizard.is_drawing():
 		return 0.0
-	if _typing == "haste" and _settle <= 0.0:
-		_typing = ""
-		wizard.chant("haste")
 	_watch_progress(delta)
 	if _goal != "" and _route.remaining() > HASTE_FROM and wizard.haste_time <= 0.0 and _haste_wait <= 0.0 and _knows("chant:haste") and _quiet_here():
 		_haste_wait = 25.0
-		_typing = "haste"
-		_settle = _typing_time("haste")  # (it stops to say it, as a person does)
+		_open_chant("haste")  # (it stops to say it, as a person does)
 		return 0.0
 	_haste_wait -= delta
 	if _wander_time > 0.0:
@@ -895,9 +1041,11 @@ func _cross(crossing: Dictionary) -> bool:
 			var edge := span.position.x if dir > 0 else span.end.x
 			if (edge - wizard.global_position.x) * dir > BREATH_AHEAD:
 				_cross_run = dir * WALK_SPEED
-			elif wizard.deep_breath_time > 0.0 or wizard.chant(spell_name.substr(6)):
+			elif wizard.deep_breath_time > 0.0 or _type_then_say(spell_name.substr(6)):
 				_bridged[crossing["key"]] = minf(wizard.deep_breath_time, GAS_WALK) if wizard.deep_breath_time > 0.0 else GAS_WALK
 				_settle = SETTLE
+			elif _typing != "":
+				pass  # it is typing the words, standing at the edge
 			else:
 				_cannot[crossing["key"]] = GIVE_UP
 				return false
@@ -912,7 +1060,7 @@ func _cross(crossing: Dictionary) -> bool:
 			var edge := span.position.x if dir > 0 else span.end.x
 			if (edge - wizard.global_position.x) * dir > 20.0:
 				_cross_run = dir * WALK_SPEED
-			elif wizard.is_on_floor() and (wizard.air_jump_time > 0.0 or wizard.chant("double_jump")):
+			elif wizard.is_on_floor() and (wizard.air_jump_time > 0.0 or _type_then_say("double_jump")):
 				_leap = {"dir": dir, "key": crossing["key"], "steps": 0, "span": span, "jumped": false, "air": 0.0, "double": true}
 		"leap:air":  # it jumps from the edge, and in the air a rocket throws it up and a feather lets it drift down, across
 			var edge := span.position.x if dir > 0 else span.end.x
@@ -1244,7 +1392,7 @@ func _choose_goal() -> void:
 		_route.set_path(portal["path"])
 		return
 	if _foe != null and _strength >= BOLD_ABOVE and (best_page == null or best_path.size() > HUNT_PAGE_NEAR):  # feeling strong, it goes after a rival rather than a page that lies far off
-		var hunt: Array[Vector2i] = _path(start, wizard.nav.nearest(_tile_of(_foe.global_position)))
+		var hunt: Array[Vector2i] = _path(start, wizard.nav.nearest(_tile_of(_foe_feet())))
 		if not hunt.is_empty():
 			_goal = "foe"
 			_route.set_path(hunt)
@@ -1267,7 +1415,7 @@ func _choose_goal() -> void:
 			_route.set_path(way)
 			return
 	if _foe != null:
-		var path: Array[Vector2i] = _path(start, wizard.nav.nearest(_tile_of(_foe.global_position)))
+		var path: Array[Vector2i] = _path(start, wizard.nav.nearest(_tile_of(_foe_feet())))
 		if not path.is_empty():
 			_goal = "foe"
 			_route.set_path(path)
@@ -1285,7 +1433,7 @@ func _note_sights(delta: float) -> void:
 	_sight_timer = 0.4
 	var at := wizard.center()
 	for pickup: PagePickup in wizard.get_tree().get_nodes_in_group("pages"):
-		if absf(pickup.global_position.x - at.x) < SIGHT_X and absf(pickup.global_position.y - at.y) < SIGHT_Y:
+		if wizard.eyes.rect().grow(PAGE_GLOW).has_point(pickup.global_position) and not SpellTargets.sight_blocked(wizard.get_tree(), at, pickup.global_position):
 			_seen_pages[pickup.get_instance_id()] = true
 	_explored[_square_of(wizard.global_position)] = true
 	if _seen_pages.size() > 400:
@@ -1582,8 +1730,8 @@ func status() -> String:
 func _incoming_shot() -> Dictionary:
 	var best := {}
 	for node in wizard.get_tree().get_nodes_in_group("projectiles"):
-		if node.caster == wizard:
-			continue
+		if node.caster == wizard or not wizard.eyes.sees_node(node):
+			continue  # (a shot off its screen, or in smoke or the dark, is not seen coming)
 		var velocity: Vector2 = node.velocity()
 		var rel: Vector2 = wizard.center() - node.global_position
 		var closing := rel.dot(velocity.normalized())
@@ -1610,7 +1758,7 @@ func _watchers() -> Array:
 ## Counts how many shots you have thrown lately, so it knows when to put up walls.
 func _track_shots() -> void:
 	for node in wizard.get_tree().get_nodes_in_group("projectiles"):
-		if node.caster != wizard and not _seen_shots.has(node.get_instance_id()):
+		if node.caster != wizard and not _seen_shots.has(node.get_instance_id()) and wizard.eyes.sees_node(node):
 			_seen_shots[node.get_instance_id()] = true
 			_pressure += 1.0
 	if _seen_shots.size() > 64:
@@ -1636,13 +1784,13 @@ func _choose_repel() -> String:
 		options["geyser"] = 1.0
 	if _ready_to_cast("Tide Surf"):
 		options["surf"] = 0.9
-	if _ready_to_cast("Spore Puff") and _clear_line(wizard.center(), _foe.center()):
+	if _ready_to_cast("Spore Puff") and _clear_line(wizard.center(), _seen_center(_foe)):
 		options["spores"] = 1.1
 	if _knows("Push") and wizard.stamina >= 10.0:
 		options["push"] = 1.5
 	if _knows("Shadow Step") and wizard.stamina >= 10.0:
 		options["blink_away"] = 1.0
-	if _knows("Fire Breath") and wizard.stamina >= 16.0 and _clear_line(wizard.center(), _foe.center()):
+	if _knows("Fire Breath") and wizard.stamina >= 16.0 and _clear_line(wizard.center(), _seen_center(_foe)):
 		options["breath"] = 1.3
 	return _pick(options) if not options.is_empty() else "escape"
 
@@ -1680,26 +1828,26 @@ func _act(reaction: String) -> void:
 				_begin_cast("Shadow Step", _line(from, from + Vector2(_escape_dir * 240.0, -12.0)), QUICK_DRAW)  # (to the safe side, not away from the rival)
 			_defend_cooldown = 0.6
 		"push":
-			var away: Vector2 = (foe.center() - wizard.center()).normalized()
-			_begin_cast("Push", _push_stroke(foe.center(), away), QUICK_DRAW)
+			var away: Vector2 = (_seen_center(foe) - wizard.center()).normalized()
+			_begin_cast("Push", _push_stroke(_seen_center(foe), away), QUICK_DRAW)
 			_defend_cooldown = 1.5
 		"breath":
-			_begin_cast("Fire Breath", _breath_stroke(foe.center()), QUICK_DRAW + 0.1)
+			_begin_cast("Fire Breath", _breath_stroke(_seen_center(foe)), QUICK_DRAW + 0.1)
 			_defend_cooldown = 1.8
 		"spores":
-			_begin_cast("Spore Puff", _breath_stroke(foe.center()), QUICK_DRAW + 0.1)
+			_begin_cast("Spore Puff", _breath_stroke(_seen_center(foe)), QUICK_DRAW + 0.1)
 			_defend_cooldown = 1.8
 		"geyser":  # the ground bubbles under its feet and throws it off
-			_begin_cast("Geyser", _offset(GestureTemplates.preview_points("geyser"), foe.global_position + Vector2(0.0, -24.0), 0.6), QUICK_DRAW)
+			_begin_cast("Geyser", _offset(GestureTemplates.preview_points("geyser"), _seen_feet(foe) + Vector2(0.0, -24.0), 0.6), QUICK_DRAW)
 			_defend_cooldown = 1.8
 		"surf":
-			_begin_cast("Tide Surf", _surf_stroke(signf(foe.global_position.x - wizard.global_position.x)), QUICK_DRAW)
+			_begin_cast("Tide Surf", _surf_stroke(signf(_seen_feet(foe).x - wizard.global_position.x)), QUICK_DRAW)
 			_defend_cooldown = 1.8
 
 
 ## Steps away from the player along the ground, or past them if its back is to a wall.
 func _blink_away(foe: Wizard) -> void:
-	var away := -signf(foe.global_position.x - wizard.global_position.x)
+	var away := -signf(_seen_feet(foe).x - wizard.global_position.x)
 	if away == 0.0:
 		away = 1.0
 	var room := (ArenaGen.right_edge() - wizard.global_position.x) if away > 0.0 else (wizard.global_position.x - ArenaGen.left_edge())
@@ -1788,7 +1936,7 @@ func _safe_side() -> float:
 	if reach[0] == reach[1]:
 		if _escape_dir != 0.0:
 			return _escape_dir
-		return -signf(_foe.global_position.x - wizard.global_position.x) if _foe != null else 1.0
+		return -signf(_seen_feet(_foe).x - wizard.global_position.x) if _foe != null else 1.0
 	var best := -1.0 if reach[0] < reach[1] else 1.0
 	if _escape_dir != 0.0 and reach[0 if _escape_dir < 0.0 else 1] <= reach[0 if best < 0.0 else 1] * 1.6 + 60.0:
 		return _escape_dir  # the way it was already running is nearly as good: it does not turn back and forth in the flow
@@ -1867,7 +2015,7 @@ func _attack(to_player: Vector2, sees: bool) -> bool:
 	var still: bool = foe.velocity.length() < 30.0
 	var stuck: bool = _held(foe)
 	var grounded: bool = foe.stands()
-	var same_ground: bool = grounded and wizard.is_on_floor() and absf(foe.global_position.y - wizard.global_position.y) < 8.0
+	var same_ground: bool = grounded and wizard.is_on_floor() and absf(_seen_feet(foe).y - wizard.global_position.y) < 8.0
 	var closing: bool = signf(foe.velocity.x) == signf(-to_player.x) and absf(foe.velocity.x) > 60.0
 	var aim_ok := absf(to_player.normalized().x) > 0.4  # a near-vertical stroke is a poor flick
 	var scores := {
@@ -1875,7 +2023,7 @@ func _attack(to_player: Vector2, sees: bool) -> bool:
 		"Frostbolt": (0.4 if foe.is_slowed() else 1.6) if sees else 0.0,
 		"Spark": 2.2 if still or stuck else 1.0,
 		"Stonefall": 3.0 if stuck else (1.8 if still else 0.5),
-		"Icicles": 2.0 if _ceiling_over(foe.center()) else 0.0,  # they hang from a ceiling, wherever there is one over you
+		"Icicles": 2.0 if _ceiling_over(_seen_center(foe)) else 0.0,  # they hang from a ceiling, wherever there is one over you
 		"Spore Puff": 1.6 if gap < 240.0 else 0.0,
 		"Stalagmite": (2.0 if still or stuck else 1.0) if grounded and gap < 360.0 else 0.0,
 		"Bramble": (1.4 if closing else 0.7) if grounded and gap > 100.0 else 0.0,
@@ -1934,7 +2082,7 @@ func _attack(to_player: Vector2, sees: bool) -> bool:
 
 ## True when something solid (a platform or the ground) is above you, so nothing from the sky can reach you.
 func _sheltered() -> bool:
-	var top: Vector2 = _foe.center() + Vector2(0, -50)
+	var top: Vector2 = _seen_center(_foe) + Vector2(0, -50)
 	# Cast from the sky down, the way lightning comes: a one-way platform only stops things from above.
 	var query := PhysicsRayQueryParameters2D.create(top + Vector2(0, -600), top)
 	query.collision_mask = 1 | 16
@@ -1946,84 +2094,84 @@ func _predict(seconds: float) -> Vector2:
 	var foe: Wizard = _foe
 	var lead: Vector2 = foe.velocity * seconds * skill
 	lead.y = 0.0 if foe.stands() else lead.y * 0.5
-	return foe.center() + lead
+	return _seen_center(foe) + lead
 
 
 ## The gesture for an attack, drawn where the spell should land.
 func _attack_stroke(spell_name: String) -> PackedVector2Array:
 	var foe: Wizard = _foe
-	var feet: Vector2 = foe.global_position
-	var facing := signf(foe.global_position.x - wizard.global_position.x)
+	var feet: Vector2 = _seen_feet(foe)
+	var facing := signf(_seen_feet(foe).x - wizard.global_position.x)
 	if facing == 0.0:
 		facing = 1.0
 	match spell_name:
 		"Pebble":  # lobbed: aimed above the rival by as far as the stone will have fallen on the way
 			var start: Vector2 = wizard.center() + Vector2(facing * 12.0, -6.0)
-			var flight: float = start.distance_to(foe.center()) / Pebble.SPEED
+			var flight: float = start.distance_to(_seen_center(foe)) / Pebble.SPEED
 			var target := _predict(flight)
 			target.y -= 0.5 * Pebble.FALL * flight * flight
 			var aim := (target - start).angle() + _rng.randfn(0.0, 0.1 * (1.0 - skill))
 			return _line(start, start + Vector2.from_angle(aim) * 90.0)
 		"Hailstorm":  # a cloud over the rival's head, and the hail falls from it
-			return _offset(GestureTemplates.preview_points("hailstorm"), Vector2(foe.center().x + 20.0, foe.center().y - 120.0), 1.0)
+			return _offset(GestureTemplates.preview_points("hailstorm"), Vector2(_seen_center(foe).x + 20.0, _seen_center(foe).y - 120.0), 1.0)
 		"Ignite", "Frostbolt", "Barbs":
 			var start: Vector2 = wizard.center() + Vector2(facing * 12.0, -6.0)
-			var target := _predict(start.distance_to(foe.center()) / SHOT_SPEED)
+			var target := _predict(start.distance_to(_seen_center(foe)) / SHOT_SPEED)
 			var aim := (target - start).angle() + _rng.randfn(0.0, 0.16 * (1.0 - skill))
 			return _line(start, start + Vector2.from_angle(aim) * 90.0)
 		"Spark":
 			var x := _predict(ATTACK_DRAW * 0.8).x
-			return _offset(GestureTemplates.preview_points("zigzag"), Vector2(x, foe.center().y - 90.0), 1.0)
+			return _offset(GestureTemplates.preview_points("zigzag"), Vector2(x, _seen_center(foe).y - 90.0), 1.0)
 		"Stonefall":
 			var x := _predict(ATTACK_DRAW + 0.6).x
-			return _offset(GestureTemplates.preview_points("stonefall"), Vector2(x, foe.center().y - 130.0), 0.8)
+			return _offset(GestureTemplates.preview_points("stonefall"), Vector2(x, _seen_center(foe).y - 130.0), 0.8)
 		"Tornado":
-			var x: float = lerpf(wizard.global_position.x, foe.global_position.x, 0.45)
+			var x: float = lerpf(wizard.global_position.x, _seen_feet(foe).x, 0.45)
 			return _offset(GestureTemplates.preview_points("tornado"), Vector2(x, feet.y - 90.0), 0.9)
 		"Ice Prison":
 			return _offset(GestureTemplates.preview_points("circle"), _predict(ATTACK_DRAW * 0.6), 0.8)
 		"Earthquake":
 			# Drawn in the air above the middle of the fight, where the peaks read clearly.
-			return _offset(GestureTemplates.preview_points("earthquake"), Vector2(_predict(ATTACK_DRAW * 0.6).x, foe.center().y - 120.0), 1.0)
+			return _offset(GestureTemplates.preview_points("earthquake"), Vector2(_predict(ATTACK_DRAW * 0.6).x, _seen_center(foe).y - 120.0), 1.0)
 		"Mudslide":
 			var x := _predict(ATTACK_DRAW * 0.6).x
 			return _offset(GestureTemplates.preview_points("wave"), Vector2(x, feet.y - 60.0), 1.0)
 		"Black Hole":
 			# Beyond you if you are close (it drags you away from it), between you if you keep shooting at it.
-			var spot: Vector2 = foe.center() + Vector2(facing * 80.0, 0.0)
+			var spot: Vector2 = _seen_center(foe) + Vector2(facing * 80.0, 0.0)
 			if _pressure > 1.5:
-				spot = wizard.center().lerp(foe.center(), 0.4)
+				spot = wizard.center().lerp(_seen_center(foe), 0.4)
 			var spiral := GestureTemplates.preview_points("spiral")
 			# The black hole forms where the spiral ends, so place the spiral's end on the spot.
 			return _offset(spiral, spot - (spiral[spiral.size() - 1] - _centre_of(spiral)), 1.0)
 		"Firewall":
-			var x: float = lerpf(wizard.global_position.x, foe.global_position.x, 0.5)
-			var toward := signf(foe.global_position.x - wizard.global_position.x)  # a wall between them: up from the ground, then out across the way
+			var x: float = lerpf(wizard.global_position.x, _seen_feet(foe).x, 0.5)
+			var toward := signf(_seen_feet(foe).x - wizard.global_position.x)  # a wall between them: up from the ground, then out across the way
 			return _offset(_facing_flipped(GestureTemplates.preview_points("flame_wall"), toward), Vector2(x - toward * 50.0, feet.y - 50.0), 0.8)
 		"Blizzard":
-			return _offset(GestureTemplates.preview_points("snowfall"), Vector2(feet.x - 30.0, foe.center().y - 70.0), 0.8)
+			return _offset(GestureTemplates.preview_points("snowfall"), Vector2(feet.x - 30.0, _seen_center(foe).y - 70.0), 0.8)
 		"Fire Breath", "Spore Puff":
-			return _breath_stroke(foe.center())
+			return _breath_stroke(_seen_center(foe))
 		"Stalagmite":
 			return _offset(GestureTemplates.preview_points("stalagmite"), Vector2(_predict(ATTACK_DRAW * 0.6).x, feet.y - 40.0), 0.9)
 		"Bramble":
-			return _offset(GestureTemplates.preview_points("bramble"), Vector2(lerpf(wizard.global_position.x, foe.global_position.x, 0.8), feet.y - 16.0), 1.0)
+			return _offset(GestureTemplates.preview_points("bramble"), Vector2(lerpf(wizard.global_position.x, _seen_feet(foe).x, 0.8), feet.y - 16.0), 1.0)
 		"Flytrap":
 			return _offset(GestureTemplates.preview_points("jaws"), Vector2(_predict(ATTACK_DRAW * 0.6).x, feet.y - 30.0), 0.8)
 		"Icicles":  # Vs hung over its head, their tips just above it
-			return _offset(GestureTemplates.preview_points("icicles"), Vector2(foe.center().x, foe.center().y - 35.0), 0.9)
+			return _offset(GestureTemplates.preview_points("icicles"), Vector2(_seen_center(foe).x, _seen_center(foe).y - 35.0), 0.9)
 		"Sinkhole":  # a U drawn into the ground under its feet
 			return _offset(GestureTemplates.preview_points("pit"), Vector2(_predict(ATTACK_DRAW * 0.6).x, feet.y + 20.0), 0.8)
 		"Hex":
 			return _offset(GestureTemplates.preview_points("pentagram"), _predict(0.3), 0.5)
 		"Vacuum":
-			return _offset(GestureTemplates.preview_points("lungs"), foe.center(), 0.5)
+			return _offset(GestureTemplates.preview_points("lungs"), _seen_center(foe), 0.5)
 		"Faint":
-			return _offset(GestureTemplates.preview_points("spiral"), foe.center(), 0.5)
+			return _offset(GestureTemplates.preview_points("spiral"), _seen_center(foe), 0.5)
 		"Fight or Flight":
-			return _offset(GestureTemplates.preview_points("question"), foe.center(), 0.6)
+			return _offset(GestureTemplates.preview_points("question"), _seen_center(foe), 0.6)
 		"Silence":
-			return _offset(GestureTemplates.preview_points("silence"), foe.center(), 0.6)
+			return _offset(GestureTemplates.preview_points("silence"), _seen_center(foe), 0.6)
 		"Tide Surf", "Thorn Whip", "Leech":
 			return _surf_stroke(facing)
 		"Flaming Sphere":  # a ring and a level line toward it, along the ground beside the wizard
@@ -2038,7 +2186,7 @@ func _attack_stroke(spell_name: String) -> PackedVector2Array:
 			var pointing: float = (_predict(0.4) - wizard.center()).angle() + _rng.randfn(0.0, 0.1 * (1.0 - skill))
 			return _offset(_turned(GestureTemplates.preview_points("arrow"), pointing), wizard.center(), 0.8)
 		"Hemorrhage":  # a drop of blood drawn over the rival
-			return _offset(GestureTemplates.preview_points("flare"), foe.center(), 0.6)
+			return _offset(GestureTemplates.preview_points("flare"), _seen_center(foe), 0.6)
 		"Supernova":  # a planet and its ring, drawn where the sun should hang: over the rival
 			return _offset(GestureTemplates.preview_points("saturn"), _predict(ATTACK_DRAW), 0.8)
 		"Scythe":  # a crescent drawn in front of the wizard
@@ -2081,7 +2229,7 @@ func saw_a_mirage_fade() -> void:
 ## True when a real page, one a wizard could take, lies within this distance of the wizard: the thing a mirage would pass for.
 func _real_page_near(distance: float) -> bool:
 	for pickup: PagePickup in wizard.get_tree().get_nodes_in_group("pages"):
-		if not pickup is Mirage and not pickup.is_queued_for_deletion() and pickup.global_position.distance_to(wizard.global_position) < distance:
+		if not pickup is Mirage and not pickup.is_queued_for_deletion() and pickup.global_position.distance_to(wizard.global_position) < distance 				and (not _sight_is_limited() or _seen_pages.has(pickup.get_instance_id())):
 			return true
 	return false
 
@@ -2129,26 +2277,100 @@ func _push_stroke(around: Vector2, away: Vector2) -> PackedVector2Array:
 
 
 ## Starts the wizard drawing a spell's gesture. The spell happens when the drawing is done, if nothing breaks it.
-func _begin_cast(spell_name: String, stroke: PackedVector2Array, draw_time: float, sloppy := false) -> void:
+func _begin_cast(spell_name: String, stroke: PackedVector2Array, draw_time: float, sloppy := false) -> bool:
 	if stroke.size() < 2 or wizard.silenced() or wizard.rage_time > 0.0:
-		return
+		return false
+	if _typing != "":  # the chant box is open: a person closes it to draw, and the chant is lost
+		_break_typing()
+		return false
+	if not _drag_ok(spell_name, draw_time):  # the screen would drag the stroke out of shape: it stands still first, as a person learns to,
+		_hold_still = HOLD_STILL                # and draws it once it has stopped (see _draw_when_still)
+		_pending = {"spell": spell_name, "stroke": stroke, "time": draw_time, "sloppy": sloppy, "from": wizard.global_position}
+		return false
 	var data: Spell = SpellData.SPELLS[spell_name]
 	var mask: int = data.buttons
 	var caster: Caster = wizard.caster
-	wizard.start_drawing(stroke, SpellData.SCHOOL_COLORS[data.school], func(points: PackedVector2Array) -> void:
+	return wizard.start_drawing(stroke, SpellData.SCHOOL_COLORS[data.school], func(points: PackedVector2Array) -> void:
 		caster.cast_stroke(mask, _shaken(_handed(points) if sloppy else points)), draw_time)
 
 
-## A hand is not a template: the stroke wanders a little, as a stroke drawn with a mouse does, and now and then goes badly wrong, so that
-## the spell does not come, or another does. The hastier the wizard (the less skilled), the more it wanders. Only in a fight: the strokes it
+## Whether a stroke drawn now, over this long, keeps its shape: the view follows the wizard, so whatever way the wizard is going the stroke is dragged,
+## and each spell's shape stands only so much of it (measured with the recognizer: tests/measure_drift.gd, ai/stroke_drift.json). A person learns
+## which spells they can draw on the run; this is that knowledge.
+func _drag_ok(spell_name: String, draw_time: float) -> bool:
+	var row: Dictionary = _drift_table().get(spell_name, {})
+	if not row.has("right"):
+		return true  # a stroke that is read only in the world (a ceiling, water): not measured
+	var slide := wizard.eyes.slide_over(draw_time, wizard.velocity, 0.0 if wizard.is_on_floor() else wizard.gravity)
+	var allow_x: float = row["right"] if slide.x >= 0.0 else row["left"]
+	var allow_y: float = row["down"] if slide.y >= 0.0 else row["up"]
+	return absf(slide.x) <= allow_x * DRAG_MARGIN and absf(slide.y) <= allow_y * DRAG_MARGIN
+
+
+static func _drift_table() -> Dictionary:
+	if _drift.is_empty():
+		var file := FileAccess.open(DRIFT_FILE, FileAccess.READ)
+		_drift = JSON.parse_string(file.get_as_text()) if file != null else {"": {}}
+		if _drift == null or _drift.is_empty():
+			_drift = {"": {}}
+	return _drift
+
+
+## How far it would fall from here before it met ground or a platform (a long way, when there is nothing under it).
+func _drop_below() -> float:
+	var from := wizard.global_position
+	var query := PhysicsRayQueryParameters2D.create(from, from + Vector2(0.0, 2000.0), 1 | 16)
+	query.exclude = [wizard.get_rid()]
+	var hit := wizard.get_world_2d().direct_space_state.intersect_ray(query)
+	return 2000.0 if hit.is_empty() else from.distance_to(hit["position"])
+
+
+## A stroke it has stopped to draw is drawn once it is still enough, where it meant it to be (moved with it, if it slid on while stopping);
+## if it has not come to a stop in time, the moment has passed.
+func _draw_when_still() -> void:
+	if _pending.is_empty():
+		return
+	if _hold_still <= 0.0 or wizard.is_drawing():
+		_pending = {}
+		return
+	if not _drag_ok(_pending["spell"], _pending["time"]):
+		return
+	var shift: Vector2 = wizard.global_position - _pending["from"]
+	var stroke := PackedVector2Array()
+	for point: Vector2 in _pending["stroke"]:
+		stroke.append(point + shift)
+	var spell_name: String = _pending["spell"]
+	var draw_time: float = _pending["time"]
+	var sloppy: bool = _pending["sloppy"]
+	_pending = {}
+	_begin_cast(spell_name, stroke, draw_time, sloppy)
+
+
+## A long fall ahead: a Featherfall is drawn the moment it begins, while the view still keeps up with the stroke. Once the wizard is falling
+## fast the screen drags the stroke out of shape, as it would a person's, and it is too late.
+func _catch_fall() -> void:
+	if wizard.is_on_floor() or wizard.velocity.y <= 0.0 or wizard.feather_time > 0.0 or wizard.is_drawing() or _typing != "" or not _ready_to_cast("Featherfall"):
+		return
+	if not _drag_ok("Featherfall", QUICK_DRAW) or _drop_below() <= LONG_FALL:
+		return
+	_begin_cast("Featherfall", _tend_stroke("Featherfall", Vector2.ZERO), QUICK_DRAW)
+
+
+## True while it stands still to draw.
+func holds_still() -> bool:
+	return _hold_still > 0.0
+
+
+## A hand is not a template: the stroke wanders a little, as a stroke drawn with a mouse does. The hastier the wizard (the less skilled), the
+## more it wanders. It never botches a stroke on purpose (owner, 2026-11-09: no made-up mistakes); a stroke goes wrong only as a person's does,
+## from the view moving under it or the ground shaking. Only in a fight: the strokes it
 ## draws to cross a gate or to get on are drawn with care.
 func _handed(points: PackedVector2Array) -> PackedVector2Array:
 	var wander := lerpf(5.0, 2.0, skill)
 	var phase_a := _rng.randf() * TAU
 	var phase_b := _rng.randf() * TAU
-	var botched := _rng.randf() < lerpf(0.10, 0.04, skill)
-	var squash := Vector2(_rng.randf_range(0.55, 0.75), _rng.randf_range(0.8, 1.2)) if botched else Vector2.ONE
-	var turn := _rng.randf_range(-0.6, 0.6) if botched else 0.0
+	var squash := Vector2.ONE
+	var turn := 0.0
 	var middle := Vector2.ZERO
 	for p in points:
 		middle += p
@@ -2231,13 +2453,11 @@ func _tend(to_player: Vector2, sees: bool, fighting: bool) -> bool:
 		weights["Flare"] = 1.5
 		weights["Glowcap"] = 0.6 if tired or fighting else 0.0
 		weights["Moonbeam"] = 0.8 if fighting else 0.0
-	if not wizard.is_on_floor() and wizard.velocity.y > 330.0 and wizard.feather_time <= 0.0:
-		weights["Featherfall"] = 4.0  # a long fall
 	if (tired or (fighting and gap > FAR)) and wizard.adrenaline_time <= 0.0:
 		weights["Adrenaline"] = 1.2
 	if fighting and sees and gap < 260.0 and wizard.max_stamina > 90.0 and not wizard.wild:
 		weights["Wild Shape"] = 1.1  # a rival close at hand: it comes at them with claws
-	if _goal != "page" and _scent <= 0.0:
+	if _goal != "page" and _scent <= 0.0 and SpellTargets.wizards(wizard.get_tree()).size() > 1:
 		weights["Hunter's Mark"] = 1.0
 	if fighting:
 		if low and gap > 140.0 and wizard.fade_time <= 0.0:
@@ -2260,8 +2480,9 @@ func _tend(to_player: Vector2, sees: bool, fighting: bool) -> bool:
 	var choice := _pick(weights)
 	if choice == "":
 		return false
+	if not _begin_cast(choice, _tend_stroke(choice, to_player), QUICK_DRAW):
+		return false
 	_rest[choice] = TEND_REST[choice]
-	_begin_cast(choice, _tend_stroke(choice, to_player), QUICK_DRAW)
 	return true
 
 
@@ -2276,7 +2497,7 @@ func _tend_stroke(spell_name: String, to_player: Vector2) -> PackedVector2Array:
 		"Glowcap":
 			return _offset(GestureTemplates.preview_points("circle"), here + Vector2(dir * 60.0, 0.0), 0.6)
 		"Moonbeam":
-			var at: Vector2 = _foe.global_position if _foe != null else feet
+			var at: Vector2 = _seen_feet(_foe) if _foe != null else feet
 			return _line(Vector2(at.x, at.y - 70.0), Vector2(at.x, at.y + 10.0))
 		"Adrenaline":
 			return _offset(GestureTemplates.preview_points("zigzag"), here, 0.6)
@@ -2298,7 +2519,7 @@ func _tend_stroke(spell_name: String, to_player: Vector2) -> PackedVector2Array:
 		"Decoy":
 			return _offset(GestureTemplates.preview_points("eight"), here + Vector2(-dir * 50.0, 0.0), 0.7)
 		"Eclipse":
-			return _offset(GestureTemplates.preview_points("eclipse"), _foe.center(), 1.0)
+			return _offset(GestureTemplates.preview_points("eclipse"), _seen_center(_foe), 1.0)
 		"Crimson Veil":
 			return _line(Vector2(here.x, here.y - 50.0), Vector2(here.x, here.y + 20.0))
 		"Obsidian Armor":
@@ -2320,11 +2541,11 @@ func _ready_lift() -> String:
 func _chase(to_player: Vector2) -> bool:
 	if not wizard.is_on_floor() or _rest.has("chase") or not _lift.is_empty():
 		return false
-	var rise := wizard.global_position.y - _foe.global_position.y
+	var rise := wizard.global_position.y - _seen_feet(_foe).y
 	if rise < CHASE_ABOVE or absf(to_player.x) > 320.0:
 		return false
 	var dir := 1 if to_player.x >= 0.0 else -1
-	var span := Rect2(_foe.global_position.x - 24.0, _foe.global_position.y - 6.0, 48.0, 12.0)
+	var span := Rect2(_seen_feet(_foe).x - 24.0, _seen_feet(_foe).y - 6.0, 48.0, 12.0)
 	for spell_name: String in LIFTS:
 		if not _ready_to_cast(spell_name) or (spell_name == "Great Oak" and rise > OAK_CHASE_MAX):
 			continue

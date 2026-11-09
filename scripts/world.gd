@@ -924,6 +924,18 @@ func _process(delta: float) -> void:
 			_safe_spot = player.global_position
 
 
+## How bright an unlit place is, 0 (black) to 1, as it would look on the screen of someone standing there: the same tint _process gives the
+## person's screen for where they stand (dim just under the ground, black far down). A brain's eyes use it (see Eyes).
+func light_level_at(point: Vector2) -> float:
+	var column := floori(point.x / TILE) - ArenaGen.sky_xl
+	var ground := ArenaGen.sky_floor[clampi(column, 0, ArenaGen.sky_floor.size() - 1)] if not ArenaGen.sky_floor.is_empty() else WorldGraph.SURFACE_ROW
+	var under := point.y - (ground + 2) * TILE
+	var depth := clampf(under / (DARKEN_ROWS * TILE), 0.0, 1.0)
+	var far := clampf((under - DARKEN_ROWS * TILE) / ((BLACKEN_ROWS - DARKEN_ROWS) * TILE), 0.0, 1.0)
+	var day: Color = SurfaceGen.LOOKS[SurfaceGen.biome_at(graph.surface, column + ArenaGen.sky_xl)]["tint"]
+	return day.lerp(DEEP, depth).lerp(BLACK, far).get_luminance()
+
+
 func _make_light(radius: float, color: Color, energy: float) -> PointLight2D:
 	var light := PointLight2D.new()
 	light.texture = Fx.tex("light_01")

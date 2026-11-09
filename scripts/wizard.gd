@@ -101,6 +101,9 @@ var _stroke := PackedVector2Array()  # the spell a brain's wizard is drawing, an
 var _draw_time := 0.0
 var _draw_total := DRAW_TIME
 var _on_drawn: Callable
+var _drag := PackedVector2Array()  # how far the view had moved when each point of the stroke was drawn: the screen drags the stroke (see Eyes)
+var _drag_from := Vector2.ZERO      # the middle of the view when the stroke was begun
+var eyes: Eyes                      # the screen a person in this wizard's place would have
 var _overlay: Node2D  # draws the ice, and the stroke a brain's wizard is drawing, over the sprite
 var stamina := MAX_STAMINA
 var max_stamina := MAX_STAMINA  # what stamina can reach for now. Hits and the Rift wear it down; you die when it is gone
@@ -247,6 +250,7 @@ const SNAP := 160.0  # farther than this, and it is put there at once (a step, a
 
 
 func _ready() -> void:
+	eyes = Eyes.new(self)
 	add_child(_status)
 	_status.ended.connect(func(status: StringName) -> void:
 		if status == &"frozen":
@@ -703,9 +707,11 @@ func is_unseen() -> bool:
 	return is_faded() and not is_in_group("player")
 
 
-## True when a wizard that is looking for others can make this one out: not faded, or so close that it is bumped into.
+## True when a wizard that is looking for others can make this one out: not faded, so close that it is bumped into, or hexed (the dark star
+## floats over their head for anyone to see). The person at this machine is hidden from every brain and creature like anyone else: only their
+## own screen shows them faintly (see is_unseen).
 func is_seen_from(point: Vector2) -> bool:
-	return not is_unseen() or center().distance_to(point) < UNSEEN_BUMP
+	return not is_faded() or center().distance_to(point) < UNSEEN_BUMP or (is_inside_tree() and Hex.multiplier(get_tree(), self) > 1.0)
 
 
 ## A spell or a chant ends Sneak: a wizard out of sight can do one thing, and doing it shows them.
@@ -818,6 +824,7 @@ func _physics_process(delta: float) -> void:
 	if is_likeness():
 		_follow()
 		return
+	eyes.follow(delta)
 	if brain != null and global_position.y > (ArenaGen.world_size.y * float(ArenaGen.TILE) if ArenaGen.world_size.y > 0 else FALL_LIMIT) and not dead:
 		wild = false  # (nothing turns back from this)
 		max_stamina = 0.0  # off the bottom of the map
@@ -1122,14 +1129,17 @@ func _think(delta: float) -> void:
 		return
 	if _draw_time > 0.0:
 		_draw_time -= delta
+		_note_drag()
 		if _draw_time <= 0.0:
-			var stroke := _stroke
+			var stroke := _dragged()
 			_stroke = PackedVector2Array()
 			casting = false
 			play_cast_release()
 			_on_drawn.call(stroke)
 	caster.anchor = center()
 	brain.think(delta)
+	if brain.holds_still():
+		_walk = 0.0  # it stops to draw
 
 
 ## A brain asks to walk at a speed, left (negative) or right: the body keeps to what it can do.
@@ -1152,13 +1162,39 @@ func request_jump(strength := 1.0) -> void:
 
 ## Starts drawing a stroke in front of the wizard. After draw_time it calls on_done with the stroke.
 ## Being hit hard while drawing breaks the spell (see WizardBrain.on_hurt).
-func start_drawing(points: PackedVector2Array, colour: Color, on_done: Callable, draw_time := DRAW_TIME) -> void:
+## The stroke is drawn as a hand draws on a screen: it must lie on the screen when it is begun, only one is drawn at a time, none while a chant is
+## being typed, and the view moving with the wizard drags it as it is drawn. Returns false when the stroke cannot be begun.
+func start_drawing(points: PackedVector2Array, colour: Color, on_done: Callable, draw_time := DRAW_TIME) -> bool:
+	if is_drawing() or (brain != null and brain.is_typing()):
+		return false
+	for point in points:
+		if not eyes.on_screen(point):
+			return false  # no one draws off the edge of their screen
+	_drag_from = eyes.center()
+	_drag = PackedVector2Array()
 	_stroke = points
 	cast_color = colour
 	_on_drawn = on_done
 	_draw_time = draw_time
 	_draw_total = draw_time
 	casting = true  # (no sound here: the same sound for every spell was not liked; each spell makes its own when it is cast)
+	return true
+
+
+## The points the hand has reached this step take the view's travel so far: a person's stroke is recorded in the world, under a moving screen.
+func _note_drag() -> void:
+	var count := _stroke.size() if _draw_time <= 0.0 else clampi(int(_stroke.size() * (1.0 - _draw_time / _draw_total)), 1, _stroke.size())
+	var moved := eyes.center() - _drag_from
+	while _drag.size() < count:
+		_drag.append(moved)
+
+
+## The stroke as it lies in the world: each point where the hand drew it, moved by the view's travel up to then.
+func _dragged() -> PackedVector2Array:
+	var out := PackedVector2Array()
+	for i in _stroke.size():
+		out.append(_stroke[i] + (_drag[i] if i < _drag.size() else (_drag[_drag.size() - 1] if not _drag.is_empty() else Vector2.ZERO)))
+	return out
 
 
 func is_drawing() -> bool:
@@ -1273,7 +1309,7 @@ func _drawn_so_far() -> PackedVector2Array:
 	if _draw_time <= 0.0 or _stroke.size() < 2:
 		return PackedVector2Array()
 	var count := clampi(int(_stroke.size() * (1.0 - _draw_time / _draw_total)), 2, _stroke.size())
-	return _stroke.slice(0, count)
+	return _dragged().slice(0, count)
 
 
 ## A likeness glides to where its wizard is, or jumps there when it went far at once, and falls when its wizard does. Its drawing
