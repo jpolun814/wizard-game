@@ -29,6 +29,8 @@ class Runner extends Node:
 			_stop(1))
 		var arguments := PackedStringArray(["--headless", "--path", ProjectSettings.globalize_path("res://"), "--", "--server"])
 		if not OS.get_cmdline_user_args().has("external"):  # (`external`: a server already started by hand, to see what it prints)
+			OS.set_environment("WIZARD_HURRY", "0.12")  # (worlds that collapse quickly: the server and this program both read it)
+			MatchState.hurry = 0.12
 			_server = OS.create_process(OS.get_executable_path(), arguments)  # (it keeps this program's environment, so WIZARD_PORT reaches it too)
 			_check(_server > 0, "the server program starts")
 		await _seconds(8.0)  # it opens its port and loads the waiting room
@@ -66,6 +68,13 @@ class Runner extends Node:
 				walked += host_wizard.global_position.distance_to(last)
 				last = host_wizard.global_position
 			_check(walked > 60.0, "and it plays on its own: it covered %.0f px in ten seconds" % walked)
+		await _try_a_page(world, "the first world")
+		var first_scene := get_tree().current_scene
+		await _until(func() -> bool: return get_tree().current_scene != first_scene or not is_instance_valid(first_scene))  # the portal collapses into the next world
+		world = await _scene(WORLD)
+		await _until(func() -> bool: return Net.peers_here().size() == 1)
+		await _seconds(4.0)
+		await _try_a_page(world, "the second world")
 		# The client leaves: with nobody left, the server ends the match and waits in the room, where a newcomer finds it.
 		Net.leave()
 		get_tree().change_scene_to_file("res://scenes/menu.tscn")
@@ -78,6 +87,25 @@ class Runner extends Node:
 		_check(true, "and finds the server back in the waiting room")
 		print("%s: done" % ("FAIL" if _failures > 0 else "PASS"))
 		_stop(1 if _failures > 0 else 0)
+
+
+	## The client walks to a page and reads it: the server (which says who reads which) must answer, the page leave the ground and enter the book.
+	func _try_a_page(world: Node, where: String) -> void:
+		var target: PagePickup
+		for pickup: PagePickup in get_tree().get_nodes_in_group("pages"):
+			if not pickup.is_queued_for_deletion() and not pickup is Mirage and pickup.gives(world.player.ledger):
+				target = pickup
+				break
+		if target == null:
+			_check(false, "%s: there is a page to read" % where)
+			return
+		var name_of := String(target.name)
+		world.player.global_position = target.global_position + Vector2(0, -20)
+		await _seconds(0.5)
+		world.read_page(target, world.player)
+		await _seconds(2.0)
+		var gone := world.get_node_or_null(NodePath(name_of)) == null or world.get_node(NodePath(name_of)).is_queued_for_deletion()
+		_check(gone, "%s: the page %s is read and gone from the ground" % [where, name_of])
 
 
 	func _stop(code: int) -> void:

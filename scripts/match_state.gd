@@ -18,7 +18,13 @@ const CASTLE_SHARE := 0.6  # the share of a stage's width that a castle world ta
 const HEIGHT := 380  # every world is this deep, in tiles
 const WARNING := 18.0 # seconds of shaking and a warning before a world collapses
 
-static var hurry := 1.0  # a test shortens the time in a world by this much
+static var hurry := _hurry_asked()  # a test shortens the time in a world by this much (a program of its own, like a dedicated server, is told so by WIZARD_HURRY)
+
+
+static func _hurry_asked() -> float:
+	var named := OS.get_environment("WIZARD_HURRY")
+	return named.to_float() if named.is_valid_float() and named.to_float() > 0.0 else 1.0
+
 static var stage := 0
 static var seed_base := 0
 static var forced_biome := ""  # the F1 panel's choice of biome for the world being built, whatever the seed would deal (empty: the seed's own)
