@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="MobKind" format=3]
+
+[ext_resource type="Script" path="res://scripts/mob_kind.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "runner"
+sort_order = 27
+display_name = "Runner"
+desc = "Runs faster than a wizard walks."
+role = "melee"
+art = "skeleton"
+hp = 24
+school = "Earth"
+weak = "Water"
+resist = "Earth"
+damage = 8
+speed = 2.2
+effect = "knockback"

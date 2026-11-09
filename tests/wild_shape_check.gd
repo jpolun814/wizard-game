@@ -66,10 +66,13 @@ func _ready() -> void:
 	# Time and swipes do not end it; a single blow does, and does not kill the wizard.
 	await _wait(6.0)
 	_verdict(_player.wild and _player.max_stamina == Wizard.WILD_STAMINA, "the shape stays as long as no blow lands")
+	_player.heal(20)  # a bonfire by the wolf mends the wizard under it, not the wolf
+	_verdict(_player.max_stamina == Wizard.WILD_STAMINA, "a bonfire does not mend the wolf")
+	had += 20.0
 	_player.take_damage(1)
 	await _wait(0.2)
 	_verdict(not _player.wild and not _player.dead, "one blow turns the wizard back, and does not kill them")
-	_verdict(absf(_player.stamina - had) < 8.0 and _player.max_stamina == 170.0, "with the stamina they had before (%.0f of %.0f, had %.0f)" % [_player.stamina, _player.max_stamina, had])
+	_verdict(absf(_player.stamina - had) < 8.0 and _player.max_stamina == 190.0, "with the stamina they had before (%.0f of %.0f, had %.0f)" % [_player.stamina, _player.max_stamina, had])
 	print("Wild Shape works" if _failures == 0 else "%d FAILED" % _failures)
 	get_tree().quit(1 if _failures > 0 else 0)
 

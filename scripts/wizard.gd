@@ -63,7 +63,7 @@ const HAND := Vector2(30, -62)          # and for a newer one: the casting hand
 const WILD_STAMINA := 1.0    # the werewolf (Wild Shape) has a pool of strength of its own, and the wizard keeps theirs aside: a single blow ends the shape, and nothing else does
 const WILD_SPEED := 1.25     # how much faster a werewolf runs
 const WILD_SCALE := 1.4      # the werewolf is drawn this large
-const CLAW_DAMAGE := 22
+const CLAW_DAMAGE := 12
 const CLAW_COOLDOWN := 0.55
 const CLAW_REACH := 80.0     # from the middle of the body, to the front
 const CLAW_DELAY := 0.15     # the swipe lands this long after it begins
@@ -418,6 +418,10 @@ func restore_stamina(amount: float) -> void:
 
 func heal(amount: int) -> void:
 	if is_likeness():
+		return
+	if wild:
+		_kept_max = minf(_kept_max + amount, MAX_STAMINA)  # a wolf is not mended: the wizard under it is, and has it when the shape ends
+		_kept_stamina = minf(_kept_stamina + amount, _kept_max)
 		return
 	max_stamina = minf(max_stamina + amount, MAX_STAMINA)
 	stamina = minf(stamina + amount, max_stamina)

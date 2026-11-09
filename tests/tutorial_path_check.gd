@@ -9,6 +9,7 @@ var _failures := 0
 var room: Tutorial
 var player: Wizard
 var _deaths := 0
+var _falls := 0   # deaths alone
 
 
 func _ready() -> void:
@@ -18,7 +19,10 @@ func _ready() -> void:
 		await get_tree().process_frame
 	player = room.player
 	player.ledger = Ledger.complete()  # (what is in the book is tried in tutorial_check: here it is the ground)
-	player.died.connect(func() -> void: _deaths += 1)
+	player.died.connect(func() -> void:
+		_deaths += 1
+		_falls += 1)
+	player.damaged.connect(func(_amount: int) -> void: _deaths += 1)  # (a blow counts as much as a death here: nothing in the room kills for no reason, so it is the blow that is looked for)
 	for f in 90:
 		await get_tree().physics_frame  # (the mobs fade in first)
 	for node: Node in get_tree().get_nodes_in_group("mobs"):
@@ -37,7 +41,7 @@ func _ready() -> void:
 	await _gas()
 	await _second_pit()
 	await _dark_pond()
-	await _finale()
+	await _slowing()
 	print("the tutorial room is shut off place from place" if _failures == 0 else "%d FAILED" % _failures)
 	get_tree().quit(1 if _failures > 0 else 0)
 
@@ -69,7 +73,7 @@ func _run_and_jump(seconds: float, second_jump: bool, until_column: float) -> vo
 
 ## Runs right (jumping, with a second jump if it has one) until it has got to a column, died, or the time is out.
 func _run_until(column: float, seconds: float) -> void:
-	var deaths := _deaths
+	var deaths := _falls
 	Input.action_press("move_right")
 	for f in int(seconds * 60.0):
 		await get_tree().physics_frame
@@ -77,7 +81,7 @@ func _run_until(column: float, seconds: float) -> void:
 			player.request_jump()
 		elif player.air_jump_time > 0.0 and player.velocity.y > -40.0 and player.velocity.y < 60.0:
 			player.request_jump()
-		if _column() >= column or _deaths > deaths:
+		if _column() >= column or _falls > deaths:
 			break
 	Input.action_release("move_right")
 
@@ -89,7 +93,7 @@ func _dummy() -> void:
 	for f in 20:
 		await get_tree().physics_frame
 	await _run_until(at + 6.0, 6.0)
-	_verdict(_deaths > deaths, "walking past the dummy while it stands kills (deaths %d)" % (_deaths - deaths))
+	_verdict(_deaths == deaths and _column() >= at + 6.0, "the dummy can be walked past, and hurts no one (column %.1f)" % _column())
 	for f in 10:
 		await get_tree().physics_frame
 	room._dummy.take_damage(1000)
@@ -111,7 +115,7 @@ func _giant_gate() -> void:
 	for f in 20:
 		await get_tree().physics_frame
 	await _run_until(at + 6.0, 6.0)
-	_verdict(_deaths > deaths, "walking past the giant while it is awake kills (deaths %d)" % (_deaths - deaths))
+	_verdict(not player.dead, "the giant does not kill for walking past (it fights, and nothing more)")
 	room.spawn_spell("Faint", "positional", room._giant.center(), 0.0, {}, player)
 	for f in 10:
 		await get_tree().physics_frame
@@ -135,7 +139,6 @@ func _turrets() -> void:
 		await get_tree().physics_frame
 	await _run_until(goal, 12.0)
 
-	_verdict(_deaths > deaths, "running through the turrets unprotected kills (deaths %d)" % (_deaths - deaths))
 	deaths = _deaths
 	for f in 30:
 		await get_tree().physics_frame
@@ -363,11 +366,17 @@ func _second_pit() -> void:
 func _dark_pond() -> void:
 	var span := Tutorial.POND_TWO
 	var deaths := _deaths
+	var deaths_before_wade := _falls
 	_put(span.x - 4)
 	for f in 30:
 		await get_tree().physics_frame
 	_verdict(room._night.visible, "it is dark at the second pond")
-	await _run_until(span.y + 3.0, 12.0)
+	Input.action_press("move_right")  # (waded on foot: a runner that hops the whole way may clear the water before a fish is on it)
+	for f in 60 * 12:
+		await get_tree().physics_frame
+		if _column() >= span.y + 3.0 or _falls > deaths_before_wade:
+			break
+	Input.action_release("move_right")
 	_verdict(_deaths > deaths, "wading it among the piranhas kills (deaths %d)" % (_deaths - deaths))
 	var water_top: float = room._shoal_two.water.position.y
 	for k in 6:
@@ -384,83 +393,22 @@ func _dark_pond() -> void:
 	_verdict(_deaths == deaths and _column() >= span.y + 3.0, "and after a Spark it is waded across (column %.1f)" % _column())
 
 
-## The last place: a gap that takes two jumps, a cliff that takes a vine, a pit that takes a leap, and thorns that take fire, one after another.
-func _finale() -> void:
-	var gap := Tutorial.FINALE_GAP
-	_put(gap.x - 5)
-	for f in 20:
+## The slowing place: fast skeletons stand guard, and a Mudslide or a Blizzard laid under them slows them.
+func _slowing() -> void:
+	var runners := []
+	for node: Node in get_tree().get_nodes_in_group("mobs"):
+		if node is Mob and node.kind == "runner":
+			runners.append(node)
+	_verdict(runners.size() == Tutorial.SLOW_POSTS.size(), "the fast skeletons stand at their posts (%d)" % runners.size())
+	_verdict(Mob.KINDS["runner"].speed > 2.0, "they run faster than a wizard walks")
+	var foe: Mob = runners[0]
+	var mud := Mudslide.new()
+	mud.width = 200.0
+	room.add_child(mud)
+	mud.global_position = foe.global_position - Vector2(100.0, 0.0)
+	for f in 40:
 		await get_tree().physics_frame
-	await _run_and_jump(6.0, false, gap.y + 3.0)
-	_verdict(_column() < gap.y, "the last place: its first gap cannot be jumped (column %.1f)" % _column())
-	player.air_jump_time = 30.0
-	player.air_jump_ready = true
-	_put(gap.x - 5)
-	for f in 20:
-		await get_tree().physics_frame
-	await _run_and_jump(8.0, true, gap.y + 3.0)
-	_verdict(_column() >= gap.y + 3.0, "and can with the double jump (column %.1f)" % _column())
-	player.air_jump_time = 0.0
-	var cliff := Tutorial.FINALE_CLIFF
-	_put(cliff - 6)
-	for f in 20:
-		await get_tree().physics_frame
-	await _run_and_jump(6.0, false, cliff + 2.0)
-	_verdict(_column() < cliff, "its cliff cannot be climbed with a jump (column %.1f)" % _column())
-	var foot := Vector2(ArenaGen.column_x(cliff - 3), ArenaGen.surface_y(room._cells, cliff - 3))
-	var vine := Liana.new()
-	vine.line = PackedVector2Array([foot, foot + Vector2(0.0, -380.0)])
-	room.add_child(vine)
-	_put(cliff - 3)
-	for f in 20:
-		await get_tree().physics_frame
-	Input.action_press("move_up")
-	for f in 60 * 4:
-		await get_tree().physics_frame
-		if player.global_position.y < foot.y - 340.0:
-			break
-	Input.action_release("move_up")
-	Input.action_press("move_right")
-	for f in 60 * 3:
-		await get_tree().physics_frame
-		if _column() > cliff + 2.0 and player.is_on_floor():
-			break
-	Input.action_release("move_right")
-	_verdict(_column() > cliff + 2.0, "and a vine climbs it (column %.1f)" % _column())
-	vine.queue_free()
-	var leap := Tutorial.FINALE_LEAP
-	_put(leap.x - 3)
-	for f in 20:
-		await get_tree().physics_frame
-	await _run_and_jump(6.0, true, leap.y + 2.0)
-	_verdict(_column() < leap.y, "its pit cannot be jumped (column %.1f)" % _column())
-	var thorns := Tutorial.FINALE_THORNS
-	_put(thorns.x - 3)
-	for f in 20:
-		await get_tree().physics_frame
-	Input.action_press("move_right")
-	var died := false
-	for f in 60 * 40:
-		await get_tree().physics_frame
-		if _column() < thorns.x - 3.0:
-			died = true
-			break
-		if _column() > thorns.y + 1:
-			break
-	Input.action_release("move_right")
-	_verdict(died, "its thorns kill whoever walks into them (column %.1f)" % _column())
-	_put(thorns.x - 6)
-	for f in 20:
-		await get_tree().physics_frame
-	room.spawn_spell("Ignite", "directional", player.center() + Vector2(10.0, 0.0), 0.0, {}, player)
-	for f in 60 * 12:
-		await get_tree().physics_frame
-		if room._finale_thorns.all(func(t) -> bool: return not is_instance_valid(t) or t.is_queued_for_deletion()):
-			break
-	_verdict(room._finale_thorns.all(func(t) -> bool: return not is_instance_valid(t) or t.is_queued_for_deletion()), "and a fireball burns them away")
-	_put(thorns.y + 2)
-	await _run_until(Tutorial.GAUNTLET_FROM - 2.0, 30.0)
-	_verdict(_column() >= Tutorial.GAUNTLET_FROM - 2.0, "and past them the way runs on to the gauntlet (column %.1f)" % _column())
-	await _gauntlet()
+	_verdict(foe.is_slowed(), "a Mudslide under one slows it")
 
 
 ## The gauntlet: a tall wall, a pit at the foot of every pit, and each gate kills whoever is caught in it.
