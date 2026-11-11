@@ -13,4 +13,6 @@ training/*.zip
 training/*.log
 training/__pycache__/
 training/tactics/
+training/tactics_duel/
+training/tactics_duel_night.log
 training/report/

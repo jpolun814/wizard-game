@@ -13,6 +13,8 @@ const OUTLIVE := 1.0      # a rival fell while it stands
 const FALL := -3.0        # it fell
 const PAGE := 0.2         # a page read (a little: pages are a means, not the end)
 const HARM := 0.01        # for each point of strength a rival it sees loses, and against each point it loses itself
+const DUEL_HARM := 0.02   # in a duel, where every fight counts, harm weighs more
+const DUEL_FALL := -1.0   # and falling weighs the same as felling the other: a duel is won or lost
 
 var wizard: Wizard
 var brain: TacticsBrain
@@ -24,6 +26,7 @@ var _rival_max := {}      # rival instance id -> its maximum strength when last 
 var _down := {}           # rival instance id -> true while it lies fallen
 var _fallen := false
 var deaths := 0
+var duel := false         # set by the world: this learner fights one opponent over and over (training/tactics_env.gd)
 var outlived := 0
 var cause := {"outlive": 0.0, "fall": 0.0, "pages": 0.0, "harm": 0.0}
 
@@ -90,17 +93,17 @@ func _gather() -> void:
 			_down.erase(id)
 		var before: float = _rival_max.get(id, other.max_stamina)
 		if other.max_stamina < before and not other.dead and wizard.eyes.sees_wizard(other):
-			_add("harm", (before - other.max_stamina) * HARM)
+			_add("harm", (before - other.max_stamina) * (DUEL_HARM if duel else HARM))
 		_rival_max[id] = other.max_stamina
 	var pages := wizard.ledger.count()
 	if pages > _last_pages:
 		_add("pages", PAGE * float(pages - _last_pages))
 	_last_pages = pages
 	if wizard.max_stamina < _last_max:
-		_add("harm", -(_last_max - wizard.max_stamina) * HARM)
+		_add("harm", -(_last_max - wizard.max_stamina) * (DUEL_HARM if duel else HARM))
 	_last_max = wizard.max_stamina
 	if wizard.dead and not done:
-		_add("fall", FALL)
+		_add("fall", DUEL_FALL if duel else FALL)
 		done = true
 		_fallen = true
 		deaths += 1

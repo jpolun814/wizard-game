@@ -5,7 +5,7 @@ network as it was at the end of an earlier round, so it learns to beat both. Aft
 exported for the game (training/tactics/round_N.json, the same form as ai/tactics.json), and a line is written to training/tactics/progress.log.
 A run can be stopped and started again: it carries on from the last round saved.
 
-    python -I training/train_tactics.py [--rounds 1000] [--round-steps 20000] [--port 11040] [--envs 2] [--learners 4]
+    python -I training/train_tactics.py [--rounds 1000] [--round-steps 20000] [--port 11040] [--envs 2] [--learners 4] [--duel] [--out DIR]
 """
 import argparse
 import glob
@@ -70,8 +70,10 @@ def log(line):
     print(stamp, line, flush=True)
 
 
-def make_env(port, seed, envs, learners, opponent):
+def make_env(port, seed, envs, learners, opponent, duel=False):
     extra = {"learners": learners}
+    if duel:
+        extra["duel"] = 1
     if opponent:
         extra["opponent"] = opponent
     return StableBaselinesGodotEnv(env_path="godot", n_parallel=envs, port=port, show_window=False, speedup=8, action_repeat=12, framerate=60,
@@ -86,6 +88,7 @@ def main():
     parser.add_argument("--port", type=int, default=11040)
     parser.add_argument("--envs", type=int, default=2)
     parser.add_argument("--learners", type=int, default=4)
+    parser.add_argument("--duel", action="store_true", help="each learner fights one opponent over and over (a denser reward)")
     parser.add_argument("--out", default=OUT, help="the folder rounds are kept in (a trial can use one of its own)")
     args = parser.parse_args()
     OUT = os.path.abspath(args.out)
@@ -101,7 +104,7 @@ def main():
             earlier.sort(key=lambda p: int(re.search(r"round_(\d+)", p).group(1)))
             opponent = earlier[-1] if random.Random(k * 7).random() < 0.5 else random.Random(k * 13).choice(earlier)
             opponent = "res://" + os.path.relpath(opponent, os.path.dirname(here)).replace("\\", "/")
-        env = make_env(args.port, seed, args.envs, args.learners, opponent)
+        env = make_env(args.port, seed, args.envs, args.learners, opponent, args.duel)
         if model is None:
             previous = os.path.join(OUT, "round_%d.zip" % start)
             if start > 0 and os.path.exists(previous):
