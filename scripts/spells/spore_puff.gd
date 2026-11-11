@@ -38,6 +38,10 @@ func _ready() -> void:
 	add_to_group("danger")
 	position = Vector2.ZERO  # the puffs live in world space
 	z_index = 3
+	if is_nan(aim) or is_nan(spread) or is_nan(reach):  # (a cone drawn with no width or length: it pours straight ahead)
+		aim = 0.0 if is_nan(aim) else aim
+		spread = MIN_SPREAD if is_nan(spread) else spread
+		reach = MIN_REACH if is_nan(reach) else reach
 	spread = clampf(spread, MIN_SPREAD, MAX_SPREAD)
 	reach = clampf(reach, MIN_REACH, MAX_REACH)
 	_texture = Fx.tex("smoke_01")

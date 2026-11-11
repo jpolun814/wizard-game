@@ -12,3 +12,5 @@ training/ckpt/
 training/*.zip
 training/*.log
 training/__pycache__/
+training/tactics/
+training/report/

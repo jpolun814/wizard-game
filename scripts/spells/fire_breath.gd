@@ -40,6 +40,10 @@ var _light: PointLight2D   # and it lights the dark round the mouth
 
 func _ready() -> void:
 	add_to_group("fires")
+	if is_nan(aim) or is_nan(spread) or is_nan(reach):  # (a cone drawn with no width or length: it pours straight ahead)
+		aim = 0.0 if is_nan(aim) else aim
+		spread = MIN_SPREAD if is_nan(spread) else spread
+		reach = MIN_REACH if is_nan(reach) else reach
 	spread = clampf(spread, MIN_SPREAD, MAX_SPREAD)
 	# A breath cast the other way turns the wizard round to face it.
 	if is_instance_valid(caster_node) and absf(cos(aim)) > 0.2:

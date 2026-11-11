@@ -13,7 +13,7 @@ def _check_platform(self, filename):
 
 
 def _launch_env(self, env_path, port, show_window, framerate, seed, action_repeat, speedup, **kwargs):
-    cmd = [GODOT, "--path", PROJECT, "res://training/wizard_env.tscn"]
+    cmd = [GODOT, "--path", PROJECT, os.environ.get("GODOT_SCENE", "res://training/wizard_env.tscn")]  # (train_tactics.py sets the tactics world)
     if show_window is False:
         cmd += ["--disable-render-loop", "--headless"]
     if framerate is not None:

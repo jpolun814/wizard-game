@@ -2132,7 +2132,7 @@ func _attack(to_player: Vector2, sees: bool) -> bool:
 			scores[spell_name] = 0.0
 		elif spell_name in _recent:
 			scores[spell_name] *= 0.25  # it does not keep repeating itself
-	var choice := _pick(scores)
+	var choice := _choose_attack(scores)
 	if choice == "":
 		return false
 	_recent.push_front(choice)
@@ -2140,6 +2140,11 @@ func _attack(to_player: Vector2, sees: bool) -> bool:
 		_recent.pop_back()
 	_begin_cast(choice, _attack_stroke(choice), ATTACK_DRAW, true)
 	return true
+
+
+## Which attack it makes, from the scores each would have now: one drawn by weight. A brain with learned tactics (TacticsBrain) chooses for itself.
+func _choose_attack(scores: Dictionary) -> String:
+	return _pick(scores)
 
 
 ## True when something solid (a platform or the ground) is above you, so nothing from the sky can reach you.
@@ -2342,6 +2347,10 @@ func _push_stroke(around: Vector2, away: Vector2) -> PackedVector2Array:
 func _begin_cast(spell_name: String, stroke: PackedVector2Array, draw_time: float, sloppy := false) -> bool:
 	if stroke.size() < 2 or wizard.silenced() or wizard.rage_time > 0.0:
 		return false
+	for point in stroke:
+		if not point.is_finite():
+			push_warning("a stroke for %s with a point that is not a number (%s): not drawn" % [spell_name, point])
+			return false
 	if _typing != "":  # the chant box is open: a person closes it to draw, and the chant is lost
 		_break_typing()
 		return false

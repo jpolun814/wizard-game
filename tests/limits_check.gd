@@ -139,6 +139,9 @@ func _ready() -> void:
 	await _frames(int(WizardBrain.READ_MAX * 60.0) + 5)
 	_verdict(brain._ready_to_cast("Ignite"), "but is once the page has been looked at")
 
+	_verdict(TacticsBrain.ATTACKS.size() == TacticsBrain.ATTACK_COUNT and TacticsBrain.ATTACKS.all(func(n: String) -> bool: return SpellData.SPELLS.has(n)),
+		"the learned tactics' list of attacks is whole and names real spells")
+
 	print("a brain is held to a person's limits" if _failures == 0 else "%d FAILED" % _failures)
 	get_tree().quit(1 if _failures > 0 else 0)
 
