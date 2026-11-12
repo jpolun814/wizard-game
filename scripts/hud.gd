@@ -1,7 +1,7 @@
 class_name Hud
 extends CanvasLayer
 
-## Everything drawn over the game: the stamina bar, a banner, the dark wizard's health, messages, an arrow to the portal, the pause screen with the controls,
+## Everything drawn over the game: the stamina bar, a banner, messages, an arrow to the portal, the pause screen with the controls,
 ## and the screen you see when you fall.
 
 

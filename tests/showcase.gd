@@ -7,7 +7,7 @@ extends Node
 ##   world   - every enemy kind standing around the player, with their health bars
 ##   cave    - a generated world: the start hall, then the wizard climbing a shaft by jumping from platform to platform
 ##   spells  - every spell cast in turn in the waiting room, with screenshots of each
-##   wizard  - the dark wizard dueling a player who stands still and throws bolts at it
+##   wizard  - an AI wizard dueling a player who stands still and throws bolts at it
 ## Fixed physics steps make it play the same way each time.
 
 var scenario := "world"
@@ -443,7 +443,7 @@ func _plan() -> void:
 				var x: float = _player().global_position.x - 330.0
 				var i := 0
 				for kind in Mob.KINDS:
-					if Mob.KINDS[kind].role in ["flyer", "wizard"]:
+					if Mob.KINDS[kind].role == "wizard":
 						continue
 					var mob := _summon_at(kind, x + i * 60.0)
 					if mob is Mob:

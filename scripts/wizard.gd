@@ -215,7 +215,6 @@ var casting := false      # true while the caster has a stroke in progress (set 
 var casts_made := 0       # the spells this wizard has cast, for the tests that watch a match
 var drawn := false  # the portal of a collapsing world is carrying the wizard up: they cast and fight, but cannot walk or fall
 var _art := "wizard"  # the folder of frames it wears now
-var keep_when_dead := false  # a wizard that learns stays in the world after it falls, to be stood up again (training)
 var _layer_alive := 0
 var wild := false  # the wizard has taken the shape of a werewolf (Wild Shape)
 var _kept_stamina := 0.0  # what stamina and most stamina the wizard had before, which they have again when the shape is gone
@@ -537,7 +536,7 @@ func _on_animation_finished() -> void:
 		var fade := create_tween()
 		fade.tween_interval(0.4)
 		fade.tween_property(self, "modulate:a", 0.0, 0.4)
-		if not is_likeness() and not keep_when_dead:
+		if not is_likeness():
 			fade.tween_callback(queue_free)
 
 

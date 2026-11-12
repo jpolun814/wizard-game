@@ -1067,7 +1067,7 @@ func _stem_gesture(stem: Dictionary, options: Dictionary) -> String:
 	return ""
 
 
-## Tsunami: a big wave. A long rise to a crest that curls over. Returns {"aim": the way the wave runs, which is the
+## The "tsunami" shape (Tide Surf, Leech, Thorn Whip): a big wave, a long rise to a crest that curls over. Returns {"aim": the way the wave runs, which is the
 ## way the crest curls}, or {} when the stroke is not a wave. A sharp corner (a V) is not a curl.
 func _big_wave(drawn: PackedVector2Array) -> Dictionary:
 	if drawn.size() < 20:
@@ -1210,7 +1210,7 @@ func _flame_points_up(points: PackedVector2Array) -> bool:
 	return (top_high - top_low) < 0.75 * (bottom_high - bottom_low)
 
 
-## Casts a stroke that was not drawn with the mouse, such as a dark wizard's. It resolves exactly like a drawn one.
+## Casts a stroke that was not drawn with the mouse, such as an AI wizard's. It resolves exactly like a drawn one.
 func cast_stroke(mask: int, points: PackedVector2Array) -> void:
 	_stroke = points
 	_origin = points[0]

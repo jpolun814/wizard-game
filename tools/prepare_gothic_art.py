@@ -389,12 +389,12 @@ def write_meta(chars, fx):
     lines = ['class_name PixelArt', '',
              '## Made by tools/prepare_gothic_art.py. Do not edit by hand: run the tool again instead.',
              '## CHARACTERS: each one\'s frame size in pixels, and the box around its body measured from its anchor (the',
-             '## bottom middle of the frame for walkers, the middle for flyers). FX: each effect strip\'s frame size and count.',
+             '## bottom middle of the frame). FX: each effect strip\'s frame size and count.',
              '', 'const CHARACTERS := {']
     for name, m in chars.items():
         x, y, w, h = m["body"]
-        lines.append('\t"%s": {"size": Vector2(%d, %d), "body": Rect2(%.1f, %.1f, %.1f, %.1f), "flyer": %s},'
-                     % (name, m["size"][0], m["size"][1], x, y, w, h, "true" if m["flyer"] else "false"))
+        lines.append('\t"%s": {"size": Vector2(%d, %d), "body": Rect2(%.1f, %.1f, %.1f, %.1f)},'
+                     % (name, m["size"][0], m["size"][1], x, y, w, h))
     lines += ['}', '', 'const FX := {']
     for name, (w, h, n) in fx.items():
         lines.append('\t"%s": {"size": Vector2(%d, %d), "frames": %d},' % (name, w, h, n))
@@ -409,8 +409,8 @@ def update_meta(name, m):
     with open(path, newline="") as f:
         text = f.read()
     x, y, w, h = m["body"]
-    line = ('	"%s": {"size": Vector2(%d, %d), "body": Rect2(%.1f, %.1f, %.1f, %.1f), "flyer": %s},'
-            % (name, m["size"][0], m["size"][1], x, y, w, h, "true" if m["flyer"] else "false"))
+    line = ('	"%s": {"size": Vector2(%d, %d), "body": Rect2(%.1f, %.1f, %.1f, %.1f)},'
+            % (name, m["size"][0], m["size"][1], x, y, w, h))
     lines = text.split("\n")
     for i, old in enumerate(lines):
         if old.startswith('	"%s": {"size"' % name):

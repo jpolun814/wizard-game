@@ -49,7 +49,6 @@ const SNOW_FADE := 640.0  # pixels over which snow thins out below the snow line
 const GRASS_BAND := 24.0  # how deep the grass along the top of the ground is, in world pixels
 const EDGE_STEP := 8.0  # pixels between two of the waiting room's ground heights: fine enough for a pit to keep the shape that was drawn
 var _edges := PackedFloat32Array()  # the ground's top edge height every EDGE_STEP pixels, left to right
-var _first_edges := PackedFloat32Array()  # the same, as built, before any pit was dug (see mend)
 var earth_tiles := "cemetery"  # the tile set of the world's first biome, which names its earth and its grassy lip
 var snow_lip: Texture2D   # the snow along the ridges of the high ground
 var snow_pack: Texture2D  # and the snow over its rock
@@ -98,7 +97,6 @@ func _build_edges() -> void:
 		for s in per_tile:
 			_edges.append(lerpf(corners[k], corners[k + 1], float(s) / per_tile))
 	_edges.append(corners[corners.size() - 1])
-	_first_edges = _edges.duplicate()
 
 
 func _draw() -> void:
@@ -413,27 +411,6 @@ func dig(at: Vector2, half_width: float, depth: float, profile := PackedFloat32A
 	queue_redraw()
 	changed.emit(area)
 	return true
-
-
-## The waiting room's ground between two points across, put back as it was built: every pit dug there is filled again (the training arena, between
-## bouts). A world's tiled rock is not mended.
-func mend(from_x: float, to_x: float) -> void:
-	if tiled or _edges.size() != _first_edges.size():
-		return
-	var mended := false
-	for k in _edges.size():
-		var x := ArenaGen.FIRST_COL * float(ArenaGen.TILE) + k * EDGE_STEP
-		if x >= from_x and x <= to_x and _edges[k] != _first_edges[k]:
-			_edges[k] = _first_edges[k]
-			mended = true
-	if not mended:
-		return
-	var area := Rect2(from_x, 0.0, to_x - from_x, (ArenaGen.GROUND_ROW + ArenaGen.DEPTH + 1) * float(ArenaGen.TILE))
-	about_to_change.emit(area)
-	_solid.queue_free()
-	_build_collision()
-	queue_redraw()
-	changed.emit(area)
 
 
 ## The outlines of open air that come near a rectangle of the world, or none where the ground has no outlines of its own (the waiting room).

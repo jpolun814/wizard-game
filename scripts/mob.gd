@@ -83,7 +83,7 @@ var _slow_time: float:
 	get: return _status.left(&"slow")
 	set(seconds): _status.set_left(&"slow", seconds)
 var _knock_x := 0.0
-var _drift := Vector2.ZERO  # a pull (Gravity Well) that fades
+var _drift := Vector2.ZERO  # a pull (a Black Hole's) that fades
 var _dead := false
 var _fainted := false  # knocked out by a Faint: down until its stamina has come back to GET_UP
 var _since_stamina := 0.0  # seconds since a fainted enemy lost its stamina; it does not come back at once
@@ -730,7 +730,7 @@ func knock_back(impulse: Vector2) -> void:
 	velocity.y = minf(velocity.y, impulse.y)  # a little lift for upward knocks
 
 
-## A steady pull, such as a Gravity Well's. Call it every frame the pull lasts.
+## A steady pull, such as a Black Hole's. Call it every frame the pull lasts.
 func pull(force: Vector2, delta: float) -> void:
 	_drift += force * delta
 

@@ -1,8 +1,8 @@
 extends SceneTree
 
 ## Checks that every spell's gesture is recognised as that spell. Each spell's spellbook picture is drawn through
-## the real caster, at several sizes and with a shaky hand, and must come out as the right spell. The dark wizard
-## draws its spells from the same pictures, so this also checks that it can cast everything it tries to.
+## the real caster, at several sizes and with a shaky hand, and must come out as the right spell. The AI wizards
+## draw their spells from the same pictures, so this also checks that they can cast everything they try to.
 ##
 ## Run from the project folder:
 ##     godot --headless -s tests/test_gestures.gd

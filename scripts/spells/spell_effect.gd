@@ -65,6 +65,6 @@ func _school() -> String:
 	return SpellData.SPELLS[spell].school if SpellData.SPELLS.has(spell) else "Fire"
 
 
-## True when a point is in this spell's harm. The dark wizard uses it to step out of danger.
+## True when a point is in this spell's harm. The AI wizards use it to step out of danger.
 func danger_at(_point: Vector2) -> bool:
 	return false
