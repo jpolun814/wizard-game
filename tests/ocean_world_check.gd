@@ -86,5 +86,12 @@ func _run(world: World) -> void:
 	# Refusals: a spell that needs ground fizzles under water for want of it.
 	_check(SpellLimits.refusal(wizard, "Fire Breath") != "", "fire fizzles under water")
 	_check(SpellLimits.refusal(wizard, "Stone Wall") == "" or SpellLimits.refusal(wizard, "Stone Wall") != "No ground", "a Stone Wall can still be raised on the sea floor")
+	# A bonfire lit on the sea floor goes out at once; one on the island in the middle burns.
+	var fires_before := _count(world, Bonfire)
+	world._kindle(Vector2((deepest + 0.5) * World.TILE, floors[deepest] * float(World.TILE)), 1.0)
+	_check(_count(world, Bonfire) == fires_before, "a bonfire under water goes out")
+	var middle := floors.size() / 2
+	world._kindle(Vector2((middle + 0.5) * World.TILE, floors[middle] * float(World.TILE)), 1.0)
+	_check(_count(world, Bonfire) == fires_before + 1, "a bonfire on the island burns")
 	print("RESULT  ", "FAILED" if failed else "ok")
 	get_tree().quit(1 if failed else 0)

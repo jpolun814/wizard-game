@@ -22,6 +22,17 @@ const LOG_FILTERS := {
 	"sky": Color(0.9, 0.93, 1.0),
 }
 
+## True when a bonfire lit at a spot on the ground would be under water (and not in the air of a wreck's hold), where it cannot burn.
+static func drowned(tree: SceneTree, spot: Vector2) -> bool:
+	var flames := spot + Vector2(0.0, -FLAME_BASE)
+	if AirPocket.holds(tree, flames):
+		return false
+	for pond: Pond in tree.get_nodes_in_group("ponds"):
+		if not pond.lava and pond.wet_at(flames):
+			return true
+	return false
+
+
 var power := 1.0             # set from the chant's accuracy: a truer chant warms more
 var _age := 0.0
 var _heal_carry := {}        # wizard -> fractional healing kept between frames

@@ -1124,6 +1124,9 @@ func _dowse() -> void:
 ## A bonfire burns at a spot, on every machine of a network game.
 @rpc("any_peer", "call_remote", "reliable")
 func _kindle(spot: Vector2, power: float) -> void:
+	if Bonfire.drowned(get_tree(), spot):  # under water it is out as soon as it is lit: a puff of steam, as a fire shot that falls in
+		Fx.smoke(self, spot + Vector2(0.0, -12.0), Color(0.9, 0.95, 1.0, 0.6), 5, 24.0, 40.0)
+		return
 	var fire := Bonfire.new()
 	add_child(fire)
 	fire.power = power

@@ -64,8 +64,10 @@ islands (`_sea_islands`: the middle one and one or two more, `ISLANDS_MOST`; own
 and `surface["sea"]` ({row, depth, islands, wrecks, landmarks}). The wizards start on rafts of driftwood out at sea (`World.START_RAFT`, `World._stand_at`): their
 spawn tiles stay on the sea floor below, which is what the wizards' map of the ways is built from.
 - **The look** (2026-11-12): the night sky over the sea, and under it the darkened layers of ansimuz's Underwater Fantasy (`Backdrop.PLACES["ocean"]`, each layer's
-  top at the surface), seen through the sea, which is see-through (`Pond.SEA_CLEAR_TOP`, `SEA_CLEAR_BOTTOM`); the floor is dark teal rock with weed on it
-  (`earth_seabed`, `lip_seabed`). The art is made by `tools/prepare_ocean_art.py` from the downloads (see `art/CREDITS.md`).
+  top at the surface), seen through the sea, which is see-through (`Pond.SEA_CLEAR_TOP`, `SEA_CLEAR_BOTTOM`); the floor is sand (owner, 2026-11-12: sand, not stone;
+  `earth_seabed`, `lip_seabed`, the snow's drifts in a sand ramp). The view rests lower in the ocean (`World.SEA_VIEW`), so the floor and its wrecks are on
+  screen from mid-water (at the old height they were off the bottom of the screen). A bonfire under water goes out in a puff of steam (`Bonfire.drowned`).
+  Pictures from the player's own view: `tests/ocean_look.tscn -- out=DIR` (needs a window). The art is made by `tools/prepare_ocean_art.py` from the downloads (see `art/CREDITS.md`).
 - **The sea** is a row of `Pond`s with `deep = true` (`World._lay_sea`, lengths of `SEA_LENGTH`, 1536 px, so only those in view are drawn: one pond over the whole
   world drew so slowly in a window that a run never finished). It is a fixed rectangle, not the flowing `LiquidGrid` (`ground` is null), so a Sinkhole dug beside it
   does not fill from it. Out of its depth (`Pond.SWIM_DEPTH`, 44 px under the surface) a wizard swims (`Wizard.swim`): the jump key strokes up, S dives, and it sinks slowly.

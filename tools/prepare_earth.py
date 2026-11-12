@@ -18,7 +18,6 @@ RAMPS = {
     "swamp": ["#110c07", "#231910", "#382818", "#51392a", "#74543a"],  # soil, not rock: see dirt()
     "ash": ["#080505", "#130d0d", "#201515", "#33201e", "#522b22"],
     "church": ["#0a0813", "#14121f", "#1f1d33", "#2e2c48", "#423f62"],
-    "seabed": ["#050c10", "#0b1a1f", "#13282d", "#1c3a3c", "#2a4f4d"],  # the ocean's floor: rock gone dark teal under the sea
 }
 
 # the grassy lip along every surface: blade dark, blade, blade light, and the moss under it
@@ -28,7 +27,6 @@ LIPS = {
     "swamp": ["#101c14", "#1d3322", "#33513a", "#5a7a4a"],
     "ash": ["#2a1010", "#4a1a14", "#7a2c1c", "#b0502a"],
     "church": ["#14121f", "#22203a", "#37345a", "#55527f"],
-    "seabed": ["#0f2422", "#1a3a32", "#2c5446", "#4a7460"],  # weed on the sea floor
 }
 
 
@@ -150,12 +148,14 @@ def dirt(name: str, ramp: list[str], seed: int) -> None:
 
 
 SNOW = ["#7f98bd", "#b0c7de", "#cfdfee", "#e8f2f9", "#f8fcff"]  # deep shade, shade, snow, lit snow, glint
+SAND = ["#2e2b22", "#433e30", "#575040", "#6b624c", "#857a5e"]  # the sea floor of the ocean (owner, 2026-11-12: sand, not stone): drifts like the snow's, in the dark
 
 
-def snowpack(seed: int) -> None:
-    """Snow over the high rock: soft drifts of the snow ramp with the odd glint, seamless. Made the way dirt() is, with no seams or stones."""
+def snowpack(seed: int, ramp: list[str] = SNOW, name: str = "snow") -> None:
+    """Snow over the high rock: soft drifts of the snow ramp with the odd glint, seamless. Made the way dirt() is, with no seams or stones.
+    Given the sand ramp, it is the sand of the sea floor."""
     rng = random.Random(seed)
-    cols = [tuple(int(c[i:i + 2], 16) for i in (1, 3, 5)) for c in SNOW]
+    cols = [tuple(int(c[i:i + 2], 16) for i in (1, 3, 5)) for c in ramp]
     grid = {}
 
     def at(cells, ix, iy):
@@ -185,14 +185,15 @@ def snowpack(seed: int) -> None:
     for _ in range(SIZE // 3):  # glints
         px[rng.randrange(SIZE), rng.randrange(SIZE)] = cols[4]
     img = img.resize((SIZE * 2, SIZE * 2), Image.NEAREST)
-    img.save("art/tiles/earth_snow.png")
-    print("wrote snowpack")
+    img.save(f"art/tiles/earth_{name}.png")
+    print("wrote snowpack", name)
 
 
-def snow_lip(seed: int) -> None:
-    """The edge of the snow along a ridge: rounded drifts piled over the rock, lit on top, blue in their shade, with a ragged lower edge."""
+def snow_lip(seed: int, ramp: list[str] = SNOW, name: str = "snow") -> None:
+    """The edge of the snow along a ridge: rounded drifts piled over the rock, lit on top, blue in their shade, with a ragged lower edge.
+    Given the sand ramp, it is the rippled top of the sea floor."""
     rng = random.Random(seed)
-    cols = [tuple(int(c[i:i + 2], 16) for i in (1, 3, 5)) + (255,) for c in SNOW]
+    cols = [tuple(int(c[i:i + 2], 16) for i in (1, 3, 5)) + (255,) for c in ramp]
     w, h = 64, 14
     img = Image.new("RGBA", (w, h), (0, 0, 0, 0))
     px = img.load()
@@ -218,12 +219,14 @@ def snow_lip(seed: int) -> None:
                 c = 0
             px[x, y] = cols[c]
     img = img.resize((w * 2, h * 2), Image.NEAREST)
-    img.save("art/tiles/lip_snow.png")
-    print("wrote lip snow")
+    img.save(f"art/tiles/lip_{name}.png")
+    print("wrote lip", name)
 
 
 snowpack(90)
 snow_lip(91)
+snowpack(92, SAND, "seabed")
+snow_lip(93, SAND, "seabed")
 for i, (n, r) in enumerate(RAMPS.items()):
     if n == "swamp":
         dirt(n, r, 7 + i)

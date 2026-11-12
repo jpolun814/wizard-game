@@ -179,6 +179,8 @@ func _fade_backdrops(delta: float) -> void:
 
 
 func _begin_encounter(camera: Camera2D) -> void:
+	if not _sea.is_empty():  # the ocean: the view rests lower, so that the sea floor and the wrecks on it are on screen from mid-water (it does not move from place to place)
+		(camera as GameCamera).set_rest_offset(Vector2(0.0, SEA_VIEW))
 	_lay_pages()
 	_restore_player()
 	player.flying = _flies()
@@ -497,6 +499,7 @@ func _raise_biome_life() -> void:
 
 const SEA_LENGTH := 1536.0  # how long each length of the sea is
 const START_RAFT := 160.0   # how wide the driftwood a wizard starts on is
+const SEA_VIEW := 30.0      # where the view rests in the ocean, against the feet (elsewhere it is 150 px over them): far enough down to see the floor
 
 
 ## The ocean: the sea over the whole world (a deep Pond), driftwood floating on it, kelp and wrecks on its floor.
@@ -526,6 +529,8 @@ func _lay_sea() -> void:
 		add_child(wreck)
 	var starts: Array = graph.surface["starts"].duplicate()  # where nothing else floats: the starting places, and the rafts
 	for spawn in _spawn_tiles:  # each wizard starts on a raft of driftwood over its place, out at sea
+		if spawn.y + 1 <= int(_sea["row"]):
+			continue  # (a place on an island stands on the island)
 		var raft := Driftwood.new()
 		raft.width = START_RAFT
 		raft.phase = rng.randf() * TAU
@@ -945,8 +950,8 @@ func _stand_at(tile: Vector2i) -> Vector2:
 		var air: Dictionary = graph.surface["air"]
 		var along := 0.3 + 0.4 * fposmod(float(tile.x) * 0.37, 1.0)
 		return Vector2((tile.x + 0.5) * TILE, lerpf(air["top"], air["bottom"], along) * TILE)
-	if not _sea.is_empty():  # the ocean: a wizard starts on the driftwood floating over its place (see _lay_sea), not on the sea floor
-		return Vector2((tile.x + 0.5) * TILE, float(_sea["row"]) * TILE)
+	if not _sea.is_empty():  # the ocean: a wizard starts on the driftwood floating over its place (see _lay_sea), not on the sea floor; or on the island, if it is one
+		return Vector2((tile.x + 0.5) * TILE, minf(float(_sea["row"]), tile.y + 1.0) * TILE)
 	return Vector2((tile.x + 0.5) * TILE, (tile.y + 1) * TILE)
 
 

@@ -391,6 +391,7 @@ GODOT="/c/Users/Jordan Polun/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.
 "$GODOT" --path . tests/marks_look.tscn -- out=DIR             # pictures of the Hex, Fight or Flight and Moonbeam marks (needs a window)
 "$GODOT" --path . tests/minimap_check.tscn  # the minimap stays in the top right corner as the window is resized
 "$GODOT" --headless --fixed-fps 60 --path . tests/ocean_world_check.tscn  # the sea over the world in lengths, wrecks with air pockets, driftwood and kelp, a wizard out of its depth swims and loses breath
+"$GODOT" --path . tests/ocean_look.tscn -- out=DIR  # pictures of the ocean from the player's own view: the raft, the surface over a wreck, the wrecks on the floor (needs a window)
 "$GODOT" --headless --fixed-fps 60 --path . tests/sky_world_check.tscn  # everyone flies and drifts down, pages drift and are lost, clouds rise, thunderclouds are dangers, spells that need ground are refused
 "$GODOT" --headless --fixed-fps 60 --path . tests/eruption_check.tscn -- seed=5  # an ashlands volcano erupts: a smoke plume, lava over the rim that cools and goes (add `out=DIR` for pictures, needs a window)
 "$GODOT" --headless --fixed-fps 60 --path . tests/stalagmite_check.tscn  # a Stalagmite rises from the ground under the tip of a drawn peak (add `-- out=DIR` for a picture, needs a window)
