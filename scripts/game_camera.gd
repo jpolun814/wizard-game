@@ -38,18 +38,31 @@ static func shake_px(tree: SceneTree) -> float:
 	return camera._trauma * camera._trauma * MAX_OFFSET if camera else 0.0
 
 
-## Shakes the camera in the current scene, if there is one. Call it from anywhere.
+## Shakes the camera in the current scene, if there is one, and the screen every AI wizard would have (Eyes): a shake that reaches a person's
+## screen reaches theirs too, and their hand shakes with it as a person's does (WizardBrain._shaken). Call it from anywhere.
 static func shake_scene(tree: SceneTree, amount: float) -> void:
 	var camera := tree.get_first_node_in_group("game_camera") as GameCamera
 	if camera:
 		camera.shake(amount)
+	for wizard: Wizard in tree.get_nodes_in_group("wizards"):
+		if wizard.eyes != null:
+			wizard.eyes.shake(amount)
 
 
-## Shakes the camera only as much as the player is near the thing that shook: fully at its feet, not at all from `reach` away.
+## Shakes each screen only as much as its wizard is near the thing that shook: fully at its feet, not at all from `reach` away. The camera
+## follows the player; an AI wizard's own screen (Eyes) follows it.
 static func shake_near(tree: SceneTree, at: Vector2, amount: float, reach: float) -> void:
 	var player := tree.get_first_node_in_group("player") as Node2D
-	if player != null:
-		shake_scene(tree, amount * clampf(1.0 - player.global_position.distance_to(at) / reach, 0.0, 1.0))
+	var camera := tree.get_first_node_in_group("game_camera") as GameCamera
+	if camera and player != null:
+		camera.shake(amount * _nearness(player.global_position, at, reach))
+	for wizard: Wizard in tree.get_nodes_in_group("wizards"):
+		if wizard.eyes != null:
+			wizard.eyes.shake(amount * _nearness(wizard.global_position, at, reach))
+
+
+static func _nearness(from: Vector2, at: Vector2, reach: float) -> float:
+	return clampf(1.0 - from.distance_to(at) / reach, 0.0, 1.0)
 
 
 func _process(delta: float) -> void:

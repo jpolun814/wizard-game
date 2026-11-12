@@ -98,11 +98,9 @@ func _wake(seed_value: int) -> void:
 	get_parent().add_child(_plume)
 
 
-## The ground shakes the camera of anyone near enough: the more the closer.
+## The ground shakes the screen of anyone near enough: the more the closer.
 func _shake(amount: float) -> void:
-	var player := get_tree().get_first_node_in_group("player") as Node2D
-	if player != null:
-		GameCamera.shake_scene(get_tree(), amount * clampf(1.0 - player.global_position.distance_to(global_position) / SHAKE_REACH, 0.0, 1.0))
+	GameCamera.shake_near(get_tree(), global_position, amount, SHAKE_REACH)
 
 
 ## Lava wells over the rim and runs down the mountain; the pool it makes cools once the eruption is over.

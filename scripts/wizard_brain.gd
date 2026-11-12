@@ -2483,13 +2483,12 @@ func _handed(points: PackedVector2Array) -> PackedVector2Array:
 	return out
 
 
-## While the ground shakes, each point of the wizard's stroke is nudged by the screen's shake, the same amount the
-## player's stroke is nudged by the shaking view.
+## While its screen shakes (an earthquake, an eruption or an avalanche near it, a boulder landing, a thunderclap: whatever shakes a person's
+## screen, see Eyes.shake), each point of the wizard's stroke is nudged by the shake, as a person's stroke is nudged by the shaking view.
 func _shaken(points: PackedVector2Array) -> PackedVector2Array:
-	var tree := wizard.get_tree()
-	if not Earthquake.is_shaking(tree):
+	var px := wizard.eyes.shake_px() if wizard.eyes != null else 0.0
+	if px < 0.5:
 		return points
-	var px := GameCamera.shake_px(tree)
 	var shaken := PackedVector2Array()
 	for p in points:
 		shaken.append(p + Vector2(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)) * px)

@@ -100,11 +100,9 @@ func _physics_process(delta: float) -> void:
 				SpellTargets.hurt(wizard, DAMAGE, "Air")
 
 
-## The ground shakes the camera of anyone near enough: the more the closer.
+## The ground shakes the screen of anyone near enough: the more the closer.
 func _shake(from: Vector2, amount: float) -> void:
-	var player := get_tree().get_first_node_in_group("player") as Node2D
-	if player != null:
-		GameCamera.shake_scene(get_tree(), amount * clampf(1.0 - player.global_position.distance_to(from) / SHAKE_REACH, 0.0, 1.0))
+	GameCamera.shake_near(get_tree(), from, amount, SHAKE_REACH)
 
 
 ## True over the slope while it rumbles, and along the front of the snow while it runs.

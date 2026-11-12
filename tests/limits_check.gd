@@ -4,7 +4,8 @@ extends Node
 ## - it sees only its own screen, and no one faded from sight by Sneak (the person at this machine included), unless a hex's star is over them;
 ## - a Decoy it did not see come out of nothing is taken for its caster;
 ## - a stroke must lie on its screen, only one is drawn at a time, none while a chant is typed;
-## - the view follows the wizard, so a stroke drawn on the move is dragged: a click held still while walking draws a line.
+## - the view follows the wizard, so a stroke drawn on the move is dragged: a click held still while walking draws a line;
+## - its screen shakes as a person's would (an eruption or avalanche near it, an earthquake anywhere), and its hand shakes with it.
 ##
 ##     godot --headless --fixed-fps 60 --path . tests/limits_check.tscn
 
@@ -140,6 +141,18 @@ func _ready() -> void:
 	_verdict(not brain._ready_to_cast("Ignite"), "a spell whose page was just read is not drawn at once")
 	await _frames(int(WizardBrain.READ_MAX * 60.0) + 5)
 	_verdict(brain._ready_to_cast("Ignite"), "but is once the page has been looked at")
+
+	# Shaking: a shake near the wizard shakes its own screen and its stroke; one far off does not; a still screen leaves the stroke alone.
+	var line := PackedVector2Array([looker.global_position + Vector2(0, -40), looker.global_position + Vector2(80, -40)])
+	await _frames(int(2.0 * 60.0))  # (whatever shook before has died away)
+	_verdict(looker.eyes.shake_px() < 0.5 and brain._shaken(line) == line, "a still screen leaves a stroke as it was drawn")
+	GameCamera.shake_near(get_tree(), looker.global_position + Vector2(5000.0, 0.0), 0.8, 900.0)
+	_verdict(looker.eyes.shake_px() < 0.5, "an eruption far off does not shake its screen")
+	GameCamera.shake_near(get_tree(), looker.global_position + Vector2(100.0, 0.0), 0.8, 900.0)
+	var shaken := brain._shaken(line)
+	_verdict(looker.eyes.shake_px() > 2.0 and shaken != line, "one close by shakes its screen (%.1f px) and the stroke it draws with it" % looker.eyes.shake_px())
+	await _frames(int(3.0 * 60.0))
+	_verdict(looker.eyes.shake_px() < 0.5, "and the shake dies away as a person's does")
 
 	print("a brain is held to a person's limits" if _failures == 0 else "%d FAILED" % _failures)
 	get_tree().quit(1 if _failures > 0 else 0)

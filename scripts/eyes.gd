@@ -30,6 +30,7 @@ var wizard: Wizard
 var _at := Vector2.ZERO  # the camera's own position (before the rest offset), smoothed
 var _started := false
 var _followed := -100  # the physics frame the view last followed the wizard on
+var _trauma := 0.0      # how hard this screen shakes (GameCamera's measure): the hand drawing on it shakes with it
 
 
 func _init(owner: Wizard) -> void:
@@ -39,6 +40,7 @@ func _init(owner: Wizard) -> void:
 ## One physics step: the view catches up with the wizard as the camera would.
 func follow(delta: float) -> void:
 	_followed = Engine.get_physics_frames()
+	_trauma = maxf(_trauma - GameCamera.DECAY * delta * 0.25, 0.0)
 	var target := wizard.global_position
 	if not _started or target.distance_to(_at) > 2000.0:  # the first step, or a jump to a new world: the camera starts there
 		_at = target
@@ -52,6 +54,16 @@ func follow(delta: float) -> void:
 func snap() -> void:
 	_at = wizard.global_position
 	_started = true
+
+
+## The screen shakes, as a person's does (GameCamera.shake_scene and shake_near shake every wizard's).
+func shake(amount: float) -> void:
+	_trauma = minf(_trauma + amount, 1.0)
+
+
+## How far this screen is moving now, in pixels: what a stroke drawn on it is nudged by, as GameCamera.shake_px is for a person.
+func shake_px() -> float:
+	return _trauma * _trauma * GameCamera.MAX_OFFSET
 
 
 ## How far the view will slide over the next stretch of time if the wizard keeps going as it is (falling under gravity, when in the air): the drag a
