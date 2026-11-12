@@ -59,8 +59,13 @@ Whether driftwood is a few big pieces or many small ones, how much kelp, and the
 
 ## As built (2026-11-11)
 
-Check: `tests/ocean_world_check.tscn`. The world is `ocean` ("The Drowned Sea"): a rolling floor 12 to 19 rows under the sea (`SurfaceGen._offsets`), islands to
-start on (`_sea_islands`), and `surface["sea"]` ({row, depth, islands, wrecks, landmarks}).
+Check: `tests/ocean_world_check.tscn`. The world is `ocean` ("The Drowned Sea"): a rolling floor 12 to 19 rows under the sea (`SurfaceGen._offsets`), very few
+islands (`_sea_islands`: the middle one and one or two more, `ISLANDS_MOST`; owner, 2026-11-12: "primarily an underwater world, with *some* very sparse islands"),
+and `surface["sea"]` ({row, depth, islands, wrecks, landmarks}). The wizards start on rafts of driftwood out at sea (`World.START_RAFT`, `World._stand_at`): their
+spawn tiles stay on the sea floor below, which is what the wizards' map of the ways is built from.
+- **The look** (2026-11-12): the night sky over the sea, and under it the darkened layers of ansimuz's Underwater Fantasy (`Backdrop.PLACES["ocean"]`, each layer's
+  top at the surface), seen through the sea, which is see-through (`Pond.SEA_CLEAR_TOP`, `SEA_CLEAR_BOTTOM`); the floor is dark teal rock with weed on it
+  (`earth_seabed`, `lip_seabed`). The art is made by `tools/prepare_ocean_art.py` from the downloads (see `art/CREDITS.md`).
 - **The sea** is a row of `Pond`s with `deep = true` (`World._lay_sea`, lengths of `SEA_LENGTH`, 1536 px, so only those in view are drawn: one pond over the whole
   world drew so slowly in a window that a run never finished). It is a fixed rectangle, not the flowing `LiquidGrid` (`ground` is null), so a Sinkhole dug beside it
   does not fill from it. Out of its depth (`Pond.SWIM_DEPTH`, 44 px under the surface) a wizard swims (`Wizard.swim`): the jump key strokes up, S dives, and it sinks slowly.
@@ -68,7 +73,7 @@ start on (`_sea_islands`), and `surface["sea"]` ({row, depth, islands, wrecks, l
   map of ways, made for legs: following it, wizards bobbed at the top and drowned at the world's edge), a stroke at a person's pace, and up for air when its
   breath would only just last the way: straight up, or to open water to one side, or to an air pocket.
 - **Breath** is the only pressure: nothing else is added. A `Wreck` has an `AirPocket` (150 by 110 px) where the sea does not reach, and a page lies in each wreck.
-- **Driftwood** (`Driftwood`) is a one-way platform at the waterline; **kelp** (`KelpPatch`) slows and hides (a `sight_blockers` member); wrecks are of the church and town props.
+- **Driftwood** (`Driftwood`) is a one-way platform at the waterline; **kelp** (`KelpPatch`) slows and hides (a `sight_blockers` member); a wreck is CraftPix's sunken galleon (`art/props/shipwreck.png`), cut to the open water (`Wreck.clip`) so the floor hides its buried sand, with its air pocket in the broken stern (`Wreck.HOLD`).
 - **Fire** fizzles under water; spells that need ground work on the sea floor (they are refused only in the sky).
-- **Not verified:** how swimming feels, the balance of breath against the distance between air pockets, and a close look at the water by the wrecks (only a picture
-  from an island was looked at).
+- **Not verified:** how swimming feels, the balance of breath against the distance between air pockets, and the look of the rafts (plain planks of the town pack). Pictures of the surface,
+  the open water and a wreck were looked at (`tests/arena_sim.tscn -- seed=5 stage=1 watch=1 follow=2 shot=FILE shotat=8`).

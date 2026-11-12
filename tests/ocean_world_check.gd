@@ -1,6 +1,6 @@
 extends Node
 
-## The ocean world (chapter 20): a sea over the whole world, islands to start on, wrecks with an air pocket and a page, driftwood to stand on, kelp that hides.
+## The ocean world (chapter 20): a sea over the whole world with very few islands, driftwood to start on, wrecks with an air pocket and a page, driftwood to stand on, kelp that hides.
 ## A wizard out of its depth swims; its breath runs out under water and comes back in an air pocket.
 ##
 ##     godot --headless --fixed-fps 60 --path . tests/ocean_world_check.tscn
@@ -82,7 +82,7 @@ func _run(world: World) -> void:
 	_check(wizard.breath < before, "and its breath runs down under the water")
 	# The same wizard in a wreck's air pocket keeps its breath.
 	var wreck: Wreck = world.get_children().filter(func(n: Node) -> bool: return n is Wreck).front()
-	_check(AirPocket.holds(get_tree(), wreck.global_position + Vector2(0.0, -40.0)), "a wreck has an air pocket")
+	_check(AirPocket.holds(get_tree(), wreck.pocket.global_position + Vector2(0.0, -40.0)), "a wreck has an air pocket")
 	# Refusals: a spell that needs ground fizzles under water for want of it.
 	_check(SpellLimits.refusal(wizard, "Fire Breath") != "", "fire fizzles under water")
 	_check(SpellLimits.refusal(wizard, "Stone Wall") == "" or SpellLimits.refusal(wizard, "Stone Wall") != "No ground", "a Stone Wall can still be raised on the sea floor")

@@ -21,6 +21,8 @@ const RIM_OVERLAP := 12.0 # how far liquid runs under the ground beside it, to h
 const WATER_TOP := Color(0.15, 0.34, 0.5)     # the colours of water: lighter at the surface, darker below, with a bright edge
 const WATER_BOTTOM := Color(0.05, 0.1, 0.24)
 const WATER_RIM := Color(0.6, 0.78, 0.88)
+const SEA_CLEAR_TOP := 0.45     # how much of the deep sea's colour covers what lies behind it, at the surface and at the bottom
+const SEA_CLEAR_BOTTOM := 0.8
 const READ_CELLS := 256   # the most cells of new ground read in a frame, so that a pool spreading never stalls the game
 const GROW := 12           # cells added at an edge the liquid has run up to
 const EDGE_WET := 0.05     # how much liquid at the edge of its grid makes it grow
@@ -545,6 +547,9 @@ func _draw() -> void:
 	var top := Color(0.92, 0.4, 0.1) if lava else WATER_TOP
 	var bottom := Color(0.4, 0.07, 0.05) if lava else WATER_BOTTOM
 	var rim := Color(0.95, 0.68, 0.25) if lava else WATER_RIM
+	if deep:  # the sea of the ocean is see-through, so the scenery under it shows, fading with depth
+		top.a = SEA_CLEAR_TOP
+		bottom.a = SEA_CLEAR_BOTTOM
 	if cools and lava:  # cooling lava goes dark
 		var crust := (1.0 - _heat) * 0.35  # it dulls, but never looks like anything that is safe to touch
 		top = top.lerp(CRUST, crust)

@@ -351,7 +351,6 @@ func _build_contour() -> void:
 	_rock_world.grass_texture = lip
 	var snow_spans := []
 	for span: Dictionary in ArenaGen.biome_spans:  # each biome's grass is cut from its own tiles
-		var atlas: Texture2D = load("res://art/tiles/%s.png" % span["tiles"])
 		var entry := {"a": span["a"] * t, "b": (span["b"] + 1) * t, "texture": load("res://art/tiles/lip_%s.png" % span["tiles"])}
 		if span.has("snow"):  # the high ground of a biome is snowy
 			snow_lip = load("res://art/tiles/lip_snow.png")  # drifts along the ridges, and a pack of snow over the high rock (see tools/prepare_earth.py)

@@ -121,7 +121,7 @@ func _set_up_backdrops() -> void:
 		if child is Backdrop:
 			child.queue_free()  # the one the arena made, which has no ground of its own to stand on
 	var ground_y := float(SurfaceGen.BASE_ROW * TILE)
-	for place in ["cemetery", "jungle", "mountains", "ashlands", "sky"]:
+	for place in ["cemetery", "jungle", "mountains", "ashlands", "sky", "ocean"]:
 		var backdrop := Backdrop.new()
 		add_child(backdrop)
 		move_child(backdrop, 0)
@@ -496,6 +496,7 @@ func _raise_biome_life() -> void:
 
 
 const SEA_LENGTH := 1536.0  # how long each length of the sea is
+const START_RAFT := 160.0   # how wide the driftwood a wizard starts on is
 
 
 ## The ocean: the sea over the whole world (a deep Pond), driftwood floating on it, kelp and wrecks on its floor.
@@ -520,9 +521,17 @@ func _lay_sea() -> void:
 		var at_column: int = wrecks[k]
 		var wreck := Wreck.new()
 		wreck.seed_value = seed_value + 83 + k
+		wreck.clip = _ground.air_loops
 		wreck.position = Vector2((at_column + 0.5) * tile, floors[at_column] * tile)
 		add_child(wreck)
-	var starts: Array = graph.surface["starts"]
+	var starts: Array = graph.surface["starts"].duplicate()  # where nothing else floats: the starting places, and the rafts
+	for spawn in _spawn_tiles:  # each wizard starts on a raft of driftwood over its place, out at sea
+		var raft := Driftwood.new()
+		raft.width = START_RAFT
+		raft.phase = rng.randf() * TAU
+		raft.position = _stand_at(spawn)
+		add_child(raft)
+		starts.append(spawn.x)
 	var column := SurfaceGen.MARGIN + 20
 	while column < floors.size() - SurfaceGen.MARGIN - 20:  # driftwood on the waterline over the deep, kelp on the floor below it
 		var step := rng.randi_range(9, 16)
@@ -936,6 +945,8 @@ func _stand_at(tile: Vector2i) -> Vector2:
 		var air: Dictionary = graph.surface["air"]
 		var along := 0.3 + 0.4 * fposmod(float(tile.x) * 0.37, 1.0)
 		return Vector2((tile.x + 0.5) * TILE, lerpf(air["top"], air["bottom"], along) * TILE)
+	if not _sea.is_empty():  # the ocean: a wizard starts on the driftwood floating over its place (see _lay_sea), not on the sea floor
+		return Vector2((tile.x + 0.5) * TILE, float(_sea["row"]) * TILE)
 	return Vector2((tile.x + 0.5) * TILE, (tile.y + 1) * TILE)
 
 

@@ -176,4 +176,10 @@ Drawn pixel by pixel by `tools/make_shot_art.py`. No outside source and nothing 
 
 `art/mobs/sentinel/` (the sentinel's eye) is cut from [Floating Eyeball Enemy](https://blueapollo.itch.io/floating-eyeball-enemy) by blueapollo (CC0): its first eight frames are the watching loop and the third row is the flash of a shot. The sheet is not kept in the repo.
 
+## The ocean world (made by `tools/prepare_ocean_art.py`, darkened and turned toward teal; the downloads are not kept in the repo)
+
+- `art/backgrounds/ocean/` (far, sand, rocks, weeds): the layers of [Underwater Fantasy](https://opengameart.org/content/underwater-fantasy) by ansimuz, CC-BY 3.0. Credit: "Underwater Fantasy by ansimuz".
+- `art/props/shipwreck.png`: the wrecked galleon layer of [Wrecked and Sunken Ship Pixel Background](https://opengameart.org/content/wrecked-and-sunken-ship-pixel-background) by CraftPix.net, OGA-BY 3.0. Credit: "Wrecked and Sunken Ship by CraftPix.net".
+- `art/tiles/earth_seabed.png`, `lip_seabed.png`: made by `tools/prepare_earth.py`, as every biome's ground is.
+
 `art/fx/scythe.png` (the Scythe spell's blade) is pixel art drawn for the game (`tools/make_scythe.py`; the owner approved it, but agents should not draw art).

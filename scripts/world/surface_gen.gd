@@ -20,12 +20,13 @@ const CRATER_WIDTH := 16    # the bowl in a volcano's top
 const BIOMES := ["graveyard", "mountains", "jungle", "ashlands", "castle", "underground", "portals", "ocean", "sky"]  # one of these is the whole of a world
 const OPEN_BIOMES := ["graveyard", "mountains", "jungle", "ashlands", "portals", "sky"]  # those with open sky and room to spare: the last world of a match is one of them (the ocean has a sea over it, not open sky)
 
-## The ocean (chapter 20): one sea over the whole world, its surface SEA_ROW, over a floor SEA_DEPTH_LEAST to SEA_DEPTH_MOST rows down, with a few dark islands standing out of it.
+## The ocean (chapter 20): one sea over the whole world, its surface SEA_ROW, over a floor SEA_DEPTH_LEAST to SEA_DEPTH_MOST rows down, with very few dark islands standing out of it.
 const SEA_ROW := BASE_ROW + 1   # the surface of the sea: an island's top (the plains' row) stands a row clear of it
 const SEA_DEPTH_LEAST := 12     # rows from the surface to the floor, where it is shallowest out at sea
 const SEA_DEPTH_MOST := 19
 const ISLAND_FLAT := 4          # columns each side of the middle of one of the sea's extra islands that are level
-const ISLAND_EVERY := 150       # columns of a world to each extra island (the starting places have islands of their own)
+const ISLAND_EVERY := 300       # columns of a world to each extra island, and at most ISLANDS_MOST (owner, 2026-11-12: the sea is mostly sea, its islands very few)
+const ISLANDS_MOST := 2
 const WRECK_EVERY := 70         # columns of a world to each wreck on the sea floor
 
 ## The sky (chapter 19): no ground, and a room a wizard flies in from SKY_TOP_ROW to SKY_BOTTOM_ROW. Far under it (SKY_FLOOR_ROW) lies rock that no one comes to: the world still has tiles, and it keeps them out of sight.
@@ -51,7 +52,7 @@ const LOOKS := {
 	"ashlands": {"title": "The Ashlands", "tiles": "ash", "weather": ["ash", "embers"], "backdrop": "ashlands", "tint": Color(1.12, 0.78, 0.7)},
 	"castle": {"title": "The Castle", "tiles": "church", "backdrop": "cemetery", "tint": Color(0.9, 0.92, 1.08)},
 	"portals": {"title": "The Portal Fields", "tiles": "cemetery", "backdrop": "cemetery", "tint": Color(0.72, 0.66, 0.9)},  # level and quiet: the portals are the whole of it
-	"ocean": {"title": "The Drowned Sea", "tiles": "stone", "backdrop": "cemetery", "tint": Color(0.62, 0.72, 0.8)},  # a dark sea under the blood moon's sky: the floor is bare rock
+	"ocean": {"title": "The Drowned Sea", "tiles": "seabed", "backdrop": "ocean", "tint": Color(0.62, 0.72, 0.8)},  # a dark sea under the night sky: the scenery is under the water, and the floor is weedy rock
 	"sky": {"title": "The Open Sky", "tiles": "stone", "backdrop": "sky", "tint": Color(0.86, 0.9, 1.0), "weather": ["fall_wind"]},  # nothing to stand on: everyone falls through it together
 	"underground": {"title": "The Deep", "tiles": "stone", "backdrop": "cemetery", "tint": Color(0.42, 0.4, 0.55)},  # under a roof of rock: no sky shows
 }
@@ -443,30 +444,28 @@ static func _relax(floor_row: PackedInt32Array, pinned: PackedByteArray, limits 
 			return
 
 
-## The ocean's islands, raised out of the sea floor in `offset` (rows from the plains, one for each column from the first the ground takes): one under each
-## place a wizard starts from, one in the middle, and a few more between them, each a level top with sides that fall away a row to a column. Returns the
-## columns of the extra ones, which are where pages lie.
+## The ocean's islands, raised out of the sea floor in `offset` (rows from the plains, one for each column from the first the ground takes): one in the
+## middle and one or two more, each a level top with sides that fall away a row to a column. The wizards start on driftwood out at sea, not on islands
+## (World._lay_sea). Returns the columns of the extra ones, which are where pages lie.
 static func _sea_islands(width: int, offset: PackedFloat32Array, rng: RandomNumberGenerator) -> Array[int]:
 	var bases: Array[int] = [width / 2]
-	for spot in _starts(width, [], []):
-		bases.append(spot)
-	var flats: Array[Vector2i] = []  # [middle, half the level top]
-	for spot in bases:
-		flats.append(Vector2i(spot, START_FLAT + 1))
+	var flats: Array[Vector2i] = [Vector2i(width / 2, START_FLAT + 1)]  # [middle, half the level top]
 	var extra: Array[int] = []
-	var wanted := maxi(2, width / ISLAND_EVERY)
+	var wanted := clampi(width / ISLAND_EVERY, 1, ISLANDS_MOST)
 	for k in wanted:
 		for attempt in 40:
 			var at := rng.randi_range(MARGIN + 30, width - MARGIN - 30)
 			var clear := true
 			for spot in bases + extra:
 				clear = clear and absi(at - spot) > 34
+			for spot in _starts(width, []):  # and clear of the driftwood the wizards start on
+				clear = clear and absi(at - spot) > 14
 			if clear:
 				extra.append(at)
 				flats.append(Vector2i(at, ISLAND_FLAT))
 				break
 	for flat in flats:
-		var top := 0 if flat.y > ISLAND_FLAT else -rng.randi_range(0, 1)  # a starting island is level with the plains, one of the others may stand a row higher
+		var top := 0 if flat.y > ISLAND_FLAT else -rng.randi_range(0, 1)  # the middle island is level with the plains, one of the others may stand a row higher
 		for c in range(maxi(flat.x - 80, MARGIN), mini(flat.x + 80, width - MARGIN)):
 			var reach := maxi(absi(c - flat.x) - flat.y, 0)
 			offset[c - MARGIN] = minf(offset[c - MARGIN], float(top + reach))

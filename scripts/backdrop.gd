@@ -34,6 +34,14 @@ const PLACES := {
 	]},
 	# The open sky: nothing but the sky, since there is no ground for scenery to stand on. The clouds that go by are real ones in the world (SkyCloud).
 	"sky": {"sky": "res://art/backgrounds/mountains/sky.png", "fill": Color("#101828"), "layers": []},
+	# The ocean: the night sky over the sea, and the scenery under it, from ansimuz's Underwater Fantasy (tools/prepare_ocean_art.py). Each layer's top
+	# is the surface of the sea (FLOOR + a row, SurfaceGen.SEA_ROW), so above the water there is only sky; the deep sea is drawn over them, see-through.
+	"ocean": {"sky": "res://art/backgrounds/mountains/sky.png", "fill": Color("#101828"), "layers": [
+		["res://art/backgrounds/ocean/far.png", Vector2(0.08, 1.0), 638.0, 0.0, false, 2.0],
+		["res://art/backgrounds/ocean/sand.png", Vector2(0.18, 1.0), 638.0, 0.0, false, 2.0],
+		["res://art/backgrounds/ocean/rocks.png", Vector2(0.3, 1.0), 638.0, 0.0, false, 2.0],
+		["res://art/backgrounds/ocean/weeds.png", Vector2(0.45, 1.0), 638.0, 0.0, false, 2.0],
+	]},
 	"church": {"sky": "", "fill": Color("#272638"), "layers": [
 		["res://art/backgrounds/church/hall.png", Vector2(0.3, 1.0), 212.0, 0.0, true, 2.0],
 	]},

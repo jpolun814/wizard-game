@@ -18,6 +18,7 @@ RAMPS = {
     "swamp": ["#110c07", "#231910", "#382818", "#51392a", "#74543a"],  # soil, not rock: see dirt()
     "ash": ["#080505", "#130d0d", "#201515", "#33201e", "#522b22"],
     "church": ["#0a0813", "#14121f", "#1f1d33", "#2e2c48", "#423f62"],
+    "seabed": ["#050c10", "#0b1a1f", "#13282d", "#1c3a3c", "#2a4f4d"],  # the ocean's floor: rock gone dark teal under the sea
 }
 
 # the grassy lip along every surface: blade dark, blade, blade light, and the moss under it
@@ -27,6 +28,7 @@ LIPS = {
     "swamp": ["#101c14", "#1d3322", "#33513a", "#5a7a4a"],
     "ash": ["#2a1010", "#4a1a14", "#7a2c1c", "#b0502a"],
     "church": ["#14121f", "#22203a", "#37345a", "#55527f"],
+    "seabed": ["#0f2422", "#1a3a32", "#2c5446", "#4a7460"],  # weed on the sea floor
 }
 
 
