@@ -421,7 +421,7 @@ func _plan() -> void:
 		"world":
 			_at(0.4, func() -> void:
 				var x: float = _player().global_position.x
-				var kinds := ["fire_melee", "ice_ranged", "earth_melee", "storm_flyer", "force_ranged", "dark_wizard", "pyre_wizard", "knight", "ninja"]
+				var kinds := ["basic", "earth_melee", "runner", "turret", "dark_wizard", "pyre_wizard", "knight", "giant"]
 				for i in kinds.size():
 					var mob := _summon_at(kinds[i], x + (i - 4.5) * 90.0)
 					mob.set_physics_process(false)
@@ -497,7 +497,7 @@ func _plan() -> void:
 		"soak":
 			# A few enemies stand about while the player, who cannot die, casts random spells at random spots. Only
 			# errors in the output matter; run it headless.
-			for kind in ["fire_melee", "ice_ranged", "earth_melee", "storm_flyer", "ninja", "dark_wizard"]:
+			for kind in ["basic", "earth_melee", "turret", "knight", "dark_wizard"]:
 				_summon_at(kind, _player().global_position.x + randf_range(-300.0, 300.0))
 			var rng := RandomNumberGenerator.new()
 			rng.seed = 2
@@ -527,10 +527,10 @@ func _plan() -> void:
 					_player().claw()
 					_snap("wild"))
 		"brawl":
-			# A mixed group comes for a player who stands still, to watch them chase, wind up, shoot and dive.
+			# A mixed group comes for a player who stands still, to watch them chase, wind up and shoot.
 			_at(0.3, func() -> void:
 				var x: float = _player().global_position.x
-				for entry in [["ninja", -180.0], ["giant", 260.0], ["pyre_wizard", -330.0], ["knight", 420.0], ["fire_melee", 120.0]]:
+				for entry in [["turret", -180.0], ["giant", 260.0], ["pyre_wizard", -330.0], ["knight", 420.0], ["basic", 120.0]]:
 					_summon_at(entry[0], x + entry[1]))
 			for i in 12:
 				_at(1.2 + i * 0.6, func() -> void: _snap())
@@ -796,13 +796,13 @@ func _plan_checks() -> void:
 	# A decoy draws a walker's attention.
 	_at(3.0, func() -> void: _reset_room(10, "Decoy"))
 	_at(3.1, func() -> void:
-		var walker: Node2D = _arena._add_mob("fire_melee", _feet(16))
+		var walker: Node2D = _arena._add_mob("basic", _feet(16))
 		walker._spawn = 0.0)
 	_at(3.2, func() -> void: _cast("Decoy", _stroke("eight", _feet(10) + Vector2(150, -50), 0.8)))
 	_at(3.8, func() -> void:
 		var walker: Node2D = null
 		for mob in tree.get_nodes_in_group("mobs"):
-			if mob.kind == "fire_melee":
+			if mob.kind == "basic":
 				walker = mob
 		check.call("a walker goes for the decoy instead of the wizard", walker != null and walker._target() is Decoy))
 	# A hex adds half again to the damage.
@@ -892,20 +892,6 @@ func _plan_checks() -> void:
 	_at(33.2, func() -> void: _snap("bonfire"))
 	_at(33.6, func() -> void:
 		_arena.get_tree().call_group("mobs", "queue_free"))
-	_at(33.7, func() -> void:
-		var x: float = _player().global_position.x + 200.0
-		var thrower := _summon_at("ninja", x)
-		var friend := _summon_at("ninja", x + 120.0)
-		for mob in [thrower, friend]:
-			if mob is Mob:
-				mob._spawn = 0.0
-			mob.set_physics_process(false)
-		EnemyBolt.fire(_arena, thrower.center(), friend.center(), Color.WHITE, 5, 0.0, false, "ninja_star", thrower))
-	_at(34.4, func() -> void:
-		var friend: Node2D = null
-		for mob in _arena.get_tree().get_nodes_in_group("mobs"):
-			friend = mob if friend == null or mob.global_position.x > friend.global_position.x else friend
-		check.call("a ninja's star flies through another ninja", friend != null and friend.hp == friend.max_hp))
 	_at(35.0, func() -> void:
 		print("%d checks failed" % failures[0])
 		_exit_code = 1 if failures[0] > 0 else 0)

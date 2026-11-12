@@ -2,7 +2,7 @@ class_name Earthquake
 extends Node
 
 ## An earthquake that shakes the whole arena for several seconds. The screen shakes, and everything on the ground is
-## knocked from side to side on a beat. Flyers are untouched. While it lasts, strokes drawn on the ground are nudged by
+## knocked from side to side on a beat. While it lasts, strokes drawn on the ground are nudged by
 ## the same shake as the screen, and ranged enemies aim wide.
 
 const SECONDS := 6.0
@@ -37,7 +37,7 @@ func _physics_process(delta: float) -> void:
 		_beat = BEAT
 		_side = -_side
 		for mob in get_tree().get_nodes_in_group("mobs"):
-			if not mob.is_dead() and mob.KINDS[mob.kind].role != "flyer":
+			if not mob.is_dead():
 				mob.knock_back(Vector2(_side * KNOCK, 0.0))
 		if is_instance_valid(caster):  # a quake brings down the wall or the plug of ice near the wizard who made it
 			for thing in get_tree().get_nodes_in_group("breakables"):

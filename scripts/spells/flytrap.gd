@@ -2,7 +2,7 @@ class_name Flytrap
 extends FloraSpell
 
 ## Flytrap: a plant grows on the ground where the jaws were drawn and waits, up to a minute. Whoever steps on it is
-## snapped up and held, you included. Flyers pass over, and so does anyone who jumps. Fire burns it.
+## snapped up and held, you included. Anyone who jumps passes over. Fire burns it.
 
 const WAIT_SECONDS := 60.0
 const REACH := 28.0       # how close to its middle a foot has to come
@@ -79,11 +79,9 @@ func _physics_process(delta: float) -> void:
 				_release()
 
 
-## Who is standing on the plant: a walker on the ground within reach. Flyers never are, and neither is anyone in the air.
+## Who is standing on the plant: anyone on the ground within reach, not in the air over it.
 func _prey() -> Node2D:
 	for body in SpellTargets.all(get_tree()):
-		if body.is_in_group("mobs") and body.KINDS[body.kind].role == "flyer":
-			continue
 		var feet: Vector2 = body.global_position
 		if absf(feet.x - global_position.x) <= REACH and feet.y >= global_position.y - 20.0 and feet.y <= global_position.y + 12.0:
 			return body

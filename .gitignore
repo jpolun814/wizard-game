@@ -6,3 +6,4 @@ Wizard-character-FreeSprite.zip
 
 # Exported builds (see .github/workflows/build.yml)
 /build/
+__pycache__/

@@ -2866,7 +2866,7 @@ func _own_walkers_near(reach: float) -> int:
 	var count := 0
 	var target: Wizard = _foe
 	for other in wizard.get_tree().get_nodes_in_group("mobs"):
-		if other.is_dead() or other.KINDS[other.kind].role == "flyer":
+		if other.is_dead():
 			continue
 		if other.center().distance_to(target.center()) < reach:
 			count += 1

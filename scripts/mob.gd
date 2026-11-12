@@ -1,13 +1,10 @@
 class_name Mob
 extends CharacterBody2D
 
-## An enemy. Each one has a role (melee walker, ranged shooter or flyer) and a school. The school sets its
-## colour and what it is weak or resistant to. Some schools also give their enemies a particular trick.
-## The creatures are LuizMelo's skeleton, goblin, mushroom and flying eye (art/mobs). Each keeps its own colours with an
-## outline in its school's colour. (The wizards are not mobs: see Wizard.) "scale" draws a
-## creature bigger, always at a whole number of pixels so the pixel art stays sharp.
-## A walker's origin is at its feet, so it stands exactly on the ground; a flyer's is the middle of its body.
-## Every attack is telegraphed: walkers wind up, shooters charge a glow, flyers hover before they dive.
+## A creature: the skeletons (the graveyard's dead, a crypt's guard, a raised skeleton, the tutorial's), the giant, the castle's knights, and the
+## practice dummy and turret. Each is a walker or a shooter, and some have a school, which sets an outline in its colour and what it is weak or
+## resistant to. (The wizards are not mobs: see Wizard.) "scale" draws a creature bigger, always at a whole number of pixels so the pixel art
+## stays sharp. Its origin is at its feet, so it stands exactly on the ground. Every attack is telegraphed: walkers wind up, shooters charge a glow.
 
 ## Every kind of enemy, by the name it is summoned by, each a MobKind resource read from res://mobs/ in the order they are meant to be listed.
 static var KINDS: Dictionary = _load_kinds()
@@ -39,18 +36,11 @@ const SMASH_WALL_DAMAGE := 200.0  # a smash breaks a stone wall or a boulder out
 const SMASH_MOB_DAMAGE := 20  # and hurts any other enemy close to it
 const SMASH_STUCK := 3.0      # the first stomp sticks the player in the ground this long
 const SMASH_SPOTS := 8        # the ground the stomp lands on is marked at this many points, from the giant out
-const BURST_GAP := 0.09      # the gap between the stars of one burst
 const GIANT_JUMP := -640.0    # a giant leaps higher than a plain walker: onto ledges, and over walls
-const SLASH_RANGE := 70.0    # a ninja this close to the player strikes with its sword
-const SLASH_DAMAGE := 6
-const SLASH_COOLDOWN := 0.8  # and waits this long between strikes
 const CHARGE := 0.45          # a shooter's glow builds this long before it fires
-const DIVE_WARNING := 0.4     # a flyer hangs and shakes this long before it dives
 const KNOCK_DECAY := 1500.0
 const MOB_JUMP := -420.0      # enough to clear two blocks
 const MOB_JUMP_HIGH := -560.0 # enough to reach a platform when the player is up on one
-const BURST_DAMAGE := 6       # a Stormrunner's explosion hurts everything close by this much
-const BURST_RADIUS := 60.0
 const GUARD_NOTICE := 330.0    # a guard (a knight) notices a wizard this close, and goes back to its post once they are farther than that
 const ROAM_NOTICE := 560.0     # a roaming enemy notices the player this close, and loses them again past a little farther
 const FOLLOW_GAP := 110.0      # a raised skeleton with no one to fight keeps about this close to its master
@@ -58,17 +48,9 @@ const FOLLOW_REACH := 1100.0   # and goes no farther than this to find them
 const DECOY_NOTICE := 520.0    # a decoy this close is noticed, and attacked instead of the player
 const SPIT_RANGE := 480.0       # a ranged enemy fires from this far away
 const SPIT_STAND_RANGE := 300.0 # and stops walking once it is this close
-const FLY_SPEED := 120.0        # how fast a flyer drifts while it patrols
-const DIVE_SPEED := 340.0       # how fast a flyer dives at you
-const RETREAT_SPEED := 240.0    # how fast it flies away after a dive
-const FROST_TRAIL_INTERVAL := 0.8
 const GET_UP := 10.0           # a fainted enemy stands up when its stamina is this high again
 const STAMINA_CAP := 100.0     # the most stamina an enemy has
 const SPAWN_TIME := 0.7         # enemies fade in over a summoning circle and cannot act until it is done
-const PATROL := 0
-const DIVE := 1
-const RETREAT := 2
-const HOVER := 3
 const CREATURE_ANIMATIONS := {
 	"idle": {"fps": 8.0}, "walk": {"fps": 10.0}, "attack": {"fps": 14.0, "loop": false},
 	"hit": {"fps": 12.0, "loop": false}, "death": {"fps": 8.0, "loop": false},
@@ -119,32 +101,18 @@ var _nojump_time: float: # while above zero, the walker cannot jump (mudslide)
 var _frozen_time: float:
 	get: return _status.left(&"frozen")
 	set(seconds): _status.set_left(&"frozen", seconds)
-var _flame: Node2D  # a burning walker's flame; it goes out while the walker is frozen
-var _relight := 0.0  # seconds until the flame is lit again after a freeze
 var _base_scale := 1.0
 var _lunge := 0.0        # 1 the moment an enemy attacks, fading to 0: it lunges toward the player
 var _windup := 0.0       # counting down to a melee hit
 var _lie_side := 1.0     # which way a fainted enemy with no fall of its own topples
 var _stuck := 0.0       # how long a giant has been held up by a ledge
 var _last_x := 0.0       # where a giant was last frame, to tell whether it is moving
-var _slash_cd := 0.0     # counting down to a ninja's next katana strike
-var _burst_left := 0     # stars still to throw in the burst being thrown
-var _burst_gap := 0.0    # counting down to the next star of the burst
 var _charge := 0.0       # counting down to a shot
 var _flash := 0.0
 var _liquid := Color.WHITE  # the colour of the water or lava it stands in
 var _liquid_time := 0.0
 var _liquid_y := INF  # the height of the surface of that liquid
 var _spawn := SPAWN_TIME
-var _trail_timer := 0.0
-var _touch_timer := 0.0  # between the burns a fire walker gives to whoever touches it
-const TOUCH_BURN := 6
-const RELIGHT_SECONDS := 1.5  # a frozen walker's flame comes back this long after it is freed
-var _fly_state := PATROL
-var _fly_timer := 2.0
-var _fly_goal_x := 0.0
-var _fly_target := Vector2.ZERO
-var _fly_away := 1.0
 var _body_size := Vector2(30, 40)  # the hitbox, in world pixels
 var _body_center := Vector2(0, -20)
 var _overlay: Node2D               # draws health bar, ice, shield and charge glows on top of the sprite
@@ -160,8 +128,6 @@ func _ready() -> void:
 	floor_max_angle = deg_to_rad(50.0)
 	add_to_group("mobs")
 	var data: MobKind = KINDS[kind]
-	if _burns():
-		_set_alight()
 	max_hp = data.hp
 	hp = max_hp
 	_overlay = Node2D.new()
@@ -170,13 +136,9 @@ func _ready() -> void:
 	_overlay.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
 	add_child(_overlay)
 	_build_creature(data)
-	if data.role == "flyer":
-		collision_mask = 0  # flyers pass through the terrain; they reach you from above
-		_fly_goal_x = global_position.x
-		_fly_timer = 1.0 + randf() * 2.0
 	_shot_timer = 0.8 + randf() * 1.2
 	# Every enemy arrives through a summoning circle.
-	Fx.pop(get_parent(), global_position + Vector2(0, -2 if not _flies() else 18), "magic_02", _school_colour(), 70.0, SPAWN_TIME + 0.2, 1.2, 1.5)
+	Fx.pop(get_parent(), global_position + Vector2(0, -2), "magic_02", _school_colour(), 70.0, SPAWN_TIME + 0.2, 1.2, 1.5)
 	Sfx.play("summon", global_position)
 	modulate.a = 0.0
 
@@ -195,19 +157,9 @@ func _build_creature(data: MobKind) -> void:
 	var body: Rect2 = info["body"]
 	var frame: Vector2 = info["size"]
 	var hitbox: CollisionShape2D = $CollisionShape2D
-	if info["flyer"]:
-		# A flyer's frames are centred on the middle of its body; its body is a circle.
-		_visual.offset = Vector2.ZERO
-		var circle := CircleShape2D.new()
-		circle.radius = minf(body.size.x, body.size.y) * 0.5 * _base_scale * 0.9
-		hitbox.shape = circle
-		_body_center = Vector2.ZERO
-		_body_size = Vector2.ONE * circle.radius * 2.0
-	else:
-		# A walker's frames have its feet on the bottom edge. Its hitbox is its body, not a weapon held out.
-		_visual.offset = Vector2(0, -frame.y * 0.5)
-		var width := 0.85
-		_set_walker_body(Vector2(body.size.x * width, body.size.y * 0.95) * _base_scale)
+	# The frames have its feet on the bottom edge. Its hitbox is its body, not a weapon held out.
+	_visual.offset = Vector2(0, -frame.y * 0.5)
+	_set_walker_body(Vector2(body.size.x * 0.85, body.size.y * 0.95) * _base_scale)
 	hitbox.position = _body_center
 	_start_animating()
 	_visual.frame = randi() % maxi(1, _visual.sprite_frames.get_frame_count("idle"))
@@ -247,10 +199,6 @@ func _school_colour() -> Color:
 	return SpellData.SCHOOL_COLORS.get(school, Color("#d8d0e8"))
 
 
-func _flies() -> bool:
-	return KINDS[kind].role == "flyer"
-
-
 ## The middle of the enemy's body in the world. Spells and the player's aim go here.
 func center() -> Vector2:
 	return global_position + _body_center
@@ -269,14 +217,12 @@ func _physics_process(delta: float) -> void:
 	if global_position.y > (ArenaGen.world_size.y * float(ArenaGen.TILE) if ArenaGen.world_size.y > 0 else FALL_LIMIT):
 		queue_free()
 		return
-	_update_flame(delta)
 	if _spawn > 0.0:
 		_spawn -= delta
 		modulate.a = clampf(1.0 - _spawn / SPAWN_TIME, 0.0, 1.0)
-		if not _flies():
-			_fall(delta)
-			velocity.x = 0.0
-			move_and_slide()
+		_fall(delta)
+		velocity.x = 0.0
+		move_and_slide()
 		return
 	modulate.a = 1.0
 	_cooldown -= delta
@@ -288,10 +234,9 @@ func _physics_process(delta: float) -> void:
 	if _frozen_time > 0.0:
 		_windup = 0.0
 		_charge = 0.0
-		if not _flies():
-			_fall(delta)
-			velocity.x = _knock_x + _drift.x
-			move_and_slide()
+		_fall(delta)
+		velocity.x = _knock_x + _drift.x
+		move_and_slide()
 		return
 	if _fainted:
 		_windup = 0.0
@@ -304,20 +249,15 @@ func _physics_process(delta: float) -> void:
 			if _visual.sprite_frames.has_animation("idle"):
 				_visual.play("idle")
 		else:
-			if not _flies():
-				_fall(delta)
-				velocity.x = _knock_x + _drift.x
-				move_and_slide()
+			_fall(delta)
+			velocity.x = _knock_x + _drift.x
+			move_and_slide()
 			return
-	if KINDS[kind].effect == "ninja":
-		_ninja_strike(delta)
-	match KINDS[kind].role:
-		"flyer":
-			_fly(delta)
-		_:
-			_walk(delta)
+	_walk(delta)
 	if KINDS[kind].effect == "smash":
 		_climb_ledges(delta)
+
+
 ## A giant's tall, wide hitbox can catch the lip of a ledge without touching a wall, and stop dead. When it is held up
 ## like that on the way to the player, it jumps.
 func _climb_ledges(delta: float) -> void:
@@ -348,7 +288,7 @@ func _walk(delta: float) -> void:
 	var distance := to_player.length() if target else INF
 	var shooter: bool = data.role == "ranged"
 	var sees := target != null and _sees(target)
-	var stands_to_shoot: bool = shooter and distance < SPIT_STAND_RANGE and sees and data.effect != "ninja"
+	var stands_to_shoot: bool = shooter and distance < SPIT_STAND_RANGE and sees
 	if guards and distance > GUARD_NOTICE:
 		_hold_post(speed)
 		return
@@ -369,18 +309,6 @@ func _walk(delta: float) -> void:
 		elif is_on_wall():
 			velocity.y = GIANT_JUMP if KINDS[kind].effect == "smash" else MOB_JUMP
 	move_and_slide()
-	# Touching a burning walker sets you alight, whether or not it is attacking.
-	if _burns() and _flame_lit() and player and not player.dead:
-		_touch_timer -= delta
-		if _touch_timer <= 0.0 and player.center().distance_to(center()) < 34.0:
-			_touch_timer = 0.6
-			player.take_damage(TOUCH_BURN, false)  # a burn never blocks a sword blow, nor is blocked by one
-	# Some melee enemies leave something behind as they walk.
-	if is_on_floor() and absf(velocity.x) > 5.0:
-		_trail_timer -= delta
-		if _trail_timer <= 0.0 and data.effect == "frost_trail":
-			_trail_timer = FROST_TRAIL_INTERVAL
-			_leave_snow()
 	if shooter and target:
 		_update_shooter(delta, distance, sees, data.shot)
 	if data.role == "melee" and target and data.effect != "dummy":
@@ -580,147 +508,27 @@ func _reach() -> float:
 
 
 func _windup_time() -> float:
-	match KINDS[kind].effect:
-		"explode":
-			return WINDUP * 0.6
-		"smash":
-			return SMASH_WINDUP
-	return WINDUP
-
-
-## A shooter in range charges its shot (a glow builds in front of it), then fires.
-## A ninja cuts at the player when they get close.
-func _ninja_strike(delta: float) -> void:
-	_slash_cd = maxf(_slash_cd - delta, 0.0)
-	if _slash_cd <= 0.0 and player and not _dead and _frozen_time <= 0.0 and player.center().distance_to(center()) < SLASH_RANGE:
-		_slash_cd = SLASH_COOLDOWN
-		_slash()
-
-
-## A ninja strikes with its sword: it swings through its attack frames, and hurts the player if they are still in
-## reach. Quick, so there is little to dodge once it is this close.
-func _slash() -> void:
-	_visual.play("attack")
-	if not player.dead:
-		player.take_damage(SLASH_DAMAGE)
-	Sfx.play("push", center(), -8.0)
+	return SMASH_WINDUP if KINDS[kind].effect == "smash" else WINDUP
 
 
 ## A shooter in range charges its shot (a glow builds in front of it), then fires.
 func _update_shooter(delta: float, distance: float, sees: bool, shot: Dictionary) -> void:
-	# A burst is thrown one star after another, a short gap apart.
-	if _burst_left > 0:
-		_burst_gap -= delta
-		if _burst_gap <= 0.0:
-			_burst_left -= 1
-			_burst_gap = BURST_GAP
-			_shoot(shot)
-		return
 	if _charge > 0.0:
 		_charge -= delta
 		if _charge <= 0.0:
-			_burst_left = shot.get("burst", 1)
-			_burst_gap = 0.0
+			_shoot(shot)
 		return
-	if distance < SPIT_RANGE and (sees or shot.get("above", false)):
+	if distance < SPIT_RANGE and sees:
 		_shot_timer -= delta
 		if _shot_timer <= 0.0:
 			_shot_timer = shot["interval"]
 			_charge = shot.get("charge", CHARGE)
 
 
-## Flyers drift over the arena above the player. Every so often they hang still, shaking, then dive at the
-## player, hit, and fly away.
-func _fly(delta: float) -> void:
-	var data: MobKind = KINDS[kind]
-	if player == null:
-		return
-	var before := global_position
-	var cruise_y := minf(player.center().y - 130.0, ArenaGen.GROUND_Y - 110.0)
-	var speed_mult: float = data.speed * (0.5 if _slow_time > 0.0 else 1.0)
-	_fly_timer -= delta
-	match _fly_state:
-		PATROL:
-			global_position.x += signf(_fly_goal_x - global_position.x) * FLY_SPEED * speed_mult * delta
-			global_position.y = move_toward(global_position.y, cruise_y, 160.0 * delta)
-			if absf(_fly_goal_x - global_position.x) < 12.0:
-				_fly_goal_x = player.global_position.x + randf_range(-280.0, 280.0)
-			if _fly_timer <= 0.0 and _root_time <= 0.0:
-				_fly_state = HOVER
-				_fly_timer = DIVE_WARNING
-				Sfx.play("mob_hurt", global_position, -6.0, 0.3)
-		HOVER:
-			# The warning before a dive: it stops and shakes.
-			if _fly_timer <= 0.0:
-				_fly_state = DIVE
-				_fly_target = player.center()
-				_fly_timer = 1.6
-		DIVE:
-			var to_target := _fly_target - center()
-			global_position += to_target.normalized() * DIVE_SPEED * speed_mult * delta
-			if center().distance_to(player.center()) < CONTACT_RANGE and _can_reach_player():
-				_attack()
-				_start_retreat()
-			elif _fly_timer <= 0.0 or to_target.length() < 6.0:
-				_start_retreat()
-		RETREAT:
-			global_position.x += _fly_away * RETREAT_SPEED * delta
-			global_position.y = move_toward(global_position.y, cruise_y - 60.0, 200.0 * delta)
-			if _fly_timer <= 0.0:
-				_fly_state = PATROL
-				_fly_goal_x = player.global_position.x + randf_range(-280.0, 280.0)
-				_fly_timer = 2.5
-	global_position += (Vector2(_knock_x, 0.0) + _drift) * delta
-	global_position.x = clampf(global_position.x, ArenaGen.left_edge() + 16.0, ArenaGen.right_edge() - 16.0)
-	# Flyers never sink into the ground, even mid-dive.
-	global_position.y = minf(global_position.y, ArenaGen.GROUND_Y - _body_size.y * 0.5 - _body_center.y - 2.0)
-	if _hits_terrain(before + _body_center, center()):
-		global_position = before  # flyers cannot pass through stone or walls
-		if _fly_state == DIVE:
-			_start_retreat()
-	if data.shot.size() > 0:
-		_shot_timer -= delta
-		var shot: Dictionary = data.shot
-		# A dropping flyer waits until it is over the player before it lets go.
-		var lined_up: bool = not shot.get("drop", false) or absf(player.global_position.x - global_position.x) < 70.0
-		if _shot_timer <= 0.0 and lined_up and _fly_state != DIVE:
-			_shot_timer = shot["interval"]
-			_shoot(shot)
-
-
-func _start_retreat() -> void:
-	_fly_away = signf(global_position.x - player.global_position.x)
-	if _fly_away == 0.0:
-		_fly_away = 1.0
-	_fly_state = RETREAT
-	_fly_timer = 1.4
-
-
-## Fires one of this enemy's shots, in its school colour. Plain shots fly at the player; some arc, some fan out,
-## some fall straight down from the flyer, and fire casters call one down from above the player.
+## Fires one of this enemy's shots at its target, in its school colour.
 func _shoot(shot: Dictionary) -> void:
-	var colour := _school_colour()
 	var origin := center() + Vector2(facing * _body_size.x * 0.5, -4.0)
-	if shot.get("above", false):
-		var drop_x: float = player.global_position.x + player.velocity.x * 0.35
-		FallingShot.call_down(get_parent(), Vector2(drop_x, player.global_position.y), colour, shot["damage"])
-		Sfx.play("mob_shoot", origin)
-		return
-	if shot.get("drop", false):
-		EnemyBolt.fire(get_parent(), center() + Vector2(0, 10), center() + Vector2(0, 100), colour, shot["damage"], shot.get("gravity", 300.0), shot.get("slow", false), "magic_bolt", self)
-		Sfx.play("mob_shoot", center())
-		return
-	var aim: Vector2 = _target().center()
-	var count: int = shot.get("spread", 1)
-	for i in count:
-		var angle := 0.0 if count == 1 else (i - (count - 1) * 0.5) * 0.14
-		var target := origin + (aim - origin).rotated(angle)
-		var gravity: float = shot.get("gravity", 0.0)
-		if gravity > 0.0:
-			# Lob it so it comes down on the player: aim above them by how far the arc will drop.
-			var flight := origin.distance_to(aim) / EnemyBolt.SPEED
-			target = aim + Vector2(0, -0.5 * gravity * flight * flight)
-		EnemyBolt.fire(get_parent(), origin, _quake_target(origin, target), colour, shot["damage"], gravity, shot.get("slow", false), shot.get("art", "magic_bolt"), self)
+	EnemyBolt.fire(get_parent(), origin, _quake_target(origin, _target().center()), _school_colour(), shot["damage"], self)
 	Sfx.play("mob_shoot", origin)
 
 
@@ -732,11 +540,6 @@ func _target() -> Node2D:
 	if decoy != null and _can_reach(decoy):
 		return decoy
 	return player
-
-
-## True when nothing solid stands between the enemy and the player. Enemies cannot hit through stone.
-func _can_reach_player() -> bool:
-	return _can_reach(player)
 
 
 ## True when nothing solid stands between the enemy and its target.
@@ -918,9 +721,9 @@ func is_frozen() -> bool:
 	return _frozen_time > 0.0
 
 
-## True for an enemy that ice cannot hold: one made of ice, or one already beaten.
+## True for an enemy that ice cannot hold: one already beaten.
 func shrugs_off_cold() -> bool:
-	return KINDS[kind].school == "Water" or _dead
+	return _dead
 
 
 ## How big the body is, for the block of ice that is built round it.
@@ -942,13 +745,10 @@ func pull(force: Vector2, delta: float) -> void:
 	_drift += force * delta
 
 
-## An enemy hits the player. Its effect (knockback, or an explosion) comes after the damage.
+## An enemy hits the player. Its effect (a knockback) comes after the damage.
 func _attack() -> void:
 	var data: MobKind = KINDS[kind]
 	_lunge = 1.0
-	if data.effect == "explode":
-		_explode()
-		return
 	var target := _target()
 	if target != player:
 		if target is Mob and target.puppet:
@@ -957,28 +757,9 @@ func _attack() -> void:
 			target.take_damage(data.damage)  # a decoy takes the blow
 		Sfx.play("push", target.center(), -6.0)
 		return
-	var impulse := Vector2.ZERO
-	match data.effect:
-		"knockback":
-			impulse = Vector2(signf(player.global_position.x - global_position.x) * 420.0, -160.0)
-		"big_knockback":
-			impulse = Vector2(signf(player.global_position.x - global_position.x) * 900.0, -220.0)
+	var impulse := Vector2(signf(player.global_position.x - global_position.x) * 420.0, -160.0) if data.effect == "knockback" else Vector2.ZERO
 	_strike(player, data.damage, impulse)
-	Sfx.play("stones" if data.school == "Earth" else "fire_hit" if data.school == "Fire" else "push", player.center(), -6.0)
-
-
-func _explode() -> void:
-	Fx.impact(get_parent(), center(), _school_colour(), 70.0)
-	Fx.pop(get_parent(), center(), "spark_02", _school_colour(), 90.0, 0.3, 1.4, 3.0)
-	Sfx.play("explosion", center())
-	GameCamera.shake_near(get_tree(), global_position, 0.4, SHAKE_REACH)
-	# Damage the player and any other enemy close enough to the blast.
-	if center().distance_to(player.center()) <= BURST_RADIUS:
-		player.take_damage(KINDS[kind].damage)
-	for other in get_tree().get_nodes_in_group("mobs"):
-		if other != self and other.center().distance_to(center()) <= BURST_RADIUS:
-			other.take_damage(BURST_DAMAGE)
-	_die()
+	Sfx.play("stones" if data.school == "Earth" else "push", player.center(), -6.0)
 
 
 func _process(delta: float) -> void:
@@ -993,12 +774,11 @@ func _process(delta: float) -> void:
 	_overlay.queue_redraw()
 
 
-## Picks the animation for what the enemy is doing: attacking (the wind-up of a hit, the charge of a shot, a
-## flyer's dive), flinching, walking or idling, and faces where it is going. Flyers bob as they hover.
+## Picks the animation for what the enemy is doing: attacking (the wind-up of a hit, the charge of a shot), flinching, walking or idling, and faces
+## where it is going.
 func _animate(delta: float) -> void:
-	var flying := _flies()
 	if player and not _dead and _frozen_time <= 0.0:
-		if flying or _windup > 0.0 or _charge > 0.0 or absf(velocity.x) < 5.0:
+		if _windup > 0.0 or _charge > 0.0 or absf(velocity.x) < 5.0:
 			facing = signf(player.global_position.x - global_position.x) if player.global_position.x != global_position.x else facing
 		else:
 			facing = signf(velocity.x)
@@ -1006,14 +786,11 @@ func _animate(delta: float) -> void:
 	if _lunge > 0.0:
 		lunge = roundf(sin(_lunge * PI) * 8.0) * facing
 		_lunge = maxf(_lunge - delta * 3.0, 0.0)
-	var shake := Vector2.ZERO
-	if flying and _fly_state == HOVER:
-		shake = Vector2(randi_range(-1, 1), randi_range(-1, 1))
-	var moving := not _dead and not _fainted and _frozen_time <= 0.0 and absf(velocity.x) > 5.0 and (is_on_floor() or flying)
+	var moving := not _dead and not _fainted and _frozen_time <= 0.0 and absf(velocity.x) > 5.0 and is_on_floor()
 	var wanted := "idle"
 	if _fainted and _visual.sprite_frames.has_animation("death"):
 		wanted = "death"
-	elif _windup > 0.0 or _charge > 0.0 or (flying and _fly_state == DIVE):
+	elif _windup > 0.0 or _charge > 0.0:
 		wanted = "attack"
 	elif moving and _visual.sprite_frames.has_animation("walk"):
 		wanted = "walk"
@@ -1023,8 +800,7 @@ func _animate(delta: float) -> void:
 	var lies := _fainted and not _visual.sprite_frames.has_animation("death")  # one with no fall of its own is toppled over instead
 	_visual.rotation = lerp_angle(_visual.rotation, PI * 0.5 * _lie_side if lies else 0.0, minf(delta * 5.0, 1.0))
 	_visual.speed_scale = 0.0 if _frozen_time > 0.0 or lies else 1.0
-	var bob := roundf(sin(_idle_t * 3.0) * 2.0) if flying else 0.0
-	_visual.position = Vector2(lunge, bob) + shake
+	_visual.position = Vector2(lunge, 0.0)
 	_visual.scale = Vector2(_base_scale, _base_scale)
 	_visual.flip_h = facing < 0.0
 	if _material:
@@ -1075,49 +851,6 @@ func _draw_overlay() -> void:
 		var bar := Rect2(Vector2(-width * 0.5, top), Vector2(width, 4.0))
 		o.draw_rect(bar.grow(1.0), Color(0.05, 0.03, 0.08, 0.85))
 		o.draw_rect(Rect2(bar.position, Vector2(width * clampf(float(hp) / max_hp, 0.0, 1.0), 4.0)), Color("#e84a5f"))
-
-
-## An ice enemy leaves snow falling behind it for a few seconds: a passing blizzard, with no pile.
-func _leave_snow() -> void:
-	var snow := Blizzard.new()
-	snow.lasting = false
-	snow.polygon = PackedVector2Array([Vector2(0, -60), Vector2(40, -60), Vector2(40, 60), Vector2(0, 60)])
-	get_parent().add_child(snow)
-	snow.setup("Blizzard", center() + Vector2(-20, 0), 0.0)
-
-
-## True when solid terrain lies between two points. Flyers use it to stay out of stone and walls.
-func _hits_terrain(from: Vector2, to: Vector2) -> bool:
-	var query := PhysicsRayQueryParameters2D.create(from, to)
-	query.collision_mask = 1
-	return not get_world_2d().direct_space_state.intersect_ray(query).is_empty()
-
-
-func _burns() -> bool:
-	return KINDS[kind].effect == "burning"
-
-
-## A burning walker: one flame, tall enough to cover its whole body, stands on it and moves with it.
-func _set_alight() -> void:
-	var flame := PixelFx.sprite("fire_puff", 14.0, true, 1)
-	flame.scale = Vector2.ONE * 3.7  # so the fire rises round the whole body
-	# The flame's bottom sits on the walker's feet (its origin), and it is drawn behind the walker.
-	flame.position = Vector2(0, -PixelArt.FX["fire_puff"]["size"].y * 0.5 * flame.scale.y + 55.0)  # 55: the feet sit this far below the origin
-	flame.z_index = -1
-	add_child(flame)
-	_flame = flame
-
-
-## A frozen walker's flame goes out, and comes back a moment after the ice is gone.
-func _update_flame(delta: float) -> void:
-	if _flame == null:
-		return
-	_relight = RELIGHT_SECONDS if _frozen_time > 0.0 else maxf(_relight - delta, 0.0)
-	_flame.visible = _flame_lit()
-
-
-func _flame_lit() -> bool:
-	return _relight <= 0.0 and _frozen_time <= 0.0
 
 
 ## While the ground shakes, a shooter's aim is turned a few degrees off its mark.

@@ -19,7 +19,6 @@ const MISFIRE_COST := 10.0
 const STEP_DAMAGE := 8
 const INSIGHT_REACH := 40.0  # how close the pointer must be to an enemy for Insight to show it
 const RAISED_HEALTH := 50  # what a skeleton raised from the dead has, always
-const FLYER_HEIGHT := 150.0  # flyers arrive this far above the ground
 const STROKE_STEP := 8.0  # the points of a stroke the other machines are sent are this far apart
 const HOODED_WIZARD := "Hooded Wizard"  # what Insight calls the wizard in the player's own look
 
@@ -244,7 +243,7 @@ func _add_mob(kind: String, feet: Vector2) -> Node2D:
 	var mob := MOB_SCENE.instantiate()
 	mob.kind = kind
 	mob.player = player
-	mob.position = feet - Vector2(0, FLYER_HEIGHT if Mob.KINDS[kind].role == "flyer" else 0.0)
+	mob.position = feet
 	add_child(mob)
 	return mob
 

@@ -2,7 +2,7 @@ class_name Bramble
 extends FloraSpell
 
 ## Bramble: a thicket of thorns that grows along the line you drew, on the ground under it. Whoever walks through it is
-## nearly stopped and pricked with every step, and cannot jump while caught, but standing still is safe. Flyers pass over. Fire
+## nearly stopped and pricked with every step, and cannot jump while caught, but standing still is safe. Fire
 ## burns it away. The world has the same thorns growing over stretches of its floor.
 
 const STEP := 0.3     # seconds between one footfall and the next while walking
@@ -84,8 +84,6 @@ func _physics_process(delta: float) -> void:
 
 ## True for a walker standing in the thorns: on the ground within the thicket (whatever the slope under it), not jumping over it.
 func _caught(body: Node2D) -> bool:
-	if body.is_in_group("mobs") and body.KINDS[body.kind].role == "flyer":
-		return false
 	var feet := body.global_position
 	if feet.x < _box.position.x or feet.x > _box.end.x:
 		return false

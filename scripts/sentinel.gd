@@ -69,7 +69,7 @@ func _physics_process(delta: float) -> void:
 	else:
 		var moving: Vector2 = target.velocity if "velocity" in target else Vector2.ZERO
 		var ahead := at + moving * (center().distance_to(at) / LASER_SPEED)  # aimed where a runner will be
-		var laser := EnemyBolt.fire(get_parent(), center(), ahead, Color("#ff3a30"), DAMAGE, 0.0, false, "magic_bolt", null, LASER_SPEED)
+		var laser := EnemyBolt.fire(get_parent(), center(), ahead, Color("#ff3a30"), DAMAGE, null, LASER_SPEED)
 		laser.scale = Vector2(3.0, 0.8)  # long and thin, and too long to slip through a body between two frames
 
 

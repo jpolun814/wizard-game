@@ -2,7 +2,7 @@ class_name Mudslide
 extends Node2D
 
 ## Mudslide: a U drawn over the ground, the shape of a pit. The ground under it turns to churning sand. Anyone who
-## walks into it is dragged down: slowed to a crawl and hurt a little at a time. Flyers pass over it untouched.
+## walks into it is dragged down: slowed to a crawl and hurt a little at a time.
 ## A wider U makes a wider pit.
 
 const LIFE := 99999.0  # the mud stays
@@ -93,10 +93,8 @@ func _physics_process(delta: float) -> void:
 		queue_free()
 
 
-## True for a walker standing in the pit. Flyers are never caught.
+## True for anyone standing in the pit.
 func _caught(body: Node2D) -> bool:
-	if body.is_in_group("mobs") and body.KINDS[body.kind].role == "flyer":
-		return false
 	var feet := body.global_position
 	var local_x := feet.x - global_position.x
 	if absf(local_x) > width * 0.5:

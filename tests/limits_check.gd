@@ -144,7 +144,10 @@ func _ready() -> void:
 
 	# Shaking: a shake near the wizard shakes its own screen and its stroke; one far off does not; a still screen leaves the stroke alone.
 	var line := PackedVector2Array([looker.global_position + Vector2(0, -40), looker.global_position + Vector2(80, -40)])
-	await _frames(int(2.0 * 60.0))  # (whatever shook before has died away)
+	for k in 6 * 60:  # (whatever shook before has died away: a fight or a fall near it in the world shakes it now and then)
+		if looker.eyes.shake_px() < 0.1:
+			break
+		await _frames(1)
 	_verdict(looker.eyes.shake_px() < 0.5 and brain._shaken(line) == line, "a still screen leaves a stroke as it was drawn")
 	GameCamera.shake_near(get_tree(), looker.global_position + Vector2(5000.0, 0.0), 0.8, 900.0)
 	_verdict(looker.eyes.shake_px() < 0.5, "an eruption far off does not shake its screen")

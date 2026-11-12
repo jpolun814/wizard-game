@@ -1,7 +1,6 @@
 extends Node
 
-## Small pieces the bigger checks lean on: the four words that name a world, the table of spells and the buttons that cast them, and a
-## fireball called down onto the ground, which hurts whoever stands where it lands and no one else.
+## Small pieces the bigger checks lean on: the four words that name a world, and the table of spells and the buttons that cast them.
 ##
 ##     godot --headless --fixed-fps 60 --path . tests/pieces_check.tscn
 ## It prints PASS or FAIL for each check and exits with code 1 if any failed.
@@ -12,7 +11,6 @@ var _failures := 0
 func _ready() -> void:
 	_names_of_worlds()
 	_spell_table()
-	await _falling_shot()
 	print("the pieces hold" if _failures == 0 else "%d FAILED" % _failures)
 	get_tree().quit(1 if _failures > 0 else 0)
 
@@ -50,29 +48,6 @@ func _spell_table() -> void:
 	for school: String in SpellData.SCHOOL_BUTTONS:
 		colours = colours and SpellData.SCHOOL_COLORS.has(school)
 	_verdict(colours, "every school has a colour")
-
-
-func _falling_shot() -> void:
-	var arena: Node = load("res://scenes/lab.tscn").instantiate()
-	add_child(arena)
-	await _frames(4)
-	var player: Wizard = arena.player
-	player.infinite_time = 0.0
-	arena._since_hurt = -100000.0
-	var health: float = player.max_stamina
-	var far := FallingShot.call_down(arena, player.global_position + Vector2(600.0, 0.0), Color.ORANGE, 8)
-	await _frames(int((FallingShot.WARNING + FallingShot.FALL) * 60.0) + 8)
-	_verdict(player.max_stamina == health, "a fireball that lands far from a wizard leaves them be")
-	var shot := FallingShot.call_down(arena, player.global_position, Color.ORANGE, 8)
-	_verdict(shot.danger_at(shot.global_position) and not shot.danger_at(shot.global_position + Vector2(300.0, 0.0)), "its mark warns of where it will land, and only there")
-	await _frames(int((FallingShot.WARNING + FallingShot.FALL) * 60.0) - 20)
-	_verdict(player.max_stamina == health, "it does nothing while it is still falling")
-	await _frames(40)
-	_verdict(player.max_stamina < health, "it hurts the wizard it lands on (%d to %d)" % [health, player.max_stamina])
-	_verdict(not is_instance_valid(shot) or shot.is_queued_for_deletion(), "and is spent")
-	if is_instance_valid(far):
-		far.queue_free()
-	arena.queue_free()
 
 
 func _frames(count: int) -> void:

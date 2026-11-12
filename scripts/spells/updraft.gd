@@ -2,7 +2,7 @@ class_name Updraft
 extends Node2D
 
 ## Updraft: a column of rising air that stands where it was drawn for the rest of the world. Anyone who walks into it is carried up, and
-## the wind lets go of them at the top. Any number can be raised. Flyers are not troubled by it.
+## the wind lets go of them at the top. Any number can be raised.
 
 const WIDTH := 70.0
 const HEIGHT := 520.0
@@ -36,8 +36,6 @@ func _physics_process(delta: float) -> void:
 		_streaks[i].modulate = Color(SpellData.SCHOOL_COLORS["Air"], 0.8 * (1.0 - rise / HEIGHT))
 	for body: Node2D in SpellTargets.all(get_tree()):
 		if not _holds(body):
-			continue
-		if body.is_in_group("mobs") and body.KINDS[body.kind].role == "flyer":
 			continue
 		if body is Wizard and body.is_likeness():
 			continue  # the machine that plays them lifts them

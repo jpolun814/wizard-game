@@ -1,6 +1,6 @@
 """Builds the lectern's two sprites.
 
-    python -I tools/prepare_lectern.py art/DungeonSetPieces.png art/aseprite/plaque.aseprite
+    python -I tools/prepare_lectern.py <download>/DungeonSetPieces.png art/aseprite/plaque.aseprite
 
 The stand is the stone tomb in nikllamadev's Dungeon Castle pixel art pack (CC-BY 4.0), made wider and taller by repeating one column and one row of its own body, so a book and a plaque fit it. The plaque is the owner's own pixel art
 (plaque.aseprite, 64x64, one layer): it is cropped to its edges, and the black scribble that stood for writing is filled with the plate's gold, so the

@@ -1,14 +1,13 @@
 class_name Gust
 extends SpellEffect
 
-## A blast of wind along the stroke. It carries light things: shots are turned along it, flyers are swept away, smoke
-## and spores are blown clear, and the wizard and walkers are shoved sideways (never up: only Push lifts). Heavy
-## things hardly move.
+## A blast of wind along the stroke. It carries light things: shots are turned along it, smoke and spores are blown clear,
+## and wizards and creatures are shoved sideways (never up: only Push lifts). A giant does not move.
 
 const LIFE := 0.7
 const LENGTH := 340.0
 const WIDTH := 130.0
-const SPEED := 620.0  # how hard it shoves a flyer; walkers and the wizard feel less of it
+const SPEED := 620.0  # how hard the wind blows; creatures and wizards feel a share of it
 const WALKER_SHARE := 0.35
 const PLAYER_SHARE := 0.7
 
@@ -62,12 +61,7 @@ func _blow(body: Node2D, delta: float) -> void:
 		return
 	var along := Vector2(signf(_aim.x) * absf(_aim.x), 0.0) * SPEED
 	if body.is_in_group("mobs"):
-		var share := WALKER_SHARE
-		if body.KINDS[body.kind].role == "flyer":
-			share = 1.0
-			along = _aim * SPEED  # a flyer is carried any way the wind blows
-		elif body.KINDS[body.kind].effect == "smash":
-			share = 0.0
+		var share := 0.0 if body.KINDS[body.kind].effect == "smash" else WALKER_SHARE
 		if share > 0.0:
 			body.knock_back(along * share)
 	else:

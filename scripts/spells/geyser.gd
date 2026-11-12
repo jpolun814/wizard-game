@@ -155,8 +155,6 @@ func _carry_riders() -> void:
 	var now := Time.get_ticks_msec()
 	var column := Rect2(global_position + Vector2(-WIDTH * 0.5 - 8.0, -_height()), Vector2(WIDTH + 16.0, _height() + 30.0))
 	for body in SpellTargets.all(get_tree()):
-		if body.is_in_group("mobs") and body.KINDS[body.kind].role == "flyer":
-			continue
 		if column.has_point(SpellTargets.center_of(body)) and now - int(_scalded.get(body, -10000)) >= 1000:
 			_scalded[body] = now
 			SpellTargets.hurt(body, SCALD, "Water", false, false, self)
@@ -238,10 +236,8 @@ func _erupt() -> void:
 				body.knock_back(Vector2(0.0, -MOB_LAUNCH))
 
 
-## True for a body whose feet are on the geyser's spot, on the ground (a flyer overhead is not).
+## True for a body whose feet are on the geyser's spot, on the ground.
 func _on_the_spot(body: Node2D) -> bool:
-	if body.is_in_group("mobs") and body.KINDS[body.kind].role == "flyer":
-		return false
 	return absf(body.global_position.x - global_position.x) <= WIDTH * 0.5 + 8.0 \
 		and body.global_position.y >= global_position.y - 30.0 and body.global_position.y <= global_position.y + 20.0
 

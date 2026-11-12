@@ -115,7 +115,7 @@ func _physics_process(delta: float) -> void:
 		_look_at_walls()
 	_flow(delta)
 	for body in get_overlapping_bodies():
-		if not SpellTargets.affects(body) or _flies(body) or _on_ice(body) or not holds(body):
+		if not SpellTargets.affects(body) or _on_ice(body) or not holds(body):
 			continue
 		if deep and AirPocket.holds(get_tree(), SpellTargets.center_of(body)):
 			continue  # an air pocket of a wreck: the water does not reach there
@@ -450,10 +450,6 @@ func _douse_shots() -> void:
 				shot._finish()
 			else:
 				shot.queue_free()
-
-
-func _flies(body: Node2D) -> bool:
-	return body.is_in_group("mobs") and body.KINDS[body.kind].role == "flyer"
 
 
 ## True when the body stands on frozen water rather than in it.

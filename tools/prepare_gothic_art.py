@@ -81,16 +81,11 @@ CHARACTERS = {
     "goblin": (LUIZ_MONSTERS + "Goblin/", 150, 150, False, {
         "idle": "Idle.png", "walk": "Run.png", "attack": LUIZ_MONSTERS_13 + "Goblin/Attack3.png",
         "hit": "Take Hit.png", "death": "Death.png"}),
-    "eye": (LUIZ_MONSTERS + "Flying eye/", 150, 150, True, {
-        "idle": "Flight.png", "attack": "Attack.png", "hit": "Take Hit.png", "death": "Death.png"}),
-    # The ninja is LuizMelo's Martial Hero 2. Its throw uses the sword swing.
-    "ninja": ("martial-hero-2/Martial Hero 2_x/Martial Hero 2/Sprites/", 200, 200, False, {
-        "idle": "Idle.png", "walk": "Run.png", "attack": "Attack1.png", "hit": "Take hit.png", "death": "Death.png"}),
     # The giant is CraftPix's minotaur, drawn twice as large in the game.
     "giant": (CRAFTPIX + "free-minotaur-sprite-sheet-pixel-art-pack/Minotaur_1/", 128, 128, False, {
         "idle": "Idle.png", "walk": "Walk.png", "attack": "Attack.png", "hit": "Hurt.png", "death": "Dead.png"}),
 }
-MOBS = ["skeleton", "knight", "goblin", "eye", "giant", "ninja"]
+MOBS = ["skeleton", "knight", "goblin", "giant"]
 HEROES = ["wizard", "dark_wizard", "pyre_wizard", "bone_wizard", "fire_wizard", "wanderer", "lightning_mage", "werewolf"]
 
 CEMETERY = "x_gothicvania-cemetery-files/gothicvania-cemetery-files/Assets/Environment/"
@@ -143,13 +138,11 @@ PROPS = {
     "grave_1": CEMETERY + "sliced-objects/stone-1.png", "grave_2": CEMETERY + "sliced-objects/stone-2.png",
     "grave_3": CEMETERY + "sliced-objects/stone-3.png", "grave_4": CEMETERY + "sliced-objects/stone-4.png",
     "dead_tree_1": CEMETERY + "sliced-objects/tree-1.png", "dead_tree_2": CEMETERY + "sliced-objects/tree-2.png",
-    "dead_tree_3": CEMETERY + "sliced-objects/tree-3.png", "statue": CEMETERY + "sliced-objects/statue.png",
+    "statue": CEMETERY + "sliced-objects/statue.png",
     "bush_large": CEMETERY + "sliced-objects/bush-large.png", "bush_small": CEMETERY + "sliced-objects/bush-small.png",
     "church_column": CHURCH + "column.png",
-    "crate": TOWN + "props-sliced/crate.png", "barrel": TOWN + "props-sliced/barrel.png",
-    "street_lamp": TOWN + "props-sliced/street-lamp.png",
+    "barrel": TOWN + "props-sliced/barrel.png",
     "plank": TOWN + "layers/sliced-tileset/top-wood.png",
-    "plank_legs": TOWN + "layers/sliced-tileset/wood-legs.png",
 }
 # Pieces cut out of sheets: name -> (file, box).
 PROP_CUTS = {
@@ -177,12 +170,10 @@ FX = {
     "lightning": ("x_lightning/Lighting Strike {}.png", 7),
 }
 FX_SHEETS = {
-    "ninja_star": ("ninja-throw/Ninja_Star_Pixel.png", 32),
     "blast_small": ("x_explosions/explosions-pack/spritesheets/explosion-2.png", 64),
     "blast_fire": ("x_explosions/explosions-pack/spritesheets/explosion-3.png", 80),
     "blast_ring": ("x_explosions/explosions-pack/spritesheets/explosion-1.png", 32),
     "dark_orb": ("x_spells/Pixelart Spells/PNG Files/Darkness Orb.png", 16),
-    "rock": ("x_spells/Pixelart Spells/PNG Files/Rock Sling.png", 16),
     "magic_bolt": ("x_spells/Pixelart Spells/PNG Files/Arcane Bolt.png", 16),
     "shield": ("x_spells/Pixelart Spells/PNG Files/Pixelart Shield.png", 48),
     "wind_bolt": ("x_spells/Pixelart Spells/PNG Files/Wind Bolt.png", 16),
@@ -455,8 +446,6 @@ def main():
 
     props = os.path.join(ROOT, "art", "props")
     os.makedirs(props, exist_ok=True)
-    # A ninja's katana, copied whole so its hilt (the left end) stays where the game pivots it.
-    shutil.copy(os.path.join(dl, "ninja-throw", "Katana_Pixel.png"), os.path.join(ROOT, "art", "props", "katana.png"))
     for name, src in PROPS.items():
         im = Image.open(os.path.join(dl, src)).convert("RGBA")
         im.crop(alpha_box(im)).save(os.path.join(props, name + ".png"), optimize=True)

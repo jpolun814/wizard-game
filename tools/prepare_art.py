@@ -65,7 +65,6 @@ SOUNDS = {
     "pickup": "rpg_audio/Audio/cloth1.ogg",  # a cloth rustle: the gem chime sounded whimsical
     "heal": "oga/magical_5.ogg",
     "wizard_cast": "oga/magical_7_0.ogg",
-    "wave_start": "oga/100-CC0-SFX_0/gong_02.ogg",
     "game_over": "oga/100-CC0-SFX_0/gong_01.ogg",
     "summon": "oga/magical_6_0.ogg",
     "ui_click": "ui_sounds/Audio/click_001.ogg",

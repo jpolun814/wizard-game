@@ -8,7 +8,7 @@ extends Resource
 @export var sort_order := 0          ## where it comes in the summon menu
 @export var display_name := ""
 @export_multiline var desc := ""     ## what the debug panel and Insight say about it
-@export_enum("melee", "ranged", "flyer", "wizard") var role := "melee"
+@export_enum("melee", "ranged", "wizard") var role := "melee"
 @export var art := "skeleton"        ## the folder of frames in art/chars or art/mobs
 @export var scale := 1.0
 @export var hp := 30
