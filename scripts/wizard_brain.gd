@@ -1729,11 +1729,6 @@ func _raw_path(from: Vector2i, to: Vector2i) -> Array[Vector2i]:
 	return wizard.nav.path(from, to, shut)
 
 
-## Whether it holds a page for crossing this kind of gate.
-func _can_cross(kind: String) -> bool:
-	return WAYS.get(kind, []).any(_usable)
-
-
 ## The way it will go over this crossing, the one it likes best of those it knows and that will carry it so far, or "".
 func _way_over(crossing: Dictionary) -> String:
 	for spell_name: String in WAYS.get(crossing["kind"], []):

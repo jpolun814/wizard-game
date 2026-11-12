@@ -597,11 +597,6 @@ func take_damage(amount: int, school := "", shot := false) -> void:
 	MatchStats.hit(self, counted, school)
 
 
-## True for the practice dummy, which is never beaten and so is never counted as a kill.
-func is_training_dummy() -> bool:
-	return KINDS[kind].effect == "dummy"
-
-
 ## A defeated enemy bursts into smoke and its school's sparks, plays its death tumble, then disappears.
 func _die() -> void:
 	_dead = true
@@ -679,11 +674,6 @@ func apply_no_jump(seconds: float) -> void:
 ## Holds the enemy where it stands, as a Flytrap does: it cannot walk, jump or be carried away by its own speed.
 func is_rooted() -> bool:
 	return _root_time > 0.0
-
-
-## Lets go of an enemy that is held (a vine that burns away frees what it held).
-func free_from_root() -> void:
-	_root_time = 0.0
 
 
 func apply_root(seconds: float) -> void:

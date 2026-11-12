@@ -374,11 +374,6 @@ func map_cells() -> Variant:
 	return _cells
 
 
-## The wizard the Scrying Eye's window shows the person at this machine, or null when it is not open.
-func scrying_watched() -> Wizard:
-	return _eye.watched if _eye != null and _revealed["scrying_eye"] and is_instance_valid(_eye.watched) else null
-
-
 ## Clicking a HUD module hides it again.
 func _on_hud_clicked(event: InputEvent, module: String) -> void:
 	var click := event as InputEventMouseButton

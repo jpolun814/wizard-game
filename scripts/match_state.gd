@@ -109,11 +109,6 @@ static func page_allotment(wizards: int) -> Dictionary:
 	return Pages.allotment(seed_base, wizards, page_counts())
 
 
-## True when the world being built is the last of the match.
-static func is_last() -> bool:
-	return stage == STAGES.size() - 1
-
-
 ## The seed of a stage's world: the same for the same match, and not the first world's own.
 static func seed_for(at: int, count: int) -> int:
 	return (seed_base * 7919 + at * 104729 + 13) % count

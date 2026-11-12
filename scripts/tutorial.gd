@@ -57,7 +57,6 @@ const THICKETS := [THICKET_SPAN, THICKET_DARK]
 ## pages that answer them (a Blizzard and a Mudslide) lie at its foot. Nothing here kills for what a wizard does: the skeletons hurt, and that is all.
 const SLOW_PAGES := 496
 const SLOW_POSTS := [524, 530, 536, 542]   # where the fast skeletons stand
-const SLOW_SPAN := Vector2i(520, 560)
 
 ## The gauntlet at the end: the gates the room has taught, but not one after another: each place puts several together, so that the wizard has to know which
 ## spell answers which and in what order. A pit that is leapt under the fire of turrets, with a minotaur waiting where the leap lands. Water with a thicket

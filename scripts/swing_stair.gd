@@ -113,12 +113,6 @@ func _stay_end(slot: int) -> float:
 	return _swings[slot] + _lengths[slot]
 
 
-
-## The index of the end it is held at in the stretch of time a moment falls in.
-func pose_at(time: float) -> int:
-	return _poses[_slot_at(time)]
-
-
 ## Where the free end is at a moment: at rest at one of the ends, or on its way from the last to the next, getting under way slowly and slowing to a
 ## stop, as a great weight does. It does not rock or bounce.
 func _end_at(time: float) -> Vector2:

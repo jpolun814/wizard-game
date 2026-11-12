@@ -230,13 +230,6 @@ func cell_at(point: Vector2) -> Vector2i:
 	return Vector2i(floori((point.x - origin.x) / CELL), floori((point.y - origin.y) / CELL))
 
 
-func mass_at(point: Vector2) -> float:
-	var cell := cell_at(point)
-	if cell.x < 0 or cell.y < 0 or cell.x >= cols or cell.y >= rows:
-		return 0.0
-	return mass[cell.y * cols + cell.x]
-
-
 ## True where a point is under the liquid's surface.
 func wet_at(point: Vector2) -> bool:
 	var cell := cell_at(point)

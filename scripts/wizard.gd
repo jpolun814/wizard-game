@@ -30,7 +30,6 @@ const OBSIDIAN_SHOTS := 0.5     # and how much of a shot's damage gets through
 const SURF_SPEED := 470.0       # how fast a wave carries the wizard
 const GET_UP := 10.0            # a wizard who has fainted stands up again once this much stamina has come back
 const BODY_HEIGHT := 78.0     # from the feet to the top of the hood
-const BODY_WIDTH := 24.0      # and across the hood, as wide as the collision capsule
 const COYOTE_TIME := 0.1      # a jump still works this long after walking off a ledge
 const JUMP_BUFFER := 0.12     # a jump pressed this long before landing happens on landing
 const HURT_GRACE := 0.5       # after a hit, further hits are ignored this long
@@ -260,7 +259,6 @@ var shown_anim := &"idle"  # the animation the driving machine plays
 var shown_words := ""  # the chant being typed so far, shown over the head for others to read (as a stroke is for others to read); empty when none
 var shown_stroke := PackedVector2Array()  # the stroke being drawn, in the world, for others to see and read
 var marks := 0  # FROZEN, SHIELDED, OBSIDIAN, STUCK, GROUNDED, ROOTED and SLOWED, as the driving machine has them
-var _was_casting := false  # a likeness was drawing the frame before
 var _passed := false  # its fall has been shown
 const GLIDE := 0.45  # how much of the way to where it really is a likeness moves each physics frame
 const SNAP := 160.0  # farther than this, and it is put there at once (a step, a portal, a rift)
@@ -550,21 +548,6 @@ func soak(tint: Color, surface_y := INF, lava := false) -> void:
 	_liquid_y = surface_y
 	_in_lava = lava
 	_liquid_time = 0.15
-
-
-## True while the wizard stands or swims in water or lava.
-func in_liquid() -> bool:
-	return _liquid_time > 0.0
-
-
-## True while the wizard stands in lava.
-func in_lava() -> bool:
-	return _liquid_time > 0.0 and _in_lava
-
-
-## True while the wizard hangs on a vine or a ladder.
-func on_vine() -> bool:
-	return _vine != null and is_instance_valid(_vine)
 
 
 ## The height of the surface of the water the wizard is in, or INF when it is in none.
@@ -1396,10 +1379,8 @@ func drawn_so_far() -> PackedVector2Array:
 	return _dragged().slice(0, count)
 
 
-## A likeness glides to where its wizard is, or jumps there when it went far at once, and falls when its wizard does. Its drawing
-## is heard as it begins, as a brain's is on the host, whoever is drawing.
+## A likeness glides to where its wizard is, or jumps there when it went far at once, and falls when its wizard does.
 func _follow() -> void:
-	_was_casting = casting
 	if wild != (marks & WILD != 0):
 		wild = marks & WILD != 0  # the driving machine has changed shape
 		_dress()

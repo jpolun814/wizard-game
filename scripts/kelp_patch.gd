@@ -70,6 +70,3 @@ func blocks(from: Vector2, to: Vector2) -> bool:
 	return _area.has_point(from) or _area.has_point(to)
 
 
-## For the danger lists: the kelp harms no one.
-func sense_point() -> Vector2:
-	return _area.get_center()

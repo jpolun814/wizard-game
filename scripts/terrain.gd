@@ -101,15 +101,6 @@ func _build_edges() -> void:
 	_first_edges = _edges.duplicate()
 
 
-## A repeating texture cut from one piece of the biome's atlas.
-func _piece_texture(atlas: Texture2D, piece: Vector2i) -> Texture2D:
-	var image := atlas.get_image()
-	if image.is_compressed():
-		image.decompress()
-	var source := Rect2i(piece * ATLAS_CELL + Vector2i(ATLAS_PAD, ATLAS_PAD), Vector2i(ATLAS_TILE, ATLAS_TILE))
-	return ImageTexture.create_from_image(image.get_region(source))
-
-
 func _draw() -> void:
 	if not tiled:
 		_draw_ground()

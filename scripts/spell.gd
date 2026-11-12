@@ -71,15 +71,6 @@ func damage_line() -> String:
 	return damage
 
 
-## The figure of the damage line (0 when it deals none), and whether it is a rate ("dmg/sec").
-func damage_figure() -> float:
-	return damage.get_slice(" ", 0).to_float() if damage != "" else 0.0
-
-
-func damage_is_rate() -> bool:
-	return damage.contains("/sec")
-
-
 ## What it costs when drawn this big. info is what the gesture measured: radius, reach, line, length, rect, pieces.
 func cost_for(info: Dictionary) -> float:
 	var line: PackedVector2Array = info.get("line", PackedVector2Array())

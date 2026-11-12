@@ -6,7 +6,6 @@ extends SpellEffect
 
 const SECONDS := 4.5
 const EVERY := 0.07           # seconds between two stones
-const CLOUD_HEIGHT := 46.0
 const CLOUDS := [preload("res://art/props/cloud_storm_big.png"), preload("res://art/props/cloud_storm_small_1.png"), preload("res://art/props/cloud_storm_small_2.png")]
 const FALL_DANGER := 520.0    # how far under the cloud the stones may be met
 

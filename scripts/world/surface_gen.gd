@@ -7,7 +7,6 @@ extends RefCounted
 
 const BASE_ROW := 110       # the ground line of the plains
 const MARGIN := 4           # columns at each end of the world that are left alone
-const GRAVEYARD_WIDTH := 270
 const CASTLE_WIDTH := 90    # the same as WorldBuilder's
 const CASTLE_START_WEST := 24    # columns from a castle's west end to a place to start on its ground floor, in the first room, right of its stairwell
 const CASTLE_START_MIDDLE := 50  # and in the room between

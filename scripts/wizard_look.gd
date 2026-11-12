@@ -47,11 +47,6 @@ static func swatch(look: String, palette: int) -> Color:
 	return Color.from_hsv(hue, 0.65 * float(set["robe"][1]), 0.78)
 
 
-## The look a wizard in a seat has when nobody has chosen another for it.
-static func of_seat(seat: int) -> String:
-	return LOOKS[clampi(seat, 0, LOOKS.size() - 1)]
-
-
 ## True for the id of one of the four figures.
 static func is_look(look: String) -> bool:
 	return LOOKS.has(look)

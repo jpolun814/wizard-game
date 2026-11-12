@@ -78,11 +78,6 @@ func remaining() -> int:
 	return maxi(_path.size() - _next, 0)
 
 
-## True while it crosses a swinging stair, which carries it.
-func riding() -> bool:
-	return _ride != WorldNav.NONE
-
-
 func goal() -> Vector2i:
 	return _path[_path.size() - 1] if not _path.is_empty() else WorldNav.NONE
 
