@@ -58,16 +58,16 @@ CHARACTERS = {
     "bone_wizard": ("evil_wizard_3/Evil Wizard 3_x/Evil Wizard 3/Sprites/", 140, 140, False, {
         "idle": "Idle.png", "run": "Run.png", "jump": "Jump.png", "fall": "Fall.png",
         "cast": "Attack.png", "release": "Attack.png", "hit": "Get hit.png", "death": "Death.png"}),
-    # The three newer wizards are CraftPix's Fire Wizard, Wanderer Magician and Lightning Mage. Each has a run, a jump (cut in two: the rise, then the fall), a hit
+    # The three newer wizards are CraftPix's Fire Wizard, Wanderer Magician and Lightning Mage. Each has a run, a jump (only the frames in the air: the rise, then the way down; the sheet's crouch on the ground and its landing looked wrong in mid-air, owner 2026-11-12), a hit
     # and a death; "cast" is the hand coming up while a stroke is drawn and "release" the spell going off (frames of a spell sheet, see CRAFTPIX_WIZARDS).
     "fire_wizard": (CRAFTPIX_WIZARDS + "Fire Wizard/", 128, 128, False, {
-        "idle": "Idle.png", "run": "Run.png", "jump": ("Jump.png", 0, 0, 5), "fall": ("Jump.png", 0, 6, 7),
+        "idle": "Idle.png", "run": "Run.png", "jump": ("Jump.png", 0, 3, 4), "fall": ("Jump.png", 0, 5, 6),
         "cast": ("Fireball.png", 0, 0, 2), "release": ("Fireball.png", 0, 3, 7), "hit": "Hurt.png", "death": "Dead.png"}),
     "wanderer": (CRAFTPIX_WIZARDS + "Wanderer Magican/", 128, 128, False, {
-        "idle": "Idle.png", "run": "Run.png", "jump": ("Jump.png", 0, 0, 5), "fall": ("Jump.png", 0, 6, 7),
+        "idle": "Idle.png", "run": "Run.png", "jump": ("Jump.png", 0, 3, 4), "fall": ("Jump.png", 0, 5, 6),
         "cast": ("Attack_1.png", 0, 0, 1), "release": ("Attack_1.png", 0, 2, 6), "hit": "Hurt.png", "death": "Dead.png"}),
     "lightning_mage": (CRAFTPIX_WIZARDS + "Lightning Mage/", 128, 128, False, {
-        "idle": "Idle.png", "run": "Run.png", "jump": ("Jump.png", 0, 0, 5), "fall": ("Jump.png", 0, 6, 7),
+        "idle": "Idle.png", "run": "Run.png", "jump": ("Jump.png", 0, 2, 4), "fall": ("Jump.png", 0, 5, 6),
         "cast": ("Light_ball.png", 0, 0, 1), "release": ("Light_ball.png", 0, 2, 6), "hit": "Hurt.png", "death": "Dead.png"}),
     # CraftPix's free skeleton, minotaur, knight and werewolf (see CRAFTPIX below): 128 px cells, feet on the bottom edge.
     "skeleton": (CRAFTPIX + "free-skeleton-pixel-art-sprite-sheets/Skeleton_Warrior/", 128, 128, False, {

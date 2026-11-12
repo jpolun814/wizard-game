@@ -64,6 +64,7 @@ const DASH_MAX := 150.0        # pixels of lava that it will run across (a hit o
 const DASH_MIN_MAX := 70.0     # the least maximum stamina it will run lava with
 const DANGER_WAIT_MAX := 7.0  # seconds it waits before lava on its way before it gives up that way
 const GIVE_UP := 45.0         # seconds a page it could not reach stays off its list
+const LOOK_AGAIN := 8.0       # seconds a page it knows of but cannot yet see the way to stays off its list, while it looks about
 const NEAR := 190.0           # closer than this it backs away
 const FAR := 330.0            # farther than this it closes in
 const HUNT_PAGE_NEAR := 14    # (a page this many steps away or nearer is taken first, even by one that is hunting)
@@ -888,7 +889,8 @@ func _travel(delta: float) -> float:
 		_gate_tries = 0
 		_clear_gate(creature["target"])
 		return 0.0
-	if (_goal == "" and _goal_timer <= 0.0) or _goal_lost() or ((_goal == "foe" or _goal == "exit" or _goal == "explore") and (_goal_timer <= 0.0 or _route.done())):
+	var short_of_page := _goal == "page" and _route.done() and is_instance_valid(_goal_page) and _tile_of(_goal_page.global_position).distance_to(_tile_of(wizard.global_position)) > PAGE_REACH + 2  # (its way stopped at the edge of what it knew: it looks again from there)
+	if (_goal == "" and _goal_timer <= 0.0) or _goal_lost() or short_of_page or ((_goal == "foe" or _goal == "exit" or _goal == "explore") and (_goal_timer <= 0.0 or _route.done())):
 		_choose_goal()
 	if wizard.swim_time > 0.0:
 		return _swim(delta, false, Vector2.ZERO)
@@ -1467,17 +1469,25 @@ func _choose_goal() -> void:
 		var stand: Vector2i = wizard.nav.nearest(tile)
 		var path: Array[Vector2i] = []
 		if absi(stand.x - tile.x) + absi(stand.y - tile.y) <= PAGE_REACH:
-			path = _path(start, stand)
+			path = _raw_path(start, stand)
 			if path.is_empty() and stand == start:
 				path = [start]  # it stands where the way to the page ends: nothing to walk, though the page may lie a few steps off
 		if path.is_empty():
 			_skip[pickup.get_instance_id()] = GIVE_UP  # no way there that a wizard can walk
 			continue
-		var worth := path.size() / sqrt(maxf(1.0, float(pickup.new_pages(wizard.ledger).size())))  # a dropped book is worth the walk: the more pages it would give, the nearer it counts
+		# How far it seems: the way, when it knows the ground the way goes over; else as the crow flies, all a person can guess of ground unseen.
+		var known := not _sight_is_limited() or _through_known(path, start, stand)
+		var length := float(path.size()) if known else Vector2(stand - start).length()
+		var worth := length / sqrt(maxf(1.0, float(pickup.new_pages(wizard.ledger).size())))  # a dropped book is worth the walk: the more pages it would give, the nearer it counts
 		if best_page == null or worth < best_worth:
 			best_page = pickup
-			best_path = path
+			best_path = path if known else _no_path()
 			best_worth = worth
+	if best_page != null and best_path.is_empty():  # it knows of the page but not the way: as far toward it as the ground it has seen takes it
+		best_path = _toward_known(start, wizard.nav.nearest(_tile_of(best_page.global_position)))
+		if best_path.is_empty():
+			_skip[best_page.get_instance_id()] = LOOK_AGAIN  # nothing it knows leads nearer: it looks about, and comes back to it
+			best_page = null
 	var portal := _nearest_portal(start)
 	if portal.has("portal") and (best_page == null or (portal["path"].size() < best_path.size() and _rng.randf() < PORTAL_CHANCE)):
 		_goal = "portal"
@@ -1567,7 +1577,7 @@ func _choose_explore(start: Vector2i) -> bool:
 						continue
 					if _explored.has(_square_of(Vector2(tile.x * WizardRoute.TILE, tile.y * WizardRoute.TILE))):
 						continue
-					var path: Array[Vector2i] = _path(start, tile)
+					var path: Array[Vector2i] = _raw_path(start, tile)
 					if path.is_empty() or not _through_known(path, start, tile):
 						continue
 					var cost := float(path.size()) + _rng.randf() * 12.0 - (14.0 if dir == _explore_dir else 0.0)
@@ -1645,8 +1655,49 @@ func _choose_gate(start: Vector2i) -> bool:
 	return true
 
 
-## The way from one tile to another that it can walk: not over a crossing it holds no spell for.
+## The way to a place, as a person would know it (owner, 2026-11-12: the brain planned its ways with the whole world's map, ground it had never
+## seen included). In a match, when the way goes over ground it has not seen, it goes only as far toward the place as the ground it has seen
+## takes it (_toward_known); there it sees more, and finds the way on from there. In a room (the tutorial, the waiting room) the ground is all in view.
 func _path(from: Vector2i, to: Vector2i) -> Array[Vector2i]:
+	var full := _raw_path(from, to)
+	if full.is_empty() or not _sight_is_limited() or _through_known(full, from, to):
+		return full
+	return _toward_known(from, to)
+
+
+## As far toward a place as the ground it has seen takes it: of the places it knows that lie between here and there (along the line to it, and
+## along its own floor), the one nearest the place that it can walk to over ground it has seen. Empty when none is nearer than where it stands.
+func _toward_known(from: Vector2i, to: Vector2i) -> Array[Vector2i]:
+	var best := _no_path()
+	var best_gap := Vector2(to - from).length() - 3.0  # it must come nearer, or there is no point
+	var aims: Array[Vector2i] = []
+	for k in range(8, 0, -1):
+		aims.append(from + Vector2i((Vector2(to - from) * k / 8.0).round()))  # along the line, the far end first
+	var side := signi(to.x - from.x)
+	for k in range(1, 6):
+		aims.append(Vector2i(from.x + side * k * EXPLORE_STEP / 2, from.y))  # and along its own floor, the way the place lies
+	for aim in aims:
+		var tile: Vector2i = wizard.nav.nearest(aim, true)
+		if tile == WorldNav.NONE or tile == from or not _explored.has(_square_of(Vector2(tile.x * WizardRoute.TILE, tile.y * WizardRoute.TILE))):
+			continue
+		var gap := Vector2(to - tile).length()
+		if gap >= best_gap:
+			continue
+		var path := _raw_path(from, tile)
+		if path.is_empty() or not _through_known(path, from, tile):
+			continue
+		best = path
+		best_gap = gap
+	return best
+
+
+func _no_path() -> Array[Vector2i]:
+	var none: Array[Vector2i] = []
+	return none
+
+
+## The way from one tile to another that it can walk, over the whole world's map: not over a crossing it holds no spell for.
+func _raw_path(from: Vector2i, to: Vector2i) -> Array[Vector2i]:
 	var shut := []
 	var world := _world()
 	if world != null:

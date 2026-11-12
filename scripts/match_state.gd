@@ -16,6 +16,7 @@ const STAGES := [
 ]
 const LATER_BIOMES := ["portals", "ocean", "sky"]  # the biomes dealt in after the others are shuffled, in the order they were added (see biome_of)
 const CASTLE_SHARE := 0.6  # the share of a stage's width that a castle world takes
+const SKY_SHARE := 0.5     # and an open sky (owner, 2026-11-12: too large): it is open every way, up and down as well as along, so the same width is far more room
 const HEIGHT := 380  # every world is this deep, in tiles
 const WARNING := 18.0 # seconds of shaking and a warning before a world collapses
 
@@ -56,6 +57,8 @@ static func plan_of(at: int) -> Dictionary:
 	var plan: Dictionary = STAGES[at].merged({"biome": biome, "caves": halls})
 	if biome == "castle":
 		plan["width"] = roundi(plan["width"] * CASTLE_SHARE)  # a castle world is built tall, and takes less width than the rest
+	elif biome == "sky":
+		plan["width"] = roundi(plan["width"] * SKY_SHARE)
 	return plan
 
 

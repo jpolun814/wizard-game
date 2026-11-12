@@ -30,7 +30,7 @@ const WRECK_EVERY := 70         # columns of a world to each wreck on the sea fl
 
 ## The sky (chapter 19): no ground, and a room a wizard flies in from SKY_TOP_ROW to SKY_BOTTOM_ROW. Far under it (SKY_FLOOR_ROW) lies rock that no one comes to: the world still has tiles, and it keeps them out of sight.
 const SKY_TOP_ROW := 6
-const SKY_BOTTOM_ROW := 126
+const SKY_BOTTOM_ROW := 86  # (126 until 2026-11-12: the owner found the sky too large)
 const SKY_FLOOR_ROW := 160
 
 ## True for the biome with halls under the ground (the deep's caves). The rest have no tunnels: each has its own landmarks on the
