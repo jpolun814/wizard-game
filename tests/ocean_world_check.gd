@@ -86,6 +86,23 @@ func _run(world: World) -> void:
 	# Refusals: a spell that needs ground fizzles under water for want of it.
 	_check(SpellLimits.refusal(wizard, "Fire Breath") != "", "fire fizzles under water")
 	_check(SpellLimits.refusal(wizard, "Stone Wall") == "" or SpellLimits.refusal(wizard, "Stone Wall") != "No ground", "a Stone Wall can still be raised on the sea floor")
+	# A wreck is a thing in the water: a wizard sinking onto its bow comes to rest on the hull, and one sinking onto the stern's deck stands on the deck.
+	var both_ways := []  # a wreck lying each way round, if there are both: the solid parts are turned point by point
+	for node in world.get_children():
+		if node is Wreck and both_ways.filter(func(w: Wreck) -> bool: return signf(w.pocket.position.x) == signf(node.pocket.position.x)).is_empty():
+			both_ways.append(node)
+	for pair in both_ways.size() * 2:
+		var on_wreck: Wreck = both_ways[pair / 2]
+		var spot: Vector2 = [Vector2(120.0, 82.0), Vector2(400.0, 112.0)][pair % 2]
+		var side := 1.0 if on_wreck.pocket.position.x > 0.0 else -1.0
+		var on := on_wreck.global_position + Vector2((spot.x - Wreck.ORIGIN.x) * side, spot.y - Wreck.ORIGIN.y)
+		wizard.global_position = on + Vector2(0.0, -70.0)
+		wizard.velocity = Vector2.ZERO
+		wizard.breath = Wizard.BREATH
+		for k in 100:
+			await get_tree().physics_frame
+		var rests := absf(wizard.global_position.y - on.y) < 24.0 and wizard.global_position.y < on_wreck.global_position.y - 30.0
+		_check(rests, "a wizard comes to rest on the %s of a wreck turned %s (%.0f, the hull at %.0f, the floor at %.0f)" % ["bow" if spot.x < 288.0 else "deck", "right" if side > 0.0 else "left", wizard.global_position.y, on.y, on_wreck.global_position.y])
 	# A bonfire lit on the sea floor goes out at once; one on the island in the middle burns.
 	var fires_before := _count(world, Bonfire)
 	world._kindle(Vector2((deepest + 0.5) * World.TILE, floors[deepest] * float(World.TILE)), 1.0)

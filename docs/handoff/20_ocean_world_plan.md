@@ -75,7 +75,12 @@ spawn tiles stay on the sea floor below, which is what the wizards' map of the w
   map of ways, made for legs: following it, wizards bobbed at the top and drowned at the world's edge), a stroke at a person's pace, and up for air when its
   breath would only just last the way: straight up, or to open water to one side, or to an air pocket.
 - **Breath** is the only pressure: nothing else is added. A `Wreck` has an `AirPocket` (150 by 110 px) where the sea does not reach, and a page lies in each wreck.
-- **Driftwood** (`Driftwood`) is a one-way platform at the waterline; **kelp** (`KelpPatch`) slows and hides (a `sight_blockers` member); a wreck is CraftPix's sunken galleon (`art/props/shipwreck.png`), cut to the open water (`Wreck.clip`) so the floor hides its buried sand, with its air pocket in the broken stern (`Wreck.HOLD`).
+- **Driftwood** (`Driftwood`) is a one-way platform at the waterline; **kelp** (`KelpPatch`) slows and hides (a `sight_blockers` member); a wreck is CraftPix's sunken galleon (`art/props/shipwreck.png`), cut to the open water (`Wreck.clip`) so the floor hides its buried sand. It is a thing in the
+  water (owner, 2026-11-12): the bow's hull is solid and its slanting side stood on (`Wreck.BOW`), the stern's deck is a one-way platform (`DECK`), its high back is
+  solid (`STERN`), and the air pocket is in the hold under the deck (`HOLD`). The hulls go straight down into the floor: a wedge of water under an overhanging hull
+  caught swimmers, who drowned. For the brain: an air pocket counts only when the way to it is clear (`_nearest_air`), a swimmer goes across under a hull before
+  it strokes up (`_swim`), drops through a deck or driftwood to get under it, gives up a place inside a hull (`_inside_solid`), and does not explore a wreck's hold
+  square by square (`Wreck.covers`). In sims (seed 23, world 1) the AI still spends more time round the wrecks than with flat ones, and reads its pages a little later.
 - **Fire** fizzles under water; spells that need ground work on the sea floor (they are refused only in the sky).
 - **Not verified:** how swimming feels, the balance of breath against the distance between air pockets, and the look of the rafts (plain planks of the town pack). Pictures of the surface,
   the open water and a wreck were looked at (`tests/arena_sim.tscn -- seed=5 stage=1 watch=1 follow=2 shot=FILE shotat=8`).

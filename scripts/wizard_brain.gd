@@ -980,7 +980,7 @@ func _swim(delta: float, fighting: bool, to_player: Vector2) -> float:
 	var air := _nearest_air(here)
 	if wizard.deep_breath_time > 0.0:
 		_for_air = false
-	elif wizard.underwater() and wizard.breath < here.distance_to(air) / SWIM_RISE + AIR_SPARE:
+	elif wizard.underwater() and wizard.breath < (absf(air.x - here.x) + absf(air.y - here.y)) / SWIM_RISE + AIR_SPARE:  # (the way across and then up, which it may have to take)
 		_for_air = true
 	elif _for_air and wizard.breath >= Wizard.BREATH * 0.95:
 		_for_air = false
@@ -998,11 +998,14 @@ func _swim(delta: float, fighting: bool, to_player: Vector2) -> float:
 		return 0.0
 	var blocked := wizard.is_on_wall() and absf(line.x) > SWIM_ARRIVE  # (a stroke takes it up over what is in the way)
 	var keep_up := _for_air and not wizard.underwater() and wizard.velocity.y > 0.0  # (its head over the water while it breathes)
-	if (line.y < -24.0 or blocked or keep_up) and _stroke_in <= 0.0:
+	var overhead := line.y < -24.0 and absf(line.x) > 12.0 and not _clear_line(here, target)  # something solid over the straight way (a wreck's hull): across under it first, then up
+	if ((line.y < -24.0 and not overhead) or blocked or keep_up) and _stroke_in <= 0.0:
 		_stroke_in = Wizard.STROKE_EVERY
 		wizard.request_jump()
 	elif line.y > 40.0 and not blocked:
 		wizard.swim_down = true
+		if wizard.is_on_floor():
+			wizard.drop_through()  # (on a deck or driftwood over where it is going: it goes down through it, as a person does with S)
 	return signf(line.x) * WALK_SPEED if absf(line.x) > 12.0 else 0.0
 
 
@@ -1013,8 +1016,23 @@ func _swim_goal() -> Vector2:
 	if not _route.done():
 		var end := _route.last()
 		if end != WorldNav.NONE:
-			return Vector2((end.x + 0.5) * WizardRoute.TILE, (end.y + 1) * WizardRoute.TILE) + wizard.center() - wizard.global_position
+			var at := Vector2((end.x + 0.5) * WizardRoute.TILE, (end.y + 1) * WizardRoute.TILE) + wizard.center() - wizard.global_position
+			if _inside_solid(at):  # the map of the ways does not know a wreck's hull: a place inside one is given up as seen, and another is chosen
+				_explored[_square_of(at)] = true
+				_route.clear()
+				_goal = ""
+				return Vector2.INF
+			return at
 	return Vector2.INF
+
+
+## True when a point lies inside something solid that is not the ground: a wreck's hull, a wall of stone. (The ground's outlines have no inside
+## for a query to find, so it is asked of the map instead.)
+func _inside_solid(point: Vector2) -> bool:
+	var query := PhysicsPointQueryParameters2D.new()
+	query.position = point
+	query.collision_mask = 1
+	return not wizard.get_world_2d().direct_space_state.intersect_point(query, 1).is_empty()
 
 
 ## The nearest air from under the water: the surface straight over it when nothing solid is in the way, else over open water a little to one side,
@@ -1032,6 +1050,8 @@ func _nearest_air(here: Vector2) -> Vector2:
 			break
 	for pocket: AirPocket in wizard.get_tree().get_nodes_in_group("air_pockets"):
 		var inside := pocket.global_position + Vector2(0.0, -pocket.size.y * 0.5)
+		if not _clear_line(here, inside):
+			continue  # (a pocket behind a wreck's hull is no use: it is reached round the hull, not through it)
 		if best == Vector2.INF or here.distance_to(inside) < here.distance_to(best):
 			best = inside
 	return best if best != Vector2.INF else Vector2(here.x, top - 30.0)
@@ -1577,6 +1597,8 @@ func _choose_explore(start: Vector2i) -> bool:
 						continue
 					if _explored.has(_square_of(Vector2(tile.x * WizardRoute.TILE, tile.y * WizardRoute.TILE))):
 						continue
+					if Wreck.covers(wizard.get_tree(), Vector2((tile.x + 0.5) * WizardRoute.TILE, (tile.y + 1) * WizardRoute.TILE)):
+						continue  # (a wreck is taken in at a glance: its page and its air are sought for themselves, its hold is not searched square by square)
 					var path: Array[Vector2i] = _raw_path(start, tile)
 					if path.is_empty() or not _through_known(path, start, tile):
 						continue

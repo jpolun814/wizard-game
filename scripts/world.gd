@@ -567,8 +567,8 @@ func _raise_clouds() -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed_value + 8221
 	var span := Rect2(box.position.x, box.position.y - 400.0, box.size.x, box.size.y + 800.0)
-	var plain := maxi(4, int(box.size.x / 900.0))
-	var storms := maxi(2, int(box.size.x / 2600.0))
+	var plain := maxi(8, int(box.size.x / 450.0))  # (owner, 2026-11-12: more of them)
+	var storms := maxi(3, int(box.size.x / 2000.0))
 	for k in plain + storms:
 		var cloud := SkyCloud.new()
 		cloud.storm = k >= plain

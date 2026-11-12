@@ -6,8 +6,11 @@ extends PagePickup
 ## drifted out of the box the world is made of is lost to everyone at once (it fades, and is gone). A wizard reads it by flying up to it and pressing Tab.
 ## Its origin is, as for any page, the point FLOAT under where it hangs.
 
-const RATE_LEAST := -8.0   # pixels a second: negative rises
-const RATE_MOST := 22.0
+const RATE_LEAST := -19.0  # pixels a second: negative rises. Every page rises: a sheet of paper falls slower than a person, so among wizards who are falling
+const RATE_MOST := -6.0    # it is left behind above them (owner, 2026-11-12: the pages seemed to fall with the wizards). No faster, or it is lost in under two minutes
+const SWAY := 46.0         # how far it swings to each side as it falls, as a sheet of paper does, rocking at the ends of each swing
+const SWAY_PERIOD := 3.2   # seconds for a swing there and back
+const ROCK := 0.4          # how far it tips, in radians
 const TOUCH := 80.0        # how near a wizard must be to read it
 
 var home := Vector2.ZERO   # where it is at world age zero
@@ -22,7 +25,14 @@ func _enter_tree() -> void:
 
 
 func _at() -> Vector2:
-	return home + Vector2(0.0, rate * seconds)
+	if rate == 0.0:
+		return home  # (a page hung by a starting place stays put)
+	return home + Vector2(SWAY * sin(_swing()), rate * seconds)
+
+
+## Where it is in its swing, in radians: from the world age alone, as everything about it is, and a little different for each page.
+func _swing() -> float:
+	return seconds * TAU / (SWAY_PERIOD + fposmod(home.x, 0.8)) + home.x * 0.013
 
 
 ## Where the page hangs.
@@ -32,6 +42,7 @@ func shown() -> Vector2:
 
 func _physics_process(delta: float) -> void:
 	position = _at()
+	rotation = ROCK * cos(_swing()) if rate != 0.0 else 0.0  # it tips one way at one end of its swing and the other way at the other
 	super._physics_process(delta)
 	if _fading >= 0.0:
 		_fading -= delta
