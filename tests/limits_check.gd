@@ -113,6 +113,7 @@ func _ready() -> void:
 
 	# A Decoy: taken for its caster unless it was seen coming.
 	me.global_position = Vector2(-9000.0, -7000.0)  # (out of the way: the nearest figure it sees is the one it deals with)
+	me.fade_time = 100.0  # (and out of sight, should the world put them back on its ground: a person put back beside it would be nearer than the shadow)
 	other.global_position = Vector2(-9000.0, -8000.0)
 	var shadow := Decoy.new()
 	shadow.caster = other
@@ -131,6 +132,7 @@ func _ready() -> void:
 	await _frames(10)
 	_verdict(brain._lure != seen, "one it watched come out of nothing is known for a shadow")
 	seen.queue_free()
+	me.fade_time = 0.0
 
 	# A page just read is looked at before its spell is drawn.
 	looker.ledger.learn("Ignite")

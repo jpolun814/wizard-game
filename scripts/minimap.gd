@@ -49,6 +49,9 @@ func _ready() -> void:
 				first_solid = mini(first_solid, row)
 		lo.y = maxi(first_solid - SKY_ROWS, 0)
 		hi.y = mini(last_air + ROCK_ROWS, total_rows - 1)
+		if ArenaGen.air_rows != Vector2i.ZERO:  # the sky: the map is the air, which is where everyone is, and not the rock under it that no one sees
+			lo.y = ArenaGen.air_rows.x
+			hi.y = ArenaGen.air_rows.y
 	else:
 		for cell in terrain:
 			lo = Vector2i(mini(lo.x, cell.x), mini(lo.y, cell.y))

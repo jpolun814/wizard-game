@@ -71,6 +71,8 @@ const CREATURE_ANIMATIONS := {
 	"idle": {"fps": 8.0}, "walk": {"fps": 10.0}, "attack": {"fps": 14.0, "loop": false},
 	"hit": {"fps": 12.0, "loop": false}, "death": {"fps": 8.0, "loop": false},
 }
+var shown_hurt := 0.0     # the last damage number shown over it, and when (Senses reads it: a person sees the number)
+var shown_hurt_at := -100.0
 var kind := "basic"  # set before the mob enters the tree
 var player: Node2D
 var guards := false  # a knight at its post: it stands still until a wizard comes near, then fights them, and walks back to its post afterwards
@@ -780,6 +782,8 @@ func take_damage(amount: int, school := "", shot := false) -> void:
 	_flash = 1.0
 	var weak := dealt > amount
 	FloatText.spawn(get_parent(), text_at, "%d%s" % [dealt, "!" if weak else ""], Color("#ff9a3a") if weak else Color("#fff0a0"), 1.25 if weak else 1.0)
+	shown_hurt = dealt
+	shown_hurt_at = Senses.now()
 	# Sparks take the spell's colour, not the enemy's.
 	var spark: Color = SpellData.SCHOOL_COLORS.get(school, _school_colour())
 	Fx.burst(get_parent(), center(), spark, 8, 120.0, 0.3, true)

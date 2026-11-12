@@ -6,7 +6,7 @@ extends RefCounted
 ## has found lie on in the new world; each wizard keeps their own pages and what is left of their stamina.
 
 ## Each world of a match: how wide it is in tiles and how long the wizards have in it before it collapses (0: it does not).
-## Each world is one biome (see biome_of): the first three take three of the six biomes in an order the seed picks, and the last is open sky.
+## Each world is one biome (see biome_of): the first three take three of the nine biomes (the portal fields, the ocean and the sky count) in an order the seed picks, and the last is open sky.
 ## Whether it has halls underground depends on the biome (SurfaceGen.has_halls): only the castle and the underground do.
 const STAGES := [
 	{"width": 900, "seconds": 180.0},
@@ -14,6 +14,7 @@ const STAGES := [
 	{"width": 480, "seconds": 180.0},
 	{"width": 360, "seconds": 0.0},
 ]
+const LATER_BIOMES := ["portals", "ocean", "sky"]  # the biomes dealt in after the others are shuffled, in the order they were added (see biome_of)
 const CASTLE_SHARE := 0.6  # the share of a stage's width that a castle world takes
 const HEIGHT := 380  # every world is this deep, in tiles
 const WARNING := 18.0 # seconds of shaking and a warning before a world collapses
@@ -64,9 +65,14 @@ static func biome_of(at: int) -> String:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed_base
 	var rest := SurfaceGen.BIOMES.duplicate()
-	rest.erase("portals")
+	for later: String in LATER_BIOMES:
+		rest.erase(later)
 	var order := _shuffled(rest, rng)
 	order.insert(rng.randi_range(0, order.size()), "portals")  # dealt in at any place, after the rest are shuffled, so the seeds that were already in use keep most of their worlds
+	var late := RandomNumberGenerator.new()  # and the ocean and the sky the same way, from a rng of their own, so the draws above (and the last world's below) are the ones they always were
+	late.seed = seed_base + 6007
+	for later: String in LATER_BIOMES.slice(1):
+		order.insert(late.randi_range(1, order.size()), later)  # never first: a match always begins in a world that was always there, and the seeds in use keep their first world
 	if at < STAGES.size() - 1:
 		return order[at]
 	for biome: String in _shuffled(SurfaceGen.OPEN_BIOMES, rng):

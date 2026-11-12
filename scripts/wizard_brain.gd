@@ -230,7 +230,7 @@ var _lift := {}                  # a throw up over a wall: {"dir", "key", "span"
 var _leap := {}                  # a jump over a chasm: {"dir": -1 or 1, "key", "steps": Shadow Steps left to make, "span": the chasm, "jumped", "air": seconds since it left the ground}
 var _cannot := {}                # crossing (by key) -> seconds more that it will not try it, having fallen in
 var _replans := 0                # times in a row it has had to find its way again
-var _eye_time := 0.0              # seconds a Scrying Eye lasts for it: a wizard faded from sight can be found
+var _eye_time := 0.0              # seconds since it sent out a Scrying Eye, counting down (its window shows someone, not where they are)
 var _scent := 0.0                # seconds that a Hunter's Mark lasts for it: a wizard faded from sight can be found
 var _tend_cooldown := 3.0        # counting down to the next time it looks to its own needs
 var _rest := {}                  # a spell (or "chase") -> seconds before it uses it for itself again
@@ -291,7 +291,7 @@ func _typing_disturbed() -> bool:
 ## Whether this is a place to stand and type: it stands on the ground and is not being hurt, no creature or rival is near enough to come at it, and
 ## nothing that burns, shoves or bites lies within a few paces. It looks at what is there, not at a clock.
 func _quiet_here() -> bool:
-	if not wizard.is_on_floor() or absf(wizard.velocity.x) > 30.0 or _hurt_age < 1.5:
+	if not wizard.is_on_floor() or absf(wizard.velocity.x) > 30.0 or _hurt_age < 1.5 or wizard.underwater():  # (no one chants under water: the sea is no place to stand and type)
 		return false
 	if _assailant() != null:
 		return false
@@ -364,8 +364,8 @@ func think(delta: float) -> void:
 	if _typing != "":  # the chant box is open: it can only type, or close the box to do something else (see _while_typing)
 		_while_typing()
 		return
-	if _foe == null and _eye_time <= 0.0 and SpellTargets.wizards(wizard.get_tree()).size() > 1 and wizard.ledger.knows_chant("scrying_eye"):
-		_type_then_say("scrying_eye")  # it has lost track of everyone: it sends out an eye (see _while_typing)
+	if _foe == null and _eye_time <= 0.0 and not wizard.ledger.is_settled("scrying_eye") and SpellTargets.wizards(wizard.get_tree()).size() > 1 and wizard.ledger.knows_chant("scrying_eye"):
+		_type_then_say("scrying_eye")  # it has lost track of everyone: it sends out an eye once, as a person would (see _while_typing); the window stays
 	if _foe == null:  # the last wizard standing, or it knows of no one else (none in sight): it goes about its journey
 		if _react > 0.0:  # (a reaction it has planned still comes: nothing else counts it down here)
 			_react -= delta
@@ -504,14 +504,14 @@ func _feel_strength(_rival: Wizard) -> float:
 
 
 ## What it knows of the others, as a person knows it: where each was when it last saw them. A rival on its screen and in plain sight is seen
-## where they are; one that goes out of sight is thought to be where it was last seen, and is forgotten after a while. A scent (Hunter's Mark) or
-## an eye sent out (the Chant of the Scrying Eye) shows them wherever they are, as it would show a person.
+## where they are; one that goes out of sight is thought to be where it was last seen, and is forgotten after a while. A scent (Hunter's Mark) shows
+## them wherever they are, as it would show a person. The Chant of the Scrying Eye does not: a person's window shows someone, but not where they are.
 func _look_about(delta: float) -> void:
 	for other: Wizard in SpellTargets.wizards(wizard.get_tree()):
 		if other == wizard:
 			continue
 		var id := other.get_instance_id()
-		if (eyes_see(other) or _scent > 0.0 or _eye_time > 0.0) and not (_lure != null and _lure.caster == other):
+		if (eyes_see(other) or _scent > 0.0) and not (_lure != null and _lure.caster == other):
 			_known[id] = {"wizard": other, "at": other.global_position, "age": 0.0}
 		elif _known.has(id):
 			_known[id]["age"] += delta
@@ -674,7 +674,7 @@ func _while_typing() -> void:
 		_camped = true
 		_camped_for = 0.0
 	if done and said == "scrying_eye":
-		_eye_time = EYE_SECONDS  # (the eye shows the others at once, so whoever asked for it may not ask again)
+		_eye_time = EYE_SECONDS
 		_said.erase(said)
 
 
@@ -1859,6 +1859,8 @@ func _choose_repel() -> String:
 
 func _act(reaction: String) -> void:
 	var foe: Wizard = _foe
+	if (foe == null or not is_instance_valid(foe)) and reaction in ["push", "breath", "spores", "geyser", "surf", "blink_side", "blink_away"]:
+		return  # (a reaction planned against a rival who is gone from its mind by the time it comes)
 	match reaction:
 		"jump":
 			if wizard.is_on_floor():
@@ -2536,7 +2538,7 @@ func _ceiling_over(point: Vector2) -> bool:
 ## Whether it may cast a spell now: it holds the page, is not silenced, has not just cast it for itself, and has the strength (blood is paid
 ## in maximum stamina, and never to the last drop).
 func _ready_to_cast(spell_name: String) -> bool:
-	if not _knows(spell_name) or _rest.has(spell_name) or wizard.silenced() or wizard.rage_time > 0.0:
+	if not _knows(spell_name) or _rest.has(spell_name) or wizard.silenced() or wizard.rage_time > 0.0 or SpellLimits.refusal(wizard, spell_name) != "":
 		return false
 	if _read_until.get(spell_name, 0.0) > _clock:
 		return false  # a page just read: it is still looking at the picture

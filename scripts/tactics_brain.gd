@@ -19,7 +19,8 @@ const ATTACK_COUNT := 38  # ATTACKS.size() (a constant must be written out; test
 const CASTS := ATTACK_COUNT + 2
 const MODES := 4  # 0 the scripted footwork, 1 close in on the rival, 2 keep away from them, 3 stand still
 const EXTRA := ATTACK_COUNT + 6
-const SIZE := Sensing.SIZE + EXTRA
+const SIZE := Senses.SIZE + EXTRA
+const OLD_SIZE := Sensing.SIZE + EXTRA  # a network trained on the first layout of the senses (training/tactics, round 556 and before)
 const DECISION_EVERY := 0.2  # seconds between choices: about the rate a person changes what they are doing
 
 var cast_choice := 0
@@ -37,9 +38,9 @@ static func net(path := "res://ai/tactics.json") -> PolicyNet:
 	return _shared[path]
 
 
-## What it senses: its screen (Sensing), which attacks it is ready to cast, and what it knows of its rival.
+## What it senses: its screen (Senses; Sensing, the first layout, for a network trained on that), which attacks it is ready to cast, and what it knows of its rival.
 func observe() -> PackedFloat32Array:
-	var obs := Sensing.observe(wizard)
+	var obs := Sensing.observe(wizard) if policy != null and policy.inputs() == OLD_SIZE else wizard.senses.observe()
 	for spell_name: String in ATTACKS:
 		obs.append(1.0 if _ready_to_cast(spell_name) else 0.0)
 	var known := _foe != null and is_instance_valid(_foe)
@@ -66,13 +67,15 @@ func think(delta: float) -> void:
 	if is_typing() or wizard.is_drawing() or holds_still() or not _lift.is_empty() or not _leap.is_empty() or not _wade.is_empty() or wizard.wild:
 		return  # what it is in the middle of comes first
 	var off := _foe_feet().x - wizard.global_position.x
+	var run := 0.0
 	match mode:
 		1:
-			wizard.walk(signf(off) * WALK_SPEED if absf(off) > 90.0 else 0.0)
+			run = signf(off) * WALK_SPEED if absf(off) > 90.0 else 0.0
 		2:
-			wizard.walk(-signf(off) * WALK_SPEED if absf(off) < Eyes.HALF.x * 1.4 else 0.0)
-		3:
-			wizard.walk(0.0)
+			run = -signf(off) * WALK_SPEED if absf(off) < Eyes.HALF.x * 1.4 else 0.0
+	wizard.walk(run)
+	if run != 0.0 and not wizard.is_drawing():
+		wizard.facing = signf(run)  # it faces the way it walks, as a person's wizard does: keeping away is turning and going, not walking backwards
 
 
 func _choose_attack(scores: Dictionary) -> String:

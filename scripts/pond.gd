@@ -33,8 +33,10 @@ const CRUST := Color(0.16, 0.1, 0.1)
 const LAVA_STEP := 1.0 / 14.0   # and lava, which is a little slower to move and takes one
 const LAVA_REDRAW_GAP := 0.12  # the most often flowing lava works its drawn shapes out again: it costs more than the flow itself
 
+const SWIM_DEPTH := 44.0   # how far under the surface of a sea the feet of a wizard are when it swims rather than wades
 var width := 200.0
 var depth := 90.0
+var deep := false  # the sea of the ocean world (chapter 20): fixed water over the whole world, which never flows, and a wizard out of its depth in it swims
 var lava := false
 var cools := false  # lava from a volcano's eruption: it dulls as it cools, burns the whole time, and is gone when cold
 var loose := false  # a puddle made by a spell, not a pool the world was dug with: it starts empty
@@ -113,7 +115,11 @@ func _physics_process(delta: float) -> void:
 	for body in get_overlapping_bodies():
 		if not SpellTargets.affects(body) or _flies(body) or _on_ice(body) or not holds(body):
 			continue
+		if deep and AirPocket.holds(get_tree(), SpellTargets.center_of(body)):
+			continue  # an air pocket of a wreck: the water does not reach there
 		body.soak(Color(1.0, 0.55, 0.3) if lava else Color(0.55, 0.75, 1.0), surface_at(body.global_position.x), molten())
+		if deep and body is Wizard and body.global_position.y - surface_at(body.global_position.x) > SWIM_DEPTH:
+			body.swim()  # out of its depth: it swims (see Wizard.swim)
 		if molten():
 			if tick:
 				SpellTargets.hurt(body, LAVA_DAMAGE, "Fire", false, true)

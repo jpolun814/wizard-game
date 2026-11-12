@@ -106,3 +106,18 @@ func _burned_down() -> void:
 	for platform in _statics:
 		platform.queue_free()
 	queue_free()
+
+
+## The middle of the pads as they float, or sink: the point a trained network watches (Senses).
+func sense_point() -> Vector2:
+	var sum := Vector2.ZERO
+	var count := 0
+	for pad in _pads:
+		if is_instance_valid(pad):
+			sum += pad.global_position
+			count += 1
+	return sum / count if count > 0 else global_position
+
+
+func sense_traits() -> int:
+	return Senses.PLATFORM

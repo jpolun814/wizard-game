@@ -255,8 +255,10 @@ func _add_wizard(look: String, feet: Vector2, seat_name := "") -> Wizard:
 	var wizard: Wizard = WIZARD_SCENE.instantiate()
 	wizard.look = look
 	wizard.human = false
-	wizard.brain = WizardBrain.new(wizard)
-	if seat_name != "" and GameSettings.get_value("learned_ai"):
+	wizard.brain = _new_brain(wizard)
+	wizard.flying = _flies()
+	wizard.fly_box = _fly_box()
+	if seat_name != "" and not _flies() and GameSettings.get_value("learned_ai"):
 		var net := LearnedBrain.footwork()
 		if net != null:
 			var learned := LearnedBrain.new(wizard)  # (its legs follow a trained network; the rest is the scripted brain's)
@@ -269,6 +271,21 @@ func _add_wizard(look: String, feet: Vector2, seat_name := "") -> Wizard:
 	if seat_name != "" and Net.online():
 		wizard.share()
 	return wizard
+
+
+## The brain that plays a wizard here: the one that walks. A world with no ground has a brain of its own (World._new_brain).
+func _new_brain(body: Wizard) -> WizardBrain:
+	return WizardBrain.new(body)
+
+
+## True in a world with no ground, where every wizard flies (World).
+func _flies() -> bool:
+	return false
+
+
+## Where a flying wizard's feet may go, in pixels: it stops at the edge of this (World). Empty where no one flies.
+func _fly_box() -> Rect2:
+	return Rect2()
 
 
 func _on_player_died() -> void:
@@ -364,6 +381,11 @@ func map_cells() -> Variant:
 	return _cells
 
 
+## The wizard the Scrying Eye's window shows the person at this machine, or null when it is not open.
+func scrying_watched() -> Wizard:
+	return _eye.watched if _eye != null and _revealed["scrying_eye"] and is_instance_valid(_eye.watched) else null
+
+
 ## Clicking a HUD module hides it again.
 func _on_hud_clicked(event: InputEvent, module: String) -> void:
 	var click := event as InputEventMouseButton
@@ -399,8 +421,10 @@ func cast_by(spell: String, targeting: String, origin: Vector2, aim: float, info
 	if person:
 		wizard.play_cast_release()
 	if not wizard.ledger.knows_spell(spell):
+		wizard.tell("misfire")  # (a person sees the puff, _on_cast_resolved; a brain's wizard is told)
 		return
 	if spell == "Icicles" and _icicle_spots(info).is_empty():
+		wizard.tell("aim_ceiling")
 		if person:
 			FloatText.spawn(self, get_global_mouse_position() + Vector2(0, -22), "Aim under a ceiling", Color("#dff6ff"), 0.9)
 			Sfx.play("misfire", wizard.center(), -6.0)
@@ -408,11 +432,20 @@ func cast_by(spell: String, targeting: String, origin: Vector2, aim: float, info
 	if wizard.fainted or wizard.is_frozen():
 		return
 	var label_at := get_global_mouse_position() + Vector2(0, -22) if person else wizard.center() + Vector2(0, -60)
+	var limit := SpellLimits.refusal(wizard, spell)  # the place forbids it (no ground to work on in the sky, no fire under the sea): nothing is paid
+	if limit != "":
+		wizard.tell("misfire")
+		if person:
+			FloatText.spawn(self, label_at, limit, Color("#ffb86b"), 0.9)
+			Sfx.play("misfire", wizard.center(), -6.0)
+		return
 	if spell == "Faint" and _blood_target(spell, origin) == null:
+		wizard.tell("aim_someone")
 		if person:
 			FloatText.spawn(self, label_at, "Aim at someone", Color("#ff9a9a"), 0.9)  # nothing is paid for a cut that finds no one
 		return
 	if spell == "Leech" and Leech.pick(get_tree(), wizard, aim) == null:
+		wizard.tell("aim_someone")
 		if person:
 			FloatText.spawn(self, label_at, "Aim at someone", Color("#ff9a9a"), 0.9)  # nothing is paid for a tether that finds no one
 		return
@@ -423,18 +456,23 @@ func cast_by(spell: String, targeting: String, origin: Vector2, aim: float, info
 	var colour := spell_data.glow()
 	if spell_data.pays_max():
 		if not wizard.pay_max(cost):
+			wizard.tell("too_weak")
 			FloatText.spawn(self, label_at, "Too weak", Color("#ff9a9a"), 0.9)  # blood is never spent to the last drop
 			Sfx.play("misfire", wizard.center(), -6.0)
 			if person and is_in_group(&"world"):
 				MatchStats.miss()
 			return
 	elif not wizard.spend(cost):
+		wizard.tell("too_tired")
 		FloatText.spawn(self, label_at, "Too tired", Color("#ffb86b"), 0.9)
 		Sfx.play("misfire", wizard.center(), -6.0)
 		if person and is_in_group(&"world"):
 			MatchStats.miss()
 		return
 	wizard.last_spell = spell
+	wizard.tell("cast")  # (a person sees the name of the spell rise: it went off)
+	if info.get("accuracy", 0.0) >= PERFECT_CAST:
+		wizard.tell("perfect")
 	if person:
 		FloatText.spawn(self, label_at, spell, colour.lightened(0.25), 0.9)
 		if info.get("accuracy", 0.0) >= PERFECT_CAST:
@@ -448,7 +486,15 @@ func _spawn_everywhere(spell: String, targeting: String, origin: Vector2, aim: f
 	var luck := randi()
 	Net.send(self, &"_spawn_seen", [spell, targeting, origin, aim, info, String(wizard.name), luck])
 	seed(luck)
+	_spawn_marked(spell, targeting, origin, aim, info, wizard)
+
+
+## A spell is made, and everything it made is marked with its name: a person sees which spell a thing in the world is (Senses reads the mark).
+func _spawn_marked(spell: String, targeting: String, origin: Vector2, aim: float, info: Dictionary, wizard: Wizard) -> void:
+	var before := get_child_count()
 	spawn_spell(spell, targeting, origin, aim, info, wizard)
+	for k in range(before, get_child_count()):
+		get_child(k).set_meta(&"spell", spell)
 
 
 @rpc("any_peer", "call_remote", "reliable")
@@ -457,7 +503,7 @@ func _spawn_seen(spell: String, targeting: String, origin: Vector2, aim: float, 
 	if wizard == null or wizard.get_multiplayer_authority() != multiplayer.get_remote_sender_id():
 		return  # only the machine that drives a wizard casts for it
 	seed(luck)
-	spawn_spell(spell, targeting, origin, aim, info, wizard)
+	_spawn_marked(spell, targeting, origin, aim, info, wizard)
 
 
 ## A perfect cast: a ring of the school's light opens round the wizard, sparks fly off it and a gold "Perfect" rises.
@@ -1011,7 +1057,17 @@ func _place_shapes(spell: String, info: Dictionary) -> void:
 
 func _on_misfire() -> void:
 	player.drain(MISFIRE_COST)
+	player.tell("misfire")
 	_misfire_puff()
+
+
+## A brain's wizard drew a stroke that means nothing: it pays what a person pays, and is told so (no word is drawn: no person reads it).
+func misfire_by(wizard: Wizard) -> void:
+	if not is_instance_valid(wizard) or wizard.dead:
+		return
+	wizard.drain(MISFIRE_COST)
+	wizard.tell("misfire")
+	Sfx.play("misfire", wizard.center(), -6.0)
 
 
 ## What a shape or a chant that means nothing does: a puff, a sound and one word, so a player with the sound off still knows.

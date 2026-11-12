@@ -1,5 +1,9 @@
 # Read this first, every session
 
+> **A training run is going on (since 2026-11-11).** Before you change anything, read `docs/handoff/18_training_running.md`: what not to touch
+> (`training/duel3/`, `training/duel2/` and `training/duel/`, the frozen copy at `C:/Users/Jordan Polun/wizard-train`, the training's processes and ports), and what not to change without
+> the owner. Remove this note when the owner says the training is over.
+
 This is a Godot game built by one owner through many sessions. This file is the complete handoff for every agent that
 works on it. It holds everything you need: the owner's wording rules in section 0 (the number one priority), the game,
 the rules, the codebase, the testing and the known problems. Chapter files for particular jobs are in `docs/handoff/`;
@@ -30,7 +34,10 @@ trust the code and this file where they disagree.
 | `11_network_play.md` | touch anything a second machine must see: wizards, spells, pages, gates, the match (done: host and join over a network) |
 | `15_open_problem_net_match.md` | work on the network match check that times out with eight wizards (open, unsolved) |
 | `17_learned_ai.md` | work on the trained AI: recordings, `Sensing`, cloning, PPO, the strength score, what has and has not worked |
+| `18_training_running.md` | do anything while a training run is going on: what not to touch, kill or change |
 | `16_backlog_2026_11_05.md` | pick the next job: owner requests not yet coded (bugs, more attack spells, easing in new players, training grounds) |
+| `20_ocean_world_plan.md` | touch the ocean world (built: swimming, breath as the only pressure, driftwood, wrecks and kelp) |
+| `19_sky_world_plan.md` | touch the sky world (built: flying with no ground, `SkyBrain`, drifting pages, clouds that hide and thunderclouds that shock) |
 | `14_spell_expansion_plan.md` | rename a school or a ritual, touch the Library, move the starting pages, or add Barbs, Pebble, Hailstorm, Featherfall, Thorn Whip, Flaming Sphere, Insect Plague, Leech, Raise Dead, Mirage or the Chant of the Scrying Eye (built; the Flaming Sphere is now a rolling sun; the stand-in shot art still waits for the owner) |
 
 ---
@@ -290,7 +297,10 @@ spells you do, drawing them visibly. There are no waves and no boss (see `docs/p
   - a jungle (rain, great trees with vines hanging from them), snowy peaks and ashlands (embers and lava over dark basalt).
   - a castle (the whole world is castles side by side, with gothic church interiors, doorways tall enough for a giant, a minotaur giant roaming the ground floors and knights on guard in them and, fewer, on the upper floors, who stand at their posts until a wizard comes near) and the underground (a great cavern under a roof of rock, no sky).
   - **Living scenery** (`World._raise_biome_life`, `docs/handoff/02_codebase_map.md`): the graveyard has low mist (`MistBank`), bats (`CritterFlock`) and crypts (`Crypt`, each with a page and a skeleton guard); the jungle has rope bridges between neighbouring great trees (`CanopyBridge`), light shafts, fireflies, swaying vines, birds that burst away and downpours (`Squall`); the peaks have avalanches (`Avalanche`), sheets of ice that make a wizard slide (`IceSheet`) and an aurora; the ashlands have lava lakes that swell (`LavaSurge`), ash storms with falling embers (`EmberRain`) and volcanoes that rumble and shake the world, send up a plume of smoke (`SmokePlume`: no one sees through more than a little of it; on a person's own screen `SmokeVeil` hides what lies past it behind a paler haze, so the dark column and the haze are told apart) and pour lava over the rim that cools to a crust and goes (`Eruption`); the underground has glowing crystals, drips, stalactites that fall on whoever walks under (`FallingRock`) and cave-ins (`CaveLife`). Storms, avalanches, swells and cave-ins follow the world's age, so every machine of a match sees them at the same time. Run `tests/showcase.tscn -- scenario=life` with `WORLD_SEED` (0 jungle, 1 graveyard, 4 mountains, 5 ashlands, 13 underground).
-  - Each world of a match is one of these six, in an order the seed picks; the last, small world is all open sky, one of the first four.
+  - the portal fields (`portals`, "The Portal Fields": a level, quiet world where portals open every few seconds and carry a wizard to another; `docs/handoff/13_portal_world.md`). It is the seventh biome, as much a biome as the others.
+  - the ocean (`ocean`, "The Drowned Sea", `docs/handoff/20_ocean_world_plan.md`): a sea over the whole world, islands to start on, wrecks with air pockets and a page, driftwood, kelp; a wizard swims and holds its breath. Never a match's first world.
+  - the sky (`sky`, "The Open Sky", `docs/handoff/19_sky_world_plan.md`): no ground, every wizard flies (`Wizard.flying`, rival brains are `SkyBrain`), pages drift and can be lost (`FallingPage`), clouds rise past and thunderclouds strike (`SkyCloud`). Never a match's first world, and also one of the last world's choices.
+  - There are nine biomes (`SurfaceGen.BIOMES`). A match has four worlds, so it visits four of the nine: each of the first three is one of them, in an order the seed picks (the ocean and the sky are dealt in after the first world), and the last, small world is all open sky, one of the five in `SurfaceGen.OPEN_BIOMES` (graveyard, peaks, jungle, ashlands, portal fields) that the match has not been in.
   - **Each biome has landmarks of its own, not just a reskin; only the underground has tunnels.** The graveyard is dark with rain and fog, and its skeletons roam
     (`Mob.roams`). The ashlands have volcanoes that erupt now and then (`Eruption`) and pits of lava. The snowy peaks are mountains to climb (`MountainGale`: wind that grows toward the summits and pushes a wizard without the run animation, seen as streaks; `SnowCloud`: clouds that drift past in front of whoever is in them), with a page on each
     summit. The jungle has pits of mud (`Mudslide`, dug by the world), thickets of thorns (`Bramble`) and great trees (`JungleTree`: dense, in two sizes and mirrored or not, every one with the oak's ledges to hop between and a vine to climb to the high one, where most of the pages lie; the AI climbs the vines; the ponds are full of `Piranhas`). Its art is still named for the swamp it was cut from. The castle is a row of castles with six floors: a cellar down a
@@ -386,6 +396,8 @@ GODOT="/c/Users/Jordan Polun/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.
 "$GODOT" --path . tests/bonfire_look.tscn -- out=DIR [seed=N]  # a picture of a Bonfire beside the wizard in the waiting room, or in the world of a seed (needs a window)
 "$GODOT" --path . tests/marks_look.tscn -- out=DIR             # pictures of the Hex, Fight or Flight and Moonbeam marks (needs a window)
 "$GODOT" --path . tests/minimap_check.tscn  # the minimap stays in the top right corner as the window is resized
+"$GODOT" --headless --fixed-fps 60 --path . tests/ocean_world_check.tscn  # the sea over the world in lengths, wrecks with air pockets, driftwood and kelp, a wizard out of its depth swims and loses breath
+"$GODOT" --headless --fixed-fps 60 --path . tests/sky_world_check.tscn  # everyone flies and drifts down, pages drift and are lost, clouds rise, thunderclouds are dangers, spells that need ground are refused
 "$GODOT" --headless --fixed-fps 60 --path . tests/eruption_check.tscn -- seed=5  # an ashlands volcano erupts: a smoke plume, lava over the rim that cools and goes (add `out=DIR` for pictures, needs a window)
 "$GODOT" --headless --fixed-fps 60 --path . tests/stalagmite_check.tscn  # a Stalagmite rises from the ground under the tip of a drawn peak (add `-- out=DIR` for a picture, needs a window)
 "$GODOT" --headless --fixed-fps 60 --path . tests/sinkhole_biomes_check.tscn -- seeds=0,1,2,4,5,9,13  # a drawn U digs a pit of its shape in every kind of ground, the castle's slab floors too (add `out=DIR` for pictures, needs a window)
@@ -422,6 +434,8 @@ GODOT="/c/Users/Jordan Polun/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.
 "$GODOT" --headless --fixed-fps 60 --path . tests/sphere_check.tscn  # the Flaming Sphere rolls, climbs a wall, falls into a pit and climbs out, burns, goes out (add `-- out=DIR`, needs a window)
 "$GODOT" --headless --fixed-fps 60 --path . tests/eye_check.tscn  # the Chant of the Scrying Eye: a window bottom right, the eye over the watched wizard, the ground made round them (add `-- out=DIR`, needs a window)
 "$GODOT" --headless --fixed-fps 60 --path . tests/castle_spells_check.tscn  # the castle takes spells: a boulder rests on a swinging stair, a Stalagmite and a Sinkhole work on an upper floor
+"$GODOT" --headless --fixed-fps 60 --path . tests/training_arena_check.tscn  # the training arena: a duel in every lane, bouts end and begin again, nobody leaves or sees past their lane
+"$GODOT" --headless --fixed-fps 60 --path . tests/senses_check.tscn  # what a trained network senses (Senses): the ground, water and breath, a shot's motion, rising air, and the cost of a look
 "$GODOT" --headless --fixed-fps 60 --path . tests/avalanche_check.tscn  # the peaks' avalanche rumbles, then runs down its slope and hurts whoever it runs over, once
 "$GODOT" --headless --fixed-fps 60 --path . tests/pieces_check.tscn  # small pieces: a world's four words and its seed, the spell table and its buttons, a fireball called down onto the ground
 "$GODOT" --headless --fixed-fps 60 --path . tests/ritual_check.tscn  # the chants: how accurately they must be said, and what each gives

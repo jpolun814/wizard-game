@@ -39,17 +39,17 @@ CHECKS = [
     "flow_check", "tutorial_check", "tutorial_path_check", "menu_check", "settings_check", "lab_revive_check", "likeness_check", "stairs_check", "stairwell_check", "castle_spells_check", "castle_sinkhole_fall_check",
     "biome_jump_check", "sinkhole_check", "sinkhole_biomes_check", "ridge_check", "stalagmite_check", "parity_check", "interaction_check",
     "ritual_check", "library_screen_check", "avalanche_check", "pieces_check", "spellbook_order_check", "arrival_check", "sneak_check", "limits_check",
-    "cluster_check", "brains_start_check", "blizzard_freeze_check", "blizzard_melt_check", "group_a_check", "group_d_check", "group_c_check", "group_b_check", "leech_check", "raise_dead_check", "mirage_check", "recorder_check", "log_upload_check", "solo_record_check", "policy_net_check", "learned_ai_check", "sphere_check", "lab_sphere_check", "eye_check",
-)] + [("route_check", "scene", "seed=7 moves=90")] + [("brain_spells_check#%d" % k, "scene", "shard=%d/4" % k) for k in range(4)]
+    "cluster_check", "brains_start_check", "blizzard_freeze_check", "blizzard_melt_check", "group_a_check", "group_d_check", "group_c_check", "group_b_check", "leech_check", "raise_dead_check", "mirage_check", "recorder_check", "log_upload_check", "solo_record_check", "policy_net_check", "senses_check", "training_arena_check", "learned_ai_check", "sphere_check", "lab_sphere_check", "eye_check",
+)] + [("route_check", "scene", "seed=7 moves=90"), ("hand_check", "scene", "--opponent=dummy --lanes=1 --near=1"), ("hand_stage_check", "scene", "--stage=2 --opponent=dummy --lanes=1")] + [("brain_spells_check#%d" % k, "scene", "shard=%d/4" % k) for k in range(4)]
 
 # Slower checks, or ones that need arguments: run with --full. (route_check goes on to more moves than the quick set's.)
-SLOW = [("tutorial_ai_check", "scene", "seconds=1100 speed=4"), ("route_check#a", "scene", "seed=7 moves=260"), ("debug_end_check#win", "scene", "mode=win"), ("debug_end_check#lose", "scene", "mode=lose"), ("route_check#b", "scene", "seed=3 moves=150"),
+SLOW = [("tutorial_ai_check", "scene", "seconds=1100 speed=4"), ("gait_check#3", "scene", "seed=3 seconds=180"), ("gait_check#5", "scene", "seed=5 seconds=180"), ("route_check#a", "scene", "seed=7 moves=260"), ("debug_end_check#win", "scene", "mode=win"), ("debug_end_check#lose", "scene", "mode=lose"), ("route_check#b", "scene", "seed=3 moves=150"),
         ("net_check", "net", "host,client"), ("net_crowd_check", "net", "host,first,second"), ("net_hazard_check", "net", "host seed=2,client seed=2"),
         ("net_match_check", "net", "host,client"), ("dedicated_check", "net", "run"), ("net_spells_check", "net", "host,client"), ("test_world#1", "scene", "seeds=10 first=0"), ("test_world#2", "scene", "seeds=10 first=10"), ("test_world#3", "scene", "seeds=10 first=20"), ("showcase:checks", "scene", "scenario=checks"), ("showcase:newspells", "scene", "scenario=newspells"),
         ("showcase:spells", "scene", "scenario=spells"), ("showcase:soak", "scene", "scenario=soak")] + [(name, "scene", "") for name in (
     "collapse_check", "gate_check", "follow_check", "geyser_check", "wall_liquid_check", "eruption_check", "dark_check", "spectate_check", "stats_check",
     "pull_check", "spark_check", "canopy_check", "regen_check", "sentinel_check", "knight_check", "wild_shape_check", "liquid_world_check", "dig_out_check", "lab_sinkhole_check", "page_count_check",
-    "portal_world_check", "spell_fixes_check", "spoils_check", "stage_jump_check", "intro_check", "epilogue_check", "epilogue_jump_check", "eclipse_check", "minimap_check",
+    "portal_world_check", "ocean_world_check", "sky_world_check", "spell_fixes_check", "spoils_check", "stage_jump_check", "intro_check", "epilogue_check", "epilogue_jump_check", "eclipse_check", "minimap_check",
 )]
 
 

@@ -163,10 +163,10 @@ func _carry_riders() -> void:
 		if not column.has_point(SpellTargets.center_of(body)) or now - int(_riders.get(body, -10000)) < 350:
 			continue
 		_riders[body] = now
-		if body.is_in_group("mobs"):
-			body.knock_back(Vector2(0.0, -MOB_LAUNCH))
-		else:
+		if body is Wizard:
 			body.push(Vector2(0.0, -WIZARD_LAUNCH))
+		else:
+			body.knock_back(Vector2(0.0, -MOB_LAUNCH))  # (a creature, a risen skeleton among them)
 
 
 ## The burst lifts the water at its foot: from a pool, or, the first time on dry ground, from below.
@@ -232,10 +232,10 @@ func _erupt() -> void:
 	# Whoever stands on the spot is thrown up.
 	for body in SpellTargets.all(get_tree()):
 		if _on_the_spot(body):
-			if body.is_in_group("mobs"):
-				body.knock_back(Vector2(0.0, -MOB_LAUNCH))
-			else:
+			if body is Wizard:
 				body.push(Vector2(0.0, -WIZARD_LAUNCH))
+			else:
+				body.knock_back(Vector2(0.0, -MOB_LAUNCH))
 
 
 ## True for a body whose feet are on the geyser's spot, on the ground (a flyer overhead is not).

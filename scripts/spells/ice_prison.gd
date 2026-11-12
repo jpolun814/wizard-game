@@ -50,8 +50,11 @@ func _physics_process(delta: float) -> void:
 	_age += delta
 	queue_redraw()
 	for entry: Dictionary in _encased.duplicate():
+		if not is_instance_valid(entry["body"]):  # (gone from the world: asked before it is read into a typed variable, which a freed body cannot be)
+			_encased.erase(entry)
+			continue
 		var body: Node2D = entry["body"]
-		if not is_instance_valid(body) or (_age > 1.0 and not body.is_frozen()) or _age >= _life:  # thawed, or broken out of it (a wizard on another machine is told it a moment late)
+		if (_age > 1.0 and not body.is_frozen()) or _age >= _life:  # thawed, or broken out of it (a wizard on another machine is told it a moment late)
 			if is_instance_valid(body):
 				Shatter.spawn(get_parent(), body.center(), Color("#cdeeff"))
 				Sfx.play("ice_shatter", body.center())
@@ -65,6 +68,8 @@ func _draw() -> void:
 	var fade := clampf((_life - _age) / 0.4, 0.0, 1.0)
 	var grow := clampf(_age / 0.18, 0.0, 1.0)
 	for entry: Dictionary in _encased:
+		if not is_instance_valid(entry["body"]):
+			continue
 		var body: Node2D = entry["body"]
 		var block: ImageTexture = entry["block"]
 		var size := block.get_size() * RockArt.BLOCK

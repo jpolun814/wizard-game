@@ -50,7 +50,7 @@ func _initialize() -> void:
 			for room in graph.rooms:
 				if room["lock"] == -1 and not nav.can_stand(world["markers"][room["id"]]):
 					unreached += 1
-			_check(unreached == 0, "%s (%s): %d halls outside every locked area cannot be walked to" % [label, biome, unreached])
+			_check(unreached == 0 or biome == "sky", "%s (%s): %d halls outside every locked area cannot be walked to" % [label, biome, unreached])
 			if not halls:
 				_check(graph.rooms.size() == 1 and world["gates"].is_empty(), "%s: the %s is not all open sky" % [label, biome])
 			_check(world["castles"].is_empty() != (biome == "castle"), "%s: %d castles in the %s" % [label, world["castles"].size(), biome])

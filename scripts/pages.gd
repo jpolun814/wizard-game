@@ -24,7 +24,7 @@ const LOCKABLE := ["Frostbolt", "Icicles", "Ice Prison", "Blizzard", "Stonefall"
 ## How many pages lie in a world of each biome, in a world 1000 tiles wide: the ones with little height to spread through (a volcano's
 ## slopes, the portal fields) hold fewer than those with room to climb or dig. Smaller worlds hold fewer (see count_for). The pages that
 ## are not laid are simply not in that world: nothing carries over. Which pages each world lays is settled when the match begins (see allotment).
-const PER_WORLD := {"graveyard": 16, "mountains": 16, "jungle": 18, "ashlands": 12, "castle": 18, "underground": 20, "portals": 10}
+const PER_WORLD := {"graveyard": 16, "mountains": 16, "jungle": 18, "ashlands": 12, "castle": 18, "underground": 20, "portals": 10, "ocean": 14, "sky": 14}
 const LEAST := 6  # however small the world
 const MIN_APART := 40  # columns between two pages lying out in the open of a world with no halls
 const ON_SURFACE := 3  # pages that lie out in the open near the start, so the first one is found within a minute

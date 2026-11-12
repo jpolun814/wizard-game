@@ -28,6 +28,7 @@ var _planks := []  # the castle's swinging stairs: [{"hinge", "ends", "ways"}]
 var _weather: Array[Weather] = []
 var _gale: MountainGale  # the snowy peaks' wind, when this world has it
 var _squall: Squall  # the jungle's downpours or the ashlands' ash storms, when this world has them
+var _sea: Dictionary  # the ocean's sea, wrecks and islands (SurfaceGen._sea_of), or empty
 var _timed: Array[Node] = []  # the avalanche and the lava lakes' swells: each is told the world's age every frame
 var _gates_open := false
 const DEEP := Color(0.3, 0.27, 0.42)  # the colour of everything unlit, just under the ground
@@ -64,6 +65,9 @@ func _build_map() -> Variant:
 	add_to_group(&"world")
 	castle_x = built["castle"]
 	ArenaGen.world_size = built["size"]
+	_sea = built["surface"]["sea"]
+	var air: Dictionary = built["surface"]["air"]
+	ArenaGen.air_rows = Vector2i(air["top"], air["bottom"]) if not air.is_empty() else Vector2i.ZERO
 	ArenaGen.sky_xl = built["sky"]["xl"]
 	ArenaGen.sky_floor = built["sky"]["roof_top"] if built["roofed"] else built["sky"]["floor"]  # over the great cavern lies the sky, past its roof
 	ArenaGen.biome_spans = []
@@ -117,7 +121,7 @@ func _set_up_backdrops() -> void:
 		if child is Backdrop:
 			child.queue_free()  # the one the arena made, which has no ground of its own to stand on
 	var ground_y := float(SurfaceGen.BASE_ROW * TILE)
-	for place in ["cemetery", "jungle", "mountains", "ashlands"]:
+	for place in ["cemetery", "jungle", "mountains", "ashlands", "sky"]:
 		var backdrop := Backdrop.new()
 		add_child(backdrop)
 		move_child(backdrop, 0)
@@ -146,7 +150,8 @@ func _update_weather(under: float) -> void:
 			kinds[0] = "downpour" if SurfaceGen.biome_at(graph.surface, column) == "jungle" else "ash_storm"  # the storm is what falls, in place of the usual
 			strength = maxf(strength, 0.0) * _squall.level()
 	for node in _timed:
-		node.seconds = _stage_time
+		if is_instance_valid(node):
+			node.seconds = _stage_time
 	if _gale != null and SurfaceGen.biome_at(graph.surface, column) == "mountains":
 		var push := MountainGale.push_at(player.global_position.y, _gale.seconds)
 		if absf(push) > 12.0:  # and the wind is seen: streaks of snow blown along, the way it blows
@@ -174,12 +179,14 @@ func _fade_backdrops(delta: float) -> void:
 func _begin_encounter(camera: Camera2D) -> void:
 	_lay_pages()
 	_restore_player()
+	player.flying = _flies()
+	player.fly_box = _fly_box()
 	player.position = _places()[_my_seat()]
 	_safe_spot = player.position
 	_spawn_wizards()
 	if Net.dedicated:
 		_give_player_to_a_brain()
-	if not _carried and arrive_by_portal:
+	if not _carried and arrive_by_portal and not _flies():
 		for wizard in _seats:
 			if wizard != null:
 				_drop_from_portal(wizard)
@@ -442,6 +449,10 @@ func _raise_biome_life() -> void:
 					sheet.position = Vector2((column + 1) * tile, floors[column] * tile)
 					add_child(sheet)
 				column += run
+		"ocean":
+			_lay_sea()
+		"sky":
+			_raise_clouds()
 		"portals":
 			var field := PortalField.new()
 			field.seed_value = seed_value + 71
@@ -480,6 +491,81 @@ func _raise_biome_life() -> void:
 					surge.position = pond.position
 					add_child(surge)
 					_timed.append(surge)
+
+
+const SEA_LENGTH := 1536.0  # how long each length of the sea is
+
+
+## The ocean: the sea over the whole world (a deep Pond), driftwood floating on it, kelp and wrecks on its floor.
+func _lay_sea() -> void:
+	var tile := float(TILE)
+	var floors: PackedInt32Array = graph.surface["floor"]
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed_value + 8209
+	var whole: float = ArenaGen.world_size.x * tile
+	var left := 0.0
+	while left < whole:  # the sea is laid in lengths, so that only the ones in view are drawn
+		var sea := Pond.new()
+		sea.deep = true
+		sea.width = minf(SEA_LENGTH, whole - left)
+		sea.depth = _sea["depth"] * tile + 16.0
+		sea.position = Vector2(left, _sea["row"] * tile)
+		sea.clip = _ground.air_loops
+		add_child(sea)
+		left += SEA_LENGTH
+	var wrecks: Array = _sea["wrecks"]
+	for k in wrecks.size():
+		var at_column: int = wrecks[k]
+		var wreck := Wreck.new()
+		wreck.seed_value = seed_value + 83 + k
+		wreck.position = Vector2((at_column + 0.5) * tile, floors[at_column] * tile)
+		add_child(wreck)
+	var starts: Array = graph.surface["starts"]
+	var column := SurfaceGen.MARGIN + 20
+	while column < floors.size() - SurfaceGen.MARGIN - 20:  # driftwood on the waterline over the deep, kelp on the floor below it
+		var step := rng.randi_range(9, 16)
+		if floors[column] >= int(_sea["row"]) + SurfaceGen.SEA_DEPTH_LEAST - 4:
+			var clear := true
+			for spot in starts + wrecks:
+				clear = clear and absi(column - int(spot)) > 10
+			if clear:
+				if rng.randf() < 0.55:
+					var wood := Driftwood.new()
+					wood.width = 96.0 if rng.randf() < 0.6 else 128.0
+					wood.phase = rng.randf() * TAU
+					wood.position = Vector2((column + 0.5) * tile, _sea["row"] * tile)
+					add_child(wood)
+				else:
+					var kelp := KelpPatch.new()
+					kelp.seed_value = seed_value + column
+					for s in rng.randi_range(5, 9):
+						var at: int = clampi(column + s, 0, floors.size() - 1)
+						kelp.bases.append(Vector2((at + 0.5) * tile + rng.randf_range(-6.0, 6.0), floors[at] * tile))
+					add_child(kelp)
+		column += step
+
+
+## The sky: clouds that rise past the wizards, and thunderclouds among them.
+func _raise_clouds() -> void:
+	var box := _fly_box()
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed_value + 8221
+	var span := Rect2(box.position.x, box.position.y - 400.0, box.size.x, box.size.y + 800.0)
+	var plain := maxi(4, int(box.size.x / 900.0))
+	var storms := maxi(2, int(box.size.x / 2600.0))
+	for k in plain + storms:
+		var cloud := SkyCloud.new()
+		cloud.storm = k >= plain
+		cloud.kind = rng.randi_range(0, 2)
+		cloud.seed_value = seed_value * 13 + k
+		cloud.span = span
+		cloud.home = Vector2(rng.randf_range(span.position.x, span.end.x), rng.randf_range(span.position.y, span.end.y))
+		cloud.rise = rng.randf_range(25.0, 45.0) if cloud.storm else rng.randf_range(25.0, 70.0)
+		cloud.side = rng.randf_range(-12.0, 12.0)
+		cloud.period = rng.randf_range(5.0, 8.0)
+		cloud.phase = rng.randf_range(0.0, cloud.period)
+		_timed.append(cloud)
+		add_child(cloud)
 
 
 ## How large the great tree standing in a column is (1 to 3 times its picture).
@@ -658,6 +744,23 @@ func _my_seat() -> int:
 	return maxi(Net.seat_of(Net.my_id()), 0) if Net.online() else 0
 
 
+## True in the sky world, where no one stands: every wizard flies.
+func _flies() -> bool:
+	return graph != null and not graph.surface["air"].is_empty()
+
+
+## The room a wizard of the sky may fly in, in pixels.
+func _fly_box() -> Rect2:
+	if not _flies():
+		return Rect2()
+	var air: Dictionary = graph.surface["air"]
+	return Rect2(air["first"] * float(TILE), air["top"] * float(TILE), (air["last"] - air["first"] + 1) * float(TILE), (air["bottom"] - air["top"]) * float(TILE))
+
+
+func _new_brain(body: Wizard) -> WizardBrain:
+	return SkyBrain.new(body) if _flies() else WizardBrain.new(body)
+
+
 ## Where each seat starts, in the world. Playing alone the player has a place of their own and the others the places farthest from it,
 ## in an order drawn from the seed; in a network game every seat's place is drawn from the seed, so every machine agrees on them.
 func _places() -> Array[Vector2]:
@@ -726,7 +829,7 @@ func _spawn_wizards() -> void:
 func _give_player_to_a_brain() -> void:
 	player.human = false
 	player.ensure_caster()  # (it casts through a caster of its own, as a brain's wizard does)
-	player.brain = WizardBrain.new(player)
+	player.brain = _new_brain(player)
 	player.nav = nav
 
 
@@ -772,7 +875,7 @@ func _drop_pages(wizard: Wizard) -> void:
 		held.append(each)
 	if held.is_empty():
 		return
-	var spot := _on_ridge(wizard.global_position, _floor_under(wizard.global_position))  # on a ridge, the book lies on it
+	var spot := wizard.global_position + Vector2(0.0, 40.0) if _flies() else _on_ridge(wizard.global_position, _floor_under(wizard.global_position))  # on a ridge, the book lies on it; in the sky it hangs where they fell
 	var name := "Spoils" + String(wizard.name)
 	_lay_spoils(name, held, spot)
 	Net.send(self, &"_lay_spoils", [name, held, spot])
@@ -827,6 +930,10 @@ func _drop_from_portal(wizard: Node2D) -> void:
 
 ## The world position of the floor of a tile, at its middle.
 func _stand_at(tile: Vector2i) -> Vector2:
+	if _flies():  # no ground: a wizard starts in the air, at a height of its place's own
+		var air: Dictionary = graph.surface["air"]
+		var along := 0.3 + 0.4 * fposmod(float(tile.x) * 0.37, 1.0)
+		return Vector2((tile.x + 0.5) * TILE, lerpf(air["top"], air["bottom"], along) * TILE)
 	return Vector2((tile.x + 0.5) * TILE, (tile.y + 1) * TILE)
 
 
@@ -1469,6 +1576,11 @@ func _lay_pages() -> void:
 	var spare: Array[String] = []
 	spare.assign(allotment["spare"])
 	var layout := Pages.plan(graph, rng, Pages.deal(MatchState.seed_base + 31, WIZARDS), allotment["worlds"][MatchState.stage], gate_kinds, spare, ledgers if _carried else Pages.deal(MatchState.seed_base + 31, WIZARDS))  # (the pages in the clusters count as held, for the gates' openers)
+	if _flies():
+		_lay_sky_pages(layout)
+		if not _carried:
+			_lay_clusters(layout.size())
+		return
 	var count := {}
 	for index in layout.size():
 		var entry: Dictionary = layout[index]
@@ -1502,6 +1614,27 @@ func _lay_pages() -> void:
 		_lay_clusters(layout.size())
 
 
+## The sky's pages: each hangs somewhere in the air and drifts, up or down, before it leaves the world (FallingPage).
+## It is placed so that it stays for at least two minutes, and is lost after that.
+func _lay_sky_pages(layout: Array) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed_value + 7933
+	var box := _fly_box()
+	for index in layout.size():
+		var pickup := FallingPage.new()
+		pickup.name = "Page%d" % index  # the same on every machine, so the host can say which was read
+		pickup.page = layout[index]["page"]
+		pickup.rate = rng.randf_range(FallingPage.RATE_LEAST, FallingPage.RATE_MOST)
+		var stays := pickup.rate * 120.0
+		var low := box.position.y + 120.0 + maxf(-stays, 0.0)
+		var high := box.end.y - 120.0 - maxf(stays, 0.0)
+		var shown_at := rng.randf_range(low, maxf(low, high))
+		pickup.home = Vector2(rng.randf_range(box.position.x + 600.0, box.end.x - 600.0), shown_at + PagePickup.FLOAT)
+		pickup.box = box
+		_timed.append(pickup)
+		add_child(pickup)
+
+
 ## How many tiles apart the pages of a cluster lie, and the farthest from the spawn they may lie.
 const CLUSTER_GAP := 3
 const CLUSTER_REACH := 30
@@ -1515,6 +1648,19 @@ func _lay_clusters(first: int) -> void:
 	for seat in WIZARDS:
 		var pages := Pages.cluster_of(MatchState.seed_base, seat, WIZARDS)
 		if pages.is_empty():
+			continue
+		if _flies():
+			var floating := FallingPage.new()  # in the sky they hang by the place, and do not drift
+			floating.name = "Page%d" % index
+			index += 1
+			floating.page = pages[0]
+			floating.spoils.assign(pages)
+			floating.fan = true
+			floating.home = places[seat] + Vector2(180.0, PagePickup.FLOAT - 40.0)
+			floating.rate = 0.0
+			floating.box = _fly_box()
+			_timed.append(floating)
+			add_child(floating)
 			continue
 		var pickup := PagePickup.new()  # all of a wizard's first pages lie together, fanned out like cards, and one read takes them all
 		pickup.name = "Page%d" % index  # the same on every machine, so the host can say which was read

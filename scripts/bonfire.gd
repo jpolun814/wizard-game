@@ -18,6 +18,8 @@ const LOG_FILTERS := {
 	"castle": Color(1.0, 0.88, 0.7),
 	"underground": Color(0.66, 0.74, 0.95),
 	"portals": Color(0.92, 0.74, 1.0),
+	"ocean": Color(0.6, 0.72, 0.78),
+	"sky": Color(0.9, 0.93, 1.0),
 }
 
 var power := 1.0             # set from the chant's accuracy: a truer chant warms more

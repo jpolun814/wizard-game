@@ -32,6 +32,8 @@ const PLACES := {
 		["res://art/backgrounds/ashlands/far.png", Vector2(0.10, 1.0), 214.0, 0.0, false, 2.1],
 		["res://art/backgrounds/ashlands/near.png", Vector2(0.35, 1.0), 222.0, 0.0, false, 1.2],
 	]},
+	# The open sky: nothing but the sky, since there is no ground for scenery to stand on. The clouds that go by are real ones in the world (SkyCloud).
+	"sky": {"sky": "res://art/backgrounds/mountains/sky.png", "fill": Color("#101828"), "layers": []},
 	"church": {"sky": "", "fill": Color("#272638"), "layers": [
 		["res://art/backgrounds/church/hall.png", Vector2(0.3, 1.0), 212.0, 0.0, true, 2.0],
 	]},

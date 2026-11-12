@@ -39,13 +39,13 @@ func get_obs_space() -> Dictionary:
 	return {"obs": {"size": [get_obs()["obs"].size()], "space": "box"}}
 
 
-## What it senses (Sensing, which is also what is written into a person's recording), and the next few tiles of the way the scripted route is going, as a hint.
+## What it senses (Senses), and the next few tiles of the way the scripted route is going, as a hint.
 func get_obs() -> Dictionary:
 	var seen := PackedFloat32Array()
 	if brain != null and wizard != null and is_instance_valid(wizard):
 		seen = brain.observe()
 	else:
-		seen.resize(Sensing.SIZE + LearnedBrain.WAYPOINTS * 3 + 1)
+		seen.resize(Senses.SIZE + LearnedBrain.WAYPOINTS * 3 + 1)
 	var obs: Array = Array(seen)
 	for i in obs.size():
 		if is_nan(obs[i]) or is_inf(obs[i]):

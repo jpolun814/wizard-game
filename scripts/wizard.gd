@@ -72,6 +72,24 @@ const SPAWN_TIME := 0.7       # a wizard summoned into the world arrives out of 
 const FALL_LIMIT := 800.0     # a wizard below this has fallen off the map (in a world, the bottom of it)
 
 const FEATHER_FALL := 70.0  # the fastest a wizard falls under a Featherfall, in pixels a second
+# Swimming (the ocean, chapter 20): out of its depth in a sea a wizard sinks slowly, each tap of jump is a stroke that lifts it, and S dives.
+const SWIM_STROKE := 300.0   # the speed a stroke lifts the wizard at, in pixels a second
+const SWIM_GRAVITY := 450.0  # how quickly it slows from that, and sinks again
+const SINK_SPEED := 170.0    # the fastest it sinks by itself
+const DIVE_SPEED := 300.0    # and the fastest it dives
+const STROKE_EVERY := 0.28   # seconds between a brain's strokes
+const AIR_LOW := 3.0         # seconds of breath at which a brain's wizard goes up for air
+# Flying (the sky, chapter 19): no ground and no jump. A, D, W and S steer, and with no key down the wizard drifts slowly down.
+const FLY_SPEED := 300.0     # sideways and up and down
+const FLY_DRIFT := 30.0      # how fast the wizard drifts down when nothing is pressed
+const FLY_ACCEL := 900.0     # how quickly the up and down speed follows the keys
+var swim_time := 0.0         # above zero while the wizard is out of its depth in a sea (see swim)
+var swim_down := false       # what a brain asks of the water: dive
+var _stroke_wait := 0.0
+var _surfacing := false      # a brain's wizard is on its way up for air
+var flying := false          # set by a world with no ground (the sky): the wizard steers freely instead of walking
+var fly_y := 0.0             # what a brain asks of the air, up and down: -1 is up, 1 is down
+var fly_box := Rect2()       # where a flying wizard's feet may be: it stops at the edge of it. Empty: anywhere
 var _feather_motes := 0.0
 var gravity: float = ProjectSettings.get_setting("physics/2d/default_gravity")
 var look := "wizard":  # which wizard this is: the player's own, or the id of one of the others' looks (a MobKind in res://mobs)
@@ -81,6 +99,13 @@ var look := "wizard":  # which wizard this is: the player's own, or the id of on
 		look = value
 		if is_node_ready():
 			_dress()
+## The words the screen shows about this wizard: about its own casts to whoever plays it ("Misfire", "Too tired"), and over its body to everyone
+## ("-12", "Negated"). A person reads them as floating words; a brain's wizard has none drawn for it, but the AI that plays it must know them as a
+## person would (Senses reads them). Each word of WORDS and when it was last shown.
+const WORDS := ["misfire", "too_tired", "too_weak", "aim_someone", "aim_ceiling", "cast", "perfect", "interrupted", "negated", "dazed", "hurt"]
+var told := {}
+var shown_hurt := 0.0  # the last damage number shown over it ("-12", or "-12 max")
+
 var palette := 0:  # which set of colours it wears (see WizardLook)
 	set(value):
 		if value == palette:
@@ -104,6 +129,12 @@ var _on_drawn: Callable
 var _drag := PackedVector2Array()  # how far the view had moved when each point of the stroke was drawn: the screen drags the stroke (see Eyes)
 var _drag_from := Vector2.ZERO      # the middle of the view when the stroke was begun
 var eyes: Eyes                      # the screen a person in this wizard's place would have
+var senses: Senses:                 # what a trained network is told of that screen (made when first asked for)
+	get:
+		if _senses == null:
+			_senses = Senses.new(self)
+		return _senses
+var _senses: Senses
 var _overlay: Node2D  # draws the ice, and the stroke a brain's wizard is drawing, over the sprite
 var stamina := MAX_STAMINA
 var max_stamina := MAX_STAMINA  # what stamina can reach for now. Hits and the Rift wear it down; you die when it is gone
@@ -459,6 +490,7 @@ func take_damage(amount: int, grace_hit := true, projectile := false) -> void:
 			Fx.burst(get_parent(), center(), SpellData.SCHOOL_COLORS["Blood"], 14, 140.0, 0.4, true)
 			Sfx.play("glass", center(), -4.0)
 			FloatText.spawn(get_parent(), center() + Vector2(0, -44), "Negated", Color("#ff6b7a"), 1.0)
+			tell("negated")
 		if grace_hit:
 			_grace = HURT_GRACE
 		return
@@ -477,6 +509,8 @@ func take_damage(amount: int, grace_hit := true, projectile := false) -> void:
 	Sfx.play("player_hurt", center())
 	GameCamera.shake_scene(get_tree(), 0.35 + amount * 0.02)
 	FloatText.spawn(get_parent(), center() + Vector2(0, -24), "-%d" % amount, Color("#ff5a5a"), 1.1)
+	shown_hurt = amount
+	tell("hurt")
 	Net.send(self, &"_show_hurt", [amount])
 	damaged.emit(amount)
 	if brain != null:
@@ -535,6 +569,21 @@ func soak(tint: Color, surface_y := INF, lava := false) -> void:
 	_liquid_time = 0.15
 
 
+## True while the wizard stands or swims in water or lava.
+func in_liquid() -> bool:
+	return _liquid_time > 0.0
+
+
+## True while the wizard stands in lava.
+func in_lava() -> bool:
+	return _liquid_time > 0.0 and _in_lava
+
+
+## True while the wizard hangs on a vine or a ladder.
+func on_vine() -> bool:
+	return _vine != null and is_instance_valid(_vine)
+
+
 ## True when the wizard's head is under the surface of water.
 func underwater() -> bool:
 	return _liquid_time > 0.0 and not _in_lava and global_position.y - BODY_HEIGHT + 10.0 > _liquid_y
@@ -573,6 +622,7 @@ func apply_debuff(kind: String, seconds: float) -> void:
 			daze_time = maxf(daze_time, seconds)
 			slow_time = maxf(slow_time, seconds)
 			FloatText.spawn(get_parent(), center() + Vector2(0, -44), "Dazed", Color(0.85, 0.9, 1.0), 1.0)
+			tell("dazed")
 		"sink":
 			sink_time = maxf(sink_time, seconds)
 		"tangle":
@@ -599,6 +649,8 @@ func pay_max(amount: float) -> bool:
 	_flash = 0.3
 	_since_spend = 0.0
 	FloatText.spawn(get_parent(), center() + Vector2(0, -24), "-%d max" % roundi(amount), Color("#ff6b7a"), 1.0)
+	shown_hurt = amount
+	tell("hurt")
 	return true
 
 
@@ -839,6 +891,8 @@ func _physics_process(delta: float) -> void:
 	_breathe(delta)
 	rage_time = maxf(rage_time - delta, 0.0)
 	fear_time = maxf(fear_time - delta, 0.0)
+	swim_time = maxf(swim_time - delta, 0.0)
+	_stroke_wait -= delta
 	if is_on_floor():
 		air_jump_ready = true
 	if infinite_time > 0.0:
@@ -851,7 +905,11 @@ func _physics_process(delta: float) -> void:
 	queue_redraw()
 	_shield.queue_redraw()
 
-	if not is_on_floor():
+	if flying:
+		_fly(delta)  # no gravity: the air is steered through (see _fly)
+	elif swim_time > 0.0:
+		velocity.y = move_toward(velocity.y, DIVE_SPEED if _dives() else SINK_SPEED, SWIM_GRAVITY * delta)  # in deep water it sinks slowly, or dives
+	elif not is_on_floor():
 		velocity.y += gravity * delta
 		if feather_time > 0.0 and velocity.y > FEATHER_FALL:
 			velocity.y = FEATHER_FALL  # as light as a feather
@@ -878,7 +936,12 @@ func _physics_process(delta: float) -> void:
 	if can_move:
 		if brain == null and Input.is_action_just_pressed("jump"):
 			request_jump()
-		if _jump_buffer > 0.0 and _coyote > 0.0 and sink_time <= 0.0 and tangle_time <= 0.0 and (wild or spend(JUMP_COST, false)):
+		if flying:
+			_jump_buffer = 0.0  # there is nothing to jump from: the wizard steers
+		if swim_time > 0.0 and _jump_buffer > 0.0:
+			velocity.y = -SWIM_STROKE  # a stroke of the arms: it costs nothing
+			_jump_buffer = 0.0
+		elif _jump_buffer > 0.0 and _coyote > 0.0 and sink_time <= 0.0 and tangle_time <= 0.0 and (wild or spend(JUMP_COST, false)):
 			velocity.y = JUMP_VELOCITY * _jump_strength
 			_jump_buffer = 0.0
 			_coyote = 0.0
@@ -890,12 +953,12 @@ func _physics_process(delta: float) -> void:
 			air_jump_ready = false
 			Sfx.play("jump", global_position)
 		# Letting go of jump early cuts the jump short, so small hops are easy.
-		if brain == null and Input.is_action_just_released("jump") and velocity.y < JUMP_VELOCITY * 0.4:
+		if brain == null and Input.is_action_just_released("jump") and velocity.y < JUMP_VELOCITY * 0.4 and swim_time <= 0.0 and not flying:
 			velocity.y = JUMP_VELOCITY * 0.4
 		# Walking is free; running drains stamina. With none left you still walk, at half speed.
 		var speed := (SPEED if stamina > 0.0 or wild else SPEED * 0.5) * (0.5 if slow_time > 0.0 else 1.0) * (0.4 if sink_time > 0.0 else 1.0) * (0.3 if tangle_time > 0.0 else 1.0) * (HASTE if haste_time > 0.0 else 1.0) * (OBSIDIAN_SPEED if obsidian_time > 0.0 else 1.0) * (WILD_SPEED if wild else 1.0)
 		velocity.x = Input.get_axis("move_left", "move_right") * speed if brain == null else clampf(_walk, -speed, speed)
-		_stepping = absf(velocity.x) > 10.0
+		_stepping = absf(velocity.x) > 10.0 and not flying  # (flying is not a body's work: the stamina comes back all the while)
 		if is_on_floor() and absf(velocity.x) > 10.0 and stamina > 0.0 and not wild:
 			drain(RUN_COST * delta, false)
 	else:
@@ -924,11 +987,56 @@ func _physics_process(delta: float) -> void:
 	move_and_slide()
 	# A character pushed out of the map's sides is put back inside.
 	global_position.x = clampf(global_position.x, ArenaGen.left_edge() + 12.0, ArenaGen.right_edge() - 12.0)
+	if flying and fly_box.size != Vector2.ZERO:  # the sky has no walls, but a wizard that reaches the end of it simply stops
+		var held := global_position.clamp(fly_box.position, fly_box.end)
+		if not is_equal_approx(held.y, global_position.y):
+			velocity.y = 0.0
+		global_position = held
 	if is_on_floor() and absf(velocity.x) > 10.0:
 		_step -= delta
 		if _step <= 0.0:
 			_step = STEP_EVERY
 			Sfx.play("step", global_position)
+
+
+## Out of its depth in a sea (see Pond.deep): the water holds the wizard up for a moment, and the call comes again each frame while it is there.
+func swim() -> void:
+	swim_time = 0.2
+
+
+## True while the wizard dives: a person holds S, a brain asks.
+func _dives() -> bool:
+	return Input.is_action_pressed("move_down") if brain == null else swim_down
+
+
+## Flying, in a world with no ground: steered up and down by the keys (or by a brain, with fly_y), and drifting down at its own pace when nothing is asked.
+func _fly(delta: float) -> void:
+	var free := movement_enabled and root_time <= 0.0 and not dead and not fainted and not drawn
+	var ask := 0.0
+	if free:
+		ask = Input.get_axis("move_up", "move_down") if brain == null else clampf(fly_y, -1.0, 1.0)
+	var pace := FLY_SPEED * (0.5 if slow_time > 0.0 else 1.0) * (0.3 if tangle_time > 0.0 else 1.0) * (HASTE if haste_time > 0.0 else 1.0)
+	velocity.y = move_toward(velocity.y, ask * pace if ask != 0.0 else FLY_DRIFT, FLY_ACCEL * delta)
+
+
+## A brain's wizard in deep water, with its breath running low, swims up for air a stroke at a time, and dives again once it has breathed, as a person does.
+## (It was never taught to swim, and goes on with whatever it was doing otherwise, walking the floor.)
+func _swim_for_air() -> void:
+	swim_down = false
+	if swim_time <= 0.0 or flying:
+		_surfacing = false
+		return
+	if breath < AIR_LOW and not _surfacing and deep_breath_time <= 0.0:
+		_surfacing = true
+	if _surfacing and (breath >= BREATH * 0.9 or not underwater() and breath >= BREATH * 0.5):
+		_surfacing = false
+	if _surfacing:
+		_walk = 0.0
+		if _stroke_wait <= 0.0:
+			_stroke_wait = STROKE_EVERY
+			request_jump()
+	elif underwater() and breath > BREATH * 0.6 and not is_on_floor():
+		swim_down = true  # breathed: back down to the floor, where the pages lie
 
 
 ## Hanging on a vine (Liana): W takes hold when the wizard is at one, W and S climb, and Space or a sideways key lets go.
@@ -1039,8 +1147,8 @@ func _process(delta: float) -> void:
 
 ## Picks the animation for what the wizard is doing, faces the way it is moving, and flashes when hit.
 func _animate(delta: float) -> void:
-	if absf(velocity.x) > 10.0 and not dead and is_person():
-		facing = signf(velocity.x)  # (a brain turns its wizard itself)
+	if absf(velocity.x) > 10.0 and not dead and not is_likeness():
+		facing = signf(velocity.x)  # a person's wizard and a brain's face the way they move, whatever turned them: nobody runs backwards (a brain turns to its rival only standing)
 	_releasing = maxf(_releasing - delta, 0.0)
 	_hurt_anim = maxf(_hurt_anim - delta, 0.0)
 	var wanted := "idle"
@@ -1054,6 +1162,8 @@ func _animate(delta: float) -> void:
 		wanted = "release"
 	elif casting:
 		wanted = "cast"
+	elif flying:
+		wanted = "run" if absf(velocity.x) > 10.0 and absf(velocity.y) < 120.0 else ("jump" if velocity.y < -40.0 else "fall")  # (there is no ground: it is the way it moves that shows)
 	elif not is_on_floor():
 		wanted = "jump" if velocity.y < 0.0 else "fall"
 	elif absf(velocity.x - wind) > 10.0:  # the wind can push a wizard along without a step
@@ -1104,6 +1214,7 @@ func _make_caster() -> void:
 	caster.set_process(false)
 	caster.ground_check = Callable(get_parent(), "_is_ground_at")
 	caster.cast_resolved.connect(Callable(get_parent(), "cast_by").bind(self))
+	caster.misfired.connect(Callable(get_parent(), "misfire_by").bind(self))  # a stroke that means nothing costs what it costs a person
 
 
 ## The caster that reads a stroke into a spell: a brain's wizard has one always, and a person's is made when something other than their own hand
@@ -1112,6 +1223,11 @@ func ensure_caster() -> Caster:
 	if caster == null:
 		_make_caster()
 	return caster
+
+
+## A word the screen shows about this wizard (WORDS), noted with the time, for the senses of whatever plays it.
+func tell(word: String) -> void:
+	told[word] = Senses.now()
 
 
 ## A brain's wizard speaks a chant (see Arena.chant_by).
@@ -1140,6 +1256,7 @@ func _think(delta: float) -> void:
 	brain.think(delta)
 	if brain.holds_still():
 		_walk = 0.0  # it stops to draw
+	_swim_for_air()
 
 
 ## A brain asks to walk at a speed, left (negative) or right: the body keeps to what it can do.
@@ -1216,6 +1333,7 @@ func interrupt_cast() -> void:
 func _show_interrupt() -> void:
 	Fx.burst(get_parent(), center() + Vector2(facing * 14.0, -16.0), cast_color, 14, 140.0, 0.4, true)
 	FloatText.spawn(get_parent(), center() + Vector2(0, -44), "Interrupted!", Color("#d9b8ff"), 0.9)
+	tell("interrupted")
 	Sfx.play("misfire", center())
 
 
@@ -1301,11 +1419,11 @@ func _tell_others() -> void:
 	net_position = global_position
 	marks = (FROZEN if is_frozen() else 0) | (SHIELDED if has_shield() else 0) | (OBSIDIAN if obsidian_time > 0.0 else 0) | (STUCK if _stuck_time > 0.0 else 0) 			| (GROUNDED if is_on_floor() else 0) | (ROOTED if is_rooted() else 0) | (SLOWED if is_slowed() else 0) | (FADED if fade_time > 0.0 else 0) | (VEILED if veil > 0 else 0) | (WILD if wild else 0)
 	if brain != null:
-		shown_stroke = _drawn_so_far()
+		shown_stroke = drawn_so_far()
 
 
 ## The part of a brain's stroke drawn so far: it grows as the spell does.
-func _drawn_so_far() -> PackedVector2Array:
+func drawn_so_far() -> PackedVector2Array:
 	if _draw_time <= 0.0 or _stroke.size() < 2:
 		return PackedVector2Array()
 	var count := clampi(int(_stroke.size() * (1.0 - _draw_time / _draw_total)), 2, _stroke.size())

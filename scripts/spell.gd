@@ -42,6 +42,14 @@ func pays_max() -> bool:
 ## What the spellbook says it costs: "30 stamina", or "30 max stamina" for a spell paid in maximum stamina; a range when the size drawn sets the price.
 func cost_line() -> String:
 	var what := "max stamina" if pays_max() else "stamina"
+	var span := cost_span()
+	if roundi(span.x) == roundi(span.y):
+		return "%d %s" % [roundi(span.x), what]
+	return "%d to %d %s" % [roundi(span.x), roundi(span.y), what]
+
+
+## The least and the most it costs, as the spellbook's cost line says (x the least, y the most).
+func cost_span() -> Vector2:
 	var low := cost
 	var high := cost
 	match size_from:
@@ -55,14 +63,21 @@ func cost_line() -> String:
 		_:
 			low = roundf(cost * size_min)
 			high = roundf(cost * size_max)
-	if roundi(low) == roundi(high):
-		return "%d %s" % [roundi(low), what]
-	return "%d to %d %s" % [roundi(low), roundi(high), what]
+	return Vector2(low, high)
 
 
 ## What the spellbook says it deals ("14 dmg/sec", "30 dmg"), or nothing when it deals no damage.
 func damage_line() -> String:
 	return damage
+
+
+## The figure of the damage line (0 when it deals none), and whether it is a rate ("dmg/sec").
+func damage_figure() -> float:
+	return damage.get_slice(" ", 0).to_float() if damage != "" else 0.0
+
+
+func damage_is_rate() -> bool:
+	return damage.contains("/sec")
 
 
 ## What it costs when drawn this big. info is what the gesture measured: radius, reach, line, length, rect, pieces.

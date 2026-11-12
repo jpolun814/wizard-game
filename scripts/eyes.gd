@@ -97,21 +97,35 @@ func sees_point(point: Vector2) -> bool:
 	var from := wizard.center()
 	if SpellTargets.sight_blocked(wizard.get_tree(), from, point):
 		return false
-	return _light_level() >= SEEN_UNLIT or lit(point)
+	return light_level() >= SEEN_UNLIT or lit(point)
 
 
 ## True when a light (a flare, a fire, a page, a glowing crystal...) shines on a point.
 func lit(point: Vector2) -> bool:
+	return lit_by(lights_near(Rect2(point, Vector2.ZERO)), point)
+
+
+## The lights that shine on any part of an area, each as [where, how far it reaches]: found once, for many points to be asked of (see lit_by).
+func lights_near(area: Rect2) -> Array:
+	var out: Array = []
 	for light: PointLight2D in _lights_now():
 		if is_instance_valid(light) and light.enabled and light.is_visible_in_tree() and light.texture != null:
 			var reach := light.texture_scale * float(light.texture.get_width()) * 0.5 * LIGHT_REACH
-			if light.global_position.distance_to(point) < reach:
-				return true
+			if area.grow(reach).has_point(light.global_position):
+				out.append([light.global_position, reach])
+	return out
+
+
+## True when one of these lights (from lights_near) shines on a point.
+static func lit_by(lights: Array, point: Vector2) -> bool:
+	for light: Array in lights:
+		if (light[0] as Vector2).distance_to(point) < float(light[1]):
+			return true
 	return false
 
 
 ## How bright the unlit world looks on this wizard's screen: the world's tint where it stands, or a room's darkness.
-func _light_level() -> float:
+func light_level() -> float:
 	var tree := wizard.get_tree()
 	var world := tree.get_first_node_in_group(&"world")
 	if world != null and world.has_method("light_level_at"):

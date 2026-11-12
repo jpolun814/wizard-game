@@ -1,6 +1,6 @@
 # 13. The portal world
 
-A seventh biome, `portals` ("The Portal Fields"), dealt into every match's order like the others: `MatchState.biome_of` shuffles the other six and then deals this one in at any place, so any world of a match can be it (and the last, small one). Dealing it in after the shuffle keeps the worlds the fixed seeds of the tests had.
+The seventh of the game's seven biomes, `portals` ("The Portal Fields"; it counts as a biome like the rest, in `SurfaceGen.BIOMES` and `OPEN_BIOMES`), dealt into every match's order like the others: `MatchState.biome_of` shuffles the other six and then deals this one in at any place, so any world of a match can be it (and the last, small one). Dealing it in after the shuffle keeps the worlds the fixed seeds of the tests had.
 Its ground is gentle and bare (graveyard tiles and backdrop, a violet tint, fog), with normal pages and no hazards.
 
 `PortalField` (`scripts/portal_field.gd`, raised in `World._raise_biome_life`) opens the portals. It is told the world's age each frame

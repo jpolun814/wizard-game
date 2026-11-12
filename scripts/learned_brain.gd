@@ -27,9 +27,10 @@ const OWN_WAY_FOR := 2.5
 const DECISION_EVERY := 0.1  # seconds between the policy's choices
 
 
-## What it senses (Sensing, which is also what is written into a person's recording), and the next few tiles of the way the scripted route is going, as a hint.
+## What it senses (Senses; or Sensing, the first layout, for a network trained on that, such as ai/footwork.json), and the next few tiles of the way the
+## scripted route is going, as a hint.
 func observe() -> PackedFloat32Array:
-	var obs := Sensing.observe(wizard)
+	var obs := Sensing.observe(wizard) if _first_layout() else wizard.senses.observe()
 	var here := Vector2i(floori(wizard.global_position.x / WizardRoute.TILE), floori((wizard.global_position.y - 1.0) / WizardRoute.TILE))
 	for i in WAYPOINTS:
 		var tile := _route.ahead(i)
@@ -48,13 +49,18 @@ func _decide(delta: float) -> void:
 		return
 	_decide_in = DECISION_EVERY
 	var obs := observe()
-	if policy.inputs() == Sensing.SIZE:
-		obs.resize(Sensing.SIZE)  # (a policy learned from people's recordings sees only what the recording held)
+	if policy.inputs() == Sensing.SIZE or policy.inputs() == Senses.SIZE:
+		obs.resize(policy.inputs())  # (a policy learned from people's recordings sees only what the recording held)
 	var logits := policy.forward(obs)
 	move = float(policy.choose(logits, "move") - 1)
 	if policy.choose(logits, "jump", true) == 1:
 		jump = true
 	learned = true
+
+
+## True for a network trained on the first layout of the senses (Sensing), with or without the route's hint.
+func _first_layout() -> bool:
+	return policy != null and (policy.inputs() == Sensing.SIZE or policy.inputs() == Sensing.SIZE + WAYPOINTS * 3 + 1)
 
 
 func _steer(delta: float) -> Dictionary:

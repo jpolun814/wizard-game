@@ -14,6 +14,8 @@ const CASTS := {
 	"castle": {"shadow": Vector3(0.08, 0.05, 0.10), "light": Vector3(1.07, 1.0, 0.89), "vignette": 0.4},
 	"underground": {"shadow": Vector3(0.04, 0.05, 0.13), "light": Vector3(0.95, 0.98, 1.05), "vignette": 0.52},
 	"portals": {"shadow": Vector3(0.11, 0.03, 0.15), "light": Vector3(1.0, 0.95, 1.07), "vignette": 0.4},
+	"ocean": {"shadow": Vector3(0.02, 0.07, 0.10), "light": Vector3(0.93, 1.0, 1.05), "vignette": 0.5},
+	"sky": {"shadow": Vector3(0.05, 0.07, 0.15), "light": Vector3(0.98, 1.0, 1.06), "vignette": 0.3},
 }
 
 

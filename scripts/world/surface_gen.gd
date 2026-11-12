@@ -17,8 +17,21 @@ const START_FLAT := 8       # columns each side of the middle that are level, to
 const LEDGE := 3            # the most a ledge on a mountain climbs in one column: a jump (the wizard clears three rows)
 const RIM := 11             # columns each side of a volcano's middle that are level: the rim round its crater
 const CRATER_WIDTH := 16    # the bowl in a volcano's top
-const BIOMES := ["graveyard", "mountains", "jungle", "ashlands", "castle", "underground", "portals"]  # one of these is the whole of a world
-const OPEN_BIOMES := ["graveyard", "mountains", "jungle", "ashlands", "portals"]  # those with open sky and room to spare: the last world of a match is one of them
+const BIOMES := ["graveyard", "mountains", "jungle", "ashlands", "castle", "underground", "portals", "ocean", "sky"]  # one of these is the whole of a world
+const OPEN_BIOMES := ["graveyard", "mountains", "jungle", "ashlands", "portals", "sky"]  # those with open sky and room to spare: the last world of a match is one of them (the ocean has a sea over it, not open sky)
+
+## The ocean (chapter 20): one sea over the whole world, its surface SEA_ROW, over a floor SEA_DEPTH_LEAST to SEA_DEPTH_MOST rows down, with a few dark islands standing out of it.
+const SEA_ROW := BASE_ROW + 1   # the surface of the sea: an island's top (the plains' row) stands a row clear of it
+const SEA_DEPTH_LEAST := 12     # rows from the surface to the floor, where it is shallowest out at sea
+const SEA_DEPTH_MOST := 19
+const ISLAND_FLAT := 4          # columns each side of the middle of one of the sea's extra islands that are level
+const ISLAND_EVERY := 150       # columns of a world to each extra island (the starting places have islands of their own)
+const WRECK_EVERY := 70         # columns of a world to each wreck on the sea floor
+
+## The sky (chapter 19): no ground, and a room a wizard flies in from SKY_TOP_ROW to SKY_BOTTOM_ROW. Far under it (SKY_FLOOR_ROW) lies rock that no one comes to: the world still has tiles, and it keeps them out of sight.
+const SKY_TOP_ROW := 6
+const SKY_BOTTOM_ROW := 126
+const SKY_FLOOR_ROW := 160
 
 ## True for the biome with halls under the ground (the deep's caves). The rest have no tunnels: each has its own landmarks on the
 ## surface in place of them (the castle's are its floors and its cellar, in the castles themselves).
@@ -38,6 +51,8 @@ const LOOKS := {
 	"ashlands": {"title": "The Ashlands", "tiles": "ash", "weather": ["ash", "embers"], "backdrop": "ashlands", "tint": Color(1.12, 0.78, 0.7)},
 	"castle": {"title": "The Castle", "tiles": "church", "backdrop": "cemetery", "tint": Color(0.9, 0.92, 1.08)},
 	"portals": {"title": "The Portal Fields", "tiles": "cemetery", "backdrop": "cemetery", "tint": Color(0.72, 0.66, 0.9)},  # level and quiet: the portals are the whole of it
+	"ocean": {"title": "The Drowned Sea", "tiles": "stone", "backdrop": "cemetery", "tint": Color(0.62, 0.72, 0.8)},  # a dark sea under the blood moon's sky: the floor is bare rock
+	"sky": {"title": "The Open Sky", "tiles": "stone", "backdrop": "sky", "tint": Color(0.86, 0.9, 1.0)},  # nothing to stand on: everyone falls through it together
 	"underground": {"title": "The Deep", "tiles": "stone", "backdrop": "cemetery", "tint": Color(0.42, 0.4, 0.55)},  # under a roof of rock: no sky shows
 }
 
@@ -50,8 +65,13 @@ const LOOKS := {
 ## rim's row}], "mud" and "thorns": the jungle's pits of mud and thickets of thorns [{"a", "b"}: first and last column], "trees": [{"column", "size", "mirror"}], "crypts": the columns of the graveyard's crypts, "landmarks": columns
 ## of level ground at a place worth going to (the rim of a volcano, a mountain's top), where pages are laid first}.
 static func build(width: int, biome: String, rng: RandomNumberGenerator) -> Dictionary:
+	if biome == "sky":
+		return _build_sky(width)
 	var n := width - MARGIN * 2
 	var offset := _offsets(biome, n, rng)
+	var islands: Array[int] = []  # the ocean's extra islands (the columns of their middles)
+	if biome == "ocean":
+		islands = _sea_islands(width, offset, rng)
 	var floor_row := PackedInt32Array()
 	floor_row.resize(width)
 	floor_row.fill(BASE_ROW)
@@ -136,8 +156,13 @@ static func build(width: int, biome: String, rng: RandomNumberGenerator) -> Dict
 		_lay_jungle_hazards(width, ponds, mud, thorns, rng)
 		trees = _plant_trees(floor_row, [ponds, mud, thorns], starts, rng)
 	var crypts := _place_crypts(floor_row, [ponds], starts) if biome == "graveyard" else []
+	var sea := {}
+	var landmarks := _landmarks(biome, floor_row, craters, trees, crypts)
+	if biome == "ocean":
+		sea = _sea_of(floor_row, islands, starts, rng)
+		landmarks = sea["landmarks"]
 	return {"limits": limits, "floor": floor_row, "biomes": [{"name": biome, "a": MARGIN, "b": width - MARGIN - 1}], "ponds": ponds, "castles": castles, "castle": castles[0] if not castles.is_empty() else -1, "roofed": biome == "underground", "start": middle,
-			"craters": craters, "mud": mud, "thorns": thorns, "trees": trees, "crypts": crypts, "landmarks": _landmarks(biome, floor_row, craters, trees, crypts), "starts": starts}
+			"craters": craters, "mud": mud, "thorns": thorns, "trees": trees, "crypts": crypts, "landmarks": landmarks, "starts": starts, "sea": sea, "air": {}}
 
 
 ## The columns the wizards start from in a world that is all surface: evenly along it, each time over (but not on the cone of a volcano: a start that
@@ -386,6 +411,9 @@ static func _offsets(biome: String, n: int, rng: RandomNumberGenerator) -> Packe
 		"ashlands":
 			for k in n:
 				out[k] = 4.0 * sin(k / 11.0 + phase1) + 1.6 * sin(k / 4.5 + phase2)
+		"ocean":
+			for k in n:  # the floor of the sea, in rows below the plains: rolling between the least and the most (the sea's own surface is a row below the plains)
+				out[k] = float(SEA_DEPTH_LEAST + 1) + (SEA_DEPTH_MOST - SEA_DEPTH_LEAST) * (0.5 + 0.32 * sin(k / 21.0 + phase1) + 0.18 * sin(k / 7.0 + phase2))
 		_:
 			for k in n:
 				out[k] = 3.0 * sin(k / 17.0 + phase1) + 1.2 * sin(k / 6.5 + phase2)
@@ -413,6 +441,78 @@ static func _relax(floor_row: PackedInt32Array, pinned: PackedByteArray, limits 
 				changed = true
 		if not changed:
 			return
+
+
+## The ocean's islands, raised out of the sea floor in `offset` (rows from the plains, one for each column from the first the ground takes): one under each
+## place a wizard starts from, one in the middle, and a few more between them, each a level top with sides that fall away a row to a column. Returns the
+## columns of the extra ones, which are where pages lie.
+static func _sea_islands(width: int, offset: PackedFloat32Array, rng: RandomNumberGenerator) -> Array[int]:
+	var bases: Array[int] = [width / 2]
+	for spot in _starts(width, [], []):
+		bases.append(spot)
+	var flats: Array[Vector2i] = []  # [middle, half the level top]
+	for spot in bases:
+		flats.append(Vector2i(spot, START_FLAT + 1))
+	var extra: Array[int] = []
+	var wanted := maxi(2, width / ISLAND_EVERY)
+	for k in wanted:
+		for attempt in 40:
+			var at := rng.randi_range(MARGIN + 30, width - MARGIN - 30)
+			var clear := true
+			for spot in bases + extra:
+				clear = clear and absi(at - spot) > 34
+			if clear:
+				extra.append(at)
+				flats.append(Vector2i(at, ISLAND_FLAT))
+				break
+	for flat in flats:
+		var top := 0 if flat.y > ISLAND_FLAT else -rng.randi_range(0, 1)  # a starting island is level with the plains, one of the others may stand a row higher
+		for c in range(maxi(flat.x - 80, MARGIN), mini(flat.x + 80, width - MARGIN)):
+			var reach := maxi(absi(c - flat.x) - flat.y, 0)
+			offset[c - MARGIN] = minf(offset[c - MARGIN], float(top + reach))
+	return extra
+
+
+## What the sea has besides its floor, once the ground is smooth: {"row": its surface, "depth": rows from it to the lowest floor, "islands": the columns of the
+## extra islands, "wrecks": the columns of the wrecks lying on the floor, "landmarks": where pages lie first (mostly the wrecks, a few of the islands)}.
+static func _sea_of(floor_row: PackedInt32Array, islands: Array[int], starts: Array[int], rng: RandomNumberGenerator) -> Dictionary:
+	var lowest := SEA_ROW
+	for row in floor_row:
+		lowest = maxi(lowest, row)
+	var wrecks: Array[int] = []
+	var wanted := maxi(3, floor_row.size() / WRECK_EVERY)
+	for k in wanted:
+		for attempt in 60:
+			var at := rng.randi_range(MARGIN + 24, floor_row.size() - MARGIN - 24)
+			var clear: bool = floor_row[at] >= SEA_ROW + SEA_DEPTH_LEAST - 2  # a wreck lies in deep water, not on a shoal
+			for spot in wrecks + islands + starts:
+				clear = clear and absi(at - spot) > 26
+			if clear:
+				wrecks.append(at)
+				break
+	var landmarks: Array[int] = []
+	for k in maxi(wrecks.size(), islands.size()):  # mostly wrecks on the floor, an island now and then
+		if k < wrecks.size():
+			landmarks.append(wrecks[k])
+		if k % 3 == 2 and islands.size() > k / 3:
+			landmarks.append(islands[k / 3])
+		elif k >= wrecks.size() and k < islands.size():
+			landmarks.append(islands[k])
+	return {"row": SEA_ROW, "depth": lowest - SEA_ROW + 2, "islands": islands, "wrecks": wrecks, "landmarks": landmarks}
+
+
+## The sky: ground nowhere that anyone reaches (SKY_FLOOR_ROW, the same all along), no pools, no landmarks. "air" says where a wizard may fly:
+## {"top", "bottom": the rows it is held between, "first", "last": the columns}.
+static func _build_sky(width: int) -> Dictionary:
+	var floor_row := PackedInt32Array()
+	floor_row.resize(width)
+	floor_row.fill(SKY_FLOOR_ROW)
+	var limits := PackedByteArray()
+	limits.resize(width)
+	limits.fill(1)
+	return {"limits": limits, "floor": floor_row, "biomes": [{"name": "sky", "a": MARGIN, "b": width - MARGIN - 1}], "ponds": [], "castles": [], "castle": -1, "roofed": false, "start": width / 2,
+			"craters": [], "mud": [], "thorns": [], "trees": [], "crypts": [], "landmarks": [], "starts": _starts(width, [], []), "sea": {},
+			"air": {"top": SKY_TOP_ROW, "bottom": SKY_BOTTOM_ROW, "first": MARGIN, "last": width - MARGIN - 1}}
 
 
 ## The biome a column is in, as its name.

@@ -41,6 +41,7 @@ static var world_size := Vector2i.ZERO
 static var sky_xl := 0
 static var castle_hall: Array = []  # the rooms inside the castle, as rectangles of tiles
 static var sky_floor := PackedInt32Array()
+static var air_rows := Vector2i.ZERO  # the sky world (chapter 19): the first and last row of the air a wizard flies in, or zero where the world has ground
 static var biome_spans: Array = []  # a world's biomes, left to right: {"a", "b": first and last column, "tiles": the tile set of its ground}
 
 ## Each level has its own look: the biome's ground tiles, the backdrop behind it and the things standing about on
@@ -59,6 +60,7 @@ static func build(rng: RandomNumberGenerator, heights := PackedFloat32Array()) -
 	var cells := {}
 	world_size = Vector2i.ZERO
 	sky_floor = PackedInt32Array()
+	air_rows = Vector2i.ZERO
 	castle_hall = []
 	_fill(cells, LEFT_WALL, WALL_TOP, LEFT_WALL, GROUND_ROW + DEPTH, STONE)
 	_fill(cells, right_wall, WALL_TOP, right_wall, GROUND_ROW + DEPTH, STONE)
