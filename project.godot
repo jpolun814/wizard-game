@@ -145,7 +145,6 @@ decoy_right={
 2d_physics/layer_1="terrain"
 2d_physics/layer_2="mobs"
 2d_physics/layer_3="player"
-2d_physics/layer_4="mob_barrier"
 2d_physics/layer_5="platforms"
 
 [physics]

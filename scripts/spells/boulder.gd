@@ -1,7 +1,7 @@
 class_name Boulder
 extends RigidBody2D
 
-## A boulder from Earth Fall. It drops onto the ground, hurting whoever is under it, then stays where it lands: it rolls
+## A boulder from Stonefall. It drops onto the ground, hurting whoever is under it, then stays where it lands: it rolls
 ## downhill, can be shoved by a Push, and is solid until enough shots have struck it that it crumbles.
 
 const RADIUS := 18.0

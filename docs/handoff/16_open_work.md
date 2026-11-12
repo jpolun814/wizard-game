@@ -15,7 +15,7 @@ is in git. Any player-facing line follows section 0 of `CLAUDE.md`, and no new s
 - **A page out of sync in a network game.** Not reproduced for ordinary pages. The lead is the Mirage: each machine spawns its own, with a node name of its own, so a
   read found by name (`_page_read`) cannot find it on the other machine. Fix idea: the host decides when it shimmers out and in and sends it by name, and a spawned
   Mirage gets the same name everywhere (the caster's name and a count).
-- **`test_world` (full set):** on seeds 7 and 23 the rooms next to the start of a 1200-wide world with halls cannot be reached. It fails the same way at the start of
+- **`test_world` (full set):** on seeds 7, 15 and 23 the rooms next to the start of a 1200-wide world with halls cannot be reached. It fails the same way at the start of
   2026-11-12, before that day's work; not looked into.
 - **`tutorial_ai_check` (full set):** the AI wizard is held up at the tutorial's giant.
 - **Intermittent:** `brain_spells_check` now and then fails one spell (Tornado reaching the rival's ledge, Mirage, Faint) and passes on the second try;

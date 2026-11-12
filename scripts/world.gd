@@ -997,7 +997,7 @@ func _body_in_rock(at: Vector2) -> bool:
 	return false
 
 
-## A teleport (Blink, Shadow Step) stops short of any rock: the path is walked back from its end to the first clear spot.
+## A teleport (Shadow Step) stops short of any rock: the path is walked back from its end to the first clear spot.
 func _out_of_rock(start: Vector2, end: Vector2) -> Vector2:
 	var steps := maxi(1, int(start.distance_to(end) / 8.0))
 	for i in range(steps, -1, -1):

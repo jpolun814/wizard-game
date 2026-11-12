@@ -50,7 +50,7 @@ static func fire(parent: Node, origin: Vector2, target: Vector2, color: Color, d
 	return bolt
 
 
-## A force wall, push or tornado turns this shot: it flies off along the new heading.
+## A Gust, Push or Tornado turns this shot: it flies off along the new heading.
 func reflect(direction: Vector2) -> void:
 	_velocity = direction.normalized() * _speed
 	rotation = _velocity.angle()
