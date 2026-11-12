@@ -21,7 +21,7 @@ const CRACKLE_EVERY := 1.0
 const BOLT := 22           # and what the bolt itself does to whoever it comes down on
 const STRIKE_WIDTH := 80.0 # how wide the bolt is where it falls
 const STRIKE_HEIGHT := 400.0  # and how tall: the picture of the strike, twice its size
-const OUTSIDE := 260.0     # the farthest a bolt may fall from the side of its cloud
+const UNDER := 0.75        # how much of the cloud's width a bolt may come out of: it comes out of the body of the cloud, never out of the open sky beside it (owner, 2026-11-12)
 const NEAR := 2200.0       # a cloud farther than this from every wizard throws nothing: no one is there to be struck
 
 var storm := false
@@ -115,12 +115,12 @@ func _near_a_wizard() -> bool:
 	return false
 
 
-## Where bolt number n falls, from the seed and n alone: [x, the y its foot stands on]. Most fall within the cloud's width, some a little outside it.
+## Where bolt number n falls, from the seed and n alone: [x, the y its foot stands on], from the cloud's middle. It comes down out of the cloud.
 func bolt_at(n: int) -> Vector2:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed_value * 31 + n * 7919
-	var reach := region().size.x * 0.5 + (OUTSIDE if rng.randf() < 0.35 else 0.0)
-	var drop := rng.randf_range(60.0, 240.0)
+	var reach := region().size.x * 0.5 * UNDER
+	var drop := STRIKE_HEIGHT - rng.randf_range(20.0, 70.0)  # the picture of the bolt is STRIKE_HEIGHT tall: its top is then in the cloud, a little over its middle
 	return Vector2(rng.randf_range(-reach, reach), drop)
 
 

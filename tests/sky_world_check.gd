@@ -56,7 +56,7 @@ func _run(world: World) -> void:
 		await get_tree().process_frame
 	_check(world._flies(), "everyone flies")
 	var box := world._fly_box()
-	_check(box.size.y > 2000.0, "the sky is tall (%d px)" % int(box.size.y))
+	_check(box.size.y > 1500.0, "the sky is tall: several screens (%d px)" % int(box.size.y))
 	var wizard: Wizard = world.player
 	_check(wizard.flying and box.has_point(wizard.global_position), "the player starts in the air, inside the sky")
 	var rivals := get_tree().get_nodes_in_group("wizards").filter(func(w: Wizard) -> bool: return w != wizard)
@@ -114,6 +114,28 @@ func _run(world: World) -> void:
 		inside_for += 1.0 / 60.0
 	print("   in the storm for %.1f s (a bolt every %.1f s): stamina %.0f of %.0f, region %s, at %s, blows %s" % [inside_for, storm.period, wizard.stamina, wizard.max_stamina, str(storm.region()), str(wizard.center()), str(blows)])
 	_check(wizard.max_stamina + wizard.stamina < hurt_before - 1.0, "a wizard who stays in a thundercloud is hurt")
+	# With out=DIR (and a window), a picture of a bolt coming down out of a thundercloud.
+	var out := ""
+	for arg in OS.get_cmdline_user_args():
+		if arg.begins_with("out="):
+			out = arg.substr(4)
+	if out != "":
+		var shown: SkyCloud = storm
+		for other: SkyCloud in storms:
+			if box.grow(-300.0).has_point(other.global_position):
+				shown = other  # (one in the room the wizards fly in, where a wizard can be put beside it)
+		storm = shown
+		for k in 30:
+			wizard.global_position = storm.global_position + Vector2(-260.0, 120.0)
+			wizard.velocity = Vector2.ZERO
+			wizard.reset_physics_interpolation()
+			(wizard.get_node("Camera2D") as Camera2D).reset_smoothing()
+			await get_tree().process_frame
+		storm._strike(storm._count() + 50)
+		for k in 6:
+			await get_tree().process_frame
+		get_viewport().get_texture().get_image().save_png(out.path_join("bolt.png"))
+		print("   wrote ", out.path_join("bolt.png"), " storm ", storm.global_position, " visible ", storm.is_visible_in_tree(), " wizard ", wizard.global_position, " camera ", (wizard.get_node("Camera2D") as Camera2D).get_screen_center_position(), " current ", (wizard.get_node("Camera2D") as Camera2D).is_current())
 	# Spells that need ground are refused.
 	_check(SpellLimits.refusal(wizard, "Stone Wall") == "No ground", "a Stone Wall needs ground")
 	_check(SpellLimits.refusal(wizard, "Ignite") == "", "a fireball does not")

@@ -75,10 +75,14 @@ Check: `tests/sky_world_check.tscn`. The world is `sky` (`SurfaceGen.OPEN_BIOMES
   too slowly). One that rises out of the top comes back in at the bottom, `ROOM` (400 px) past each end of `box`, out of sight; no page is lost (owner, 2026-11-12). A wizard's first pages (the cluster) hang by their place and do not drift.
   Reading one needs the wizard within `FallingPage.TOUCH` (80 px).
 - **Clouds** are `SkyCloud` (one plain cloud to every 450 px of width, at least 8, and a thundercloud to every 2000, at least 3; owner, 2026-11-12: more of them): plain ones rise past and hide (a `sight_blockers` member, so the brains see them as cover); thunderclouds warn with a flash
-  and sparks, then shock whoever is inside and strike whoever is under the bolt; between bolts the inside stings each second (`CRACKLE`, 4; owner, 2026-11-12: sitting in one
+  and sparks, then shock whoever is inside and strike whoever is under the bolt, which comes down out of the body of the cloud (`SkyCloud.UNDER`; owner, 2026-11-12: bolts
+  started above the cloud); between bolts the inside stings each second (`CRACKLE`, 4; owner, 2026-11-12: sitting in one
   did nothing they could feel), but not in the second before a bolt, whose shock a sting would otherwise swallow (a wizard is spared hits for half a second after one). Everything is placed from the world's age (the `_timed` list), so no network traffic.
 - **Spells** that need ground are refused with "No ground" (`SpellLimits`, which the brain also asks); Updraft, Featherfall and Rocket Jump say "No need".
 - **Seeds:** the ocean and the sky are dealt in after the first world, never first (`MatchState.biome_of`), so every seed keeps its first world. The sky is also in the
   last world's draw (`OPEN_BIOMES`).
 - **Not verified:** how it feels to fly (speed, drift, how fast pages leave), the thunderclouds' sound, the look of the backdrop for a fall (the sky picture does not
   scroll, so a person has only the clouds and pages to show motion).
+
+- **Size** (owner, 2026-11-12, twice too large): a sky world is `MatchState.SKY_SHARE` (0.35) of a stage's width and rows `SKY_TOP_ROW` to `SKY_BOTTOM_ROW` (6 to 66) tall.
+  Pictures of a bolt: `tests/sky_world_check.tscn -- out=DIR` (needs a window).
