@@ -49,6 +49,13 @@ static func shake_scene(tree: SceneTree, amount: float) -> void:
 			wizard.eyes.shake(amount)
 
 
+## Shakes this machine's camera alone: for something only the person here feels (their own wizard hurt).
+static func shake_scene_camera(tree: SceneTree, amount: float) -> void:
+	var camera := tree.get_first_node_in_group("game_camera") as GameCamera
+	if camera:
+		camera.shake(amount)
+
+
 ## Shakes each screen only as much as its wizard is near the thing that shook: fully at its feet, not at all from `reach` away. The camera
 ## follows the player; an AI wizard's own screen (Eyes) follows it.
 static func shake_near(tree: SceneTree, at: Vector2, amount: float, reach: float) -> void:

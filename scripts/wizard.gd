@@ -77,6 +77,7 @@ const SWIM_STROKE := 300.0   # the speed a stroke lifts the wizard at, in pixels
 const SWIM_GRAVITY := 450.0  # how quickly it slows from that, and sinks again
 const SINK_SPEED := 170.0    # the fastest it sinks by itself
 const DIVE_SPEED := 300.0    # and the fastest it dives
+const FALL_SHAKE_REACH := 500.0  # a wizard falling this near shakes a screen a little
 const STROKE_EVERY := 0.28   # seconds between a brain's strokes: a person taps the key, they do not hold it (see WizardBrain._swim)
 # Flying (the sky, chapter 19): no ground and no jump. A, D, W and S steer, and with no key down the wizard drifts slowly down.
 const FLY_SPEED := 300.0     # sideways and up and down
@@ -491,7 +492,7 @@ func take_damage(amount: int, grace_hit := true, projectile := false) -> void:
 	if grace_hit:
 		_grace = HURT_GRACE
 	Sfx.play("player_hurt", center())
-	GameCamera.shake_scene(get_tree(), 0.35 + amount * 0.02)
+	_shake_own_screen(0.35 + amount * 0.02)
 	FloatText.spawn(get_parent(), center() + Vector2(0, -24), "-%d" % amount, Color("#ff5a5a"), 1.1)
 	Net.send(self, &"_show_hurt", [amount])
 	damaged.emit(amount)
@@ -528,7 +529,7 @@ func _pass_away() -> void:
 	Sfx.play("mob_die", center())
 	Fx.burst(get_parent(), center(), Color("#d8d0e8"), 18, 180.0, 0.6, true)
 	Fx.smoke(get_parent(), center(), Color(0.25, 0.2, 0.3, 0.6), 5, 30.0)
-	GameCamera.shake_scene(get_tree(), 0.18)
+	GameCamera.shake_near(get_tree(), global_position, 0.18, FALL_SHAKE_REACH)  # (a fall far off shakes nobody's screen)
 
 
 ## A fallen wizard fades after its death tumble, and one a brain plays is gone. A likeness only fades: it stays until its scene does,
@@ -1126,7 +1127,7 @@ func _animate(delta: float) -> void:
 	elif casting:
 		wanted = "cast"
 	elif flying:
-		wanted = "run" if absf(velocity.x) > 10.0 and absf(velocity.y) < 120.0 else ("jump" if velocity.y < -40.0 else "fall")  # (there is no ground: it is the way it moves that shows)
+		wanted = "jump" if velocity.y < -40.0 else "fall"  # (there is no ground to run on: it rises or it falls, whichever way it steers, owner 2026-11-12)
 	elif not is_on_floor():
 		wanted = "jump" if velocity.y < 0.0 else "fall"
 	elif absf(velocity.x - wind) > 10.0:  # the wind can push a wizard along without a step
@@ -1344,6 +1345,15 @@ func _enter_tree() -> void:
 ## True for the wizard this machine's person plays: the keys and the mouse drive it, and the camera, book and bar are its.
 func is_person() -> bool:
 	return brain == null and is_multiplayer_authority()
+
+
+## A blow shakes the screen of whoever plays this wizard, and nobody else's (owner, 2026-11-12: a screen shook whenever any wizard anywhere was hurt):
+## the camera when it is this machine's person, the AI's own screen (Eyes) when a brain plays it.
+func _shake_own_screen(amount: float) -> void:
+	if is_person():
+		GameCamera.shake_scene_camera(get_tree(), amount)
+	if eyes != null:
+		eyes.shake(amount)
 
 
 ## True for a likeness of a wizard another machine drives: it shows what that machine says and decides nothing itself.

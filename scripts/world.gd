@@ -141,6 +141,8 @@ func _update_weather(under: float) -> void:
 	var column := floori(player.global_position.x / TILE)
 	var kinds: Array = SurfaceGen.LOOKS[SurfaceGen.biome_at(graph.surface, column)].get("weather", [])
 	var strength := clampf(1.0 - (under + 2.0 * TILE) / (6.0 * TILE), 0.0, 1.0)
+	if SurfaceGen.biome_at(graph.surface, column) == "sky":
+		strength = 1.0  # (there is no ground to be under)
 	if SurfaceGen.biome_at(graph.surface, column) == "mountains" and MountainGale.altitude(player.global_position.y) > 0.45:
 		kinds = ["blizzard"]  # up near the summits the snow is a blizzard
 	if _squall != null:

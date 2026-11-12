@@ -52,7 +52,7 @@ const LOOKS := {
 	"castle": {"title": "The Castle", "tiles": "church", "backdrop": "cemetery", "tint": Color(0.9, 0.92, 1.08)},
 	"portals": {"title": "The Portal Fields", "tiles": "cemetery", "backdrop": "cemetery", "tint": Color(0.72, 0.66, 0.9)},  # level and quiet: the portals are the whole of it
 	"ocean": {"title": "The Drowned Sea", "tiles": "stone", "backdrop": "cemetery", "tint": Color(0.62, 0.72, 0.8)},  # a dark sea under the blood moon's sky: the floor is bare rock
-	"sky": {"title": "The Open Sky", "tiles": "stone", "backdrop": "sky", "tint": Color(0.86, 0.9, 1.0)},  # nothing to stand on: everyone falls through it together
+	"sky": {"title": "The Open Sky", "tiles": "stone", "backdrop": "sky", "tint": Color(0.86, 0.9, 1.0), "weather": ["fall_wind"]},  # nothing to stand on: everyone falls through it together
 	"underground": {"title": "The Deep", "tiles": "stone", "backdrop": "cemetery", "tint": Color(0.42, 0.4, 0.55)},  # under a roof of rock: no sky shows
 }
 

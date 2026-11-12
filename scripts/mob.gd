@@ -24,7 +24,9 @@ static func _load_kinds() -> Dictionary:
 	for kind in found:
 		out[kind.id] = kind
 	return out
+
 const SPEED := 80.0
+const SHAKE_REACH := 700.0  # a creature's fall or blast shakes only the screens of those this near (not every screen in the world)
 const TERMINAL_FALL := 900.0  # no enemy falls faster than this
 const FALL_LIMIT := 800.0     # an enemy below this has fallen off the map and is removed (in a world, the bottom of the world)
 const CONTACT_RANGE := 40.0   # how close (middle to middle) a walker must be to hit
@@ -536,7 +538,7 @@ func _smash() -> void:
 	var point := global_position + Vector2(SMASH_REACH * facing, SMASH_HEIGHT)
 	Sfx.play("stones", point, -2.0)
 	Fx.debris(get_parent(), point, Color("#a08060"), 10, 180.0)
-	GameCamera.shake_scene(get_tree(), 0.3)
+	GameCamera.shake_near(get_tree(), global_position, 0.3, SHAKE_REACH)
 	for wall in get_tree().get_nodes_in_group("walls"):
 		wall.take_blow_near(point, SMASH_WALL_DAMAGE)
 	for rock in get_tree().get_nodes_in_group("rocks"):
@@ -813,7 +815,7 @@ func _die() -> void:
 	Sfx.play("mob_die", center())
 	Fx.burst(get_parent(), center(), _school_colour(), 18, 180.0, 0.6, true)
 	Fx.smoke(get_parent(), center(), Color(0.25, 0.2, 0.3, 0.6), 5, 30.0)
-	GameCamera.shake_scene(get_tree(), 0.18)
+	GameCamera.shake_near(get_tree(), global_position, 0.18, SHAKE_REACH)
 	if _visual.sprite_frames.has_animation("death"):
 		_visual.play("death")
 	else:
@@ -969,7 +971,7 @@ func _explode() -> void:
 	Fx.impact(get_parent(), center(), _school_colour(), 70.0)
 	Fx.pop(get_parent(), center(), "spark_02", _school_colour(), 90.0, 0.3, 1.4, 3.0)
 	Sfx.play("explosion", center())
-	GameCamera.shake_scene(get_tree(), 0.4)
+	GameCamera.shake_near(get_tree(), global_position, 0.4, SHAKE_REACH)
 	# Damage the player and any other enemy close enough to the blast.
 	if center().distance_to(player.center()) <= BURST_RADIUS:
 		player.take_damage(KINDS[kind].damage)

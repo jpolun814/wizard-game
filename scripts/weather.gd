@@ -26,6 +26,8 @@ const KINDS := {
 		"gravity": Vector2(0, -1), "texture": "circle_05", "size": Vector2(5, 9), "colour": Color(1.0, 0.92, 0.4, 0.95), "glow": true},
 	"downpour": {"amount": 620, "life": 1.0, "box": Vector2(780, 6), "at": Vector2(120, -400), "dir": Vector2(-0.3, 1), "spread": 2.0, "speed": Vector2(700, 820),
 		"gravity": Vector2.ZERO, "texture": "rain_streak", "size": Vector2(60, 100), "colour": Color(0.72, 0.82, 1.0, 0.75), "align": true},
+	"fall_wind": {"amount": 70, "life": 0.9, "box": Vector2(720, 8), "at": Vector2(0, 420), "dir": Vector2(0, -1), "spread": 1.5, "speed": Vector2(760, 980),
+		"gravity": Vector2.ZERO, "texture": "rain_streak", "size": Vector2(70, 130), "colour": Color(0.9, 0.94, 1.0, 0.32), "align": true},  # the air rushing up past whoever falls through the open sky (owner, 2026-11-12: falling, not floating)
 	"ash_storm": {"amount": 320, "life": 1.4, "box": Vector2(8, 380), "at": Vector2(-560, 0), "dir": Vector2(1, 0.12), "spread": 8.0, "speed": Vector2(480, 700),
 		"gravity": Vector2(0, 30), "texture": "circle_02", "size": Vector2(6, 16), "colour": Color(0.62, 0.56, 0.54, 0.85)},
 	"ember_rain": {"amount": 90, "life": 3.5, "box": Vector2(720, 6), "at": Vector2(0, -400), "dir": Vector2(0.1, 1), "spread": 12.0, "speed": Vector2(120, 200),
