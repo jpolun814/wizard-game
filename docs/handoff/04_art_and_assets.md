@@ -17,7 +17,7 @@
 - **1 art pixel = 1 world pixel.** The camera zoom is 1.5. Mixing densities looks broken.
 - **Whole-number scales only,** and only on purpose:
   - 2x: Spark's lightning, the swamp and church backdrops (far scenery reads bigger), the Barrier bubble, the
-    fire vent and the tornado funnel. The dark wizard is 1x, the same size as the player.
+    fire vent and the tornado funnel. Every wizard figure is drawn at one height (`WizardLook.SCALE`).
   - 2x: the purple portal.
   - 5x: the spellbook (UI).
 - **Filtering:** "Nearest Mipmap" (project setting `default_texture_filter=2`). Pixel fonts need
@@ -33,8 +33,7 @@
 | Player wizard | LuizMelo, Wizard Pack | luizmelo.itch.io/wizard-pack |
 | Dark wizard | LuizMelo, Evil Wizard 2 | luizmelo.itch.io/evil-wizard-2 |
 | Pyre wizard, bone wizard | LuizMelo, Evil Wizard and Evil Wizard 3 | luizmelo.itch.io/evil-wizard, luizmelo.itch.io/evil-wizard-3 |
-| Ninja | LuizMelo, Martial Hero 2 | luizmelo.itch.io/martial-hero-2 |
-| Skeleton, goblin, flying eye | LuizMelo, Monsters Creatures Fantasy (plus v1.2 and v1.3 attack add-ons in the same zip set) | luizmelo.itch.io/monsters-creatures-fantasy |
+| Skeleton, goblin | LuizMelo, Monsters Creatures Fantasy (plus v1.2 and v1.3 attack add-ons in the same zip set) | luizmelo.itch.io/monsters-creatures-fantasy |
 | Cemetery | ansimuz, GothicVania Cemetery | ansimuz.itch.io/gothicvania-cemetery |
 | Swamp | ansimuz, GothicVania Swamp | opengameart.org/content/gotthicvania-swamp |
 | Church, stone, the ice recolour | ansimuz, GothicVania Church | opengameart.org/content/gothicvania-church-pack |
@@ -78,7 +77,7 @@
 ## The pipeline (`tools/prepare_gothic_art.py`)
 
 - **Characters:**
-  - `CHARACTERS` lists, per character: sheet folder, frame size, flyer flag, and animation to file.
+  - `CHARACTERS` lists, per character: sheet folder, frame size, whether its frames are centred on the body (none now), and animation to file.
   - Frames are cut so the feet sit on the bottom edge and the body's lower half is centred, using
     `body_column`.
   - Body boxes for hitboxes come from columns that are mostly solid, so a held staff doesn't widen the hitbox.
@@ -106,7 +105,7 @@
 - **Not allowed in the world:** circles, polygons and lines used as pictures, such as ice blocks, clouds,
   portals, spikes or bolts.
 - **Allowed:**
-  - Interface elements: health bars, the gesture trail, drop shadows, the dark wizard's in-progress stroke.
+  - Interface elements: health bars, the gesture trail, drop shadows, another wizard's stroke as it is drawn.
   - Light (`Fx.draw_glow` soft textures).
   - Tiny pixel squares for snowflakes and shards.
   - Pixel-art textures drawn with `draw_texture*`, including filling a drawn polygon with a pixel texture, as

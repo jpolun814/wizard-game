@@ -70,12 +70,16 @@ Run with `godot --path . tests/showcase.tscn -- scenario=NAME out=DIR [only=Spel
 - **Controls and feel:** say that you couldn't test by hand. The owner plays it and will report back.
 
 
-## Checks added with the spell expansion (chapter 14)
+## Writing a check that casts in a world
 
-`cluster_check`, `brains_start_check`, `blizzard_freeze_check`, `group_a_check` (Barbs, Pebble, Hailstorm, Featherfall), `group_b_check` (Thorn Whip, Insect Plague), `leech_check`, `raise_dead_check`,
-`mirage_check`, `sphere_check`, `eye_check`, `lab_sphere_check`, and additions to `test_gestures` (761 checks), `test_pages` and `library_screen_check`. All are in `tools/run_checks.py`. Tests that cast in a world set the
-wizard's `ledger.learn_all()` (a wizard starts with no spells now), and a test that needs a pit builds its floor high above the ground (`sphere_check`). Failures that were there before the expansion
-(checked on a clean copy of HEAD): `sinkhole_check` (2), `ridge_check` (2), and some of `brain_spells_check` (Geyser, Great Oak, Liana, Push, Tornado, Updraft, sometimes Earthquake).
+A wizard starts with no spells, so a test that casts in a world first calls the wizard's `ledger.learn_all()`. A test that needs a pit builds its floor high above
+the ground (`sphere_check`). Known failures are listed in `16_open_work.md`.
+
+## Picture tests (need a window; each takes `-- out=DIR`)
+
+Besides those named in `CLAUDE.md` section 3: `look_check` (Smoke Screen, Ice Prison, Sinkhole, Stalagmite, Stone Wall and Eclipse at the moments that matter),
+`pause_look` (the pause screen in every kind of world), `rock_art_look` (what `RockArt` makes; run with `-s`), `lab_lag_check` (every slow frame of the waiting room's
+first seconds; `off=` switches things off to find the cause).
 
 
 ## The stats screen (end of a person's match)

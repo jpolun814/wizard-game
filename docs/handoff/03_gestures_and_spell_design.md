@@ -32,7 +32,7 @@
    is good, because muscle memory carries across schools.
 4. **Drawable by a mouse in about half a second.** One stroke only, never more than about 3 turns.
    Direction-independent where possible (mirrored and either way round).
-5. **Readable from the dark wizard's drawing.** The player learns shapes by watching the wizard draw them.
+5. **Readable from an AI wizard's drawing.** The player learns shapes by watching the other wizards draw them.
 6. **Shown in the spellbook.** `preview_points` must produce a stroke that the caster itself recognizes, which
    the test enforces.
 
@@ -97,8 +97,8 @@ where it makes sense for both, and two spells on one button combination never sh
 - **Earth** (Left + Right, brown `#b8864a`): stone, ground, sand, weight. Slow, heavy, terrain-shaping.
 - **Flora** (Left + Middle, green `#6fcf6a`): plants. They grow, hold and trap, and every one of them burns. Not called
   Nature, so lightning is not confusingly "not nature".
-- **Shadow** (Right + Middle, purple `#7a5aa0`): sight, decoys, curses and gravity. The dark wizard has no school of his own:
-  he casts from the same pool as the player.
+- **Shadow** (Right + Middle, purple `#7a5aa0`): sight, decoys, curses and gravity. No wizard has a school of its own:
+  everyone casts from the same pool.
 
 ## Interactions worth building (owner-approved direction: physical consistency)
 
@@ -122,8 +122,7 @@ where it makes sense for both, and two spells on one button combination never sh
 
 ## The spell pool
 
-Every spell, its shape, its counter and its gate tags are in `docs/spell_pool.md`. The plan they are part of (random pages
-in a generated world, raced for by eight wizards) is in `docs/pvp_arena_design.md`; the older roguelite plan is in `docs/roguelite_exploration_design.md`. Design
+Every spell, its shape, its counter and its gate tags are in `docs/spell_pool.md`. Design
 each new spell with the checklist in `CLAUDE.md` §6, and expect the owner to veto physics they find unfair.
 
 ## Rituals (typed)
@@ -139,7 +138,7 @@ each new spell with the checklist in `CLAUDE.md` §6, and expect the owner to ve
   wave), Ward of True Sight (cure blind), Summoning of the Bound Servant.
 
 
-## New detectors (chapter 14)
+## Detectors read before the recognizer
 
 Read before the recognizer's guess, in `Caster` (each only on the buttons whose spells use that gesture): `hailstorm` (a ring, a line out, a line down), `feather` (three sweeps across, each bent down in the middle and ending lower than it began, like a falling feather's path), `sphere` (a ring drawn from the bottom, then a level line: the ring-then-line reading with a level tail), `hand` (five peaks, one after another, returning along a base) and `portrait` (a closed box
 taller than it is wide, with four corners; a leaning box is turned upright first). Near misses (four or six fingers, a box on its side, an oval, an open box, a straight zigzag, two sweeps, sweeps bent upward) are in

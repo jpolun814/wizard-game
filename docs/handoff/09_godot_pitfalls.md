@@ -59,7 +59,6 @@
 - **One-way platforms** (layer 16) only stop motion from above. For "is this covered from the sky", raycast from
   the sky downward.
 - **Area2D defaults** to layer 1. A Barrier with mask 1 sees shots (areas on layer 1) and terrain bodies.
-- **Flyers** have collision mask 0 and are moved by hand; check walls with raycasts.
 - **Rescaling an Area2D re-fires `area_entered`.** Changing a node's scale rebuilds its shapes, and anything already
   inside is reported as entering again. A melting icicle took two slices from one fireball until it remembered which
   shots had struck it. Guard one-time hits with a set of instance ids.

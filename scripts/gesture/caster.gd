@@ -306,7 +306,7 @@ func _end() -> void:
 			score = again.score
 	var entry = options.get(gesture)
 	# A cast that works shows its name where it was drawn (the arena does that), so only failures are reported here.
-	# Earth Fall's circle and drop are hard to draw cleanly, so it is read with a looser eye than the other shapes.
+	# Stonefall's circle and drop and the flame are hard to draw cleanly, so they are read with a looser eye than the other shapes.
 	var needed := tolerance - 0.12 if gesture == "stonefall" or gesture == "flare" else tolerance
 	if score < needed:
 		misfired.emit()
@@ -318,7 +318,7 @@ func _end() -> void:
 			aim = (relative[relative.size() - 1] - relative[0]).angle()
 		if entry.targeting == "directional":
 			info["length"] = (relative[relative.size() - 1] - relative[0]).length()
-		# A drawn circle sets how big the spell is, which sets its cost (Cinderburst, Push).
+		# A drawn circle sets how big the spell is, which sets its cost (Push and the other circles).
 		if gesture.begins_with("circle") and ring_split < 0:
 			info["radius"] = _mean_distance(relative, _relative_centroid(relative))
 		# Directional spells leave from the stroke's start; positional ones center on the drawn shape.

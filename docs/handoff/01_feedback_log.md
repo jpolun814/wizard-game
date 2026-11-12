@@ -180,6 +180,16 @@ the concept. A shot can't hit its shooter only while it is still inside the shoo
 
 ---
 
+## Round 9 (the tutorial, 2026-11-06 to 08)
+
+The owner rejected popups, a door at the controls and lines that stated rules ("it kills you if you walk past it", "cross the pond"), and later asked that "nothing may kill
+the player without a visible reason".
+
+**Lesson:** the tutorial teaches through the world. Every place is a real gate, not a show; pages lie at the foot of what they answer, and a consequence is learned by
+meeting it, never told. Nothing kills except something that visibly strikes.
+
+---
+
 ## Patterns across all rounds
 
 1. **Physical plausibility.** Asked about in nearly every round: fire, lightning, walls, clouds and rocks should

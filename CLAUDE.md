@@ -3,7 +3,7 @@
 This is a Godot game built by one owner through many sessions. This file is the complete handoff for every agent that
 works on it. It holds everything you need: the owner's wording rules in section 0 (the number one priority), the game,
 the rules, the codebase, the testing and the known problems. Chapter files for particular jobs are in `docs/handoff/`;
-chapter 11 (network play) is the newest work.
+what is still to do is in chapter 16.
 
 # HANDOFF: read this before you touch anything
 
@@ -21,18 +21,14 @@ trust the code and this file where they disagree.
 | `03_gestures_and_spell_design.md` | add or change a spell or gesture: how recognition works, design rules, school identities, vetted ideas |
 | `04_art_and_assets.md` | add or change anything visible: style rules, every source, how to judge and process an asset |
 | `05_audio.md` | touch sound: sources, layering, choosing sounds you can't hear |
-| `06_enemies_and_ai.md` | touch enemies or the dark wizard |
+| `06_enemies_and_ai.md` | touch the creatures or the AI wizards |
 | `07_testing.md` | say anything is done |
 | `08_working_with_the_owner.md` | reply to the owner |
 | `09_godot_pitfalls.md` | debug something strange |
 | `12_liquids.md` | touch water or lava: pools are a flowing grid now (`LiquidGrid`, `Pond`), and a Sinkhole dug beside one fills from it |
-| `13_portal_world.md` | touch the portal world: a biome where portals open every few seconds, each a colour of its own, and carry you to another |
-| `11_network_play.md` | touch anything a second machine must see: wizards, spells, pages, gates, the match (done: host and join over a network) |
-| `15_open_problem_net_match.md` | work on the network match check that times out with eight wizards (open, unsolved) |
-| `16_backlog_2026_11_05.md` | pick the next job: owner requests not yet coded (bugs, more attack spells, easing in new players, training grounds) |
-| `20_ocean_world_plan.md` | touch the ocean world (built: swimming, breath as the only pressure, driftwood, wrecks and kelp) |
-| `19_sky_world_plan.md` | touch the sky world (built: flying with no ground, `SkyBrain`, drifting pages, clouds that hide and thunderclouds that shock) |
-| `14_spell_expansion_plan.md` | rename a school or a ritual, touch the Library, move the starting pages, or add Barbs, Pebble, Hailstorm, Featherfall, Thorn Whip, Flaming Sphere, Insect Plague, Leech, Raise Dead, Mirage or the Chant of the Scrying Eye (built; the Flaming Sphere is now a rolling sun; the stand-in shot art still waits for the owner) |
+| `11_network_play.md` | touch anything a second machine must see: wizards, spells, pages, gates, the match, the dedicated server |
+| `13_special_worlds.md` | touch the portal fields, the ocean (swimming, breath, wrecks) or the sky (flying, rising pages, thunderclouds) |
+| `16_open_work.md` | pick the next job: what the owner asked for that is not built, their standing decisions on it, and the known failures |
 
 ---
 
@@ -278,7 +274,7 @@ A 2D side-view last-wizard-standing duel built in Godot 4.7.2 and GDScript. You 
 - **Rituals:** press Enter and type a pseudo-Latin chant. Typing accuracy sets the ritual's power.
 
 A match: eight identical wizards (`WorldGraph.PLAYERS`: you and seven AI wizards, or friends over a network with AI wizards in the empty seats; the seven figures (LuizMelo's four, and CraftPix's Fire Wizard, Wanderer and Lightning Mage) are shared out and, once they run out, wear other sets of colours, `Net.rival_palette`) race through a generated world for spellbook pages and fight each other. The last one standing wins. The AI wizards cast the same
-spells you do, drawing them visibly. There are no waves and no boss (see `docs/pvp_arena_design.md`).
+spells you do, drawing them visibly. There are no waves and no boss.
 
 **The owner's taste, in their words:**
 - "sick as hell"
@@ -291,17 +287,17 @@ spells you do, drawing them visibly. There are no waves and no boss (see `docs/p
   - a jungle (rain, great trees with vines hanging from them), snowy peaks and ashlands (embers and lava over dark basalt).
   - a castle (the whole world is castles side by side, with gothic church interiors, doorways tall enough for a giant, a minotaur giant roaming the ground floors and knights on guard in them and, fewer, on the upper floors, who stand at their posts until a wizard comes near) and the underground (a great cavern under a roof of rock, no sky).
   - **Living scenery** (`World._raise_biome_life`, `docs/handoff/02_codebase_map.md`): the graveyard has low mist (`MistBank`), bats (`CritterFlock`) and crypts (`Crypt`, each with a page and a skeleton guard); the jungle has rope bridges between neighbouring great trees (`CanopyBridge`), light shafts, fireflies, swaying vines, birds that burst away and downpours (`Squall`); the peaks have avalanches (`Avalanche`), sheets of ice that make a wizard slide (`IceSheet`) and an aurora; the ashlands have lava lakes that swell (`LavaSurge`), ash storms with falling embers (`EmberRain`) and volcanoes that rumble and shake the world, send up a plume of smoke (`SmokePlume`: no one sees through more than a little of it; on a person's own screen `SmokeVeil` hides what lies past it behind a paler haze, so the dark column and the haze are told apart) and pour lava over the rim that cools to a crust and goes (`Eruption`); the underground has glowing crystals, drips, stalactites that fall on whoever walks under (`FallingRock`) and cave-ins (`CaveLife`). Storms, avalanches, swells and cave-ins follow the world's age, so every machine of a match sees them at the same time. Run `tests/showcase.tscn -- scenario=life` with `WORLD_SEED` (0 jungle, 1 graveyard, 4 mountains, 5 ashlands, 13 underground).
-  - the portal fields (`portals`, "The Portal Fields": a level, quiet world where portals open every few seconds and carry a wizard to another; `docs/handoff/13_portal_world.md`). It is the seventh biome, as much a biome as the others.
-  - the ocean (`ocean`, "The Drowned Sea", `docs/handoff/20_ocean_world_plan.md`): a sea over the whole world, mostly under water with very few islands, rafts of driftwood to start on, sunken ships with air pockets and a page, kelp; a wizard swims and holds its breath. Never a match's first world.
-  - the sky (`sky`, "The Open Sky", `docs/handoff/19_sky_world_plan.md`): no ground, every wizard flies (`Wizard.flying`, rival brains are `SkyBrain`), pages rise past the falling wizards and come round again from below (`FallingPage`), clouds rise past and thunderclouds sting and strike (`SkyCloud`). Never a match's first world, and also one of the last world's choices.
+  - the portal fields (`portals`, "The Portal Fields": a level, quiet world where portals open every few seconds and carry a wizard to another; `docs/handoff/13_special_worlds.md`). It is the seventh biome, as much a biome as the others.
+  - the ocean (`ocean`, "The Drowned Sea", `docs/handoff/13_special_worlds.md`): a sea over the whole world, mostly under water with very few islands, rafts of driftwood to start on, sunken ships with air pockets and a page, kelp; a wizard swims and holds its breath. Never a match's first world.
+  - the sky (`sky`, "The Open Sky", `docs/handoff/13_special_worlds.md`): no ground, every wizard flies (`Wizard.flying`, rival brains are `SkyBrain`), pages rise past the falling wizards and come round again from below (`FallingPage`), clouds rise past and thunderclouds sting and strike (`SkyCloud`). Never a match's first world, and also one of the last world's choices.
   - There are nine biomes (`SurfaceGen.BIOMES`). A match has four worlds, so it visits four of the nine: each of the first three is one of them, in an order the seed picks (the ocean and the sky are dealt in after the first world), and the last, small world is all open sky, one of the five in `SurfaceGen.OPEN_BIOMES` (graveyard, peaks, jungle, ashlands, portal fields) that the match has not been in.
   - **Each biome has landmarks of its own, not just a reskin; only the underground has tunnels.** The graveyard is dark with rain and fog, and its skeletons roam
     (`Mob.roams`). The ashlands have volcanoes that erupt now and then (`Eruption`) and pits of lava. The snowy peaks are mountains to climb (`MountainGale`: wind that grows toward the summits and pushes a wizard without the run animation, seen as streaks; `SnowCloud`: clouds that drift past in front of whoever is in them), with a page on each
     summit. The jungle has pits of mud (`Mudslide`, dug by the world), thickets of thorns (`Bramble`) and great trees (`JungleTree`: dense, in two sizes and mirrored or not, every one with the oak's ledges to hop between and a vine to climb to the high one, where most of the pages lie; the AI climbs the vines; the ponds are full of `Piranhas`). Its art is still named for the swamp it was cut from. The castle is a row of castles with six floors: a cellar down a
     stairwell, the ground floor and four floors over it, three rooms to a floor (see `docs/world_generation.md`).
-- **Characters and art:** CraftPix's free packs (the wizards, skeletons, minotaur giant, knights and werewolf: 128 px cells, `python tools/prepare_gothic_art.py <dir> --only=name,name`), LuizMelo's goblin, eye and ninja, Ansimuz GothicVania environments, and CC0 pixel effects. The CraftPix licence is in `art/CREDITS.md`: free for the game, but the art must not be resold or offered as files, and the repo's visibility is the owner's call.
+- **Characters and art:** CraftPix's free packs (the wizards, skeletons, minotaur giant, knights and werewolf: 128 px cells, `python tools/prepare_gothic_art.py <dir> --only=name,name`), LuizMelo's goblin, Ansimuz GothicVania environments, and CC0 pixel effects. The CraftPix licence is in `art/CREDITS.md`: free for the game, but the art must not be resold or offered as files, and the repo's visibility is the owner's call.
 
-## 2. The eleven rules that matter most
+## 2. The rules that matter most
 
 *Where a rule below concerns player-facing text and differs from section 0, section 0 wins. The spellbook is the exception that changed on 2026-11-07: its
 spell and chant pages now state the cost and the damage (see the start of section 0); everywhere else there are still no numbers.*
@@ -353,18 +349,16 @@ spell and chant pages now state the cost and the damage (see the start of sectio
 	open the spellbook", "Gives you endless stamina"), never a statement about the system ("Tab opens the spellbook", "Snow slows everything under it"). A key
 	and action table may use short verb-first labels. No ALL-CAPS result lines ("The ritual backfired", not "RITUAL BACKFIRED").
     **Spellbook entries** (the older nine rules; where they say "no numbers", "no cost" or "never mention cost scaling", the 2026-11-07 decision in section 0 replaces them):
-	1. Start with a verb addressed to the player ("Hurl a bolt of fire").
     2. Say only what the spell does. Never name what counters it, what it combines with, or how to avoid it: the player learns those.
 	3. Never mention self-harm ("you too"); it is implied.
 	4. Never mention cost scaling or size ("a longer cone costs more").
 	5. Write as a wizard inside the universe. No game-loop or meta words: wave, level, run, walkers, "to draw attacks", "as long as your stroke".
     6. Never mention interface actions such as double-clicking.
 	7. Be accurate, and say "anyone" or "everything" where a spell has no teams.
-    8. Keep it short; numbers only for damage and duration.
     9. Never describe the stroke: the animation shows it.
 11. **Don't change what they didn't ask about.** When feedback names five things, fix those five, check
     nothing else broke, and report briefly.
-12. **Describe what the thing does to the player, never the numbers behind it** (outside the spellbook's spell and chant pages, which now give their costs and damage, section 0). No multipliers, percentages or comparisons: never "1.6 times faster", "50% more damage", "half damage" or "walks slower". Write "Run faster." The only numbers allowed are damage and durations in seconds. Don't list side effects, weaknesses or interactions (what burns it, what it stops, what it combines with): the player learns those by playing. One effect per spell, in one short line.
+12. **Describe what the thing does to the player, never the numbers behind it** (outside the spellbook's spell and chant pages, which now give their costs and damage, section 0). No multipliers, percentages or comparisons: never "1.6 times faster", "50% more damage", "half damage" or "walks slower". Write "Run faster." The spellbook's damage and cost lines are the only numbers (section 0). Don't list side effects, weaknesses or interactions (what burns it, what it stops, what it combines with): the player learns those by playing. One effect per spell, in one short line.
 13. **Name no team.** Spell and game text says "anyone", "anything" or "whoever", never "foes", "enemies", "allies" or "rivals" (spells have no teams, see section 5).
 
 ## 3. Run, test and look
@@ -432,7 +426,7 @@ GODOT="/c/Users/Jordan Polun/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.
 "$GODOT" --headless --fixed-fps 60 --path . tests/eye_check.tscn  # the Chant of the Scrying Eye: a window bottom right, the eye over the watched wizard, the ground made round them (add `-- out=DIR`, needs a window)
 "$GODOT" --headless --fixed-fps 60 --path . tests/castle_spells_check.tscn  # the castle takes spells: a boulder rests on a swinging stair, a Stalagmite and a Sinkhole work on an upper floor
 "$GODOT" --headless --fixed-fps 60 --path . tests/avalanche_check.tscn  # the peaks' avalanche rumbles, then runs down its slope and hurts whoever it runs over, once
-"$GODOT" --headless --fixed-fps 60 --path . tests/pieces_check.tscn  # small pieces: a world's four words and its seed, the spell table and its buttons, a fireball called down onto the ground
+"$GODOT" --headless --fixed-fps 60 --path . tests/pieces_check.tscn  # small pieces: a world's four words and its seed, the spell table and its buttons, and the colour of every school
 "$GODOT" --headless --fixed-fps 60 --path . tests/ritual_check.tscn  # the chants: how accurately they must be said, and what each gives
 "$GODOT" --headless --fixed-fps 60 --path . tests/library_screen_check.tscn  # the library's ledger, its face-down cards and its world filters, from a file of its own
 "$GODOT" --headless --fixed-fps 60 --path . tests/castle_sinkhole_fall_check.tscn  # a wizard dropped into a castle pit sinks into it and stays, or falls through to the floor below
@@ -514,12 +508,12 @@ GODOT="/c/Users/Jordan Polun/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.
 | Air | Tornado | tall narrow coil going down | a whirlwind | avoid it |
 | Air | Vacuum | infinity sign on its side (lungs), drawn over a wizard | the air drawn out of someone's lungs: they hold their breath (no chanting) and then suffocate | it lets go when the caster casts again or is hurt; step out of sight to cast, or hit the caster |
 | Air | Updraft | arrow pointing up | a column of rising air that stays for the rest of the world; any number can be raised | none; it lifts anyone |
-| Air | Gust | straight flick | wind along the stroke: turns shots, sweeps flyers, smoke and you sideways | heavy foes resist |
+| Air | Gust | straight flick | wind along the stroke: turns shots, sweeps smoke and you sideways | a giant does not move |
 | Earth | Stonefall | circle with a line down | a dropped boulder | watch the shadow |
 | Earth | Stone Wall | line starting on the ground, a platform or another stone wall | a raised slab | Earthquake, Stonefall, shots wear it down |
-| Earth | Mudslide | wavy line (as Frost Bridge) | a pit of mud: slows, no jumping; flyers pass over | walk out |
+| Earth | Mudslide | wavy line (as Frost Bridge) | a pit of mud: slows, no jumping | walk out |
 | Earth | Stalagmite | one or more peaks (^) over the ground | spikes of rock that rise from the ground and hurt whatever touches them | step around |
-| Earth | Earthquake | arrow with a head at both ends | the ground shakes | flyers unaffected |
+| Earth | Earthquake | arrow with a head at both ends | the ground shakes | be off the ground |
 | Earth | Sinkhole | U | the ground opens: `Terrain.dig` cuts a pit the shape of the U that was drawn (`Sinkhole.profile_of`) in the open ground and the rock is cut again (permanent) | jump out, fly |
 | Flora | Bramble | low sawtooth | a thicket of thorns: slows and pricks | jump it; fire |
 | Flora | Spore Puff | cone `<` (as Fire Breath) | poison spores poured from your mouth | wind, water |
@@ -538,7 +532,7 @@ GODOT="/c/Users/Jordan Polun/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.
 
 **The schools have new names** (the ids Fire, Water, Air, Earth, Flora, Shadow and Blood stay in code and double as element tags; only what a player reads changed, through `SpellData.school_name`): Pyromancy, Aquamagy, Aerokinesis, Terramancy, Druidry, Umbramancy and Necromancy. The Library gives a title from the casts (`Library.title_of`).
 
-**Ten spells were added (handoff chapter 14):**
+**Spells added later:**
 
 | School | Spell | Shape | Real thing | Counterplay |
 |---|---|---|---|---|
@@ -554,8 +548,9 @@ GODOT="/c/Users/Jordan Polun/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.
 | Fire | Rocket Jump | an arrow pointing up (drawn with the fire button) | flame from the feet lifts the caster slowly at first and then faster, about 480 px up (`RocketJump`, `Wizard.rocket_time`) | none needed |
 | Necromancy | Raise Dead | a Latin cross: a long stem and a shorter bar across it, nearer the top | a skeleton (a `Mob` with a `master`) with 50 health for 37 maximum stamina, not refunded | kill it |
 | Flora | Wild Shape | a crescent moon (the Eclipse's shape, on the Druidry buttons), costs 40 | the wizard becomes a werewolf (CraftPix art, `Wizard.become_wild`): their own stamina is put aside, the wolf has a pool of 1 that nothing drains (owner, 2026-11-08: one blow ends it), it runs faster, jumps and claws (left click, 12 dmg) and casts nothing; the first blow turns the wizard back with the stamina they had, and does not kill them | it wears off; a rival's blows; a wall |
-| Umbramancy | Mirage | a tall box | a false page that wavers and fades when anyone comes near (`Mirage`, a `PagePickup`) | walk up to it; the AI learns after seeing one fade | The school and spell plan is in `docs/spell_pool.md`; the direction of the game (a last-wizard-standing page race, which replaced the
-boss and the solo roguelite loop of `docs/roguelite_exploration_design.md`) is in `docs/pvp_arena_design.md`. The waiting room (`scenes/lab.tscn`, `scripts/lab.gd`) is where every spell is tried; the portal there
+| Umbramancy | Mirage | a tall box | a false page that wavers and fades when anyone comes near (`Mirage`, a `PagePickup`) | walk up to it; the AI learns after seeing one fade |
+
+The school and spell design, the gate tags and the balance pass are in `docs/spell_pool.md`. The waiting room (`scenes/lab.tscn`, `scripts/lab.gd`) is where every spell is tried; the portal there
 starts a run. The first screen also has a **Tutorial** (`scripts/tutorial.gd`: a book that starts empty and a row of things in the way, each with the pages that answer it lying at its foot; only the keys to walk and jump are on screen. A dummy and a giant (too strong to kill: a Faint puts it down) strike down whoever walks past them, a pond of piranhas (waded after a Spark, or crossed on ice or pads), turrets that hit whoever has no cover, thorns too long to walk through, a cliff only a vine climbs, a gap only the double jump chant crosses, a dark stretch of spikes only a light shows, a gate that asks for two spells together (a light then fire), a pit and past it a wall of brick (a leap, then a quake or a boulder), an eye that shoots (cover, then fire on the thorns), poison gas (wind, fire or a Barrier) with a second pit after it, and a pond of piranhas in the dark (a light, then a Spark), and last of all a run with no page to read that uses what was learned: a gap that takes the double jump chant, a cliff that takes a vine, a pit that takes a leap and a long thicket that takes fire (`Tutorial.FINALE_*`, from column 536 on). Whoever falls keeps the pages they read) and a **Library** (`scripts/library.gd`, `library_screen.gd`: what this machine remembers of the matches played on it, in `user://library.json`: matches played and won, and for each page how often it was found, its spell cast, and a match won with it in the book. Only the person at the machine, only in real matches; the tests never touch it).
 
 **Attacking spells from the overnight batch of eight (2026-11-06; the owner vetoed six of them on 2026-11-07, see "Inventing a spell" in section 6) and the two the owner then approved (Supernova and Scythe). Each has a test in `tests/group_d_check.tscn`:**
@@ -567,7 +562,7 @@ starts a run. The first screen also has a **Tutorial** (`scripts/tutorial.gd`: a
 | Fire | Supernova | a ring, then a flat oval round it, like Saturn (`saturn`, one stroke) | a dying star hangs where it was drawn for 5 seconds: it burns whoever is close, pulls everything toward it a little, then explodes, hurting and throwing everyone within about 320 px far away (`Supernova`); costs 80 | get clear before it blows; stone or a wall |
 | Blood | Scythe | a crescent (the blade) | one swing of a real scythe (pixel art drawn for the game, `art/fx/scythe.png`, a pale ghost blade) in a half circle in front of the caster that cuts hard (45) and drives them back (`Scythe`) | stay out of reach, a wall |
 
-The spellbook lines (see the book: every spell now has a plain description, a damage line and a cost line) are drafts until the owner confirms them. A Blood loop the recognizer takes for a flame but is not one is read again as the circle (`Caster._end`), because Hemorrhage's flame shares Blood's buttons with Burst's circle. `tests/attacks_look.tscn -- out=DIR` (needs a window) takes pictures of them.
+The spellbook lines (see the book: every spell now has a plain description, a damage line and a cost line) are drafts until the owner confirms them. Where a school has both a circle and a flame, a loop the recognizer takes for a flame but is not one is read again without the flames (`Caster._end`). `tests/attacks_look.tscn -- out=DIR` (needs a window) takes pictures of them.
 
 **Pages per world:** each world lays only `Pages.count_for(biome, width)` pages (graveyard 16, peaks 16, jungle 18, ashlands 12, castle 18, underground 20, portal fields 10, at 1000 tiles wide, fewer in the smaller worlds, never under 6), and which ones is settled when the match begins, from its seed (`Pages.allotment`): each wizard is dealt starting pages of their own, and each world is given pages of its own from the rest, no page in two places, some in none. So a page is never in a world once a wizard holds it, and no two wizards start alike. Pages not laid do not carry over. A kind of gate the world has always keeps a page that opens it, swapped in from the spare pages if need be (`Pages.with_openers`). In a world with no halls, pages lying out in the open are at least `Pages.MIN_APART` (40) columns apart, apart from the three near the start (`tests/pages_spread_look.tscn` prints where they lie).
 
@@ -612,14 +607,14 @@ The owner wants agents to learn to invent spells without being told. Until they 
    single curve, a spell that costs a great deal (an Earthquake, an Eclipse, a Supernova) is drawn with a long, many-part stroke. Power and effort go together.
 4. **Make sure the shape is distinguishable from every other shape on the same button(s).** The recognizer
    only compares within the held button combination. Add a test case to `tests/test_gestures.gd` and add the
-   preview to `GestureTemplates.preview_points`. The dark wizard draws from those previews too.
+   preview to `GestureTemplates.preview_points`. The AI wizards draw from those previews too.
 5. **Physics honesty:** what blocks it, who it hurts (the caster too?), and whether it goes through platforms.
 6. **Telegraph:** the enemy or player must see it coming. Examples: Stonefall's shadow, the falling-shot ring,
    the cloud's flicker.
 7. **Art from a free pack,** recoloured to the school's colour in `tools/prepare_gothic_art.py`.
 8. **A sound,** chosen with `tools/audio_profile.py` or mixed in `tools/make_sounds.py`. Say plainly that you
    couldn't listen to it.
-9. **Teach the dark wizard to use it** (`scripts/wizard_brain.gd`): a score in `_attack` and a stroke in
+9. **Teach the AI wizards to use it** (`scripts/wizard_brain.gd`): a score in `_attack` and a stroke in
    `_attack_stroke`.
 10. **Spellbook:** a short description, and the damage and cost lines from the spell's data, at the foot of the page. Keep it short.
 
@@ -667,7 +662,7 @@ The owner wants agents to learn to invent spells without being told. Until they 
   - 2: mobs.
   - 4: player.
   - 16: one-way platforms.
-  - Player and walking-mob masks are 17. Flyers have mask 0.
+  - Player and mob masks are 17.
 
 ## 9. Code style and structure
 
@@ -703,7 +698,7 @@ clean. It was cleaned up once, without losing any behaviour. Keep it that way:
 - **Delete dead code** (unused functions, signals, art) in the same change that makes it dead, and update
   `art/CREDITS.md`, `tools/prepare_gothic_art.py` and these docs to match.
 - **Refactoring:** change one thing at a time and re-run the full check after each step (startup, gestures,
-  soak waves 3/7/12/17, the spells showcase), comparing screenshots against a baseline taken first.
+  the soak scenario, the spells showcase), comparing screenshots against a baseline taken first.
 
 ## 10. Known issues and ideas
 

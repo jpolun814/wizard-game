@@ -1,8 +1,7 @@
-# Spell pool (draft)
+# Spell pool
 
-Status: **all 42 spells are built** (the 32 below, plus Tide Surf, Obsidian Armor, Glowcap, Moonbeam and the Blood spells) and can be tried in the waiting room (`scenes/lab.tscn`). Not built yet: stamina
-ranges (every spell still costs one number, the midpoint of the range below), mastery, gate tags, the dark wizard casting
-from the pool, and real art for several spells (see "Placeholders"). Part of `roguelite_exploration_design.md`.
+The design of the schools and spells: what each is, its buttons, the gates it answers, how spells meet, and the balance pass. Every spell is built and can be tried
+in the waiting room (`scenes/lab.tscn`); the `Spell` resources in `res://spells/` hold the numbers that are in the game, so where this file and they differ, they are right.
 
 ## Schools and buttons
 
@@ -60,7 +59,7 @@ lowers the whole window (see the main design doc). All numbers are provisional.
 | Push | circle, then a line out of it | a blast moving everything inside, heavy foes included; the only spell that lifts you | anchor, Stone Wall | push, reach height | 6-14 |
 | Barrier | circle round yourself | a shell of air that sends projectiles off in random directions and keeps gas off (nothing else) | it ends after 6 seconds | | 20-40 |
 | Tornado | tall narrow coil going down, like a drill bit | a funnel that swirls foes | step away | | 18-34 |
-| Gust | any swoosh or flick; the stroke is the wind's direction | wind that blows light things along the stroke: shots (this replaces Wind Wall), flyers, smoke, spores, and you sideways. It cannot lift you; only Push does | heavy foes resist | cross gap | 8-18 |
+| Gust | any swoosh or flick; the stroke is the wind's direction | wind that blows light things along the stroke: shots (this replaces Wind Wall), smoke, spores, and you sideways. It cannot lift you; only Push does | heavy foes resist | cross gap | 8-18 |
 
 ### Water, newer
 | Spell | Shape | Pictures | Counter | Tags | Stamina |
@@ -73,7 +72,7 @@ lowers the whole window (see the main design doc). All numbers are provisional.
 |---|---|---|---|---|---|
 | Stonefall | circle, then a line down from its top | a boulder dropped on a spot | watch the warning | break stone | 14-30 |
 | Stone Wall | straight stroke that starts on solid ground | a solid wall | broken by Earthquake, Stonefall and lava, not by Push | block path | 15-36 |
-| Mudslide | wavy line (as Frost Bridge) | ground turned to mud; slows, stops jumping | flyers pass over | | 20-44 |
+| Mudslide | wavy line (as Frost Bridge) | ground turned to mud; slows, stops jumping | walk out | | 20-44 |
 | Earthquake | arrow with a head at both ends |
 | Stalagmite | one or more peaks (^) drawn over the ground | spikes of rock that rise from the ground | step around | block path | 16-30 | the ground shakes | flyers unaffected | break stone | 45-85 |
 
@@ -120,8 +119,6 @@ nothing is paid for a Faint that finds no one. There is no bleeding. Blood is mo
 
 | Spell | Shape | Pictures | Counter | Max cost |
 |---|---|---|---|---|
-| Offering | a cross in one stroke | gives up 20 of the most stamina for 30 **temporary** stamina on top of the bar (it may pass 200): spent after the usual stamina, and never comes back | it is only spent | 20 |
-| ~~Burst~~ (removed 2026-11-07) | circle | 40 blood damage in a ring, throws away everyone and everything in it but the caster, and turns shots back | stay out of it | 25 |
 | Crimson Veil | vertical line | the next two times you would take damage, you take none | it is only two hits | 5 |
 | Adrenaline | tall zigzag | faster on foot and stamina three times as quick for 10 seconds | it ends | 15 |
 | Faint | spiral | all the target's current stamina goes and they drop (the death animation) until their stamina has recovered to 10; the maximum is kept | the target gets up by itself; it cannot walk, cast or chant meanwhile | 30 |
@@ -193,10 +190,10 @@ The owner asked for costs and damage to follow how strong a spell sounds and how
 | Black Hole | 80 to 70 | same |
 | Sinkhole | 40 to 35 | same |
 
-Families used for the reasoning: cheap and weak harassment (Pebble, Barbs, Frostbolt, Ignite, Icicles, Stalagmite, Bramble, Spore Puff, Thorn Whip, Firewall); cheap and strong but close (Fire Breath, Burst); dear and strong from anywhere (Spark, Stonefall, Hailstorm, Great Oak); area and zone control; control with no damage; defence and stealth. Untested in play: the AI casts when stamina is at least the cost, so Spark will be cast less often. Regeneration may be raised later (backlog, chapter 16).
+Families used for the reasoning: cheap and weak harassment (Pebble, Barbs, Frostbolt, Ignite, Icicles, Stalagmite, Bramble, Spore Puff, Thorn Whip, Firewall); cheap and strong but close (Fire Breath, Scythe); dear and strong from anywhere (Spark, Stonefall, Hailstorm, Great Oak); area and zone control; control with no damage; defence and stealth. Untested in play: the AI casts when stamina is at least the cost, so Spark will be cast less often.
 
 ## Attacking spells kept from the overnight batch (2026-11-06)
 
-Shadow Bolt (Shadow, arrow) and Hemorrhage (Blood, crescent) were kept; the owner vetoed Wind Cutter, Sandblast, Sleet, Meteor, Strangler Vine and Steam Burst on 2026-11-07 and they were removed. The lessons are in `CLAUDE.md` section 6 ("Inventing a spell"). Next idea from the owner: Supernova (Fire).
+Shadow Bolt (Shadow, arrow; now Eldritch Blast, a beam) and Hemorrhage (Blood; now drawn as a drop of blood) were kept; the owner vetoed Wind Cutter, Sandblast, Sleet, Meteor, Strangler Vine and Steam Burst on 2026-11-07 and they were removed. The lessons are in `CLAUDE.md` section 6 ("Inventing a spell").
 
 Approved by the owner 2026-11-07: Supernova (Fire, a ring crossed by a flat oval) and Scythe (Blood, a crescent). Hemorrhage's gesture moved from the crescent to the drop-of-blood flame shape to free the crescent. Still open: Wild Shape (Druidry: the wizard becomes a bear, a different stamina pool, claw swipes only; the owner's idea, needs art and decisions), Molotov (wording unsettled).

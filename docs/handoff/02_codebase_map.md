@@ -46,7 +46,7 @@ There are no waves. The waiting room's portal loads a world from a seed (`World.
 | 8 | mob_barrier | unused now (the old solid Firewall) |
 | 16 | platforms | one-way |
 
-The player and walking mobs collide with mask 17 (terrain and platforms). Flyers have mask 0. The player and mobs
+The player and mobs collide with mask 17 (terrain and platforms). The player and mobs
 never block each other.
 
 ## Scripts
@@ -78,7 +78,7 @@ never block each other.
   - `_end()` runs the $1 recognizer restricted to the held buttons' templates, then the shape detectors (spiral,
     ring with a line, box, snowfall, funnel, cloud, crack, pit, cone, icicles).
   - It emits `cast_resolved(spell, targeting, origin, aim, info)`, or `misfired`.
-  - `cast_stroke(mask, points)` lets the dark wizard and the tests cast without a mouse.
+  - `cast_stroke(mask, points)` lets the AI wizards and the tests cast without a mouse.
 - **`gesture/gesture_templates.gd`:** the $1 templates, `ALIASES`, `preview_points(gesture)` (the spellbook
   picture, which is also the stroke the wizard draws), and `preview_ground`.
 - **`gesture/unistroke_recognizer.gd`:** the $1 recognizer. `recognize(points, only)` limits it to the named
@@ -109,8 +109,8 @@ never block each other.
 - **`spell_targets.gd`:** who can be hurt (`affects`, `hurt`, `all`, `hurt_within`; no sides), the ground (`ground_below`,
   `solid_below`, `surface_over`), fire (`fire_points`, `fire_heat_near`) and `shot_damage`.
 - **Conventions:**
-  - Every spell joins the `"danger"` group, and implements `danger_at(point)`, which the dark wizard
-    uses to avoid hazards.
+  - Every spell joins the `"danger"` group, and implements `danger_at(point)`, which the AI wizards
+    use to avoid hazards.
   - Spells find each other through groups, never by scanning the arena's children: `"fires"` (anything burning),
     `"clouds"` (blizzards, smoke and spores, which wind dissipates; each has `dissipate()` and `span()`),
     `"shots"` (enemy bolts, projectiles and lava balls), `"rocks"` (boulders), `"lasting"` (lasting effects), `"earthquakes"`, `"breakables"` (stone walls, boulders and trees: `take_blow_near(point, damage)`),
@@ -118,17 +118,15 @@ never block each other.
     `"ponds"`, `"decoys"`, `"hexes"`, `"flares"`, `"lily_pads"`.
   - Check what a node is with its class (`node is Projectile`), not by comparing spell names.
 
-### Enemies
+### Creatures
 - **`mob.gd`:**
-  - `Mob.KINDS` loads one `MobKind` resource per kind from `res://mobs/` (edit them in the inspector); each gives: role (melee, ranged, flyer, wizard), art, school, weak, resist, hp, damage, speed,
-    effect and shot.
+  - `Mob.KINDS` loads one `MobKind` resource per kind from `res://mobs/` (edit them in the inspector); each gives: role (melee, ranged, wizard), art, school, weak, resist, hp, damage, speed,
+    effect and shot. The kinds and where each lives are in `06_enemies_and_ai.md`.
   - Creature frames are built by `CharFrames`. The shader `mob.gdshader` adds a slight school tint, a 1 px
     school-coloured outline, the hit flash and the frozen look.
-  - Every attack is telegraphed: melee wind-up, shooter charge, flyer hover.
-  - The dark wizard parts are `_build_wizard`, `start_drawing`, `interrupt_cast` and `mouth`.
-- **`wizard_brain.gd`:** the dark wizard's AI (see `06_enemies_and_ai.md`).
-- **Other enemy pieces:** `enemy_bolt.gd` (enemy shots, reflectable), `falling_shot.gd` (the fire caster's
-  fireball, sometimes used by flyers), `hazard.gd` (burning ground where a volcano's lava lands).
+  - Every attack is telegraphed: a melee wind-up, a shooter's charge.
+- **`wizard_brain.gd`:** the AI wizards (see `06_enemies_and_ai.md`); `sky_brain.gd` in the sky.
+- **Other pieces:** `enemy_bolt.gd` (a turret's or sentinel's shot, reflectable), `hazard.gd` (burning ground where a volcano's lava lands).
 
 ### Visuals
 - **`terrain.gd`:** the ground is one smooth surface: `_build_edges` takes the column tops, `_draw_ground` fills it
@@ -160,7 +158,7 @@ never block each other.
 
 ## World, match and pages
 
-The PvP match (see `docs/pvp_arena_design.md`) runs on these. `World` extends `Arena`, so the base code still applies.
+The match (a last-wizard-standing race for pages) runs on these. `World` extends `Arena`, so the base code still applies.
 
 - **Match:** `match_state.gd` (`MatchState`): the four worlds, their timers and seeds, and which biome each takes (`biome_of`, a shuffle of the biomes by the match's seed). `portal_collapse.gd` tears the portal open when a world gives way.
 - **World:** `world.gd` builds each world, places the wizards, follows the one you watch, and watches the gates.
@@ -175,7 +173,7 @@ The PvP match (see `docs/pvp_arena_design.md`) runs on these. `World` extends `A
 - **`showcase.gd` / `showcase.tscn`:** scripted scenes that save screenshots. See `07_testing.md`.
 
 
-## Added with the spell expansion (chapter 14)
+## Added with the later spells
 
 - `scripts/spells/`: `barbs.gd`, `thorn.gd`, `pebble.gd`, `hailstorm.gd`, `hail_stone.gd`, `featherfall.gd`, `thorn_whip.gd`, `insect_plague.gd`, `leech.gd`, `mirage.gd`,
   `flaming_sphere.gd`. Raise Dead has no script of its own: `arena._raise_dead` makes a `Mob` (`Mob.master`, `_foe`, `_follow_master`, `_share_raised`).
@@ -191,9 +189,9 @@ The PvP match (see `docs/pvp_arena_design.md`) runs on these. `World` extends `A
 - `GameSettings.rival_skill()`: the AI wizards' skill from the Settings page (0.4, 0.65, 0.85).
 - `Pages.RANGED`: the attacks that reach across a distance; each wizard is dealt one as the starting attack.
 
-## Added 2026-11-11: the ocean and the sky (chapters 19 and 20)
+## The ocean and the sky (chapter 13)
 - `pond.gd` (`deep`, `SWIM_DEPTH`: the ocean's sea, laid by `World._lay_sea` in lengths), `wreck.gd` (`Wreck`), `air_pocket.gd` (`AirPocket`: where the sea does not reach, group `air_pockets`), `kelp_patch.gd` (`KelpPatch`: slows, and hides from the brains' eyes through `sight_blockers`), `driftwood.gd` (`Driftwood`: a one-way platform at the waterline).
-- `sky_cloud.gd` (`SkyCloud`: placed from the world's age; a thundercloud warns, then shocks and strikes), `falling_page.gd` (`FallingPage`, a `PagePickup` that drifts and is lost out of the sky), `sky_brain.gd` (`SkyBrain`: the brain of a wizard that flies; made by `World._new_brain`).
+- `sky_cloud.gd` (`SkyCloud`: placed from the world's age; a thundercloud warns, then shocks and strikes), `falling_page.gd` (`FallingPage`, a `PagePickup` that rises through the sky and comes round again), `sky_brain.gd` (`SkyBrain`: the brain of a wizard that flies; made by `World._new_brain`).
 - `spell_limits.gd` (`SpellLimits.refusal(wizard, spell)`: "No ground" in the sky for spells that need ground, "No need" for Updraft, Featherfall and Rocket Jump there, "Fizzles" for fire under water; `Arena.cast_by` and the brain both ask it).
 - `wizard.gd`: `swim_time`/`swim()`, `flying`/`fly_box`/`_fly`, constants `SWIM_*`, `FLY_*`. `arena.gd`: `_flies()`, `_fly_box()`, `_new_brain()` (World overrides them). `arena_gen.gd`: `air_rows` (the minimap's rows in the sky).
 - `surface_gen.gd`: the `ocean` and `sky` biomes (`_sea_islands`, `_sea_of`, `_build_sky`, `SEA_*`, `SKY_*`); `match_state.gd` `LATER_BIOMES` deals them in after the first world.

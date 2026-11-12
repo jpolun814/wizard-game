@@ -1,78 +1,69 @@
-# Enemies and the dark wizard
+# Creatures and the AI wizards
 
-## Enemy kinds (`Mob.KINDS`, one `MobKind` resource each in `res://mobs/`)
+## Creatures (`Mob.KINDS`, one `MobKind` resource each in `res://mobs/`)
 
-- **Naming:** `<school>_<role>`, plus `basic` and `dark_wizard`. The files in `res://mobs/` still carry the old school names (`force_`, `ice_`, `storm_`, `earth_`, `fire_`). The schools in `spell_pool.md` are the current ones; the rename is not done.
-- **Roles and art:**
-  - **melee:** skeleton. Walks to you, winds up for 0.3 s (leans, flashes in its school colour, plays its attack
-    animation), then hits. If you moved away during the wind-up, it misses.
-  - **ranged:** goblin. Stops in range, charges a glowing orb for 0.45 s, then throws.
-  - **flyer:** flying eye. Patrols above, hovers and shakes for 0.4 s (the warning), dives, then retreats.
-  - **wizard:** the dark wizard (below).
-  - **ninja:** a fast ranged walker (`effect` "ninja"). Runs at you and throws bursts of five stars with a short wind-up; within 70 px it cuts with its sword. Its stars fly through other ninjas (`spare_kin`). It is meant to be an elite: a pack of 12. It does not flip or hop about.
-  - **giant:** a melee walker (`effect` "smash") at 4x scale. It draws its leg back for 0.9 s, then stomps the ground in front of it. The first stomp that catches the player sticks them in the ground for 3 s (their body sinks out of sight); a stomp that catches them while stuck throws them far away. The stomp breaks any stone wall or boulder there, hurts other enemies close by, and knocks the player back. It also smashes a wall that blocks its path, even with you out of reach.
+The world's dangers are mostly the other wizards. The creatures are few, and each has a place:
 
-## Design rules for enemies
+| Kind | Where | What it does |
+|---|---|---|
+| `basic` (skeleton) | the graveyard's dead (`Mob.roams`), a crypt's guard, a skeleton raised by Raise Dead | walks to whoever it notices, winds up for 0.3 s (leans, flashes, plays its attack), then hits; a wizard who moved away during the wind-up is missed |
+| `knight` | the castle's guards (`Mob.guards`) | stands at its post until a wizard comes near, fights them, and walks back |
+| `giant` (`effect` "smash") | the castle's ground floors, the tutorial | draws its leg back for 0.9 s, then stomps the ground in front of it: the first stomp that catches a wizard sticks them in the ground for 3 s, a second throws them; it breaks stone walls and boulders, and jumps a ledge that holds it up |
+| `dummy`, `turret` (`effect` "dummy") | the waiting room, the tutorial | a practice target that heals when left alone; the turret charges a glowing orb for 0.45 s, then shoots |
+| `earth_melee`, `runner` (`effect` "knockback") | the tutorial | skeletons whose blow knocks a wizard back; the runners are fast |
+| the wizard looks (`dark_wizard`, `pyre_wizard` and the rest, role `wizard`) | every match | not creatures: these files give each wizard figure its Insight name and line |
 
-1. **Same role, same creature.** School is shown only by colour (outline plus slight tint). The owner rejected
-   the differently-drawn earth melee enemy.
-2. **Every attack is telegraphed** and dodgeable. Add a warning to anything new.
-3. **Enemies should attack your inputs, not just your HP** (from the original vision): mute blocks rituals, root
-   stops movement, blind hides the gesture trail. This is still the direction for new enemies. Ideas:
-   - a "tremor" that tightens gesture tolerance;
-   - a mimic that casts your last spell back;
-   - a summoner whose ritual you can interrupt.
-4. **Hitboxes match the body,** not the weapon. `PixelArt.CHARACTERS[...]["body"]` is measured from the art.
-5. **Spawning:** enemies arrive through a summoning fade and can't act or be hurt until it finishes.
+The sentinel (`Sentinel`, an eye that shoots a laser) is a gate of the world, not a `Mob`. Piranhas (`Piranhas`) are a shoal in a pond.
 
-## The dark wizard (`wizard_brain.gd`)
+## Design rules for creatures
 
-It's the owner's favourite part. It plays like a skilled human:
+1. **Same role, same creature.** A school is shown only by colour (an outline and a slight tint). The owner rejected a differently drawn earth skeleton.
+2. **Every attack is telegraphed** and can be dodged. Add a warning to anything new.
+3. **Hitboxes match the body,** not the weapon. `PixelArt.CHARACTERS[...]["body"]` is measured from the art.
+4. **Spawning:** a creature arrives through a summoning fade and can't act or be hurt until it finishes.
 
-- **Casting** goes through the real recognizer. `_begin_cast(spell, stroke, draw_time)` draws the stroke in
-  front of it over `draw_time`, then calls `caster.cast_stroke`. A hit of 6 or more damage while it draws
-  interrupts the spell, and it says "Interrupted!".
-- **Reactions:**
-  - It watches your projectiles and, after a reaction time (shorter the more skilled it is), picks one of:
-    jump, reflect the shot with a Gust, Barrier, or Shadow Step aside.
-  - When you're too close it pushes you, blinks away, or uses Fire Breath.
-  - It steps out of danger, using every spell's `danger_at`.
-- **Footwork:** keeps dueling range (190–330 px), strafes, never backs into walls or hazards, and jumps to get a
-  line of sight.
-- **Attacks:**
-  - Each spell gets a score from the situation: are you still, rooted, behind cover, sheltered under a platform,
-    close or far?
-  - It avoids its last two spells and leads moving targets with `_predict`.
-  - Strokes come from `GestureTemplates.preview_points`, placed in the world.
-- **Skill** is a number from 0 to 1 on each AI wizard (`skill`): it sets reaction time and aim.
-- **Art:** LuizMelo Evil Wizard 2 at 2x. It channels shadow while drawing and bursts when a spell fires.
+## The AI wizards (`WizardBrain`, `SkyBrain` in the sky)
 
-- **Every spell has a use** (`WizardBrain.USES` names it; `tests/brain_spells_check.tscn` gives each spell, alone, to a brain and sees it cast it):
-  - *attack* spells are scored in `_attack` and drawn in `_attack_stroke` (the traps, Stalagmite, Sinkhole, Hex, Vacuum, Faint, Silence and the rest);
+The owner wants them indistinguishable from people (`CLAUDE.md` section 12 says how that is judged). They have a person's body, view and limits:
+
+- **Casting** goes through the real recognizer: `_begin_cast(spell, stroke, draw_time)` draws the stroke in front of it over `draw_time`, then
+  `caster.cast_stroke`. A blow of 6 or more while it draws interrupts the spell. Strokes come from `GestureTemplates.preview_points`, with a hand's wobble
+  (`_handed`, measured in `ai/stroke_drift.json`) and a shaky hand while its own screen shakes (`_shaken`).
+- **Sight** is a screen of its own (`Eyes`: the person's window size and camera rest, smoothed like the camera), so it sees only what a person in its place would.
+- **Reactions:** it watches shots and, after a reaction time set by `skill`, jumps, turns the shot with a Gust, raises a Barrier or steps aside. Too close,
+  it pushes, steps away or breathes fire. It steps out of danger with every spell's `danger_at`.
+- **Footwork:** it keeps a duelling range, strafes in slow turns, hops rarely, and faces the way it moves.
+- **Attacks:** each spell gets a score from the situation (is the rival still, rooted, behind cover, under a platform, near or far?); it leads moving targets (`_predict`).
+- **Skill** is 0 to 1 (`skill`, from the Rival skill setting): it sets reaction time and aim.
+- **Every spell has a use** (`WizardBrain.USES`; `tests/brain_spells_check.tscn` gives each spell alone to a brain and sees it cast it):
+  - *attack* spells are scored in `_attack` and drawn in `_attack_stroke`;
   - *repel* spells (Push, Geyser, Tide Surf, Spore Puff, Fire Breath) are chosen when a rival is on top of it (`_choose_repel`);
   - *defence* spells (Barrier, Gust, Shadow Step) answer an incoming shot (`_choose_defence`);
-  - *tend* spells are cast for its own needs by `_tend`: light in the dark (Flare, Glowcap, Moonbeam), strength (Offering, Adrenaline), hiding when badly hurt (Sneak), and something between it and a rival who keeps shooting (Stone Wall, Smoke Screen, Decoy, Eclipse, Crimson Veil, Obsidian Armor); Hunter's Mark lets it find a wizard who has faded from sight;
-  - *ways up* (`LIFTS`: Geyser, Updraft, Push, Liana, Great Oak, Tornado) raise it over a wall (`WAYS["wall"]`) or up to a rival standing over its head (`_chase`); Frost Bridge and Lily Pads cross water (`cross_check`).
+  - *tend* spells are cast for its own needs by `_tend`: light in the dark, strength, hiding when badly hurt, and cover from a rival who keeps shooting; Hunter's Mark finds a
+    wizard who has faded from sight; a Scrying Eye when it has lost track of everyone (`_eye_time`); Featherfall in a long fall;
+  - *ways up* (`LIFTS`) raise it over a wall or up to a rival standing over its head (`_chase`).
+- It stops going for Mirages once it has watched one fade (`saw_a_mirage_fade`).
 
-**When you add a spell,** teach the wizard to use it, and make sure it doesn't cast spells that can't work:
-- no Spark while you're sheltered;
-- no line-of-sight spells when it can't see you.
+**When you add a spell,** teach the brain to use it, and make sure it never casts one that can't work (no Spark at a sheltered rival, no line-of-sight spell at one it can't see).
 
-## Where enemies come from
+## How the AI gets about a world
 
-There are no waves. The world holds no enemy mobs: the enemies are the other wizards. The lab holds dummies and a turret. A wizard at 0 stamina is out for the round and may spectate; the match ends when one is left.
+- **The map of the ways.** `Walkways` (`scripts/world/walkways.gd`) is the one set of rules for where a wizard can stand and the moves between (walk, step, fall,
+  jump), shared by the generator's reachability test and the wizards. `WorldNav` finds paths over it, kept to tiles that can be left as well as come to.
+  `WizardRoute` follows a path: when to jump, how fast, when it is stuck. In the ocean a wizard out of its depth swims straight for its goal instead (`_swim`).
+- **Exploring:** in a match it knows only the pages it has seen (`_note_sights`) and walks to unexplored squares (`_choose_explore`), and it plans only through ground it
+  has seen (`_toward_known`).
+- **Gates it clears** (`CLEARS`): with no page to be had it goes to the nearest gate a spell it holds can clear (fire for thorns, gas and ice; stone for a wall and ice)
+  and strikes until it is gone. `World._watch_gates` marks the gate open and builds the ways again.
+- **Gates it crosses** (`WAYS`): `WorldBuilder.shut(world, true)` leaves chasms, floods, piranha pits and sentinels open in the ways and lists the tiles that cross each
+  (`tolls`); `WorldNav.path` goes round the crossings it holds no spell for. Over water it draws a Frost Bridge or Lily Pads and walks over; over a pit it jumps
+  and carries itself on with Shadow Steps (`_leaping`); at a wall it lifts itself over (`_lifting`: a Geyser under its feet, Push, or a Liana); through lava it wades in
+  Obsidian Armor (`_wading`); at a sentinel it hides behind Smoke Screen, an Eclipse, a Barrier or a Decoy; through gas it holds its breath with the Chant of the Deep Breath.
+- **Rooms built by hand** (the waiting room, the tutorial) are read the same way by `RoomScan` (`CLAUDE.md` section 11).
+- Tests: `tests/test_nav.gd`, `tests/route_check.tscn`, `tests/cross_check.tscn`, `tests/gate_check.tscn`, `tests/sentinel_check.tscn`, `tests/arena_sim.tscn` (AI-only matches).
 
-## Improvement ideas the owner may like
+## Raised skeletons
 
-- Mini-bosses using the 2x scale trick.
-- A healer enemy that must be killed first.
-- An elite skeleton with a shield that blocks frontal projectiles. The skeleton art has a "Shield"
-  animation that's unused.
-
-
-## Raised skeletons and the new spells (chapter 14)
-
-- A skeleton raised by Raise Dead is a `basic` `Mob` with `master` set. `_pick_prey` skips the master and also picks the nearest skeleton of another master as `_foe`; `_target()` prefers `_foe`;
-  with no one to fight it keeps near its master (`_follow_master`); it falls when its master falls.
-- The brain knows every new spell (`WizardBrain.USES`, a score in `_attack`, a stroke in `_attack_stroke`). It stops going for Mirages once it has watched one fade (`_wise_to_mirages`), casts a
-  Scrying Eye when it has lost track of everyone (`_eye_time`, which lets it find wizards faded from sight for a while), and lands Featherfall in a long fall.
+A skeleton raised by Raise Dead is a `basic` `Mob` with `master` set. `_pick_prey` skips the master and picks the nearest skeleton of another master as `_foe`;
+`_target()` prefers `_foe`; with no one to fight it keeps near its master (`_follow_master`); it falls when its master falls. In a network match the machine that drives
+the master drives the skeleton, named `Raised_<master>_<cast count>` on every machine; the others show a puppet.
