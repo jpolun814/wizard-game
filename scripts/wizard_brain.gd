@@ -20,6 +20,11 @@ const REMEMBER := 8.0         # seconds a rival gone out of sight is still thoug
 const ENGAGE := 620.0         # a wizard this close, and in sight, is a fight; farther off, it is a journey
 const PAGE_REACH := 4          # tiles: a page further than this from any place to stand is not one it can get
 const GOAL_EVERY := 4.0       # seconds between looking for a nearer page
+const SWIM_ARRIVE := 48.0     # pixels from the place it swims to at which it has got there
+const SWIM_HOLD := 260.0      # the distance it keeps from a rival it fights in the water
+const SWIM_RISE := 150.0      # about how fast it rises, a stroke at a time, in pixels a second: for how long the way up to air takes
+const AIR_SPARE := 1.5        # seconds of breath it keeps in hand on the way up
+const AIR_SCAN := 640.0       # how far to either side it looks for open water to rise through, when something is over its head
 const PAGE_TOUCH := 20.0         # pixels: a page this near is within reach
 const PAGE_STEPS := 320.0        # pixels: a page this near, and level, is walked to when the way ends short of it
 const PAGE_STEPS_TIME := 3.0     # seconds it tries
@@ -171,6 +176,8 @@ var _camped_for := 0.0
 var _mend_wait := 0.0
 var _typing := ""                # the chant it is typing, and will say when _settle has run out
 var _hold_still := 0.0
+var _stroke_in := 0.0         # seconds to its next stroke in the water
+var _for_air := false         # it is on its way up for air
 static var _human := {}
 var _clock := 0.0                 # seconds this brain has been thinking
 var _first_seen := {}             # shot instance id -> the time on _clock it first came on its screen (see _noticed)
@@ -427,7 +434,7 @@ func think(delta: float) -> void:
 
 	# Footwork, or the journey.
 	var run: float
-	var mend := _mend(delta, fighting) if _lift.is_empty() and _leap.is_empty() and _wade.is_empty() and _react <= 0.0 else NAN
+	var mend := _mend(delta, fighting) if _lift.is_empty() and _leap.is_empty() and _wade.is_empty() and _react <= 0.0 and wizard.swim_time <= 0.0 else NAN  # (no one rests in deep water)
 	if not is_nan(mend):
 		wizard.walk(mend)
 		return
@@ -437,7 +444,10 @@ func think(delta: float) -> void:
 		var daunted := fighting and _strength < TIMID_BELOW and to_player.length() > TIMID_STAND
 		_daunted = _daunted + delta if daunted else 0.0
 		var standing_to_fight := fighting and (not daunted or _daunted < TIMID_HESITATE)  # (one that feels weak, after a moment, goes on with its journey and keeps away)
-		run = _footwork(delta, to_player, sees) if standing_to_fight else _travel(delta)  # (both may jump: the speed is written after they have)
+		if standing_to_fight and wizard.swim_time > 0.0:
+			run = _swim(delta, true, to_player)  # (out of its depth, it fights as it swims)
+		else:
+			run = _footwork(delta, to_player, sees) if standing_to_fight else _travel(delta)  # (both may jump: the speed is written after they have)
 	wizard.walk(run)
 	# A wizard faces the way it runs; it turns to its rival only while standing still or drawing a spell, so it never backpedals.
 	var running := run != 0.0 and not wizard.is_drawing()
@@ -880,6 +890,8 @@ func _travel(delta: float) -> float:
 		return 0.0
 	if (_goal == "" and _goal_timer <= 0.0) or _goal_lost() or ((_goal == "foe" or _goal == "exit" or _goal == "explore") and (_goal_timer <= 0.0 or _route.done())):
 		_choose_goal()
+	if wizard.swim_time > 0.0:
+		return _swim(delta, false, Vector2.ZERO)
 	if _goal != "" and not _route.done() and wizard.is_on_floor():  # (a wizard in the air cannot stop for it; after the goal is chosen, so that a gate on the way is seen before the first step towards it)
 		var crossing := _crossing_ahead()
 		_cross_run = 0.0
@@ -952,6 +964,75 @@ func _travel(delta: float) -> float:
 	wizard.climb_up = steer["climb"]  # at the foot of a rope ladder, the way up it
 	wizard.let_go = steer["let_go"]  # and the hop off it at the top
 	return steer["dir"] * steer["speed"]
+
+
+## Out of its depth there is no walking: it swims, as a person does, the jump key a stroke at a time and S to dive (Wizard.swim). The map of ways
+## (WizardRoute) is made for legs, and in the sea a jump is a stroke and a fall a slow sink: following it, wizards bobbed at the top of the sea over
+## the floor they meant to reach, and three drowned against the edge of the world. So it swims straight for where it is going (the end of its route,
+## the page it wants, a place a little short of the rival it fights), over whatever is in the way, and goes for air when its breath would only just
+## last the way there: straight up when nothing is over it, else to an air pocket or to open water to one side. Returns its speed sideways.
+func _swim(delta: float, fighting: bool, to_player: Vector2) -> float:
+	_stroke_in -= delta
+	wizard.swim_down = false
+	var here := wizard.center()
+	var air := _nearest_air(here)
+	if wizard.deep_breath_time > 0.0:
+		_for_air = false
+	elif wizard.underwater() and wizard.breath < here.distance_to(air) / SWIM_RISE + AIR_SPARE:
+		_for_air = true
+	elif _for_air and wizard.breath >= Wizard.BREATH * 0.95:
+		_for_air = false
+	var target := air
+	if not _for_air:
+		if fighting and to_player.length() > 1.0:
+			target = here + to_player - to_player.normalized() * SWIM_HOLD
+		else:
+			target = _swim_goal()
+	if target == Vector2.INF:
+		return 0.0
+	var line := target - here
+	if not _for_air and not fighting and line.length() < SWIM_ARRIVE:
+		_route.clear()  # it is there: what comes next is chosen afresh
+		return 0.0
+	var blocked := wizard.is_on_wall() and absf(line.x) > SWIM_ARRIVE  # (a stroke takes it up over what is in the way)
+	var keep_up := _for_air and not wizard.underwater() and wizard.velocity.y > 0.0  # (its head over the water while it breathes)
+	if (line.y < -24.0 or blocked or keep_up) and _stroke_in <= 0.0:
+		_stroke_in = Wizard.STROKE_EVERY
+		wizard.request_jump()
+	elif line.y > 40.0 and not blocked:
+		wizard.swim_down = true
+	return signf(line.x) * WALK_SPEED if absf(line.x) > 12.0 else 0.0
+
+
+## Where its journey goes, swimming: the page it wants, or the end of its route (a place to look at, the rival it hunts). INF when it has none.
+func _swim_goal() -> Vector2:
+	if _goal == "page" and is_instance_valid(_goal_page):
+		return _goal_page.global_position + Vector2(0.0, -20.0)
+	if not _route.done():
+		var end := _route.last()
+		if end != WorldNav.NONE:
+			return Vector2((end.x + 0.5) * WizardRoute.TILE, (end.y + 1) * WizardRoute.TILE) + wizard.center() - wizard.global_position
+	return Vector2.INF
+
+
+## The nearest air from under the water: the surface straight over it when nothing solid is in the way, else over open water a little to one side,
+## or an air pocket (AirPocket) if one is nearer.
+func _nearest_air(here: Vector2) -> Vector2:
+	var top := wizard.water_surface()
+	if top == INF:
+		return here  # (in no water: it is breathing)
+	var best := Vector2.INF
+	for dx: float in [0.0, -96.0, 96.0, -224.0, 224.0, -384.0, 384.0, -AIR_SCAN, AIR_SCAN]:
+		var below := Vector2(here.x + dx, here.y)
+		var over := Vector2(below.x, top - 30.0)  # (its head out of the water)
+		if (dx == 0.0 or _clear_line(here, below)) and _clear_line(below, over):
+			best = over
+			break
+	for pocket: AirPocket in wizard.get_tree().get_nodes_in_group("air_pockets"):
+		var inside := pocket.global_position + Vector2(0.0, -pocket.size.y * 0.5)
+		if best == Vector2.INF or here.distance_to(inside) < here.distance_to(best):
+			best = inside
+	return best if best != Vector2.INF else Vector2(here.x, top - 30.0)
 
 
 ## The width in pixels of the lava (or other danger) that starts within reach ahead, or INF when it is wider than it is worth, or no ground lies past it.

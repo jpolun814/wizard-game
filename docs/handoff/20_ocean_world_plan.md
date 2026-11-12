@@ -64,7 +64,9 @@ start on (`_sea_islands`), and `surface["sea"]` ({row, depth, islands, wrecks, l
 - **The sea** is a row of `Pond`s with `deep = true` (`World._lay_sea`, lengths of `SEA_LENGTH`, 1536 px, so only those in view are drawn: one pond over the whole
   world drew so slowly in a window that a run never finished). It is a fixed rectangle, not the flowing `LiquidGrid` (`ground` is null), so a Sinkhole dug beside it
   does not fill from it. Out of its depth (`Pond.SWIM_DEPTH`, 44 px under the surface) a wizard swims (`Wizard.swim`): the jump key strokes up, S dives, and it sinks slowly.
-  The water slows everyone in it, as every pool does. A brain swims up for air when its breath is low (`Wizard._swim_for_air`).
+  The water slows everyone in it, as every pool does. Out of its depth a brain swims (`WizardBrain._swim`, 2026-11-12): straight for its goal (not along the
+  map of ways, made for legs: following it, wizards bobbed at the top and drowned at the world's edge), a stroke at a person's pace, and up for air when its
+  breath would only just last the way: straight up, or to open water to one side, or to an air pocket.
 - **Breath** is the only pressure: nothing else is added. A `Wreck` has an `AirPocket` (150 by 110 px) where the sea does not reach, and a page lies in each wreck.
 - **Driftwood** (`Driftwood`) is a one-way platform at the waterline; **kelp** (`KelpPatch`) slows and hides (a `sight_blockers` member); wrecks are of the church and town props.
 - **Fire** fizzles under water; spells that need ground work on the sea floor (they are refused only in the sky).

@@ -77,16 +77,13 @@ const SWIM_STROKE := 300.0   # the speed a stroke lifts the wizard at, in pixels
 const SWIM_GRAVITY := 450.0  # how quickly it slows from that, and sinks again
 const SINK_SPEED := 170.0    # the fastest it sinks by itself
 const DIVE_SPEED := 300.0    # and the fastest it dives
-const STROKE_EVERY := 0.28   # seconds between a brain's strokes
-const AIR_LOW := 3.0         # seconds of breath at which a brain's wizard goes up for air
+const STROKE_EVERY := 0.28   # seconds between a brain's strokes: a person taps the key, they do not hold it (see WizardBrain._swim)
 # Flying (the sky, chapter 19): no ground and no jump. A, D, W and S steer, and with no key down the wizard drifts slowly down.
 const FLY_SPEED := 300.0     # sideways and up and down
 const FLY_DRIFT := 30.0      # how fast the wizard drifts down when nothing is pressed
 const FLY_ACCEL := 900.0     # how quickly the up and down speed follows the keys
 var swim_time := 0.0         # above zero while the wizard is out of its depth in a sea (see swim)
 var swim_down := false       # what a brain asks of the water: dive
-var _stroke_wait := 0.0
-var _surfacing := false      # a brain's wizard is on its way up for air
 var flying := false          # set by a world with no ground (the sky): the wizard steers freely instead of walking
 var fly_y := 0.0             # what a brain asks of the air, up and down: -1 is up, 1 is down
 var fly_box := Rect2()       # where a flying wizard's feet may be: it stops at the edge of it. Empty: anywhere
@@ -569,6 +566,11 @@ func on_vine() -> bool:
 	return _vine != null and is_instance_valid(_vine)
 
 
+## The height of the surface of the water the wizard is in, or INF when it is in none.
+func water_surface() -> float:
+	return _liquid_y if _liquid_time > 0.0 and not _in_lava else INF
+
+
 ## True when the wizard's head is under the surface of water.
 func underwater() -> bool:
 	return _liquid_time > 0.0 and not _in_lava and global_position.y - BODY_HEIGHT + 10.0 > _liquid_y
@@ -874,7 +876,6 @@ func _physics_process(delta: float) -> void:
 	rage_time = maxf(rage_time - delta, 0.0)
 	fear_time = maxf(fear_time - delta, 0.0)
 	swim_time = maxf(swim_time - delta, 0.0)
-	_stroke_wait -= delta
 	if is_on_floor():
 		air_jump_ready = true
 	if infinite_time > 0.0:
@@ -999,26 +1000,6 @@ func _fly(delta: float) -> void:
 		ask = Input.get_axis("move_up", "move_down") if brain == null else clampf(fly_y, -1.0, 1.0)
 	var pace := FLY_SPEED * (0.5 if slow_time > 0.0 else 1.0) * (0.3 if tangle_time > 0.0 else 1.0) * (HASTE if haste_time > 0.0 else 1.0)
 	velocity.y = move_toward(velocity.y, ask * pace if ask != 0.0 else FLY_DRIFT, FLY_ACCEL * delta)
-
-
-## A brain's wizard in deep water, with its breath running low, swims up for air a stroke at a time, and dives again once it has breathed, as a person does.
-## (It was never taught to swim, and goes on with whatever it was doing otherwise, walking the floor.)
-func _swim_for_air() -> void:
-	swim_down = false
-	if swim_time <= 0.0 or flying:
-		_surfacing = false
-		return
-	if breath < AIR_LOW and not _surfacing and deep_breath_time <= 0.0:
-		_surfacing = true
-	if _surfacing and (breath >= BREATH * 0.9 or not underwater() and breath >= BREATH * 0.5):
-		_surfacing = false
-	if _surfacing:
-		_walk = 0.0
-		if _stroke_wait <= 0.0:
-			_stroke_wait = STROKE_EVERY
-			request_jump()
-	elif underwater() and breath > BREATH * 0.6 and not is_on_floor():
-		swim_down = true  # breathed: back down to the floor, where the pages lie
 
 
 ## Hanging on a vine (Liana): W takes hold when the wizard is at one, W and S climb, and Space or a sideways key lets go.
@@ -1233,7 +1214,6 @@ func _think(delta: float) -> void:
 	brain.think(delta)
 	if brain.holds_still():
 		_walk = 0.0  # it stops to draw
-	_swim_for_air()
 
 
 ## A brain asks to walk at a speed, left (negative) or right: the body keeps to what it can do.
