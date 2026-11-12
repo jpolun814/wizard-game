@@ -70,12 +70,13 @@ Check: `tests/sky_world_check.tscn`. The world is `sky` (`SurfaceGen.OPEN_BIOMES
 - **Flying** is in `Wizard` (`flying`, `fly_box`, `_fly`): A/D and W/S steer (`FLY_SPEED`), nothing pressed drifts down at `FLY_DRIFT` (30 px/s); the edge of
   `fly_box` stops a wizard. The learned (trained) brain is not used here: `SkyBrain` (`scripts/sky_brain.gd`) is the scripted brain with its legs changed: it flies
   straight at a page it has seen, at a rival it hunts, or to look at somewhere new, round thunderclouds, and it still reads, defends and casts as the brain does.
-- **Pages** are `FallingPage` (`PagePickup`'s child): position from `home + rate * world age`, so every machine agrees; `rate` is -19 to -6 px/s: every page rises, as a sheet of paper falls slower than a person, so among wizards who drift down it is left
-  above them, and it swings from side to side (`SWAY`, 46 px) and tips as it goes, as paper does (owner, 2026-11-12: the pages seemed to fall with the wizards); a page that leaves
-  `box` fades and is gone. `World._lay_sky_pages` places them to last at least two minutes. A wizard's first pages (the cluster) hang by their place and do not drift.
+- **Pages** are `FallingPage` (`PagePickup`'s child): position from `home + rate * world age`, so every machine agrees; `rate` is -140 to -70 px/s: every page rises, as a sheet of paper falls slower than a person, so among wizards who drift down it is left
+  above them, and it swings from side to side (`SWAY`, 46 px) and tips as it goes, as paper does (owner, 2026-11-12: the pages seemed to fall with the wizards, then rose
+  too slowly). One that rises out of the top comes back in at the bottom, `ROOM` (400 px) past each end of `box`, out of sight; no page is lost (owner, 2026-11-12). A wizard's first pages (the cluster) hang by their place and do not drift.
   Reading one needs the wizard within `FallingPage.TOUCH` (80 px).
 - **Clouds** are `SkyCloud` (one plain cloud to every 450 px of width, at least 8, and a thundercloud to every 2000, at least 3; owner, 2026-11-12: more of them): plain ones rise past and hide (a `sight_blockers` member, so the brains see them as cover); thunderclouds warn with a flash
-  and sparks, then shock whoever is inside and strike whoever is under the bolt. Everything is placed from the world's age (the `_timed` list), so no network traffic.
+  and sparks, then shock whoever is inside and strike whoever is under the bolt; between bolts the inside stings each second (`CRACKLE`, 4; owner, 2026-11-12: sitting in one
+  did nothing they could feel), but not in the second before a bolt, whose shock a sting would otherwise swallow (a wizard is spared hits for half a second after one). Everything is placed from the world's age (the `_timed` list), so no network traffic.
 - **Spells** that need ground are refused with "No ground" (`SpellLimits`, which the brain also asks); Updraft, Featherfall and Rocket Jump say "No need".
 - **Seeds:** the ocean and the sky are dealt in after the first world, never first (`MatchState.biome_of`), so every seed keeps its first world. The sky is also in the
   last world's draw (`OPEN_BIOMES`).

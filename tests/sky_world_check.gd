@@ -1,6 +1,6 @@
 extends Node
 
-## The sky world (chapter 19): no ground, wizards fly and drift down, pages drift and are lost, clouds rise past, thunderclouds warn and strike.
+## The sky world (chapter 19): no ground, wizards fly and drift down, pages rise and come round from below, clouds rise past, thunderclouds sting, warn and strike.
 ##
 ##     godot --headless --fixed-fps 60 --path . tests/sky_world_check.tscn
 
@@ -76,10 +76,19 @@ func _run(world: World) -> void:
 	one.seconds += 10.0
 	await get_tree().physics_frame
 	_check(absf(one.global_position.y - a.y) > 4.0, "a page's place follows the world's age")
-	one.seconds += 100000.0
-	for k in 120:
-		await get_tree().physics_frame
-	_check(not is_instance_valid(one) or one.is_queued_for_deletion(), "a page that drifts out of the world is lost")
+	var top := one.box.position.y - FallingPage.ROOM
+	var bottom := one.box.end.y + FallingPage.ROOM
+	var kept := true
+	var came_round := false
+	var last := one._at().y
+	for k in 600:  # ten minutes of the world, a second at a time
+		one.seconds = float(k)
+		var y := one._at().y
+		kept = kept and y >= top - 1.0 and y <= bottom + 1.0
+		came_round = came_round or y > last + 1000.0
+		last = y
+	_check(kept and came_round and is_instance_valid(one), "a page that rises out of the top of the sky comes back in at the bottom, and is never lost")
+	_check(one.rate <= -60.0, "a page rises quickly among the falling wizards (%.0f px/s)" % one.rate)
 	# Clouds.
 	var clouds := get_tree().get_nodes_in_group("sight_blockers").filter(func(c: Node) -> bool: return c is SkyCloud)
 	var storms := get_tree().get_nodes_in_group("thunderclouds")
@@ -93,6 +102,18 @@ func _run(world: World) -> void:
 	storm.seconds = 3.0
 	_check(storm.bolt_at(4) == storm.bolt_at(4) and storm.bolt_at(4) != storm.bolt_at(5), "a bolt's place comes from the seed and its number alone")
 	_check(storm.danger_at(storm.global_position), "a thundercloud is a danger")
+	# A wizard held inside a thundercloud is hurt by it, bolt after bolt.
+	var hurt_before: float = wizard.max_stamina + wizard.stamina
+	var inside_for := 0.0
+	var blows: Array = []
+	wizard.damaged.connect(func(amount: int) -> void: blows.append([snappedf(storm.seconds, 0.01), amount]))
+	while inside_for < storm.period * 2.2:
+		wizard.global_position = storm.global_position + Vector2(0.0, 40.0)
+		wizard.velocity = Vector2.ZERO
+		await get_tree().physics_frame
+		inside_for += 1.0 / 60.0
+	print("   in the storm for %.1f s (a bolt every %.1f s): stamina %.0f of %.0f, region %s, at %s, blows %s" % [inside_for, storm.period, wizard.stamina, wizard.max_stamina, str(storm.region()), str(wizard.center()), str(blows)])
+	_check(wizard.max_stamina + wizard.stamina < hurt_before - 1.0, "a wizard who stays in a thundercloud is hurt")
 	# Spells that need ground are refused.
 	_check(SpellLimits.refusal(wizard, "Stone Wall") == "No ground", "a Stone Wall needs ground")
 	_check(SpellLimits.refusal(wizard, "Ignite") == "", "a fireball does not")

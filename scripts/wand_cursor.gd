@@ -4,6 +4,9 @@ extends Node
 ## the wizard and its tip points away, so it turns to follow the cursor all the way round them (cursor above their middle, the tip is up; below,
 ## the tip is down). Where there is no wizard, on the home screen or while the game is paused, it points up and to the left as an ordinary mouse cursor does. While a spell is
 ## being drawn, the jewel at the tip takes the colour of the school whose buttons are held. Only the wand's own pixels are used, turned in steps.
+## Every turn of every colour is made once, ahead of time, into one sheet (TURNS, by tools/bake_wand_cursor.gd: a row for each set of buttons held, a
+## column for each step), and cut from it here: made as they were wanted, each took about 70 ms and stalled the first seconds of the waiting room
+## (owner, 2026-11-12). Without the sheet they are made as before.
 
 const SCALE := 1.25            # each art pixel of the wand is drawn this many pixels across, so it is easy to see
 const CANVAS := 160             # a square the wand can turn about its tip inside, in pixels
@@ -14,8 +17,10 @@ const STEPS := 24               # the turns it comes in, all the way round
 const DEAD_ZONE := 24.0         # pixels from the wizard's middle inside which the wand keeps its angle
 const FOLLOW := 20.0            # how quickly it turns to the cursor, a second
 const POINTER := -45.0          # degrees: tip up and to the left, as a mouse cursor points
+const TURNS := "res://art/ui/wand_turns.png"
 
 var _plain: Image
+var _sheet: Image      # every turn, made ahead of time (see TURNS), or null
 var _held := 0         # every button held at any point since the last time none was
 var _shown_mask := -1
 var _shown_step := -1
@@ -28,6 +33,11 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS  # it must go on turning while a game alone is stopped, to go back to the pointer
 	_plain = (load("res://art/ui/wand_cursor.png") as Texture2D).get_image()
 	_plain.convert(Image.FORMAT_RGBA8)
+	if ResourceLoader.exists(TURNS):
+		_sheet = (load(TURNS) as Texture2D).get_image()
+		if _sheet.is_compressed():
+			_sheet.decompress()
+		_sheet.convert(Image.FORMAT_RGBA8)
 	_apply(0, _step_of(_angle))
 
 
@@ -55,6 +65,17 @@ func _process(delta: float) -> void:
 		_apply(_held, step)
 
 
+## The wand turned to a step, with its jewel in the colour of a set of buttons: what the sheet holds (see tools/bake_wand_cursor.gd).
+func picture_of(mask: int, step: int) -> Image:
+	return _outlined(_turned(_tinted(mask), float(step) * 360.0 / float(STEPS)))
+
+
+## Sets the plain wand without the node being in a tree, for making the sheet.
+func use_plain(picture: Image) -> void:
+	_plain = picture
+	_plain.convert(Image.FORMAT_RGBA8)
+
+
 func _step_of(degrees: float) -> int:
 	return posmod(roundi(degrees / (360.0 / float(STEPS))), STEPS)
 
@@ -64,7 +85,8 @@ func _apply(mask: int, step: int) -> void:
 	_shown_step = step
 	var key := mask * 1000 + step
 	if not _cache.has(key):
-		_cache[key] = ImageTexture.create_from_image(_outlined(_turned(_tinted(mask), float(step) * 360.0 / float(STEPS))))
+		var picture := _sheet.get_region(Rect2i(step * CANVAS, mask * CANVAS, CANVAS, CANVAS)) if _sheet != null else picture_of(mask, step)
+		_cache[key] = ImageTexture.create_from_image(picture)
 	Input.set_custom_mouse_cursor(_cache[key], Input.CURSOR_ARROW, TIP)
 
 

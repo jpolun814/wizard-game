@@ -8,12 +8,38 @@
   Ship Pixel Background" (OGA-BY 3.0, opengameart.org/content/wrecked-and-sunken-ship-pixel-background), cut to the
   ship, with the sand fading out at both sides so it lies on any floor.
 
-Both are bright and blue as they come: they are greyed a little, darkened and turned toward the sea's teal, so they
-sit in the dark with the rest of the game. Nothing is drawn here: every pixel is the packs' own.
+The layers are bright and blue as they come: they are greyed a little, darkened and turned toward the sea's teal, so they
+sit in the dark with the rest of the game. The ship is all greens: its hull is given the colours of the driftwood (the town pack's
+planks as the game tints them, carried a little lighter so the planks and holes still show) and its bank of sand the sea floor's
+sand (tools/prepare_earth.py), each shade by its brightness, so it reads as a solid thing in the water and not as scenery (owner,
+2026-11-12). Nothing is drawn here: every pixel is the packs' own, in other colours.
 """
 import os
 import sys
 from PIL import Image
+
+
+WOOD = [(16, 10, 18), (24, 13, 21), (34, 19, 20), (48, 26, 21), (64, 36, 26), (84, 50, 34)]  # dark to light: the driftwood's, and two steps past it
+SAND = [(46, 43, 34), (67, 62, 48), (87, 80, 64), (107, 98, 76), (133, 122, 94)]  # the sea floor's sand ramp
+SAND_GREEN = 140  # in the pack's picture, the bank's greens are at least this green, and the hull's are less
+
+
+def recolour_ship(im: Image.Image) -> Image.Image:
+    """Each of the picture's colours goes to the shade of wood or sand that is as far up its own ramp as it is up the picture's."""
+    px = im.load()
+    colours = sorted({px[x, y][:3] for y in range(im.size[1]) for x in range(im.size[0]) if px[x, y][3] > 0}, key=lambda c: c[0] * 0.3 + c[1] * 0.59 + c[2] * 0.11)
+    mapping = {}
+    for group, ramp in [([c for c in colours if c[1] < SAND_GREEN], WOOD), ([c for c in colours if c[1] >= SAND_GREEN], SAND)]:
+        for k, c in enumerate(group):
+            mapping[c] = ramp[min(len(ramp) - 1, k * len(ramp) // max(len(group), 1))]
+    out = im.copy()
+    po = out.load()
+    for y in range(im.size[1]):
+        for x in range(im.size[0]):
+            p = px[x, y]
+            if p[3] > 0:
+                po[x, y] = mapping[p[:3]] + (p[3],)
+    return out
 
 
 SAND_TOP = 150  # rows of the cut picture above the sand bank
@@ -39,7 +65,7 @@ def main() -> None:
         print("wrote", name)
     ship = Image.open(os.path.join(ship_dir, "3_145.png")).convert("RGBA")
     ship = ship.crop(ship.getbbox())
-    ship = darken(ship, 0.55, (0.72, 0.85, 0.95))
+    ship = recolour_ship(ship)
     px = ship.load()
     fade = 70
     for y in range(SAND_TOP, ship.size[1]):  # only the sand fades: the bow of the near half reaches the edge above it

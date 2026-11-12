@@ -16,6 +16,8 @@ const STORMY := [preload("res://art/props/cloud_storm_big.png"), preload("res://
 const SEEN_FROM := 300.0   # a wizard in a cloud is made out from this far, and not from further
 const WARNING := 0.9       # seconds between the flash and the bolt
 const SHOCK := 10          # what everyone inside a thundercloud takes from each bolt
+const CRACKLE := 4         # and what they take each second they stay in it, between bolts (owner, 2026-11-12: sitting in one did nothing they could feel)
+const CRACKLE_EVERY := 1.0
 const BOLT := 22           # and what the bolt itself does to whoever it comes down on
 const STRIKE_WIDTH := 80.0 # how wide the bolt is where it falls
 const STRIKE_HEIGHT := 400.0  # and how tall: the picture of the strike, twice its size
@@ -38,6 +40,7 @@ var _fired := -1
 var _warned := -1
 var _strip := Rect2()      # where the coming bolt will fall, while it is warned of
 var _echo := 0.0
+var _crackled := -1
 
 
 func _ready() -> void:
@@ -86,6 +89,11 @@ func _process(delta: float) -> void:
 		_fired = now
 		if _near_a_wizard():
 			_strike(now)
+	var tick := floori(seconds / CRACKLE_EVERY)
+	if tick > _crackled:
+		_crackled = tick
+		if into < period - CRACKLE_EVERY:
+			_crackle()  # (not in the second before a bolt: a wizard stung then would be spared the bolt, which falls within the moment after a hit)
 	_flash = maxf(_flash - delta * 2.0, 0.0)
 	var warning := clampf((into - (period - WARNING)) / WARNING, 0.0, 1.0)
 	var pulse := 0.5 + 0.5 * sin(seconds * 30.0) if warning > 0.0 else 0.0  # it flickers, faster and brighter as the bolt nears
@@ -153,6 +161,17 @@ func _strike(n: int) -> void:
 			SpellTargets.hurt(wizard, SHOCK, "Fire", false, false, null)
 			Fx.burst(get_parent(), body, Color("#ffe85a"), 6, 140.0, 0.3, true, "spark_04")
 	_strip = Rect2()
+
+
+## The air inside a thundercloud is full of sparks: whoever is in it is stung each second.
+func _crackle() -> void:
+	var inside := region()
+	for wizard: Wizard in SpellTargets.wizards(get_tree()):
+		if wizard.is_likeness() or not inside.has_point(wizard.center()):
+			continue  # (the machine that drives a likeness says what the cloud does to it)
+		SpellTargets.hurt(wizard, CRACKLE, "Fire", false, false, null)
+		Fx.burst(get_parent(), wizard.center(), Color("#ffe85a"), 5, 120.0, 0.3, true, "spark_04")
+		Sfx.play("spark", wizard.center(), -14.0)
 
 
 ## A thundercloud, and the place a bolt it has warned of will fall, are dangerous (the wizards keep out of them).

@@ -1632,8 +1632,7 @@ func _lay_pages() -> void:
 		_lay_clusters(layout.size())
 
 
-## The sky's pages: each hangs somewhere in the air and drifts, up or down, before it leaves the world (FallingPage).
-## It is placed so that it stays for at least two minutes, and is lost after that.
+## The sky's pages: each starts somewhere in the air and rises through the falling wizards, round and round (FallingPage).
 func _lay_sky_pages(layout: Array) -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed_value + 7933
@@ -1643,10 +1642,7 @@ func _lay_sky_pages(layout: Array) -> void:
 		pickup.name = "Page%d" % index  # the same on every machine, so the host can say which was read
 		pickup.page = layout[index]["page"]
 		pickup.rate = rng.randf_range(FallingPage.RATE_LEAST, FallingPage.RATE_MOST)
-		var stays := pickup.rate * 120.0
-		var low := box.position.y + 120.0 + maxf(-stays, 0.0)
-		var high := box.end.y - 120.0 - maxf(stays, 0.0)
-		var shown_at := rng.randf_range(low, maxf(low, high))
+		var shown_at := rng.randf_range(box.position.y + 120.0, box.end.y - 120.0)
 		pickup.home = Vector2(rng.randf_range(box.position.x + 600.0, box.end.x - 600.0), shown_at + PagePickup.FLOAT)
 		pickup.box = box
 		_timed.append(pickup)

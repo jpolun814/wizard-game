@@ -75,7 +75,8 @@ spawn tiles stay on the sea floor below, which is what the wizards' map of the w
   map of ways, made for legs: following it, wizards bobbed at the top and drowned at the world's edge), a stroke at a person's pace, and up for air when its
   breath would only just last the way: straight up, or to open water to one side, or to an air pocket.
 - **Breath** is the only pressure: nothing else is added. A `Wreck` has an `AirPocket` (150 by 110 px) where the sea does not reach, and a page lies in each wreck.
-- **Driftwood** (`Driftwood`) is a one-way platform at the waterline; **kelp** (`KelpPatch`) slows and hides (a `sight_blockers` member); a wreck is CraftPix's sunken galleon (`art/props/shipwreck.png`), cut to the open water (`Wreck.clip`) so the floor hides its buried sand. It is a thing in the
+- **Driftwood** (`Driftwood`) is a one-way platform at the waterline; **kelp** (`KelpPatch`) slows and hides (a `sight_blockers` member); a wreck is CraftPix's sunken galleon (`art/props/shipwreck.png`, its hull in the driftwood's dark browns and its bank in the floor's sand, so it reads as a
+  solid thing and not scenery: owner, 2026-11-12), cut to the open water (`Wreck.clip`) so the floor hides its buried sand. It is a thing in the
   water (owner, 2026-11-12): the bow's hull is solid and its slanting side stood on (`Wreck.BOW`), the stern's deck is a one-way platform (`DECK`), its high back is
   solid (`STERN`), and the air pocket is in the hold under the deck (`HOLD`). The hulls go straight down into the floor: a wedge of water under an overhanging hull
   caught swimmers, who drowned. For the brain: an air pocket counts only when the way to it is clear (`_nearest_air`), a swimmer goes across under a hull before
