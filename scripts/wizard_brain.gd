@@ -31,7 +31,7 @@ const PAGE_GLOW := 120.0  # a page shines: its glow shows at the edge of the scr
 const EXPLORE_FLOOR := 12     # tiles between one floor of a tall building and the next, when it looks for pages above or below
 const EXPLORE_STEP := 20    # tiles between the places it picks to look at, going along
 const DRIFT_FILE := "res://ai/stroke_drift.json"
-const HUMAN_FILE := "res://ai/human_limits.json"  # what people's bodies were measured to do (training/measure_human.py)
+const HUMAN_FILE := "res://ai/human_limits.json"  # what people's bodies were measured to do (tools/measure_human.py)
 const CHORD_GAP_MIN := 0.01  # seconds between the first button of a chord and the last (the middle half of 135 chords recorded)
 const CHORD_GAP_MAX := 0.05
 const READ_MIN := 0.87       # seconds a new page is looked at before its spell is drawn (the middle half of the recordings)
@@ -43,7 +43,7 @@ const LONG_FALL := 300.0  # a drop this deep below its feet is a long fall, wort
 const HOLD_STILL := 0.4   # seconds it stands still when a stroke would be dragged out of shape
 const STOPPING := 0.35  # seconds to come to a stop before the first letter of a chant (a person stops walking, then types)
 const TYPING_FASTEST := 0.08  # seconds a letter takes to type, from the quick end of the people recorded to the slow end (the middle half of
-const TYPING_SLOWEST := 0.15  # 1,493 letters: training/measure_human.py, ai/human_limits.json); a skilled wizard types at the quick end
+const TYPING_SLOWEST := 0.15  # 1,493 letters: tools/measure_human.py, ai/human_limits.json); a skilled wizard types at the quick end
 const HASTE_FROM := 160      # moves left on a journey before it says the chant of swift feet (it takes 30 words a minute to say: shorter than this it saves no time)
 const MEND_BELOW := 0.5    # a wizard worn down below this share of the greatest maximum lights a bonfire and rests by it
 const MEND_UNTIL := 0.92
@@ -467,7 +467,7 @@ func _wolf(to_player: Vector2, sees: bool) -> void:
 
 
 ## How long it takes to answer something it has seen: the middle half of the reactions recorded from people runs from a quarter of a second to
-## over three quarters (training/measure_human.py); a skilled wizard is at the quick end of that, never quicker than the quickest people.
+## over three quarters (tools/measure_human.py); a skilled wizard is at the quick end of that, never quicker than the quickest people.
 func _reaction_time() -> float:
 	return lerpf(0.45, 0.25, skill) + _rng.randf() * 0.2
 
@@ -899,7 +899,7 @@ func _travel(delta: float) -> float:
 		_goal = ""  # a volcano is awake close by: it goes away from it, and chooses what to do when it is far enough off
 		_goal_timer = 0.5
 		return signf(wizard.global_position.x - volcano.x) * WALK_SPEED
-	var steer := _steer(delta)
+	var steer := _route.steer(wizard, delta)
 	if steer["replan"]:
 		stuck_at.append("%s %s" % [str(_tile_of(wizard.global_position)), _route.status()])
 		_stuck_on_goal()
@@ -967,12 +967,6 @@ func _lethal_stretch(ahead: float) -> float:
 			return d - start if not _lethal_at(landing) and absf(landing.y - wizard.global_position.y) < 120.0 else INF
 		d += 16.0
 	return INF
-
-
-## What the legs do along the route this frame: {"dir", "speed", "jump", "drop", "climb", "let_go", "replan"}. Here, what the route says; a wizard whose footwork is learned
-## (LearnedBrain) decides for itself.
-func _steer(delta: float) -> Dictionary:
-	return _route.steer(wizard, delta)
 
 
 ## The crossing the way goes over soon, if the way over it is not made: {"kind", "key", "span", "post"}. A pit counts when it is the next few tiles
@@ -2134,7 +2128,7 @@ func _attack(to_player: Vector2, sees: bool) -> bool:
 			scores[spell_name] = 0.0
 		elif spell_name in _recent:
 			scores[spell_name] *= 0.25  # it does not keep repeating itself
-	var choice := _choose_attack(scores)
+	var choice := _pick(scores)
 	if choice == "":
 		return false
 	_recent.push_front(choice)
@@ -2142,11 +2136,6 @@ func _attack(to_player: Vector2, sees: bool) -> bool:
 		_recent.pop_back()
 	_begin_cast(choice, _attack_stroke(choice), ATTACK_DRAW, true)
 	return true
-
-
-## Which attack it makes, from the scores each would have now: one drawn by weight. A brain with learned tactics (TacticsBrain) chooses for itself.
-func _choose_attack(scores: Dictionary) -> String:
-	return _pick(scores)
 
 
 ## True when something solid (a platform or the ground) is above you, so nothing from the sky can reach you.
@@ -2423,17 +2412,21 @@ func _draw_when_still() -> void:
 
 
 ## A long fall ahead: a Featherfall is drawn the moment it begins, while the view still keeps up with the stroke. Once the wizard is falling
-## fast the screen drags the stroke out of shape, as it would a person's, and it is too late.
+## fast the screen drags the stroke out of shape, as it would a person's, and it is too late. Walking on as it drops would drag the stroke
+## sideways too: it lets go of the keys, as a person does to draw on the way down, and draws as soon as the view keeps up.
 func _catch_fall() -> void:
 	if wizard.is_on_floor() or wizard.velocity.y <= 0.0 or wizard.feather_time > 0.0 or wizard.is_drawing() or _typing != "" or not _ready_to_cast("Featherfall"):
 		return
-	if not _drag_ok("Featherfall", QUICK_DRAW) or _drop_below() <= LONG_FALL:
+	if _drop_below() <= LONG_FALL:
+		return
+	if not _drag_ok("Featherfall", QUICK_DRAW):
+		_hold_still = HOLD_STILL
 		return
 	_begin_cast("Featherfall", _tend_stroke("Featherfall", Vector2.ZERO), QUICK_DRAW)
 
 
 ## The quickest a person draws a spell: the quick end (the 25th percentile) of the strokes recorded for it, where there are enough of them
-## (ai/human_limits.json, from training/measure_human.py). Spells people were not recorded drawing often have no floor.
+## (ai/human_limits.json, from tools/measure_human.py). Spells people were not recorded drawing often have no floor.
 static func _quickest_stroke(spell_name: String) -> float:
 	if _human.is_empty():
 		var file := FileAccess.open(HUMAN_FILE, FileAccess.READ)

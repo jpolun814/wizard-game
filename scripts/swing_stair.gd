@@ -167,15 +167,6 @@ func _draw() -> void:
 
 
 ## True while it is on its way from one landing to another.
-## Where the stair's free end is now: the point a trained network watches to see it swing (Senses).
-func sense_point() -> Vector2:
-	return _placed_at if _placed_at.is_finite() else global_position
-
-
-func sense_traits() -> int:
-	return Senses.PLATFORM
-
-
 func is_swinging() -> bool:
 	var slot := _slot_at(seconds)
 	return slot > 0 and seconds - _begins[slot] < _swings[slot]

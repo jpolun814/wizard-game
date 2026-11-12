@@ -1,9 +1,5 @@
 # Read this first, every session
 
-> **A training run is going on (since 2026-11-11).** Before you change anything, read `docs/handoff/18_training_running.md`: what not to touch
-> (`training/duel3/`, `training/duel2/` and `training/duel/`, the frozen copy at `C:/Users/Jordan Polun/wizard-train`, the training's processes and ports), and what not to change without
-> the owner. Remove this note when the owner says the training is over.
-
 This is a Godot game built by one owner through many sessions. This file is the complete handoff for every agent that
 works on it. It holds everything you need: the owner's wording rules in section 0 (the number one priority), the game,
 the rules, the codebase, the testing and the known problems. Chapter files for particular jobs are in `docs/handoff/`;
@@ -33,8 +29,6 @@ trust the code and this file where they disagree.
 | `13_portal_world.md` | touch the portal world: a biome where portals open every few seconds, each a colour of its own, and carry you to another |
 | `11_network_play.md` | touch anything a second machine must see: wizards, spells, pages, gates, the match (done: host and join over a network) |
 | `15_open_problem_net_match.md` | work on the network match check that times out with eight wizards (open, unsolved) |
-| `17_learned_ai.md` | work on the trained AI: recordings, `Sensing`, cloning, PPO, the strength score, what has and has not worked |
-| `18_training_running.md` | do anything while a training run is going on: what not to touch, kill or change |
 | `16_backlog_2026_11_05.md` | pick the next job: owner requests not yet coded (bugs, more attack spells, easing in new players, training grounds) |
 | `20_ocean_world_plan.md` | touch the ocean world (built: swimming, breath as the only pressure, driftwood, wrecks and kelp) |
 | `19_sky_world_plan.md` | touch the sky world (built: flying with no ground, `SkyBrain`, drifting pages, clouds that hide and thunderclouds that shock) |
@@ -434,8 +428,6 @@ GODOT="/c/Users/Jordan Polun/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.
 "$GODOT" --headless --fixed-fps 60 --path . tests/sphere_check.tscn  # the Flaming Sphere rolls, climbs a wall, falls into a pit and climbs out, burns, goes out (add `-- out=DIR`, needs a window)
 "$GODOT" --headless --fixed-fps 60 --path . tests/eye_check.tscn  # the Chant of the Scrying Eye: a window bottom right, the eye over the watched wizard, the ground made round them (add `-- out=DIR`, needs a window)
 "$GODOT" --headless --fixed-fps 60 --path . tests/castle_spells_check.tscn  # the castle takes spells: a boulder rests on a swinging stair, a Stalagmite and a Sinkhole work on an upper floor
-"$GODOT" --headless --fixed-fps 60 --path . tests/training_arena_check.tscn  # the training arena: a duel in every lane, bouts end and begin again, nobody leaves or sees past their lane
-"$GODOT" --headless --fixed-fps 60 --path . tests/senses_check.tscn  # what a trained network senses (Senses): the ground, water and breath, a shot's motion, rising air, and the cost of a look
 "$GODOT" --headless --fixed-fps 60 --path . tests/avalanche_check.tscn  # the peaks' avalanche rumbles, then runs down its slope and hurts whoever it runs over, once
 "$GODOT" --headless --fixed-fps 60 --path . tests/pieces_check.tscn  # small pieces: a world's four words and its seed, the spell table and its buttons, a fireball called down onto the ground
 "$GODOT" --headless --fixed-fps 60 --path . tests/ritual_check.tscn  # the chants: how accurately they must be said, and what each gives
@@ -728,6 +720,14 @@ When unsure, ask the owner one clear question rather than guessing big.
 The brain used to plan only from a match world's gate lists. `scripts/room_scan.gd` (`RoomScan.read`) now reads a hand-built room the same way: its ground, plus live thorns, gas, brick walls, ponds with fish, turrets, eyes, creatures, deep pits and sheer cliffs, and gives the same gates and crossings a World does. A room hosts it by joining group `gate_source` (the `Lab` and so the `Tutorial` do; it rescans every 0.5 s) and puts its exit in group `exit_points`. `WorldNav` has an `origin` (rooms run in negative columns) and `WorldNav.NONE` for "no tile". New brain skills: clearing creatures, Faint on giants, Barrier against several shooters, the double-jump chant, a rocket plus Featherfall leap, striking tall walls at the foot, gas banks, walking to the exit. The brain has no code for the tutorial itself: change the tutorial and the same wizard should still finish it (`tests/tutorial_ai_check.tscn`). The tutorial keeps lost maximum stamina (`Lab.heals_wounds = false`) and its gauntlet is shorter, with no second giant, dark stage, wall-gas-eye stage or last pit. Not yet general: spike beds are not read as hazards, and match worlds were left as they were.
 
 ## 12. The AI plays like a person (added 2026-11-07 and 08)
+
+**The AI wizards are the scripted brain (`WizardBrain`, `SkyBrain` in the sky).** A learned AI was tried from 2026-11-08 to 11-12: networks that
+played through a person's controls, trained by self-play in a curriculum (Fireball duels, then four spells), and trained footwork for the rivals'
+legs. It learned the duels, but the owner called it off on 2026-11-12: whole matches were far off, and a trained player wins in ways that do not
+look human. All of it (the hand, the senses, the trainers, the arenas, the checks, and chapters 17 and 18) was removed; it is all in commit
+`8b82bc3` ("Learned AI through a person's controls..."), and `git checkout 8b82bc3 -- training scripts/senses.gd ...` brings it back. What it left
+that the scripted brain uses: a wizard faces the way it moves (no moonwalking), a brain's misfire costs stamina as a person's does, and the
+people's limits measured from recordings (`ai/human_limits.json` from `tools/measure_human.py`, `ai/stroke_drift.json` from `tests/measure_drift.gd`).
 
 The owner wants the AI wizards to be indistinguishable from people, judged by what a human would find odd, not by what the code says. The method: run
 `tests/arena_sim.tscn -- seed=N seconds=360 log=FILE` headless on many seeds (`log=` writes a line four times a second for each wizard: position, velocity,

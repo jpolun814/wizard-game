@@ -2,7 +2,7 @@
 boldly (going toward rivals) and when they play carefully (looking for pages, keeping away). The same questions the AI's strength score
 (WizardBrain._feel_strength) answers by hand; this is the data to learn it from.
 
-    python training/analyze_play.py [--logs DIR_OR_FILE ...] [--window 5] [--together 8]
+    python tools/analyze_play.py [--logs DIR_OR_FILE ...] [--window 5] [--together 8]
 """
 import argparse, collections, glob, gzip, math, os, re
 

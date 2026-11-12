@@ -73,7 +73,7 @@ Check: `tests/sky_world_check.tscn`. The world is `sky` (`SurfaceGen.OPEN_BIOMES
 - **Pages** are `FallingPage` (`PagePickup`'s child): position from `home + rate * world age`, so every machine agrees; `rate` is -8 to 22 px/s; a page that leaves
   `box` fades and is gone. `World._lay_sky_pages` places them to last at least two minutes. A wizard's first pages (the cluster) hang by their place and do not drift.
   Reading one needs the wizard within `FallingPage.TOUCH` (80 px).
-- **Clouds** are `SkyCloud`: plain ones rise past and hide (a `sight_blockers` member, so the brains and `Senses` see them as cover); thunderclouds warn with a flash
+- **Clouds** are `SkyCloud`: plain ones rise past and hide (a `sight_blockers` member, so the brains see them as cover); thunderclouds warn with a flash
   and sparks, then shock whoever is inside and strike whoever is under the bolt. Everything is placed from the world's age (the `_timed` list), so no network traffic.
 - **Spells** that need ground are refused with "No ground" (`SpellLimits`, which the brain also asks); Updraft, Featherfall and Rocket Jump say "No need".
 - **Seeds:** the ocean and the sky are dealt in after the first world, never first (`MatchState.biome_of`), so every seed keeps its first world. The sky is also in the

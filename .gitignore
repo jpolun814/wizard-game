@@ -6,22 +6,3 @@ Wizard-character-FreeSprite.zip
 
 # Exported builds (see .github/workflows/build.yml)
 /build/
-
-# training outputs
-training/ckpt/
-training/*.zip
-training/*.log
-training/__pycache__/
-training/tactics/
-training/tactics_duel/
-training/tactics_duel_night.log
-training/report/
-
-# learned-AI run outputs (saved networks: gigabytes)
-training/duel/
-training/duel2/
-training/duel3/
-training/duel_before_full_senses/
-training/tactics_arena/
-training/tactics_arena_broken_lanes/
-training/tactics_arena_overnight_1/

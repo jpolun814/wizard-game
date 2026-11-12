@@ -166,8 +166,3 @@ func blocks(from: Vector2, to: Vector2) -> bool:
 		return false
 	var room := region()
 	return room.has_point(from) or room.has_point(to)
-
-
-## Where the cloud is, for what looks at it (see Senses).
-func sense_point() -> Vector2:
-	return region().get_center()

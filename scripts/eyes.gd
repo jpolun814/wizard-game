@@ -47,6 +47,13 @@ func follow(delta: float) -> void:
 	_at += (target - _at) * minf(SMOOTHING * delta, 1.0)
 
 
+## The view jumps to the wizard at once, as it does on the first step: for a wizard a test has just put somewhere new, whose view would
+## otherwise slide after it (and leave it off its own screen for a moment).
+func snap() -> void:
+	_at = wizard.global_position
+	_started = true
+
+
 ## How far the view will slide over the next stretch of time if the wizard keeps going as it is (falling under gravity, when in the air): the drag a
 ## stroke drawn over that time will take. The view lags behind the wizard, so it starts slowly and catches up.
 func slide_over(seconds: float, velocity: Vector2, gravity: float) -> Vector2:

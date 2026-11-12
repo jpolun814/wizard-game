@@ -16,7 +16,7 @@ const SCENES := {
 	"Flare": {"dark": true}, "Glowcap": {"dark": true}, "Moonbeam": {"dark": true},
 	"Adrenaline": {"tired": true}, "Sneak": {"low": true},
 	"Hunter's Mark": {"gap": 720.0},
-	"Mirage": {"gap": 330.0, "page": true, "page_at": -300.0, "hold": true, "seed": 3},  # a rival some way off (in sight), and a real page for the false one to pass for
+	"Mirage": {"gap": 330.0, "page": true, "page_at": -300.0, "page_spell": "Mirage", "hold": true, "strong": true, "seed": 3},  # a rival some way off (in sight), and a real page for the false one to pass for (one it holds already: a page it wanted, it would go and take first, and then none would be left to pass for)
 	"Scythe": {"gap": 80.0, "rush": true}, "Thunderclap": {"gap": 120.0, "rush": true}, "Silence": {"gap": 270.0}, "Tide Surf": {"gap": 220.0},
 	"Stone Wall": {"shot_at": true}, "Smoke Screen": {"shot_at": true}, "Decoy": {"shot_at": true}, "Crimson Veil": {"shot_at": true},
 	"Obsidian Armor": {"shot_at": true}, "Eclipse": {"shot_at": true, "gap": 300.0, "seed": 3, "hold": true},
@@ -161,7 +161,7 @@ func _try(spell_name: String) -> void:
 		world.add_child(roof)
 	if scene.get("page", false):
 		var real := PagePickup.new()
-		real.page = "Ignite"
+		real.page = scene.get("page_spell", "Ignite")
 		real.position = spot + Vector2(scene.get("page_at", -120.0), 0.0)
 		world.add_child(real)
 	if scene.get("dark", false):
@@ -173,6 +173,7 @@ func _try(spell_name: String) -> void:
 	if scene.get("fall", false):
 		tester.global_position.y -= 700.0  # a long fall
 		tester.velocity = Vector2.ZERO
+		tester.eyes.snap()  # (as if it had walked off a ledge up there: its view is with it, not still sliding up after it)
 	var time := 0.0
 	var done := false
 	while time < SECONDS and not done and not tester.dead:
@@ -181,8 +182,9 @@ func _try(spell_name: String) -> void:
 		rival.stamina = 200.0
 		if scene.get("rush", false):
 			rival.global_position = tester.global_position + Vector2(70.0, 0.0)  # a rival who keeps on top of it
-		elif scene.get("hold", false):
-			rival.global_position = tester.global_position + Vector2(gap, 0.0)  # and one who keeps its distance, so that its shots take as long to arrive each time
+		elif scene.get("hold", false):  # and one who keeps its distance, so that its shots take as long to arrive each time, standing on the ground there
+			var keep := tester.global_position + Vector2(gap, 0.0)
+			rival.global_position = SpellTargets.ground_below(rival.get_world_2d(), keep + Vector2(0.0, -200.0), 600.0) + Vector2(0.0, -1.0)
 			rival.velocity = Vector2.ZERO
 		rival.max_stamina = 200.0
 		if scene.get("tired", false):
@@ -190,12 +192,16 @@ func _try(spell_name: String) -> void:
 		elif scene.get("low", false):
 			tester.max_stamina = minf(tester.max_stamina, 80.0)
 			tester.stamina = maxf(tester.stamina, 40.0)
+		elif scene.get("strong", false):  # (a book with no harm in it feels weak, and a weak wizard soon goes its way rather than fight: whole, it stands)
+			tester.max_stamina = Wizard.MAX_STAMINA
+			tester.stamina = Wizard.MAX_STAMINA
 		else:
 			tester.stamina = maxf(tester.stamina, 100.0)
 			tester.max_stamina = maxf(tester.max_stamina, 150.0)
 		if scene.get("fall", false) and tester.is_on_floor() and tester.last_spell != spell_name:
 			tester.global_position.y -= 700.0  # and another, if the first was not enough
 			tester.velocity = Vector2.ZERO
+			tester.eyes.snap()
 		if scene.get("up", false):
 			done = tester.global_position.y <= top + 8.0 and tester.global_position.x > spot.x + 90.0
 		else:

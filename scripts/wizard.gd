@@ -99,12 +99,6 @@ var look := "wizard":  # which wizard this is: the player's own, or the id of on
 		look = value
 		if is_node_ready():
 			_dress()
-## The words the screen shows about this wizard: about its own casts to whoever plays it ("Misfire", "Too tired"), and over its body to everyone
-## ("-12", "Negated"). A person reads them as floating words; a brain's wizard has none drawn for it, but the AI that plays it must know them as a
-## person would (Senses reads them). Each word of WORDS and when it was last shown.
-const WORDS := ["misfire", "too_tired", "too_weak", "aim_someone", "aim_ceiling", "cast", "perfect", "interrupted", "negated", "dazed", "hurt"]
-var told := {}
-var shown_hurt := 0.0  # the last damage number shown over it ("-12", or "-12 max")
 
 var palette := 0:  # which set of colours it wears (see WizardLook)
 	set(value):
@@ -129,12 +123,6 @@ var _on_drawn: Callable
 var _drag := PackedVector2Array()  # how far the view had moved when each point of the stroke was drawn: the screen drags the stroke (see Eyes)
 var _drag_from := Vector2.ZERO      # the middle of the view when the stroke was begun
 var eyes: Eyes                      # the screen a person in this wizard's place would have
-var senses: Senses:                 # what a trained network is told of that screen (made when first asked for)
-	get:
-		if _senses == null:
-			_senses = Senses.new(self)
-		return _senses
-var _senses: Senses
 var _overlay: Node2D  # draws the ice, and the stroke a brain's wizard is drawing, over the sprite
 var stamina := MAX_STAMINA
 var max_stamina := MAX_STAMINA  # what stamina can reach for now. Hits and the Rift wear it down; you die when it is gone
@@ -490,7 +478,6 @@ func take_damage(amount: int, grace_hit := true, projectile := false) -> void:
 			Fx.burst(get_parent(), center(), SpellData.SCHOOL_COLORS["Blood"], 14, 140.0, 0.4, true)
 			Sfx.play("glass", center(), -4.0)
 			FloatText.spawn(get_parent(), center() + Vector2(0, -44), "Negated", Color("#ff6b7a"), 1.0)
-			tell("negated")
 		if grace_hit:
 			_grace = HURT_GRACE
 		return
@@ -509,8 +496,6 @@ func take_damage(amount: int, grace_hit := true, projectile := false) -> void:
 	Sfx.play("player_hurt", center())
 	GameCamera.shake_scene(get_tree(), 0.35 + amount * 0.02)
 	FloatText.spawn(get_parent(), center() + Vector2(0, -24), "-%d" % amount, Color("#ff5a5a"), 1.1)
-	shown_hurt = amount
-	tell("hurt")
 	Net.send(self, &"_show_hurt", [amount])
 	damaged.emit(amount)
 	if brain != null:
@@ -622,7 +607,6 @@ func apply_debuff(kind: String, seconds: float) -> void:
 			daze_time = maxf(daze_time, seconds)
 			slow_time = maxf(slow_time, seconds)
 			FloatText.spawn(get_parent(), center() + Vector2(0, -44), "Dazed", Color(0.85, 0.9, 1.0), 1.0)
-			tell("dazed")
 		"sink":
 			sink_time = maxf(sink_time, seconds)
 		"tangle":
@@ -649,8 +633,6 @@ func pay_max(amount: float) -> bool:
 	_flash = 0.3
 	_since_spend = 0.0
 	FloatText.spawn(get_parent(), center() + Vector2(0, -24), "-%d max" % roundi(amount), Color("#ff6b7a"), 1.0)
-	shown_hurt = amount
-	tell("hurt")
 	return true
 
 
@@ -1225,11 +1207,6 @@ func ensure_caster() -> Caster:
 	return caster
 
 
-## A word the screen shows about this wizard (WORDS), noted with the time, for the senses of whatever plays it.
-func tell(word: String) -> void:
-	told[word] = Senses.now()
-
-
 ## A brain's wizard speaks a chant (see Arena.chant_by).
 func chant(id: String) -> bool:
 	return get_parent().chant_by(self, id)
@@ -1333,7 +1310,6 @@ func interrupt_cast() -> void:
 func _show_interrupt() -> void:
 	Fx.burst(get_parent(), center() + Vector2(facing * 14.0, -16.0), cast_color, 14, 140.0, 0.4, true)
 	FloatText.spawn(get_parent(), center() + Vector2(0, -44), "Interrupted!", Color("#d9b8ff"), 0.9)
-	tell("interrupted")
 	Sfx.play("misfire", center())
 
 

@@ -12,11 +12,7 @@ extends Node
 ##   W    every other wizard near, four times a second: name, who plays it, place from the person, stamina, maximum, wolf, state, last spell
 ##   E    everything else near, four times a second: creatures, spells in the world, pages and fires, as a class and a place from the person
 ##   X    a spell or anything else new in the world, with the wizard who made it and the place it was made
-##   V    what the wizard senses, as Senses gives it (the second layout), five times a second: the numbers that are not zero, as place:value (all but
-##        the ground, the remembered ground and the minimap), then the screen's tiles as hexadecimal bit sets (Senses.SOLID ... Senses.SEEN), rows from
-##        the top, columns from the left; the ground parts are made again from those tiles
-##   O    what the wizard senses, as Sensing gives it (the numbers a learner sees), five times a second: the 7 about itself, the ground box as digits (0 open, 1 platform, 2 solid, +4 lethal), then the rest; to learn from
-##   A    what the person asks of the body, ten times a second: left or right (-1, 0, 1), jump held, and the buttons held (1 left, 2 right, 4 middle); to learn from
+##   A    what the person asks of the body, ten times a second: left or right (-1, 0, 1), jump held, and the buttons held (1 left, 2 right, 4 middle)
 ##   C    the last spell of the person changed; R the chant words as they are typed
 ##   D    the person was hurt: how much, and everything within reach that could have done it
 ##   N    a wizard fell, and who and what was near
@@ -97,10 +93,10 @@ func _maybe_begin_auto() -> void:
 		_forget_old_solo_logs()
 
 
-## True when the game was started to run one of the tests (a scene or script under tests/ or training/ is on its command line).
+## True when the game was started to run one of the tests (a scene or script under tests/ is on its command line).
 static func _run_by_a_check() -> bool:
 	for arg in OS.get_cmdline_args() + OS.get_cmdline_user_args():
-		if arg.contains("tests/") or arg.contains("training/"):
+		if arg.contains("tests/"):
 			return true
 	return false
 
@@ -207,7 +203,6 @@ func _process(delta: float) -> void:
 		_line("A %d %d %d" % [roundi(Input.get_axis("move_left", "move_right")), 1 if Input.is_action_pressed("jump") else 0, buttons])
 	if _sense_in <= 0.0:
 		_sense_in = SENSE_GAP
-		_sense()
 		_book()
 	if _ground_in <= 0.0:
 		_ground_in = GROUND_GAP
@@ -225,33 +220,6 @@ func _book() -> void:
 	if held != _held:
 		_held = held
 		_line("P " + (held if held != "" else "-"))
-
-
-## What the wizard senses (see Sensing), as one line.
-func _sense() -> void:
-	var obs := Sensing.observe(wizard)
-	var head := PackedStringArray()
-	for i in 7:
-		head.append("%.2f" % obs[i])
-	var cells := Sensing.GRID_W * Sensing.GRID_ROWS
-	var grid := ""
-	for i in cells:
-		grid += str(roundi(obs[7 + i * 2] * 2.0) + (4 if obs[8 + i * 2] > 0.5 else 0))
-	var rest := PackedStringArray()
-	for i in range(7 + cells * 2, obs.size()):
-		rest.append("%.2f" % obs[i])
-	_line("O %s %s %s" % [",".join(head), grid, ",".join(rest)])
-	var view := wizard.senses.observe()
-	var ground := Senses.ground_span()
-	var map := Senses.map_span()
-	var numbers := PackedStringArray()
-	for i in view.size():
-		if view[i] != 0.0 and (i < ground.x or i >= ground.y) and (i < map.x or i >= map.y):
-			numbers.append("%d:%.2f" % [i, view[i]])  # (most are zero: only the others are written, by their place)
-	var tiles := PackedStringArray()
-	for code in wizard.senses.codes:
-		tiles.append("%x" % code)
-	_line("V %s %s" % [",".join(numbers), ",".join(tiles)])
 
 
 ## How far down the ground lies from a height just over the feet, at steps either side ("x" where there is none).

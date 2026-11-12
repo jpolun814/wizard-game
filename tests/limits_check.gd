@@ -1,6 +1,6 @@
 extends Node
 
-## The limits of a person's body and screen, which a brain's wizard is held to as well (docs/handoff/18_human_limits_ai_plan.md):
+## The limits of a person's body and screen, which a brain's wizard is held to as well (CLAUDE.md section 12):
 ## - it sees only its own screen, and no one faded from sight by Sneak (the person at this machine included), unless a hex's star is over them;
 ## - a Decoy it did not see come out of nothing is taken for its caster;
 ## - a stroke must lie on its screen, only one is drawn at a time, none while a chant is typed;
@@ -140,9 +140,6 @@ func _ready() -> void:
 	_verdict(not brain._ready_to_cast("Ignite"), "a spell whose page was just read is not drawn at once")
 	await _frames(int(WizardBrain.READ_MAX * 60.0) + 5)
 	_verdict(brain._ready_to_cast("Ignite"), "but is once the page has been looked at")
-
-	_verdict(TacticsBrain.ATTACKS.size() == TacticsBrain.ATTACK_COUNT and TacticsBrain.ATTACKS.all(func(n: String) -> bool: return SpellData.SPELLS.has(n)),
-		"the learned tactics' list of attacks is whole and names real spells")
 
 	print("a brain is held to a person's limits" if _failures == 0 else "%d FAILED" % _failures)
 	get_tree().quit(1 if _failures > 0 else 0)

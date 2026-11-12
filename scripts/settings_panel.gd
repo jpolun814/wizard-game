@@ -43,7 +43,6 @@ func _ready() -> void:
 	column.add_child(_heading("Match", 22))
 	column.add_child(_row("Rival skill", _choice("rival_skill", ["Easy", "Normal", "Hard"])))
 	column.add_child(_row("Share play logs", _toggle("share_logs")))
-	column.add_child(_row("Trained AI legs", _toggle("learned_ai")))
 	column.add_child(_heading("Cut-scenes", 22))
 	column.add_child(_row("Skip the opening", _toggle("skip_opening")))
 	column.add_child(_row("Skip the ending", _toggle("skip_ending")))

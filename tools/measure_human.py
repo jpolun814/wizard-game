@@ -13,7 +13,7 @@ user://received_logs) and prints, with the median and the middle half (25th to 7
 
 Writes the figures as JSON (default ai/human_limits.json) for the brains to read.
 
-    python -I training/measure_human.py [--out ai/human_limits.json]
+    python -I tools/measure_human.py [--out ai/human_limits.json]
 """
 import argparse
 import glob
