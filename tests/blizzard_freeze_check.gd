@@ -21,7 +21,7 @@ func _ready() -> void:
 	var feet := player.global_position
 	for each in get_tree().get_nodes_in_group("mobs"):
 		each.queue_free()  # nothing else in the world to hurt or distract the wizard
-	for rival in world._rivals:
+	for rival in world.rivals:
 		rival.set_physics_process(false)
 		rival.global_position += Vector2(0.0, -4000.0)
 	await get_tree().physics_frame

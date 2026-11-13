@@ -34,7 +34,7 @@ func _ready() -> void:
 	_verdict(MatchStats.casts == 1 and MatchStats.cast_by_spell.get("Ignite", 0) == 1, "a cast is counted by spell (%d)" % MatchStats.casts)
 	MatchStats.miss()
 	_verdict(MatchStats.misses == 1, "a miss is counted")
-	var rival: Wizard = _world._living()[0]
+	var rival: Wizard = _world.living()[0]
 	var before := MatchStats.dealt
 	SpellTargets.hurt(rival, 10.0, "Fire", false, false, player)
 	_verdict(MatchStats.dealt > before, "a blow dealt to a rival is counted (%.0f)" % (MatchStats.dealt - before))
@@ -51,7 +51,7 @@ func _ready() -> void:
 	# The fall.
 	player.take_damage(100000)
 	await get_tree().create_timer(1.5).timeout
-	var screen: StatsScreen = _world._stats
+	var screen: StatsScreen = _world.match_end.stats
 	_verdict(screen != null and screen.visible, "the stats screen comes up when the player falls")
 	_verdict(screen != null and screen.placement == World.WIZARDS - 1 and screen.field == World.WIZARDS, "and says where they came: third of the field (#%s of %s)" % [screen.placement if screen else "?", screen.field if screen else "?"])
 	_verdict(not _world.hud.is_game_over(), "no game-over screen while rivals live")
@@ -96,7 +96,7 @@ func _ready() -> void:
 	_verdict(_world.hud.get_node("StatsButton").visible, "a crystal ball for them stays on the screen")
 	_world.hud.get_node("StatsButton").pressed.emit()
 	await get_tree().process_frame
-	_verdict(_world._stats.visible, "and a request for it brings it back")
+	_verdict(_world.match_end.stats.visible, "and a request for it brings it back")
 	print("%d failures" % _failures)
 	get_tree().quit(1 if _failures > 0 else 0)
 

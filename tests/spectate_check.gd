@@ -30,7 +30,7 @@ func _ready() -> void:
 	await get_tree().create_timer(1.0).timeout
 	_verdict(player.dead, "the player is dead")
 	_verdict(not _world.hud.is_game_over(), "no game-over screen while rivals live")
-	var living := _world._living()
+	var living := _world.living()
 	_verdict(living.size() == World.WIZARDS - 1, "every rival lives (%d)" % living.size())
 	_verdict(player.global_position.distance_to(living[0].global_position) < 40.0, "the camera follows the first rival")
 	var click := InputEventMouseButton.new()
@@ -41,7 +41,7 @@ func _ready() -> void:
 	_verdict(player.global_position.distance_to(living[1].global_position) < 40.0, "a click moves to the next rival")
 	living[1].take_damage(100000)
 	await get_tree().create_timer(1.0).timeout
-	_verdict(_world._living().size() == World.WIZARDS - 2, "a beaten rival is no longer watched")
+	_verdict(_world.living().size() == World.WIZARDS - 2, "a beaten rival is no longer watched")
 	_verdict(not _world.hud.is_game_over(), "still no game-over screen with two left")
 	var hint_ok := true
 	for page in get_tree().get_nodes_in_group("pages"):
@@ -50,10 +50,10 @@ func _ready() -> void:
 	_verdict(hint_ok, "a page offers nothing to the dead player")
 	if OS.get_cmdline_user_args().has("collapse"):
 		var frames := 0
-		while not _world._leaving and frames < 3000:  # the portal gives way
+		while not _world.leaving and frames < 3000:  # the portal gives way
 			await get_tree().process_frame
 			frames += 1
-		_verdict(_world._leaving, "the portal still collapses while the player watches")
+		_verdict(_world.leaving, "the portal still collapses while the player watches")
 		var next: World = null
 		frames = 0
 		while next == null and frames < 3000:
@@ -66,15 +66,15 @@ func _ready() -> void:
 		if next != null:
 			await tree.create_timer(1.0).timeout
 			_verdict(next.player.dead and not next.hud.is_game_over(), "the player is still out in the next world, and watching")
-			var seen: Array[Wizard] = next._living()
+			var seen: Array[Wizard] = next.living()
 			_verdict(seen.size() == 2 and next.player.global_position.distance_to(seen[0].global_position) < 40.0, "the camera follows a rival there (%d live)" % seen.size())
 		print("spectating works" if _failures == 0 else "%d FAILED" % _failures)
 		tree.quit(1 if _failures > 0 else 0)
 		return
-	for rival in _world._living():
+	for rival in _world.living():
 		rival.take_damage(100000)
 	await get_tree().create_timer(1.0).timeout
-	_verdict(_world.hud.is_game_over() or _world._leaving, "the game ends when the last rival falls")
+	_verdict(_world.hud.is_game_over() or _world.leaving, "the game ends when the last rival falls")
 	print("spectating works" if _failures == 0 else "%d FAILED" % _failures)
 	get_tree().quit(1 if _failures > 0 else 0)
 

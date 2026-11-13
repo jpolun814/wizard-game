@@ -65,7 +65,7 @@ func _process(delta: float) -> void:
 	if _since_sample >= SAMPLE:
 		_since_sample = 0.0
 		_look()
-	if _world._leaving:  # the portal is giving way: everyone is on their way to the next world
+	if _world.leaving:  # the portal is giving way: everyone is on their way to the next world
 		if not _closed:
 			_closed = true
 			_close_world(true)

@@ -291,7 +291,7 @@ Wait for the others to touch the book")
 func _go(seed_value: int) -> void:
 	World.next_seed = seed_value
 	_leaving = true
-	_leave_network_scene()
+	leave_network_scene()
 	var cover := CanvasLayer.new()
 	cover.layer = 100
 	var black := ColorRect.new()

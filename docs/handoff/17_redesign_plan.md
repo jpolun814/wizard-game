@@ -14,7 +14,7 @@ out here and say what changed in `02_codebase_map.md`.
   2,403 lines. What is left of the table below is `BrainSight`, `BrainExplore`, `BrainTravel`, `BrainGates`, `BrainCombat` and what remains of `BrainMend` (`_mend`, the bonfire). They share
   state (`settle`, `_camped`, `_goal`, `_foe`) that has to be given a home before they move: each field goes to the piece that writes it, or to a small object that all are given.
 
-- `World`: `WorldCreatures`, `WorldScenery` and `WorldPages` are out (2026-11-13), and `_raise_biome_life` is one function per biome. `world.gd` is now about 1,400 lines. Left: `WorldSeats`, `WorldStages`, `WorldGates`, `MatchEnd`. The match's `@rpc` methods must stay on the `World` node (an RPC needs a node), as small stubs that call the piece.
+- `World`: `WorldCreatures`, `WorldScenery`, `WorldPages`, `WorldGates` and `MatchEnd` are out (2026-11-13), and `_raise_biome_life` is one function per biome. `world.gd` is now about 840 lines (from 1,775). Left: `WorldSeats` and `WorldStages`. The match's `@rpc` methods must stay on the `World` node (an RPC needs a node), as small stubs that call the piece.
 
 ## Ground rules for every step
 

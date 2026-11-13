@@ -38,24 +38,24 @@ func _ready() -> void:
 	await get_tree().create_timer(2.0).timeout
 	_verdict(not world.debug_panel.visible, "the panel is put away")
 	if mode == "win":
-		_verdict(world._living().is_empty() and not world.player.dead, "every other wizard has fallen and the person stands (%d left)" % world._living().size())
-		_verdict(world._won, "the match is won")
+		_verdict(world.living().is_empty() and not world.player.dead, "every other wizard has fallen and the person stands (%d left)" % world.living().size())
+		_verdict(world.match_end.won, "the match is won")
 		var at_win := MatchStats.seconds
 		await get_tree().create_timer(1.0).timeout
 		_verdict(MatchStats.finished and is_equal_approx(MatchStats.seconds, at_win), "the clock stops when the match is won (%.1f s, then %.1f s)" % [at_win, MatchStats.seconds])
-		await get_tree().create_timer(World.STATS_AFTER + 1.0).timeout
-		_verdict(world._stats != null and world._stats.visible and world._stats.placement == 1, "a few seconds on, the stats come up on their own, in first place")
+		await get_tree().create_timer(MatchEnd.STATS_AFTER + 1.0).timeout
+		_verdict(world.match_end.stats != null and world.match_end.stats.visible and world.match_end.stats.placement == 1, "a few seconds on, the stats come up on their own, in first place")
 		_verdict(not world.hud.get_node("StatsButton").visible, "and the crystal ball is not offered: the match is over")
-		world._epilogue_when_stats_are_away(world.player.look, world.player.palette)
+		world.match_end.epilogue_when_stats_are_away(world.player.look, world.player.palette)
 		await get_tree().create_timer(0.2).timeout
-		_verdict(not world._leaving, "the ending waits while the stats are open")
-		world._stats._close()
-		world._epilogue_when_stats_are_away(world.player.look, world.player.palette)
+		_verdict(not world.leaving, "the ending waits while the stats are open")
+		world.match_end.stats._close()
+		world.match_end.epilogue_when_stats_are_away(world.player.look, world.player.palette)
 		await get_tree().create_timer(0.2).timeout
-		_verdict(world._leaving, "and goes on once they are put away")
+		_verdict(world.leaving, "and goes on once they are put away")
 	else:
 		_verdict(world.player.dead, "the person has fallen")
-		_verdict(world._stats != null and world._stats.visible and world._stats.placement == World.WIZARDS, "and the stats come up, in last place (#%s)" % (world._stats.placement if world._stats != null else "?"))
+		_verdict(world.match_end.stats != null and world.match_end.stats.visible and world.match_end.stats.placement == World.WIZARDS, "and the stats come up, in last place (#%s)" % (world.match_end.stats.placement if world.match_end.stats != null else "?"))
 	var told := Library.history()
 	var want := 1 if mode == "win" else World.WIZARDS
 	_verdict(told.size() == 1 and int(told[0]["place"]) == want and int(told[0]["field"]) == World.WIZARDS and not (told[0]["worlds"] as Array).is_empty() and int(told[0]["seconds"]) > 0,

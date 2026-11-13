@@ -17,7 +17,7 @@ func _ready() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 	var feet: Vector2 = world.player.global_position
-	for rival in world._rivals:
+	for rival in world.rivals:
 		rival.set_physics_process(false)
 		rival.global_position += Vector2(0.0, -4000.0)
 	var snow := Blizzard.new()

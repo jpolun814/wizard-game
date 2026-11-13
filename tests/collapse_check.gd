@@ -39,7 +39,7 @@ func _process(delta: float) -> void:
 	if scene is World and scene != _last and scene.player != null and scene.ledgers.size() > 0 and scene.nav != null:
 		_arrived(scene)
 	if _last != null and is_instance_valid(_last) and _worlds_seen == MatchState.STAGES.size() and _world_clock > 15.0:
-		_verdict(not _last._leaving and MatchState.pending == false, "the last world does not collapse")
+		_verdict(not _last.leaving and MatchState.pending == false, "the last world does not collapse")
 		_finish()
 	if _world_clock > 120.0:
 		_verdict(false, "stuck in world %d" % _worlds_seen)

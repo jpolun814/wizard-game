@@ -22,7 +22,7 @@ func _ready() -> void:
 	await get_tree().process_frame
 	_player = _world.player
 	_player.ledger.learn_all()
-	for rival in _world._rivals:
+	for rival in _world.rivals:
 		rival.set_physics_process(false)
 		rival.global_position = Vector2(-9000.0, -9000.0)
 	for mob in get_tree().get_nodes_in_group("mobs"):
@@ -49,7 +49,7 @@ func _thunderclap() -> void:
 	var far: Mob = _world.add_mob("dummy", _spot + Vector2(Thunderclap.RADIUS + 200.0, 0.0))
 	far.max_hp = 500
 	far.hp = 500
-	var rival: Wizard = _world._rivals[0]
+	var rival: Wizard = _world.rivals[0]
 	rival.global_position = _spot + Vector2(-110.0, 0.0)
 	rival.velocity = Vector2.ZERO
 	rival.set_physics_process(true)

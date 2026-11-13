@@ -22,7 +22,7 @@ func _ready() -> void:
 	await get_tree().process_frame
 	_player = _world.player
 	_player.ledger.learn_all()
-	for rival in _world._rivals:
+	for rival in _world.rivals:
 		rival.set_physics_process(false)
 		rival.global_position = Vector2(-9000.0, -9000.0)
 	for mob in get_tree().get_nodes_in_group("mobs"):

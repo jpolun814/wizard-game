@@ -21,7 +21,7 @@ func _ready() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 	_player = _world.player
-	for rival in _world._rivals:
+	for rival in _world.rivals:
 		rival.set_physics_process(false)
 		rival.global_position = Vector2(-9000.0, -9000.0)
 	for mob in get_tree().get_nodes_in_group("mobs"):
@@ -95,7 +95,7 @@ func _eldritch_blast() -> void:
 	wall.queue_free()
 	near.queue_free()
 	behind.queue_free()
-	var rival: Wizard = _world._rivals[0]
+	var rival: Wizard = _world.rivals[0]
 	rival.global_position = _spot + Vector2(300.0, -8.0)
 	var before := rival.max_stamina
 	await _wait(0.3)

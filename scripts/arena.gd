@@ -101,12 +101,12 @@ func _ready() -> void:
 
 func _exit_tree() -> void:
 	Library.flush()
-	_leave_network_scene()
+	leave_network_scene()
 
 
 ## In a network game a machine says it is leaving a scene a moment before it lets go of it (as the screen fades), so that nothing more
 ## about the scene is sent to it once it is gone.
-func _leave_network_scene() -> void:
+func leave_network_scene() -> void:
 	if Net.online() and Net.scene != "":
 		Net.enter_scene("")
 
@@ -265,10 +265,10 @@ func fly_box() -> Rect2:
 
 
 func _on_player_died() -> void:
-	_end_run()
+	end_run()
 
 
-func _end_run() -> void:
+func end_run() -> void:
 	caster.set_casting_enabled(false)
 	ritual.cancel()
 	Sfx.play("game_over")

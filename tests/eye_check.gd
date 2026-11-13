@@ -28,7 +28,7 @@ func _ready() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 	_player = _world.player
-	for rival in _world._rivals:
+	for rival in _world.rivals:
 		rival.set_physics_process(false)
 	for mob in get_tree().get_nodes_in_group("mobs"):
 		mob.queue_free()
@@ -78,7 +78,7 @@ func _eye() -> void:
 	watched.dead = false
 	# A brain that has lost track of everyone sends out an eye.
 	var seer: Wizard = null
-	for other: Wizard in _world._rivals:
+	for other: Wizard in _world.rivals:
 		if is_instance_valid(other) and other != watched and other != next and not other.dead:
 			seer = other  # one that was not carried far off above (it would be falling where no ground is made)
 	seer.global_position = _player.global_position + Vector2(60.0, -4.0)
@@ -86,7 +86,7 @@ func _eye() -> void:
 	seer.set_physics_process(true)
 	seer.ledger.learn("chant:scrying_eye")
 	var brain: WizardBrain = seer.brain
-	for other: Wizard in _world._rivals:
+	for other: Wizard in _world.rivals:
 		if is_instance_valid(other) and other != seer:
 			other.fade_time = 100.0  # out of sight
 			other.set_physics_process(false)  # and still: they would come at the seer, who stands typing in plain sight of them

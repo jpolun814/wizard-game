@@ -81,26 +81,17 @@ func _build_map() -> Variant:
 	return built["cells"]
 
 
-const EPILOGUE_AFTER := 4.0  # seconds after a match is won, in a game on this machine alone, before the winner is shown putting the book back (when the person won, after they have put their stats away)
-const STATS_AFTER := 3.0  # seconds after the person wins before their stats come up on their own
-const BACK_TO_ROOM := 10.0  # seconds after a network match is won before everyone is back in the waiting room
 var nav: WorldNav  # the ways about the world on foot, with every gate shut
 var _start_tile := Vector2i.ZERO
 var spawn_tiles: Array[Vector2i] = []  # the starting places, far apart; the player takes one and a wizard each of the others
-var _since_count := 0.0
-var _won := false
-var _win_stats_due := false  # the person has won and their stats have not come up yet
-var _watched := 0  # while out of the match: which of the other wizards the camera follows
-var _spectating := false
 var _tear: Node2D  # the portal giving way, while it does
 var _pulling := false
 var carried := false      # the match goes on from a world that collapsed: its ledgers and wizards come with it
 var _stage_time := 0.0     # seconds in this world
-var _leaving := false      # the portal has given way
+var leaving := false      # the portal has given way
 var _collapse_in := -1.0   # seconds until the portal gives way, once it has begun to
 var _seats: Array[Wizard] = []  # every wizard of the match by seat (see my_seat), the player's own among them; null where one was beaten in an earlier world
-var _stats: StatsScreen  # what is shown when the person falls
-var _rivals: Array[Wizard] = []  # the same, without the player's own
+var rivals: Array[Wizard] = []  # the same, without the player's own
 var _fallen := {}  # on the host: the wizards whose fall has been seen, and whose pages have been dropped
 var _backdrops := {}  # place -> Backdrop
 
@@ -275,6 +266,7 @@ var creatures := WorldCreatures.new(self)
 var scenery := WorldScenery.new(self)
 var pages := WorldPages.new(self)
 var gate_work := WorldGates.new(self)
+var match_end := MatchEnd.new(self)
 const SEA_VIEW := 30.0      # where the view rests in the ocean, against the feet (elsewhere it is 150 px over them): far enough down to see the floor
 
 
@@ -370,7 +362,7 @@ func _spawn_wizards() -> void:
 		_seats.append(wizard)
 	for wizard in _seats:
 		if wizard != player:
-			_rivals.append(wizard)
+			rivals.append(wizard)
 	if Net.online():
 		Net.roster_changed.connect(_on_roster_changed)
 
@@ -399,11 +391,11 @@ func _add_brains_likeness(seat: int, feet: Vector2) -> Wizard:
 
 ## Someone left the game: their wizard falls where it stands, on every machine.
 func _on_roster_changed() -> void:
-	if Net.dedicated and not _won and Net.roster.all(func(peer: int) -> bool: return peer == 0 or peer == Net.my_id()):
-		_won = true  # the last person has left: the brains would only play on to themselves, so the server goes back to the waiting room for the next people
+	if Net.dedicated and not match_end.won and Net.roster.all(func(peer: int) -> bool: return peer == 0 or peer == Net.my_id()):
+		match_end.won = true  # the last person has left: the brains would only play on to themselves, so the server goes back to the waiting room for the next people
 		get_tree().create_timer(2.0).timeout.connect(_back_to_room)
 		return
-	for wizard in _rivals:
+	for wizard in rivals:
 		if is_instance_valid(wizard) and wizard.human and wizard.is_likeness() and not Net.roster.has(wizard.peer) and not wizard.dead:
 			wizard.abandon()
 
@@ -525,7 +517,7 @@ func _process(delta: float) -> void:
 	_dark.color = day.lerp(DEEP, depth).lerp(BLACK, far)
 	_update_weather(under)
 	creatures.share(delta)
-	_count_wizards(delta)
+	match_end.count_wizards(delta)
 	MatchStats.tick(delta)
 	if Net.is_host():
 		_watch_falls()
@@ -533,7 +525,7 @@ func _process(delta: float) -> void:
 	_watch_portal(delta)
 	gate_work.watch(delta)
 	if player.dead:
-		_follow_watched()
+		match_end.follow_watched()
 		return
 	if _pulling:
 		return  # drawn up into the portal: the ground has no say
@@ -626,7 +618,7 @@ func _fade_from_black() -> void:
 ## Counts down to the collapse of the portal: the warning, the shaking, and then the new world.
 func _watch_portal(delta: float) -> void:
 	var seconds: float = MatchState.plan()["seconds"] * MatchState.hurry
-	if seconds <= 0.0 or (player.dead and not _spectating and not Net.dedicated):  # (a server's own wizard may fall, and the clock goes on for the people on other machines)
+	if seconds <= 0.0 or (player.dead and not match_end.spectating and not Net.dedicated):  # (a server's own wizard may fall, and the clock goes on for the people on other machines)
 		return
 	_stage_time += delta
 	if _collapse_in < 0.0 and _stage_time >= seconds - MatchState.WARNING and Net.is_host():  # in a network game the host's clock is the one that counts
@@ -639,7 +631,7 @@ func _watch_portal(delta: float) -> void:
 	if not _pulling and _collapse_in <= PortalCollapse.PULL:
 		_pulling = true
 		_tear.pull(SpellTargets.wizards(get_tree()))  # everyone still standing
-	if _collapse_in <= 0.0 and not _leaving:
+	if _collapse_in <= 0.0 and not leaving:
 		_collapse()
 
 
@@ -660,7 +652,7 @@ func _begin_collapse() -> void:
 ## The portal gives way: everyone who is left is thrown into the next world, smaller than this one.
 ## For the F1 panel: leaves for a world of the match now, as the collapse would (the one stood in too: it is built again).
 func go_to_stage(at: int) -> void:
-	if _leaving:
+	if leaving:
 		return
 	MatchState.stage = at - 1  # the collapse moves on to the next
 	_collapse()
@@ -668,14 +660,14 @@ func go_to_stage(at: int) -> void:
 
 ## For the F1 panel: leaves for a world of any biome now, whether or not this match's seed would deal it, keeping this world's place in the match.
 func go_to_biome(biome: String) -> void:
-	if _leaving:
+	if leaving:
 		return
 	go_to_stage(MatchState.stage)
 	MatchState.forced_biome = biome
 
 
 func _collapse() -> void:
-	_leaving = true
+	leaving = true
 	var state: Array[Dictionary] = []
 	for wizard in _seats:
 		if is_instance_valid(wizard):
@@ -687,7 +679,7 @@ func _collapse() -> void:
 		else:
 			state.append({"alive": false})
 	next_seed = MatchState.advance(ledgers, state, Incantation.seed_count())
-	_leave_network_scene()
+	leave_network_scene()
 	Sfx.play("portal_enter", player.center(), -2.0)
 	var layer := CanvasLayer.new()
 	layer.layer = 100
@@ -772,209 +764,49 @@ func open_gates() -> void:
 	gate_work.open_all()
 
 
-## Out of the match: while other wizards still live the match goes on, and the camera follows one of them. Otherwise the run is over.
-func _on_player_died() -> void:
-	if Net.dedicated:
-		return  # nobody is here to watch the others, or to see the stats: the match goes on for the people on other machines
-	PlayRecorder.finish(get_tree())  # (in a network match the person's play is sent to the machine that keeps the game)
-	_record_match(_living().size() + 1)
-	_show_stats()
-	if _living().is_empty():
-		_end_run()
-		return
-	caster.set_casting_enabled(false)
-	ritual.cancel()
-	Sfx.play("game_over")
-	_spectating = true
-	player.collision_layer = 0
-	player.collision_mask = 0
-	player.hide()
-	hud.banner("", "Click to watch another wizard")
-
-
-## The match goes into the Chronicle, once: where the person came, and what they did.
-func _record_match(place: int) -> void:
-	if MatchStats.recorded:
-		return
-	MatchStats.recorded = true
-	Library.record_match_end(MatchStats.summary(place, _rivals.size() + 1))
-	Library.flush()
-
-
-## The story of the match so far, over the screen: where the person came, and charts of what they did.
-func _show_stats() -> void:
-	if is_instance_valid(_stats):
-		return
-	_stats = StatsScreen.new()
-	hud.add_child(_stats)
-	hud.offer_stats()
-	if not hud.stats_requested.is_connected(_look_at_stats):
-		hud.stats_requested.connect(_look_at_stats)
-	_stats.show_stats(_living().size() + 1, _rivals.size() + 1, not _living().is_empty())
-
-
-## A few seconds after the person wins, their stats come up on their own, and the ending waits for them to be put away. (The crystal ball on the screen is
-## only for one who has fallen and wants to look again while the match goes on.)
-func _show_win_stats() -> void:
-	_win_stats_due = false
-	if _leaving:
-		return
-	if not is_instance_valid(_stats):
-		_stats = StatsScreen.new()
-		hud.add_child(_stats)
-	hud.move_child(_stats, -1)
-	_stats.show_stats(1, _rivals.size() + 1, false)
-
-
-## The F1 panel's way to a won match: every other wizard falls, and the match ends as it does when the last of them is beaten.
-func debug_win() -> void:
-	for rival in _living():
-		rival.take_damage(100000)
-
-
-## The F1 panel's way to a lost match: the person falls, as when beaten.
-func debug_lose() -> void:
-	if not player.dead:
-		player.take_damage(100000)
-
-
-## The person asks to see their stats again, once the match is over for them.
-func _look_at_stats() -> void:
-	if not is_instance_valid(_stats):
-		_stats = StatsScreen.new()
-		hud.add_child(_stats)
-	hud.move_child(_stats, -1)  # over everything else on the layer
-	_stats.show_stats(_living().size() + 1, _rivals.size() + 1, not _living().is_empty())
-
-
 ## The wizards still in the match, other than the player.
-func _living() -> Array[Wizard]:
+func living() -> Array[Wizard]:
 	var out: Array[Wizard] = []
-	for rival in _rivals:
+	for rival in rivals:
 		if is_instance_valid(rival) and not rival.dead:
 			out.append(rival)
 	return out
 
 
-## The camera goes where the watched wizard is: the body of the player, hidden, is moved there.
-func _follow_watched() -> void:
-	if not _spectating:
-		return
-	var living := _living()
-	if living.is_empty():
-		_spectating = false
-		_end_run()  # the last of the rivals fell too: nobody is left to watch
-		return
-	_watched = _watched % living.size()
-	player.global_position = living[_watched].global_position
-	player.velocity = Vector2.ZERO
+## Out of the match: while other wizards still live the match goes on, and the camera follows one of them (see MatchEnd.on_player_died).
+func _on_player_died() -> void:
+	match_end.on_player_died()
+
+
+## The F1 panel's way to a won match.
+func debug_win() -> void:
+	match_end.debug_win()
+
+
+## The F1 panel's way to a lost match.
+func debug_lose() -> void:
+	match_end.debug_lose()
+
+
+## The F1 panel's way to the ending: the player's own wizard has won.
+func go_to_epilogue() -> void:
+	match_end.go_to_epilogue()
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	var click := event as InputEventMouseButton
-	if _spectating and click and click.pressed:
-		_watched += 1  # the next one
-
-
-func _count_wizards(delta: float) -> void:
-	_since_count += delta
-	if _since_count < 0.5 or _won:
-		return
-	_since_count = 0.0
-	var standing := SpellTargets.wizards(get_tree())
-	if standing.size() == 1 and standing[0] == player and not Net.dedicated:
-		_won = true
-		hud.banner("Last wizard standing", "You win")
-		Library.record_win(player.ledger.pages.keys())
-		MatchStats.finish()  # the clock stops where the match was won
-		PlayRecorder.finish(get_tree())
-		_record_match(1)
-		_win_stats_due = true
-		get_tree().create_timer(STATS_AFTER).timeout.connect(_show_win_stats)
-		Library.flush()
-		Sfx.play("ritual_ok", player.center())
-	if standing.size() == 1 and Library.real_match() and (Net.is_host() or not Net.online()):
-		_won = true
-		var champion: Wizard = standing[0]
-		get_tree().create_timer(EPILOGUE_AFTER).timeout.connect(_epilogue_when_stats_are_away.bind(champion.look, champion.palette))  # the winner is shown putting the book back, on every machine
-	elif standing.size() <= 1 and Net.online() and Net.is_host():
-		_won = true
-		get_tree().create_timer(BACK_TO_ROOM).timeout.connect(_back_to_room)  # no winner, or a test: everyone just goes back to the waiting room
-
-
-## The ending waits while the person is reading their stats, so it never cuts in on them.
-func _epilogue_when_stats_are_away(look: String, palette: int) -> void:
-	if _win_stats_due or (is_instance_valid(_stats) and _stats.visible):
-		get_tree().create_timer(0.5).timeout.connect(_epilogue_when_stats_are_away.bind(look, palette))
-		return
-	_end_with_epilogue(look, palette)
+	match_end.input(event)
 
 
 ## The match is won: on the host and then on every other machine, the winner is shown putting the book back.
 @rpc("authority", "call_remote", "reliable")
 func _end_with_epilogue(look: String, palette: int) -> void:
-	if not is_inside_tree():
-		return
-	if Net.is_host():
-		Net.send(self, &"_end_with_epilogue", [look, palette])
-	if GameSettings.skip_ending():
-		_fade_to_room()  # this machine's player would rather not watch it
-		return
-	_roll_the_epilogue(look, palette)
-
-
-## The F1 panel's way to the ending: the player's own wizard has won.
-func go_to_epilogue() -> void:
-	if _leaving:
-		return
-	_roll_the_epilogue(player.look, player.palette)
-
-
-## The screen goes black, and the epilogue plays in the waiting room's place.
-func _roll_the_epilogue(look: String, palette: int) -> void:
-	_leaving = true
-	_leave_network_scene()
-	Epilogue.winner_look = look
-	Epilogue.winner_palette = palette
-	World.next_seed = -1
-	var layer := CanvasLayer.new()
-	layer.layer = 100
-	var black := ColorRect.new()
-	black.color = Color(0, 0, 0, 0)
-	black.set_anchors_preset(Control.PRESET_FULL_RECT)
-	black.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	layer.add_child(black)
-	add_child(layer)
-	var tween := black.create_tween()
-	tween.tween_property(black, "color:a", 1.0, 0.8)
-	tween.tween_callback(get_tree().change_scene_to_file.bind("res://scenes/epilogue.tscn"))
+	match_end.end_with_epilogue(look, palette)
 
 
 ## The end of a network match: everyone is back in the waiting room, for the next one.
 @rpc("authority", "call_remote", "reliable")
 func _back_to_room() -> void:
-	if not is_inside_tree():
-		return
-	if Net.is_host():
-		Net.send(self, &"_back_to_room")
-	_fade_to_room()
-
-
-## The screen goes black, and then it is the waiting room again.
-func _fade_to_room() -> void:
-	_leave_network_scene()
-	World.next_seed = -1
-	var layer := CanvasLayer.new()
-	layer.layer = 100
-	var black := ColorRect.new()
-	black.color = Color(0, 0, 0, 0)
-	black.set_anchors_preset(Control.PRESET_FULL_RECT)
-	black.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	layer.add_child(black)
-	add_child(layer)
-	var tween := black.create_tween()
-	tween.tween_property(black, "color:a", 1.0, 0.8)
-	tween.tween_callback(get_tree().change_scene_to_file.bind("res://scenes/lab.tscn"))
+	match_end.back_to_room()
 
 
 ## A Rift sets the wizard down in another hall, picked by chance, and none behind a gate.

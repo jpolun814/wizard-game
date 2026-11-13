@@ -22,7 +22,7 @@ func _ready() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 	_player = _world.player
-	for rival in _world._rivals:
+	for rival in _world.rivals:
 		rival.set_physics_process(false)
 		rival.global_position = Vector2(-9000.0, -9000.0)
 	for mob in get_tree().get_nodes_in_group("mobs"):
@@ -97,7 +97,7 @@ func _barbs() -> void:
 	_verdict(get_tree().get_nodes_in_group("shots").is_empty(), "no thorn is left flying")
 	dummy.queue_free()
 	# A rival wizard at close range takes the thorns that find it one after another, not only the first.
-	var rival: Wizard = _world._rivals[0]
+	var rival: Wizard = _world.rivals[0]
 	rival.global_position = _spot + Vector2(40.0, 0.0)
 	rival.velocity = Vector2.ZERO
 	var before := rival.max_stamina
