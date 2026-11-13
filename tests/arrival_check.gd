@@ -19,7 +19,7 @@ func _ready() -> void:
 	add_child(world)
 	await get_tree().process_frame
 	await get_tree().process_frame
-	var place: Vector2 = world._places()[world._my_seat()]
+	var place: Vector2 = world.places()[world.my_seat()]
 	_verdict(world.player.global_position.y < place.y - 40.0, "the player starts in the air over their place (%.0f over)" % (place.y - world.player.global_position.y))
 	_verdict(_count(world) > 0, "a portal is open over them")
 	for i in 20:

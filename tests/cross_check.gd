@@ -61,7 +61,7 @@ func _ready() -> void:
 		print("NOTE  seed %d has no %s gate" % [seed_value, kind])
 		tree.quit(0)
 		return
-	for gate in world._gates:
+	for gate in world.gates:
 		if WorldBuilder.toll_key(gate) == crossing["key"]:
 			entry = gate
 	var outside: Vector2i = entry["outside"]

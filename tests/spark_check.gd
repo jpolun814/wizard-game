@@ -31,7 +31,7 @@ func _ready() -> void:
 		_strike(world, feet + Vector2(-200.0, -600.0), "stage %d, drawn 600 px up in the open" % stage)
 		if stage == 0:
 			var room: Dictionary = world.graph.rooms[1]
-			var floor_pos: Vector2 = world._stand_at(world._markers[room["id"]])
+			var floor_pos: Vector2 = world._stand_at(world.markers[room["id"]])
 			_strike(world, floor_pos + Vector2(0.0, -120.0), "stage 0, in a cave")
 		world.queue_free()
 		await get_tree().process_frame

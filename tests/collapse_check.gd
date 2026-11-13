@@ -60,7 +60,7 @@ func _arrived(world: World) -> void:
 	_verdict(not _biomes_seen.has(biome), "no biome comes up twice (%s)" % biome)
 	_biomes_seen.append(biome)
 	if stage == MatchState.STAGES.size() - 1:
-		_verdict(world.graph.rooms.size() == 1 and world.castle_x == -1 and world._gates.is_empty(), "the last world is all open sky: no halls, no castle, no gates (%d halls)" % world.graph.rooms.size())
+		_verdict(world.graph.rooms.size() == 1 and world.castle_x == -1 and world.gates.is_empty(), "the last world is all open sky: no halls, no castle, no gates (%d halls)" % world.graph.rooms.size())
 	var known := {}  # every page some wizard holds: wizards start with some in common
 	for ledger in world.ledgers:
 		for page in ledger.pages:

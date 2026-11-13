@@ -112,7 +112,7 @@ func _summon_at(kind: String, x: float) -> Node2D:
 func _plan() -> void:
 	_player().max_stamina = 9999.0  # nothing ends the showcase early
 	_player().died.connect(func() -> void:
-		for gate in (_arena._gates if "_gates" in _arena else []):
+		for gate in (_arena.gates if "_gates" in _arena else []):
 			if absf(gate["at"].x * 32.0 - _player().global_position.x) < 1500.0 and absf(gate["at"].y * 32.0 - _player().global_position.y) < 1000.0:
 				print("  DEBUG near gate ", gate["kind"], gate["at"]))
 	_player().died.connect(func() -> void: print("  DEBUG the wizard died at %s, max %s, underwater %s, t=%.1f" % [str(_player().global_position), str(_player().max_stamina), str(_player().underwater()), _t]))
@@ -247,7 +247,7 @@ func _plan() -> void:
 					_arena._dark.hide())
 				_at(t + 0.4, func() -> void:
 					var near := 1e9
-					for entry in _arena._gates:
+					for entry in _arena.gates:
 						if entry["kind"] == kind:
 							near = minf(near, (Vector2(entry["at"]) * tile).distance_to(_player().global_position))
 					if near == 1e9:
@@ -342,7 +342,7 @@ func _plan() -> void:
 			var buried := 0
 			for pickup: PagePickup in pickups:
 				var floor_y: float = _arena._floor_under(pickup.global_position).y
-				if absf(floor_y - pickup.global_position.y) > 2.0 or _arena._in_rock(pickup.global_position + Vector2(0, -16.0)):
+				if absf(floor_y - pickup.global_position.y) > 2.0 or _arena.in_rock(pickup.global_position + Vector2(0, -16.0)):
 					buried += 1
 			print("%s  every page lies on the floor, out of the rock (%d off)" % ["PASS" if buried == 0 else "FAIL", buried])
 			if buried > 0:
@@ -1133,7 +1133,7 @@ func _plan_cave() -> void:
 	# The three gates, each from a little way off. Then the thorns on foot, without and with the Chant of Swift Feet: the damage a walk
 	# through all of them costs, from a wizard who cannot die, against the 200 of a whole stamina bar.
 	var shown := {}
-	for gate in _arena._gates:
+	for gate in _arena.gates:
 		if shown.has(gate["kind"]):
 			continue
 		shown[gate["kind"]] = true
@@ -1152,7 +1152,7 @@ func _plan_cave() -> void:
 		t += 1.6
 	for hasted in [false, true]:
 		var field: Dictionary = {}
-		for gate in _arena._gates:
+		for gate in _arena.gates:
 			if gate["kind"] == "brambles":
 				field = gate
 				break
@@ -1232,18 +1232,18 @@ func _plan_cave() -> void:
 	_at(t, func() -> void: _snap("top"))
 	_at(t + 0.5, func() -> void:
 		_arena.get_node("Player/Camera2D").zoom = Vector2.ONE
-		_player().global_position = _arena._stand_at(_arena._markers[graph.deepest]) + Vector2(-380.0, 0.0))
+		_player().global_position = _arena._stand_at(_arena.markers[graph.deepest]) + Vector2(-380.0, 0.0))
 	_at(t + 1.5, func() -> void: _snap("deep_hall"))
 	# A Stonefall cast in a cave starts under its roof and lands on the floor, never inside rock.
 	_at(t + 1.8, func() -> void:
-		var spot: Vector2 = _arena._stand_at(_arena._markers[graph.deepest]) + Vector2(-380.0, -60.0)
+		var spot: Vector2 = _arena._stand_at(_arena.markers[graph.deepest]) + Vector2(-380.0, -60.0)
 		_cast("Stonefall", _stroke("stonefall", spot)))
 	_at(t + 3.8, func() -> void:
 		var rock: Node2D = null
 		for node in _arena.get_tree().get_nodes_in_group("rocks"):
 			rock = node
-		var floor_y: float = _arena._stand_at(_arena._markers[graph.deepest]).y
-		print("%s  a Stonefall cast in a cave lands on the floor (rock at %s)" % ["PASS" if rock != null and not _arena._in_rock(rock.global_position) and absf(rock.global_position.y - floor_y) < 200.0 else "FAIL", str(rock.global_position) if rock else "none"]))
+		var floor_y: float = _arena._stand_at(_arena.markers[graph.deepest]).y
+		print("%s  a Stonefall cast in a cave lands on the floor (rock at %s)" % ["PASS" if rock != null and not _arena.in_rock(rock.global_position) and absf(rock.global_position.y - floor_y) < 200.0 else "FAIL", str(rock.global_position) if rock else "none"]))
 
 
 
@@ -1251,7 +1251,7 @@ func _plan_cave() -> void:
 func _plan_gates() -> void:
 	var t := 4.0  # after the world has set the wizard down
 	var by_kind := {}
-	for gate in _arena._gates:
+	for gate in _arena.gates:
 		if not by_kind.has(gate["kind"]):
 			by_kind[gate["kind"]] = gate
 	if OS.get_environment("GATE_ONLY") != "":
@@ -1273,7 +1273,7 @@ func _plan_gates() -> void:
 		if kind in ["gas", "dark"]:
 			back = 0.0  # these lie on slopes, so the floor is only known where they begin
 		if not kind in ["gas", "dark"]:
-			while back > 1.0 and _arena._in_rock(Vector2((at.x - back) * tile, (floor_row - 0.5) * tile)):
+			while back > 1.0 and _arena.in_rock(Vector2((at.x - back) * tile, (floor_row - 0.5) * tile)):
 				back -= 1.0  # the passage may begin with a wall that far back: come nearer
 		var spot := Vector2((at.x - back) * tile, floor_row * tile - 4.0)
 		if not kind in ["gas", "dark"]:
@@ -1621,7 +1621,7 @@ func _plan_life() -> void:
 				var column_x := (c + 0.5) * tile
 				var probe := ""
 				for rows_up in [0, 3, 10, 20, 26, 28, 30, 34]:
-					probe += " %d:%s" % [rows_up, str(_arena._in_rock(Vector2(column_x, (floors[c] - rows_up) * tile)))]
+					probe += " %d:%s" % [rows_up, str(_arena.in_rock(Vector2(column_x, (floors[c] - rows_up) * tile)))]
 				print("ground row %d, roof row %.1f; in rock rows above the ground:%s" % [floors[c], cave.roof_y(c) / tile, probe]))
 			_at(2.1, func() -> void:
 				var hung := 0

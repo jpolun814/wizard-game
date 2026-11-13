@@ -42,7 +42,7 @@ func _check(world: World, seed_value: int) -> void:
 			pickups.append(node)
 	var clusters := pickups.slice(pickups.size() - World.WIZARDS)  # laid last: one fan of pages for each seat
 	var elsewhere := pickups.slice(0, pickups.size() - World.WIZARDS)
-	var places := world._places()
+	var places := world.places()
 	var walks := []  # collected before any walking, which is slow and lets the world change
 	for seat in World.WIZARDS:
 		var mine := Pages.cluster_of(MatchState.seed_base, seat, World.WIZARDS)
@@ -53,7 +53,7 @@ func _check(world: World, seed_value: int) -> void:
 			_verdict(fan.spoils.count(page) == 1, "%s: %s lies once in seat %d's fan" % [tag, page, seat])
 			if not page.begins_with("chant:"):
 				_verdict(not elsewhere.any(func(p) -> bool: return p.page == page or p.spoils.has(page)) and not clusters.any(func(p) -> bool: return p.spoils.has(page) and p != fan), "%s: %s lies nowhere else" % [tag, page])
-		var near: bool = absf(fan.global_position.x - places[seat].x) <= (World.CLUSTER_REACH + 1) * 32.0 and absf(fan.global_position.y - places[seat].y) <= 160.0
+		var near: bool = absf(fan.global_position.x - places[seat].x) <= (WorldPages.CLUSTER_REACH + 1) * 32.0 and absf(fan.global_position.y - places[seat].y) <= 160.0
 		_verdict(near, "%s: seat %d's pages lie within a short walk of its spawn" % [tag, seat])
 		walks.append([places[seat], [fan], "%s seat %d" % [tag, seat]])
 	for walk in walks:

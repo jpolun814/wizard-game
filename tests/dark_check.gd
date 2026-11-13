@@ -34,7 +34,7 @@ func _ready() -> void:
 		add_child(world)
 		await tree.process_frame
 		await tree.process_frame
-		for entry in world._gates:
+		for entry in world.gates:
 			if entry["kind"] == "dark" and tried < _stretches:
 				if await _cross(world, entry, seed_value):
 					tried += 1

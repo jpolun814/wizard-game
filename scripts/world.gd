@@ -14,13 +14,11 @@ const PortalCollapse := preload("res://scripts/portal_collapse.gd")
 var seed_value := 0
 var ledgers: Array[Ledger] = []  # the pages each wizard holds, the player's first
 var graph: WorldGraph
-var _markers := {}
+var markers := {}
 var _ponds := []
-var _gates := []
+var gates := []
 const NAV_DELAY := 0.4  # seconds after a pit is dug before the wizards' map of the ways is made again
 var _nav_waiting := false
-const PAGES_TOLD_EVERY := 3.0
-var _pages_told := 0.0
 var _dug_tiles := {}  # the tiles of the ground that pits have taken away, so the map of the ways can be made again without them
 var _built: Dictionary  # what the generator made, kept to build the ways again when a gate is cleared
 var _since_gates := 0.0
@@ -42,9 +40,9 @@ var castle_x := -1  # the first column of the first castle on the surface, or -1
 func _build_map() -> Variant:
 	seed_value = next_seed if next_seed >= 0 else randi() % Incantation.seed_count()
 	next_seed = -1
-	_carried = MatchState.pending  # a world the last one collapsed into: the match goes on, rather than begins
+	carried = MatchState.pending  # a world the last one collapsed into: the match goes on, rather than begins
 	MatchState.pending = false
-	if not _carried:
+	if not carried:
 		MatchState.begin(seed_value)
 		Library.record_match_begun()
 	var stage := MatchState.plan()
@@ -54,9 +52,9 @@ func _build_map() -> Variant:
 	rng.seed = seed_value
 	var built := WorldBuilder.make(rng, stage["biome"], stage["caves"])
 	graph = built["graph"]
-	_markers = built["markers"]
+	markers = built["markers"]
 	_ponds = built["ponds"]
-	_gates = built["gates"]
+	gates = built["gates"]
 	_built = built
 	add_to_group(&"world")
 	castle_x = built["castle"]
@@ -98,11 +96,11 @@ var _watched := 0  # while out of the match: which of the other wizards the came
 var _spectating := false
 var _tear: Node2D  # the portal giving way, while it does
 var _pulling := false
-var _carried := false      # the match goes on from a world that collapsed: its ledgers and wizards come with it
+var carried := false      # the match goes on from a world that collapsed: its ledgers and wizards come with it
 var _stage_time := 0.0     # seconds in this world
 var _leaving := false      # the portal has given way
 var _collapse_in := -1.0   # seconds until the portal gives way, once it has begun to
-var _seats: Array[Wizard] = []  # every wizard of the match by seat (see _my_seat), the player's own among them; null where one was beaten in an earlier world
+var _seats: Array[Wizard] = []  # every wizard of the match by seat (see my_seat), the player's own among them; null where one was beaten in an earlier world
 var _stats: StatsScreen  # what is shown when the person falls
 var _rivals: Array[Wizard] = []  # the same, without the player's own
 var _fallen := {}  # on the host: the wizards whose fall has been seen, and whose pages have been dropped
@@ -176,16 +174,16 @@ func _fade_backdrops(delta: float) -> void:
 func _begin_encounter(camera: Camera2D) -> void:
 	if not scenery.sea_plan.is_empty():  # the ocean: the view rests lower, so that the sea floor and the wrecks on it are on screen from mid-water (it does not move from place to place)
 		(camera as GameCamera).set_rest_offset(Vector2(0.0, SEA_VIEW))
-	_lay_pages()
+	pages.lay()
 	_restore_player()
 	player.flying = flies()
 	player.fly_box = fly_box()
-	player.position = _places()[_my_seat()]
+	player.position = places()[my_seat()]
 	_safe_spot = player.position
 	_spawn_wizards()
 	if Net.dedicated:
 		_give_player_to_a_brain()
-	if not _carried and arrive_by_portal and not flies():
+	if not carried and arrive_by_portal and not flies():
 		for wizard in _seats:
 			if wizard != null:
 				_drop_from_portal(wizard)
@@ -235,7 +233,7 @@ func _begin_encounter(camera: Camera2D) -> void:
 		swing.seed_value = seed_value + 71 + index
 		swing.stone = earth_texture()  # the stairs are of the same stone as the castle
 		add_child(swing)
-	for entry in _gates:
+	for entry in gates:
 		match entry["kind"]:
 			"brambles":
 				scenery.grow_thorns(entry)
@@ -277,6 +275,7 @@ func _begin_encounter(camera: Camera2D) -> void:
 
 var creatures := WorldCreatures.new(self)
 var scenery := WorldScenery.new(self)
+var pages := WorldPages.new(self)
 const SEA_VIEW := 30.0      # where the view rests in the ocean, against the feet (elsewhere it is 150 px over them): far enough down to see the floor
 
 
@@ -292,7 +291,7 @@ func _scene_name() -> String:
 
 ## The player's seat in the match. Playing alone it is the first, and brains have the other three; in a network game the people have
 ## the first seats in the order they joined (see Net.roster), and brains the rest. Each seat has its look, its ledger and its place.
-func _my_seat() -> int:
+func my_seat() -> int:
 	return maxi(Net.seat_of(Net.my_id()), 0) if Net.online() else 0
 
 
@@ -315,7 +314,7 @@ func _new_brain(body: Wizard) -> WizardBrain:
 
 ## Where each seat starts, in the world. Playing alone the player has a place of their own and the others the places farthest from it,
 ## in an order drawn from the seed; in a network game every seat's place is drawn from the seed, so every machine agrees on them.
-func _places() -> Array[Vector2]:
+func places() -> Array[Vector2]:
 	var places := spawn_tiles.duplicate()
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed_value + 4421
@@ -344,12 +343,12 @@ func _places() -> Array[Vector2]:
 ## The other wizards, each at its seat's place holding the pages its seat was dealt: the people on other machines, and brains in the
 ## seats nobody took. The host plays the brains; every other machine has a likeness of each.
 func _spawn_wizards() -> void:
-	var places := _places()
+	var places := places()
 	for seat in WIZARDS:
-		if seat == _my_seat():
+		if seat == my_seat():
 			_seats.append(player)
 			continue
-		var state: Dictionary = MatchState.vitals[seat] if _carried else {"alive": true}
+		var state: Dictionary = MatchState.vitals[seat] if carried else {"alive": true}
 		var person := Net.roster[seat] if Net.online() and seat < Net.roster.size() else -1
 		if person == 0 or (person < 0 and not state["alive"]):  # a seat whose person left, or a brain beaten in an earlier world
 			_seats.append(null)
@@ -417,59 +416,26 @@ func _watch_falls() -> void:
 		if not is_instance_valid(wizard) or not wizard.dead or _fallen.has(wizard):
 			continue
 		_fallen[wizard] = true
-		if not _carried or MatchState.vitals[seat]["alive"]:  # one beaten in an earlier world dropped its book there
-			_drop_pages(wizard)
-
-
-func _drop_pages(wizard: Wizard) -> void:
-	var held: Array[String] = []
-	for each: String in wizard.ledger.pages:
-		held.append(each)
-	if held.is_empty():
-		return
-	var spot := wizard.global_position + Vector2(0.0, 40.0) if flies() else on_ridge(wizard.global_position, floor_under(wizard.global_position))  # on a ridge, the book lies on it; in the sky it hangs where they fell
-	var name := "Spoils" + String(wizard.name)
-	_lay_spoils(name, held, spot)
-	Net.send(self, &"_lay_spoils", [name, held, spot])
-
-
-## The host says every few seconds which pages still lie, because a page read while a machine was still loading the world is never heard of
-## there, and would lie on its screen for ever, out of reach. A machine takes off the ground any page that is not on the list.
-func _tell_pages_left(delta: float) -> void:
-	_pages_told += delta
-	if _pages_told < PAGES_TOLD_EVERY or not Net.online():
-		return
-	_pages_told = 0.0
-	var names: Array[String] = []
-	for pickup: PagePickup in get_tree().get_nodes_in_group("pages"):
-		if not pickup is Mirage and not pickup.is_queued_for_deletion():
-			names.append(String(pickup.name))
-	Net.send(self, &"_pages_left", [names])
+		if not carried or MatchState.vitals[seat]["alive"]:  # one beaten in an earlier world dropped its book there
+			pages.drop(wizard)
 
 
 @rpc("authority", "call_remote", "reliable")
 func _pages_left(names: Array) -> void:
-	for pickup: PagePickup in get_tree().get_nodes_in_group("pages"):
-		if not pickup is Mirage and not names.has(String(pickup.name)):
-			pickup.queue_free()
+	pages.left(names)
 
 
 ## A fallen wizard's book lies where it fell.
 @rpc("authority", "call_remote", "reliable")
 func _lay_spoils(pickup_name: String, held: Array, spot: Vector2) -> void:
-	var pickup := PagePickup.new()
-	pickup.name = pickup_name
-	pickup.page = held[0]
-	pickup.spoils.assign(held)
-	pickup.position = spot
-	add_child(pickup)
+	pages.lay_spoils(pickup_name, held, spot)
 
 
 ## The first world is entered by falling out of a portal that opens in the air over where the wizard stands, as high as there is clear air for.
 func _drop_from_portal(wizard: Node2D) -> void:
 	var feet := wizard.global_position
 	var height := 0.0
-	while height < DROP_HEIGHT and not _in_rock(feet + Vector2(0.0, -height - 16.0 - TILE)) and not _in_rock(feet + Vector2(0.0, -height - 16.0 - TILE) + Vector2(-20.0, 0.0)) and not _in_rock(feet + Vector2(0.0, -height - 16.0 - TILE) + Vector2(20.0, 0.0)):
+	while height < DROP_HEIGHT and not in_rock(feet + Vector2(0.0, -height - 16.0 - TILE)) and not in_rock(feet + Vector2(0.0, -height - 16.0 - TILE) + Vector2(-20.0, 0.0)) and not in_rock(feet + Vector2(0.0, -height - 16.0 - TILE) + Vector2(20.0, 0.0)):
 		height += 16.0
 	if height < 48.0:
 		return  # no room to fall in: the wizard simply stands there
@@ -498,7 +464,7 @@ var _buried := 0.0              # how long the wizard has been inside rock
 
 ## True when a point is inside rock or outside the world. The outlines that make the rock solid have no inside, so a body that
 ## gets in cannot be found by a physics query: the tiles are asked instead.
-func _in_rock(point: Vector2) -> bool:
+func in_rock(point: Vector2) -> bool:
 	var size := ArenaGen.world_size
 	var cell := Vector2i(floori(point.x / TILE), floori(point.y / TILE))
 	if cell.x < 0 or cell.y < 0 or cell.x >= size.x or cell.y >= size.y:
@@ -511,7 +477,7 @@ func _in_rock(point: Vector2) -> bool:
 
 ## A point inside the rock is lifted out of it first, so a spell drawn into a hill lands on top of it.
 func _surface_under(point: Vector2) -> Vector2:
-	if not _in_rock(point):
+	if not in_rock(point):
 		return super._surface_under(point)
 	return SpellTargets.solid_below(get_world_2d(), lifted_out_of_rock(point) + Vector2(0.0, -8.0))
 
@@ -520,7 +486,7 @@ func _surface_under(point: Vector2) -> Vector2:
 func lifted_out_of_rock(point: Vector2) -> Vector2:
 	var clear := point
 	for step in 400:
-		if not _in_rock(clear):
+		if not in_rock(clear):
 			break
 		clear.y -= 8.0
 	return clear
@@ -528,7 +494,7 @@ func lifted_out_of_rock(point: Vector2) -> Vector2:
 
 func _body_in_rock(at: Vector2) -> bool:
 	for lift in [-24.0, -48.0]:  # not lower: on a slope the tiles stand a little above the smooth ground
-		if _in_rock(at + Vector2(0.0, lift)):
+		if in_rock(at + Vector2(0.0, lift)):
 			return true
 	return false
 
@@ -564,7 +530,7 @@ func _process(delta: float) -> void:
 	MatchStats.tick(delta)
 	if Net.is_host():
 		_watch_falls()
-		_tell_pages_left(delta)
+		pages.tell_left(delta)
 	_watch_portal(delta)
 	_watch_gates(delta)
 	if player.dead:
@@ -628,9 +594,9 @@ func _light_when_ready(node: Node) -> void:
 
 ## What the player has left of their stamina, from the world before.
 func _restore_player() -> void:
-	if not _carried:
+	if not carried:
 		return
-	var state: Dictionary = MatchState.vitals[_my_seat()]
+	var state: Dictionary = MatchState.vitals[my_seat()]
 	player.max_stamina = state["max"]
 	player.stamina = state["stamina"]
 	_fade_from_black()
@@ -638,7 +604,7 @@ func _restore_player() -> void:
 
 ## A wizard beaten in an earlier world is still out in this one, and watches.
 func _stay_out() -> void:
-	if _carried and not MatchState.vitals[_my_seat()]["alive"]:
+	if carried and not MatchState.vitals[my_seat()]["alive"]:
 		player.max_stamina = 1.0
 		player.take_damage(1)
 
@@ -746,7 +712,7 @@ func _watch_gates(delta: float) -> void:
 		return
 	_since_gates = 0.0
 	var changed := false
-	for entry in _gates:
+	for entry in gates:
 		if entry.get("open", false) or not entry.has("nodes"):
 			continue
 		var gone: Array[bool] = []
@@ -798,8 +764,8 @@ func _on_ground_dug(area: Rect2) -> void:
 
 ## Every piece of a gate has the same name on every machine, so the host can say which are gone.
 func _name_gates() -> void:
-	for g in _gates.size():
-		var nodes: Array = _gates[g].get("nodes", [])
+	for g in gates.size():
+		var nodes: Array = gates[g].get("nodes", [])
 		for k in nodes.size():
 			nodes[k].name = "Gate%d_%d" % [g, k]
 
@@ -807,8 +773,8 @@ func _name_gates() -> void:
 ## The names of the pieces of gates that are gone, here.
 func _cleared_gate_names() -> Array[String]:
 	var out: Array[String] = []
-	for g in _gates.size():
-		var nodes: Array = _gates[g].get("nodes", [])
+	for g in gates.size():
+		var nodes: Array = gates[g].get("nodes", [])
 		for k in nodes.size():
 			if not is_instance_valid(nodes[k]) or nodes[k].is_queued_for_deletion():
 				out.append("Gate%d_%d" % [g, k])
@@ -828,7 +794,7 @@ func _gates_cleared(names: Array) -> void:
 ## The gates that spells can clear and have not yet: {"kind", "outside": a floor tile just short of it, "target": a point in pixels to strike}.
 func closed_gates() -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
-	for entry in _gates:
+	for entry in gates:
 		if entry.get("open", false) or not entry.has("nodes"):
 			continue
 		out.append({"kind": entry["kind"], "outside": entry["outside"], "target": gate_target(entry), "entry": entry})
@@ -838,7 +804,7 @@ func closed_gates() -> Array[Dictionary]:
 ## The gates that a spell lets a wizard past, and does not clear: {"kind", "key" (see WorldNav.toll_at), "span": the top of a pit, a wall or a stretch of gas in pixels, "post": a sentinel}.
 func crossings() -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
-	for entry in _gates:
+	for entry in gates:
 		if entry["kind"] not in WorldBuilder.CROSSINGS:
 			continue
 		var found := {"kind": entry["kind"], "key": WorldBuilder.toll_key(entry), "post": entry.get("post")}
@@ -1107,171 +1073,21 @@ func _rift_spot(from: Vector2) -> Vector2:
 	for room in graph.rooms:
 		if room["lock"] != -1 and not _gates_open:
 			continue
-		var spot := stand_at(_markers[room["id"]])
+		var spot := stand_at(markers[room["id"]])
 		if spot.distance_to(from) > 400.0:
 			spots.append(spot)
 	return spots[randi() % spots.size()] if not spots.is_empty() else from
 
 
-## The spellbook of the run: only the starter spells are known, and a page for each of the others lies in a hall of the map.
-func _lay_pages() -> void:
-	ledgers = MatchState.ledgers if _carried else Pages.start_empty(WIZARDS)  # nobody starts with a spell: the pages they would have started with lie by their spawn
-	MatchState.ledgers = ledgers
-	player.ledger = ledgers[_my_seat()]
-	spellbook.refresh()
-	var rng := RandomNumberGenerator.new()
-	rng.seed = seed_value + 7919  # the pages come from the seed, apart from the rest of the map
-	var gate_kinds := []
-	for entry in _gates:
-		if not gate_kinds.has(entry["kind"]):
-			gate_kinds.append(entry["kind"])
-	# What lies in a world was settled when the match began: each world has pages of its own, apart from the ones the wizards were dealt.
-	var allotment := MatchState.page_allotment(WIZARDS)
-	var spare: Array[String] = []
-	spare.assign(allotment["spare"])
-	var layout := Pages.plan(graph, rng, Pages.deal(MatchState.seed_base + 31, WIZARDS), allotment["worlds"][MatchState.stage], gate_kinds, spare, ledgers if _carried else Pages.deal(MatchState.seed_base + 31, WIZARDS))  # (the pages in the clusters count as held, for the gates' openers)
-	if flies():
-		_lay_sky_pages(layout)
-		if not _carried:
-			_lay_clusters(layout.size())
-		return
-	var count := {}
-	for index in layout.size():
-		var entry: Dictionary = layout[index]
-		var room: int = entry["room"]
-		var pickup := PagePickup.new()
-		pickup.name = "Page%d" % index  # the same on every machine, so the host can say which was read
-		pickup.page = entry["page"]
-		if entry.has("castle"):  # up in the castle: a column from its west end, and the floor's height in rows
-			var spot: Vector2i = entry["castle"]
-			var castle_at: int = entry["castle_x"]
-			pickup.position = Vector2((castle_at + spot.x + 0.5) * TILE, (WorldGraph.SURFACE_ROW - spot.y) * TILE)
-			add_child(pickup)
-			continue
-		if entry.has("x"):  # out on the surface, near the start
-			var column: int = entry["x"]
-			var tree := _tree_at(column)
-			if not tree.is_empty():  # on the branch of a great tree
-				pickup.position = Vector2((column + 0.5) * TILE, graph.surface["floor"][column] * float(TILE) + 2.0) + JungleTree.perch(tree["size"], tree["mirror"])
-				add_child(pickup)
-				continue
-			pickup.position = floor_under(Vector2((column + 0.5) * TILE, graph.surface["floor"][column] * TILE - 40.0))
-			add_child(pickup)
-			continue
-		var spot := stand_at(_markers[room])
-		var k: int = count.get(room, 0)
-		count[room] = k + 1
-		var lie := spot + Vector2((k - 0.5) * 70.0 if k > 0 else 0.0, 0.0)
-		pickup.position = floor_under(lie)  # on the floor, wherever the marker's tile ends
-		add_child(pickup)
-	if not _carried:
-		_lay_clusters(layout.size())
-
-
-## The sky's pages: each starts somewhere in the air and rises through the falling wizards, round and round (FallingPage).
-func _lay_sky_pages(layout: Array) -> void:
-	var rng := RandomNumberGenerator.new()
-	rng.seed = seed_value + 7933
-	var box := fly_box()
-	for index in layout.size():
-		var pickup := FallingPage.new()
-		pickup.name = "Page%d" % index  # the same on every machine, so the host can say which was read
-		pickup.page = layout[index]["page"]
-		pickup.rate = rng.randf_range(FallingPage.RATE_LEAST, FallingPage.RATE_MOST)
-		var shown_at := rng.randf_range(box.position.y + 120.0, box.end.y - 120.0)
-		pickup.home = Vector2(rng.randf_range(box.position.x + 600.0, box.end.x - 600.0), shown_at + PagePickup.FLOAT)
-		pickup.box = box
-		scenery.timed.append(pickup)
-		add_child(pickup)
-
-
-## How many tiles apart the pages of a cluster lie, and the farthest from the spawn they may lie.
-const CLUSTER_GAP := 3
-const CLUSTER_REACH := 30
-
-
-## In the first world, the pages each wizard would have started with lie together by their spawn, fanned out like cards, a short walk away on level
-## ground, so nobody needs a spell to reach them. `first` numbers the pages after the ones the map already has.
-func _lay_clusters(first: int) -> void:
-	var places := _places()
-	var index := first
-	for seat in WIZARDS:
-		var pages := Pages.cluster_of(MatchState.seed_base, seat, WIZARDS)
-		if pages.is_empty():
-			continue
-		if flies():
-			var floating := FallingPage.new()  # in the sky they hang by the place, and do not drift
-			floating.name = "Page%d" % index
-			index += 1
-			floating.page = pages[0]
-			floating.spoils.assign(pages)
-			floating.fan = true
-			floating.home = places[seat] + Vector2(180.0, PagePickup.FLOAT - 40.0)
-			floating.rate = 0.0
-			floating.box = fly_box()
-			scenery.timed.append(floating)
-			add_child(floating)
-			continue
-		var pickup := PagePickup.new()  # all of a wizard's first pages lie together, fanned out like cards, and one read takes them all
-		pickup.name = "Page%d" % index  # the same on every machine, so the host can say which was read
-		index += 1
-		pickup.page = pages[0]
-		pickup.spoils.assign(pages)
-		pickup.fan = true
-		pickup.position = _cluster_spots(places[seat], 1)[0]
-		add_child(pickup)
-
-
-## Where `count` pages may lie by a spawn: on the ground a wizard can walk to without a jump, nearest first, a few tiles apart. A spawn with
-## too little room round it gets the rest set down on the last spot, a little to one side of each other.
-func _cluster_spots(origin: Vector2, count: int) -> Array[Vector2]:
-	var feet := floor_under(origin - Vector2(0.0, 8.0))
-	var column := floori(origin.x / TILE)
-	var reachable: Array[Vector2] = []  # the floor at each column a wizard can walk to, nearest first
-	for side in [1, -1]:
-		var last := feet
-		for step in range(1, CLUSTER_REACH):
-			var at: int = column + step * side
-			var floor_at := floor_under(Vector2((at + 0.5) * TILE, last.y - 8.0))
-			if absf(floor_at.y - last.y) > TILE or absf(floor_at.y - feet.y) > TILE * 3.0:
-				break  # a step too high, or a drop, ends the walk
-			if _in_rock(Vector2(floor_at.x, floor_at.y - 24.0)) or _in_rock(Vector2(floor_at.x, floor_at.y - 56.0)):
-				break  # a wall, or a low ceiling
-			if absf(floor_at.y - graph.surface["floor"][clampi(at, 0, graph.surface["floor"].size() - 1)] * float(TILE)) < TILE * 2.5 and Pages.in_the_way(graph, at):
-				break  # a pool, a pit of mud or a thicket
-			last = floor_at
-			reachable.append(floor_at)
-	reachable.sort_custom(func(a: Vector2, b: Vector2) -> bool: return absf(a.x - origin.x) < absf(b.x - origin.x))
-	var out: Array[Vector2] = []
-	for spot in reachable:
-		var gap_ok := true
-		for other in out:
-			gap_ok = gap_ok and absf(other.x - spot.x) >= CLUSTER_GAP * TILE - 1.0
-		if gap_ok and absf(spot.x - origin.x) >= (CLUSTER_GAP - 1) * TILE:
-			out.append(spot)
-		if out.size() == count:
-			break
-	while out.size() < count:  # no room: the rest lie on the spots there are, or on the spawn's own floor
-		var base := out[out.size() % maxi(out.size(), 1)] if not out.is_empty() else feet
-		out.append(base + Vector2((out.size() % 3 - 1) * 48.0, 0.0))
-	return out
-
-
-## The large jungle tree that stands at this column, or an empty dictionary.
-func _tree_at(column: int) -> Dictionary:
-	for tree: Dictionary in graph.surface["trees"]:
-		if tree["column"] == column and tree["size"] >= 2:
-			return tree
-	return {}
 
 
 ## The top of the floor under a point (out of the rock first when it is in it), asked of the tiles, which are there before the ground is built.
 func floor_under(point: Vector2) -> Vector2:
 	var x := point.x
 	var row := floori((point.y - 1.0) / TILE)
-	while row > 0 and _in_rock(Vector2(x, (row + 0.5) * TILE)):
+	while row > 0 and in_rock(Vector2(x, (row + 0.5) * TILE)):
 		row -= 1
-	while row < ArenaGen.world_size.y - 1 and not _in_rock(Vector2(x, (row + 1.5) * TILE)):
+	while row < ArenaGen.world_size.y - 1 and not in_rock(Vector2(x, (row + 1.5) * TILE)):
 		row += 1
 	return Vector2(x, (row + 1) * TILE)
 
@@ -1279,7 +1095,7 @@ func floor_under(point: Vector2) -> Vector2:
 ## The kinds of gate this world has, for the F1 panel.
 func gate_kinds() -> Array:
 	var kinds := []
-	for entry in _gates:
+	for entry in gates:
 		if not kinds.has(entry["kind"]):
 			kinds.append(entry["kind"])
 	return kinds
@@ -1290,7 +1106,7 @@ var _tour := {}  # kind -> how many times the panel has gone to a gate of that k
 ## Sets the wizard down on the floor just outside a gate of this kind, on the way in from the open side. Each press goes to the next.
 func go_to_gate(kind: String) -> void:
 	var found := []
-	for entry in _gates:
+	for entry in gates:
 		if entry["kind"] == kind:
 			found.append(entry)
 	if found.is_empty():
