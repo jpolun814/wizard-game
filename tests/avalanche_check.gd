@@ -30,7 +30,7 @@ func _ready() -> void:
 	# Before its time, nothing is dangerous.
 	_verdict(_danger_x(slide, floors).is_empty(), "before the first one the slope is quiet")
 	# The slope rumbles first, then goes quiet over the start while the snow runs.
-	world._stage_time = Avalanche.FIRST + 0.5
+	world.stage_time = Avalanche.FIRST + 0.5
 	await _frames(3)
 	var rumble := _danger_x(slide, floors)
 	_verdict(not rumble.is_empty(), "the slope rumbles before the snow moves")
@@ -39,7 +39,7 @@ func _ready() -> void:
 	await _frames(3)
 	_verdict(player.max_stamina >= 200.0, "and the rumble itself does no harm")
 	# Then the snow runs: find its front, and put one wizard in it and keep another out of it.
-	world._stage_time = Avalanche.FIRST + Avalanche.WARNING + 1.0
+	world.stage_time = Avalanche.FIRST + Avalanche.WARNING + 1.0
 	await _frames(2)
 	var front := _danger_x(slide, floors)
 	_verdict(not front.is_empty() and absf(float(front[front.size() / 2]) - start_x) > 100.0, "then the snow runs down the slope, away from where it began")
@@ -61,7 +61,7 @@ func _ready() -> void:
 			break
 	_verdict(player.max_stamina < before, "a wizard in the front is hurt (%d to %d)" % [before, player.max_stamina])
 	# Long after, it has gone.
-	world._stage_time = Avalanche.FIRST + Avalanche.WARNING + 12.0
+	world.stage_time = Avalanche.FIRST + Avalanche.WARNING + 12.0
 	await _frames(3)
 	_verdict(_danger_x(slide, floors).is_empty(), "when the snow has run its course the slope is quiet again")
 	print("the avalanche comes and goes" if _failures == 0 else "%d FAILED" % _failures)

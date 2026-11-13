@@ -31,7 +31,7 @@ func _ready() -> void:
 		await get_tree().physics_frame
 		elapsed += get_physics_process_delta_time()
 	for seat in range(1, World.WIZARDS):
-		var wizard: Wizard = world._seats[seat]
+		var wizard: Wizard = world.seats[seat]
 		var mine := Pages.cluster_of(MatchState.seed_base, seat, World.WIZARDS)
 		var read := mine.filter(func(page: String) -> bool: return world.ledgers[seat].knows(page)).size()
 		# With eight in one world a wizard can be beaten on the way: that is not a brain that cannot find its pages.

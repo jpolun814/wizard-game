@@ -84,13 +84,10 @@ func _build_map() -> Variant:
 var nav: WorldNav  # the ways about the world on foot, with every gate shut
 var _start_tile := Vector2i.ZERO
 var spawn_tiles: Array[Vector2i] = []  # the starting places, far apart; the player takes one and a wizard each of the others
-var _tear: Node2D  # the portal giving way, while it does
-var _pulling := false
 var carried := false      # the match goes on from a world that collapsed: its ledgers and wizards come with it
-var _stage_time := 0.0     # seconds in this world
+var stage_time := 0.0     # seconds in this world
 var leaving := false      # the portal has given way
-var _collapse_in := -1.0   # seconds until the portal gives way, once it has begun to
-var _seats: Array[Wizard] = []  # every wizard of the match by seat (see my_seat), the player's own among them; null where one was beaten in an earlier world
+var seats: Array[Wizard] = []  # every wizard of the match by seat (see my_seat), the player's own among them; null where one was beaten in an earlier world
 var rivals: Array[Wizard] = []  # the same, without the player's own
 var _fallen := {}  # on the host: the wizards whose fall has been seen, and whose pages have been dropped
 var _backdrops := {}  # place -> Backdrop
@@ -128,14 +125,14 @@ func _update_weather(under: float) -> void:
 	if SurfaceGen.biome_at(graph.surface, column) == "mountains" and MountainGale.altitude(player.global_position.y) > 0.45:
 		kinds = ["blizzard"]  # up near the summits the snow is a blizzard
 	if scenery.squall != null:
-		scenery.squall.seconds = _stage_time
+		scenery.squall.seconds = stage_time
 		if scenery.squall.level() > 0.05 and not kinds.is_empty():
 			kinds = kinds.duplicate()
 			kinds[0] = "downpour" if SurfaceGen.biome_at(graph.surface, column) == "jungle" else "ash_storm"  # the storm is what falls, in place of the usual
 			strength = maxf(strength, 0.0) * scenery.squall.level()
 	for node in scenery.timed:
 		if is_instance_valid(node):
-			node.seconds = _stage_time
+			node.seconds = stage_time
 	if scenery.gale != null and SurfaceGen.biome_at(graph.surface, column) == "mountains":
 		var push := MountainGale.push_at(player.global_position.y, scenery.gale.seconds)
 		if absf(push) > 12.0:  # and the wind is seen: streaks of snow blown along, the way it blows
@@ -173,7 +170,7 @@ func _begin_encounter(camera: Camera2D) -> void:
 	if Net.dedicated:
 		_give_player_to_a_brain()
 	if not carried and arrive_by_portal and not flies():
-		for wizard in _seats:
+		for wizard in seats:
 			if wizard != null:
 				_drop_from_portal(wizard)
 	_stay_out()
@@ -267,6 +264,7 @@ var scenery := WorldScenery.new(self)
 var pages := WorldPages.new(self)
 var gate_work := WorldGates.new(self)
 var match_end := MatchEnd.new(self)
+var stages := WorldStages.new(self)
 const SEA_VIEW := 30.0      # where the view rests in the ocean, against the feet (elsewhere it is 150 px over them): far enough down to see the floor
 
 
@@ -337,12 +335,12 @@ func _spawn_wizards() -> void:
 	var places := places()
 	for seat in WIZARDS:
 		if seat == my_seat():
-			_seats.append(player)
+			seats.append(player)
 			continue
 		var state: Dictionary = MatchState.vitals[seat] if carried else {"alive": true}
 		var person := Net.roster[seat] if Net.online() and seat < Net.roster.size() else -1
 		if person == 0 or (person < 0 and not state["alive"]):  # a seat whose person left, or a brain beaten in an earlier world
-			_seats.append(null)
+			seats.append(null)
 			continue
 		var wizard: Wizard
 		if person > 0:
@@ -359,8 +357,8 @@ func _spawn_wizards() -> void:
 				wizard.max_stamina = state["max"]
 				wizard.stamina = state["stamina"]
 		wizard.ledger = ledgers[seat]
-		_seats.append(wizard)
-	for wizard in _seats:
+		seats.append(wizard)
+	for wizard in seats:
 		if wizard != player:
 			rivals.append(wizard)
 	if Net.online():
@@ -402,8 +400,8 @@ func _on_roster_changed() -> void:
 
 ## On the host: a wizard that has fallen leaves its whole book where it fell, for anyone to read, on every machine.
 func _watch_falls() -> void:
-	for seat in _seats.size():
-		var wizard := _seats[seat]
+	for seat in seats.size():
+		var wizard := seats[seat]
 		if not is_instance_valid(wizard) or not wizard.dead or _fallen.has(wizard):
 			continue
 		_fallen[wizard] = true
@@ -522,12 +520,12 @@ func _process(delta: float) -> void:
 	if Net.is_host():
 		_watch_falls()
 		pages.tell_left(delta)
-	_watch_portal(delta)
+	stages.watch(delta)
 	gate_work.watch(delta)
 	if player.dead:
 		match_end.follow_watched()
 		return
-	if _pulling:
+	if stages.pulling:
 		return  # drawn up into the portal: the ground has no say
 	if _body_in_rock(player.global_position) or player.global_position.y > ArenaGen.world_size.y * TILE:
 		_buried += delta
@@ -600,75 +598,20 @@ func _stay_out() -> void:
 		player.take_damage(1)
 
 
-## Counts down to the collapse of the portal: the warning, the shaking, and then the new world.
-func _watch_portal(delta: float) -> void:
-	var seconds: float = MatchState.plan()["seconds"] * MatchState.hurry
-	if seconds <= 0.0 or (player.dead and not match_end.spectating and not Net.dedicated):  # (a server's own wizard may fall, and the clock goes on for the people on other machines)
-		return
-	_stage_time += delta
-	if _collapse_in < 0.0 and _stage_time >= seconds - MatchState.WARNING and Net.is_host():  # in a network game the host's clock is the one that counts
-		_begin_collapse()
-		Net.send(self, &"_begin_collapse")
-	if _collapse_in < 0.0:
-		return
-	_collapse_in -= delta
-	GameCamera.shake_scene(get_tree(), 0.03 + 0.06 * (1.0 - _collapse_in / MatchState.WARNING))
-	if not _pulling and _collapse_in <= PortalCollapse.PULL:
-		_pulling = true
-		_tear.pull(SpellTargets.wizards(get_tree()))  # everyone still standing
-	if _collapse_in <= 0.0 and not leaving:
-		_collapse()
-
-
-
 ## The warning: the portal is growing unstable, and gives way in a little while.
 @rpc("authority", "call_remote", "reliable")
 func _begin_collapse() -> void:
-	if _collapse_in >= 0.0:
-		return
-	_collapse_in = MatchState.WARNING
-	hud.banner("The portal is growing unstable")
-	Sfx.play("thunder", player.center(), -4.0)
-	_tear = PortalCollapse.new()
-	_tear.position = Vector2(ArenaGen.world_size.x * TILE * 0.5, 8.0 * TILE)  # high in the middle of the world
-	add_child(_tear)
+	stages.begin()
 
 
-## The portal gives way: everyone who is left is thrown into the next world, smaller than this one.
-## For the F1 panel: leaves for a world of the match now, as the collapse would (the one stood in too: it is built again).
+## For the F1 panel: leaves for a world of the match now, as the collapse would.
 func go_to_stage(at: int) -> void:
-	if leaving:
-		return
-	MatchState.stage = at - 1  # the collapse moves on to the next
-	_collapse()
+	stages.go_to_stage(at)
 
 
-## For the F1 panel: leaves for a world of any biome now, whether or not this match's seed would deal it, keeping this world's place in the match.
+## For the F1 panel: leaves for a world of any biome now.
 func go_to_biome(biome: String) -> void:
-	if leaving:
-		return
-	go_to_stage(MatchState.stage)
-	MatchState.forced_biome = biome
-
-
-func _collapse() -> void:
-	leaving = true
-	var state: Array[Dictionary] = []
-	for wizard in _seats:
-		if is_instance_valid(wizard):
-			wizard.end_wild()  # the wolf does not travel: the wizard's own stamina is what is carried on
-		if wizard == player:
-			state.append({"alive": not player.dead, "max": player.max_stamina, "stamina": player.stamina})
-		elif is_instance_valid(wizard) and not wizard.dead:
-			state.append({"alive": true, "max": wizard.max_stamina, "stamina": wizard.stamina})
-		else:
-			state.append({"alive": false})
-	next_seed = MatchState.advance(ledgers, state, Incantation.seed_count())
-	leave_network_scene()
-	Sfx.play("portal_enter", player.center(), -2.0)
-	fade_to_black(0.7, func() -> void:
-		Loading.quiet = true
-		get_tree().change_scene_to_file(Loading.SCREEN))
+	stages.go_to_biome(biome)
 
 
 ## The wizards' map of the ways, built again from the world as it is now: the gates that are still shut, and the ground as it has been dug.

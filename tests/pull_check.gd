@@ -28,13 +28,13 @@ func _ready() -> void:
 	var world: World = tree.current_scene
 	await tree.process_frame
 	var frames := 0
-	while world._tear == null and frames < 3000:
+	while world.stages.tear == null and frames < 3000:
 		await tree.process_frame
 		frames += 1
-	_verdict(world._tear != null, "the portal tears open")
+	_verdict(world.stages.tear != null, "the portal tears open")
 	if _out != "":
 		DirAccess.make_dir_recursive_absolute(_out)
-		world.player.global_position = world._tear.global_position + Vector2(-300.0, 380.0)  # to look at it from below
+		world.player.global_position = world.stages.tear.global_position + Vector2(-300.0, 380.0)  # to look at it from below
 		world.player.velocity = Vector2.ZERO
 		world.player.set_physics_process(false)
 		await tree.create_timer(0.4).timeout
@@ -42,25 +42,25 @@ func _ready() -> void:
 		await tree.create_timer(1.6).timeout
 		_shot("2_open")
 	var middle: float = ArenaGen.world_size.x * 32.0 * 0.5
-	_verdict(absf(world._tear.global_position.x - middle) < 1.0 and world._tear.global_position.y < 600.0, "it is in the middle, high up (%s)" % str(world._tear.global_position))
-	while not world._pulling and frames < 6000:
+	_verdict(absf(world.stages.tear.global_position.x - middle) < 1.0 and world.stages.tear.global_position.y < 600.0, "it is in the middle, high up (%s)" % str(world.stages.tear.global_position))
+	while not world.stages.pulling and frames < 6000:
 		await tree.process_frame
 		frames += 1
 	var wizards := SpellTargets.wizards(tree)
 	_verdict(wizards.size() == World.WIZARDS, "every wizard is drawn in (%d)" % wizards.size())
 	var start := {}
 	for body in wizards:
-		start[body] = body.global_position.distance_to(world._tear.global_position)
+		start[body] = body.global_position.distance_to(world.stages.tear.global_position)
 	var player_start: float = start[world.player]
 	await tree.create_timer(load("res://scripts/portal_collapse.gd").PULL * 0.4).timeout
 	_shot("3_pull")
 	var nearer := 0
 	for body in wizards:
-		if body.global_position.distance_to(world._tear.global_position) < start[body]:
+		if body.global_position.distance_to(world.stages.tear.global_position) < start[body]:
 			nearer += 1
 	_verdict(nearer == wizards.size(), "they are on their way up to it (%d of %d nearer)" % [nearer, wizards.size()])
 	await tree.create_timer(load("res://scripts/portal_collapse.gd").PULL * 0.55).timeout
-	_verdict(world.player.global_position.distance_to(world._tear.global_position) < player_start * 0.2 or player_start < 600.0, "the player is nearly there, and was not put back on the ground (%.0f of %.0f px left)" % [world.player.global_position.distance_to(world._tear.global_position), player_start])
+	_verdict(world.player.global_position.distance_to(world.stages.tear.global_position) < player_start * 0.2 or player_start < 600.0, "the player is nearly there, and was not put back on the ground (%.0f of %.0f px left)" % [world.player.global_position.distance_to(world.stages.tear.global_position), player_start])
 	_verdict(world.player.modulate.a > 0.99, "they stay whole as they go in, not faded")
 	var seen_loading := false
 	frames = 0

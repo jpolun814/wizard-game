@@ -1562,7 +1562,7 @@ func _plan_life() -> void:
 					fled += 1 if critter["state"] != "perched" else 0
 				print("%s  the birds burst away when a wizard comes near (%d of %d)" % ["PASS" if fled > 0 else "FAIL", fled, birds._critters.size()])
 				_snap("birds_after"))
-			_at(5.6, func() -> void: _arena._stage_time = 28.0 + 8.0)
+			_at(5.6, func() -> void: _arena.stage_time = 28.0 + 8.0)
 			_at(9.0, func() -> void:
 				print("%s  the downpour has come (%.2f)" % ["PASS" if _arena.scenery.squall.level() > 0.9 else "FAIL", _arena.scenery.squall.level()])
 				_snap("downpour"))
@@ -1577,13 +1577,13 @@ func _plan_life() -> void:
 				_at(1.8, func() -> void:
 					print("%s  a wizard stands on the ice" % ["PASS" if IceSheet.under(get_tree(), _player().global_position + Vector2(0.0, 0.0)) else "FAIL"])
 					_snap("ice"))
-			_at(3.0, func() -> void: _arena._stage_time = Avalanche.FIRST + 1.0)
+			_at(3.0, func() -> void: _arena.stage_time = Avalanche.FIRST + 1.0)
 			_at(3.3, func() -> void:
 				var slide: Avalanche = _arena.scenery.timed[0]
 				go.call(Vector2((slide._from + 0.5) * tile + slide._way * 160.0, (floors[slide._from] - 4) * tile))
 				_snap("rumble"))
 			_at(5.0, func() -> void:
-				_arena._stage_time = Avalanche.FIRST + Avalanche.WARNING + 1.2
+				_arena.stage_time = Avalanche.FIRST + Avalanche.WARNING + 1.2
 				var slide: Avalanche = _arena.scenery.timed[0]
 				var travelled := 1.2 * Avalanche.SPEED
 				var column := clampi(slide._from + slide._way * int(travelled / tile), 0, floors.size() - 1)
@@ -1592,7 +1592,7 @@ func _plan_life() -> void:
 			_at(5.4, func() -> void: _snap("avalanche"))
 			_at(5.6, func() -> void: print("%s  the avalanche carried the wizard (moved %.0f px)" % ["PASS" if absf(_player().global_position.x - _start_x) > 40.0 else "FAIL", _player().global_position.x - _start_x]))
 		"ashlands":
-			_at(1.0, func() -> void: _arena._stage_time = 30.0 + 8.0)
+			_at(1.0, func() -> void: _arena.stage_time = 30.0 + 8.0)
 			_at(5.0, func() -> void:
 				print("%s  the ash storm has come (%.2f)" % ["PASS" if _arena.scenery.squall.level() > 0.9 else "FAIL", _arena.scenery.squall.level()])
 				var balls := 0
@@ -1606,7 +1606,7 @@ func _plan_life() -> void:
 				break
 			if lake != null:
 				_at(6.0, func() -> void:
-					_arena._stage_time = 13.0 * 3.0 - lake.phase + LavaSurge.BUBBLING + 1.0
+					_arena.stage_time = 13.0 * 3.0 - lake.phase + LavaSurge.BUBBLING + 1.0
 					go.call(lake.global_position + Vector2(lake.width * 0.5, -60.0)))
 				_at(7.2, func() -> void:
 					print("%s  the lava swells (rise %.2f)" % ["PASS" if lake.rise() > 0.5 else "FAIL", lake.rise()])
@@ -1641,7 +1641,7 @@ func _plan_life() -> void:
 				for hanger in cave._hangers:
 					fallen += 1 if hanger["state"] == "gone" else 0
 				print("%s  a stalactite shook loose and fell when a wizard walked under it (%d fell)" % ["PASS" if fallen > 0 else "FAIL", fallen]))
-			_at(5.0, func() -> void: _arena._stage_time = CaveLife.CAVE_IN_FIRST + CaveLife.CAVE_IN_WARNING - 0.4)
+			_at(5.0, func() -> void: _arena.stage_time = CaveLife.CAVE_IN_FIRST + CaveLife.CAVE_IN_WARNING - 0.4)
 			_at(6.2, func() -> void: _snap("cavein"))
 		"graveyard":
 			var crypts: Array = surface["crypts"]
