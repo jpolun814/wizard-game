@@ -71,10 +71,10 @@ func _build_map() -> Variant:
 	ArenaGen.castle_hall = built["hall"]
 	_planks = built["planks"]
 	tiled_ground = true
-	_start_tile = built["start"]
+	start_tile = built["start"]
 	spawn_tiles = built["spawns"]
 	if random_start and not Net.online():
-		_start_tile = spawn_tiles[randi() % spawn_tiles.size()]  # not seeded, so the same world starts you somewhere new
+		start_tile = spawn_tiles[randi() % spawn_tiles.size()]  # not seeded, so the same world starts you somewhere new
 	var shut := WorldBuilder.shut(built, true)
 	nav = WorldNav.new()
 	nav.build(shut["cells"], built["size"].y, shut["barred"], spawn_tiles[0], shut["tolls"], shut["links"], shut["climbs"])
@@ -82,14 +82,14 @@ func _build_map() -> Variant:
 
 
 var nav: WorldNav  # the ways about the world on foot, with every gate shut
-var _start_tile := Vector2i.ZERO
+var start_tile := Vector2i.ZERO
 var spawn_tiles: Array[Vector2i] = []  # the starting places, far apart; the player takes one and a wizard each of the others
 var carried := false      # the match goes on from a world that collapsed: its ledgers and wizards come with it
 var stage_time := 0.0     # seconds in this world
 var leaving := false      # the portal has given way
+var seat_work := WorldSeats.new(self)
 var seats: Array[Wizard] = []  # every wizard of the match by seat (see my_seat), the player's own among them; null where one was beaten in an earlier world
 var rivals: Array[Wizard] = []  # the same, without the player's own
-var _fallen := {}  # on the host: the wizards whose fall has been seen, and whose pages have been dropped
 var _backdrops := {}  # place -> Backdrop
 
 
@@ -166,9 +166,9 @@ func _begin_encounter(camera: Camera2D) -> void:
 	player.fly_box = fly_box()
 	player.position = places()[my_seat()]
 	safe_spot = player.position
-	_spawn_wizards()
+	seat_work.spawn()
 	if Net.dedicated:
-		_give_player_to_a_brain()
+		seat_work.give_player_to_a_brain()
 	if not carried and arrive_by_portal and not flies():
 		for wizard in seats:
 			if wizard != null:
@@ -278,10 +278,14 @@ func _scene_name() -> String:
 	return "world%d" % MatchState.stage
 
 
-## The player's seat in the match. Playing alone it is the first, and brains have the other three; in a network game the people have
-## the first seats in the order they joined (see Net.roster), and brains the rest. Each seat has its look, its ledger and its place.
+## The player's seat in the match (see WorldSeats.my_seat).
 func my_seat() -> int:
-	return maxi(Net.seat_of(Net.my_id()), 0) if Net.online() else 0
+	return seat_work.my_seat()
+
+
+## Where each seat starts (see WorldSeats.places).
+func places() -> Array[Vector2]:
+	return seat_work.places()
 
 
 ## True in the sky world, where no one stands: every wizard flies.
@@ -297,116 +301,8 @@ func fly_box() -> Rect2:
 	return Rect2(air["first"] * float(TILE), air["top"] * float(TILE), (air["last"] - air["first"] + 1) * float(TILE), (air["bottom"] - air["top"]) * float(TILE))
 
 
-func _new_brain(body: Wizard) -> WizardBrain:
+func new_brain(body: Wizard) -> WizardBrain:
 	return SkyBrain.new(body) if flies() else WizardBrain.new(body)
-
-
-## Where each seat starts, in the world. Playing alone the player has a place of their own and the others the places farthest from it,
-## in an order drawn from the seed; in a network game every seat's place is drawn from the seed, so every machine agrees on them.
-func places() -> Array[Vector2]:
-	var places := spawn_tiles.duplicate()
-	var rng := RandomNumberGenerator.new()
-	rng.seed = seed_value + 4421
-	var out: Array[Vector2] = []
-	if Net.online():
-		for k in range(places.size() - 1, 0, -1):
-			var j := rng.randi_range(0, k)
-			var swap: Vector2i = places[k]
-			places[k] = places[j]
-			places[j] = swap
-		for seat in WIZARDS:
-			out.append(stand_at(places[seat % places.size()]))
-		return out
-	places.sort_custom(func(a: Vector2i, b: Vector2i) -> bool: return absi(a.x - _start_tile.x) > absi(b.x - _start_tile.x))
-	for k in range(WIZARDS - 2, 0, -1):  # which look starts where is drawn from the seed (the nearest place is the player's own, and stays last): the one between the others has the hardest start
-		var j := rng.randi_range(0, k)
-		var swap: Vector2i = places[k]
-		places[k] = places[j]
-		places[j] = swap
-	out.append(stand_at(_start_tile))
-	for i in WIZARDS - 1:
-		out.append(stand_at(places[i]))
-	return out
-
-
-## The other wizards, each at its seat's place holding the pages its seat was dealt: the people on other machines, and brains in the
-## seats nobody took. The host plays the brains; every other machine has a likeness of each.
-func _spawn_wizards() -> void:
-	var places := places()
-	for seat in WIZARDS:
-		if seat == my_seat():
-			seats.append(player)
-			continue
-		var state: Dictionary = MatchState.vitals[seat] if carried else {"alive": true}
-		var person := Net.roster[seat] if Net.online() and seat < Net.roster.size() else -1
-		if person == 0 or (person < 0 and not state["alive"]):  # a seat whose person left, or a brain beaten in an earlier world
-			seats.append(null)
-			continue
-		var wizard: Wizard
-		if person > 0:
-			wizard = _add_person(person, places[seat])
-			if not state["alive"]:
-				wizard.stay_fallen()  # beaten in an earlier world: it watches, unseen
-		elif Net.online() and not Net.is_host():
-			wizard = _add_brains_likeness(seat, places[seat])
-		else:
-			wizard = _add_wizard(Net.rival_look(seat), places[seat], "Rival%d" % seat)
-			wizard.palette = Net.rival_palette(seat)
-			wizard.nav = nav
-			if state.has("max"):
-				wizard.max_stamina = state["max"]
-				wizard.stamina = state["stamina"]
-		wizard.ledger = ledgers[seat]
-		seats.append(wizard)
-	for wizard in seats:
-		if wizard != player:
-			rivals.append(wizard)
-	if Net.online():
-		Net.roster_changed.connect(_on_roster_changed)
-
-
-## On a dedicated server nobody is at the machine: its wizard, in the first seat, plays on its own, as the brains of the empty seats do.
-func _give_player_to_a_brain() -> void:
-	player.human = false
-	player.ensure_caster()  # (it casts through a caster of its own, as a brain's wizard does)
-	player.brain = _new_brain(player)
-	player.nav = nav
-
-
-## On a machine other than the host: a likeness of the wizard a brain plays in a seat, on the host.
-func _add_brains_likeness(seat: int, feet: Vector2) -> Wizard:
-	var wizard: Wizard = WIZARD_SCENE.instantiate()
-	wizard.name = "Rival%d" % seat
-	wizard.peer = 1
-	wizard.human = false
-	wizard.look = Net.rival_look(seat)
-	wizard.palette = Net.rival_palette(seat)
-	wizard.position = feet
-	add_child(wizard)
-	wizard.share()
-	return wizard
-
-
-## Someone left the game: their wizard falls where it stands, on every machine.
-func _on_roster_changed() -> void:
-	if Net.dedicated and not match_end.won and Net.roster.all(func(peer: int) -> bool: return peer == 0 or peer == Net.my_id()):
-		match_end.won = true  # the last person has left: the brains would only play on to themselves, so the server goes back to the waiting room for the next people
-		get_tree().create_timer(2.0).timeout.connect(_back_to_room)
-		return
-	for wizard in rivals:
-		if is_instance_valid(wizard) and wizard.human and wizard.is_likeness() and not Net.roster.has(wizard.peer) and not wizard.dead:
-			wizard.abandon()
-
-
-## On the host: a wizard that has fallen leaves its whole book where it fell, for anyone to read, on every machine.
-func _watch_falls() -> void:
-	for seat in seats.size():
-		var wizard := seats[seat]
-		if not is_instance_valid(wizard) or not wizard.dead or _fallen.has(wizard):
-			continue
-		_fallen[wizard] = true
-		if not carried or MatchState.vitals[seat]["alive"]:  # one beaten in an earlier world dropped its book there
-			pages.drop(wizard)
 
 
 @rpc("authority", "call_remote", "reliable")
@@ -518,7 +414,7 @@ func _process(delta: float) -> void:
 	match_end.count_wizards(delta)
 	MatchStats.tick(delta)
 	if Net.is_host():
-		_watch_falls()
+		seat_work.watch_falls()
 		pages.tell_left(delta)
 	stages.watch(delta)
 	gate_work.watch(delta)

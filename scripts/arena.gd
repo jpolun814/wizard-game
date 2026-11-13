@@ -117,7 +117,7 @@ func _scene_name() -> String:
 
 
 ## A likeness of a person who plays on another machine, standing at a point (see Net).
-func _add_person(peer_id: int, feet: Vector2) -> Wizard:
+func add_person(peer_id: int, feet: Vector2) -> Wizard:
 	var wizard: Wizard = WIZARD_SCENE.instantiate()
 	wizard.name = Wizard.name_for(peer_id)
 	wizard.peer = peer_id
@@ -222,7 +222,7 @@ func _begin_encounter(_camera: Camera2D) -> void:
 
 func add_mob(kind: String, feet: Vector2) -> Node2D:
 	if Mob.KINDS[kind].role == "wizard":
-		return _add_wizard(kind, feet)
+		return add_wizard(kind, feet)
 	var mob := MOB_SCENE.instantiate()
 	mob.kind = kind
 	mob.player = player
@@ -233,11 +233,11 @@ func add_mob(kind: String, feet: Vector2) -> Node2D:
 
 ## A wizard that a brain plays, in one of the looks in res://mobs, standing at a point on the ground. One with a name of its own is a
 ## seat of a match, which a network game shows on every machine (see World).
-func _add_wizard(look: String, feet: Vector2, seat_name := "") -> Wizard:
+func add_wizard(look: String, feet: Vector2, seat_name := "") -> Wizard:
 	var wizard: Wizard = WIZARD_SCENE.instantiate()
 	wizard.look = look
 	wizard.human = false
-	wizard.brain = _new_brain(wizard)
+	wizard.brain = new_brain(wizard)
 	wizard.flying = flies()
 	wizard.fly_box = fly_box()
 	wizard.position = feet
@@ -249,8 +249,8 @@ func _add_wizard(look: String, feet: Vector2, seat_name := "") -> Wizard:
 	return wizard
 
 
-## The brain that plays a wizard here: the one that walks. A world with no ground has a brain of its own (World._new_brain).
-func _new_brain(body: Wizard) -> WizardBrain:
+## The brain that plays a wizard here: the one that walks. A world with no ground has a brain of its own (World.new_brain).
+func new_brain(body: Wizard) -> WizardBrain:
 	return WizardBrain.new(body)
 
 

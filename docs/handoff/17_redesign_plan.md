@@ -25,7 +25,6 @@ Done, each with the quick set green and the full set showing only the known fail
 - **`SkyBrain`** still has its own copies of `think` and the goal choice. It uses the shared pieces now (`hand`, `chant`, `sight`, `danger`).
 - **`WizardStatus` and movement modes in `Wizard`.** The timers (`slow_time`, `haste_time`, `root_time`, `shield_time` and the rest) are public fields that spells, the brain, the HUD and about thirty tests read and
   write by name. Moving them into a list means giving every reader the new name in the same change; do it one status at a time, starting with one that few things read (`fear_time`, `rage_time`).
-- **`WorldSeats`.** Placing the wizards and giving them brains shares `seats` and `rivals` with `MatchEnd` and `WorldStages`; they are public on `World` now, so it can be cut when wanted.
 - **The caster's detector table.** `_read_special` is still a list of `if` and `elif`; each detector could be an entry (`name`, `reads(relative, options)`, `fills(info)`) in a table that the order of the
   list gives.
 
@@ -41,7 +40,7 @@ Done, each with the quick set green and the full set showing only the known fail
   about 2,150 lines. What is left of the table below is `BrainExplore`, `BrainTravel`, `BrainGates`, `BrainCombat` and what remains of `BrainMend` (`_mend`, the bonfire). They share
   state (`settle`, `_camped`, `_goal`, `_foe`) that has to be given a home before they move: each field goes to the piece that writes it, or to a small object that all are given.
 
-- `World`: `WorldCreatures`, `WorldScenery`, `WorldPages`, `WorldGates`, `MatchEnd` and `WorldStages` are out (2026-11-13), and `_raise_biome_life` is one function per biome. `world.gd` is now about 840 lines (from 1,775). Left: `WorldSeats` (placing the wizards and giving them brains), which shares `seats` and `rivals` with the match end. The match's `@rpc` methods must stay on the `World` node (an RPC needs a node), as small stubs that call the piece.
+- `World`: `WorldCreatures`, `WorldScenery`, `WorldPages`, `WorldGates`, `WorldSeats` (placing the wizards, brains, the roster, books of the fallen), `MatchEnd` and `WorldStages` are out (2026-11-13), and `_raise_biome_life` is one function per biome. `world.gd` is now about 650 lines (from 1,775). The match's `@rpc` methods must stay on the `World` node (an RPC needs a node), as small stubs that call the piece.
 
 - `Caster._end` is now four steps (2026-11-13): it reads the stroke, `_read_special` finds the shapes the recognizer cannot tell apart, `_settle` decides the flicks, crosses and flames, and `_resolve` casts or misfires. The detector chain is still an if/elif list inside `_read_special`; the table the plan asks for (a detector as an entry) is not done.
 - `Wizard._physics_process` is now a few lines over `_tick_timers`, `_fall`, `_steer`, `_shoved` and `_move_on`, with `_walking_speed()` for the speed factors. The status list (`WizardStatus`) and movement modes are not done: the timers are public fields that spells, the brain and the tests read directly, so each would have to be moved with its readers.
@@ -99,7 +98,7 @@ set by the dressing and read by the frame loop; `_dead` and `_dead_sent` belong 
 |---|---|
 | `WorldScenery` | `_lay_landmarks`, `_plant_graves`, `_grow_trees`, `_raise_the_gale`, `_raise_biome_life`, `_lay_sea`, `_raise_clouds`, `_wash_out_the_colour`, thorns and gas; and the fields it sets (the gale, the squall, the sea, the timed nodes). One function per biome, chosen by a table, not one function with a branch each. |
 | `WorldCreatures` | the dead, the knights, the giant, the roamers, and `_share_the_dead` (the host's sharing); with the constants `DEAD_*`, `KNIGHT_*`, `GIANT_*` |
-| `WorldSeats` | `_spawn_wizards`, `_places`, `_stand_at`, `_new_brain`, the roster, `_watch_falls`, spectating |
+| `WorldSeats` (done: `world.seat_work`) | `_spawn_wizards`, `_places`, `_stand_at`, `_new_brain`, the roster, `_watch_falls`, spectating |
 | `WorldStages` | `_begin_collapse`, `_collapse`, `go_to_stage`, `go_to_biome`, `_build_nav`, `_on_ground_dug` |
 | `WorldGates` | `_watch_gates`, `_name_gates`, `closed_gates`, `crossings`, `gate_target`, `gate_kinds`, `open_gates`, `go_to_gate` |
 | `WorldPages` | `_lay_pages`, `_lay_sky_pages`, `_lay_clusters`, `_cluster_spots`, `_drop_pages`, `_tell_pages_left` |

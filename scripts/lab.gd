@@ -376,7 +376,7 @@ Give your friends this address: " + ", ".join(addresses)
 func _meet_people() -> void:
 	for peer in Net.roster:
 		if peer != 0 and peer != Net.my_id() and get_node_or_null(Wizard.name_for(peer)) == null:
-			_add_person(peer, _start_for(peer))
+			add_person(peer, _start_for(peer))
 	for wizard: Wizard in get_tree().get_nodes_in_group("wizards"):
 		if wizard.human and wizard.is_likeness() and not Net.roster.has(wizard.peer):
 			wizard.queue_free()
