@@ -19,7 +19,7 @@ Done, each with the quick set green and the full set showing only the known fail
 
 - **The brain's `BrainExplore`, `BrainTravel`, `BrainGates`, `BrainCombat`, `BrainMend`.** They share fields that several of them write (`settle`, `_camped`, `_goal`, `_route`, `_skip`, `_bridged`, `_cannot`, `_pads`,
   `_pad_walk`), and three "manoeuvres" in progress (`_leap`, `_wade`, `_lift`) that each have their own function and are checked all over `think` and `_travel`. The way to cut this is to make each manoeuvre a
-  small object (`Leap`, `Wade`, `Lift`) with `tick(delta) -> float` and `done()`, held in one `_manoeuvre` field, so that "is one in hand" is one test instead of three. `_cross` is already one small function per way over (`_cross_by_lift`, `_cross_by_wading`, `_cross_by_breath`, `_cross_by_leap`, `_cross_by_air`, `_cross_by_pads`, 2026-11-13; not run against every kind, see below); after the objects each kind (a Geyser wall, a chant at the edge of gas, Lily Pads) is a manoeuvre that starts itself. Check it with `cross_check` for every kind and `gate_check`. `cross_check` needs a
+  small object; done as `BrainMoves` (`brain.moves`: `leap`, `wade`, `lift`, `busy()`, `tick`), so that "is one in hand" is one test instead of three. Each is still a dictionary, not its own class. `_cross` is already one small function per way over (`_cross_by_lift`, `_cross_by_wading`, `_cross_by_breath`, `_cross_by_leap`, `_cross_by_air`, `_cross_by_pads`, 2026-11-13; not run against every kind, see below); after the objects each kind (a Geyser wall, a chant at the edge of gas, Lily Pads) is a manoeuvre that starts itself. Check it with `cross_check` for every kind and `gate_check`. `cross_check` needs a
   seed that has the kind of gate (`NOTE seed N has no flood gate` is printed otherwise); the seeds in its header comment no longer have them, so find new ones first.
 - **`SkyBrain`** still has its own copies of `think` and the goal choice. It uses the shared pieces now (`hand`, `chant`, `sight`, `danger`).
 - **`WizardStatus` and movement modes in `Wizard`.** The timers (`slow_time`, `haste_time`, `root_time`, `shield_time` and the rest) are public fields that spells, the brain, the HUD and about thirty tests read and
@@ -69,7 +69,7 @@ other files unchanged: GDScript has no partial classes, and a base class cannot 
 |---|---|
 | `BrainSight` | `_look_about`, `_note_sights`, `_notice_decoys`, `_nearest_foe`, `_seen_feet`, `_seen_center`, the shot trackers (`_incoming_shot`, `_track_shots`, `_watchers`), `_sight_is_limited` |
 | `BrainExplore` | `_choose_goal`, `_choose_explore`, `_square_of`, `_through_known`, the page and portal goals, `_watch_progress`, `_stuck_on_goal` |
-| `BrainTravel` | `_travel`, `_path`, `_raw_path`, `_way*`, `_swim*`, `_wading`, `_leaping`, `_lifting`, `_climb_oak`, the route and nav calls |
+| `BrainTravel` | `_travel`, `_path`, `_raw_path`, `_way*`, `_swim*`, `BrainMoves` (done) holds `_wading`, `_leaping`, `_lifting`, `_climb_oak`, the route and nav calls |
 | `BrainGates` | `_cross`, `_choose_gate`, `_work_gate`, `_clear_gate`, `_gate_stroke`, `_crossing_ahead`, `_toll_between` |
 | `BrainCombat` | `_attack`, `_assailed`, `_choose_defence`, `_choose_repel`, `_footwork`, `_safe_side`, the danger tests (`_lethal_at`, `_in_shoal`, `_scorched`, `_volcano_near`) |
 | `BrainHand` | every stroke and its hand: `_attack_stroke`, `_surf_stroke`, `_breath_stroke`, `_push_stroke`, `_bridge_stroke`, `_tend_stroke`, `_begin_cast`, `_handed`, `_shaken`, `_drag_ok`, `_densify` and the line helpers |

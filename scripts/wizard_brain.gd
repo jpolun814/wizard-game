@@ -91,27 +91,15 @@ const SETTLE := 1.0           # seconds from drawing a way over water to its bei
 const PADS_REACH := 480.0     # pixels of pit that one row of Lily Pads covers, no further apart than a wizard can step
 const DOUBLE_JUMP_REACH := 460.0  # pixels of pit that two jumps carry it over
 const LEAP_STEPS := 2         # Shadow Steps at least that it makes in the air to get over a pit: a jump and two of them carry it 900 px
-const LEAP_AIR_MAX := 4.0     # seconds in the air after which a leap is given up
-const LEAP_DRAW := 0.15       # seconds to draw one: it falls the while
 const SENTINEL_LOOKOUT := 40  # tiles of the way it looks ahead along for a sentinel
 const COVER_RANGE := 780.0    # it draws its cover when it is this close to a sentinel, a little before the sentinel sees it (700)
 const CLEAR_TRIES := 14       # casts at one gate before it gives up on it for a while
 const STRIKE_REACH := {"Fire Breath": 5, "Ignite": 12, "Stonefall": 10, "Earthquake": 10, "Firewall": 8, "Gust": 7, "Tornado": 6, "Spark": 40, "Frostbolt": 12, "Faint": 8}  # tiles: how far off a spell strikes a gate
-const LIFT_WAIT := 1.6         # seconds it stands on a Geyser it has drawn, waiting to be thrown, before it takes it for a miss
-const SHOVE_WAIT := 1.0         # seconds it waits to be off the ground after shoving itself up, before it takes it for a miss
-const VINE_SCALE := 2.4          # how much bigger than its picture it draws a vine, to grow it taller than a wall
-const VINE_OVER := 70.0          # pixels over the top of the wall that it climbs before it lets go, to clear the edge when it drops
-const VINE_WAIT := 8.0          # seconds it climbs before it takes the vine for a miss
-const WADE_WAIT := 40.0          # seconds it spends in a pit before it takes the crossing for a miss
 const BREATH_AHEAD := 60.0        # pixels short of a bank of gas that it stops to hold its breath
 const EYE_SECONDS := 20.0         # how long what a brain sees through its Scrying Eye lasts
 const GAS_WALK := 20.0            # seconds the way through gas is taken to be open after the chant (the breath is held for longer)
-const LIFT_CLEARANCE := 40.0    # pixels it must be thrown above the top of a wall to get over it
 const STRIKE_STAND := 4       # tiles: and it steps up to this far from it
 const JUMP_REACH := 130.0       # pixels a jump carries it up: the highest ledge it will jump for
-const TORNADO_WAIT := 2.5       # seconds it walks into a whirlwind it has drawn, waiting to be flung, before it takes it for a miss
-const OAK_GROW := 1.1           # seconds it waits for a great oak to stand before it climbs
-const OAK_WAIT := 9.0           # seconds it climbs an oak before it takes it for a miss
 const CHASE_ABOVE := 90.0       # pixels a rival's feet must be over its own before it looks for a way up to them
 const LIFT_CLOSE := {"Liana": 40.0, "Great Oak": 40.0, "Updraft": 0.0}  # the lifts that are climbed, and so are cast from near the foot of the ledge, walking up to it
 const LIFT_STAND := {"Updraft": 0.0}  # how close to a rival on a ledge it stands to raise itself to them, for the lifts that differ from the usual
@@ -182,6 +170,7 @@ var pressure := 0.0          # how many shots you have thrown at it lately
 var _recent: Array[String] = []  # its last two attacks, which it avoids repeating
 var rng := RandomNumberGenerator.new()
 var hand: BrainHand
+var moves: BrainMoves  # the leap, the wade and the lift it may have in hand
 var chant: BrainChant
 var danger: BrainDanger
 var sight: BrainSight
@@ -208,9 +197,6 @@ var _hurt_age := 99.0            # seconds since it was last hurt
 var settle := 0.0               # seconds it stands still while a way over water grows
 var _resting := false            # it has stopped to get its breath back
 var _pads := {}                  # crossing (by key) -> {"dir", "front"}: the row of Lily Pads it has made so far over a long pit
-var _wade := {}                  # a walk through the lava of a pit in black glass: {"dir", "key", "span": the pit, "stage", "waited"}
-var _lift := {}                  # a throw up over a wall: {"dir", "key", "span": the wall, "drawn", "thrown", "waited"}
-var _leap := {}                  # a jump over a chasm: {"dir": -1 or 1, "key", "steps": Shadow Steps left to make, "span": the chasm, "jumped", "air": seconds since it left the ground}
 var _cannot := {}                # crossing (by key) -> seconds more that it will not try it, having fallen in
 var _replans := 0                # times in a row it has had to find its way again
 var _eye_time := 0.0              # seconds since it sent out a Scrying Eye, counting down (its window shows someone, not where they are)
@@ -222,6 +208,7 @@ var _rest := {}                  # a spell (or "chase") -> seconds before it use
 func _init(body: Wizard) -> void:
 	wizard = body
 	hand = BrainHand.new(self, body)
+	moves = BrainMoves.new(self, body)
 	chant = BrainChant.new(self, body)
 	danger = BrainDanger.new(self, body)
 	sight = BrainSight.new(self, body)
@@ -362,11 +349,11 @@ func _alone(delta: float) -> void:
 		if _react <= 0.0:
 			_act(_reaction)
 	# It still looks after itself: a light in the dark, its strength, the scent of whoever it has lost.
-	if _react <= 0.0 and _tend_cooldown <= 0.0 and not wizard.is_drawing() and _lift.is_empty() and _leap.is_empty() and _wade.is_empty() and not _smothering():
+	if _react <= 0.0 and _tend_cooldown <= 0.0 and not wizard.is_drawing() and not moves.busy() and not _smothering():
 		_tend_cooldown = 0.6 + rng.randf() * 0.6
 		if _tend(Vector2.ZERO, false, false):
 			_tend_cooldown = 1.4 + rng.randf() * 0.8
-	var mending := _mend(delta, false) if _lift.is_empty() and _leap.is_empty() and _wade.is_empty() else NAN
+	var mending := _mend(delta, false) if not moves.busy() else NAN
 	if not is_nan(mending):
 		wizard.walk(mending)
 		return
@@ -409,7 +396,7 @@ func _with_a_rival(delta: float) -> void:
 			_plan(_choose_repel(), _reaction_time())
 
 	# Looking after itself: its lights, its strength, a wall between it and you, a way up to you.
-	if _react <= 0.0 and _tend_cooldown <= 0.0 and not wizard.is_drawing() and _lift.is_empty() and _leap.is_empty() and _wade.is_empty() and not _smothering():
+	if _react <= 0.0 and _tend_cooldown <= 0.0 and not wizard.is_drawing() and not moves.busy() and not _smothering():
 		_tend_cooldown = 0.6 + rng.randf() * 0.6
 		if _tend(to_player, sees, fighting):
 			_tend_cooldown = 1.4 + rng.randf() * 0.8
@@ -420,12 +407,12 @@ func _with_a_rival(delta: float) -> void:
 
 	# Footwork, or the journey.
 	var run: float
-	var mend := _mend(delta, fighting) if _lift.is_empty() and _leap.is_empty() and _wade.is_empty() and _react <= 0.0 and wizard.swim_time <= 0.0 else NAN  # (no one rests in deep water)
+	var mend := _mend(delta, fighting) if not moves.busy() and _react <= 0.0 and wizard.swim_time <= 0.0 else NAN  # (no one rests in deep water)
 	if not is_nan(mend):
 		wizard.walk(mend)
 		return
-	if not _lift.is_empty():
-		run = _lifting(delta)  # a throw, a climb or a lift up to you goes on, fight or no
+	if not moves.lift.is_empty():
+		run = moves.lifting(delta)  # a throw, a climb or a lift up to you goes on, fight or no
 	else:
 		var daunted := fighting and _strength < TIMID_BELOW and to_player.length() > TIMID_STAND
 		_daunted = _daunted + delta if daunted else 0.0
@@ -687,7 +674,7 @@ func _travel(delta: float) -> float:
 		_off_map = known != WorldNav.NONE and known.y - here.y >= 3 and absi(known.x - here.x) <= 6
 	if _off_map and wizard.is_on_floor():
 		wizard.drop_through()
-	var volcano := danger.volcano_near(wizard.global_position, VOLCANO_FLEE) if _lift.is_empty() and _leap.is_empty() and _wade.is_empty() else Vector2.INF
+	var volcano := danger.volcano_near(wizard.global_position, VOLCANO_FLEE) if not moves.busy() else Vector2.INF
 	if volcano != Vector2.INF and not wizard.lava_proof() and wizard.is_on_floor():
 		_goal = ""  # a volcano is awake close by: it goes away from it, and chooses what to do when it is far enough off
 		_goal_timer = 0.5
@@ -698,12 +685,8 @@ func _travel(delta: float) -> float:
 ## What keeps it from going on with its journey this frame: a manoeuvre in hand (a leap, a wade, a lift), a creature at its heels, a chant to say, a stroke
 ## to draw, a place to wander or escape to, a row of pads to walk, or a rest. The speed to walk at when there is one, and NAN when there is none.
 func _held_up(delta: float) -> float:
-	if not _leap.is_empty():
-		return _leaping(delta)
-	if not _wade.is_empty():
-		return _wading(delta)
-	if not _lift.is_empty():
-		return _lifting(delta)
+	if moves.busy():
+		return moves.tick(delta)
 	var assailed := _assailed(delta)
 	if not is_nan(assailed):
 		return assailed
@@ -1048,8 +1031,7 @@ func _at_the_edge(span: Rect2, dir: int, ahead := 20.0) -> bool:
 
 ## Begins a leap across a crossing (see _leaping), with the fields that differ by the way it is made.
 func _start_leap(crossing: Dictionary, span: Rect2, dir: int, extra: Dictionary) -> void:
-	_leap = {"dir": dir, "key": crossing["key"], "span": span, "jumped": false, "air": 0.0}
-	_leap.merge(extra)
+	moves.start_leap(crossing["key"], span, dir, extra)
 
 
 ## It walks up to the face of the wall and stands there while the ground bubbles under it, while it shoves itself up, while it climbs a vine,
@@ -1058,7 +1040,7 @@ func _cross_by_lift(crossing: Dictionary, spell_name: String, span: Rect2, dir: 
 	var face := span.position.x - 36.0 if dir > 0 else span.end.x + 36.0
 	if absf(face - wizard.global_position.x) > 12.0:
 		_cross_run = clampf(face - wizard.global_position.x, -WALK_SPEED, WALK_SPEED)
-	elif wizard.is_on_floor() and wizard.stamina >= SpellData.SPELLS[spell_name].cost and not _begin_lift(spell_name, crossing["key"], dir, span):
+	elif wizard.is_on_floor() and wizard.stamina >= SpellData.SPELLS[spell_name].cost and not moves.begin_lift(spell_name, crossing["key"], dir, span):
 		return false
 	return true
 
@@ -1067,9 +1049,9 @@ func _cross_by_lift(crossing: Dictionary, spell_name: String, span: Rect2, dir: 
 func _cross_by_wading(crossing: Dictionary, spell_name: String, span: Rect2, dir: int) -> void:
 	if not _at_the_edge(span, dir):
 		return
-	if wizard.is_on_floor() and wizard.stamina >= SpellData.SPELLS[spell_name].cost + SpellData.SPELLS[_way_up()].cost:
+	if wizard.is_on_floor() and wizard.stamina >= SpellData.SPELLS[spell_name].cost + SpellData.SPELLS[way_up()].cost:
 		hand.begin_cast(spell_name, BrainStrokes.offset(GestureTemplates.preview_points("circle"), wizard.center(), 0.8), QUICK_DRAW)
-		_wade = {"dir": dir, "key": crossing["key"], "span": span, "stage": 0, "waited": 0.0}
+		moves.wade = {"dir": dir, "key": crossing["key"], "span": span, "stage": 0, "waited": 0.0}
 
 
 ## It walks to the edge of the gas, holds its breath, and walks through.
@@ -1126,188 +1108,6 @@ func _cross_by_pads(crossing: Dictionary, spell_name: String, span: Rect2, dir: 
 	_bridged[crossing["key"]] = LASTS[spell_name] if over else SETTLE + absf(to_x - from_x) / WALK_SPEED - 0.8  # the next row goes down when it is near the end of this one
 	if over:
 		_pads.erase(crossing["key"])
-
-
-## Starts a lift up a wall from where it stands (see _lifting). False, and the wall is given up for a while, when rock overhead would stop it short.
-func _begin_lift(spell_name: String, key: String, dir: int, span: Rect2) -> bool:
-	var needed := wizard.global_position.y - (span.position.y - LIFT_CLEARANCE)
-	if wizard.test_move(wizard.global_transform, Vector2(0.0, -needed)):  # rock overhead stops the water short of the top
-		_cannot[key] = GIVE_UP
-		return false
-	_lift = {"spell": spell_name, "dir": dir, "key": key, "span": span, "drawn": false, "thrown": false, "waited": 0.0}
-	return true
-
-
-## A walk through the lava of a pit in black glass: it waits for the glass, wades to the foot of the far side, and is lifted out of the pit
-## as it would be over a wall. Returns the speed to go at.
-func _wading(delta: float) -> float:
-	var span: Rect2 = _wade["span"]
-	var dir: int = _wade["dir"]
-	_wade["waited"] += delta
-	if wizard.is_drawing():
-		return 0.0
-	if _wade["waited"] > WADE_WAIT or (_wade["stage"] == 0 and _wade["waited"] > 3.0 and wizard.obsidian_time <= 0.0):
-		_cannot[_wade["key"]] = GIVE_UP
-		_wade = {}
-		return 0.0
-	if _wade["stage"] == 0:
-		if wizard.obsidian_time > 0.0:
-			_wade["stage"] = 1
-		return 0.0
-	var foot := (span.end.x if dir > 0 else span.position.x) - dir * 36.0
-	if (foot - wizard.global_position.x) * dir > 12.0 or not wizard.is_on_floor():
-		return clampf((foot - wizard.global_position.x) * 4.0, -WALK_SPEED, WALK_SPEED)
-	var floor_y := span.position.y - WizardRoute.TILE * 2.0  # the pit's lava lies two rows under the floor it was dug into
-	var side := Rect2(Vector2(span.end.x if dir > 0 else span.position.x - 96.0, floor_y), Vector2(96.0, span.end.y - floor_y))
-	var key: String = _wade["key"]
-	_wade = {}
-	_begin_lift(_way_up(), key, dir, side)
-	return 0.0
-
-
-## A jump over a pit: it leaps from the edge, and in the air carries itself on with Shadow Steps until it is across. Returns the speed to go at.
-func _leaping(delta: float) -> float:
-	var span: Rect2 = _leap["span"]
-	var dir: int = _leap["dir"]
-	if wizard.is_on_floor():
-		if _leap["jumped"]:  # down again: over, or in the pit
-			var across: bool = (wizard.global_position.x - span.get_center().x) * dir > span.size.x * 0.5
-			if not across:
-				_cannot[_leap["key"]] = GIVE_UP
-			_bridged[_leap["key"]] = 2.0
-			_leap = {}
-			_goal = ""
-			_goal_timer = 0.0
-			return 0.0
-		_leap["jumped"] = true
-		wizard.request_jump()
-		return dir * WizardRoute.MAX_AIR_SPEED
-	_leap["air"] += delta
-	var helpers: Array = _leap.get("helpers", [])
-	if not helpers.is_empty() and not wizard.is_drawing():
-		if helpers[0] == "Rocket Jump" and wizard.velocity.y < -40.0 and _leap["air"] > 0.12:
-			helpers.pop_front()
-			hand.begin_cast("Rocket Jump", BrainStrokes.offset(GestureTemplates.preview_points("rocket"), wizard.center(), 0.6), LEAP_DRAW)
-		elif helpers[0] == "Featherfall" and wizard.velocity.y > -20.0:
-			helpers.pop_front()
-			hand.begin_cast("Featherfall", hand.tend_stroke("Featherfall", Vector2.ZERO), LEAP_DRAW)
-		elif helpers[0] == "Rocket Jump" and wizard.velocity.y > -20.0 and _leap["air"] > 0.5:
-			helpers.pop_front()  # (it missed the moment)
-	if _leap.get("double", false) and wizard.air_jump_ready and wizard.velocity.y > -20.0:
-		wizard.request_jump()  # the second jump, at the top of the first
-		_leap["double"] = false
-	if _leap["air"] > LEAP_AIR_MAX:  # held against a rock face: it lets go of the jump and falls
-		_cannot[_leap["key"]] = GIVE_UP
-		_leap = {}
-		return 0.0
-	var beyond: bool = (wizard.global_position.x - span.get_center().x) * dir > span.size.x * 0.5 - 40.0
-	if _leap["steps"] > 0 and not wizard.is_drawing() and not beyond and (wizard.velocity.y > -40.0 or _leap["steps"] < LEAP_STEPS):
-		_leap["steps"] -= 1
-		var start: Vector2 = wizard.center()
-		hand.begin_cast("Shadow Step", BrainStrokes.line(start, start + Vector2(dir * SpellData.STEP_MAX, -10.0).normalized() * SpellData.STEP_MAX), LEAP_DRAW)
-	return dir * WizardRoute.MAX_AIR_SPEED
-
-
-## A throw over a wall: it draws a Geyser under its feet and stands while the ground bubbles, and once the water has thrown it up it goes
-## on across, over the top. Returns the speed to go at.
-func _lifting(delta: float) -> float:
-	pass
-	var span: Rect2 = _lift["span"]
-	var dir: int = _lift["dir"]
-	if not _lift["drawn"]:
-		if wizard.is_drawing():
-			return 0.0
-		_lift["drawn"] = true
-		var feet: Vector2 = wizard.center()
-		if _lift["spell"] == "Push":
-			hand.begin_cast("Push", hand.push_stroke(feet, Vector2(dir * 0.2, -1.0).normalized()), QUICK_DRAW)
-		elif _lift["spell"] == "Liana":  # a vine from the ground at its feet, taller than the wall
-			hand.begin_cast("Liana", BrainStrokes.offset(GestureTemplates.preview_points("vine"), Vector2(feet.x + 50.0 * VINE_SCALE, wizard.global_position.y - 75.0 * VINE_SCALE), VINE_SCALE), QUICK_DRAW)
-		elif _lift["spell"] == "Rocket Jump":  # an arrow up drawn at its feet: the flame throws it high
-			hand.begin_cast("Rocket Jump", BrainStrokes.offset(GestureTemplates.preview_points("rocket"), feet, 0.6), QUICK_DRAW)
-		elif _lift["spell"] == "Updraft":  # a column of air where it stands
-			hand.begin_cast("Updraft", BrainStrokes.offset(GestureTemplates.preview_points("updraft"), feet, 0.6), QUICK_DRAW)
-		elif _lift["spell"] == "Tornado":  # a whirlwind a step ahead of it, to walk into
-			hand.begin_cast("Tornado", BrainStrokes.offset(GestureTemplates.preview_points("tornado"), Vector2(feet.x + dir * 60.0, wizard.global_position.y - 90.0), 0.9), ATTACK_DRAW)
-		elif _lift["spell"] == "Great Oak":  # a trunk drawn up from the ground a step ahead of it
-			var shape := GestureTemplates.preview_points("tree")
-			var foot := Vector2(feet.x + dir * 50.0, wizard.global_position.y - 4.0)
-			var moved := PackedVector2Array()
-			for p in shape:
-				moved.append(foot + (p - shape[0]) * 0.7)
-			hand.begin_cast("Great Oak", BrainStrokes.densify(moved), ATTACK_DRAW)
-		else:
-			hand.begin_cast("Geyser", BrainStrokes.offset(GestureTemplates.preview_points("geyser"), feet, 0.6), QUICK_DRAW)
-		return 0.0
-	if _lift["spell"] == "Great Oak" and not _lift["thrown"]:  # it climbs the oak's ledges one by one
-		var step := _climb_oak(delta, span, dir)
-		if _lift.is_empty():
-			return 0.0
-		if not _lift["thrown"]:
-			return step
-	if _lift["spell"] == "Liana" and not _lift["thrown"]:  # it takes hold of the vine and climbs until its feet are over the top
-		_lift["waited"] += delta
-		if wizard.global_position.y < span.position.y - VINE_OVER:
-			_lift["thrown"] = true
-			wizard.climb_up = false
-		elif _lift["waited"] > VINE_WAIT:
-			wizard.climb_up = false
-			_cannot[_lift["key"]] = GIVE_UP
-			_lift = {}
-			return 0.0
-		else:
-			wizard.climb_up = true
-			return 0.0
-	if wizard.is_on_floor():
-		var wait := LIFT_WAIT if _lift["spell"] == "Geyser" or _lift["spell"] == "Updraft" else (TORNADO_WAIT if _lift["spell"] == "Tornado" else SHOVE_WAIT)
-		if not _lift["thrown"] and _lift["waited"] < wait:  # the ground bubbles for a moment before the burst
-			_lift["waited"] += delta
-			return dir * WALK_SPEED if _lift["spell"] == "Tornado" else 0.0  # (a whirlwind is walked into)
-		var past: bool = (wizard.global_position.x - span.get_center().x) * dir > span.size.x * 0.5
-		var on_top: bool = wizard.global_position.y < span.position.y + 4.0
-		if _lift["spell"] == "Great Oak" and _lift["thrown"] and on_top and not past:  # on a ledge over the top: it jumps off toward the far side
-			wizard.request_jump()
-			return dir * WizardRoute.MAX_AIR_SPEED
-		var across: bool = past or on_top  # (or on top of the wall)
-		if not across:  # down again on the near side: the water did not throw it high enough
-			_cannot[_lift["key"]] = GIVE_UP
-		_bridged[_lift["key"]] = 2.0
-		_lift = {}
-		_goal = ""
-		_goal_timer = 0.0
-		return 0.0
-	_lift["thrown"] = true
-	pass
-	var clear: bool = wizard.global_position.y < span.position.y - 10.0
-	return dir * WizardRoute.MAX_AIR_SPEED if clear else 0.0
-
-
-## A climb up the ledges of an oak: it goes to the highest one it can jump onto, and jumps, until the top is within a jump. Returns the speed to go at.
-func _climb_oak(delta: float, span: Rect2, dir: int) -> float:
-	_lift["waited"] += delta
-	if _lift["waited"] < OAK_GROW:
-		return 0.0
-	var feet: Vector2 = wizard.global_position
-	if feet.y - span.position.y <= JUMP_REACH - 20.0:  # the top is a jump away
-		_lift["thrown"] = true
-		wizard.request_jump()
-		return dir * WizardRoute.MAX_AIR_SPEED
-	var best := Rect2()
-	var best_rise := 0.0
-	for oak: GreatOak in wizard.get_tree().get_nodes_in_group("oaks"):
-		for ledge in oak.ledge_tops():
-			var rise := feet.y - ledge.position.y
-			if rise > 6.0 and rise <= JUMP_REACH and rise > best_rise and absf(feet.x - ledge.get_center().x) < 220.0:
-				best = ledge
-				best_rise = rise
-	if best_rise == 0.0 or _lift["waited"] > OAK_WAIT:  # no ledge it can reach: the oak is given up
-		_cannot[_lift["key"]] = GIVE_UP
-		_lift = {}
-		return 0.0
-	var under := clampf(feet.x, best.position.x + 12.0, best.end.x - 12.0)
-	if wizard.is_on_floor() and absf(feet.x - under) < 8.0:
-		wizard.request_jump()
-	return clampf((under - feet.x) * 4.0, -WALK_SPEED, WALK_SPEED)
 
 
 ## Draws what keeps a sentinel from hitting it: smoke over the statue, or a Barrier, or a Decoy. The name of the spell, or "" when it can do none.
@@ -1649,8 +1449,24 @@ func _way(kind: String) -> String:
 	return ""
 
 
+## What it does to forget a page or place it was bound for, to choose again.
+func forget_goal() -> void:
+	_goal = ""
+	_goal_timer = 0.0
+
+
+## A crossing it fell short of: it will not try it again for a while.
+func give_up_on(key: String) -> void:
+	_cannot[key] = GIVE_UP
+
+
+## A crossing it has made its way over: the way holds for a moment.
+func crossed(key: String, seconds := 2.0) -> void:
+	_bridged[key] = seconds
+
+
 ## The spell that lifts it out of a pit of lava, or "": a vine would burn in the lava.
-func _way_up() -> String:
+func way_up() -> String:
 	for spell_name in ["Geyser", "Push"]:
 		if _knows(spell_name):
 			return spell_name
@@ -1661,7 +1477,7 @@ func _way_up() -> String:
 func _usable(spell_name: String) -> bool:
 	if spell_name == "leap:air":
 		return _knows("Rocket Jump") or _knows("Featherfall")
-	return _knows(spell_name) and (spell_name != "Obsidian Armor" or _way_up() != "")
+	return _knows(spell_name) and (spell_name != "Obsidian Armor" or way_up() != "")
 
 
 ## What a gate is called on the list of what it has given up.
@@ -2258,7 +2074,7 @@ func _ready_lift() -> String:
 
 ## A rival standing over its head, on a ledge: it raises itself up to them with the first spell it holds that does it. True when it has begun.
 func _chase(to_player: Vector2) -> bool:
-	if not wizard.is_on_floor() or _rest.has("chase") or not _lift.is_empty():
+	if not wizard.is_on_floor() or _rest.has("chase") or not moves.lift.is_empty():
 		return false
 	var rise := wizard.global_position.y - sight.seen_feet(_foe).y
 	if rise < CHASE_ABOVE or absf(to_player.x) > 320.0:
@@ -2271,7 +2087,7 @@ func _chase(to_player: Vector2) -> bool:
 		if LIFT_CLOSE.has(spell_name) and absf(to_player.x) > LIFT_CLOSE[spell_name] + 60.0:
 			continue  # a vine, an oak or a column of air is raised only once it has walked up to the foot of the ledge
 		_rest["chase"] = CHASE_REST
-		if _begin_lift(spell_name, "chase", dir, span):
+		if moves.begin_lift(spell_name, "chase", dir, span):
 			return true
 	return false
 

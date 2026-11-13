@@ -57,8 +57,8 @@ The owner wants them indistinguishable from people (the section on playing like 
   and strikes until it is gone. `WorldGates.watch` marks the gate open and builds the ways again.
 - **Gates it crosses** (`WAYS`): `WorldBuilder.shut(world, true)` leaves chasms, floods, piranha pits and sentinels open in the ways and lists the tiles that cross each
   (`tolls`); `WorldNav.path` goes round the crossings it holds no spell for. Over water it draws a Frost Bridge or Lily Pads and walks over; over a pit it jumps
-  and carries itself on with Shadow Steps (`_leaping`); at a wall it lifts itself over (`_lifting`: a Geyser under its feet, Push, or a Liana); through lava it wades in
-  Obsidian Armor (`_wading`); at a sentinel it hides behind Smoke Screen, an Eclipse, a Barrier or a Decoy; through gas it holds its breath with the Chant of the Deep Breath.
+  and carries itself on with Shadow Steps (`BrainMoves.leaping`); at a wall it lifts itself over (`BrainMoves.lifting`: a Geyser under its feet, Push, or a Liana); through lava it wades in
+  Obsidian Armor (`BrainMoves.wading`); at a sentinel it hides behind Smoke Screen, an Eclipse, a Barrier or a Decoy; through gas it holds its breath with the Chant of the Deep Breath.
 - **Rooms built by hand** (the waiting room, the tutorial) are read the same way by `RoomScan` (the section "The AI reads any room" below).
 - Tests: `tests/test_nav.gd`, `tests/route_check.tscn`, `tests/cross_check.tscn`, `tests/gate_check.tscn`, `tests/sentinel_check.tscn`, `tests/arena_sim.tscn` (AI-only matches).
 

@@ -71,7 +71,7 @@ func _ready() -> void:
 	for gate in room.closed_gates():
 		print("gate ", gate["kind"], " ", gate["outside"], " clearing: '", wizard.brain.clearing_spell(gate["kind"]), "' skip ", wizard.brain._skip.has(wizard.brain._gate_key(gate)))
 	var b = wizard.brain
-	print("INTERNALS leap ", b._leap, " lift ", b._lift, " wade ", b._wade, " settle ", b._settle, " resting ", b._resting, " drawing ", wizard.is_drawing(), " cd ", b._cast_cooldown, " react ", b._react, " goal_timer ", b._goal_timer, " floor ", wizard.is_on_floor(), " fainted ", wizard.fainted, " stam ", wizard.stamina, " vel ", wizard.velocity, " rocket ", wizard.rocket_time, " feather ", wizard.get("feather_time"), " tangle ", wizard.tangle_time, " obstacle ", wizard.is_on_wall())
+	print("INTERNALS leap ", b.moves.leap, " lift ", b.moves.lift, " wade ", b.moves.wade, " settle ", b._settle, " resting ", b._resting, " drawing ", wizard.is_drawing(), " cd ", b._cast_cooldown, " react ", b._react, " goal_timer ", b._goal_timer, " floor ", wizard.is_on_floor(), " fainted ", wizard.fainted, " stam ", wizard.stamina, " vel ", wizard.velocity, " rocket ", wizard.rocket_time, " feather ", wizard.get("feather_time"), " tangle ", wizard.tangle_time, " obstacle ", wizard.is_on_wall())
 	var begin: Vector2i = wizard.nav.nearest(Vector2i(floori(wizard.global_position.x / 32.0), floori((wizard.global_position.y - 1.0) / 32.0)), true)
 	print("start ", begin, " choose gate -> ", wizard.brain._choose_gate(begin), " goal ", wizard.brain._goal, " tolls at start '", wizard.nav.toll_at(begin), "' pos ", wizard.global_position / 32.0)
 	print(wizard.nav.sketch(Vector2i(375, 5)))
