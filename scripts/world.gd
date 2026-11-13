@@ -977,11 +977,11 @@ func _in_rock(point: Vector2) -> bool:
 func _surface_under(point: Vector2) -> Vector2:
 	if not _in_rock(point):
 		return super._surface_under(point)
-	return SpellTargets.solid_below(get_world_2d(), _lifted_out_of_rock(point) + Vector2(0.0, -8.0))
+	return SpellTargets.solid_below(get_world_2d(), lifted_out_of_rock(point) + Vector2(0.0, -8.0))
 
 
 ## A point inside rock moved straight up until it is in the open.
-func _lifted_out_of_rock(point: Vector2) -> Vector2:
+func lifted_out_of_rock(point: Vector2) -> Vector2:
 	var clear := point
 	for step in 400:
 		if not _in_rock(clear):

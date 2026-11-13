@@ -427,7 +427,7 @@ python tools/run_checks.py --full                              # all of them, ab
 | Air | Vacuum | infinity sign on its side (lungs), drawn over a wizard | the air drawn out of someone's lungs: they hold their breath (no chanting) and then suffocate | it lets go when the caster casts again or is hurt; step out of sight to cast, or hit the caster |
 | Air | Updraft | arrow pointing up | a column of rising air that stays for the rest of the world; any number can be raised | none; it lifts anyone |
 | Air | Gust | straight flick | wind along the stroke: turns shots, sweeps smoke and you sideways | a giant does not move |
-| Earth | Stonefall | circle with a line down | a dropped boulder | watch the shadow |
+| Earth | Stonefall | circle with a line down | a boulder that falls from where the circle was drawn and hits as hard as it falls (`Boulder.SPEED_PER_DAMAGE`) | watch the shadow |
 | Earth | Stone Wall | line starting on the ground, a platform or another stone wall | a raised slab | Earthquake, Stonefall, shots wear it down |
 | Earth | Mudslide | wavy line (as Frost Bridge) | a pit of mud: slows, no jumping | walk out |
 | Earth | Stalagmite | one or more peaks (^) over the ground | spikes of rock that rise from the ground and hurt whatever touches them | step around |

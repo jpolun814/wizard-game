@@ -37,7 +37,7 @@ CHECKS = [
     ("test_liquid", "script", ""),
 ] + [(name, "scene", "") for name in (
     "flow_check", "tutorial_check", "tutorial_path_check", "menu_check", "settings_check", "lab_revive_check", "likeness_check", "stairs_check", "stairwell_check", "castle_spells_check", "castle_sinkhole_fall_check",
-    "biome_jump_check", "earthquake_check", "sinkhole_check", "sinkhole_biomes_check", "ridge_check", "stalagmite_check", "parity_check", "interaction_check",
+    "biome_jump_check", "earthquake_check", "stonefall_check", "sinkhole_check", "sinkhole_biomes_check", "ridge_check", "stalagmite_check", "parity_check", "interaction_check",
     "ritual_check", "library_screen_check", "avalanche_check", "pieces_check", "spellbook_order_check", "arrival_check", "sneak_check", "limits_check",
     "cluster_check", "brains_start_check", "blizzard_freeze_check", "blizzard_melt_check", "group_a_check", "group_d_check", "group_c_check", "group_b_check", "leech_check", "raise_dead_check", "mirage_check", "recorder_check", "log_upload_check", "solo_record_check", "sphere_check", "lab_sphere_check", "eye_check", "puppet_swing_check",
 )] + [("route_check", "scene", "seed=7 moves=90")] + [("brain_spells_check#%d" % k, "scene", "shard=%d/4" % k) for k in range(4)]

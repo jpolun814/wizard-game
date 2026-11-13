@@ -178,20 +178,8 @@ func learn_every_page() -> void:
 
 
 ## The land the map is in.
-## Where a boulder starts its fall over a point: 260 px up, or just under the ceiling when the roof is nearer, so a
-## boulder cast underground never begins inside rock.
-func drop_point(point: Vector2) -> Vector2:
-	var from := _lifted_out_of_rock(point)
-	var query := PhysicsRayQueryParameters2D.create(from, from + Vector2(0, -260.0))
-	query.collision_mask = 1
-	var hit := get_world_2d().direct_space_state.intersect_ray(query)
-	if hit.is_empty():
-		return from + Vector2(0, -260.0)
-	return (hit["position"] as Vector2) + Vector2(0, Boulder.RADIUS + 6.0)
-
-
 ## A point lifted out of any rock it is in. The waiting room has no rock to be in; a world overrides this.
-func _lifted_out_of_rock(point: Vector2) -> Vector2:
+func lifted_out_of_rock(point: Vector2) -> Vector2:
 	return point
 
 

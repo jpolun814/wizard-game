@@ -6,14 +6,18 @@ extends RigidBody2D
 
 const RADIUS := 18.0
 const LANDING_RADIUS := 36.0
-const LANDING_DAMAGE := 30
+const SPEED_PER_DAMAGE := 24.0  # a blow takes off one point for each this many pixels a second it was moving: a fall of 260 px lands for about 30
+const MOST_DAMAGE := 100
+const RECENT_STEPS := 4
+const RUNNING_SLOWEST := 120.0  # a boulder rolling slower than this hurts no one it bumps
 const BREAKING_BLOW := 60.0  # what it takes off a wall or a plug of ice where it lands
 const HEALTH := 63.0  # the same as a default stone wall (45% of its length)
 
 var earth: Texture2D  # the world's earth, which the boulder is cut from; set by the arena
 var _health := HEALTH
 var _landed := false
-var _speed := 0.0  # how fast it was moving last frame, which is how hard it hits
+var _speed := 0.0  # how fast it was moving just before it struck, which is how hard it hits
+var _recent: Array[float] = []  # its speed over the last few steps
 var _last_bump := {}  # when each body was last bumped, so one push does not hurt it every frame
 
 
@@ -55,24 +59,30 @@ func _ready() -> void:
 	add_child(strike_zone)
 
 
-func _physics_process(_delta: float) -> void:
-	_speed = linear_velocity.length()
+## How fast it has been moving over the last few steps. A strike is reported after it has happened, when the body has already been stopped, so the speed it struck
+## with is the fastest of the steps just before.
+func _integrate_forces(state: PhysicsDirectBodyState2D) -> void:
+	_recent.push_back(state.linear_velocity.length())
+	if _recent.size() > RECENT_STEPS:
+		_recent.pop_front()
+	_speed = _recent.max()
 
 
 ## A walker or the player it bumps takes damage in proportion to how fast it was moving, your own boulder included. The first time it touches the
-## ground, it hurts whoever is under it.
+## ground, it hurts whoever is under it in the same proportion: a boulder drawn high lands hard, and one drawn on the ground hardly hurts.
 func _on_contact(body: Node) -> void:
 	if body.is_in_group("mobs") or body.is_in_group("wizards"):
 		var now := Time.get_ticks_msec()
-		if _speed < 120.0 or now - int(_last_bump.get(body, -10000)) < 600:
+		if _speed < RUNNING_SLOWEST or now - int(_last_bump.get(body, -10000)) < 600:
 			return
 		_last_bump[body] = now
-		SpellTargets.hurt(body, clampi(int(_speed / 40.0), 4, 40), "Earth", false, false, self)
+		SpellTargets.hurt(body, _blow(), "Earth", false, false, self)
 		return
 	if _landed:
 		return
 	_landed = true
-	SpellTargets.hurt_within(get_tree(), global_position, LANDING_RADIUS, LANDING_DAMAGE, "Earth", false, false, self)
+	if _blow() > 0:
+		SpellTargets.hurt_within(get_tree(), global_position, LANDING_RADIUS, _blow(), "Earth", false, false, self)
 	Fx.debris(get_parent(), global_position, Color("#9c7a52"), 12, 200.0)
 	Fx.smoke(get_parent(), global_position, Color(0.45, 0.38, 0.3, 0.5), 5, 30.0, 30.0)
 	Sfx.play("quake", global_position)
@@ -80,6 +90,11 @@ func _on_contact(body: Node) -> void:
 	for thing in get_tree().get_nodes_in_group("breakables"):
 		if thing is IcePlug or thing is RockWall:  # it breaks a plug of ice, or brings a wall down, where it lands
 			thing.take_blow_near(global_position + Vector2(0, RADIUS), BREAKING_BLOW)
+
+
+## What a blow takes off: more the faster it was moving.
+func _blow() -> int:
+	return clampi(roundi(_speed / SPEED_PER_DAMAGE), 0, MOST_DAMAGE)
 
 
 ## A Push shoves it like anything else that is loose.

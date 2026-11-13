@@ -294,10 +294,10 @@ func spawn(spell: String, targeting: String, origin: Vector2, aim: float, info: 
 	if targeting == "directional" and spell != "Stone Wall":
 		origin = from + Vector2.from_angle(aim) * MUZZLE_OFFSET
 	if spell == "Stonefall":
-		# A boulder falls onto the ground under the stroke and stays where it lands, as a loose rock.
+		# A boulder falls from where the circle was drawn, onto the ground under it, and stays where it lands, as a loose rock. How hard it hits is how fast it falls.
 		var boulder := Boulder.new()
 		boulder.earth = _arena.earth_texture()
-		boulder.global_position = _arena.drop_point(origin)
+		boulder.global_position = _arena.lifted_out_of_rock(origin)
 		_arena.add_child(boulder)
 		return
 	var effect := _new_effect(spell)
