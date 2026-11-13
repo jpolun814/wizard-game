@@ -910,13 +910,13 @@ func _physics_process(delta: float) -> void:
 			velocity.y = JUMP_VELOCITY * _jump_strength
 			_jump_buffer = 0.0
 			_coyote = 0.0
-			Sfx.play("jump", global_position)
+			Sfx.play(WizardLook.jump_sound(look), global_position)
 		elif _jump_buffer > 0.0 and air_jump_time > 0.0 and air_jump_ready and sink_time <= 0.0 and tangle_time <= 0.0 and not is_on_floor():
 			# The second leap: a jump in the air, free of stamina, once per landing.
 			velocity.y = JUMP_VELOCITY * 0.9
 			_jump_buffer = 0.0
 			air_jump_ready = false
-			Sfx.play("jump", global_position)
+			Sfx.play(WizardLook.jump_sound(look), global_position)
 		# Letting go of jump early cuts the jump short, so small hops are easy.
 		if brain == null and Input.is_action_just_released("jump") and velocity.y < JUMP_VELOCITY * 0.4 and swim_time <= 0.0 and not flying:
 			velocity.y = JUMP_VELOCITY * 0.4

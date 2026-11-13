@@ -47,6 +47,14 @@ static func swatch(look: String, palette: int) -> Color:
 	return Color.from_hsv(hue, 0.65 * float(set["robe"][1]), 0.78)
 
 
+## The sound of a jump, in the figure's own voice: the women have voices of their own, and the rest share the one that every wizard had.
+const JUMP_VOICES := {"bone_wizard": "jump_bone_wizard", "lightning_mage": "jump_lightning_mage"}
+
+
+static func jump_sound(look: String) -> String:
+	return JUMP_VOICES.get(look, "jump")
+
+
 ## True for the id of one of the four figures.
 static func is_look(look: String) -> bool:
 	return LOOKS.has(look)

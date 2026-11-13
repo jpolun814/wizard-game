@@ -14,7 +14,7 @@ const VOLUME := {
 	"spark": -5.0, "eldritch": -4.0, "quicksand": -4.0, "thunder": -8.0, "tornado": -1.0, "blink": -8.0,
 	"earth": -6.0, "stones": -4.0, "quake": -4.0, "explosion": -6.0,
 	"misfire": -6.0, "mob_hurt": -12.0, "mob_die": -10.0, "mob_shoot": -12.0,
-	"player_hurt": -4.0, "jump": -14.0, "step": -26.0, "type": -22.0,
+	"player_hurt": -4.0, "jump": -14.0, "jump_bone_wizard": -14.0, "jump_lightning_mage": -14.0, "step": -26.0, "type": -22.0,
 	"portal_open": -6.0, "portal_enter": -4.0, "ritual_ok": -4.0, "heal": -8.0,
 	"book_open": -8.0, "book_close": -8.0, "page": -8.0, "pickup": -8.0,
 	"blood_cast": -6.0, "heartbeat": -2.0, "surf": -3.0, "glass": -8.0, "faint": -4.0, "jaw_snap": -4.0, "chomp": -8.0, "wizard_cast": -8.0, "game_over": -6.0, "summon": -12.0, "ui_click": -10.0,
@@ -45,6 +45,11 @@ func _ready() -> void:
 		# Only the paths are kept: a sound is loaded the first time it plays, because loading every sound at launch
 		# made the game take most of a minute to open.
 		_files[key].append("res://audio/" + file)
+
+
+## True when there is a sound of this name.
+func has_sound(sound: String) -> bool:
+	return _files.has(sound)
 
 
 ## Plays a sound. at is a world position, or leave it out for a sound that is not in the world.

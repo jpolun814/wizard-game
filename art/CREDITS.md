@@ -52,6 +52,7 @@ and are no longer drawn by the game.
 |---|---|---|
 | `player_hurt`, `mob_shoot` | [Kenney – New Platformer Pack](https://kenney.nl/assets/new-platformer-pack) | CC0 1.0 |
 | `jump` | [Jumping man sounds](https://opengameart.org/content/jumping-man-sounds) by IgnasD | CC0 |
+| `jump_bone_wizard`, `jump_lightning_mage` | [Female RPG Voice Starter Pack](https://opengameart.org/content/female-rpg-voice-starter-pack) by Cici Fyre (the jump clips of voice types 1 and 2, converted to 16 bit and brought up to the loudness of `jump`) | CC0 |
 | `pickup` | [Kenney – RPG Audio](https://kenney.nl/assets/rpg-audio) (cloth rustle) | CC0 1.0 |
 | `heartbeat` | [Heartbeat sounds](https://opengameart.org/content/heartbeat-sounds) by estevinho (`heartbeat_slow_0`) | CC0 |
 | `blood_cast`, `chomp` | [40 CC0 water / splash / slime SFX](https://opengameart.org/content/40-cc0-water-splash-slime-sfx) by rockseller (`slime_05`, `slime_12`) | CC0 |

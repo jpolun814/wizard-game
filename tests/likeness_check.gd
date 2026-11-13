@@ -32,6 +32,8 @@ func _ready() -> void:
 		var high := float(top) * WizardLook.scale_of(look)
 		_verdict(absf(high - 79.0) <= 4.0, "%s stands %.0f from feet to head (79 is the mark)" % [look, high])
 
+	for look: String in WizardLook.LOOKS:
+		_verdict(Sfx.has_sound(WizardLook.jump_sound(look)), "%s has a jump sound (%s)" % [look, WizardLook.jump_sound(look)])
 	_verdict(Net.rival_look(1) != Net.look_of(Net.my_id()) and Net.rival_look(2) != Net.look_of(Net.my_id()) and Net.rival_look(3) != Net.look_of(Net.my_id()), "no brain wears the figure the person plays")
 	GameSettings.set_value("look", "pyre_wizard")
 	var rivals := [Net.rival_look(1), Net.rival_look(2), Net.rival_look(3)]
