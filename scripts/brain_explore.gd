@@ -38,7 +38,7 @@ func choose_explore(start: Vector2i) -> bool:
 						continue
 					if Wreck.covers(wizard.get_tree(), Vector2((tile.x + 0.5) * WizardRoute.TILE, (tile.y + 1) * WizardRoute.TILE)):
 						continue  # (a wreck is taken in at a glance: its page and its air are sought for themselves, its hold is not searched square by square)
-					var path: Array[Vector2i] = brain.raw_path(start, tile)
+					var path: Array[Vector2i] = brain.travel.raw_path(start, tile)
 					if path.is_empty() or not through_known(path, start, tile):
 						continue
 					var cost := float(path.size()) + brain.rng.randf() * 12.0 - (14.0 if dir == explore_dir else 0.0)
@@ -105,7 +105,7 @@ func through_known(path: Array[Vector2i], start: Vector2i, target: Vector2i) -> 
 ## As far toward a place as the ground it has seen takes it: of the places it knows that lie between here and there (along the line to it, and
 ## along its own floor), the one nearest the place that it can walk to over ground it has seen. Empty when none is nearer than where it stands.
 func toward_known(from: Vector2i, to: Vector2i) -> Array[Vector2i]:
-	var best := brain.no_path()
+	var best := brain.travel.no_path()
 	var best_gap := Vector2(to - from).length() - 3.0  # it must come nearer, or there is no point
 	var aims: Array[Vector2i] = []
 	for k in range(8, 0, -1):
@@ -120,7 +120,7 @@ func toward_known(from: Vector2i, to: Vector2i) -> Array[Vector2i]:
 		var gap := Vector2(to - tile).length()
 		if gap >= best_gap:
 			continue
-		var path := brain.raw_path(from, tile)
+		var path := brain.travel.raw_path(from, tile)
 		if path.is_empty() or not through_known(path, from, tile):
 			continue
 		best = path
@@ -137,7 +137,7 @@ func nearest_portal(start: Vector2i) -> Dictionary:
 	for portal: FieldPortal in open:
 		if portal.remaining() < WizardBrain.PORTAL_LEFT or portal.lift > PortalField.JUMPABLE or brain.skip.has(portal.get_instance_id()):  # one hung higher than a jump reaches is not for it
 			continue
-		var path: Array[Vector2i] = brain.find_path(start, wizard.nav.nearest(brain.tile_of(portal.global_position + Vector2(0.0, Portal.RY + portal.lift))))
+		var path: Array[Vector2i] = brain.travel.find_path(start, wizard.nav.nearest(brain.tile_of(portal.global_position + Vector2(0.0, Portal.RY + portal.lift))))
 		if not path.is_empty() and (best.is_empty() or path.size() < best["path"].size()):
 			best = {"portal": portal, "path": path}
 	return best

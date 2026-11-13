@@ -50,7 +50,7 @@ The owner wants them indistinguishable from people (the section on playing like 
 
 - **The map of the ways.** `Walkways` (`scripts/world/walkways.gd`) is the one set of rules for where a wizard can stand and the moves between (walk, step, fall,
   jump), shared by the generator's reachability test and the wizards. `WorldNav` finds paths over it, kept to tiles that can be left as well as come to.
-  `WizardRoute` follows a path: when to jump, how fast, when it is stuck. In the ocean a wizard out of its depth swims straight for its goal instead (`_swim`).
+  `WizardRoute` follows a path: when to jump, how fast, when it is stuck. In the ocean a wizard out of its depth swims straight for its goal instead (`BrainTravel.swim`).
 - **Exploring:** in a match it knows only the pages it has seen (`BrainExplore.note_sights`) and walks to unexplored squares (`BrainExplore.choose_explore`), and it plans only through ground it
   has seen (`BrainExplore.toward_known`).
 - **Gates it clears** (`CLEARS`): with no page to be had it goes to the nearest gate a spell it holds can clear (fire for thorns, gas and ice; stone for a wall and ice)
@@ -92,7 +92,7 @@ What the brain does now that it did not:
 - **Creatures that attack** (`_assailed`): it strikes one down with a spell that kills, or runs.
 - **Mending:** a worn-down wizard lights a bonfire (chant) and rests at it (`BrainMend.mend`); a wizard rests when stamina is low (thresholds scale with maximum stamina).
 - **Footwork:** it walks, hops rarely (jumping is a last resort), strafes in a fight in slow turns, draws attack strokes with a hand's wobble (`_handed`), and takes a person's time to type a chant.
-- **Watchdog:** `_watch_progress` gives up a goal after 20 s with no progress; `WizardRoute.wait()` marks a wait as not being stuck.
+- **Watchdog:** `BrainTravel.watch_progress` gives up a goal after 20 s with no progress; `WizardRoute.wait()` marks a wait as not being stuck.
 - **Floors:** exploring weighs nearby unexplored squares on other floors as well as along the way (`BrainExplore.choose_explore`, `EXPLORE_FLOOR`), so the castle's upper and lower halls get visited; a stair that does not come in `STAIR_PATIENCE` seconds, or a ride that never began (`WizardRoute.RIDE_GIVE_UP`), is given up. `tests/arena_sim.tscn` prints the pages still lying at the end and whether anyone could walk to them.
 - **Thorns:** with no fire to burn them, it does not walk into world thorns (`BrainDanger.lethal_at`); it stops camping or chanting when a creature, fire or fish is on it (`BrainMend.mend`).
 Seen and left alone: long waits for swinging castle stairs (legitimate, up to about 78 s), the rift, boundless and dowsing chants are unused, foe hunting still knows where rivals are.

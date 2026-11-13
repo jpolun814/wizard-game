@@ -39,7 +39,7 @@ Breath is the only pressure: no damage from depth, and fire fizzles under water.
   hold under the deck (`HOLD`), where a wizard breathes. A page lies between the halves. The picture is cut to the open water (`clip`) so the floor hides its buried sand,
   and the hulls go straight down into the floor: a wedge of water under an overhanging hull trapped swimmers.
 - **Driftwood** (`Driftwood`) is a one-way platform at the waterline; **kelp** (`KelpPatch`) slows and hides. A bonfire under water goes out (`Bonfire.drowned`).
-- **The AI** swims straight for its goal (`WizardBrain._swim`), with a stroke at a person's pace, and goes up for air when its breath would only just last the way:
+- **The AI** swims straight for its goal (`BrainTravel.swim`), with a stroke at a person's pace, and goes up for air when its breath would only just last the way:
   straight up, to open water to one side, or to an air pocket it can reach in a straight line (`_nearest_air`). It goes across under a hull before it strokes up,
   drops through a deck or driftwood to get under it, gives up a place inside a hull (`_inside_solid`) and does not search a wreck's hold square by square (`Wreck.covers`).
   It still spends more time round the wrecks than elsewhere.

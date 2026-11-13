@@ -193,8 +193,8 @@ func _physics_process(delta: float) -> void:
 				if v is Object or v is Callable:
 					continue
 				print("PROBE ", prop["name"], " = ", str(v).substr(0, 160))
-		if b._goal_page != null and is_instance_valid(b._goal_page):
-			print("PROBE page at ", b._goal_page.global_position / 32.0, " ", b._goal_page.name, " spoils ", b._goal_page.spoils.size())
+		if b.travel.goal_page != null and is_instance_valid(b.travel.goal_page):
+			print("PROBE page at ", b.travel.goal_page.global_position / 32.0, " ", b.travel.goal_page.name, " spoils ", b.travel.goal_page.spoils.size())
 		print("PROBE pos ", _wizards[int(_probe.x)].global_position / 32.0, " floor ", _wizards[int(_probe.x)].is_on_floor())
 	if _fight_dir != "" and _camera != null:
 		_fight_t -= delta
@@ -299,10 +299,10 @@ func _flags(w: Wizard) -> String:
 	if w.is_frozen(): out += "Z"
 	if w.is_slowed(): out += "M"
 	var b: WizardBrain = w.brain
-	if b._danger_wait > 0.5: out += "W"
+	if b.travel.danger_wait > 0.5: out += "W"
 	if b._settle > 0.0: out += "s"
-	if b._off_map: out += "O"
-	if b._wander_time > 0.0: out += "w"
+	if b.travel.off_map: out += "O"
+	if b.travel.wander_time > 0.0: out += "w"
 	if b.mend.resting: out += "r"
 	if b.mend.camped: out += "c"
 	return out if out != "" else "-"

@@ -88,7 +88,7 @@ func _mirage() -> void:
 	_rival.velocity = Vector2.ZERO
 	await _wait(0.3)
 	_verdict(_mirages().is_empty(), "it fades when a rival comes near")
-	_verdict(_rival.brain._wise_to_mirages, "and the brain that watched it learns the waver")
+	_verdict(_rival.brain.wise_to_mirages, "and the brain that watched it learns the waver")
 	# A wise brain does not go for the next, while an unwise one does.
 	_rival.global_position = _spot + Vector2(-9000.0, 0.0) + Vector2(9000.0, 0.0)
 	_cast(250.0)
@@ -97,12 +97,12 @@ func _mirage() -> void:
 	_rival.global_position = _spot + Vector2(400.0, 0.0)  # near enough to see it on the screen, too far for it to waver
 	_rival.velocity = Vector2.ZERO
 	await _wait(0.6)
-	_rival.brain._choose_goal()
-	_verdict(_rival.brain.goal != "page" or _rival.brain._goal_page != mirage, "a brain that has seen one fade does not go for the next")
-	_rival.brain._wise_to_mirages = false
+	_rival.brain.travel.choose_goal()
+	_verdict(_rival.brain.goal != "page" or _rival.brain.travel.goal_page != mirage, "a brain that has seen one fade does not go for the next")
+	_rival.brain.wise_to_mirages = false
 	_rival.brain.skip.clear()
-	_rival.brain._choose_goal()
-	_verdict(_rival.brain.goal == "page" and _rival.brain._goal_page == mirage, "but one that has not does")
+	_rival.brain.travel.choose_goal()
+	_verdict(_rival.brain.goal == "page" and _rival.brain.travel.goal_page == mirage, "but one that has not does")
 	# It cannot be read.
 	_verdict(mirage.take(_player.ledger) == "", "reaching it reads nothing")
 	_verdict(not mirage.is_in_group("pages") and not mirage.is_solid(), "and it is gone from sight (the earlier ones have come back, as they should)")

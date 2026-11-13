@@ -47,8 +47,8 @@ func think(delta: float) -> void:
 	_strength_in -= delta
 	if _strength_in <= 0.0:
 		_strength_in = 1.0
-		_strength = _feel_strength(opponent)
-	_read_page_underfoot()
+		strength = _feel_strength(opponent)
+	travel.read_page_underfoot()
 	if react > 0.0:
 		react -= delta
 		if react <= 0.0:
@@ -151,13 +151,13 @@ func _footwork_in_the_air(to_player: Vector2) -> Vector2:
 
 ## Its journey: to the page it means to have, or to the rival it hunts, or to look at somewhere new.
 func _journey(delta: float) -> Vector2:
-	if goal_timer <= 0.0 or _goal_lost() or _target == Vector2.INF:
+	if goal_timer <= 0.0 or travel.goal_lost() or _target == Vector2.INF:
 		_choose_where()
-	if goal == "page" and is_instance_valid(_goal_page):
-		_target = _goal_page.global_position + Vector2(0.0, -PagePickup.FLOAT)
-		_page_steps += delta
-		if _page_steps > GIVE_UP_PAGE * 3.0:
-			skip[_goal_page.get_instance_id()] = GIVE_UP_PAGE
+	if goal == "page" and is_instance_valid(travel.goal_page):
+		_target = travel.goal_page.global_position + Vector2(0.0, -PagePickup.FLOAT)
+		travel.page_steps += delta
+		if travel.page_steps > GIVE_UP_PAGE * 3.0:
+			skip[travel.goal_page.get_instance_id()] = GIVE_UP_PAGE
 			goal = ""
 			goal_timer = 0.0
 	elif goal == "foe" and is_instance_valid(opponent):
@@ -199,12 +199,12 @@ func _aim(from: Vector2, to: Vector2) -> Vector2:
 func _choose_where() -> void:
 	goal_timer = GOAL_EVERY
 	_target_age = 0.0
-	_page_steps = 0.0
+	travel.page_steps = 0.0
 	goal = ""
 	var best: PagePickup = null
 	var best_gap := INF
 	for pickup: PagePickup in wizard.get_tree().get_nodes_in_group("pages"):
-		if not pickup.gives(wizard.ledger) or skip.has(pickup.get_instance_id()) or (pickup is Mirage and _wise_to_mirages):
+		if not pickup.gives(wizard.ledger) or skip.has(pickup.get_instance_id()) or (pickup is Mirage and wise_to_mirages):
 			continue
 		if not seen_pages.has(pickup.get_instance_id()):
 			continue  # it has not set eyes on that one
@@ -214,9 +214,9 @@ func _choose_where() -> void:
 			best = pickup
 	if best != null:
 		goal = "page"
-		_goal_page = best
+		travel.goal_page = best
 		return
-	if is_instance_valid(opponent) and _strength >= BOLD_ABOVE:
+	if is_instance_valid(opponent) and strength >= BOLD_ABOVE:
 		goal = "foe"
 		return
 	goal = "explore"

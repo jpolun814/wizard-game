@@ -285,7 +285,7 @@ func work_gate() -> void:
 	var side := -1 if across > 0.0 else 1  # it stands on the side it came by
 	var tile := brain.tile_of(target)
 	var stand: Vector2i = wizard.nav.nearest(Vector2i(tile.x + side * WizardBrain.STRIKE_STAND, tile.y))
-	var path: Array[Vector2i] = brain.find_path(wizard.nav.nearest(brain.tile_of(wizard.global_position), true), stand)
+	var path: Array[Vector2i] = brain.travel.find_path(wizard.nav.nearest(brain.tile_of(wizard.global_position), true), stand)
 	if path.is_empty() or absi(stand.x - tile.x) > reach + 2 or absi(stand.y - tile.y) > 6:
 		brain.skip[gate_key(goal_gate)] = WizardBrain.GIVE_UP
 		brain.goal = ""
