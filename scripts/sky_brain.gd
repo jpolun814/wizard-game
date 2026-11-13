@@ -58,7 +58,7 @@ func think(delta: float) -> void:
 	var sees := false
 	if is_instance_valid(foe):
 		to_player = seen_center(foe) - wizard.center()
-		sees = (wizard.eyes.sees_point(_lure.center()) if _lure != null else eyes_see(foe)) and _clear_line(wizard.center(), seen_center(foe))
+		sees = (wizard.eyes.sees_point(_lure.center()) if _lure != null else eyes_see(foe)) and danger.clear_line(wizard.center(), seen_center(foe))
 	var fighting := sees and to_player.length() < ENGAGE
 	if _react <= 0.0 and not wizard.is_drawing():
 		var shot := incoming_shot()
@@ -124,10 +124,10 @@ func _way_out(here: Vector2) -> Vector2:
 		if room.has_point(here):
 			var push := here - room.get_center()
 			return push.normalized() if push != Vector2.ZERO else Vector2.UP
-	if _in_danger(here) or _in_danger(wizard.global_position):
+	if danger.in_danger(here) or danger.in_danger(wizard.global_position):
 		for angle in range(0, 360, 45):
 			var dir := Vector2.RIGHT.rotated(deg_to_rad(float(angle)))
-			if not _in_danger(here + dir * 160.0):
+			if not danger.in_danger(here + dir * 160.0):
 				return dir
 	return Vector2.ZERO
 

@@ -188,6 +188,7 @@ var _recent: Array[String] = []  # its last two attacks, which it avoids repeati
 var rng := RandomNumberGenerator.new()
 var hand: BrainHand
 var chant: BrainChant
+var danger: BrainDanger
 var _foe: Wizard                 # the wizard it is dealing with: the nearest of the others it knows of
 var _lure: Decoy                 # a shadow it takes for a rival, and deals with as if it were them (see _notice_decoys)
 var _shadows := {}                # decoy instance id -> true when it knows it for a shadow, false when it is fooled
@@ -229,6 +230,7 @@ func _init(body: Wizard) -> void:
 	wizard = body
 	hand = BrainHand.new(self, body)
 	chant = BrainChant.new(self, body)
+	danger = BrainDanger.new(self, body)
 	rng.randomize()
 	skill = GameSettings.rival_skill()
 
@@ -265,7 +267,7 @@ func _hurdle() -> void:
 ## A person cannot type a chant on the move, in the air or under blows, and stops when any of them happens. True while the way it stands lets it type.
 ## (A wizard that has just opened the box is still coming to a stop: its steps do not break the words for the first moment.)
 func _typing_disturbed() -> bool:
-	return not wizard.is_on_floor() or _hurt_age < 0.5 or (absf(wizard.velocity.x) > 40.0 and chant.age > BrainChant.STOPPING) or wizard.is_drawing() or wizard.is_frozen() or _in_danger(wizard.center())
+	return not wizard.is_on_floor() or _hurt_age < 0.5 or (absf(wizard.velocity.x) > 40.0 and chant.age > BrainChant.STOPPING) or wizard.is_drawing() or wizard.is_frozen() or danger.in_danger(wizard.center())
 
 
 ## Whether this is a place to stand and type: it stands on the ground and is not being hurt, no creature or rival is near enough to come at it, and
@@ -278,7 +280,7 @@ func _quiet_here() -> bool:
 	if is_instance_valid(_foe) and not _foe.dead and _foe_feet().distance_to(wizard.global_position) < 450.0:
 		return false
 	for dx in [-200.0, -120.0, -60.0, 0.0, 60.0, 120.0, 200.0]:
-		if _in_danger(wizard.center() + Vector2(dx, 0.0)) or _in_danger(wizard.global_position + Vector2(dx, -6.0)):
+		if danger.in_danger(wizard.center() + Vector2(dx, 0.0)) or danger.in_danger(wizard.global_position + Vector2(dx, -6.0)):
 			return false
 	return true
 
@@ -361,7 +363,7 @@ func think(delta: float) -> void:
 	var foe: Wizard = _foe
 	var in_view := wizard.eyes.sees_point(_lure.center()) if _lure != null else eyes_see(foe)
 	var to_player: Vector2 = seen_center(foe) - wizard.center()
-	var sees := in_view and _clear_line(wizard.center(), seen_center(foe))
+	var sees := in_view and danger.clear_line(wizard.center(), seen_center(foe))
 	var fighting := sees and to_player.length() < ENGAGE
 
 	_push_through -= delta
@@ -377,13 +379,13 @@ func think(delta: float) -> void:
 		if not shot.is_empty() and _defend_cooldown <= 0.0:
 			_threat_dir = shot["dir"]
 			_plan(_choose_defence(shot["eta"]), _reaction_time())
-		elif (_dash <= 0.0 and _scorched()) or _bitten() or (_push_through <= 0.0 and (_in_danger(wizard.global_position + Vector2(0, -6)) or _in_danger(wizard.center()))):
+		elif (_dash <= 0.0 and danger.scorched()) or danger.bitten() or (_push_through <= 0.0 and (danger.in_danger(wizard.global_position + Vector2(0, -6)) or danger.in_danger(wizard.center()))):
 			_plan("escape", _reaction_time() * 0.6)
 			settle = 0.0  # nobody stands in the fire to finish a chant
 			chant.typing = ""
 			_camped = false
 			_escapes += 1.0
-			if _escapes > 3.0 and not _scorched() and not _bitten():  # it keeps backing out of the same thing that lies on its way: it goes through it this once
+			if _escapes > 3.0 and not danger.scorched() and not danger.bitten():  # it keeps backing out of the same thing that lies on its way: it goes through it this once
 				_push_through = PUSH_THROUGH_FOR
 				_escapes = 0.0
 		elif _defend_cooldown <= 0.0 and not _watchers().is_empty():
@@ -587,7 +589,7 @@ func _tile_of(feet: Vector2) -> Vector2i:
 ## mended, as a person does. Returns the speed to walk at, or NAN when it is not mending.
 func _mend(delta: float, fighting: bool) -> float:
 	_mend_wait -= delta
-	if (chant.is_typing() or _camped or settle > 0.0) and (_assailant() != null or _scorched() or _bitten()):  # it does not sit and chant with a blade or a flame on it
+	if (chant.is_typing() or _camped or settle > 0.0) and (_assailant() != null or danger.scorched() or danger.bitten()):  # it does not sit and chant with a blade or a flame on it
 		chant.typing = ""
 		settle = 0.0
 		_camped = false
@@ -709,7 +711,7 @@ func _assailed(delta: float) -> float:
 	var away := signf(wizard.global_position.x - mob.global_position.x)
 	if away == 0.0:
 		away = -wizard.facing
-	var spell_name := _clearing_spell("giant" if mob.max_hp >= 1000 else "creature")
+	var spell_name := clearing_spell("giant" if mob.max_hp >= 1000 else "creature")
 	if spell_name != "" and not wizard.is_drawing() and _cast_cooldown <= 0.0 and _react <= 0.0:
 		_goal_gate = {"kind": "giant" if mob.max_hp >= 1000 else "creature", "entry": {"mob": mob, "nodes": [mob]}, "target": mob.center()}
 		_cast_cooldown = 1.4
@@ -822,7 +824,7 @@ func _travel(delta: float) -> float:
 		_off_map = known != WorldNav.NONE and known.y - here.y >= 3 and absi(known.x - here.x) <= 6
 	if _off_map and wizard.is_on_floor():
 		wizard.drop_through()
-	var volcano := _volcano_near(wizard.global_position, VOLCANO_FLEE) if _lift.is_empty() and _leap.is_empty() and _wade.is_empty() else Vector2.INF
+	var volcano := danger.volcano_near(wizard.global_position, VOLCANO_FLEE) if _lift.is_empty() and _leap.is_empty() and _wade.is_empty() else Vector2.INF
 	if volcano != Vector2.INF and not wizard.lava_proof() and wizard.is_on_floor():
 		_goal = ""  # a volcano is awake close by: it goes away from it, and chooses what to do when it is far enough off
 		_goal_timer = 0.5
@@ -847,9 +849,9 @@ func _travel(delta: float) -> float:
 	else:
 		_stair_wait = 0.0
 	var ahead := signf(steer["dir"])
-	if ahead != 0.0 and wizard.is_on_floor() and _dash <= 0.0 and not _lethal_at(wizard.global_position + Vector2(0, -6)):
-		var near := _lethal_at(_over_ground(ahead * 40.0)) or _lethal_at(_over_ground(ahead * 72.0))
-		if near or _lethal_at(_over_ground(ahead * 110.0)):
+	if ahead != 0.0 and wizard.is_on_floor() and _dash <= 0.0 and not danger.lethal_at(wizard.global_position + Vector2(0, -6)):
+		var near := danger.lethal_at(_over_ground(ahead * 40.0)) or danger.lethal_at(_over_ground(ahead * 72.0))
+		if near or danger.lethal_at(_over_ground(ahead * 110.0)):
 			# lava or an eruption lies on the way: it keeps its distance, backing away if it is close, and waits for it to pass or cool; when that takes
 			# too long it looks for another way
 			_danger_wait += delta
@@ -912,7 +914,7 @@ func _swim(delta: float, fighting: bool, to_player: Vector2) -> float:
 		return 0.0
 	var blocked := wizard.is_on_wall() and absf(line.x) > SWIM_ARRIVE  # (a stroke takes it up over what is in the way)
 	var keep_up := _for_air and not wizard.underwater() and wizard.velocity.y > 0.0  # (its head over the water while it breathes)
-	var overhead := line.y < -24.0 and absf(line.x) > 12.0 and not _clear_line(here, target)  # something solid over the straight way (a wreck's hull): across under it first, then up
+	var overhead := line.y < -24.0 and absf(line.x) > 12.0 and not danger.clear_line(here, target)  # something solid over the straight way (a wreck's hull): across under it first, then up
 	if ((line.y < -24.0 and not overhead) or blocked or keep_up) and _stroke_in <= 0.0:
 		_stroke_in = Wizard.STROKE_EVERY
 		wizard.request_jump()
@@ -959,12 +961,12 @@ func _nearest_air(here: Vector2) -> Vector2:
 	for dx: float in [0.0, -96.0, 96.0, -224.0, 224.0, -384.0, 384.0, -AIR_SCAN, AIR_SCAN]:
 		var below := Vector2(here.x + dx, here.y)
 		var over := Vector2(below.x, top - 30.0)  # (its head out of the water)
-		if (dx == 0.0 or _clear_line(here, below)) and _clear_line(below, over):
+		if (dx == 0.0 or danger.clear_line(here, below)) and danger.clear_line(below, over):
 			best = over
 			break
 	for pocket: AirPocket in wizard.get_tree().get_nodes_in_group("air_pockets"):
 		var inside := pocket.global_position + Vector2(0.0, -pocket.size.y * 0.5)
-		if not _clear_line(here, inside):
+		if not danger.clear_line(here, inside):
 			continue  # (a pocket behind a wreck's hull is no use: it is reached round the hull, not through it)
 		if best == Vector2.INF or here.distance_to(inside) < here.distance_to(best):
 			best = inside
@@ -976,12 +978,12 @@ func _lethal_stretch(ahead: float) -> float:
 	var start := -1.0
 	var d := 16.0
 	while d <= 480.0:
-		var bad := _lethal_at(_over_ground(ahead * d))
+		var bad := danger.lethal_at(_over_ground(ahead * d))
 		if bad and start < 0.0:
 			start = d
 		elif not bad and start >= 0.0:
 			var landing := _over_ground(ahead * (d + 32.0))
-			return d - start if not _lethal_at(landing) and absf(landing.y - wizard.global_position.y) < 120.0 else INF
+			return d - start if not danger.lethal_at(landing) and absf(landing.y - wizard.global_position.y) < 120.0 else INF
 		d += 16.0
 	return INF
 
@@ -1379,7 +1381,7 @@ func _choose_goal() -> void:
 			continue
 		if _sight_is_limited() and not _seen_pages.has(pickup.get_instance_id()):
 			continue  # it has not set eyes on that one
-		if _volcano_near(pickup.global_position, VOLCANO_KEEP_OFF) != Vector2.INF and not wizard.lava_proof():
+		if danger.volcano_near(pickup.global_position, VOLCANO_KEEP_OFF) != Vector2.INF and not wizard.lava_proof():
 			continue  # a page by a volcano that is erupting is left until it is over
 		var tile := _tile_of(pickup.global_position)
 		var stand: Vector2i = wizard.nav.nearest(tile)
@@ -1550,7 +1552,7 @@ func _choose_gate(start: Vector2i) -> bool:
 	var best := {}
 	var best_path: Array[Vector2i] = []
 	for gate: Dictionary in world.closed_gates():
-		if _skip.has(_gate_key(gate)) or _clearing_spell(gate["kind"]) == "":
+		if _skip.has(_gate_key(gate)) or clearing_spell(gate["kind"]) == "":
 			continue
 		var floor_tile: Vector2i = gate["outside"] + Vector2i(0, -1)
 		var stand: Vector2i = wizard.nav.nearest(floor_tile)
@@ -1666,7 +1668,7 @@ func _work_gate() -> void:
 	var world := _world()
 	var target: Vector2 = world.gate_target(_goal_gate["entry"])
 	var across: float = target.x - wizard.global_position.x
-	var reach: int = STRIKE_REACH.get(_clearing_spell(_goal_gate["kind"]), 5)
+	var reach: int = STRIKE_REACH.get(clearing_spell(_goal_gate["kind"]), 5)
 	if absf(across) <= reach * WizardRoute.TILE and absf(target.y - wizard.center().y) <= minf(reach, 6) * WizardRoute.TILE:
 		_clear_gate(target)
 		return
@@ -1701,7 +1703,7 @@ func _creature_ahead() -> Dictionary:
 	for gate: Dictionary in world.closed_gates():
 		if gate["kind"] != "creature" and gate["kind"] != "giant":
 			continue
-		var spell_name := _clearing_spell(gate["kind"])
+		var spell_name := clearing_spell(gate["kind"])
 		if spell_name == "" or _gate_open(gate["entry"]):
 			continue
 		var apart: Vector2 = gate["target"] - wizard.center()
@@ -1711,7 +1713,7 @@ func _creature_ahead() -> Dictionary:
 
 
 ## The spell it will clear this kind of gate with: one it knows and can pay for, or "".
-func _clearing_spell(kind: String) -> String:
+func clearing_spell(kind: String) -> String:
 	for spell_name: String in CLEARS.get(kind, []):
 		if _knows(spell_name) and wizard.stamina >= SpellData.SPELLS[spell_name].cost:
 			return spell_name
@@ -1722,7 +1724,7 @@ func _clearing_spell(kind: String) -> String:
 func _clear_gate(target: Vector2) -> void:
 	if wizard.is_drawing() or _cast_cooldown > 0.0 or _react > 0.0:
 		return
-	var spell_name := _clearing_spell(_goal_gate["kind"])
+	var spell_name := clearing_spell(_goal_gate["kind"])
 	if spell_name == "" or _gate_tries >= CLEAR_TRIES:
 		_skip[_gate_key(_goal_gate)] = GIVE_UP
 		_goal = ""
@@ -1857,13 +1859,13 @@ func _choose_repel() -> String:
 		options["geyser"] = 1.0
 	if _ready_to_cast("Tide Surf"):
 		options["surf"] = 0.9
-	if _ready_to_cast("Spore Puff") and _clear_line(wizard.center(), seen_center(_foe)):
+	if _ready_to_cast("Spore Puff") and danger.clear_line(wizard.center(), seen_center(_foe)):
 		options["spores"] = 1.1
 	if _knows("Push") and wizard.stamina >= 10.0:
 		options["push"] = 1.5
 	if _knows("Shadow Step") and wizard.stamina >= 10.0:
 		options["blink_away"] = 1.0
-	if _knows("Fire Breath") and wizard.stamina >= 16.0 and _clear_line(wizard.center(), seen_center(_foe)):
+	if _knows("Fire Breath") and wizard.stamina >= 16.0 and danger.clear_line(wizard.center(), seen_center(_foe)):
 		options["breath"] = 1.3
 	return _pick(options) if not options.is_empty() else "escape"
 
@@ -1970,7 +1972,7 @@ func _footwork(delta: float, to_player: Vector2, sees: bool) -> float:
 	if (dir < 0.0 and x < ArenaGen.left_edge() + 60.0) or (dir > 0.0 and x > ArenaGen.right_edge() - 60.0):
 		dir = 0.0
 	# Never walk into something burning.
-	if dir != 0.0 and _in_danger(wizard.global_position + Vector2(dir * 34.0, -10.0)):
+	if dir != 0.0 and danger.in_danger(wizard.global_position + Vector2(dir * 34.0, -10.0)):
 		dir = 0.0
 	if wizard.is_on_floor() and _jump_cooldown <= 0.0:
 		var blocked: bool = dir != 0.0 and wizard.is_on_wall()
@@ -1997,7 +1999,7 @@ func _over_ground(dx: float) -> Vector2:
 ## Which way is away from danger: the way to the nearest ground that is not burning or dangerous. It looks as far as a few hundred pixels,
 ## because a flow of lava down a slope is wider than a step.
 func _safe_side() -> float:
-	var volcano := _volcano_near(wizard.global_position, 900.0)  # lava from a volcano pours down its flanks: running up toward it is running into more of it
+	var volcano := danger.volcano_near(wizard.global_position, 900.0)  # lava from a volcano pours down its flanks: running up toward it is running into more of it
 	if volcano != Vector2.INF and absf(wizard.global_position.x - volcano.x) > 40.0:
 		return signf(wizard.global_position.x - volcano.x)
 	var reach := [INF, INF]
@@ -2005,7 +2007,7 @@ func _safe_side() -> float:
 		var dir := -1.0 if k == 0 else 1.0
 		for step in range(30, 811, 30):
 			var spot := _over_ground(dir * step)
-			if not _in_danger(spot) and not _in_danger(spot + Vector2(0.0, 12.0)) and not _in_shoal(spot):
+			if not danger.in_danger(spot) and not danger.in_danger(spot + Vector2(0.0, 12.0)) and not danger.in_shoal(spot):
 				reach[k] = float(step)
 				break
 	if reach[0] == reach[1]:
@@ -2016,66 +2018,6 @@ func _safe_side() -> float:
 	if _escape_dir != 0.0 and reach[0 if _escape_dir < 0.0 else 1] <= reach[0 if best < 0.0 else 1] * 1.6 + 60.0:
 		return _escape_dir  # the way it was already running is nearly as good: it does not turn back and forth in the flow
 	return best
-
-
-## True when anything that hurts (any spell, its own included) would reach it at this point.
-## Where a volcano that is awake (or lava from one that is still running and cooling) lies within reach of a point, or Vector2.INF.
-func _volcano_near(point: Vector2, reach: float) -> Vector2:
-	var best := Vector2.INF
-	var best_gap := reach
-	for node in wizard.get_tree().get_nodes_in_group("danger"):
-		var source := node as Node2D
-		if source == null or not ((node is Eruption and node.is_awake()) or (node is Pond and node.cools and node.molten())):
-			continue
-		var gap := absf(source.global_position.x - point.x)
-		if gap < best_gap and absf(source.global_position.y - point.y) < 900.0:
-			best = source.global_position
-			best_gap = gap
-	return best
-
-
-## True while lava is burning it: that is never walked on through.
-func _scorched() -> bool:
-	if wizard.lava_proof():
-		return false
-	for node in wizard.get_tree().get_nodes_in_group("danger"):
-		if node is Pond and node.molten() and node.holds(wizard):
-			return true
-	return false
-
-
-## True over a volcano that is awake, or lava from one that still runs: it passes, and nothing walks on into it meanwhile.
-func _lethal_at(point: Vector2) -> bool:
-	for node in wizard.get_tree().get_nodes_in_group("danger"):
-		if ((node is Eruption and node.is_awake()) or (node is Pond and node.cools and node.molten()) or (node is Bramble and _clearing_spell("brambles") == "")) and node.danger_at(point):  # (thorns are not walked into by someone with no fire to burn them)
-			return true
-	return _in_shoal(point)
-
-
-## True in water with piranhas in it.
-func _in_shoal(point: Vector2) -> bool:
-	for shoal: Piranhas in wizard.get_tree().get_nodes_in_group("shoals"):  # water with fish in it is not waded
-		if shoal.alive() and shoal.is_biting_at(point):
-			return true
-	return false
-
-
-## True while it stands in water with piranhas in it: it gets out by the nearest bank, hopping the edge when it must.
-func _bitten() -> bool:
-	return _in_shoal(wizard.global_position + Vector2(0.0, -6.0)) or _in_shoal(wizard.center())
-
-
-func _in_danger(point: Vector2) -> bool:
-	for node in wizard.get_tree().get_nodes_in_group("danger"):
-		if node.danger_at(point):
-			return true
-	return false
-
-
-func _clear_line(from: Vector2, to: Vector2) -> bool:
-	var query := PhysicsRayQueryParameters2D.create(from, to)
-	query.collision_mask = 1
-	return wizard.get_world_2d().direct_space_state.intersect_ray(query).is_empty()
 
 
 # --- Attacks ----------------------------------------------------------------------------------------------------
