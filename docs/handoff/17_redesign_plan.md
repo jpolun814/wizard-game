@@ -12,8 +12,8 @@ Done, each with the quick set green and the full set showing only the known fail
 |---|---|---|---|
 | `wizard_brain.gd` | 2,866 | about 2,150 | `BrainStrokes`, `BrainHand`, `BrainChant`, `BrainDanger`, `BrainSight`; `think` and `_travel` read as steps; `_pick_page` |
 | `world.gd` | 1,775 | 755 | `WorldCreatures`, `WorldScenery` (one function per biome), `WorldPages`, `WorldGates`, `MatchEnd`, `WorldStages`; one black-cover helper in `Arena` |
-| `wizard.gd` | 1,432 | 1,450 | no class moved: `_physics_process` is steps over `_tick_timers`, `_fall`, `_steer`, `_shoved`, `_move_on`; `_walking_speed()` |
-| `caster.gd` | 1,218 | 1,230 | `_end` is `_read_special`, `_settle` and `_resolve` |
+| `wizard.gd` | 1,432 | 1,460 | no class moved: `_physics_process` is steps over `_tick_timers`, `_fall`, `_steer`, `_shoved`, `_move_on`; `_walking_speed()` |
+| `caster.gd` | 1,218 | 1,241 | `_end` is `_read_special`, `_settle` and `_resolve` |
 
 **Not done, and why.** These are the pieces where the move is not mechanical, because the code and its state are tangled; each needs a design first, not a cut:
 
