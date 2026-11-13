@@ -39,7 +39,7 @@ func think(delta: float) -> void:
 		skip[key] -= delta
 		if skip[key] <= 0.0:
 			skip.erase(key)
-	_note_sights(delta)
+	explore.note_sights(delta)
 	sight.track_shots()
 	sight.look_about(delta)
 	sight.notice_decoys()
@@ -206,7 +206,7 @@ func _choose_where() -> void:
 	for pickup: PagePickup in wizard.get_tree().get_nodes_in_group("pages"):
 		if not pickup.gives(wizard.ledger) or skip.has(pickup.get_instance_id()) or (pickup is Mirage and _wise_to_mirages):
 			continue
-		if not _seen_pages.has(pickup.get_instance_id()):
+		if not seen_pages.has(pickup.get_instance_id()):
 			continue  # it has not set eyes on that one
 		var gap := pickup.global_position.distance_to(wizard.global_position)
 		if gap < best_gap:
@@ -234,7 +234,7 @@ func _explore_point() -> Vector2:
 		var spot := here + dir * rng.randf_range(EXPLORE_REACH * 0.5, EXPLORE_REACH)
 		if box.size != Vector2.ZERO:
 			spot = spot.clamp(box.position + Vector2(200.0, 200.0), box.end - Vector2(200.0, 200.0))
-		var fresh := not _explored.has(_square_of(spot))
+		var fresh := not explore.explored.has(explore.square_of(spot))
 		if best == Vector2.INF or (fresh and not best_new):
 			best = spot
 			best_new = fresh

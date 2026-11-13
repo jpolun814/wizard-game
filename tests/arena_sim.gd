@@ -271,7 +271,7 @@ func _finish(standing: int) -> void:
 				var brain: WizardBrain = _wizards[i].brain
 				var from: Vector2i = _world.nav.nearest(Vector2i(floori(_wizards[i].global_position.x / 32.0), floori(_wizards[i].global_position.y / 32.0)), true)
 				var to: Vector2i = _world.nav.nearest(tile)
-				line += " | %s: seen %s path %d" % [_seen[i]["kind"].substr(0, 4), brain._seen_pages.has(pickup.get_instance_id()), _world.nav.path(from, to, []).size()]
+				line += " | %s: seen %s path %d" % [_seen[i]["kind"].substr(0, 4), brain.seen_pages.has(pickup.get_instance_id()), _world.nav.path(from, to, []).size()]
 				break
 		print(line)
 	if _sketch.x >= 0:

@@ -68,7 +68,7 @@ other files unchanged: GDScript has no partial classes, and a base class cannot 
 | Skill | Takes from the current file |
 |---|---|
 | `BrainSight` | `_look_about`, `_note_sights`, `_notice_decoys`, `_nearest_foe`, `_seen_feet`, `_seen_center`, the shot trackers (`_incoming_shot`, `_track_shots`, `_watchers`), `_sight_is_limited` |
-| `BrainExplore` | `_choose_goal`, `_choose_explore`, `_square_of`, `_through_known`, the page and portal goals, `_watch_progress`, `_stuck_on_goal` |
+| `BrainExplore` (done in part: `brain.explore`, squares and where to look) | `_choose_goal`, `_choose_explore`, `_square_of`, `_through_known`, the page and portal goals, `_watch_progress`, `_stuck_on_goal` |
 | `BrainTravel` | `_travel`, `_path`, `_raw_path`, `_way*`, `_swim*`, `BrainMoves` (done) holds `_wading`, `_leaping`, `_lifting`, `_climb_oak`, the route and nav calls |
 | `BrainGates` (done: `brain.gates`) | `_cross`, `_choose_gate`, `_work_gate`, `_clear_gate`, `_gate_stroke`, `_crossing_ahead`, `_toll_between` |
 | `BrainCombat` | `_attack`, `_assailed`, `_choose_defence`, `_choose_repel`, `_footwork`, `_safe_side`, the danger tests (`_lethal_at`, `_in_shoal`, `_scorched`, `_volcano_near`) |

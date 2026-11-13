@@ -156,10 +156,7 @@ var _read_until := {}             # page -> the time on clock until which it is 
 var _pages_noted := -1
 var _ledger_noted: Ledger
 var _haste_wait := 0.0
-var _seen_pages := {}            # the pages it has set eyes on, and not read (id -> true): in a match it goes only for those
-var _explored := {}              # the squares of the world it has been to ((x / 16, y / 12) -> true)
-var _explore_dir := 0.0
-var _sight_timer := 0.0
+var seen_pages := {}            # the pages it has set eyes on, and not read (id -> true): in a match it goes only for those
 var _assail_commit := 0.0       # seconds it keeps running from a creature after it is out of reach
 var _assail_dir := 0.0
 var _stair_wait := 0.0          # seconds it has stood at a swinging stair on its way to look at somewhere new
@@ -170,6 +167,7 @@ var pressure := 0.0          # how many shots you have thrown at it lately
 var _recent: Array[String] = []  # its last two attacks, which it avoids repeating
 var rng := RandomNumberGenerator.new()
 var hand: BrainHand
+var explore: BrainExplore
 var gates: BrainGates  # the ways over crossings and the clearing of gates
 var moves: BrainMoves  # the leap, the wade and the lift it may have in hand
 var chant: BrainChant
@@ -203,6 +201,7 @@ func _init(body: Wizard) -> void:
 	hand = BrainHand.new(self, body)
 	moves = BrainMoves.new(self, body)
 	gates = BrainGates.new(self, body)
+	explore = BrainExplore.new(self, body)
 	chant = BrainChant.new(self, body)
 	danger = BrainDanger.new(self, body)
 	sight = BrainSight.new(self, body)
@@ -298,7 +297,7 @@ func _run_clocks(delta: float) -> void:
 	scent -= delta
 	_eye_time -= delta
 	chant.tick(delta)
-	_note_sights(delta)
+	explore.note_sights(delta)
 	_hurdle()
 	wizard.shown_words = chant.words_shown()
 	pressure *= exp(-delta / 3.0)
@@ -770,10 +769,10 @@ func _follow_route(delta: float) -> float:
 			_stair_wait = 0.0
 			var far := route.last()
 			if far != WorldNav.NONE:  # the place it was going to is given up (a floor above or below as well as one along)
-				_explored[_square_of(Vector2(far.x * WizardRoute.TILE, far.y * WizardRoute.TILE))] = true
+				explore.explored[explore.square_of(Vector2(far.x * WizardRoute.TILE, far.y * WizardRoute.TILE))] = true
 			for k in range(0, 3):
-				_explored[_square_of(wizard.global_position + Vector2(signf(_explore_dir) * k * 600.0, 0.0))] = true
-			_explore_dir = -_explore_dir
+				explore.explored[explore.square_of(wizard.global_position + Vector2(signf(explore.explore_dir) * k * 600.0, 0.0))] = true
+			explore.explore_dir = -explore.explore_dir
 			goal = ""
 			goal_timer = 0.0
 			route.clear()
@@ -797,8 +796,8 @@ func _follow_route(delta: float) -> float:
 					skip[_goal_page.get_instance_id()] = GIVE_UP
 				elif goal == "explore":  # it will not look that way again: it turns round and tries the other side
 					for k in range(0, 7):
-						_explored[_square_of(wizard.global_position + Vector2(ahead * k * 600.0, 0.0))] = true
-					_explore_dir = -ahead
+						explore.explored[explore.square_of(wizard.global_position + Vector2(ahead * k * 600.0, 0.0))] = true
+					explore.explore_dir = -ahead
 				goal = ""
 				goal_timer = 0.0
 				route.clear()
@@ -865,7 +864,7 @@ func _swim_goal() -> Vector2:
 		if end != WorldNav.NONE:
 			var at := Vector2((end.x + 0.5) * WizardRoute.TILE, (end.y + 1) * WizardRoute.TILE) + wizard.center() - wizard.global_position
 			if _inside_solid(at):  # the map of the ways does not know a wreck's hull: a place inside one is given up as seen, and another is chosen
-				_explored[_square_of(at)] = true
+				explore.explored[explore.square_of(at)] = true
 				route.clear()
 				goal = ""
 				return Vector2.INF
@@ -952,8 +951,8 @@ func _goal_lost() -> bool:
 ## Picks what to go for: the page nearest by the way it must walk, and when there is none to be had, the nearest wizard.
 func _choose_goal() -> void:
 	goal_timer = GOAL_EVERY
-	_sight_timer = 0.0
-	_note_sights(0.0)  # (what lies in view now is known now)
+	explore.sight_timer = 0.0
+	explore.note_sights(0.0)  # (what lies in view now is known now)
 	goal = ""
 	var start: Vector2i = wizard.nav.nearest(tile_of(wizard.global_position), true)
 	if start == WorldNav.NONE:
@@ -962,7 +961,7 @@ func _choose_goal() -> void:
 	var best_page: PagePickup = found["page"]
 	var best_path: Array[Vector2i] = []
 	best_path.assign(found["path"])
-	var portal := _nearest_portal(start)
+	var portal := explore.nearest_portal(start)
 	if portal.has("portal") and (best_page == null or (portal["path"].size() < best_path.size() and rng.randf() < PORTAL_CHANCE)):
 		goal = "portal"
 		_goal_portal = portal["portal"]
@@ -981,7 +980,7 @@ func _choose_goal() -> void:
 		_page_steps = 0.0
 		route.set_path(best_path)
 		return
-	if _choose_explore(start):
+	if explore.choose_explore(start):
 		return
 	if _choose_gate(start):
 		return
@@ -1008,7 +1007,7 @@ func _pick_page(start: Vector2i) -> Dictionary:
 	for pickup: PagePickup in wizard.get_tree().get_nodes_in_group("pages"):
 		if not pickup.gives(wizard.ledger) or skip.has(pickup.get_instance_id()) or (pickup is Mirage and _wise_to_mirages):
 			continue
-		if _sight_is_limited() and not _seen_pages.has(pickup.get_instance_id()):
+		if explore.sight_is_limited() and not seen_pages.has(pickup.get_instance_id()):
 			continue  # it has not set eyes on that one
 		if danger.volcano_near(pickup.global_position, VOLCANO_KEEP_OFF) != Vector2.INF and not wizard.lava_proof():
 			continue  # a page by a volcano that is erupting is left until it is over
@@ -1016,127 +1015,26 @@ func _pick_page(start: Vector2i) -> Dictionary:
 		var stand: Vector2i = wizard.nav.nearest(tile)
 		var path: Array[Vector2i] = []
 		if absi(stand.x - tile.x) + absi(stand.y - tile.y) <= PAGE_REACH:
-			path = _raw_path(start, stand)
+			path = raw_path(start, stand)
 			if path.is_empty() and stand == start:
 				path = [start]  # it stands where the way to the page ends: nothing to walk, though the page may lie a few steps off
 		if path.is_empty():
 			skip[pickup.get_instance_id()] = GIVE_UP  # no way there that a wizard can walk
 			continue
 		# How far it seems: the way, when it knows the ground the way goes over; else as the crow flies, all a person can guess of ground unseen.
-		var known := not _sight_is_limited() or _through_known(path, start, stand)
+		var known := not explore.sight_is_limited() or explore.through_known(path, start, stand)
 		var length := float(path.size()) if known else Vector2(stand - start).length()
 		var worth := length / sqrt(maxf(1.0, float(pickup.new_pages(wizard.ledger).size())))  # a dropped book is worth the walk: the more pages it would give, the nearer it counts
 		if best_page == null or worth < best_worth:
 			best_page = pickup
-			best_path = path if known else _no_path()
+			best_path = path if known else no_path()
 			best_worth = worth
 	if best_page != null and best_path.is_empty():  # it knows of the page but not the way: as far toward it as the ground it has seen takes it
-		best_path = _toward_known(start, wizard.nav.nearest(tile_of(best_page.global_position)))
+		best_path = explore.toward_known(start, wizard.nav.nearest(tile_of(best_page.global_position)))
 		if best_path.is_empty():
 			skip[best_page.get_instance_id()] = LOOK_AGAIN  # nothing it knows leads nearer: it looks about, and comes back to it
 			best_page = null
 	return {"page": best_page, "path": best_path}
-
-
-## In a match a wizard knows of a page only when it has seen it, as a person does, and goes looking when it knows of none.
-func _sight_is_limited() -> bool:
-	return wizard.get_tree().get_first_node_in_group(&"world") != null
-
-
-func _note_sights(delta: float) -> void:
-	_sight_timer -= delta
-	if _sight_timer > 0.0:
-		return
-	_sight_timer = 0.4
-	var at := wizard.center()
-	for pickup: PagePickup in wizard.get_tree().get_nodes_in_group("pages"):
-		if wizard.eyes.rect().grow(PAGE_GLOW).has_point(pickup.global_position) and not SpellTargets.sight_blocked(wizard.get_tree(), at, pickup.global_position):
-			_seen_pages[pickup.get_instance_id()] = true
-	_explored[_square_of(wizard.global_position)] = true
-	# Everything on its screen has been seen: the squares whose middles lie on it are explored too.
-	var view := wizard.eyes.rect()
-	var square := Vector2(16.0 * WizardRoute.TILE, 12.0 * WizardRoute.TILE)
-	var first := _square_of(view.position)
-	var last := _square_of(view.end)
-	for sx in range(first.x, last.x + 1):
-		for sy in range(first.y, last.y + 1):
-			if view.has_point((Vector2(sx, sy) + Vector2(0.5, 0.5)) * square):
-				_explored[Vector2i(sx, sy)] = true
-	if _seen_pages.size() > 400:
-		_seen_pages.clear()
-
-
-func _square_of(point: Vector2) -> Vector2i:
-	return Vector2i(floori(point.x / (16.0 * WizardRoute.TILE)), floori(point.y / (12.0 * WizardRoute.TILE)))
-
-
-## Goes to look at a part of the world it has not been to: along the way it was going, or the other way when that is shut off.
-func _choose_explore(start: Vector2i) -> bool:
-	if not _sight_is_limited():
-		return false
-	if _explore_dir == 0.0:
-		_explore_dir = -1.0 if rng.randf() < 0.5 else 1.0
-	for round in 2:
-		# It looks at what lies near first (to either side, and up or down a floor), and likes to go on the way it was going.
-		var best_path: Array[Vector2i] = []
-		var best_cost := INF
-		var best_dir := _explore_dir
-		for dy in [0, -EXPLORE_FLOOR, EXPLORE_FLOOR, -2 * EXPLORE_FLOOR, 2 * EXPLORE_FLOOR]:
-			for dir: float in [_explore_dir, -_explore_dir]:
-				for k in range(0 if dy != 0 else 1, 10):
-					var aim := Vector2i(start.x + int(dir) * k * EXPLORE_STEP, start.y + dy)
-					var tile: Vector2i = wizard.nav.nearest(aim, true)
-					if tile == WorldNav.NONE or (absi(tile.x - start.x) < EXPLORE_STEP / 2 and absi(tile.y - start.y) < EXPLORE_FLOOR / 2):
-						continue
-					if _explored.has(_square_of(Vector2(tile.x * WizardRoute.TILE, tile.y * WizardRoute.TILE))):
-						continue
-					if Wreck.covers(wizard.get_tree(), Vector2((tile.x + 0.5) * WizardRoute.TILE, (tile.y + 1) * WizardRoute.TILE)):
-						continue  # (a wreck is taken in at a glance: its page and its air are sought for themselves, its hold is not searched square by square)
-					var path: Array[Vector2i] = _raw_path(start, tile)
-					if path.is_empty() or not _through_known(path, start, tile):
-						continue
-					var cost := float(path.size()) + rng.randf() * 12.0 - (14.0 if dir == _explore_dir else 0.0)
-					if cost < best_cost:
-						best_cost = cost
-						best_path = path
-						best_dir = dir
-					break  # (the nearest unexplored square this way on this floor is the one to weigh)
-		if not best_path.is_empty():
-			_explore_dir = best_dir
-			goal = "explore"
-			route.set_path(best_path)
-			return true
-		_explored.clear()  # it has been everywhere it can get to: it looks again
-	return false
-
-
-## Whether a way to an unexplored square goes only over ground it has seen, and the square itself or ground next to where it stands: a person
-## exploring knows the ground they have seen, not the ground beyond, so they go to the edge of what they know and look. (The map of the ways is
-## the whole world's; this keeps the brain to the part a person would know.)
-func _through_known(path: Array[Vector2i], start: Vector2i, target: Vector2i) -> bool:
-	var here := _square_of(Vector2(start.x * WizardRoute.TILE, start.y * WizardRoute.TILE))
-	var there := _square_of(Vector2(target.x * WizardRoute.TILE, target.y * WizardRoute.TILE))
-	for tile in path:
-		var sq := _square_of(Vector2(tile.x * WizardRoute.TILE, tile.y * WizardRoute.TILE))
-		if _explored.has(sq) or (absi(sq.x - there.x) <= 1 and absi(sq.y - there.y) <= 1) or (absi(sq.x - here.x) <= 1 and absi(sq.y - here.y) <= 1):
-			continue
-		return false
-	return true
-
-
-## The open portal nearest by the way it must walk, as {"portal", "path"}, or nothing when fewer than two are open (one leads nowhere).
-func _nearest_portal(start: Vector2i) -> Dictionary:
-	var open: Array = wizard.get_tree().get_nodes_in_group("field_portals").filter(func(p: FieldPortal) -> bool: return not p.is_closing())
-	var best := {}
-	if open.size() < 2:
-		return best
-	for portal: FieldPortal in open:
-		if portal.remaining() < PORTAL_LEFT or portal.lift > PortalField.JUMPABLE or skip.has(portal.get_instance_id()):  # one hung higher than a jump reaches is not for it
-			continue
-		var path: Array[Vector2i] = find_path(start, wizard.nav.nearest(tile_of(portal.global_position + Vector2(0.0, Portal.RY + portal.lift))))
-		if not path.is_empty() and (best.is_empty() or path.size() < best["path"].size()):
-			best = {"portal": portal, "path": path}
-	return best
 
 
 ## When no page is to be had, the nearest gate that it holds a spell for: it goes to the place short of it. True when it has set out.
@@ -1172,47 +1070,21 @@ func _choose_gate(start: Vector2i) -> bool:
 
 ## The way to a place, as a person would know it (owner, 2026-11-12: the brain planned its ways with the whole world's map, ground it had never
 ## seen included). In a match, when the way goes over ground it has not seen, it goes only as far toward the place as the ground it has seen
-## takes it (_toward_known); there it sees more, and finds the way on from there. In a room (the tutorial, the waiting room) the ground is all in view.
+## takes it (`BrainExplore.toward_known`); there it sees more, and finds the way on from there. In a room (the tutorial, the waiting room) the ground is all in view.
 func find_path(from: Vector2i, to: Vector2i) -> Array[Vector2i]:
-	var full := _raw_path(from, to)
-	if full.is_empty() or not _sight_is_limited() or _through_known(full, from, to):
+	var full := raw_path(from, to)
+	if full.is_empty() or not explore.sight_is_limited() or explore.through_known(full, from, to):
 		return full
-	return _toward_known(from, to)
+	return explore.toward_known(from, to)
 
 
-## As far toward a place as the ground it has seen takes it: of the places it knows that lie between here and there (along the line to it, and
-## along its own floor), the one nearest the place that it can walk to over ground it has seen. Empty when none is nearer than where it stands.
-func _toward_known(from: Vector2i, to: Vector2i) -> Array[Vector2i]:
-	var best := _no_path()
-	var best_gap := Vector2(to - from).length() - 3.0  # it must come nearer, or there is no point
-	var aims: Array[Vector2i] = []
-	for k in range(8, 0, -1):
-		aims.append(from + Vector2i((Vector2(to - from) * k / 8.0).round()))  # along the line, the far end first
-	var side := signi(to.x - from.x)
-	for k in range(1, 6):
-		aims.append(Vector2i(from.x + side * k * EXPLORE_STEP / 2, from.y))  # and along its own floor, the way the place lies
-	for aim in aims:
-		var tile: Vector2i = wizard.nav.nearest(aim, true)
-		if tile == WorldNav.NONE or tile == from or not _explored.has(_square_of(Vector2(tile.x * WizardRoute.TILE, tile.y * WizardRoute.TILE))):
-			continue
-		var gap := Vector2(to - tile).length()
-		if gap >= best_gap:
-			continue
-		var path := _raw_path(from, tile)
-		if path.is_empty() or not _through_known(path, from, tile):
-			continue
-		best = path
-		best_gap = gap
-	return best
-
-
-func _no_path() -> Array[Vector2i]:
+func no_path() -> Array[Vector2i]:
 	var none: Array[Vector2i] = []
 	return none
 
 
 ## The way from one tile to another that it can walk, over the whole world's map: not over a crossing it holds no spell for.
-func _raw_path(from: Vector2i, to: Vector2i) -> Array[Vector2i]:
+func raw_path(from: Vector2i, to: Vector2i) -> Array[Vector2i]:
 	var shut := []
 	var world := the_world()
 	if world != null:
@@ -1567,7 +1439,7 @@ func saw_a_mirage_fade() -> void:
 ## True when a real page, one a wizard could take, lies within this distance of the wizard: the thing a mirage would pass for.
 func _real_page_near(distance: float) -> bool:
 	for pickup: PagePickup in wizard.get_tree().get_nodes_in_group("pages"):
-		if not pickup is Mirage and not pickup.is_queued_for_deletion() and pickup.global_position.distance_to(wizard.global_position) < distance 				and (not _sight_is_limited() or _seen_pages.has(pickup.get_instance_id())):
+		if not pickup is Mirage and not pickup.is_queued_for_deletion() and pickup.global_position.distance_to(wizard.global_position) < distance 				and (not explore.sight_is_limited() or seen_pages.has(pickup.get_instance_id())):
 			return true
 	return false
 
