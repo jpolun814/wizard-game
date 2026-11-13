@@ -20,6 +20,7 @@ is in git. Any player-facing line follows section 0 of `CLAUDE.md`, and no new s
 - **`tutorial_ai_check` (full set):** the AI wizard is held up at the tutorial's giant.
 - **Intermittent:** `brain_spells_check` now and then fails one spell (Tornado reaching the rival's ledge, Mirage, Faint) and passes on the second try;
   `net_spells_check`'s "the one on the tether pays the other half" under full-set load.
+- **The death animation** still shows a staff.
 - **The opening cut-scene** shows ten wizards (`scripts/intro.gd`, `WIZARDS` and `EXTRAS`); a match has eight.
 
 ## Easing in new players (settings, not modes)

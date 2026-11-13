@@ -3,12 +3,7 @@
 This is a Godot game built by one owner through many sessions. This file is the complete handoff for every agent that
 works on it. It holds everything you need: the owner's wording rules in section 0 (the number one priority), the game,
 the rules, the codebase, the testing and the known problems. Chapter files for particular jobs are in `docs/handoff/`;
-what is still to do is in chapter 16.
-
-# HANDOFF: read this before you touch anything
-
-This is the guide for any AI model picking up this game. It tells you what the game is, what the owner wants, how
-the code fits together, and the mistakes that have already been made, so you don't make them again.
+what is still to do is in chapter 16. It also tells you the mistakes already made, so you don't make them again.
 `docs/original_vision.md` is the first design document. It is older than the game: use it for intent, but
 trust the code and this file where they disagree.
 
@@ -367,91 +362,12 @@ spell and chant pages now state the cost and the damage (see the start of sectio
 GODOT="/c/Users/Jordan Polun/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_console.exe"
 "$GODOT" --headless --path . --import                          # after adding or changing any asset
 "$GODOT" --headless --path . --quit-after 200                  # parse check: grep the output for "SCRIPT ERROR"
-"$GODOT" --headless -s tests/test_gestures.gd                  # must print "784 of 784" (or more, if you add checks)
-"$GODOT" --headless -s tests/test_pages.gd                     # the pages each wizard is dealt and a ledger's rules
-"$GODOT" --headless --path . tests/intro_check.tscn            # the cut-scene (add `-- mode=skip`, or `-- out=DIR` for pictures, without --headless)
-"$GODOT" --headless --path . tests/flow_check.tscn             # lab, portal, cut-scene, loading, world
-"$GODOT" --headless -s tests/test_nav.gd -- seeds=6            # the wizards' map of the ways agrees with the generator's
-"$GODOT" --headless -s tests/test_stages.gd -- seeds=6         # the smaller worlds a match collapses into: walkable, spread starts, every page placed
-"$GODOT" --headless --fixed-fps 60 --path . tests/collapse_check.tscn  # a whole match through its collapses (time shortened)
-"$GODOT" --headless --fixed-fps 60 --path . tests/gate_check.tscn -- seed=8 only=ice  # a wizard clears gates with spells (without only= it walks to them: minutes)
-"$GODOT" --headless --fixed-fps 60 --path . tests/interaction_check.tscn  # spells that meet: water puts out fire, fire dries mud, lightning lights plants and shocks pools, a tornado over fire
-"$GODOT" --headless --fixed-fps 60 --path . tests/follow_check.tscn -- seed=0  # piranhas, ice and a Geyser follow a pool's liquid as it flows
-"$GODOT" --headless --fixed-fps 60 --path . tests/geyser_check.tscn  # a Geyser's and a Tide Surf's water is real liquid, not made over and over
-"$GODOT" --headless --fixed-fps 60 --path . tests/wall_liquid_check.tscn  # a Stone Wall holds back poured lava like any ground, and the lava runs on when it is gone
-"$GODOT" --path . tests/minimap_look.tscn -- seed=0 out=DIR  # how much of the minimap is ground (needs a window)
-"$GODOT" --path . tests/water_look.tscn -- out=DIR             # pictures of a Geyser and a Tide Surf by the waiting-room pond (needs a window)
-"$GODOT" --path . tests/bonfire_look.tscn -- out=DIR [seed=N]  # a picture of a Bonfire beside the wizard in the waiting room, or in the world of a seed (needs a window)
-"$GODOT" --path . tests/marks_look.tscn -- out=DIR             # pictures of the Hex, Fight or Flight and Moonbeam marks (needs a window)
-"$GODOT" --path . tests/minimap_check.tscn  # the minimap stays in the top right corner as the window is resized
-"$GODOT" --headless --fixed-fps 60 --path . tests/ocean_world_check.tscn  # the sea over the world in lengths, wrecks with air pockets, driftwood and kelp, a wizard out of its depth swims and loses breath
-"$GODOT" --path . tests/lab_lag_check.tscn [-- wait=S off=Class|autoload:Name|draw]  # every slow frame of the first seconds of the waiting room, with what was switched off (needs a window)
-"$GODOT" --headless -s tools/bake_wand_cursor.gd  # remakes art/ui/wand_turns.png, every turn of the wand cursor, after the wand or its code changes
-"$GODOT" --path . tests/ocean_look.tscn -- out=DIR  # pictures of the ocean from the player's own view: the raft, the surface over a wreck, the wrecks on the floor (needs a window)
-"$GODOT" --headless --fixed-fps 60 --path . tests/sky_world_check.tscn  # everyone flies and drifts down, pages rise and come round from below, clouds rise, thunderclouds sting and strike, spells that need ground are refused
-"$GODOT" --headless --fixed-fps 60 --path . tests/eruption_check.tscn -- seed=5  # an ashlands volcano erupts: a smoke plume, lava over the rim that cools and goes (add `out=DIR` for pictures, needs a window)
-"$GODOT" --headless --fixed-fps 60 --path . tests/stalagmite_check.tscn  # a Stalagmite rises from the ground under the tip of a drawn peak (add `-- out=DIR` for a picture, needs a window)
-"$GODOT" --headless --fixed-fps 60 --path . tests/sinkhole_biomes_check.tscn -- seeds=0,1,2,4,5,9,13  # a drawn U digs a pit of its shape in every kind of ground, the castle's slab floors too (add `out=DIR` for pictures, needs a window)
-"$GODOT" --headless --fixed-fps 60 --path . tests/ridge_check.tscn -- seed=4  # the snowy peaks' ridges: a wizard lands on one and S drops them through it (add `out=DIR` for pictures, needs a window)
-"$GODOT" --headless --fixed-fps 60 --path . tests/tutorial_path_check.tscn  # the tutorial room is shut off place from place: the book starts empty and a page at each place gives its spell, the dummy and the skeleton (put down by a Faint) kill whoever passes them awake, turrets kill the unprotected, a cliff needs the double jump chant, thorns kill until burnt, a pit cannot be jumped
-"$GODOT" --headless --fixed-fps 60 --path . tests/tutorial_ai_check.tscn -- seconds=1100 speed=4  # a general AI wizard plays the whole tutorial from an empty book to the exit with no deaths (slow, full set only; speed= runs physics faster)
-"$GODOT" --headless --fixed-fps 60 --path . tests/tutorial_check.tscn  # the tutorial room's page at each place, and the library's counts (add `-- out=DIR` for pictures, needs a window)
-"$GODOT" --headless --fixed-fps 60 --path . tests/match_stats.tscn -- seed=3  # one whole match of AI wizards at real times: the pacing of each world, how often wizards are near each other, and whether the winner won by pages or by casting (takes minutes; run several seeds and compare the RESULT lines)
-"$GODOT" --headless --fixed-fps 60 --path . tests/sinkhole_check.tscn  # a Sinkhole lowers the ground under it and leaves the ground beside it (add `-- out=DIR` for a picture, needs a window)
-"$GODOT" --headless -s tests/test_liquid.gd                      # the flowing liquid on its own: falls, levels, fills a pit, keeps its liquid, is quick
-"$GODOT" --headless --fixed-fps 60 --path . tests/liquid_world_check.tscn -- seed=3  # a world's pools and a pit dug beside one (seeds 3, 5, 7, 12 have pools)
-"$GODOT" --headless --fixed-fps 60 --path . tests/dark_check.tscn  # a wizard walks across a stretch of spike strips
-"$GODOT" --headless --fixed-fps 60 --path . tests/spectate_check.tscn  # the player falls and watches a rival (add `-- collapse` to follow into the next world)
-"$GODOT" --headless --fixed-fps 60 --path . tests/pull_check.tscn  # the portal tears open at the top and sucks the wizards in (add `-- out=DIR` for pictures, needs a window)
-"$GODOT" --headless --fixed-fps 60 --path . tests/spark_check.tscn  # Spark Strike lands on the ground under open sky
-"$GODOT" --headless --fixed-fps 60 --path . tests/stairs_check.tscn  # a swinging stair is a one-way platform: a wizard stands on it and holding S drops them through
-"$GODOT" --headless --fixed-fps 60 --path . tests/stairwell_check.tscn  # the castle has thirteen swinging stairs (`SwingStair`) in three stairwells, each swinging among landings on other floors; a wizard waits for one, crosses it and is carried (add `-- out=DIR` for pictures, needs a window)
-"$GODOT" --headless --fixed-fps 60 --path . tests/menu_check.tscn  # the first screen is the open spellbook: a sign drawn with the left button held chooses its inscription, and the page turns (add `-- out=DIR` for pictures, needs a window)
-"$GODOT" --headless --fixed-fps 60 --path . tests/settings_check.tscn  # the Settings page (`SettingsPanel`, kept by `GameSettings` in `user://options.cfg`): a cog sign on the first screen and a button on the pause screen open it; choices are kept, shake and cut-scenes obey them (add `-- out=DIR` for a picture, needs a window)
-"$GODOT" --headless --fixed-fps 60 --path . tests/lab_revive_check.tscn  # whoever dies in the waiting room is on their feet at once
-"$GODOT" --headless --fixed-fps 60 --path . tests/likeness_check.tscn  # the wizard maker: its words open it, and the page with them comes up before the magic mirror floating over the slab of the waiting room, a figure and colours chosen are worn and kept (`GameSettings` look and palette, `Net.look_of`/`palette_of`/`rival_look`), the four figures are one height (`WizardLook.SCALE`), a brain never wears a person's figure (add `-- out=DIR` for pictures, needs a window)
-"$GODOT" --path . tests/look_palettes.tscn -- out=DIR  # every figure in every set of colours, side by side (needs a window)
-"$GODOT" --headless --fixed-fps 60 --path . tests/cluster_check.tscn  # each wizard starts with no spells and finds a cluster of pages by their spawn (`Pages.cluster_of`), in every biome
-"$GODOT" --headless --fixed-fps 60 --path . tests/brains_start_check.tscn  # the AI wizards read their cluster
-"$GODOT" --headless --fixed-fps 60 --path . tests/blizzard_freeze_check.tscn  # a Blizzard chills and then freezes whoever stays in it (add `-- out=DIR` for pictures, needs a window)
-"$GODOT" --headless --fixed-fps 60 --path . tests/group_a_check.tscn  # Barbs, Pebble, Hailstorm and Featherfall
-"$GODOT" --headless --fixed-fps 60 --path . tests/group_b_check.tscn  # Thorn Whip and Insect Plague
-"$GODOT" --headless --fixed-fps 60 --path . tests/group_d_check.tscn  # Eldritch Blast, Hemorrhage, Supernova and Scythe, each cast in a world against a dummy
-"$GODOT" --path . tests/attacks_look.tscn -- out=DIR  # pictures of those four (needs a window)
-"$GODOT" --headless --fixed-fps 60 --path . tests/group_c_check.tscn  # Thunderclap (throws everyone near back but the caster, and dazes them) and Rocket Jump (the caster is thrown far up)
-"$GODOT" --headless --fixed-fps 60 --path . tests/leech_check.tscn  # the tether, the split of a spell's cost and what breaks it
-"$GODOT" --headless --fixed-fps 60 --path . tests/raise_dead_check.tscn  # a skeleton with a master: never touches them, fights a rival and a rival's skeleton, follows, falls with its master
-"$GODOT" --headless --fixed-fps 60 --path . tests/mirage_check.tscn  # a false page that fades when anyone comes near, and a brain that learns
-"$GODOT" --headless --fixed-fps 60 --path . tests/sphere_check.tscn  # the Flaming Sphere rolls, climbs a wall, falls into a pit and climbs out, burns, goes out (add `-- out=DIR`, needs a window)
-"$GODOT" --headless --fixed-fps 60 --path . tests/eye_check.tscn  # the Chant of the Scrying Eye: a window bottom right, the eye over the watched wizard, the ground made round them (add `-- out=DIR`, needs a window)
-"$GODOT" --headless --fixed-fps 60 --path . tests/castle_spells_check.tscn  # the castle takes spells: a boulder rests on a swinging stair, a Stalagmite and a Sinkhole work on an upper floor
-"$GODOT" --headless --fixed-fps 60 --path . tests/avalanche_check.tscn  # the peaks' avalanche rumbles, then runs down its slope and hurts whoever it runs over, once
-"$GODOT" --headless --fixed-fps 60 --path . tests/pieces_check.tscn  # small pieces: a world's four words and its seed, the spell table and its buttons, and the colour of every school
-"$GODOT" --headless --fixed-fps 60 --path . tests/ritual_check.tscn  # the chants: how accurately they must be said, and what each gives
-"$GODOT" --headless --fixed-fps 60 --path . tests/library_screen_check.tscn  # the library's ledger, its face-down cards and its world filters, from a file of its own
-"$GODOT" --headless --fixed-fps 60 --path . tests/castle_sinkhole_fall_check.tscn  # a wizard dropped into a castle pit sinks into it and stays, or falls through to the floor below
-"$GODOT" --path . tests/castle_sinkhole_look.tscn -- out=DIR  # pictures of a Sinkhole dug in every kind of castle floor (needs a window)
-"$GODOT" --headless --fixed-fps 60 --path . tests/biome_jump_check.tscn  # the F1 panel goes to a world of any biome, whatever the seed deals
-"$GODOT" --headless --fixed-fps 60 --path . tests/parity_check.tscn  # Push, Geyser, Tornado, Tide Surf and a shot do the same to a person's wizard and the brain's
-"$GODOT" --headless --fixed-fps 60 --path . tests/brain_spells_check.tscn  # the brain knows every spell: each is given alone to an AI wizard in the place it wants it, and cast (add `-- only=Hex,Sneak` for some)
-"$GODOT" --path . tests/eclipse_check.tscn  # an Eclipse darkens the screen of the one inside it (add `-- out=DIR` for pictures)
-"$GODOT" --headless --fixed-fps 60 --path . tests/knight_check.tscn  # a castle knight stands at its post until a wizard comes near, fights them, and walks back
-"$GODOT" --headless --fixed-fps 60 --path . tests/sentinel_check.tscn  # a sentinel shoots a rival wizard in range, not one out of range
-"$GODOT" --headless --fixed-fps 60 --path . tests/cross_check.tscn -- seed=4 kind=flood spells=Frost%Bridge  # a wizard crosses a gate with a spell (kind=chasm, flood, piranhas, sentinel, wall or gas; spells=chant:deep_breath for a chant; no spells= and it stays put)
-"$GODOT" --headless --fixed-fps 60 --path . tests/route_check.tscn -- seed=3 moves=500  # every kind of move works in real physics (`trace=X,Y,TX,TY` follows one)
-"$GODOT" --headless --fixed-fps 60 --path . tests/arena_sim.tscn -- seed=7 seconds=300 report=60  # AI wizards alone in a world: pages read, who is beaten, where they were held up
-"$GODOT" --path . tests/showcase.tscn -- scenario=spells out=C:/some/dir          # a screenshot of every spell
-"$GODOT" --path . tests/showcase.tscn -- scenario=spells only=Fire_Breath out=DIR # one spell, frame by frame
-"$GODOT" --headless --path . tests/showcase.tscn -- scenario=soak out=DIR  # random play; look for errors
-"$GODOT" --headless --path . tests/net_check.tscn -- role=host &  then  ... -- role=client  # two copies in a shared waiting room (no --fixed-fps!)
-"$GODOT" --headless --path . tests/net_match_check.tscn -- role=host &  then  ... -- role=client  # two copies play a whole match (add `leave` to both)
-"$GODOT" --headless --path . tests/dedicated_check.tscn  # starts a dedicated server (`-- --server`, see tools/run_server.bat) as a program of its own, joins it, plays into a world and leaves (no --fixed-fps). Add `--upnp` to the server (not in the test) to open its port on the home router and print the address to join at
+python tools/run_checks.py                                     # the quick set: every check below that matters, about 90 seconds
+python tools/run_checks.py --full                              # all of them, about 5 minutes
 ```
 
-- **All the checks at once:** `python tools/run_checks.py` runs the quick set (51 checks, about 55 seconds on six cores) and prints one line for each, ok or FAILED. `--full` adds the slow ones (97 checks, about 5 minutes): a whole generated world, the showcase's scenarios, longer route checks and the network checks, which start two or three copies of the game. (`--all` is the old name.) A scene check also fails when it prints a `SCRIPT ERROR`. How it stays fast and steady: long checks are split into shards (`test_nav#1`, `brain_spells_check#2`...); the longest start first (times are kept in `times.json` in the output folder); the network checks run first, all together, each on a port of its own (`WIZARD_PORT`, read by `Net.port()`), with nothing else running, because they run in real time and give up when starved; the rest run below normal priority; a Godot crash while starting is started again and one while closing, after passes were printed, is not a failure; and a check that fails is run once more (a pass then is listed as FLAKY, and the first try is kept as `check_<name>_first_try.txt`). `-j N` sets how many run at once (default cores + 1); names on the end pick checks (`python tools/run_checks.py --full ritual`). A flaky check is a bug in the check or the game, not something to retry past: the ones found so far were a freed page tested with `is` in the brain (`_goal_lost`), a rival with every spell freezing the person in `raise_dead_check`, other wizards putting water in the ground `geyser_check` counted, and a route move that ended on a great tree's ledge. `brain_spells_check dice=N` rolls the dice differently to look for a roll that fails.
-- **Coverage:** `python tools/run_checks.py --all --cov` runs the scene checks in a scratch copy of the game with `gd-tools` (see `tools/coverage_run.py` for the setup) counting the lines that ran, and prints the scripts that ran least. It takes ten minutes or more. `gd-tools` cannot read about twenty of the scripts (it names them), so they are left out of the figure; a check run with `-s` has no autoloads, so the gesture, page, navigation and stage checks are not counted either.
-- **Other scenarios:** `world`, `kinds`, `ui` (portal, spellbook pages, pause, game over), `wizard` (a dark-wizard
-  duel), `brawl`, and the other scenarios named at the top of `tests/showcase.gd`.
+`docs/handoff/07_testing.md` lists every check, what it proves and how to run it alone, and says what to do after a change. Run the quick set before you say anything is done.
+
 - **Screenshots need a window:** don't pass `--headless` for them.
 - **Looking at screenshots:**
   - Open the PNGs with your image-reading tool.
@@ -463,6 +379,7 @@ GODOT="/c/Users/Jordan Polun/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.
   `pip install --isolated --index-url https://pypi.org/simple <pkg>`.
 - **Shell quirk:** in this environment, long bash heredocs containing apostrophes sometimes fail to parse. Write
   the Python edit script to a file in the scratchpad and run that.
+
 
 ## 4. Controls
 
@@ -618,51 +535,23 @@ The owner wants agents to learn to invent spells without being told. Until they 
    `_attack_stroke`.
 10. **Spellbook:** a short description, and the damage and cost lines from the spell's data, at the foot of the page. Keep it short.
 
-## 7. Art: where it comes from and how it's built
+## 7. Art: where it comes from
 
-- **The pipeline:** `tools/prepare_gothic_art.py <downloads dir>`. It builds `art/chars`, `art/mobs`,
-  `art/tiles`, `art/props`, `art/backgrounds`, `art/fx`, `art/ui`, and generates `scripts/pixel_art.gd`
-  (frame sizes and body boxes).
-- **Folder names** the script expects are listed in its docstring.
-- **Downloads are not kept in the repo.** Re-download them into a scratch folder.
+The pipeline, the sources, how to judge an asset and how to build one are in `docs/handoff/04_art_and_assets.md`. The rules that bind every change:
+
 - **Credits:** every source and licence is in `art/CREDITS.md`. Add a line for anything new.
-- **Licences (owner decisions, 2026-10-25 and 2026-11-07):** we are **not restricted to CC0**. Use any art or sound we are really allowed to use in the game for free:
-  CC0, CC-BY (a credit line in `art/CREDITS.md`: the author, the pack and a link), and any free licence or "free for commercial use" page whose terms we can meet.
-  Read the terms of the page, put every source in `art/CREDITS.md`, and prefer CC0 when two assets fit equally. Do not spend money: a paid pack is not free.
-  Where a licence puts a condition on the game itself (share-alike, GPL, "non-commercial only", "no redistribution"), tell the owner before using it.
-- **Good sources:**
-  - kenney.nl: everything is CC0. Its "Tiny Dungeon" and "1-Bit" packs suit the style.
-  - opengameart.org: check the licence badge on each page.
-  - itch.io: LuizMelo, Ansimuz and CodeManu have CC0 packs. Check the page's licence field.
-    `tools/itch_download.py` fetches free pages.
-- **Judging an asset:**
-  - It must be dark, gothic and pixel art, at roughly the same pixel density as the characters.
-  - No cartoon, vector or painterly art.
-  - Look at it (make a contact sheet) before using it.
-  - Check whether an "effect" sheet secretly contains a character. The GothicVania "fire-sprites" were a
-    fire-casting wizard, not fire.
-- **Recolouring:** `recolour()` does a hue turn or a dark-to-light ramp, and `key_out()` removes a flat
-  background colour.
-- **Character frames** are cut so the feet sit on the bottom edge and the body is centred, so flipping a frame
-  never shifts the character.
+- **Licences (owner decisions, 2026-10-25 and 2026-11-07):** we are **not restricted to CC0**. Use any art or sound we are really allowed to use in the game for free: CC0,
+  CC-BY (a credit line: the author, the pack and a link), and any free licence or "free for commercial use" page whose terms we can meet. Read the terms of the page, and prefer
+  CC0 when two assets fit equally. Do not spend money: a paid pack is not free. Where a licence puts a condition on the game itself (share-alike, GPL, "non-commercial only",
+  "no redistribution"), tell the owner before using it.
+- **Downloads are not kept in the repo.** Re-download them into a scratch folder.
+- **Look at an asset before using it** (a contact sheet): it must be dark, gothic pixel art at the characters' density, and an "effect" sheet may secretly hold a character.
 
-## 8. Godot pitfalls that already bit
+## 8. Godot pitfalls
 
-- **Never `load()` a texture inside `_draw()` into a local variable.** It gets freed before rendering and draws
-  as a **white rectangle**. Use `preload()` constants or a cache.
-- **`var x := dict["k"]` fails to parse** ("Cannot infer type"). Give it an explicit type.
-- **`Parallax2D` vertical scroll:** use `scroll_scale.y = 1`, or layers drift off the ground line.
-- **Raycasts and one-way platforms:** cast from above, downward, when testing "is it covered".
-- **numpy on Windows:** `np.arange` is int32. Multiplying by a sample rate overflowed; use `dtype=float64`.
-- **Label wrapping:** a Label with autowrap has zero minimum width inside an HBox, and its text collapses. Turn
-  autowrap off for short labels.
-- **CanvasLayer order:** sky -20, HUD 3, spellbook 5, ritual box 10, debug panel 20.
-- **Physics layers:**
-  - 1: terrain, stone walls, ice blocks, and spell areas by default.
-  - 2: mobs.
-  - 4: player.
-  - 16: one-way platforms.
-  - Player and mob masks are 17.
+`docs/handoff/09_godot_pitfalls.md` lists the ones that already bit. The two that bite hardest: never `load()` a texture inside `_draw()` into a local variable (it is freed before
+it renders, and draws as a white rectangle: use a `preload()` constant or a cache), and `var x := dict["k"]` does not parse (give the variable a type). Physics layers are in
+`docs/handoff/02_codebase_map.md`.
 
 ## 9. Code style and structure
 
@@ -700,48 +589,10 @@ clean. It was cleaned up once, without losing any behaviour. Keep it that way:
 - **Refactoring:** change one thing at a time and re-run the full check after each step (startup, gestures,
   the soak scenario, the spells showcase), comparing screenshots against a baseline taken first.
 
-## 10. Known issues and ideas
+## 10. Ideas the owner may like
 
-**Known issues:**
-- The death animation still shows a staff.
-- Sounds: the owner has heard them and they are fine (2026-11-05).
-
-**Ideas the owner may like:**
 - More spells that combine (fire melting ice, water putting out fire, lightning in pools and a fire whirl are built).
 - More to the tutorial room (`Tutorial`, `scenes/tutorial.tscn`: a page for each school, with two meetings of spells), such as a place for the chants.
 - Music (CC0 dark ambient).
 
 When unsure, ask the owner one clear question rather than guessing big.
-
-## 11. The AI reads any room (added 2026-11-07)
-
-The brain used to plan only from a match world's gate lists. `scripts/room_scan.gd` (`RoomScan.read`) now reads a hand-built room the same way: its ground, plus live thorns, gas, brick walls, ponds with fish, turrets, eyes, creatures, deep pits and sheer cliffs, and gives the same gates and crossings a World does. A room hosts it by joining group `gate_source` (the `Lab` and so the `Tutorial` do; it rescans every 0.5 s) and puts its exit in group `exit_points`. `WorldNav` has an `origin` (rooms run in negative columns) and `WorldNav.NONE` for "no tile". New brain skills: clearing creatures, Faint on giants, Barrier against several shooters, the double-jump chant, a rocket plus Featherfall leap, striking tall walls at the foot, gas banks, walking to the exit. The brain has no code for the tutorial itself: change the tutorial and the same wizard should still finish it (`tests/tutorial_ai_check.tscn`). The tutorial keeps lost maximum stamina (`Lab.heals_wounds = false`) and its gauntlet is shorter, with no second giant, dark stage, wall-gas-eye stage or last pit. Not yet general: spike beds are not read as hazards, and match worlds were left as they were.
-
-## 12. The AI plays like a person (added 2026-11-07 and 08)
-
-**The AI wizards are the scripted brain (`WizardBrain`, `SkyBrain` in the sky).** A learned AI was tried from 2026-11-08 to 11-12: networks that
-played through a person's controls, trained by self-play in a curriculum (Fireball duels, then four spells), and trained footwork for the rivals'
-legs. It learned the duels, but the owner called it off on 2026-11-12: whole matches were far off, and a trained player wins in ways that do not
-look human. All of it (the hand, the senses, the trainers, the arenas, the checks, and chapters 17 and 18) was removed; it is all in commit
-`8b82bc3` ("Learned AI through a person's controls..."), and `git checkout 8b82bc3 -- training scripts/senses.gd ...` brings it back. What it left
-that the scripted brain uses: a wizard faces the way it moves (no moonwalking), a brain's misfire costs stamina as a person's does, and the
-people's limits measured from recordings (`ai/human_limits.json` from `tools/measure_human.py`, `ai/stroke_drift.json` from `tests/measure_drift.gd`).
-
-The owner wants the AI wizards to be indistinguishable from people, judged by what a human would find odd, not by what the code says. The method: run
-`tests/arena_sim.tscn -- seed=N seconds=360 log=FILE` headless on many seeds (`log=` writes a line four times a second for each wizard: position, velocity,
-stamina, foe, flags, goal, plus `C` cast and `D` damage lines; `probe=N,SEC` prints a brain's variables, `kill=SEC`, `sketch=X,Y` prints the nav map, `shot=FILE shotat=SEC follow=N` takes a picture, `fightshots=DIR`),
-read the logs for stalls, jitter, pointless deaths and idling, and fix what a person would not do. Worlds are not deterministic run to run, even with one seed.
-What the brain does now that it did not:
-- **Sight and exploring** (matches only, `_sight_is_limited()`): it knows only the pages it has seen (`_note_sights`), and otherwise walks to unexplored squares (`_choose_explore`). When a way is shut by danger or by a stair that will not come, it marks that side explored and goes the other way.
-- **Fire, lava, volcanoes, piranhas:** it will not wade piranha water (`_in_shoal`, `_bitten`), keeps off an awake volcano and flees it downhill (`_safe_side`), never stands chanting in fire (an escape cancels `_settle`, `_typing`, `_camped`), and does not turn back and forth while fleeing (hysteresis in `_safe_side`).
-- **Creatures that attack** (`_assailed`): it strikes one down with a spell that kills, or runs.
-- **Mending:** a worn-down wizard lights a bonfire (chant) and rests at it (`_mend`); a wizard rests when stamina is low (thresholds scale with maximum stamina).
-- **Footwork:** it walks, hops rarely (jumping is a last resort), strafes in a fight in slow turns, draws attack strokes with a hand's wobble (`_handed`), and takes a person's time to type a chant.
-- **Watchdog:** `_watch_progress` gives up a goal after 20 s with no progress; `WizardRoute.wait()` marks a wait as not being stuck.
-- **Floors:** exploring weighs nearby unexplored squares on other floors as well as along the way (`_choose_explore`, `EXPLORE_FLOOR`), so the castle's upper and lower halls get visited; a stair that does not come in `STAIR_PATIENCE` seconds, or a ride that never began (`WizardRoute.RIDE_GIVE_UP`), is given up. `tests/arena_sim.tscn` prints the pages still lying at the end and whether anyone could walk to them.
-- **Thorns:** with no fire to burn them, it does not walk into world thorns (`_lethal_at`); it stops camping or chanting when a creature, fire or fish is on it (`_mend`).
-Seen and left alone: long waits for swinging castle stairs (legitimate, up to about 78 s), the rift, boundless and dowsing chants are unused, foe hunting still knows where rivals are.
-The quick check set is the safety net; run `python tools/run_checks.py --full tutorial_ai brain_spells route_check test_nav cross gate` after touching the brain.
-
-- **Recording a person:** press F9 in a game to record (`PlayRecorder`, `tests/recorder_check.tscn`); F9 again stops. It writes `user://play_logs/play_*.log` (on Windows: `%APPDATA%\Godotpp_userdata\<project name>\play_logs`): K every key and mouse press, M the mouse, S the wizard ten times a second, G the ground about it, W every other wizard near, E creatures, spells, fires and pages near, X anything new in the world (a spell, with who cast it), C and R spells and chant words, D damage with everything within reach that could have caused it, N who fell. Compare a person's jump rate, waits and fight rhythm with the AI's before judging the AI human.
-- **Play logs from network matches:** with the setting `share_logs` on (the default; Settings, "Share play logs"), a person in a network match is recorded from the start of each world (`net_*.log` in `user://play_logs`). When they are out or have won, `PlayRecorder.finish` packs the file (gzip) and `Net.send_play_log` sends it to the machine that keeps the game, which stores it in `user://received_logs/peer<id>_<name>.gz` (a different folder from the person's own, so a machine that hosts and plays never deletes what it keeps) and says so; the sender then deletes its file. A file left by a match that was cut short is sent at the next match. Read them with `gzip`; the line kinds are in `scripts/play_recorder.gd`. Test: `tests/log_upload_check.tscn`. The wording of the setting is a draft.

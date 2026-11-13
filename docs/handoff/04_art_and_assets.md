@@ -67,6 +67,7 @@
    - On itch.io, read the page's "License" line; descriptions and metadata sometimes disagree.
 2. **Style:** dark, gothic, pixel, at a density near the characters (roughly 50–90 px tall people).
 3. **Content:** open it and look at every frame in a contact sheet before using it. Pitfalls already met:
+   - downloads are not kept in the repo: re-download them into a scratch folder;
    - "fire-sprites" turned out to be an enemy wizard casting fire;
    - some sheets have an opaque teal or magenta background, which needs `key_out`;
    - some sheets are grids, not strips;

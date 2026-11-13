@@ -24,7 +24,7 @@ The sentinel (`Sentinel`, an eye that shoots a laser) is a gate of the world, no
 
 ## The AI wizards (`WizardBrain`, `SkyBrain` in the sky)
 
-The owner wants them indistinguishable from people (`CLAUDE.md` section 12 says how that is judged). They have a person's body, view and limits:
+The owner wants them indistinguishable from people (the section on playing like a person, below, says how that is judged). They have a person's body, view and limits:
 
 - **Casting** goes through the real recognizer: `_begin_cast(spell, stroke, draw_time)` draws the stroke in front of it over `draw_time`, then
   `caster.cast_stroke`. A blow of 6 or more while it draws interrupts the spell. Strokes come from `GestureTemplates.preview_points`, with a hand's wobble
@@ -59,7 +59,7 @@ The owner wants them indistinguishable from people (`CLAUDE.md` section 12 says 
   (`tolls`); `WorldNav.path` goes round the crossings it holds no spell for. Over water it draws a Frost Bridge or Lily Pads and walks over; over a pit it jumps
   and carries itself on with Shadow Steps (`_leaping`); at a wall it lifts itself over (`_lifting`: a Geyser under its feet, Push, or a Liana); through lava it wades in
   Obsidian Armor (`_wading`); at a sentinel it hides behind Smoke Screen, an Eclipse, a Barrier or a Decoy; through gas it holds its breath with the Chant of the Deep Breath.
-- **Rooms built by hand** (the waiting room, the tutorial) are read the same way by `RoomScan` (`CLAUDE.md` section 11).
+- **Rooms built by hand** (the waiting room, the tutorial) are read the same way by `RoomScan` (the section "The AI reads any room" below).
 - Tests: `tests/test_nav.gd`, `tests/route_check.tscn`, `tests/cross_check.tscn`, `tests/gate_check.tscn`, `tests/sentinel_check.tscn`, `tests/arena_sim.tscn` (AI-only matches).
 
 ## Raised skeletons
@@ -67,3 +67,36 @@ The owner wants them indistinguishable from people (`CLAUDE.md` section 12 says 
 A skeleton raised by Raise Dead is a `basic` `Mob` with `master` set. `_pick_prey` skips the master and picks the nearest skeleton of another master as `_foe`;
 `_target()` prefers `_foe`; with no one to fight it keeps near its master (`_follow_master`); it falls when its master falls. In a network match the machine that drives
 the master drives the skeleton, named `Raised_<master>_<cast count>` on every machine; the others show a puppet.
+
+## The AI reads any room
+
+The brain used to plan only from a match world's gate lists. `scripts/room_scan.gd` (`RoomScan.read`) now reads a hand-built room the same way: its ground, plus live thorns, gas, brick walls, ponds with fish, turrets, eyes, creatures, deep pits and sheer cliffs, and gives the same gates and crossings a World does. A room hosts it by joining group `gate_source` (the `Lab` and so the `Tutorial` do; it rescans every 0.5 s) and puts its exit in group `exit_points`. `WorldNav` has an `origin` (rooms run in negative columns) and `WorldNav.NONE` for "no tile". New brain skills: clearing creatures, Faint on giants, Barrier against several shooters, the double-jump chant, a rocket plus Featherfall leap, striking tall walls at the foot, gas banks, walking to the exit. The brain has no code for the tutorial itself: change the tutorial and the same wizard should still finish it (`tests/tutorial_ai_check.tscn`). The tutorial keeps lost maximum stamina (`Lab.heals_wounds = false`) and its gauntlet is shorter, with no second giant, dark stage, wall-gas-eye stage or last pit. Not yet general: spike beds are not read as hazards, and match worlds were left as they were.
+
+## How the AI is made to play like a person
+
+**The AI wizards are the scripted brain (`WizardBrain`, `SkyBrain` in the sky).** A learned AI was tried from 2026-11-08 to 11-12: networks that
+played through a person's controls, trained by self-play in a curriculum (Fireball duels, then four spells), and trained footwork for the rivals'
+legs. It learned the duels, but the owner called it off on 2026-11-12: whole matches were far off, and a trained player wins in ways that do not
+look human. All of it (the hand, the senses, the trainers, the arenas, the checks, and chapters 17 and 18) was removed; it is all in commit
+`8b82bc3` ("Learned AI through a person's controls..."), and `git checkout 8b82bc3 -- training scripts/senses.gd ...` brings it back. What it left
+that the scripted brain uses: a wizard faces the way it moves (no moonwalking), a brain's misfire costs stamina as a person's does, and the
+people's limits measured from recordings (`ai/human_limits.json` from `tools/measure_human.py`, `ai/stroke_drift.json` from `tests/measure_drift.gd`).
+
+The owner wants the AI wizards to be indistinguishable from people, judged by what a human would find odd, not by what the code says. The method: run
+`tests/arena_sim.tscn -- seed=N seconds=360 log=FILE` headless on many seeds (`log=` writes a line four times a second for each wizard: position, velocity,
+stamina, foe, flags, goal, plus `C` cast and `D` damage lines; `probe=N,SEC` prints a brain's variables, `kill=SEC`, `sketch=X,Y` prints the nav map, `shot=FILE shotat=SEC follow=N` takes a picture, `fightshots=DIR`),
+read the logs for stalls, jitter, pointless deaths and idling, and fix what a person would not do. Worlds are not deterministic run to run, even with one seed.
+What the brain does now that it did not:
+- **Sight and exploring** (matches only, `_sight_is_limited()`): it knows only the pages it has seen (`_note_sights`), and otherwise walks to unexplored squares (`_choose_explore`). When a way is shut by danger or by a stair that will not come, it marks that side explored and goes the other way.
+- **Fire, lava, volcanoes, piranhas:** it will not wade piranha water (`_in_shoal`, `_bitten`), keeps off an awake volcano and flees it downhill (`_safe_side`), never stands chanting in fire (an escape cancels `_settle`, `_typing`, `_camped`), and does not turn back and forth while fleeing (hysteresis in `_safe_side`).
+- **Creatures that attack** (`_assailed`): it strikes one down with a spell that kills, or runs.
+- **Mending:** a worn-down wizard lights a bonfire (chant) and rests at it (`_mend`); a wizard rests when stamina is low (thresholds scale with maximum stamina).
+- **Footwork:** it walks, hops rarely (jumping is a last resort), strafes in a fight in slow turns, draws attack strokes with a hand's wobble (`_handed`), and takes a person's time to type a chant.
+- **Watchdog:** `_watch_progress` gives up a goal after 20 s with no progress; `WizardRoute.wait()` marks a wait as not being stuck.
+- **Floors:** exploring weighs nearby unexplored squares on other floors as well as along the way (`_choose_explore`, `EXPLORE_FLOOR`), so the castle's upper and lower halls get visited; a stair that does not come in `STAIR_PATIENCE` seconds, or a ride that never began (`WizardRoute.RIDE_GIVE_UP`), is given up. `tests/arena_sim.tscn` prints the pages still lying at the end and whether anyone could walk to them.
+- **Thorns:** with no fire to burn them, it does not walk into world thorns (`_lethal_at`); it stops camping or chanting when a creature, fire or fish is on it (`_mend`).
+Seen and left alone: long waits for swinging castle stairs (legitimate, up to about 78 s), the rift, boundless and dowsing chants are unused, foe hunting still knows where rivals are.
+The quick check set is the safety net; run `python tools/run_checks.py --full tutorial_ai brain_spells route_check test_nav cross gate` after touching the brain.
+
+- **Recording a person:** press F9 in a game to record (`PlayRecorder`, `tests/recorder_check.tscn`); F9 again stops. It writes `user://play_logs/play_*.log` (on Windows: `%APPDATA%\Godotpp_userdata\<project name>\play_logs`): K every key and mouse press, M the mouse, S the wizard ten times a second, G the ground about it, W every other wizard near, E creatures, spells, fires and pages near, X anything new in the world (a spell, with who cast it), C and R spells and chant words, D damage with everything within reach that could have caused it, N who fell. Compare a person's jump rate, waits and fight rhythm with the AI's before judging the AI human.
+- **Play logs from network matches:** with the setting `share_logs` on (the default; Settings, "Share play logs"), a person in a network match is recorded from the start of each world (`net_*.log` in `user://play_logs`). When they are out or have won, `PlayRecorder.finish` packs the file (gzip) and `Net.send_play_log` sends it to the machine that keeps the game, which stores it in `user://received_logs/peer<id>_<name>.gz` (a different folder from the person's own, so a machine that hosts and plays never deletes what it keeps) and says so; the sender then deletes its file. A file left by a match that was cut short is sent at the next match. Read them with `gzip`; the line kinds are in `scripts/play_recorder.gd`. Test: `tests/log_upload_check.tscn`. The wording of the setting is a draft.
