@@ -176,32 +176,32 @@ class Driver extends Node:
 		get_viewport().get_texture().get_image().save_png("%s/%s_%s.png" % [out, name, role])
 
 	## The one who joined reads the first page (by name) of a kind: a fan of a wizard's starting pages, or a page of the map. The host must allow it, and both
-## machines must see it gone and its pages in that wizard's book. A page the book already holds is left alone: the host does not take that one.
-func _read_a_page(world: Node, reader: Wizard, fan: bool, where: String) -> void:
-	var names: Array[String] = []
-	for each: Node in get_tree().get_nodes_in_group("pages"):
-		if each is PagePickup and not each is Mirage and each.fan == fan and each.gives(reader.ledger) and not each.is_queued_for_deletion():
-			names.append(String(each.name))
-	names.sort()
-	if names.is_empty():
-		_check(false, "there is a page to read %s" % where)
-		return
-	var pickup := world.get_node(names[0]) as PagePickup
-	var pages: Array[String] = []
-	pages.assign(pickup.spoils if not pickup.spoils.is_empty() else [pickup.page])
-	if role == "client":
-		reader.global_position = pickup.global_position
-		await _seconds(0.3)
-		world.read_page(pickup, reader)
-	await _seconds(2.0)
-	_check(world.get_node_or_null(names[0]) == null, "%s: the page %s read by the one who joined is gone here" % [where, names[0]])
-	var known := true
-	for each: String in pages:
-		known = known and reader.ledger.knows(each)
-	_check(known, "%s: all of it is in that wizard's book here (%s)" % [where, ", ".join(pages)])
+	## machines must see it gone and its pages in that wizard's book. A page the book already holds is left alone: the host does not take that one.
+	func _read_a_page(world: Node, reader: Wizard, fan: bool, where: String) -> void:
+		var names: Array[String] = []
+		for each: Node in get_tree().get_nodes_in_group("pages"):
+			if each is PagePickup and not each is Mirage and each.fan == fan and each.gives(reader.ledger) and not each.is_queued_for_deletion():
+				names.append(String(each.name))
+		names.sort()
+		if names.is_empty():
+			_check(false, "there is a page to read %s" % where)
+			return
+		var pickup := world.get_node(names[0]) as PagePickup
+		var pages: Array[String] = []
+		pages.assign(pickup.spoils if not pickup.spoils.is_empty() else [pickup.page])
+		if role == "client":
+			reader.global_position = pickup.global_position
+			await _seconds(0.3)
+			world.read_page(pickup, reader)
+		await _seconds(2.0)
+		_check(world.get_node_or_null(names[0]) == null, "%s: the page %s is gone here" % [where, names[0]])
+		var known := true
+		for each: String in pages:
+			known = known and reader.ledger.knows(each)
+		_check(known, "%s: all of it is in that wizard's book here (%s)" % [where, ", ".join(pages)])
 
 
-func _check(ok: bool, what: String) -> void:
+	func _check(ok: bool, what: String) -> void:
 		print("%s: %s %s" % [role, "ok  " if ok else "FAIL", what])
 		if not ok:
 			_failures += 1

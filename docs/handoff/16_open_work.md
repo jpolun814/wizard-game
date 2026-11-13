@@ -12,7 +12,7 @@ is in git. Any player-facing line follows section 0 of `CLAUDE.md`, and no new s
 
 ## Bugs and known failures
 
-- **A page out of sync in a network game.** Not reproduced for ordinary pages. The lead is the Mirage: each machine spawns its own, with a node name of its own, so a
+- **A page out of sync in a network game.** One cause was found and fixed (2026-11-13): Tab read the first page under the wizard, so a page the book already held stood between the wizard and a new one lying within reach, for good (`PagePickup.underfoot`, `page_underfoot_check`). `net_match_check` now also has the person who joined read a fan of starting pages and a page in the second world: both work. Not reproduced for ordinary pages otherwise. The lead is the Mirage: each machine spawns its own, with a node name of its own, so a
   read found by name (`_page_read`) cannot find it on the other machine. Fix idea: the host decides when it shimmers out and in and sends it by name, and a spawned
   Mirage gets the same name everywhere (the caster's name and a count).
 - **`test_world` (full set):** on seeds 7, 15 and 23 the rooms next to the start of a 1200-wide world with halls cannot be reached. It fails the same way at the start of

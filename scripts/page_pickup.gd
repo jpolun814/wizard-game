@@ -167,12 +167,22 @@ func take(ledger: Ledger) -> String:
 	return page
 
 
-## The page the wizard stands under, or null.
+## The page the wizard stands under, or null. Where several lie within reach (a dropped book beside a page, a fan beside another) the one that gives them
+## something comes first, a page that is really there before a mirage, so a page already read never stands between the wizard and a new one.
 static func underfoot(tree: SceneTree) -> PagePickup:
+	var wizard := tree.get_first_node_in_group("player") as Wizard
+	var best: PagePickup = null
+	var best_rank := -1
 	for pickup: PagePickup in tree.get_nodes_in_group("pages"):
-		if pickup.is_underfoot():
-			return pickup
-	return null
+		if pickup.is_queued_for_deletion() or not pickup.is_underfoot():
+			continue
+		var rank := 0
+		if wizard != null and pickup.gives(wizard.ledger):
+			rank = 1 if pickup is Mirage else 2
+		if rank > best_rank:
+			best = pickup
+			best_rank = rank
+	return best
 
 
 func _draw() -> void:
