@@ -36,9 +36,9 @@ The owner wants them indistinguishable from people (the section on playing like 
 - **Attacks:** each spell gets a score from the situation (is the rival still, rooted, behind cover, under a platform, near or far?); it leads moving targets (`_predict`).
 - **Skill** is 0 to 1 (`skill`, from the Rival skill setting): it sets reaction time and aim.
 - **Every spell has a use** (`WizardBrain.USES`; `tests/brain_spells_check.tscn` gives each spell alone to a brain and sees it cast it):
-  - *attack* spells are scored in `_attack` and drawn in `BrainHand.attack_stroke`;
-  - *repel* spells (Push, Geyser, Tide Surf, Spore Puff, Fire Breath) are chosen when a rival is on top of it (`_choose_repel`);
-  - *defence* spells (Barrier, Gust, Shadow Step) answer an incoming shot (`_choose_defence`);
+  - *attack* spells are scored in `BrainCombat.attack` and drawn in `BrainHand.attack_stroke`;
+  - *repel* spells (Push, Geyser, Tide Surf, Spore Puff, Fire Breath) are chosen when a rival is on top of it (`BrainCombat.choose_repel`);
+  - *defence* spells (Barrier, Gust, Shadow Step) answer an incoming shot (`BrainCombat.choose_defence`);
   - *tend* spells are cast for its own needs by `BrainMend.tend`: light in the dark, strength, hiding when badly hurt, and cover from a rival who keeps shooting; Hunter's Mark finds a
     wizard who has faded from sight; a Scrying Eye when it has lost track of everyone (`_eye_time`); Featherfall in a long fall;
   - *ways up* (`LIFTS`) raise it over a wall or up to a rival standing over its head (`_chase`).

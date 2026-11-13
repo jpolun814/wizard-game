@@ -129,14 +129,7 @@ var _daunted := 0.0           # seconds it has faced a rival it feels too weak f
 var cast_cooldown := 1.8
 var react := 0.0             # counting down to a planned reaction
 var _reaction := ""
-var _threat_dir := Vector2.ZERO
-var _defend_cooldown := 0.0
-var _strafe := 0.0
-var _strafe_timer := 0.0
-var _escape_time := 0.0
-var _escape_dir := 0.0
-var _jump_cooldown := 0.0
-var _escape_commit := 0.0     # seconds it keeps the way it chose out of danger
+var jump_cooldown := 0.0
 var _push_through := 0.0     # seconds left that it walks on through what it would back out of
 var _escapes := 0.0           # how often it has backed out of danger lately
 var _anchor := Vector2.INF       # where it was when it last moved any distance
@@ -159,11 +152,10 @@ var _assail_dir := 0.0
 var _stair_wait := 0.0          # seconds it has stood at a swinging stair on its way to look at somewhere new
 var _dash := 0.0               # seconds it runs on across lava, whatever it does to it
 var _danger_wait := 0.0       # seconds it has stood waiting for danger on its way to pass
-var _hop_timer := 1.5  # counting down to its next hop while it walks
 var pressure := 0.0          # how many shots you have thrown at it lately
-var _recent: Array[String] = []  # its last two attacks, which it avoids repeating
 var rng := RandomNumberGenerator.new()
 var hand: BrainHand
+var combat: BrainCombat
 var mend: BrainMend
 var explore: BrainExplore
 var gates: BrainGates  # the ways over crossings and the clearing of gates
@@ -197,6 +189,7 @@ func _init(body: Wizard) -> void:
 	hand = BrainHand.new(self, body)
 	moves = BrainMoves.new(self, body)
 	gates = BrainGates.new(self, body)
+	combat = BrainCombat.new(self, body)
 	mend = BrainMend.new(self, body)
 	explore = BrainExplore.new(self, body)
 	chant = BrainChant.new(self, body)
@@ -218,20 +211,20 @@ func on_hurt(amount: int) -> void:
 	if wizard.is_drawing() and amount >= INTERRUPT_DAMAGE:
 		wizard.interrupt_cast()
 		cast_cooldown = maxf(cast_cooldown, 0.9)
-	if knows("Shadow Step") and wizard.max_stamina < Wizard.MAX_STAMINA * 0.4 and _defend_cooldown <= 0.0 and react <= 0.0 and rng.randf() < 0.5:
+	if knows("Shadow Step") and wizard.max_stamina < Wizard.MAX_STAMINA * 0.4 and combat.defend_cooldown <= 0.0 and react <= 0.0 and rng.randf() < 0.5:
 		_plan("blink_away", 0.25)
 
 
 ## A Flaming Sphere rolling at it along the ground: a person jumps over it, as over a rolling log, instead of standing in its way or running from it.
 func _hurdle() -> void:
-	if not wizard.is_on_floor() or _jump_cooldown > 0.0 or wizard.wild:
+	if not wizard.is_on_floor() or jump_cooldown > 0.0 or wizard.wild:
 		return
 	for node in wizard.get_tree().get_nodes_in_group("fires"):
 		if node is FlamingSphere:
 			var gap: Vector2 = node.global_position - wizard.global_position
 			if absf(gap.y) < 50.0 and absf(gap.x) < 120.0 and signf(-gap.x) == signf(node.direction):
 				wizard.request_jump()
-				_jump_cooldown = 0.8
+				jump_cooldown = 0.8
 				return
 
 
@@ -277,7 +270,7 @@ func _run_clocks(delta: float) -> void:
 	_note_new_pages(delta)
 	_dash -= delta
 	hand.tick(delta)
-	_catch_fall()
+	combat.catch_fall()
 	if chant.is_typing() and _typing_disturbed():  # it breaks off the chant, and will not try it here again for a while
 		chant.typing = ""
 		settle = 0.0
@@ -285,9 +278,9 @@ func _run_clocks(delta: float) -> void:
 		mend.mend_wait = maxf(mend.mend_wait, 10.0 * chant.breaks)
 		_haste_wait = maxf(_haste_wait, 10.0 * chant.breaks)
 	cast_cooldown -= delta
-	_defend_cooldown -= delta
-	_jump_cooldown -= delta
-	_escape_time -= delta
+	combat.defend_cooldown -= delta
+	jump_cooldown -= delta
+	combat.escape_time -= delta
 	goal_timer -= delta
 	settle -= delta
 	mend.tend_cooldown -= delta
@@ -337,7 +330,7 @@ func _alone(delta: float) -> void:
 	if react > 0.0:  # (a reaction it has planned still comes: nothing else counts it down here)
 		react -= delta
 		if react <= 0.0:
-			_act(_reaction)
+			combat.act(_reaction)
 	# It still looks after itself: a light in the dark, its strength, the scent of whoever it has lost.
 	if react <= 0.0 and mend.tend_cooldown <= 0.0 and not wizard.is_drawing() and not moves.busy() and not smothering():
 		mend.tend_cooldown = 0.6 + rng.randf() * 0.6
@@ -359,18 +352,18 @@ func _with_a_rival(delta: float) -> void:
 	var fighting := sees and to_player.length() < ENGAGE
 
 	_push_through -= delta
-	_escape_commit -= delta
+	combat.escape_commit -= delta
 	_escapes = maxf(_escapes - delta * 0.5, 0.0)
 	# Reactions.
 	if react > 0.0:
 		react -= delta
 		if react <= 0.0:
-			_act(_reaction)
+			combat.act(_reaction)
 	elif not wizard.is_drawing():
 		var shot := sight.incoming_shot()
-		if not shot.is_empty() and _defend_cooldown <= 0.0:
-			_threat_dir = shot["dir"]
-			_plan(_choose_defence(shot["eta"]), _reaction_time())
+		if not shot.is_empty() and combat.defend_cooldown <= 0.0:
+			combat.threat_dir = shot["dir"]
+			_plan(combat.choose_defence(shot["eta"]), _reaction_time())
 		elif (_dash <= 0.0 and danger.scorched()) or danger.bitten() or (_push_through <= 0.0 and (danger.in_danger(wizard.global_position + Vector2(0, -6)) or danger.in_danger(wizard.center()))):
 			_plan("escape", _reaction_time() * 0.6)
 			settle = 0.0  # nobody stands in the fire to finish a chant
@@ -380,10 +373,10 @@ func _with_a_rival(delta: float) -> void:
 			if _escapes > 3.0 and not danger.scorched() and not danger.bitten():  # it keeps backing out of the same thing that lies on its way: it goes through it this once
 				_push_through = PUSH_THROUGH_FOR
 				_escapes = 0.0
-		elif _defend_cooldown <= 0.0 and not _watchers().is_empty():
+		elif combat.defend_cooldown <= 0.0 and not watchers().is_empty():
 			_plan("cover", _reaction_time())
-		elif fighting and to_player.length() < TOO_CLOSE and _defend_cooldown <= 0.0:
-			_plan(_choose_repel(), _reaction_time())
+		elif fighting and to_player.length() < TOO_CLOSE and combat.defend_cooldown <= 0.0:
+			_plan(combat.choose_repel(), _reaction_time())
 
 	# Looking after itself: its lights, its strength, a wall between it and you, a way up to you.
 	if react <= 0.0 and mend.tend_cooldown <= 0.0 and not wizard.is_drawing() and not moves.busy() and not smothering():
@@ -392,7 +385,7 @@ func _with_a_rival(delta: float) -> void:
 			mend.tend_cooldown = 1.4 + rng.randf() * 0.8
 
 	if wizard.wild and fighting:
-		_wolf(to_player, sees)  # a werewolf has no spells: it runs at the rival and claws
+		combat.wolf(to_player, sees)  # a werewolf has no spells: it runs at the rival and claws
 		return
 
 	# Footwork, or the journey.
@@ -410,7 +403,7 @@ func _with_a_rival(delta: float) -> void:
 		if standing_to_fight and wizard.swim_time > 0.0:
 			run = _swim(delta, true, to_player)  # (out of its depth, it fights as it swims)
 		else:
-			run = _footwork(delta, to_player, sees) if standing_to_fight else _travel(delta)  # (both may jump: the speed is written after they have)
+			run = combat.footwork(delta, to_player, sees) if standing_to_fight else _travel(delta)  # (both may jump: the speed is written after they have)
 	wizard.walk(run)
 	# A wizard faces the way it runs; it turns to its rival only while standing still or drawing a spell, so it never backpedals.
 	var running := run != 0.0 and not wizard.is_drawing()
@@ -424,19 +417,10 @@ func _with_a_rival(delta: float) -> void:
 			cast_cooldown = 0.3  # another spell would let the breath go; and a wizard out of sight is shown by casting
 		elif foe.has_shield():
 			cast_cooldown = 0.3  # nothing gets through a Barrier; wait it out
-		elif _attack(to_player, sees):
+		elif combat.attack(to_player, sees):
 			cast_cooldown = lerpf(2.8, 1.5, skill) + rng.randf() * 0.8
 		else:
 			cast_cooldown = 0.4
-
-
-## A werewolf's turn: straight at the rival, and a swipe once they are in reach.
-func _wolf(to_player: Vector2, sees: bool) -> void:
-	var near := absf(to_player.x) < Wizard.CLAW_REACH * 0.8
-	wizard.walk(0.0 if near else signf(to_player.x) * Wizard.SPEED * Wizard.WILD_SPEED)
-	wizard.facing = signf(to_player.x) if to_player.x != 0.0 else wizard.facing
-	if sees and absf(to_player.x) < Wizard.CLAW_REACH and absf(to_player.y) < 60.0:
-		wizard.claw()
 
 
 ## How long it takes to answer something it has seen: the middle half of the reactions recorded from people runs from a quarter of a second to
@@ -477,7 +461,7 @@ func _feel_strength(_rival: Wizard) -> float:
 
 
 ## Whether a wizard cannot move freely: rooted, or slowed.
-func _held(foe: Wizard) -> bool:
+func held(foe: Wizard) -> bool:
 	return foe.is_rooted() or foe.is_slowed()
 
 
@@ -580,9 +564,9 @@ func _assailed(delta: float) -> float:
 		return away * WALK_SPEED * 0.6 if absf(mob.global_position.x - wizard.global_position.x) < 70.0 else 0.0  # it gives ground while its spell is ready again
 	_assail_dir = away
 	_assail_commit = 1.2
-	if wizard.is_on_wall() and wizard.is_on_floor() and _jump_cooldown <= 0.0:
+	if wizard.is_on_wall() and wizard.is_on_floor() and jump_cooldown <= 0.0:
 		wizard.request_jump()
-		_jump_cooldown = 0.5
+		jump_cooldown = 0.5
 	return away * WALK_SPEED * 1.2
 
 
@@ -641,15 +625,15 @@ func _held_up(delta: float) -> float:
 	_haste_wait -= delta
 	if _wander_time > 0.0:
 		_wander_time -= delta
-		if wizard.is_on_floor() and _jump_cooldown <= 0.0 and wizard.is_on_wall():
+		if wizard.is_on_floor() and jump_cooldown <= 0.0 and wizard.is_on_wall():
 			wizard.request_jump()
-			_jump_cooldown = 0.6
+			jump_cooldown = 0.6
 		return _wander_dir * WALK_SPEED
-	if _escape_time > 0.0:
-		if wizard.is_on_wall() and wizard.is_on_floor() and _jump_cooldown <= 0.0:  # a bank too steep to walk up: it hops
+	if combat.escape_time > 0.0:
+		if wizard.is_on_wall() and wizard.is_on_floor() and jump_cooldown <= 0.0:  # a bank too steep to walk up: it hops
 			wizard.request_jump()
-			_jump_cooldown = 0.5
-		return _escape_dir * WALK_SPEED * 1.3
+			jump_cooldown = 0.5
+		return combat.escape_dir * WALK_SPEED * 1.3
 	if gates.walking_pads():
 		return gates.cross_run
 	if mend.resting and wizard.stamina >= minf(REST_UNTIL, wizard.max_stamina * 0.9):  # (a wizard worn down to a small maximum rests up to that, not up to more than it can ever hold)
@@ -726,8 +710,8 @@ func _follow_route(delta: float) -> float:
 		_stair_wait = 0.0
 	var ahead := signf(steer["dir"])
 	if ahead != 0.0 and wizard.is_on_floor() and _dash <= 0.0 and not danger.lethal_at(wizard.global_position + Vector2(0, -6)):
-		var near := danger.lethal_at(_over_ground(ahead * 40.0)) or danger.lethal_at(_over_ground(ahead * 72.0))
-		if near or danger.lethal_at(_over_ground(ahead * 110.0)):
+		var near := danger.lethal_at(combat.over_ground(ahead * 40.0)) or danger.lethal_at(combat.over_ground(ahead * 72.0))
+		if near or danger.lethal_at(combat.over_ground(ahead * 110.0)):
 			# lava or an eruption lies on the way: it keeps its distance, backing away if it is close, and waits for it to pass or cool; when that takes
 			# too long it looks for another way
 			_danger_wait += delta
@@ -854,11 +838,11 @@ func _lethal_stretch(ahead: float) -> float:
 	var start := -1.0
 	var d := 16.0
 	while d <= 480.0:
-		var bad := danger.lethal_at(_over_ground(ahead * d))
+		var bad := danger.lethal_at(combat.over_ground(ahead * d))
 		if bad and start < 0.0:
 			start = d
 		elif not bad and start >= 0.0:
-			var landing := _over_ground(ahead * (d + 32.0))
+			var landing := combat.over_ground(ahead * (d + 32.0))
 			return d - start if not danger.lethal_at(landing) and absf(landing.y - wizard.global_position.y) < 120.0 else INF
 		d += 16.0
 	return INF
@@ -878,9 +862,9 @@ func _read_page_underfoot() -> void:
 ## Stands under the portal it is after and jumps until it is carried off. Returns the speed to go at.
 func _jump_for_portal(delta: float) -> float:
 	_portal_jumping += delta
-	if wizard.is_on_floor() and _jump_cooldown <= 0.0:
+	if wizard.is_on_floor() and jump_cooldown <= 0.0:
 		wizard.request_jump()
-		_jump_cooldown = 0.7
+		jump_cooldown = 0.7
 	var off := _goal_portal.global_position.x - wizard.global_position.x
 	return signf(off) * WALK_SPEED * 0.5 if absf(off) > 14.0 else 0.0
 
@@ -1084,7 +1068,7 @@ func status() -> String:
 
 
 ## The sentinels that have it in sight, when it holds a spell to meet them with.
-func _watchers() -> Array:
+func watchers() -> Array:
 	var out := []
 	if not COVERS.any(knows):
 		return out
@@ -1094,269 +1078,10 @@ func _watchers() -> Array:
 	return out
 
 
-func _choose_defence(eta: float) -> String:
-	var options := {"jump": 1.0}
-	if knows("Gust") and wizard.stamina >= 15.0 and eta > QUICK_DRAW + 0.05:
-		options["reflect"] = 0.6 + 1.6 * skill  # a skilled wizard sends your spells back at you
-	if knows("Barrier") and wizard.stamina >= 35.0 and eta > QUICK_DRAW + 0.05:
-		options["shield"] = 0.5
-	if knows("Shadow Step") and wizard.stamina >= 10.0:
-		options["blink_side"] = 0.7
-	if not wizard.is_on_floor():
-		options.erase("jump")
-	return pick(options) if not options.is_empty() else ""
-
-
-func _choose_repel() -> String:
-	var options := {}
-	if ready_to_cast("Geyser") and opponent.stands():
-		options["geyser"] = 1.0
-	if ready_to_cast("Tide Surf"):
-		options["surf"] = 0.9
-	if ready_to_cast("Spore Puff") and danger.clear_line(wizard.center(), sight.seen_center(opponent)):
-		options["spores"] = 1.1
-	if knows("Push") and wizard.stamina >= 10.0:
-		options["push"] = 1.5
-	if knows("Shadow Step") and wizard.stamina >= 10.0:
-		options["blink_away"] = 1.0
-	if knows("Fire Breath") and wizard.stamina >= 16.0 and danger.clear_line(wizard.center(), sight.seen_center(opponent)):
-		options["breath"] = 1.3
-	return pick(options) if not options.is_empty() else "escape"
-
-
-func _act(reaction: String) -> void:
-	var foe: Wizard = opponent
-	if (not is_instance_valid(foe)) and reaction in ["push", "breath", "spores", "geyser", "surf", "blink_side", "blink_away"]:
-		return  # (a reaction planned against a rival who is gone from its mind by the time it comes)
-	match reaction:
-		"jump":
-			if wizard.is_on_floor():
-				wizard.request_jump(0.8)
-			_defend_cooldown = 0.6
-		"reflect":
-			# A Gust blown toward where the shot came from: it turns the shot round and sends it back.
-			var start: Vector2 = wizard.center() - _threat_dir * 20.0
-			hand.begin_cast("Gust", BrainStrokes.line(start, start - _threat_dir * 90.0), QUICK_DRAW)
-			_defend_cooldown = 1.4
-		"cover":
-			var watchers := _watchers()
-			if not watchers.is_empty():
-				gates.cover(watchers[0])
-			_defend_cooldown = 4.0
-		"shield":
-			hand.begin_cast("Barrier", BrainStrokes.offset(GestureTemplates.preview_points("circle"), wizard.center(), 0.8), QUICK_DRAW)
-			_defend_cooldown = 2.5
-		"blink_side", "blink_away":
-			_blink_away(foe)
-			_defend_cooldown = 1.6
-		"escape":
-			if _escape_commit <= 0.0 or _escape_dir == 0.0:
-				_escape_dir = _safe_side()  # (once it has chosen a way out, it keeps to it for a while rather than turning back at every lick of flame)
-				_escape_commit = 1.8
-			_escape_time = 0.6
-			if knows("Shadow Step") and wizard.stamina >= 12.0 and rng.randf() < skill * 0.6:
-				var from: Vector2 = wizard.center()
-				hand.begin_cast("Shadow Step", BrainStrokes.line(from, from + Vector2(_escape_dir * 240.0, -12.0)), QUICK_DRAW)  # (to the safe side, not away from the rival)
-			_defend_cooldown = 0.6
-		"push":
-			var away: Vector2 = (sight.seen_center(foe) - wizard.center()).normalized()
-			hand.begin_cast("Push", hand.push_stroke(sight.seen_center(foe), away), QUICK_DRAW)
-			_defend_cooldown = 1.5
-		"breath":
-			hand.begin_cast("Fire Breath", hand.breath_stroke(sight.seen_center(foe)), QUICK_DRAW + 0.1)
-			_defend_cooldown = 1.8
-		"spores":
-			hand.begin_cast("Spore Puff", hand.breath_stroke(sight.seen_center(foe)), QUICK_DRAW + 0.1)
-			_defend_cooldown = 1.8
-		"geyser":  # the ground bubbles under its feet and throws it off
-			hand.begin_cast("Geyser", BrainStrokes.offset(GestureTemplates.preview_points("geyser"), sight.seen_feet(foe) + Vector2(0.0, -24.0), 0.6), QUICK_DRAW)
-			_defend_cooldown = 1.8
-		"surf":
-			hand.begin_cast("Tide Surf", hand.surf_stroke(signf(sight.seen_feet(foe).x - wizard.global_position.x)), QUICK_DRAW)
-			_defend_cooldown = 1.8
-
-
-## Steps away from the player along the ground, or past them if its back is to a wall.
-func _blink_away(foe: Wizard) -> void:
-	var away := -signf(sight.seen_feet(foe).x - wizard.global_position.x)
-	if away == 0.0:
-		away = 1.0
-	var room := (ArenaGen.right_edge() - wizard.global_position.x) if away > 0.0 else (wizard.global_position.x - ArenaGen.left_edge())
-	if room < 120.0:
-		away = -away  # cornered: go past the player instead
-	var start: Vector2 = wizard.center()
-	hand.begin_cast("Shadow Step", BrainStrokes.line(start, start + Vector2(away * 240.0, -12.0)), QUICK_DRAW)
-
-
 # --- Footwork ---------------------------------------------------------------------------------------------------
 
 
-func _footwork(delta: float, to_player: Vector2, sees: bool) -> float:
-	if wizard.is_drawing():
-		return 0.0
-	var speed := WALK_SPEED
-	if _escape_time > 0.0:
-		return _escape_dir * speed * 1.3
-	var gap := absf(to_player.x)
-	var toward := signf(to_player.x)
-	var dir := 0.0
-	if hiding():
-		dir = -toward  # slipping away unseen
-	elif not sees:
-		dir = toward  # get a clear line
-	elif gap < NEAR or (to_player.y < -CHASE_ABOVE and LIFT_CLOSE.has(_ready_lift()) and gap > LIFT_CLOSE[_ready_lift()] + 30.0):
-		# A rival high on a ledge is not backed away from: it stands where its way up is cast from (under them for a rising column of air, right at the foot
-		# of the ledge for a vine or an oak, which it must climb and cross within a few steps), and raises itself.
-		var lift := _ready_lift()
-		var high: bool = to_player.y < -CHASE_ABOVE and lift != ""
-		if high and LIFT_CLOSE.has(lift):
-			dir = toward if gap > LIFT_CLOSE[lift] + 30.0 else 0.0
-		else:
-			dir = 0.0 if high and gap > LIFT_STAND.get(lift, 120.0) else -toward  # a rival high on a ledge is not backed away from: it stands under them, and raises itself up
-	elif gap > FAR:
-		dir = toward
-	else:
-		_strafe_timer -= delta
-		if _strafe_timer <= 0.0:
-			_strafe_timer = rng.randf_range(1.3, 3.2)  # (a person holds a direction, or stands, for a while: they do not change their mind every second)
-			_strafe = [-1.0, -1.0, 0.0, 0.0, 0.0, 1.0, 1.0][rng.randi() % 7]  # (a recorded person stood still 47% of a fight and went each way about a quarter)
-		dir = _strafe
-	# Never back into the edge of the map; it would rather stand its ground there.
-	var x: float = wizard.global_position.x
-	if (dir < 0.0 and x < ArenaGen.left_edge() + 60.0) or (dir > 0.0 and x > ArenaGen.right_edge() - 60.0):
-		dir = 0.0
-	# Never walk into something burning.
-	if dir != 0.0 and danger.in_danger(wizard.global_position + Vector2(dir * 34.0, -10.0)):
-		dir = 0.0
-	if wizard.is_on_floor() and _jump_cooldown <= 0.0:
-		var blocked: bool = dir != 0.0 and wizard.is_on_wall()
-		# Up onto a ledge you are standing on, whether or not it can see you, or when it is blocked.
-		var above: bool = to_player.y < -50.0 and absf(to_player.x) < 260.0 and _ready_lift() == ""  # (with a way up to cast, it does not hop at the ledge)
-		# Now and then, while it moves, it hops: a person does, but not every second.
-		_hop_timer -= delta
-		var hop: bool = dir != 0.0 and _hop_timer <= 0.0
-		if hop:
-			_hop_timer = rng.randf_range(2.0, 5.0)  # (a recorded person hops about every three seconds in a fight)
-		if blocked or above or hop:
-			wizard.request_jump()
-			_jump_cooldown = 0.9
-	return dir * speed
-
-
-## The point just over the ground at a distance sideways: on a slope, the ground there is higher or lower than where it stands.
-func _over_ground(dx: float) -> Vector2:
-	var from := Vector2(wizard.global_position.x + dx, wizard.global_position.y - 140.0)
-	var ground := SpellTargets.ground_below(wizard.get_world_2d(), from, 420.0)
-	return Vector2(from.x, ground.y - 10.0)
-
-
-## Which way is away from danger: the way to the nearest ground that is not burning or dangerous. It looks as far as a few hundred pixels,
-## because a flow of lava down a slope is wider than a step.
-func _safe_side() -> float:
-	var volcano := danger.volcano_near(wizard.global_position, 900.0)  # lava from a volcano pours down its flanks: running up toward it is running into more of it
-	if volcano != Vector2.INF and absf(wizard.global_position.x - volcano.x) > 40.0:
-		return signf(wizard.global_position.x - volcano.x)
-	var reach := [INF, INF]
-	for k in 2:
-		var dir := -1.0 if k == 0 else 1.0
-		for step in range(30, 811, 30):
-			var spot := _over_ground(dir * step)
-			if not danger.in_danger(spot) and not danger.in_danger(spot + Vector2(0.0, 12.0)) and not danger.in_shoal(spot):
-				reach[k] = float(step)
-				break
-	if reach[0] == reach[1]:
-		if _escape_dir != 0.0:
-			return _escape_dir
-		return -signf(sight.seen_feet(opponent).x - wizard.global_position.x) if opponent != null else 1.0
-	var best := -1.0 if reach[0] < reach[1] else 1.0
-	if _escape_dir != 0.0 and reach[0 if _escape_dir < 0.0 else 1] <= reach[0 if best < 0.0 else 1] * 1.6 + 60.0:
-		return _escape_dir  # the way it was already running is nearly as good: it does not turn back and forth in the flow
-	return best
-
-
 # --- Attacks ----------------------------------------------------------------------------------------------------
-
-
-## Picks an attack for the situation and starts drawing it. Returns false if nothing is worth casting now.
-func _attack(to_player: Vector2, sees: bool) -> bool:
-	var foe: Wizard = opponent
-	if absf(to_player.x) > ATTACK_RANGE:
-		return false  # too far off to aim at you: it waits for you to come within reach
-	var gap := absf(to_player.x)
-	var still: bool = foe.velocity.length() < 30.0
-	var stuck: bool = _held(foe)
-	var grounded: bool = foe.stands()
-	var closing: bool = signf(foe.velocity.x) == signf(-to_player.x) and absf(foe.velocity.x) > 60.0
-	var aim_ok := absf(to_player.normalized().x) > 0.4  # a near-vertical stroke is a poor flick
-	var scores := {
-		"Ignite": (2.0 if gap > 140.0 else 0.8) if sees and aim_ok else 0.0,
-		"Frostbolt": (0.4 if foe.is_slowed() else 1.6) if sees else 0.0,
-		"Spark": 2.2 if still or stuck else 1.0,
-		"Stonefall": 3.0 if stuck else (1.8 if still else 0.5),
-		"Icicles": 2.0 if _ceiling_over(sight.seen_center(foe)) else 0.0,  # they hang from a ceiling, wherever there is one over you
-		"Spore Puff": 1.6 if gap < 240.0 else 0.0,
-		"Stalagmite": (2.0 if still or stuck else 1.0) if grounded and gap < 360.0 else 0.0,
-		"Bramble": (1.4 if closing else 0.7) if grounded and gap > 100.0 else 0.0,
-		"Flytrap": 1.3 if grounded and (still or stuck) else 0.0,  # a trap snaps shut on whoever stands in it
-		"Sinkhole": 1.5 if grounded and (still or stuck) and gap < 340.0 else 0.0,
-		"Hex": 1.4 if Hex.multiplier(wizard.get_tree(), foe) <= 1.0 else 0.0,
-		"Vacuum": 1.5 if not foe.smothered and gap < 400.0 else 0.0,
-		"Faint": 1.6 if not foe.fainted and gap < 400.0 else 0.0,
-		"Fight or Flight": 0.6 if foe.rage_time <= 0.0 and foe.fear_time <= 0.0 else 0.0,
-		"Silence": (1.8 if foe.is_drawing() else 0.6) if gap > Silence.RADIUS + 45.0 else 0.0,  # the ring is drawn round you, so well clear of it
-		"Tide Surf": 1.0 if grounded and gap > 110.0 and gap < 320.0 else 0.0,
-		"Thunderclap": 1.7 if gap < Thunderclap.RADIUS - 40.0 and foe.daze_time <= 0.0 else 0.0,
-		"Tornado": (0.6 + pressure * 0.5) if gap < 260.0 else 0.2,
-		"Ice Prison": 1.3 if gap < 360.0 and not stuck else 0.0,
-		"Mudslide": 1.1 if grounded and not stuck else 0.0,
-		"Black Hole": (0.4 + pressure * 0.4) if gap < 300.0 else 0.0,
-		"Firewall": (1.6 if closing else 0.5) if gap < 280.0 and gap > 90.0 else 0.0,
-		"Blizzard": 0.4 if grounded else 0.0,
-		"Fire Breath": 1.8 if gap < 240.0 else 0.0,
-		"Earthquake": 1.5 if grounded and gap < 300.0 and _own_walkers_near(300.0) < 2 else 0.0,
-		"Barbs": 1.7 if sees and aim_ok and gap < 300.0 else 0.0,
-		"Pebble": (1.3 if gap < 460.0 else 0.0) if aim_ok else 0.0,  # lobbed, so it needs no clear line
-		"Hailstorm": 1.5 if gap < 420.0 and not _sheltered() else 0.0,
-		"Thorn Whip": 1.3 if sees and aim_ok and gap > 110.0 and gap < 340.0 else 0.0,  # it drags you in
-		"Insect Plague": 1.2 if gap < 480.0 else 0.0,
-		"Flaming Sphere": 1.3 if grounded and aim_ok and gap > 120.0 and gap < 620.0 else 0.0,  # it rolls along the ground toward you
-		"Mirage": 0.9 if gap > 250.0 and grounded and _real_page_near(500.0) and _mirages_set() < 2 else 0.0,  # a bait set among real pages, with the rival still some way off; nonsense at arm's length, or where no page lies
-		"Raise Dead": 1.2 if gap < 560.0 and grounded and wizard.max_stamina > 120.0 and _own_raised() < 2 else 0.0,
-		"Leech": 1.0 if sees and aim_ok and gap < Leech.REACH - 40.0 and Leech.held_by(wizard.get_tree(), wizard) == null else 0.0,
-		"Eldritch Blast": 1.4 if sees and gap > 120.0 and gap < 560.0 else 0.0,  # slow, and it bends toward you
-		"Hemorrhage": 1.2 if sees and gap < 420.0 else 0.0,
-		"Supernova": 1.4 if gap < 560.0 and wizard.max_stamina > 140.0 and not _sheltered() else 0.0,  # a sun that hangs about: it likes a rival who stays near
-		"Scythe": 2.0 if sees and gap < 110.0 else 0.0,  # only at arm's length
-	}
-	if _sheltered():
-		# Under a platform: lightning from above cannot reach you.
-		scores["Spark"] = 0.0
-	if not sees:
-		# Behind cover: only spells that come from above or along the ground reach you.
-		for spell_name in ["Ignite", "Frostbolt", "Ice Prison", "Black Hole", "Firewall", "Fire Breath", "Barbs", "Thorn Whip", "Leech", "Eldritch Blast", "Hemorrhage", "Scythe"]:
-			scores[spell_name] = 0.0
-	for spell_name in scores.keys():
-		if not ready_to_cast(spell_name):
-			scores[spell_name] = 0.0
-		elif spell_name in _recent:
-			scores[spell_name] *= 0.25  # it does not keep repeating itself
-	var choice := pick(scores)
-	if choice == "":
-		return false
-	_recent.push_front(choice)
-	if _recent.size() > 2:
-		_recent.pop_back()
-	hand.begin_cast(choice, hand.attack_stroke(choice), ATTACK_DRAW, true)
-	return true
-
-
-## True when something solid (a platform or the ground) is above you, so nothing from the sky can reach you.
-func _sheltered() -> bool:
-	var top: Vector2 = sight.seen_center(opponent) + Vector2(0, -50)
-	# Cast from the sky down, the way lightning comes: a one-way platform only stops things from above.
-	var query := PhysicsRayQueryParameters2D.create(top + Vector2(0, -600), top)
-	query.collision_mask = 1 | 16
-	return not wizard.get_world_2d().direct_space_state.intersect_ray(query).is_empty()
 
 
 ## The wizard it is dealing with: the nearest of the others it knows of.
@@ -1383,7 +1108,7 @@ func saw_a_mirage_fade() -> void:
 
 
 ## True when a real page, one a wizard could take, lies within this distance of the wizard: the thing a mirage would pass for.
-func _real_page_near(distance: float) -> bool:
+func real_page_near(distance: float) -> bool:
 	for pickup: PagePickup in wizard.get_tree().get_nodes_in_group("pages"):
 		if not pickup is Mirage and not pickup.is_queued_for_deletion() and pickup.global_position.distance_to(wizard.global_position) < distance 				and (not explore.sight_is_limited() or seen_pages.has(pickup.get_instance_id())):
 			return true
@@ -1391,7 +1116,7 @@ func _real_page_near(distance: float) -> bool:
 
 
 ## How many mirages are out there at the moment (a brain does not scatter them all over the world).
-func _mirages_set() -> int:
+func mirages_set() -> int:
 	var count := 0
 	for pickup: PagePickup in wizard.get_tree().get_nodes_in_group("pages"):
 		if pickup is Mirage:
@@ -1400,35 +1125,12 @@ func _mirages_set() -> int:
 
 
 ## How many skeletons this wizard has raised that are still standing.
-func _own_raised() -> int:
+func own_raised() -> int:
 	var count := 0
 	for mob: Mob in wizard.get_tree().get_nodes_in_group("mobs"):
 		if mob.master == wizard and not mob.is_dead():
 			count += 1
 	return count
-
-
-## How far it would fall from here before it met ground or a platform (a long way, when there is nothing under it).
-func _drop_below() -> float:
-	var from := wizard.global_position
-	var query := PhysicsRayQueryParameters2D.create(from, from + Vector2(0.0, 2000.0), 1 | 16)
-	query.exclude = [wizard.get_rid()]
-	var hit := wizard.get_world_2d().direct_space_state.intersect_ray(query)
-	return 2000.0 if hit.is_empty() else from.distance_to(hit["position"])
-
-
-## A long fall ahead: a Featherfall is drawn the moment it begins, while the view still keeps up with the stroke. Once the wizard is falling
-## fast the screen drags the stroke out of shape, as it would a person's, and it is too late. Walking on as it drops would drag the stroke
-## sideways too: it lets go of the keys, as a person does to draw on the way down, and draws as soon as the view keeps up.
-func _catch_fall() -> void:
-	if wizard.is_on_floor() or wizard.velocity.y <= 0.0 or wizard.feather_time > 0.0 or wizard.is_drawing() or chant.is_typing() or not ready_to_cast("Featherfall"):
-		return
-	if _drop_below() <= LONG_FALL:
-		return
-	if not hand.drag_ok("Featherfall", QUICK_DRAW):
-		hand.stand_still()
-		return
-	hand.begin_cast("Featherfall", hand.tend_stroke("Featherfall", Vector2.ZERO), QUICK_DRAW)
 
 
 ## A page newly in its book is looked at before its spell can be drawn: a person reads the picture first, about a second (the book stays open
@@ -1477,14 +1179,6 @@ func in_dark() -> bool:
 	return false
 
 
-## Whether there is a ceiling over a point that an icicle could hang from.
-func _ceiling_over(point: Vector2) -> bool:
-	var query := PhysicsRayQueryParameters2D.create(point, point + Vector2(0.0, -SpellSpawner.ICICLE_REACH))
-	query.collision_mask = 1
-	var hit := wizard.get_world_2d().direct_space_state.intersect_ray(query)
-	return not hit.is_empty() and hit["normal"].y > 0.3
-
-
 ## Whether it may cast a spell now: it holds the page, is not silenced, has not just cast it for itself, and has the strength (blood is paid
 ## in maximum stamina, and never to the last drop).
 func ready_to_cast(spell_name: String) -> bool:
@@ -1498,56 +1192,3 @@ func ready_to_cast(spell_name: String) -> bool:
 	return wizard.stamina >= spell.cost
 
 
-## The first of the spells that raise it up that it is ready to cast, or "".
-func _ready_lift() -> String:
-	for spell_name: String in LIFTS:
-		if ready_to_cast(spell_name):
-			return spell_name
-	return ""
-
-
-## A rival standing over its head, on a ledge: it raises itself up to them with the first spell it holds that does it. True when it has begun.
-func chase(to_player: Vector2) -> bool:
-	if not wizard.is_on_floor() or rest.has("chase") or not moves.lift.is_empty():
-		return false
-	var rise := wizard.global_position.y - sight.seen_feet(opponent).y
-	if rise < CHASE_ABOVE or absf(to_player.x) > 320.0:
-		return false
-	var dir := 1 if to_player.x >= 0.0 else -1
-	var span := Rect2(sight.seen_feet(opponent).x - 24.0, sight.seen_feet(opponent).y - 6.0, 48.0, 12.0)
-	for spell_name: String in LIFTS:
-		if not ready_to_cast(spell_name) or (spell_name == "Great Oak" and rise > OAK_CHASE_MAX):
-			continue
-		if LIFT_CLOSE.has(spell_name) and absf(to_player.x) > LIFT_CLOSE[spell_name] + 60.0:
-			continue  # a vine, an oak or a column of air is raised only once it has walked up to the foot of the ledge
-		rest["chase"] = CHASE_REST
-		if moves.begin_lift(spell_name, "chase", dir, span):
-			return true
-	return false
-
-
-## Picks a key at random, weighted by its value. Returns "" when every weight is zero.
-func pick(weights: Dictionary) -> String:
-	var total := 0.0
-	for key in weights:
-		total += maxf(weights[key], 0.0)
-	if total <= 0.0:
-		return ""
-	var roll := rng.randf() * total
-	for key in weights:
-		roll -= maxf(weights[key], 0.0)
-		if roll <= 0.0 and weights[key] > 0.0:
-			return key
-	return ""
-
-
-## How many of the wizard's own walkers stand within reach of the player: an earthquake would shake them too.
-func _own_walkers_near(reach: float) -> int:
-	var count := 0
-	var target: Wizard = opponent
-	for other in wizard.get_tree().get_nodes_in_group("mobs"):
-		if other.is_dead():
-			continue
-		if other.center().distance_to(target.center()) < reach:
-			count += 1
-	return count

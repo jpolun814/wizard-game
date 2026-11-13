@@ -59,7 +59,7 @@ func mend(delta: float, fighting: bool) -> float:
 ## Looks to what it needs, and casts for it: a way up to a rival over its head, a light in the dark, its strength, and something between it and a rival who
 ## is hurting it. True when it has begun a cast.
 func tend(to_player: Vector2, sees: bool, fighting: bool) -> bool:
-	if fighting and brain.chase(to_player):
+	if fighting and brain.combat.chase(to_player):
 		return true
 	var gap := absf(to_player.x)
 	var low := wizard.max_stamina < Wizard.MAX_STAMINA * 0.45
@@ -93,7 +93,7 @@ func tend(to_player: Vector2, sees: bool, fighting: bool) -> bool:
 	for spell_name in weights.keys():
 		if not brain.ready_to_cast(spell_name):
 			weights[spell_name] = 0.0
-	var choice := brain.pick(weights)
+	var choice := brain.combat.pick(weights)
 	if choice == "":
 		return false
 	if not brain.hand.begin_cast(choice, brain.hand.tend_stroke(choice, to_player), WizardBrain.QUICK_DRAW):

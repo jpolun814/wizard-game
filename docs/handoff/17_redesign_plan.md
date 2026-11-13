@@ -10,7 +10,7 @@ Done, each with the quick set green and the full set showing only the known fail
 
 | File | Was | Now | What moved |
 |---|---|---|---|
-| `wizard_brain.gd` | 2,866 | about 1,780 | `BrainStrokes`, `BrainHand`, `BrainChant`, `BrainDanger`, `BrainSight`; `think` and `_travel` read as steps; `_pick_page` |
+| `wizard_brain.gd` | 2,866 | about 1,190 | `BrainStrokes`, `BrainHand`, `BrainChant`, `BrainDanger`, `BrainSight`; `think` and `_travel` read as steps; `_pick_page` |
 | `world.gd` | 1,775 | 755 | `WorldCreatures`, `WorldScenery` (one function per biome), `WorldPages`, `WorldGates`, `MatchEnd`, `WorldStages`; one black-cover helper in `Arena` |
 | `wizard.gd` | 1,432 | 1,460 | no class moved: `_physics_process` is steps over `_tick_timers`, `_fall`, `_steer`, `_shoved`, `_move_on`; `_walking_speed()` |
 | `caster.gd` | 1,218 | 1,241 | `_end` is `_read_special`, `_settle` and `_resolve` |
@@ -71,7 +71,7 @@ other files unchanged: GDScript has no partial classes, and a base class cannot 
 | `BrainExplore` (done in part: `brain.explore`, squares and where to look) | `_choose_goal`, `_choose_explore`, `_square_of`, `_through_known`, the page and portal goals, `_watch_progress`, `_stuck_on_goal` |
 | `BrainTravel` | `_travel`, `_path`, `_raw_path`, `_way*`, `_swim*`, `BrainMoves` (done) holds `_wading`, `_leaping`, `_lifting`, `_climb_oak`, the route and nav calls |
 | `BrainGates` (done: `brain.gates`) | `_cross`, `_choose_gate`, `_work_gate`, `_clear_gate`, `_gate_stroke`, `_crossing_ahead`, `_toll_between` |
-| `BrainCombat` | `_attack`, `_assailed`, `_choose_defence`, `_choose_repel`, `_footwork`, `_safe_side`, the danger tests (`_lethal_at`, `_in_shoal`, `_scorched`, `_volcano_near`) |
+| `BrainCombat` (done: `brain.combat`) | `_attack`, `_assailed`, `_choose_defence`, `_choose_repel`, `_footwork`, `_safe_side`, the danger tests (`_lethal_at`, `_in_shoal`, `_scorched`, `_volcano_near`) |
 | `BrainHand` | every stroke and its hand: `_attack_stroke`, `_surf_stroke`, `_breath_stroke`, `_push_stroke`, `_bridge_stroke`, `_tend_stroke`, `_begin_cast`, `_handed`, `_shaken`, `_drag_ok`, `_densify` and the line helpers |
 | `BrainMend` (done: `brain.mend`) | `_mend`, `_tend`, the chant typing (`_type_then_say`, `_open_chant`, `_break_typing`), the bonfire |
 

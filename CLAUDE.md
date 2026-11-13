@@ -532,7 +532,7 @@ The owner wants agents to learn to invent spells without being told. Until they 
 7. **Art from a free pack,** recoloured to the school's colour in `tools/prepare_gothic_art.py`.
 8. **A sound,** chosen with `tools/audio_profile.py` or mixed in `tools/make_sounds.py`. Say plainly that you
    couldn't listen to it.
-9. **Teach the AI wizards to use it** (`scripts/wizard_brain.gd`): a score in `_attack` and a stroke in
+9. **Teach the AI wizards to use it** (`scripts/brain_combat.gd`): a score in `BrainCombat.attack` and a stroke in
    `BrainHand.attack_stroke`.
 10. **Spellbook:** a short description, and the damage and cost lines from the spell's data, at the foot of the page. Keep it short.
 

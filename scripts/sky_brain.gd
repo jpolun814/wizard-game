@@ -27,7 +27,7 @@ func think(delta: float) -> void:
 	_note_new_pages(delta)
 	hand.tick(delta)
 	cast_cooldown -= delta
-	_defend_cooldown -= delta
+	combat.defend_cooldown -= delta
 	goal_timer -= delta
 	_target_age += delta
 	_dodge -= delta
@@ -52,7 +52,7 @@ func think(delta: float) -> void:
 	if react > 0.0:
 		react -= delta
 		if react <= 0.0:
-			_act(_reaction)
+			combat.act(_reaction)
 	var foe: Wizard = opponent
 	var to_player := Vector2.ZERO
 	var sees := false
@@ -62,16 +62,16 @@ func think(delta: float) -> void:
 	var fighting := sees and to_player.length() < ENGAGE
 	if react <= 0.0 and not wizard.is_drawing():
 		var shot := sight.incoming_shot()
-		if not shot.is_empty() and _defend_cooldown <= 0.0:
-			_threat_dir = shot["dir"]
-			var choice := _choose_defence(shot["eta"])
+		if not shot.is_empty() and combat.defend_cooldown <= 0.0:
+			combat.threat_dir = shot["dir"]
+			var choice := combat.choose_defence(shot["eta"])
 			if choice == "":
 				_dodge = DODGE_FOR  # nothing to put up against it: it gets out of the way
-				_dodge_dir = _threat_dir.orthogonal() * (1.0 if rng.randf() < 0.5 else -1.0)
-				_defend_cooldown = 0.8
+				_dodge_dir = combat.threat_dir.orthogonal() * (1.0 if rng.randf() < 0.5 else -1.0)
+				combat.defend_cooldown = 0.8
 			else:
 				_plan(choice, _reaction_time())
-		elif _defend_cooldown <= 0.0 and fighting and to_player.length() < TOO_CLOSE and knows("Push") and wizard.stamina >= 10.0:
+		elif combat.defend_cooldown <= 0.0 and fighting and to_player.length() < TOO_CLOSE and knows("Push") and wizard.stamina >= 10.0:
 			_plan("push", _reaction_time())
 	var heading := _heading(delta, to_player, sees, fighting)
 	var speed := minf(1.0, heading.length())
@@ -89,7 +89,7 @@ func think(delta: float) -> void:
 			cast_cooldown = 0.3
 		elif foe.has_shield():
 			cast_cooldown = 0.3
-		elif _attack(to_player, sees):
+		elif combat.attack(to_player, sees):
 			cast_cooldown = lerpf(2.8, 1.5, skill) + rng.randf() * 0.8
 		else:
 			cast_cooldown = 0.4
@@ -142,9 +142,9 @@ func _footwork_in_the_air(to_player: Vector2) -> Vector2:
 		return -toward
 	if gap > HOLD_RANGE + 100.0:
 		return toward * 0.8
-	_strafe_timer -= 0.016
-	if _strafe_timer <= 0.0:
-		_strafe_timer = rng.randf_range(1.2, 2.6)
+	combat.strafe_timer -= 0.016
+	if combat.strafe_timer <= 0.0:
+		combat.strafe_timer = rng.randf_range(1.2, 2.6)
 		_orbit = -_orbit
 	return toward.orthogonal() * _orbit * 0.35
 
