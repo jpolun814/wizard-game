@@ -31,23 +31,9 @@ func think(delta: float) -> void:
 	goal_timer -= delta
 	_target_age += delta
 	_dodge -= delta
-	for key in rest.keys():
-		rest[key] -= delta
-		if rest[key] <= 0.0:
-			rest.erase(key)
-	for key in skip.keys():
-		skip[key] -= delta
-		if skip[key] <= 0.0:
-			skip.erase(key)
+	_count_down_lists(delta)
 	explore.note_sights(delta)
-	sight.track_shots()
-	sight.look_about(delta)
-	sight.notice_decoys()
-	opponent = sight.lure.caster if sight.lure != null else sight.nearest_foe()
-	_strength_in -= delta
-	if _strength_in <= 0.0:
-		_strength_in = 1.0
-		strength = _feel_strength(opponent)
+	_sense(delta)
 	travel.read_page_underfoot()
 	if react > 0.0:
 		react -= delta

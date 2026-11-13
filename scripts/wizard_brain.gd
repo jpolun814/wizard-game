@@ -272,14 +272,7 @@ func _run_clocks(delta: float) -> void:
 	_hurdle()
 	wizard.shown_words = chant.words_shown()
 	pressure *= exp(-delta / 3.0)
-	for spell_name in rest.keys():
-		rest[spell_name] -= delta
-		if rest[spell_name] <= 0.0:
-			rest.erase(spell_name)
-	for id in skip.keys():
-		skip[id] -= delta
-		if skip[id] <= 0.0:
-			skip.erase(id)
+	_count_down_lists(delta)
 	for key in gates.cannot.keys():
 		gates.cannot[key] -= delta
 		if gates.cannot[key] <= 0.0:
@@ -292,6 +285,18 @@ func _run_clocks(delta: float) -> void:
 	if wizard.nav != null and wizard.nav.version != _nav_version:
 		_nav_version = wizard.nav.version
 		skip.clear()  # a gate has been cleared: pages that could not be reached may be reachable now
+
+
+## The lists of things it waits out: a spell it has just used for itself, a page or gate it has given up on for a while.
+func _count_down_lists(delta: float) -> void:
+	for spell_name in rest.keys():
+		rest[spell_name] -= delta
+		if rest[spell_name] <= 0.0:
+			rest.erase(spell_name)
+	for id in skip.keys():
+		skip[id] -= delta
+		if skip[id] <= 0.0:
+			skip.erase(id)
 
 
 ## Looking about: the shots, the others it knows of, the shadows, the rival it deals with now, and how strong it feels against them.
