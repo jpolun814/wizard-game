@@ -24,6 +24,7 @@ trust the code and this file where they disagree.
 | `11_network_play.md` | touch anything a second machine must see: wizards, spells, pages, gates, the match, the dedicated server |
 | `13_special_worlds.md` | touch the portal fields, the ocean (swimming, breath, wrecks) or the sky (flying, rising pages, thunderclouds) |
 | `16_open_work.md` | pick the next job: what the owner asked for that is not built, their standing decisions on it, and the known failures |
+| `17_redesign_plan.md` | restructure the brain, the world, the wizard or the caster: what is wrong with each, the shape to aim for, the order, the checks that guard each |
 
 ---
 
