@@ -1,10 +1,10 @@
 class_name Wizard
 extends CharacterBody2D
 
-## A wizard: the body every wizard in the game has, the player's and the three others'. It is driven either by a person (the keyboard
+## A wizard: the body every wizard in the game has, the player's and every other wizard's in a match. It is driven either by a person (the keyboard
 ## and the mouse) or by a WizardBrain, and from there it is the same body: the same walk, jump, stamina, wounds, shoves and status
 ## effects, so a spell does the same to any of them. Its origin is at its feet, so it stands exactly on whatever is under it.
-## The player's is LuizMelo's hooded wizard (art/chars/wizard); the others wear one of the looks in res://mobs.
+## Each wears one of the looks in WizardLook (and the colours of Net.rival_palette once the looks run out).
 
 signal damaged(amount: int)
 signal debuff_applied(kind: String)
@@ -849,6 +849,23 @@ func _physics_process(delta: float) -> void:
 		_check_death()
 	if brain != null and not dead:
 		_think(delta)
+	_tick_timers(delta)
+	_fall(delta)
+	var can_move := movement_enabled and root_time <= 0.0 and not dead and not fainted
+	_vine_cooldown -= delta
+	if brain == null and can_move and is_on_floor() and Input.is_action_pressed("move_down"):
+		_drop_time = 0.3
+	_drop_time -= delta
+	set_collision_mask_value(5, _drop_time <= 0.0)
+	if can_move and _climb():
+		return
+	_steer(delta, can_move)
+	_shoved(delta, can_move)
+	_move_on(delta)
+
+
+## The timers and the stamina of a frame: what runs out, what comes back, the breath.
+func _tick_timers(delta: float) -> void:
 	_grace -= delta
 	_veil_cool -= delta
 	_shield_emitter.emitting = _shield_time > 0.0
@@ -870,6 +887,9 @@ func _physics_process(delta: float) -> void:
 	queue_redraw()
 	_shield.queue_redraw()
 
+
+## Gravity, as the wizard is placed: flying, swimming or falling (a feather, a rocket), and the grace for a jump just after leaving the ground.
+func _fall(delta: float) -> void:
 	if flying:
 		_fly(delta)  # no gravity: the air is steered through (see _fly)
 	elif swim_time > 0.0:
@@ -890,14 +910,9 @@ func _physics_process(delta: float) -> void:
 	_coyote = COYOTE_TIME if is_on_floor() else _coyote - delta
 	_jump_buffer -= delta
 
-	var can_move := movement_enabled and root_time <= 0.0 and not dead and not fainted
-	_vine_cooldown -= delta
-	if brain == null and can_move and is_on_floor() and Input.is_action_pressed("move_down"):
-		_drop_time = 0.3
-	_drop_time -= delta
-	set_collision_mask_value(5, _drop_time <= 0.0)
-	if can_move and _climb():
-		return
+
+## What the wizard does with its legs: jumps, and runs or walks (or stands, when it cannot move).
+func _steer(delta: float, can_move: bool) -> void:
 	if can_move:
 		if brain == null and Input.is_action_just_pressed("jump"):
 			request_jump()
@@ -921,7 +936,7 @@ func _physics_process(delta: float) -> void:
 		if brain == null and Input.is_action_just_released("jump") and velocity.y < JUMP_VELOCITY * 0.4 and swim_time <= 0.0 and not flying:
 			velocity.y = JUMP_VELOCITY * 0.4
 		# Walking is free; running drains stamina. With none left you still walk, at half speed.
-		var speed := (SPEED if stamina > 0.0 or wild else SPEED * 0.5) * (0.5 if slow_time > 0.0 else 1.0) * (0.4 if sink_time > 0.0 else 1.0) * (0.3 if tangle_time > 0.0 else 1.0) * (HASTE if haste_time > 0.0 else 1.0) * (OBSIDIAN_SPEED if obsidian_time > 0.0 else 1.0) * (WILD_SPEED if wild else 1.0)
+		var speed := _walking_speed()
 		velocity.x = Input.get_axis("move_left", "move_right") * speed if brain == null else clampf(_walk, -speed, speed)
 		_stepping = absf(velocity.x) > 10.0 and not flying  # (flying is not a body's work: the stamina comes back all the while)
 		if is_on_floor() and absf(velocity.x) > 10.0 and stamina > 0.0 and not wild:
@@ -929,6 +944,16 @@ func _physics_process(delta: float) -> void:
 	else:
 		velocity.x = 0.0
 		_stepping = false
+
+
+## How fast the wizard walks now: half of it when out of stamina, and each thing that slows, mires, tangles, hastens, armours or changes the wizard
+## on top of that.
+func _walking_speed() -> float:
+	return (SPEED if stamina > 0.0 or wild else SPEED * 0.5) * (0.5 if slow_time > 0.0 else 1.0) * (0.4 if sink_time > 0.0 else 1.0) * (0.3 if tangle_time > 0.0 else 1.0) * (HASTE if haste_time > 0.0 else 1.0) * (OBSIDIAN_SPEED if obsidian_time > 0.0 else 1.0) * (WILD_SPEED if wild else 1.0)
+
+
+## What moves the wizard that it did not choose: a wave, ice, fear, a shove and the wind.
+func _shoved(delta: float, can_move: bool) -> void:
 	if surf_time > 0.0 and not dead and not fainted:
 		velocity.x = surf_dir * SURF_SPEED  # a wave does not wait for the wizard
 	if is_on_floor() and can_move and IceSheet.under(get_tree(), global_position):
@@ -944,6 +969,9 @@ func _physics_process(delta: float) -> void:
 		velocity.y = minf(velocity.y, _shove.y)
 	_shove = _shove.move_toward(Vector2.ZERO, 1500.0 * delta)
 
+
+## The step itself: the AI's hop up a ledge, the move, the map's edges and the sound of the steps.
+func _move_on(delta: float) -> void:
 	# Walking into a ledge one tile high: a small hop lifts the AI wizards up it. A person jumps for themselves.
 	if brain != null and is_on_floor() and is_on_wall() and absf(velocity.x) > 10.0 and not dead and sink_time <= 0.0 and tangle_time <= 0.0:
 		velocity.y = minf(velocity.y, -330.0)
