@@ -31,10 +31,10 @@ func think(delta: float) -> void:
 	goal_timer -= delta
 	_target_age += delta
 	_dodge -= delta
-	for key in _rest.keys():
-		_rest[key] -= delta
-		if _rest[key] <= 0.0:
-			_rest.erase(key)
+	for key in rest.keys():
+		rest[key] -= delta
+		if rest[key] <= 0.0:
+			rest.erase(key)
 	for key in skip.keys():
 		skip[key] -= delta
 		if skip[key] <= 0.0:
@@ -43,17 +43,17 @@ func think(delta: float) -> void:
 	sight.track_shots()
 	sight.look_about(delta)
 	sight.notice_decoys()
-	_foe = sight.lure.caster if sight.lure != null else sight.nearest_foe()
+	opponent = sight.lure.caster if sight.lure != null else sight.nearest_foe()
 	_strength_in -= delta
 	if _strength_in <= 0.0:
 		_strength_in = 1.0
-		_strength = _feel_strength(_foe)
+		_strength = _feel_strength(opponent)
 	_read_page_underfoot()
 	if react > 0.0:
 		react -= delta
 		if react <= 0.0:
 			_act(_reaction)
-	var foe: Wizard = _foe
+	var foe: Wizard = opponent
 	var to_player := Vector2.ZERO
 	var sees := false
 	if is_instance_valid(foe):
@@ -85,7 +85,7 @@ func think(delta: float) -> void:
 	if not fighting or react > 0.0 or wizard.is_drawing():
 		return
 	if cast_cooldown <= 0.0:
-		if _smothering() or _hiding():
+		if smothering() or hiding():
 			cast_cooldown = 0.3
 		elif foe.has_shield():
 			cast_cooldown = 0.3
@@ -112,7 +112,7 @@ func _heading(delta: float, to_player: Vector2, sees: bool, fighting: bool) -> V
 		return _dodge_dir
 	if fighting and not wizard.is_drawing():
 		return _footwork_in_the_air(to_player)
-	if _foe != null and sees and to_player.length() < ENGAGE * 1.4:
+	if opponent != null and sees and to_player.length() < ENGAGE * 1.4:
 		return _aim(here, wizard.center() + to_player - to_player.normalized() * HOLD_RANGE)
 	return _journey(delta)
 
@@ -160,8 +160,8 @@ func _journey(delta: float) -> Vector2:
 			skip[_goal_page.get_instance_id()] = GIVE_UP_PAGE
 			goal = ""
 			goal_timer = 0.0
-	elif goal == "foe" and is_instance_valid(_foe):
-		_target = sight.seen_center(_foe)
+	elif goal == "foe" and is_instance_valid(opponent):
+		_target = sight.seen_center(opponent)
 	if _target == Vector2.INF:
 		return Vector2.ZERO
 	var gap := _target.distance_to(wizard.center())
@@ -216,7 +216,7 @@ func _choose_where() -> void:
 		goal = "page"
 		_goal_page = best
 		return
-	if is_instance_valid(_foe) and _strength >= BOLD_ABOVE:
+	if is_instance_valid(opponent) and _strength >= BOLD_ABOVE:
 		goal = "foe"
 		return
 	goal = "explore"

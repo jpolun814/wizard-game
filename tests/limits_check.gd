@@ -123,7 +123,7 @@ func _ready() -> void:
 	await _frames(40)
 	shadow.global_position = looker.global_position + Vector2(220.0, 0.0)
 	await _frames(10)
-	_verdict(brain.sight.lure == shadow and brain._foe == other, "a shadow it did not see conjured is taken for its caster")
+	_verdict(brain.sight.lure == shadow and brain.opponent == other, "a shadow it did not see conjured is taken for its caster")
 	shadow.queue_free()
 	await _frames(3)
 	var seen := Decoy.new()
@@ -138,9 +138,9 @@ func _ready() -> void:
 	# A page just read is looked at before its spell is drawn.
 	looker.ledger.learn("Ignite")
 	await _frames(2)
-	_verdict(not brain._ready_to_cast("Ignite"), "a spell whose page was just read is not drawn at once")
+	_verdict(not brain.ready_to_cast("Ignite"), "a spell whose page was just read is not drawn at once")
 	await _frames(int(WizardBrain.READ_MAX * 60.0) + 5)
-	_verdict(brain._ready_to_cast("Ignite"), "but is once the page has been looked at")
+	_verdict(brain.ready_to_cast("Ignite"), "but is once the page has been looked at")
 
 	# Shaking: a shake near the wizard shakes its own screen and its stroke; one far off does not; a still screen leaves the stroke alone.
 	var line := PackedVector2Array([looker.global_position + Vector2(0, -40), looker.global_position + Vector2(80, -40)])

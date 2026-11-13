@@ -39,7 +39,7 @@ The owner wants them indistinguishable from people (the section on playing like 
   - *attack* spells are scored in `_attack` and drawn in `BrainHand.attack_stroke`;
   - *repel* spells (Push, Geyser, Tide Surf, Spore Puff, Fire Breath) are chosen when a rival is on top of it (`_choose_repel`);
   - *defence* spells (Barrier, Gust, Shadow Step) answer an incoming shot (`_choose_defence`);
-  - *tend* spells are cast for its own needs by `_tend`: light in the dark, strength, hiding when badly hurt, and cover from a rival who keeps shooting; Hunter's Mark finds a
+  - *tend* spells are cast for its own needs by `BrainMend.tend`: light in the dark, strength, hiding when badly hurt, and cover from a rival who keeps shooting; Hunter's Mark finds a
     wizard who has faded from sight; a Scrying Eye when it has lost track of everyone (`_eye_time`); Featherfall in a long fall;
   - *ways up* (`LIFTS`) raise it over a wall or up to a rival standing over its head (`_chase`).
 - It stops going for Mirages once it has watched one fade (`saw_a_mirage_fade`).
@@ -90,11 +90,11 @@ What the brain does now that it did not:
 - **Sight and exploring** (matches only, `BrainExplore.sight_is_limited()`): it knows only the pages it has seen (`BrainExplore.note_sights`), and otherwise walks to unexplored squares (`BrainExplore.choose_explore`). When a way is shut by danger or by a stair that will not come, it marks that side explored and goes the other way.
 - **Fire, lava, volcanoes, piranhas:** it will not wade piranha water (`_in_shoal`, `_bitten`), keeps off an awake volcano and flees it downhill (`_safe_side`), never stands chanting in fire (an escape cancels `_settle`, `_typing`, `_camped`), and does not turn back and forth while fleeing (hysteresis in `_safe_side`).
 - **Creatures that attack** (`_assailed`): it strikes one down with a spell that kills, or runs.
-- **Mending:** a worn-down wizard lights a bonfire (chant) and rests at it (`_mend`); a wizard rests when stamina is low (thresholds scale with maximum stamina).
+- **Mending:** a worn-down wizard lights a bonfire (chant) and rests at it (`BrainMend.mend`); a wizard rests when stamina is low (thresholds scale with maximum stamina).
 - **Footwork:** it walks, hops rarely (jumping is a last resort), strafes in a fight in slow turns, draws attack strokes with a hand's wobble (`_handed`), and takes a person's time to type a chant.
 - **Watchdog:** `_watch_progress` gives up a goal after 20 s with no progress; `WizardRoute.wait()` marks a wait as not being stuck.
 - **Floors:** exploring weighs nearby unexplored squares on other floors as well as along the way (`BrainExplore.choose_explore`, `EXPLORE_FLOOR`), so the castle's upper and lower halls get visited; a stair that does not come in `STAIR_PATIENCE` seconds, or a ride that never began (`WizardRoute.RIDE_GIVE_UP`), is given up. `tests/arena_sim.tscn` prints the pages still lying at the end and whether anyone could walk to them.
-- **Thorns:** with no fire to burn them, it does not walk into world thorns (`BrainDanger.lethal_at`); it stops camping or chanting when a creature, fire or fish is on it (`_mend`).
+- **Thorns:** with no fire to burn them, it does not walk into world thorns (`BrainDanger.lethal_at`); it stops camping or chanting when a creature, fire or fish is on it (`BrainMend.mend`).
 Seen and left alone: long waits for swinging castle stairs (legitimate, up to about 78 s), the rift, boundless and dowsing chants are unused, foe hunting still knows where rivals are.
 The quick check set is the safety net; run `python tools/run_checks.py --full tutorial_ai brain_spells route_check test_nav cross gate` after touching the brain.
 

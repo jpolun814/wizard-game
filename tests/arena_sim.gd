@@ -154,9 +154,9 @@ func _physics_process(delta: float) -> void:
 			if is_instance_valid(w) and not w.dead:
 				var foe_gap := -1
 				var foe_at := -1
-				if w.brain._foe != null and is_instance_valid(w.brain._foe):
-					foe_gap = int(w.center().distance_to(w.brain._foe.center()))
-					foe_at = _wizards.find(w.brain._foe)
+				if w.brain.opponent != null and is_instance_valid(w.brain.opponent):
+					foe_gap = int(w.center().distance_to(w.brain.opponent.center()))
+					foe_at = _wizards.find(w.brain.opponent)
 				_log.store_line("S %.2f %s%d %d %d %d %d %d %d %d %d %d %d %s %s" % [_clock, w.look, i, w.global_position.x, w.global_position.y, w.velocity.x, w.velocity.y, 1 if w.is_on_floor() else 0, w.stamina, w.max_stamina, foe_at, foe_gap, 1 if w.is_drawing() else 0, _flags(w), w.brain.status()])
 	for i in _wizards.size():
 		var wizard := _wizards[i]
@@ -303,6 +303,6 @@ func _flags(w: Wizard) -> String:
 	if b._settle > 0.0: out += "s"
 	if b._off_map: out += "O"
 	if b._wander_time > 0.0: out += "w"
-	if b._resting: out += "r"
-	if b._camped: out += "c"
+	if b.mend.resting: out += "r"
+	if b.mend.camped: out += "c"
 	return out if out != "" else "-"

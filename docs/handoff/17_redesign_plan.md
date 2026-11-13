@@ -73,7 +73,7 @@ other files unchanged: GDScript has no partial classes, and a base class cannot 
 | `BrainGates` (done: `brain.gates`) | `_cross`, `_choose_gate`, `_work_gate`, `_clear_gate`, `_gate_stroke`, `_crossing_ahead`, `_toll_between` |
 | `BrainCombat` | `_attack`, `_assailed`, `_choose_defence`, `_choose_repel`, `_footwork`, `_safe_side`, the danger tests (`_lethal_at`, `_in_shoal`, `_scorched`, `_volcano_near`) |
 | `BrainHand` | every stroke and its hand: `_attack_stroke`, `_surf_stroke`, `_breath_stroke`, `_push_stroke`, `_bridge_stroke`, `_tend_stroke`, `_begin_cast`, `_handed`, `_shaken`, `_drag_ok`, `_densify` and the line helpers |
-| `BrainMend` | `_mend`, `_tend`, the chant typing (`_type_then_say`, `_open_chant`, `_break_typing`), the bonfire |
+| `BrainMend` (done: `brain.mend`) | `_mend`, `_tend`, the chant typing (`_type_then_say`, `_open_chant`, `_break_typing`), the bonfire |
 
 - `_attack_stroke` and `_cross` should stop being branches on a spell's name or a gate's kind: a spell (or a gate) knows how the AI casts it, in a table or on its own `Spell`
   resource, as `CLAUDE.md` section 9 already asks for the effects.
