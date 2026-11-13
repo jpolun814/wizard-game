@@ -5,7 +5,7 @@ extends Node2D
 ## A wall or the ground between the caster and a body shelters that body. It is over in an instant.
 
 const RADIUS := 170.0
-const HARM := 45
+const HARM := 50
 const KNOCK := 260.0
 const BODY_RADIUS := 24.0
 const LIFE := 0.4

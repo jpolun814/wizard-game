@@ -6,6 +6,7 @@ extends Camera2D
 
 const DECAY := 6.0       # how fast a shake dies away, per second
 const MAX_OFFSET := 9.0  # the farthest a full-strength shake moves the view, in pixels
+const QUAKE_GAIN := 1.7  # how much farther it moves while an Earthquake lasts: the ground is shaking, not only the screen, so a stroke is thrown about more
 
 var _trauma := 0.0
 var _base_offset := Vector2.ZERO
@@ -35,7 +36,12 @@ func shake(amount: float) -> void:
 ## How far the screen is moving right now, in pixels: the same amount a stroke drawn on the ground is nudged by.
 static func shake_px(tree: SceneTree) -> float:
 	var camera := tree.get_first_node_in_group("game_camera") as GameCamera
-	return camera._trauma * camera._trauma * MAX_OFFSET if camera else 0.0
+	return camera._trauma * camera._trauma * MAX_OFFSET * gain(tree) if camera else 0.0
+
+
+## 1 normally, and more while an Earthquake lasts.
+static func gain(tree: SceneTree) -> float:
+	return QUAKE_GAIN if Earthquake.is_shaking(tree) else 1.0
 
 
 ## Shakes the camera in the current scene, if there is one, and the screen every AI wizard would have (Eyes): a shake that reaches a person's
@@ -76,5 +82,5 @@ func _process(delta: float) -> void:
 	_t += delta
 	_trauma = maxf(_trauma - DECAY * delta * 0.25, 0.0)
 	# Squaring the trauma makes small shakes subtle and big ones strong.
-	var strength := _trauma * _trauma * MAX_OFFSET
+	var strength := _trauma * _trauma * MAX_OFFSET * gain(get_tree())
 	offset = _base_offset + Vector2(sin(_t * 47.0) + sin(_t * 23.0) * 0.5, cos(_t * 41.0) + cos(_t * 19.0) * 0.5) * strength * 0.67

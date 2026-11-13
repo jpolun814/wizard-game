@@ -1,7 +1,7 @@
 class_name Earthquake
 extends Node
 
-## An earthquake that shakes the whole arena for several seconds. The screen shakes, and everything on the ground is
+## An earthquake that shakes the whole arena for several seconds. The screen shakes harder than a blow shakes it (GameCamera.QUAKE_GAIN), and everything on the ground is
 ## knocked from side to side on a beat. While it lasts, strokes drawn on the ground are nudged by
 ## the same shake as the screen, and ranged enemies aim wide.
 

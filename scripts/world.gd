@@ -1073,7 +1073,7 @@ func _make_light(radius: float, color: Color, energy: float) -> PointLight2D:
 
 ## Every fire lights the dark round it while it lasts, and lava glows.
 func _on_node_added(node: Node) -> void:
-	if node is Pond or node is Hazard or node is Bonfire or node is Projectile or node is Firewall or node is LavaBall:
+	if node is Pond or node is Hazard or node is Bonfire or node is Projectile or node is Firewall or node is LavaBall or node is FlamingSphere:
 		_light_when_ready.call_deferred(node)
 
 

@@ -63,7 +63,7 @@ func shake(amount: float) -> void:
 
 ## How far this screen is moving now, in pixels: what a stroke drawn on it is nudged by, as GameCamera.shake_px is for a person.
 func shake_px() -> float:
-	return _trauma * _trauma * GameCamera.MAX_OFFSET
+	return _trauma * _trauma * GameCamera.MAX_OFFSET * GameCamera.gain(wizard.get_tree())
 
 
 ## How far the view will slide over the next stretch of time if the wizard keeps going as it is (falling under gravity, when in the air): the drag a
