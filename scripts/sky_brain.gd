@@ -61,7 +61,7 @@ func think(delta: float) -> void:
 		sees = (wizard.eyes.sees_point(_lure.center()) if _lure != null else eyes_see(foe)) and _clear_line(wizard.center(), seen_center(foe))
 	var fighting := sees and to_player.length() < ENGAGE
 	if _react <= 0.0 and not wizard.is_drawing():
-		var shot := _incoming_shot()
+		var shot := incoming_shot()
 		if not shot.is_empty() and _defend_cooldown <= 0.0:
 			_threat_dir = shot["dir"]
 			var choice := _choose_defence(shot["eta"])

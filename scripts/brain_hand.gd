@@ -190,8 +190,8 @@ func begin_cast(spell_name: String, stroke: PackedVector2Array, draw_time: float
 		if not point.is_finite():
 			push_warning("a stroke for %s with a point that is not a number (%s): not drawn" % [spell_name, point])
 			return false
-	if brain.is_typing():  # the chant box is open: a person closes it to draw, and the chant is lost
-		brain.break_typing()
+	if brain.chant.is_typing():  # the chant box is open: a person closes it to draw, and the chant is lost
+		brain.chant.close()
 		return false
 	if not drag_ok(spell_name, draw_time):  # the screen would drag the stroke out of shape: it stands still first, as a person learns to,
 		stand_still()  # and draws it once it has stopped (see draw_when_still)

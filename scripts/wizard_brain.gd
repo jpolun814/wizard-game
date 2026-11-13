@@ -40,9 +40,6 @@ const READ_MAX := 1.55
 const ATTENTION_CONE := 0.8  # radians either side of the way to its rival that it watches closely
 const ATTENTION_LAG := 0.25  # seconds before it takes in a shot from elsewhere (on top of the time it takes to answer it)
 const LONG_FALL := 300.0  # a drop this deep below its feet is a long fall, worth a Featherfall
-const STOPPING := 0.35  # seconds to come to a stop before the first letter of a chant (a person stops walking, then types)
-const TYPING_FASTEST := 0.08  # seconds a letter takes to type, from the quick end of the people recorded to the slow end (the middle half of
-const TYPING_SLOWEST := 0.15  # 1,493 letters: tools/measure_human.py, ai/human_limits.json); a skilled wizard types at the quick end
 const HASTE_FROM := 160      # moves left on a journey before it says the chant of swift feet (it takes 30 words a minute to say: shorter than this it saves no time)
 const MEND_BELOW := 0.5    # a wizard worn down below this share of the greatest maximum lights a bonfire and rests by it
 const MEND_UNTIL := 0.92
@@ -167,7 +164,6 @@ var _off_map_check := 0.0
 var _camped := false             # it rests by a bonfire to mend
 var _camped_for := 0.0
 var _mend_wait := 0.0
-var _typing := ""                # the chant it is typing, and will say when _settle has run out
 var _stroke_in := 0.0         # seconds to its next stroke in the water
 var _for_air := false         # it is on its way up for air
 var _clock := 0.0                 # seconds this brain has been thinking
@@ -175,10 +171,6 @@ var _first_seen := {}             # shot instance id -> the time on _clock it fi
 var _read_until := {}             # page -> the time on _clock until which it is still reading it (see _note_new_pages)
 var _pages_noted := -1
 var _ledger_noted: Ledger
-var _typing_age := 0.0
-var _typing_total := 1.0           # seconds since the chant box was opened
-var _said := {}                   # chant id -> whether it took, for a chant just typed and said, until whoever asked for it looks (see _type_then_say)
-var _said_failed := {}            # chant id -> seconds before it is tried again, after it was typed and came to nothing
 var _haste_wait := 0.0
 var _seen_pages := {}            # the pages it has set eyes on, and not read (id -> true): in a match it goes only for those
 var _explored := {}              # the squares of the world it has been to ((x / 16, y / 12) -> true)
@@ -195,6 +187,7 @@ var _seen_shots := {}
 var _recent: Array[String] = []  # its last two attacks, which it avoids repeating
 var rng := RandomNumberGenerator.new()
 var hand: BrainHand
+var chant: BrainChant
 var _foe: Wizard                 # the wizard it is dealing with: the nearest of the others it knows of
 var _lure: Decoy                 # a shadow it takes for a rival, and deals with as if it were them (see _notice_decoys)
 var _shadows := {}                # decoy instance id -> true when it knows it for a shadow, false when it is fooled
@@ -218,8 +211,7 @@ var _bridged := {}               # crossing (by key) -> seconds more that the wa
 var _cross_run := 0.0            # the speed it goes at while it makes its way over a crossing
 var _pad_walk := {}              # crossing (by key) -> {"dir", "end"}: the row of pads laid over it, and the x it walks along them to
 var _hurt_age := 99.0            # seconds since it was last hurt
-var _chant_breaks := 0          # chants broken off lately: the more, the longer before it tries again, and the farther from the trouble
-var _settle := 0.0               # seconds it stands still while a way over water grows
+var settle := 0.0               # seconds it stands still while a way over water grows
 var _resting := false            # it has stopped to get its breath back
 var _pads := {}                  # crossing (by key) -> {"dir", "front"}: the row of Lily Pads it has made so far over a long pit
 var _wade := {}                  # a walk through the lava of a pit in black glass: {"dir", "key", "span": the pit, "stage", "waited"}
@@ -236,6 +228,7 @@ var _rest := {}                  # a spell (or "chase") -> seconds before it use
 func _init(body: Wizard) -> void:
 	wizard = body
 	hand = BrainHand.new(self, body)
+	chant = BrainChant.new(self, body)
 	rng.randomize()
 	skill = GameSettings.rival_skill()
 
@@ -256,17 +249,6 @@ func on_hurt(amount: int) -> void:
 		_plan("blink_away", 0.25)
 
 
-## The chant it is typing, as far as it has got, over its head: a person's words are seen as they are typed, and so are these.
-func _show_words() -> void:
-	if _typing == "" or not RitualInput.RITUALS.has(_typing):
-		wizard.shown_words = ""
-		return
-	var text: String = RitualInput.RITUALS[_typing]["text"]
-	var total := _typing_total
-	var done := 1.0 - clampf(_settle / maxf(total, 0.01), 0.0, 1.0)
-	wizard.shown_words = text.substr(0, int(ceil(text.length() * done)))
-
-
 ## A Flaming Sphere rolling at it along the ground: a person jumps over it, as over a rolling log, instead of standing in its way or running from it.
 func _hurdle() -> void:
 	if not wizard.is_on_floor() or _jump_cooldown > 0.0 or wizard.wild:
@@ -283,7 +265,7 @@ func _hurdle() -> void:
 ## A person cannot type a chant on the move, in the air or under blows, and stops when any of them happens. True while the way it stands lets it type.
 ## (A wizard that has just opened the box is still coming to a stop: its steps do not break the words for the first moment.)
 func _typing_disturbed() -> bool:
-	return not wizard.is_on_floor() or _hurt_age < 0.5 or (absf(wizard.velocity.x) > 40.0 and _typing_age > STOPPING) or wizard.is_drawing() or wizard.is_frozen() or _in_danger(wizard.center())
+	return not wizard.is_on_floor() or _hurt_age < 0.5 or (absf(wizard.velocity.x) > 40.0 and chant.age > BrainChant.STOPPING) or wizard.is_drawing() or wizard.is_frozen() or _in_danger(wizard.center())
 
 
 ## Whether this is a place to stand and type: it stands on the ground and is not being hurt, no creature or rival is near enough to come at it, and
@@ -307,28 +289,25 @@ func think(delta: float) -> void:
 	_dash -= delta
 	hand.tick(delta)
 	_catch_fall()
-	if _typing != "" and _typing_disturbed():  # it breaks off the chant, and will not try it here again for a while
-		_typing = ""
-		_settle = 0.0
-		_chant_breaks = mini(_chant_breaks + 1, 4)
-		_mend_wait = maxf(_mend_wait, 10.0 * _chant_breaks)
-		_haste_wait = maxf(_haste_wait, 10.0 * _chant_breaks)
+	if chant.is_typing() and _typing_disturbed():  # it breaks off the chant, and will not try it here again for a while
+		chant.typing = ""
+		settle = 0.0
+		chant.breaks = mini(chant.breaks + 1, 4)
+		_mend_wait = maxf(_mend_wait, 10.0 * chant.breaks)
+		_haste_wait = maxf(_haste_wait, 10.0 * chant.breaks)
 	_cast_cooldown -= delta
 	_defend_cooldown -= delta
 	_jump_cooldown -= delta
 	_escape_time -= delta
 	_goal_timer -= delta
-	_settle -= delta
+	settle -= delta
 	_tend_cooldown -= delta
 	_scent -= delta
 	_eye_time -= delta
-	for id in _said_failed.keys():
-		_said_failed[id] -= delta
-		if _said_failed[id] <= 0.0:
-			_said_failed.erase(id)
+	chant.tick(delta)
 	_note_sights(delta)
 	_hurdle()
-	_show_words()
+	wizard.shown_words = chant.words_shown()
 	pressure *= exp(-delta / 3.0)
 	for spell_name in _rest.keys():
 		_rest[spell_name] -= delta
@@ -358,11 +337,11 @@ func think(delta: float) -> void:
 	if _strength_in <= 0.0:
 		_strength_in = 1.0
 		_strength = _feel_strength(_foe)
-	if _typing != "":  # the chant box is open: it can only type, or close the box to do something else (see _while_typing)
-		_while_typing()
+	if chant.is_typing():  # the chant box is open: it can only type, or close the box to do something else (see BrainChant.while_typing)
+		_chant_said(chant.while_typing())
 		return
 	if _foe == null and _eye_time <= 0.0 and not wizard.ledger.is_settled("scrying_eye") and SpellTargets.wizards(wizard.get_tree()).size() > 1 and wizard.ledger.knows_chant("scrying_eye"):
-		_type_then_say("scrying_eye")  # it has lost track of everyone: it sends out an eye once, as a person would (see _while_typing); the window stays
+		chant.type_then_say("scrying_eye")  # it has lost track of everyone: it sends out an eye once, as a person would (see BrainChant.while_typing); the window stays
 	if _foe == null:  # the last wizard standing, or it knows of no one else (none in sight): it goes about its journey
 		if _react > 0.0:  # (a reaction it has planned still comes: nothing else counts it down here)
 			_react -= delta
@@ -394,14 +373,14 @@ func think(delta: float) -> void:
 		if _react <= 0.0:
 			_act(_reaction)
 	elif not wizard.is_drawing():
-		var shot := _incoming_shot()
+		var shot := incoming_shot()
 		if not shot.is_empty() and _defend_cooldown <= 0.0:
 			_threat_dir = shot["dir"]
 			_plan(_choose_defence(shot["eta"]), _reaction_time())
 		elif (_dash <= 0.0 and _scorched()) or _bitten() or (_push_through <= 0.0 and (_in_danger(wizard.global_position + Vector2(0, -6)) or _in_danger(wizard.center()))):
 			_plan("escape", _reaction_time() * 0.6)
-			_settle = 0.0  # nobody stands in the fire to finish a chant
-			_typing = ""
+			settle = 0.0  # nobody stands in the fire to finish a chant
+			chant.typing = ""
 			_camped = false
 			_escapes += 1.0
 			if _escapes > 3.0 and not _scorched() and not _bitten():  # it keeps backing out of the same thing that lies on its way: it goes through it this once
@@ -608,9 +587,9 @@ func _tile_of(feet: Vector2) -> Vector2i:
 ## mended, as a person does. Returns the speed to walk at, or NAN when it is not mending.
 func _mend(delta: float, fighting: bool) -> float:
 	_mend_wait -= delta
-	if (_typing != "" or _camped or _settle > 0.0) and (_assailant() != null or _scorched() or _bitten()):  # it does not sit and chant with a blade or a flame on it
-		_typing = ""
-		_settle = 0.0
+	if (chant.is_typing() or _camped or settle > 0.0) and (_assailant() != null or _scorched() or _bitten()):  # it does not sit and chant with a blade or a flame on it
+		chant.typing = ""
+		settle = 0.0
 		_camped = false
 		_mend_wait = 3.0
 		return NAN
@@ -636,81 +615,27 @@ func _mend(delta: float, fighting: bool) -> float:
 		if not _quiet_here():  # not here: it goes on a while, and tries again
 			_mend_wait = 5.0
 			return NAN
-		_open_chant("bonfire")
+		chant.open("bonfire")
 		return 0.0
 	_mend_wait = 30.0
 	return NAN
 
 
-## How long a person takes to type a chant: it stands where it is while it does.
-func _typing_time(id: String) -> float:
-	return float(RitualInput.RITUALS[id]["text"].length()) * lerpf(TYPING_SLOWEST, TYPING_FASTEST, skill)
-
-
-## True while the chant box is open and it is typing.
-func is_typing() -> bool:
-	return _typing != ""
-
-
-## The chant box open: the wizard stands and types. A person with the box open cannot walk, jump or draw (the keys type letters), so it does
-## none of them; when something comes at it, it closes the box, as a person would, and the words are lost. When the last letter is typed the chant
-## is said.
-func _while_typing() -> void:
-	wizard.walk(0.0)
-	_typing_age += wizard.get_physics_process_delta_time()
-	var shot := _incoming_shot()
-	var threatened := not shot.is_empty() or (is_instance_valid(_foe) and eyes_see(_foe) and _foe.center().distance_to(wizard.center()) < TOO_CLOSE)
-	if threatened:
-		break_typing()
+## What a chant just said sets going: a bonfire it camps by, an eye it looks through.
+func _chant_said(id: String) -> void:
+	if id == "" or not chant.said[id]:
 		return
-	if _settle > 0.0:
-		return
-	var said := _typing
-	_typing = ""
-	_chant_breaks = 0
-	var done := wizard.chant(said)
-	_said[said] = done
-	if done and said == "bonfire":
+	if id == "bonfire":
 		_camped = true
 		_camped_for = 0.0
-	if done and said == "scrying_eye":
+	if id == "scrying_eye":
 		_eye_time = EYE_SECONDS
-		_said.erase(said)
+		chant.said.erase(id)
 
 
 ## True when it can make out another wizard: on its screen, in plain sight, not faded from sight.
 func eyes_see(other: Wizard) -> bool:
 	return wizard.eyes.sees_wizard(other)
-
-
-## It closes the chant box before the words are done.
-func break_typing() -> void:
-	_typing = ""
-	_settle = 0.0
-
-
-## A chant asked for where it is needed (a gate, a lost rival): it types it first. True once it has been said; false while it is being typed, or
-## when the last try at it came to nothing.
-func _type_then_say(id: String) -> bool:
-	if _said.has(id):
-		var done: bool = _said[id]
-		_said.erase(id)
-		if not done:
-			_said_failed[id] = 3.0
-		return done
-	if _said_failed.get(id, 0.0) > 0.0 or not RitualInput.RITUALS.has(id):
-		return false
-	if _typing == "" and wizard.is_on_floor() and not wizard.is_drawing():
-		_open_chant(id)
-	return false
-
-
-## It opens the chant box: it stops, and types the words.
-func _open_chant(id: String) -> void:
-	_typing = id
-	_typing_age = 0.0
-	_typing_total = _typing_time(id) + STOPPING
-	_settle = _typing_total
 
 
 ## The nearest bonfire that burns, within reach of a point, or null.
@@ -777,8 +702,8 @@ func _assailed(delta: float) -> float:
 		if _assail_commit > 0.0 and _assail_dir != 0.0:
 			return _assail_dir * WALK_SPEED * 1.2  # (it runs on a moment, and does not turn straight back to it)
 		return NAN
-	_settle = 0.0  # no one stands typing with a blade at their back
-	_typing = ""
+	settle = 0.0  # no one stands typing with a blade at their back
+	chant.typing = ""
 	_camped = false
 	_resting = false
 	var away := signf(wizard.global_position.x - mob.global_position.x)
@@ -813,14 +738,14 @@ func _travel(delta: float) -> float:
 	var assailed := _assailed(delta)
 	if not is_nan(assailed):
 		return assailed
-	if _settle > 0.0:
+	if settle > 0.0:
 		return 0.0
 	if wizard.is_drawing():
 		return 0.0
 	_watch_progress(delta)
 	if _goal != "" and _route.remaining() > HASTE_FROM and wizard.haste_time <= 0.0 and _haste_wait <= 0.0 and _knows("chant:haste") and _quiet_here():
 		_haste_wait = 25.0
-		_open_chant("haste")  # (it stops to say it, as a person does)
+		chant.open("haste")  # (it stops to say it, as a person does)
 		return 0.0
 	_haste_wait -= delta
 	if _wander_time > 0.0:
@@ -1146,10 +1071,10 @@ func _cross(crossing: Dictionary) -> bool:
 			var edge := span.position.x if dir > 0 else span.end.x
 			if (edge - wizard.global_position.x) * dir > BREATH_AHEAD:
 				_cross_run = dir * WALK_SPEED
-			elif wizard.deep_breath_time > 0.0 or _type_then_say(spell_name.substr(6)):
+			elif wizard.deep_breath_time > 0.0 or chant.type_then_say(spell_name.substr(6)):
 				_bridged[crossing["key"]] = minf(wizard.deep_breath_time, GAS_WALK) if wizard.deep_breath_time > 0.0 else GAS_WALK
-				_settle = SETTLE
-			elif _typing != "":
+				settle = SETTLE
+			elif chant.is_typing():
 				pass  # it is typing the words, standing at the edge
 			else:
 				_cannot[crossing["key"]] = GIVE_UP
@@ -1165,7 +1090,7 @@ func _cross(crossing: Dictionary) -> bool:
 			var edge := span.position.x if dir > 0 else span.end.x
 			if (edge - wizard.global_position.x) * dir > 20.0:
 				_cross_run = dir * WALK_SPEED
-			elif wizard.is_on_floor() and (wizard.air_jump_time > 0.0 or _type_then_say("double_jump")):
+			elif wizard.is_on_floor() and (wizard.air_jump_time > 0.0 or chant.type_then_say("double_jump")):
 				_leap = {"dir": dir, "key": crossing["key"], "steps": 0, "span": span, "jumped": false, "air": 0.0, "double": true}
 		"leap:air":  # it jumps from the edge, and in the air a rocket throws it up and a feather lets it drift down, across
 			var edge := span.position.x if dir > 0 else span.end.x
@@ -1190,7 +1115,7 @@ func _cross(crossing: Dictionary) -> bool:
 				var to_x := clampf(from_x + dir * PADS_REACH, reach.position.x, reach.end.x)
 				var row := Rect2(minf(from_x, to_x), span.position.y, absf(to_x - from_x), span.size.y)
 				hand.begin_cast(spell_name, hand.bridge_stroke(spell_name, row), ATTACK_DRAW)
-				_settle = SETTLE
+				settle = SETTLE
 				var over := (to_x - (reach.end.x if dir > 0 else reach.position.x)) * dir >= 0.0
 				_pads[crossing["key"]] = {"dir": dir, "front": to_x}
 				_pad_walk[crossing["key"]] = {"dir": dir, "end": to_x}
@@ -1200,7 +1125,7 @@ func _cross(crossing: Dictionary) -> bool:
 		_:  # a bridge across the whole of it
 			if wizard.stamina >= SpellData.SPELLS[spell_name].cost:
 				hand.begin_cast(spell_name, hand.bridge_stroke(spell_name, span), ATTACK_DRAW)
-				_settle = SETTLE
+				settle = SETTLE
 				_bridged[crossing["key"]] = LASTS[spell_name]
 	return true
 
@@ -1855,7 +1780,7 @@ func status() -> String:
 
 
 ## The nearest of your shots that will hit it soon: {"eta": seconds, "dir": its direction}, or nothing.
-func _incoming_shot() -> Dictionary:
+func incoming_shot() -> Dictionary:
 	var best := {}
 	for node in wizard.get_tree().get_nodes_in_group("projectiles"):
 		if node.caster == wizard or not wizard.eyes.sees_node(node):
@@ -2300,7 +2225,7 @@ func _drop_below() -> float:
 ## fast the screen drags the stroke out of shape, as it would a person's, and it is too late. Walking on as it drops would drag the stroke
 ## sideways too: it lets go of the keys, as a person does to draw on the way down, and draws as soon as the view keeps up.
 func _catch_fall() -> void:
-	if wizard.is_on_floor() or wizard.velocity.y <= 0.0 or wizard.feather_time > 0.0 or wizard.is_drawing() or _typing != "" or not _ready_to_cast("Featherfall"):
+	if wizard.is_on_floor() or wizard.velocity.y <= 0.0 or wizard.feather_time > 0.0 or wizard.is_drawing() or chant.is_typing() or not _ready_to_cast("Featherfall"):
 		return
 	if _drop_below() <= LONG_FALL:
 		return

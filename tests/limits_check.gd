@@ -88,9 +88,9 @@ func _ready() -> void:
 	_verdict(not looker.start_drawing(near, Color.WHITE, func(_p: PackedVector2Array) -> void: pass, 0.5), "but not a second while the first is drawn")
 	looker.interrupt_cast()
 	looker.brain = brain
-	brain._open_chant("haste")
-	_verdict(brain.is_typing() and not looker.start_drawing(near, Color.WHITE, func(_p: PackedVector2Array) -> void: pass, 0.5), "nor while a chant is being typed")
-	_verdict(not brain.hand.begin_cast("Ignite", near, 0.5) and not brain.is_typing(), "a brain that wants to draw closes the chant box first, and the words are lost")
+	brain.chant.open("haste")
+	_verdict(brain.chant.is_typing() and not looker.start_drawing(near, Color.WHITE, func(_p: PackedVector2Array) -> void: pass, 0.5), "nor while a chant is being typed")
+	_verdict(not brain.hand.begin_cast("Ignite", near, 0.5) and not brain.chant.is_typing(), "a brain that wants to draw closes the chant box first, and the words are lost")
 
 	# The view drags a stroke: a click held still while the wizard walks draws a line, as it does for a person.
 	var walker := Walker.new(looker)

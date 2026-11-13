@@ -1221,7 +1221,7 @@ func request_jump(strength := 1.0) -> void:
 ## The stroke is drawn as a hand draws on a screen: it must lie on the screen when it is begun, only one is drawn at a time, none while a chant is
 ## being typed, and the view moving with the wizard drags it as it is drawn. Returns false when the stroke cannot be begun.
 func start_drawing(points: PackedVector2Array, colour: Color, on_done: Callable, draw_time := DRAW_TIME) -> bool:
-	if is_drawing() or (brain != null and brain.is_typing()):
+	if is_drawing() or (brain != null and brain.chant.is_typing()):
 		return false
 	for point in points:
 		if not eyes.on_screen(point):
