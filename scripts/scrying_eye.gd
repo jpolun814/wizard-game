@@ -65,7 +65,7 @@ func _dress() -> void:
 		_view.add_child(_grey_layer())
 
 
-## The wash of grey that takes the colour out of the graveyard, as laid over the screen (see World._wash_out_the_colour).
+## The wash of grey that takes the colour out of the graveyard, as laid over the screen (see WorldScenery.wash_out_the_colour).
 func _grey_layer() -> CanvasLayer:
 	var layer := CanvasLayer.new()
 	layer.layer = 2

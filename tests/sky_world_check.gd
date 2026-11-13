@@ -54,8 +54,8 @@ func _process(_delta: float) -> void:
 func _run(world: World) -> void:
 	for k in 10:
 		await get_tree().process_frame
-	_check(world._flies(), "everyone flies")
-	var box := world._fly_box()
+	_check(world.flies(), "everyone flies")
+	var box := world.fly_box()
 	_check(box.size.y > 1500.0, "the sky is tall: several screens (%d px)" % int(box.size.y))
 	var wizard: Wizard = world.player
 	_check(wizard.flying and box.has_point(wizard.global_position), "the player starts in the air, inside the sky")

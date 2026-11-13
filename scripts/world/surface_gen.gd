@@ -445,7 +445,7 @@ static func _relax(floor_row: PackedInt32Array, pinned: PackedByteArray, limits 
 
 ## The ocean's islands, raised out of the sea floor in `offset` (rows from the plains, one for each column from the first the ground takes): one in the
 ## middle and one or two more, each a level top with sides that fall away a row to a column. The wizards start on driftwood out at sea, not on islands
-## (World._lay_sea). Returns the columns of the extra ones, which are where pages lie.
+## (WorldScenery.lay_sea). Returns the columns of the extra ones, which are where pages lie.
 static func _sea_islands(width: int, offset: PackedFloat32Array, rng: RandomNumberGenerator) -> Array[int]:
 	var bases: Array[int] = [width / 2]
 	var flats: Array[Vector2i] = [Vector2i(width / 2, START_FLAT + 1)]  # [middle, half the level top]

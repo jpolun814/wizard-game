@@ -8,7 +8,7 @@ has a sea over it, not open sky).
 ## The portal fields (`portals`, "The Portal Fields")
 
 A gentle, bare world (graveyard tiles and backdrop, a violet tint) with normal pages and no hazards, where portals open every few seconds and carry a wizard to another.
-`PortalField` (`scripts/portal_field.gd`, raised in `World._raise_biome_life`) works out which portals are open from the seed and the world's age alone (`_timed`), so every
+`PortalField` (`scripts/portal_field.gd`, raised in `WorldScenery.raise_biome_life`) works out which portals are open from the seed and the world's age alone (`_timed`), so every
 machine of a match sees the same ones.
 
 - Every `INTERVAL` (5 s) a wave opens: the first two or three portals, later ones none to eight, each in a stretch of the world the seed shuffles. Each stays `LIFETIME`
@@ -30,7 +30,7 @@ Breath is the only pressure: no damage from depth, and fire fizzles under water.
   middle one and one or two more, `ISLANDS_MOST`). `surface["sea"]` holds {row, depth, islands, wrecks, landmarks}.
 - **The start:** each wizard starts on a raft of driftwood out at sea (`World.START_RAFT`, `_stand_at`); its spawn tile stays on the sea floor below, which is what the
   map of the ways is built from.
-- **The sea** is a row of `Pond`s with `deep = true` (`World._lay_sea`, in lengths of `SEA_LENGTH` so only those in view are drawn), see-through so the scenery shows
+- **The sea** is a row of `Pond`s with `deep = true` (`WorldScenery.lay_sea`, in lengths of `SEA_LENGTH` so only those in view are drawn), see-through so the scenery shows
   (`Pond.SEA_CLEAR_TOP`, `SEA_CLEAR_BOTTOM`). It is a fixed body of water, not the flowing `LiquidGrid`. Out of its depth (`Pond.SWIM_DEPTH`) a wizard swims
   (`Wizard.swim`): jump strokes up, S dives, and it sinks slowly. The view rests lower in the ocean (`World.SEA_VIEW`) so the floor is on screen from mid-water.
 - **The look:** the night sky over the sea, and under it the darkened layers of ansimuz's Underwater Fantasy (`Backdrop.PLACES["ocean"]`, made by `tools/prepare_ocean_art.py`).

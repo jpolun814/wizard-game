@@ -125,6 +125,7 @@ never block each other.
   - Creature frames are built by `CharFrames`. The shader `mob.gdshader` adds a slight school tint, a 1 px
     school-coloured outline, the hit flash and the frozen look.
   - Every attack is telegraphed: a melee wind-up, a shooter's charge.
+- **`world.gd`** is being split the same way: `world_creatures.gd` (`WorldCreatures`, `world.creatures`: the roaming dead, knights and giant, and the host's sharing of them) and `world_scenery.gd` (`WorldScenery`, `world.scenery`: landmarks, the biome's living scenery one function per biome, the sea, the clouds, thorns and gas; it holds the gale, the squall, the sea plan and the timed nodes).
 - **`wizard_brain.gd`:** the AI wizards (see `06_enemies_and_ai.md`); `sky_brain.gd` in the sky.
   The brain is being split into skills, each a `RefCounted` given the brain and its wizard (`docs/handoff/17_redesign_plan.md`): `brain_hand.gd` (`BrainHand`: every stroke, how it is drawn and when; `brain.hand`), `brain_chant.gd` (`BrainChant`: the chant box; `brain.chant`) and `brain_strokes.gd` (`BrainStrokes`: static shape helpers, the drift table and the quickest-stroke floor).
 - **Other pieces:** `enemy_bolt.gd` (a turret's or sentinel's shot, reflectable), `hazard.gd` (burning ground where a volcano's lava lands).
@@ -191,7 +192,7 @@ The match (a last-wizard-standing race for pages) runs on these. `World` extends
 - `Pages.RANGED`: the attacks that reach across a distance; each wizard is dealt one as the starting attack.
 
 ## The ocean and the sky (chapter 13)
-- `pond.gd` (`deep`, `SWIM_DEPTH`: the ocean's sea, laid by `World._lay_sea` in lengths), `wreck.gd` (`Wreck`), `air_pocket.gd` (`AirPocket`: where the sea does not reach, group `air_pockets`), `kelp_patch.gd` (`KelpPatch`: slows, and hides from the brains' eyes through `sight_blockers`), `driftwood.gd` (`Driftwood`: a one-way platform at the waterline).
+- `pond.gd` (`deep`, `SWIM_DEPTH`: the ocean's sea, laid by `WorldScenery.lay_sea` in lengths), `wreck.gd` (`Wreck`), `air_pocket.gd` (`AirPocket`: where the sea does not reach, group `air_pockets`), `kelp_patch.gd` (`KelpPatch`: slows, and hides from the brains' eyes through `sight_blockers`), `driftwood.gd` (`Driftwood`: a one-way platform at the waterline).
 - `sky_cloud.gd` (`SkyCloud`: placed from the world's age; a thundercloud warns, then shocks and strikes), `falling_page.gd` (`FallingPage`, a `PagePickup` that rises through the sky and comes round again), `sky_brain.gd` (`SkyBrain`: the brain of a wizard that flies; made by `World._new_brain`).
 - `spell_limits.gd` (`SpellLimits.refusal(wizard, spell)`: "No ground" in the sky for spells that need ground, "No need" for Updraft, Featherfall and Rocket Jump there, "Fizzles" for fire under water; `Arena.cast_by` and the brain both ask it).
 - `wizard.gd`: `swim_time`/`swim()`, `flying`/`fly_box`/`_fly`, constants `SWIM_*`, `FLY_*`. `arena.gd`: `_flies()`, `_fly_box()`, `_new_brain()` (World overrides them). `arena_gen.gd`: `air_rows` (the minimap's rows in the sky).

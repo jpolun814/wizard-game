@@ -238,8 +238,8 @@ func _add_wizard(look: String, feet: Vector2, seat_name := "") -> Wizard:
 	wizard.look = look
 	wizard.human = false
 	wizard.brain = _new_brain(wizard)
-	wizard.flying = _flies()
-	wizard.fly_box = _fly_box()
+	wizard.flying = flies()
+	wizard.fly_box = fly_box()
 	wizard.position = feet
 	if seat_name != "":
 		wizard.name = seat_name
@@ -255,12 +255,12 @@ func _new_brain(body: Wizard) -> WizardBrain:
 
 
 ## True in a world with no ground, where every wizard flies (World).
-func _flies() -> bool:
+func flies() -> bool:
 	return false
 
 
 ## Where a flying wizard's feet may go, in pixels: it stops at the edge of this (World). Empty where no one flies.
-func _fly_box() -> Rect2:
+func fly_box() -> Rect2:
 	return Rect2()
 
 

@@ -63,7 +63,7 @@ func _run(world: World) -> void:
 	_check(seas.size() >= 2 and absf(seas.map(func(n: Pond) -> float: return n.width).reduce(func(a: float, b: float) -> float: return a + b) - ArenaGen.world_size.x * float(World.TILE)) < 1.0, "the deep sea lies over the whole world, in lengths (%d)" % seas.size())
 	_check(_count(world, Wreck) >= 3, "wrecks lie on the floor (%d)" % _count(world, Wreck))
 	_check(_count(world, Driftwood) + _count(world, KelpPatch) > 4, "driftwood floats and kelp grows (%d, %d)" % [_count(world, Driftwood), _count(world, KelpPatch)])
-	_check(not world._flies(), "nobody flies in the ocean")
+	_check(not world.flies(), "nobody flies in the ocean")
 	var sea: Pond = seas[0]
 	# A wizard put into the deep swims and runs out of breath.
 	var wizard: Wizard = world.player

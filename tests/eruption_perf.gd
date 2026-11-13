@@ -123,10 +123,10 @@ func _ready() -> void:
 		wizard.ledger.learn_all()
 		wizard.global_position = spot + Vector2(k * 70.0, 0.0)
 		wizard.velocity = Vector2.ZERO
-	if world._squall != null and not calm:
-		world._squall.delay = 0.0
-		world._squall.period = 1e9
-		world._squall.length = 1e9  # it rains fire all the time
+	if world.scenery.squall != null and not calm:
+		world.scenery.squall.delay = 0.0
+		world.scenery.squall.period = 1e9
+		world.scenery.squall.length = 1e9  # it rains fire all the time
 	for k in 60:
 		await get_tree().process_frame
 	if hunt:

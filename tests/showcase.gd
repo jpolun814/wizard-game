@@ -1519,7 +1519,7 @@ func _plan_gates() -> void:
 		t += 12.0
 
 
-## The living scenery of a biome (see World._raise_biome_life): each feature is brought on by setting the world's clock and standing the
+## The living scenery of a biome (see WorldScenery.raise_biome_life): each feature is brought on by setting the world's clock and standing the
 ## player by it, and a picture is taken. The checks print PASS or FAIL.
 func _plan_life() -> void:
 	var tile := float(ArenaGen.TILE)
@@ -1564,7 +1564,7 @@ func _plan_life() -> void:
 				_snap("birds_after"))
 			_at(5.6, func() -> void: _arena._stage_time = 28.0 + 8.0)
 			_at(9.0, func() -> void:
-				print("%s  the downpour has come (%.2f)" % ["PASS" if _arena._squall.level() > 0.9 else "FAIL", _arena._squall.level()])
+				print("%s  the downpour has come (%.2f)" % ["PASS" if _arena.scenery.squall.level() > 0.9 else "FAIL", _arena.scenery.squall.level()])
 				_snap("downpour"))
 		"mountains":
 			var sheets := get_tree().get_nodes_in_group("slick")
@@ -1579,12 +1579,12 @@ func _plan_life() -> void:
 					_snap("ice"))
 			_at(3.0, func() -> void: _arena._stage_time = Avalanche.FIRST + 1.0)
 			_at(3.3, func() -> void:
-				var slide: Avalanche = _arena._timed[0]
+				var slide: Avalanche = _arena.scenery.timed[0]
 				go.call(Vector2((slide._from + 0.5) * tile + slide._way * 160.0, (floors[slide._from] - 4) * tile))
 				_snap("rumble"))
 			_at(5.0, func() -> void:
 				_arena._stage_time = Avalanche.FIRST + Avalanche.WARNING + 1.2
-				var slide: Avalanche = _arena._timed[0]
+				var slide: Avalanche = _arena.scenery.timed[0]
 				var travelled := 1.2 * Avalanche.SPEED
 				var column := clampi(slide._from + slide._way * int(travelled / tile), 0, floors.size() - 1)
 				_start_x = _player().global_position.x
@@ -1594,14 +1594,14 @@ func _plan_life() -> void:
 		"ashlands":
 			_at(1.0, func() -> void: _arena._stage_time = 30.0 + 8.0)
 			_at(5.0, func() -> void:
-				print("%s  the ash storm has come (%.2f)" % ["PASS" if _arena._squall.level() > 0.9 else "FAIL", _arena._squall.level()])
+				print("%s  the ash storm has come (%.2f)" % ["PASS" if _arena.scenery.squall.level() > 0.9 else "FAIL", _arena.scenery.squall.level()])
 				var balls := 0
 				for node in get_tree().get_nodes_in_group("shots"):
 					balls += 1 if node is LavaBall else 0
 				print("%s  embers are falling (%d lava balls in the air)" % ["PASS" if balls > 0 else "FAIL", balls])
 				_snap("storm"))
 			var lake: LavaSurge = null
-			for node in _arena._timed:
+			for node in _arena.scenery.timed:
 				lake = node
 				break
 			if lake != null:
@@ -1612,7 +1612,7 @@ func _plan_life() -> void:
 					print("%s  the lava swells (rise %.2f)" % ["PASS" if lake.rise() > 0.5 else "FAIL", lake.rise()])
 					_snap("surge"))
 		"underground":
-			var cave: CaveLife = _arena._timed[0]
+			var cave: CaveLife = _arena.scenery.timed[0]
 			var spot := Vector2((surface["start"] + 0.5) * tile, (floors[surface["start"]] - 3) * tile)
 			_at(1.0, func() -> void: go.call(spot + Vector2(-300.0, 0.0)))
 			_at(2.0, func() -> void: _snap("crystals"))
