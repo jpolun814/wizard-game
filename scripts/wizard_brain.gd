@@ -1327,39 +1327,10 @@ func _choose_goal() -> void:
 	var start: Vector2i = wizard.nav.nearest(_tile_of(wizard.global_position), true)
 	if start == WorldNav.NONE:
 		return
-	var best_page: PagePickup = null
+	var found := _pick_page(start)
+	var best_page: PagePickup = found["page"]
 	var best_path: Array[Vector2i] = []
-	var best_worth := INF
-	for pickup: PagePickup in wizard.get_tree().get_nodes_in_group("pages"):
-		if not pickup.gives(wizard.ledger) or _skip.has(pickup.get_instance_id()) or (pickup is Mirage and _wise_to_mirages):
-			continue
-		if _sight_is_limited() and not _seen_pages.has(pickup.get_instance_id()):
-			continue  # it has not set eyes on that one
-		if danger.volcano_near(pickup.global_position, VOLCANO_KEEP_OFF) != Vector2.INF and not wizard.lava_proof():
-			continue  # a page by a volcano that is erupting is left until it is over
-		var tile := _tile_of(pickup.global_position)
-		var stand: Vector2i = wizard.nav.nearest(tile)
-		var path: Array[Vector2i] = []
-		if absi(stand.x - tile.x) + absi(stand.y - tile.y) <= PAGE_REACH:
-			path = _raw_path(start, stand)
-			if path.is_empty() and stand == start:
-				path = [start]  # it stands where the way to the page ends: nothing to walk, though the page may lie a few steps off
-		if path.is_empty():
-			_skip[pickup.get_instance_id()] = GIVE_UP  # no way there that a wizard can walk
-			continue
-		# How far it seems: the way, when it knows the ground the way goes over; else as the crow flies, all a person can guess of ground unseen.
-		var known := not _sight_is_limited() or _through_known(path, start, stand)
-		var length := float(path.size()) if known else Vector2(stand - start).length()
-		var worth := length / sqrt(maxf(1.0, float(pickup.new_pages(wizard.ledger).size())))  # a dropped book is worth the walk: the more pages it would give, the nearer it counts
-		if best_page == null or worth < best_worth:
-			best_page = pickup
-			best_path = path if known else _no_path()
-			best_worth = worth
-	if best_page != null and best_path.is_empty():  # it knows of the page but not the way: as far toward it as the ground it has seen takes it
-		best_path = _toward_known(start, wizard.nav.nearest(_tile_of(best_page.global_position)))
-		if best_path.is_empty():
-			_skip[best_page.get_instance_id()] = LOOK_AGAIN  # nothing it knows leads nearer: it looks about, and comes back to it
-			best_page = null
+	best_path.assign(found["path"])
 	var portal := _nearest_portal(start)
 	if portal.has("portal") and (best_page == null or (portal["path"].size() < best_path.size() and rng.randf() < PORTAL_CHANCE)):
 		_goal = "portal"
@@ -1395,6 +1366,45 @@ func _choose_goal() -> void:
 		if not path.is_empty():
 			_goal = "foe"
 			_route.set_path(path)
+
+
+## The page it will go for from where it stands: the one that seems nearest of those it knows of and can reach, and the way to it ({"page", "path"}). The
+## page is null when it knows of none worth the walk. Pages it cannot reach are given up for a while on the way.
+func _pick_page(start: Vector2i) -> Dictionary:
+	var best_page: PagePickup = null
+	var best_path: Array[Vector2i] = []
+	var best_worth := INF
+	for pickup: PagePickup in wizard.get_tree().get_nodes_in_group("pages"):
+		if not pickup.gives(wizard.ledger) or _skip.has(pickup.get_instance_id()) or (pickup is Mirage and _wise_to_mirages):
+			continue
+		if _sight_is_limited() and not _seen_pages.has(pickup.get_instance_id()):
+			continue  # it has not set eyes on that one
+		if danger.volcano_near(pickup.global_position, VOLCANO_KEEP_OFF) != Vector2.INF and not wizard.lava_proof():
+			continue  # a page by a volcano that is erupting is left until it is over
+		var tile := _tile_of(pickup.global_position)
+		var stand: Vector2i = wizard.nav.nearest(tile)
+		var path: Array[Vector2i] = []
+		if absi(stand.x - tile.x) + absi(stand.y - tile.y) <= PAGE_REACH:
+			path = _raw_path(start, stand)
+			if path.is_empty() and stand == start:
+				path = [start]  # it stands where the way to the page ends: nothing to walk, though the page may lie a few steps off
+		if path.is_empty():
+			_skip[pickup.get_instance_id()] = GIVE_UP  # no way there that a wizard can walk
+			continue
+		# How far it seems: the way, when it knows the ground the way goes over; else as the crow flies, all a person can guess of ground unseen.
+		var known := not _sight_is_limited() or _through_known(path, start, stand)
+		var length := float(path.size()) if known else Vector2(stand - start).length()
+		var worth := length / sqrt(maxf(1.0, float(pickup.new_pages(wizard.ledger).size())))  # a dropped book is worth the walk: the more pages it would give, the nearer it counts
+		if best_page == null or worth < best_worth:
+			best_page = pickup
+			best_path = path if known else _no_path()
+			best_worth = worth
+	if best_page != null and best_path.is_empty():  # it knows of the page but not the way: as far toward it as the ground it has seen takes it
+		best_path = _toward_known(start, wizard.nav.nearest(_tile_of(best_page.global_position)))
+		if best_path.is_empty():
+			_skip[best_page.get_instance_id()] = LOOK_AGAIN  # nothing it knows leads nearer: it looks about, and comes back to it
+			best_page = null
+	return {"page": best_page, "path": best_path}
 
 
 ## In a match a wizard knows of a page only when it has seen it, as a person does, and goes looking when it knows of none.
