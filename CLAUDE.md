@@ -533,7 +533,7 @@ The owner wants agents to learn to invent spells without being told. Until they 
 8. **A sound,** chosen with `tools/audio_profile.py` or mixed in `tools/make_sounds.py`. Say plainly that you
    couldn't listen to it.
 9. **Teach the AI wizards to use it** (`scripts/wizard_brain.gd`): a score in `_attack` and a stroke in
-   `_attack_stroke`.
+   `BrainHand.attack_stroke`.
 10. **Spellbook:** a short description, and the damage and cost lines from the spell's data, at the foot of the page. Keep it short.
 
 ## 7. Art: where it comes from
@@ -582,7 +582,7 @@ clean. It was cleaned up once, without losing any behaviour. Keep it that way:
   there before writing a loop.
 - **Keep dependencies pointing one way.** The gesture code (`scripts/gesture/`) knows nothing about spells; it
   must load under `-s`, where autoloads like `Sfx` don't exist. Spell-specific behaviour goes in the spell, the
-  arena or the AI (the earthquake's shaky hand is in `wizard_brain._shaken`, not in the caster).
+  arena or the AI (the earthquake's shaky hand is in `BrainHand.shaken`, not in the caster).
 - **Use the engine.** Prefer Godot's own tools (groups, signals, `Area2D` overlaps, `StaticBody2D`, tweens,
   `Rect2` helpers) over hand-rolled bookkeeping.
 - **Delete dead code** (unused functions, signals, art) in the same change that makes it dead, and update

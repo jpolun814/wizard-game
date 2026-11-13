@@ -53,7 +53,7 @@
 4. **Routing:** route it in `SpellSpawner.spawn` or `place_shapes`.
 5. **Tests:** add the gesture to the mirrored list in `tests/test_gestures.gd` if direction shouldn't matter,
    plus any special checks. The rotated-cone checks are an example.
-6. **Dark wizard:** a score in `WizardBrain._attack` and a stroke in `_attack_stroke`, using preview points
+6. **Dark wizard:** a score in `WizardBrain._attack` and a stroke in `BrainHand.attack_stroke`, using preview points
    placed and scaled in the world.
 7. **Run** `tests/test_gestures.gd`. Every check must pass.
 

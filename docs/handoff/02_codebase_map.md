@@ -182,7 +182,7 @@ The match (a last-wizard-standing race for pages) runs on these. `World` extends
 - `scripts/dowsing.gd` (was `scrying.gd`), `scripts/scrying_eye.gd`, `scripts/eye_mark.gd`, `scripts/hud/circle_mask.gdshader`.
 - Groups: `"leeches"`, `"squalls"` (`Squall.rain`), `"dowsings"`, `"eye_marks"`, `"ground_watchers"` (anything that keeps the ground near it made: a Flaming Sphere, the Scrying Eye's camera;
   read by `World._process`).
-- `Wizard.feather_time`, `Pages.start_empty`/`cluster_of`, `World._lay_clusters`, `Library.title_of`/`average_accuracy`, `SpellData.school_name`.
+- `Wizard.feather_time`, `Pages.start_empty`/`cluster_of`, `WorldPages._lay_clusters`, `Library.title_of`/`average_accuracy`, `SpellData.school_name`.
 
 ## Added 2026-11-06
 - `scripts/warmup.gd` (an autoload, `Warmup`): at start-up it loads the pictures and sounds that spells use on other threads (`ResourceLoader.load_threaded_request`), then the spell scripts one a frame on the main thread (never together: a script compiled while its pictures were being read on another core once failed to preload one). Without it the first cast of each spell stalled a frame or several.
@@ -195,5 +195,5 @@ The match (a last-wizard-standing race for pages) runs on these. `World` extends
 - `pond.gd` (`deep`, `SWIM_DEPTH`: the ocean's sea, laid by `WorldScenery.lay_sea` in lengths), `wreck.gd` (`Wreck`), `air_pocket.gd` (`AirPocket`: where the sea does not reach, group `air_pockets`), `kelp_patch.gd` (`KelpPatch`: slows, and hides from the brains' eyes through `sight_blockers`), `driftwood.gd` (`Driftwood`: a one-way platform at the waterline).
 - `sky_cloud.gd` (`SkyCloud`: placed from the world's age; a thundercloud warns, then shocks and strikes), `falling_page.gd` (`FallingPage`, a `PagePickup` that rises through the sky and comes round again), `sky_brain.gd` (`SkyBrain`: the brain of a wizard that flies; made by `World._new_brain`).
 - `spell_limits.gd` (`SpellLimits.refusal(wizard, spell)`: "No ground" in the sky for spells that need ground, "No need" for Updraft, Featherfall and Rocket Jump there, "Fizzles" for fire under water; `Arena.cast_by` and the brain both ask it).
-- `wizard.gd`: `swim_time`/`swim()`, `flying`/`fly_box`/`_fly`, constants `SWIM_*`, `FLY_*`. `arena.gd`: `_flies()`, `_fly_box()`, `_new_brain()` (World overrides them). `arena_gen.gd`: `air_rows` (the minimap's rows in the sky).
+- `wizard.gd`: `swim_time`/`swim()`, `flying`/`fly_box`/`_fly`, constants `SWIM_*`, `FLY_*`. `arena.gd`: `flies()`, `fly_box()`, `_new_brain()` (World overrides them). `arena_gen.gd`: `air_rows` (the minimap's rows in the sky).
 - `surface_gen.gd`: the `ocean` and `sky` biomes (`_sea_islands`, `_sea_of`, `_build_sky`, `SEA_*`, `SKY_*`); `match_state.gd` `LATER_BIOMES` deals them in after the first world.

@@ -22,7 +22,7 @@ Friends play together over a network: one hosts, the others join by address. It 
 | A wizard on another machine | `scripts/wizard.gd` (`share`, `is_person`, `is_likeness`, `_follow`, `_tell_others`) | a *likeness*: the same `Wizard` scene with a `MultiplayerSynchronizer` added, driven by the machine that owns it |
 | Casting | `arena.cast_by` -> `_spawn_everywhere` / `_spawn_seen` | the driving machine pays for the spell, then every machine spawns the same spell from the same origin with the same random seed |
 | Waiting room | `scripts/lab.gd` (`_meet_people`, `_stepped_in`, `_go`) | likenesses of everyone, the host's address in the title, the portal waits for every person |
-| A match | `scripts/world.gd` (`_my_seat`, `_places`, `_spawn_wizards`, `_watch_falls`, `_begin_collapse`, `_gates_cleared`, `_back_to_room`) | seats, brains on the host, pages, books of the fallen, the collapse, gates, the end |
+| A match | `scripts/world.gd` (`my_seat`, `places`, `_spawn_wizards`, `_watch_falls`, `_begin_collapse`, `_gates_cleared`, `_back_to_room`) | seats, brains on the host, pages, books of the fallen, the collapse, gates, the end |
 
 **Who drives what.** Every wizard has a multiplayer authority: a person's wizard is driven by that person's machine; a brain's by the
 host. Only the driving machine moves the wizard and changes its stamina, status and death. On the other machines the same node is a

@@ -26,9 +26,9 @@ The sentinel (`Sentinel`, an eye that shoots a laser) is a gate of the world, no
 
 The owner wants them indistinguishable from people (the section on playing like a person, below, says how that is judged). They have a person's body, view and limits:
 
-- **Casting** goes through the real recognizer: `_begin_cast(spell, stroke, draw_time)` draws the stroke in front of it over `draw_time`, then
+- **Casting** goes through the real recognizer: `BrainHand.begin_cast(spell, stroke, draw_time)` draws the stroke in front of it over `draw_time`, then
   `caster.cast_stroke`. A blow of 6 or more while it draws interrupts the spell. Strokes come from `GestureTemplates.preview_points`, with a hand's wobble
-  (`_handed`, measured in `ai/stroke_drift.json`) and a shaky hand while its own screen shakes (`_shaken`).
+  (`BrainHand.handed`, measured in `ai/stroke_drift.json`) and a shaky hand while its own screen shakes (`BrainHand.shaken`).
 - **Sight** is a screen of its own (`Eyes`: the person's window size and camera rest, smoothed like the camera), so it sees only what a person in its place would.
 - **Reactions:** it watches shots and, after a reaction time set by `skill`, jumps, turns the shot with a Gust, raises a Barrier or steps aside. Too close,
   it pushes, steps away or breathes fire. It steps out of danger with every spell's `danger_at`.
@@ -36,7 +36,7 @@ The owner wants them indistinguishable from people (the section on playing like 
 - **Attacks:** each spell gets a score from the situation (is the rival still, rooted, behind cover, under a platform, near or far?); it leads moving targets (`_predict`).
 - **Skill** is 0 to 1 (`skill`, from the Rival skill setting): it sets reaction time and aim.
 - **Every spell has a use** (`WizardBrain.USES`; `tests/brain_spells_check.tscn` gives each spell alone to a brain and sees it cast it):
-  - *attack* spells are scored in `_attack` and drawn in `_attack_stroke`;
+  - *attack* spells are scored in `_attack` and drawn in `BrainHand.attack_stroke`;
   - *repel* spells (Push, Geyser, Tide Surf, Spore Puff, Fire Breath) are chosen when a rival is on top of it (`_choose_repel`);
   - *defence* spells (Barrier, Gust, Shadow Step) answer an incoming shot (`_choose_defence`);
   - *tend* spells are cast for its own needs by `_tend`: light in the dark, strength, hiding when badly hurt, and cover from a rival who keeps shooting; Hunter's Mark finds a
@@ -54,7 +54,7 @@ The owner wants them indistinguishable from people (the section on playing like 
 - **Exploring:** in a match it knows only the pages it has seen (`_note_sights`) and walks to unexplored squares (`_choose_explore`), and it plans only through ground it
   has seen (`_toward_known`).
 - **Gates it clears** (`CLEARS`): with no page to be had it goes to the nearest gate a spell it holds can clear (fire for thorns, gas and ice; stone for a wall and ice)
-  and strikes until it is gone. `World._watch_gates` marks the gate open and builds the ways again.
+  and strikes until it is gone. `WorldGates.watch` marks the gate open and builds the ways again.
 - **Gates it crosses** (`WAYS`): `WorldBuilder.shut(world, true)` leaves chasms, floods, piranha pits and sentinels open in the ways and lists the tiles that cross each
   (`tolls`); `WorldNav.path` goes round the crossings it holds no spell for. Over water it draws a Frost Bridge or Lily Pads and walks over; over a pit it jumps
   and carries itself on with Shadow Steps (`_leaping`); at a wall it lifts itself over (`_lifting`: a Geyser under its feet, Push, or a Liana); through lava it wades in
@@ -94,7 +94,7 @@ What the brain does now that it did not:
 - **Footwork:** it walks, hops rarely (jumping is a last resort), strafes in a fight in slow turns, draws attack strokes with a hand's wobble (`_handed`), and takes a person's time to type a chant.
 - **Watchdog:** `_watch_progress` gives up a goal after 20 s with no progress; `WizardRoute.wait()` marks a wait as not being stuck.
 - **Floors:** exploring weighs nearby unexplored squares on other floors as well as along the way (`_choose_explore`, `EXPLORE_FLOOR`), so the castle's upper and lower halls get visited; a stair that does not come in `STAIR_PATIENCE` seconds, or a ride that never began (`WizardRoute.RIDE_GIVE_UP`), is given up. `tests/arena_sim.tscn` prints the pages still lying at the end and whether anyone could walk to them.
-- **Thorns:** with no fire to burn them, it does not walk into world thorns (`_lethal_at`); it stops camping or chanting when a creature, fire or fish is on it (`_mend`).
+- **Thorns:** with no fire to burn them, it does not walk into world thorns (`BrainDanger.lethal_at`); it stops camping or chanting when a creature, fire or fish is on it (`_mend`).
 Seen and left alone: long waits for swinging castle stairs (legitimate, up to about 78 s), the rift, boundless and dowsing chants are unused, foe hunting still knows where rivals are.
 The quick check set is the safety net; run `python tools/run_checks.py --full tutorial_ai brain_spells route_check test_nav cross gate` after touching the brain.
 

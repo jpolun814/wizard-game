@@ -4,6 +4,33 @@ The game was grown one request at a time, and four files carry most of the weigh
 whole, with no change in behaviour. This chapter says what is wrong with each, the shape to aim for, and the order to work in. It is a plan, not a record: when a step is done, strike it
 out here and say what changed in `02_codebase_map.md`.
 
+## State of play (end of 2026-11-13)
+
+Done, each with the quick set green and the full set showing only the known failures (`16_open_work.md`):
+
+| File | Was | Now | What moved |
+|---|---|---|---|
+| `wizard_brain.gd` | 2,866 | about 2,150 | `BrainStrokes`, `BrainHand`, `BrainChant`, `BrainDanger`, `BrainSight`; `think` and `_travel` read as steps; `_pick_page` |
+| `world.gd` | 1,775 | 755 | `WorldCreatures`, `WorldScenery` (one function per biome), `WorldPages`, `WorldGates`, `MatchEnd`, `WorldStages`; one black-cover helper in `Arena` |
+| `wizard.gd` | 1,432 | 1,450 | no class moved: `_physics_process` is steps over `_tick_timers`, `_fall`, `_steer`, `_shoved`, `_move_on`; `_walking_speed()` |
+| `caster.gd` | 1,218 | 1,230 | `_end` is `_read_special`, `_settle` and `_resolve` |
+
+**Not done, and why.** These are the pieces where the move is not mechanical, because the code and its state are tangled; each needs a design first, not a cut:
+
+- **The brain's `BrainExplore`, `BrainTravel`, `BrainGates`, `BrainCombat`, `BrainMend`.** They share fields that several of them write (`settle`, `_camped`, `_goal`, `_route`, `_skip`, `_bridged`, `_cannot`, `_pads`,
+  `_pad_walk`), and three "manoeuvres" in progress (`_leap`, `_wade`, `_lift`) that each have their own function and are checked all over `think` and `_travel`. The way to cut this is to make each manoeuvre a
+  small object (`Leap`, `Wade`, `Lift`) with `tick(delta) -> float` and `done()`, held in one `_manoeuvre` field, so that "is one in hand" is one test instead of three. After that `_cross` stops being a
+  branch per gate kind: each kind (a Geyser wall, a chant at the edge of gas, Lily Pads) is a manoeuvre that starts itself. Check it with `cross_check` for every kind and `gate_check`. `cross_check` needs a
+  seed that has the kind of gate (`NOTE seed N has no flood gate` is printed otherwise); the seeds in its header comment no longer have them, so find new ones first.
+- **`SkyBrain`** still has its own copies of `think` and the goal choice. It uses the shared pieces now (`hand`, `chant`, `sight`, `danger`).
+- **`WizardStatus` and movement modes in `Wizard`.** The timers (`slow_time`, `haste_time`, `root_time`, `shield_time` and the rest) are public fields that spells, the brain, the HUD and about thirty tests read and
+  write by name. Moving them into a list means giving every reader the new name in the same change; do it one status at a time, starting with one that few things read (`fear_time`, `rage_time`).
+- **`WorldSeats`.** Placing the wizards and giving them brains shares `seats` and `rivals` with `MatchEnd` and `WorldStages`; they are public on `World` now, so it can be cut when wanted.
+- **The caster's detector table.** `_read_special` is still a list of `if` and `elif`; each detector could be an entry (`name`, `reads(relative, options)`, `fills(info)`) in a table that the order of the
+  list gives.
+
+**Watch the AI by eye before going further** (`tests/arena_sim.tscn -- seed=7 seconds=300 watch=1`, in a window). The checks prove the brain still casts, crosses and fights; only the owner can say it still looks like a person.
+
 ## What is already done
 
 - Dead code, unused flags, old mobs, the learned AI, finished plans and stale comments are out (commits `a411d0b` to `3a86064`).

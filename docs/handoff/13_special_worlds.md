@@ -28,7 +28,7 @@ Breath is the only pressure: no damage from depth, and fire fizzles under water.
 
 - **The ground:** a rolling floor 12 to 19 rows under the sea (`SurfaceGen._offsets`), of sand (`earth_seabed`, `lip_seabed`), and very few islands (`_sea_islands`: the
   middle one and one or two more, `ISLANDS_MOST`). `surface["sea"]` holds {row, depth, islands, wrecks, landmarks}.
-- **The start:** each wizard starts on a raft of driftwood out at sea (`World.START_RAFT`, `_stand_at`); its spawn tile stays on the sea floor below, which is what the
+- **The start:** each wizard starts on a raft of driftwood out at sea (`WorldScenery.START_RAFT`, `stand_at`); its spawn tile stays on the sea floor below, which is what the
   map of the ways is built from.
 - **The sea** is a row of `Pond`s with `deep = true` (`WorldScenery.lay_sea`, in lengths of `SEA_LENGTH` so only those in view are drawn), see-through so the scenery shows
   (`Pond.SEA_CLEAR_TOP`, `SEA_CLEAR_BOTTOM`). It is a fixed body of water, not the flowing `LiquidGrid`. Out of its depth (`Pond.SWIM_DEPTH`) a wizard swims
@@ -50,7 +50,7 @@ Breath is the only pressure: no damage from depth, and fire fizzles under water.
 The wizards are falling through the sky: no ground, no jumping and no platforms. Check: `tests/sky_world_check.tscn` (add `-- out=DIR` for a picture of a bolt).
 
 - **The world:** the air is rows `SKY_TOP_ROW` to `SKY_BOTTOM_ROW` (6 to 66), `MatchState.SKY_SHARE` (0.35) of a stage's width (owner, 2026-11-12: too large, twice).
-  Far under it lies rock nobody reaches (`SKY_FLOOR_ROW`). `World._flies()` is true when `graph.surface["air"]` is not empty; `World._fly_box()` is the room.
+  Far under it lies rock nobody reaches (`SKY_FLOOR_ROW`). `World.flies()` is true when `graph.surface["air"]` is not empty; `World._fly_box()` is the room.
 - **Flying** (`Wizard.flying`, `fly_box`, `_fly`): A/D and W/S steer (`FLY_SPEED`); with nothing pressed a wizard drifts down (`FLY_DRIFT`); the edge of the room stops
   them, with no wall drawn. There is no running animation, only rising and falling poses, and streaks rush up past the camera (`Weather` "fall_wind").
 - **Pages** (`FallingPage`) rise through the falling wizards, as paper falls slower than a person, swinging and tipping as they go (`RATE_LEAST` to `RATE_MOST`,
