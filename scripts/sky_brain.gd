@@ -26,19 +26,19 @@ func think(delta: float) -> void:
 	_hurt_age += delta
 	_note_new_pages(delta)
 	hand.tick(delta)
-	_cast_cooldown -= delta
+	cast_cooldown -= delta
 	_defend_cooldown -= delta
-	_goal_timer -= delta
+	goal_timer -= delta
 	_target_age += delta
 	_dodge -= delta
 	for key in _rest.keys():
 		_rest[key] -= delta
 		if _rest[key] <= 0.0:
 			_rest.erase(key)
-	for key in _skip.keys():
-		_skip[key] -= delta
-		if _skip[key] <= 0.0:
-			_skip.erase(key)
+	for key in skip.keys():
+		skip[key] -= delta
+		if skip[key] <= 0.0:
+			skip.erase(key)
 	_note_sights(delta)
 	sight.track_shots()
 	sight.look_about(delta)
@@ -49,9 +49,9 @@ func think(delta: float) -> void:
 		_strength_in = 1.0
 		_strength = _feel_strength(_foe)
 	_read_page_underfoot()
-	if _react > 0.0:
-		_react -= delta
-		if _react <= 0.0:
+	if react > 0.0:
+		react -= delta
+		if react <= 0.0:
 			_act(_reaction)
 	var foe: Wizard = _foe
 	var to_player := Vector2.ZERO
@@ -60,7 +60,7 @@ func think(delta: float) -> void:
 		to_player = sight.seen_center(foe) - wizard.center()
 		sees = (wizard.eyes.sees_point(sight.lure.center()) if sight.lure != null else eyes_see(foe)) and danger.clear_line(wizard.center(), sight.seen_center(foe))
 	var fighting := sees and to_player.length() < ENGAGE
-	if _react <= 0.0 and not wizard.is_drawing():
+	if react <= 0.0 and not wizard.is_drawing():
 		var shot := sight.incoming_shot()
 		if not shot.is_empty() and _defend_cooldown <= 0.0:
 			_threat_dir = shot["dir"]
@@ -71,7 +71,7 @@ func think(delta: float) -> void:
 				_defend_cooldown = 0.8
 			else:
 				_plan(choice, _reaction_time())
-		elif _defend_cooldown <= 0.0 and fighting and to_player.length() < TOO_CLOSE and _knows("Push") and wizard.stamina >= 10.0:
+		elif _defend_cooldown <= 0.0 and fighting and to_player.length() < TOO_CLOSE and knows("Push") and wizard.stamina >= 10.0:
 			_plan("push", _reaction_time())
 	var heading := _heading(delta, to_player, sees, fighting)
 	var speed := minf(1.0, heading.length())
@@ -82,17 +82,17 @@ func think(delta: float) -> void:
 	wizard.fly_y = _hold_or(way.y)
 	var running := absf(way.x) > 0.05 and not wizard.is_drawing()
 	wizard.facing = signf(way.x) if running else (signf(to_player.x) if (fighting or wizard.is_drawing()) and to_player.x != 0.0 else wizard.facing)
-	if not fighting or _react > 0.0 or wizard.is_drawing():
+	if not fighting or react > 0.0 or wizard.is_drawing():
 		return
-	if _cast_cooldown <= 0.0:
+	if cast_cooldown <= 0.0:
 		if _smothering() or _hiding():
-			_cast_cooldown = 0.3
+			cast_cooldown = 0.3
 		elif foe.has_shield():
-			_cast_cooldown = 0.3
+			cast_cooldown = 0.3
 		elif _attack(to_player, sees):
-			_cast_cooldown = lerpf(2.8, 1.5, skill) + rng.randf() * 0.8
+			cast_cooldown = lerpf(2.8, 1.5, skill) + rng.randf() * 0.8
 		else:
-			_cast_cooldown = 0.4
+			cast_cooldown = 0.4
 
 
 ## What the wizard asks of the air up and down: a wizard that wants to stay level leans a little against the drift, or it would sink off the place it is going to.
@@ -151,26 +151,26 @@ func _footwork_in_the_air(to_player: Vector2) -> Vector2:
 
 ## Its journey: to the page it means to have, or to the rival it hunts, or to look at somewhere new.
 func _journey(delta: float) -> Vector2:
-	if _goal_timer <= 0.0 or _goal_lost() or _target == Vector2.INF:
+	if goal_timer <= 0.0 or _goal_lost() or _target == Vector2.INF:
 		_choose_where()
-	if _goal == "page" and is_instance_valid(_goal_page):
+	if goal == "page" and is_instance_valid(_goal_page):
 		_target = _goal_page.global_position + Vector2(0.0, -PagePickup.FLOAT)
 		_page_steps += delta
 		if _page_steps > GIVE_UP_PAGE * 3.0:
-			_skip[_goal_page.get_instance_id()] = GIVE_UP_PAGE
-			_goal = ""
-			_goal_timer = 0.0
-	elif _goal == "foe" and is_instance_valid(_foe):
+			skip[_goal_page.get_instance_id()] = GIVE_UP_PAGE
+			goal = ""
+			goal_timer = 0.0
+	elif goal == "foe" and is_instance_valid(_foe):
 		_target = sight.seen_center(_foe)
 	if _target == Vector2.INF:
 		return Vector2.ZERO
 	var gap := _target.distance_to(wizard.center())
-	if gap < (FallingPage.TOUCH * 0.6 if _goal == "page" else ARRIVED):
-		if _goal == "explore":
-			_goal_timer = 0.0
+	if gap < (FallingPage.TOUCH * 0.6 if goal == "page" else ARRIVED):
+		if goal == "explore":
+			goal_timer = 0.0
 		return Vector2.ZERO
-	if _goal == "explore" and _target_age > EXPLORE_GIVE_UP:
-		_goal_timer = 0.0
+	if goal == "explore" and _target_age > EXPLORE_GIVE_UP:
+		goal_timer = 0.0
 	return _aim(wizard.center(), _target)
 
 
@@ -197,14 +197,14 @@ func _aim(from: Vector2, to: Vector2) -> Vector2:
 
 ## Picks what to go for: the page it has seen that is nearest, or a rival it feels strong enough to hunt, or somewhere to look.
 func _choose_where() -> void:
-	_goal_timer = GOAL_EVERY
+	goal_timer = GOAL_EVERY
 	_target_age = 0.0
 	_page_steps = 0.0
-	_goal = ""
+	goal = ""
 	var best: PagePickup = null
 	var best_gap := INF
 	for pickup: PagePickup in wizard.get_tree().get_nodes_in_group("pages"):
-		if not pickup.gives(wizard.ledger) or _skip.has(pickup.get_instance_id()) or (pickup is Mirage and _wise_to_mirages):
+		if not pickup.gives(wizard.ledger) or skip.has(pickup.get_instance_id()) or (pickup is Mirage and _wise_to_mirages):
 			continue
 		if not _seen_pages.has(pickup.get_instance_id()):
 			continue  # it has not set eyes on that one
@@ -213,13 +213,13 @@ func _choose_where() -> void:
 			best_gap = gap
 			best = pickup
 	if best != null:
-		_goal = "page"
+		goal = "page"
 		_goal_page = best
 		return
 	if is_instance_valid(_foe) and _strength >= BOLD_ABOVE:
-		_goal = "foe"
+		goal = "foe"
 		return
-	_goal = "explore"
+	goal = "explore"
 	_target = _explore_point()
 
 
@@ -250,4 +250,4 @@ func drag_gravity() -> float:
 
 ## A wizard that flies is never "on the floor": a shot's dodge by jumping and the rest are left out.
 func status() -> String:
-	return "sky:" + _goal
+	return "sky:" + goal

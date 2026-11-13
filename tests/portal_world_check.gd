@@ -146,13 +146,13 @@ func _run(world: World) -> void:
 			w.set_physics_process(false)
 			w.global_position += Vector2(0.0, -3000.0)
 	for page in get_tree().get_nodes_in_group("pages"):
-		rider.brain._skip[page.get_instance_id()] = 999.0  # with no page it can go for, it looks to the portals
+		rider.brain.skip[page.get_instance_id()] = 999.0  # with no page it can go for, it looks to the portals
 	var grounded := field.open_portals().filter(func(p: FieldPortal) -> bool: return p.lift == 0.0)  # the AI walks to ones on the ground
 	grounded.sort_custom(func(a: FieldPortal, b: FieldPortal) -> bool: return a.remaining() > b.remaining())
 	var near: FieldPortal = grounded[0]  # the one with the most time left
 	rider.global_position = near.global_position + Vector2(-220.0, 0.0)
-	rider.brain._goal = ""
-	rider.brain._goal_timer = 0.0
+	rider.brain.goal = ""
+	rider.brain.goal_timer = 0.0
 	Engine.time_scale = 3.0
 	await get_tree().create_timer(12.0, true, false, true).timeout
 	print("rider: ", rider.brain.status())
@@ -176,8 +176,8 @@ func _run(world: World) -> void:
 		var lift_at := high.lift
 		var before: int = riders.get(rider, 0)
 		rider.global_position = high.global_position + Vector2(-220.0, -300.0)  # dropped from above, to land on whatever ground lies there
-		rider.brain._goal = ""
-		rider.brain._goal_timer = 0.0
+		rider.brain.goal = ""
+		rider.brain.goal_timer = 0.0
 		Engine.time_scale = 3.0
 		await get_tree().create_timer(minf(high.remaining(), 12.0), true, false, true).timeout
 		Engine.time_scale = 1.0

@@ -98,11 +98,11 @@ func _mirage() -> void:
 	_rival.velocity = Vector2.ZERO
 	await _wait(0.6)
 	_rival.brain._choose_goal()
-	_verdict(_rival.brain._goal != "page" or _rival.brain._goal_page != mirage, "a brain that has seen one fade does not go for the next")
+	_verdict(_rival.brain.goal != "page" or _rival.brain._goal_page != mirage, "a brain that has seen one fade does not go for the next")
 	_rival.brain._wise_to_mirages = false
-	_rival.brain._skip.clear()
+	_rival.brain.skip.clear()
 	_rival.brain._choose_goal()
-	_verdict(_rival.brain._goal == "page" and _rival.brain._goal_page == mirage, "but one that has not does")
+	_verdict(_rival.brain.goal == "page" and _rival.brain._goal_page == mirage, "but one that has not does")
 	# It cannot be read.
 	_verdict(mirage.take(_player.ledger) == "", "reaching it reads nothing")
 	_verdict(not mirage.is_in_group("pages") and not mirage.is_solid(), "and it is gone from sight (the earlier ones have come back, as they should)")

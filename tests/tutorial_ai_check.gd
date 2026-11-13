@@ -45,9 +45,9 @@ func _ready() -> void:
 		print("path size ", way.size(), " standing there? ", wizard.nav.can_stand(here), " ", wizard.nav.can_stand(here + Vector2i(1, 0)), " ", wizard.nav.can_stand(here + Vector2i(5, 0)))
 		print("gives ", pickup.gives(wizard.ledger), " dist ", absi(wizard.nav.nearest(tile).x - tile.x) + absi(wizard.nav.nearest(tile).y - tile.y))
 		break
-	print("brain path: ", wizard.brain._path(wizard.nav.nearest(here, true), Vector2i(-16, 12)))
+	print("brain path: ", wizard.brain.find_path(wizard.nav.nearest(here, true), Vector2i(-16, 12)))
 	wizard.brain._choose_goal()
-	print("goal after choosing: ", wizard.brain._goal, " ", wizard.brain._skip, " wizards ", SpellTargets.wizards(get_tree()).size(), " foe ", wizard.brain.sight.nearest_foe())
+	print("goal after choosing: ", wizard.brain.goal, " ", wizard.brain.skip, " wizards ", SpellTargets.wizards(get_tree()).size(), " foe ", wizard.brain.sight.nearest_foe())
 	var deaths := 0
 	wizard.died.connect(func() -> void: deaths += 1)
 	var far := float(ArenaGen.right_wall - 8)
@@ -57,27 +57,27 @@ func _ready() -> void:
 	while elapsed < seconds:
 		await get_tree().physics_frame
 		elapsed += 1.0 / 60.0
-		var word: String = wizard.brain._goal
+		var word: String = wizard.brain.goal
 		if elapsed > 160.0 and word != last_word:
 			last_word = word
-			print("CHANGE t=%.1f goal '%s' col %.1f stamina %.0f gate %s" % [elapsed, word, wizard.global_position.x / 32.0, wizard.stamina, wizard.brain._goal_gate.get("kind", "-")])
+			print("CHANGE t=%.1f goal '%s' col %.1f stamina %.0f gate %s" % [elapsed, word, wizard.global_position.x / 32.0, wizard.stamina, wizard.brain.gates.goal_gate.get("kind", "-")])
 		if elapsed >= next_report:
 			next_report += 10.0 if elapsed < 235.0 else 0.5
-			print("t=%3.0f column %.0f  stamina %.0f/%.0f  deaths %d  barrier %s smoke %s  goal %s" % [elapsed, wizard.global_position.x / 32.0, wizard.stamina, wizard.max_stamina, deaths, wizard.brain._knows("Barrier"), wizard.brain._knows("Smoke Screen"), wizard.brain.status()])
+			print("t=%3.0f column %.0f  stamina %.0f/%.0f  deaths %d  barrier %s smoke %s  goal %s" % [elapsed, wizard.global_position.x / 32.0, wizard.stamina, wizard.max_stamina, deaths, wizard.brain.knows("Barrier"), wizard.brain.knows("Smoke Screen"), wizard.brain.status()])
 		if wizard.global_position.x / 32.0 >= far:
 			print("PASS  reached the end at t=%.0f" % elapsed)
 			get_tree().quit(0)
 			return
 	for gate in room.closed_gates():
-		print("gate ", gate["kind"], " ", gate["outside"], " clearing: '", wizard.brain.clearing_spell(gate["kind"]), "' skip ", wizard.brain._skip.has(wizard.brain._gate_key(gate)))
+		print("gate ", gate["kind"], " ", gate["outside"], " clearing: '", wizard.brain.gates.clearing_spell(gate["kind"]), "' skip ", wizard.brain.skip.has(wizard.brain.gates.gate_key(gate)))
 	var b = wizard.brain
-	print("INTERNALS leap ", b.moves.leap, " lift ", b.moves.lift, " wade ", b.moves.wade, " settle ", b._settle, " resting ", b._resting, " drawing ", wizard.is_drawing(), " cd ", b._cast_cooldown, " react ", b._react, " goal_timer ", b._goal_timer, " floor ", wizard.is_on_floor(), " fainted ", wizard.fainted, " stam ", wizard.stamina, " vel ", wizard.velocity, " rocket ", wizard.rocket_time, " feather ", wizard.get("feather_time"), " tangle ", wizard.tangle_time, " obstacle ", wizard.is_on_wall())
+	print("INTERNALS leap ", b.moves.leap, " lift ", b.moves.lift, " wade ", b.moves.wade, " settle ", b._settle, " resting ", b._resting, " drawing ", wizard.is_drawing(), " cd ", b.cast_cooldown, " react ", b.react, " goal_timer ", b.goal_timer, " floor ", wizard.is_on_floor(), " fainted ", wizard.fainted, " stam ", wizard.stamina, " vel ", wizard.velocity, " rocket ", wizard.rocket_time, " feather ", wizard.get("feather_time"), " tangle ", wizard.tangle_time, " obstacle ", wizard.is_on_wall())
 	var begin: Vector2i = wizard.nav.nearest(Vector2i(floori(wizard.global_position.x / 32.0), floori((wizard.global_position.y - 1.0) / 32.0)), true)
-	print("start ", begin, " choose gate -> ", wizard.brain._choose_gate(begin), " goal ", wizard.brain._goal, " tolls at start '", wizard.nav.toll_at(begin), "' pos ", wizard.global_position / 32.0)
+	print("start ", begin, " choose gate -> ", wizard.brain._choose_gate(begin), " goal ", wizard.brain.goal, " tolls at start '", wizard.nav.toll_at(begin), "' pos ", wizard.global_position / 32.0)
 	print(wizard.nav.sketch(Vector2i(375, 5)))
-	print("AHEAD ", wizard.brain._crossing_ahead().get("kind", "-"), " ", wizard.brain._crossing_ahead().get("key", "-"), " bridged ", wizard.brain._bridged, " cannot ", wizard.brain._cannot, " cross_run ", wizard.brain._cross_run, " drawing ", wizard.is_drawing(), " react ", wizard.brain._react)
-	if wizard.brain._goal == "gate":
-		var entry: Dictionary = wizard.brain._goal_gate
-		print("GATE ", entry["kind"], " target ", room.gate_target(entry["entry"]), " wizard ", wizard.center(), " spell ", wizard.brain.clearing_spell(entry["kind"]))
+	print("AHEAD ", wizard.brain.gates.crossing_ahead().get("kind", "-"), " ", wizard.brain.gates.crossing_ahead().get("key", "-"), " bridged ", wizard.brain.gates.bridged, " cannot ", wizard.brain.gates.cannot, " cross_run ", wizard.brain.gates.cross_run, " drawing ", wizard.is_drawing(), " react ", wizard.brain.react)
+	if wizard.brain.goal == "gate":
+		var entry: Dictionary = wizard.brain.gates.goal_gate
+		print("GATE ", entry["kind"], " target ", room.gate_target(entry["entry"]), " wizard ", wizard.center(), " spell ", wizard.brain.gates.clearing_spell(entry["kind"]))
 	print("FAIL  got as far as column %.0f" % (wizard.global_position.x / 32.0))
 	get_tree().quit(1)

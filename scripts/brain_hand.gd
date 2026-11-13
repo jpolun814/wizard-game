@@ -362,7 +362,7 @@ func gate_stroke(spell_name: String, point: Vector2) -> PackedVector2Array:
 			var from: Vector2 = wizard.center()
 			var cloud := point  # the wind takes a cloud by its middle, which may lie off the point struck, down a slope
 			var near := INF
-			for node in brain.gate_nodes():  # (untyped: it may be a freed object)
+			for node in brain.gates.gate_nodes():  # (untyped: it may be a freed object)
 				if is_instance_valid(node) and not node.is_queued_for_deletion() and node.global_position.distance_to(from) < near:
 					near = node.global_position.distance_to(from)
 					cloud = node.global_position

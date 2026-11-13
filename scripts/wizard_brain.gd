@@ -126,8 +126,8 @@ var skill := 0.6              # 0 to 1: how quick its reactions are and how true
 var _strength := 0.5          # 0 to 1: how strong it thinks it is (see _feel_strength); a strong wizard hunts, a weak one looks for pages and keeps away
 var _strength_in := 0.0
 var _daunted := 0.0           # seconds it has faced a rival it feels too weak for, at a distance: it hesitates (and may cast to hide or mend) before it turns away
-var _cast_cooldown := 1.8
-var _react := 0.0             # counting down to a planned reaction
+var cast_cooldown := 1.8
+var react := 0.0             # counting down to a planned reaction
 var _reaction := ""
 var _threat_dir := Vector2.ZERO
 var _defend_cooldown := 0.0
@@ -170,34 +170,27 @@ var pressure := 0.0          # how many shots you have thrown at it lately
 var _recent: Array[String] = []  # its last two attacks, which it avoids repeating
 var rng := RandomNumberGenerator.new()
 var hand: BrainHand
+var gates: BrainGates  # the ways over crossings and the clearing of gates
 var moves: BrainMoves  # the leap, the wade and the lift it may have in hand
 var chant: BrainChant
 var danger: BrainDanger
 var sight: BrainSight
 var _foe: Wizard                 # the wizard it is dealing with: the nearest of the others it knows of
-var _route := WizardRoute.new()
-var _goal := ""                  # what it is travelling to: "page", "foe", or "" for nothing
+var route := WizardRoute.new()
+var goal := ""                  # what it is travelling to: "page", "foe", or "" for nothing
 var _goal_page: PagePickup
 var _goal_portal: FieldPortal
 var _page_steps := 0.0         # seconds it has spent walking the last steps to a page that lies just off the end of its way
 var _portal_jumping := 0.0     # seconds it has stood under a portal in the air, jumping for it
 var _last_feet := Vector2.INF
-var _goal_timer := 0.0
-var _skip := {}                  # a page (its instance id) or a gate (its name) -> seconds it stays off the list, for one that could not be had
+var goal_timer := 0.0
+var skip := {}                  # a page (its instance id) or a gate (its name) -> seconds it stays off the list, for one that could not be had
 var _wise_to_mirages := false      # it has watched a mirage fade, and now sees the waver of the rest
 var stuck_at: Array[String] = []  # where it has been held up, for a report
-var _goal_gate := {}              # the gate it is going to clear: {"kind", "outside", "target", "entry"}
-var _gate_tries := 0
-var _gate_gone := 0              # how many pieces of the gate had gone when it last struck it
 var _nav_version := -1           # which build of the ways its list of pages it cannot reach belongs to
-var _bridged := {}               # crossing (by key) -> seconds more that the way over it, which this wizard made, will last
-var _cross_run := 0.0            # the speed it goes at while it makes its way over a crossing
-var _pad_walk := {}              # crossing (by key) -> {"dir", "end"}: the row of pads laid over it, and the x it walks along them to
 var _hurt_age := 99.0            # seconds since it was last hurt
 var settle := 0.0               # seconds it stands still while a way over water grows
 var _resting := false            # it has stopped to get its breath back
-var _pads := {}                  # crossing (by key) -> {"dir", "front"}: the row of Lily Pads it has made so far over a long pit
-var _cannot := {}                # crossing (by key) -> seconds more that it will not try it, having fallen in
 var _replans := 0                # times in a row it has had to find its way again
 var _eye_time := 0.0              # seconds since it sent out a Scrying Eye, counting down (its window shows someone, not where they are)
 var scent := 0.0                # seconds that a Hunter's Mark lasts for it: a wizard faded from sight can be found
@@ -209,6 +202,7 @@ func _init(body: Wizard) -> void:
 	wizard = body
 	hand = BrainHand.new(self, body)
 	moves = BrainMoves.new(self, body)
+	gates = BrainGates.new(self, body)
 	chant = BrainChant.new(self, body)
 	danger = BrainDanger.new(self, body)
 	sight = BrainSight.new(self, body)
@@ -227,8 +221,8 @@ func on_hurt(amount: int) -> void:
 	_hurt_age = 0.0
 	if wizard.is_drawing() and amount >= INTERRUPT_DAMAGE:
 		wizard.interrupt_cast()
-		_cast_cooldown = maxf(_cast_cooldown, 0.9)
-	if _knows("Shadow Step") and wizard.max_stamina < Wizard.MAX_STAMINA * 0.4 and _defend_cooldown <= 0.0 and _react <= 0.0 and rng.randf() < 0.5:
+		cast_cooldown = maxf(cast_cooldown, 0.9)
+	if knows("Shadow Step") and wizard.max_stamina < Wizard.MAX_STAMINA * 0.4 and _defend_cooldown <= 0.0 and react <= 0.0 and rng.randf() < 0.5:
 		_plan("blink_away", 0.25)
 
 
@@ -294,11 +288,11 @@ func _run_clocks(delta: float) -> void:
 		chant.breaks = mini(chant.breaks + 1, 4)
 		_mend_wait = maxf(_mend_wait, 10.0 * chant.breaks)
 		_haste_wait = maxf(_haste_wait, 10.0 * chant.breaks)
-	_cast_cooldown -= delta
+	cast_cooldown -= delta
 	_defend_cooldown -= delta
 	_jump_cooldown -= delta
 	_escape_time -= delta
-	_goal_timer -= delta
+	goal_timer -= delta
 	settle -= delta
 	_tend_cooldown -= delta
 	scent -= delta
@@ -312,22 +306,22 @@ func _run_clocks(delta: float) -> void:
 		_rest[spell_name] -= delta
 		if _rest[spell_name] <= 0.0:
 			_rest.erase(spell_name)
-	for id in _skip.keys():
-		_skip[id] -= delta
-		if _skip[id] <= 0.0:
-			_skip.erase(id)
-	for key in _cannot.keys():
-		_cannot[key] -= delta
-		if _cannot[key] <= 0.0:
-			_cannot.erase(key)
-	for key in _bridged.keys():
-		_bridged[key] -= delta
-		if _bridged[key] <= 0.0:
-			_bridged.erase(key)
-			_pad_walk.erase(key)
+	for id in skip.keys():
+		skip[id] -= delta
+		if skip[id] <= 0.0:
+			skip.erase(id)
+	for key in gates.cannot.keys():
+		gates.cannot[key] -= delta
+		if gates.cannot[key] <= 0.0:
+			gates.cannot.erase(key)
+	for key in gates.bridged.keys():
+		gates.bridged[key] -= delta
+		if gates.bridged[key] <= 0.0:
+			gates.bridged.erase(key)
+			gates.pad_walk.erase(key)
 	if wizard.nav != null and wizard.nav.version != _nav_version:
 		_nav_version = wizard.nav.version
-		_skip.clear()  # a gate has been cleared: pages that could not be reached may be reachable now
+		skip.clear()  # a gate has been cleared: pages that could not be reached may be reachable now
 
 
 ## Looking about: the shots, the others it knows of, the shadows, the rival it deals with now, and how strong it feels against them.
@@ -344,12 +338,12 @@ func _sense(delta: float) -> void:
 
 ## No rival in mind (the last wizard standing, or it knows of no one else): it looks after itself and goes about its journey.
 func _alone(delta: float) -> void:
-	if _react > 0.0:  # (a reaction it has planned still comes: nothing else counts it down here)
-		_react -= delta
-		if _react <= 0.0:
+	if react > 0.0:  # (a reaction it has planned still comes: nothing else counts it down here)
+		react -= delta
+		if react <= 0.0:
 			_act(_reaction)
 	# It still looks after itself: a light in the dark, its strength, the scent of whoever it has lost.
-	if _react <= 0.0 and _tend_cooldown <= 0.0 and not wizard.is_drawing() and not moves.busy() and not _smothering():
+	if react <= 0.0 and _tend_cooldown <= 0.0 and not wizard.is_drawing() and not moves.busy() and not _smothering():
 		_tend_cooldown = 0.6 + rng.randf() * 0.6
 		if _tend(Vector2.ZERO, false, false):
 			_tend_cooldown = 1.4 + rng.randf() * 0.8
@@ -372,9 +366,9 @@ func _with_a_rival(delta: float) -> void:
 	_escape_commit -= delta
 	_escapes = maxf(_escapes - delta * 0.5, 0.0)
 	# Reactions.
-	if _react > 0.0:
-		_react -= delta
-		if _react <= 0.0:
+	if react > 0.0:
+		react -= delta
+		if react <= 0.0:
 			_act(_reaction)
 	elif not wizard.is_drawing():
 		var shot := sight.incoming_shot()
@@ -396,7 +390,7 @@ func _with_a_rival(delta: float) -> void:
 			_plan(_choose_repel(), _reaction_time())
 
 	# Looking after itself: its lights, its strength, a wall between it and you, a way up to you.
-	if _react <= 0.0 and _tend_cooldown <= 0.0 and not wizard.is_drawing() and not moves.busy() and not _smothering():
+	if react <= 0.0 and _tend_cooldown <= 0.0 and not wizard.is_drawing() and not moves.busy() and not _smothering():
 		_tend_cooldown = 0.6 + rng.randf() * 0.6
 		if _tend(to_player, sees, fighting):
 			_tend_cooldown = 1.4 + rng.randf() * 0.8
@@ -407,7 +401,7 @@ func _with_a_rival(delta: float) -> void:
 
 	# Footwork, or the journey.
 	var run: float
-	var mend := _mend(delta, fighting) if not moves.busy() and _react <= 0.0 and wizard.swim_time <= 0.0 else NAN  # (no one rests in deep water)
+	var mend := _mend(delta, fighting) if not moves.busy() and react <= 0.0 and wizard.swim_time <= 0.0 else NAN  # (no one rests in deep water)
 	if not is_nan(mend):
 		wizard.walk(mend)
 		return
@@ -429,15 +423,15 @@ func _with_a_rival(delta: float) -> void:
 		return
 
 	# Attacks.
-	if _cast_cooldown <= 0.0 and not wizard.is_drawing() and _react <= 0.0:
+	if cast_cooldown <= 0.0 and not wizard.is_drawing() and react <= 0.0:
 		if _smothering() or _hiding():
-			_cast_cooldown = 0.3  # another spell would let the breath go; and a wizard out of sight is shown by casting
+			cast_cooldown = 0.3  # another spell would let the breath go; and a wizard out of sight is shown by casting
 		elif foe.has_shield():
-			_cast_cooldown = 0.3  # nothing gets through a Barrier; wait it out
+			cast_cooldown = 0.3  # nothing gets through a Barrier; wait it out
 		elif _attack(to_player, sees):
-			_cast_cooldown = lerpf(2.8, 1.5, skill) + rng.randf() * 0.8
+			cast_cooldown = lerpf(2.8, 1.5, skill) + rng.randf() * 0.8
 		else:
-			_cast_cooldown = 0.4
+			cast_cooldown = 0.4
 
 
 ## A werewolf's turn: straight at the rival, and a swipe once they are in reach.
@@ -457,14 +451,14 @@ func _reaction_time() -> float:
 
 func _plan(reaction: String, delay: float) -> void:
 	_reaction = reaction
-	_react = delay
+	react = delay
 
 
 # --- Travel -----------------------------------------------------------------------------------------------------
 
 
 ## Whether it holds the page of a spell.
-func _knows(spell_name: String) -> bool:
+func knows(spell_name: String) -> bool:
 	if spell_name.begins_with("chant:"):
 		return wizard.ledger.knows_chant(spell_name.substr(6))
 	return wizard.ledger.knows_spell(spell_name)
@@ -492,14 +486,14 @@ func _held(foe: Wizard) -> bool:
 
 
 ## What tells it of the gates about it: a match's world, or a room that has read itself (see RoomScan).
-func _world() -> Node:
+func the_world() -> Node:
 	var tree := wizard.get_tree()
 	var found := tree.get_first_node_in_group(&"world")
 	return found if found != null else tree.get_first_node_in_group(&"gate_source")
 
 
 ## The tile a body stands in, from its feet.
-func _tile_of(feet: Vector2) -> Vector2i:
+func tile_of(feet: Vector2) -> Vector2i:
 	return Vector2i(floori(feet.x / WizardRoute.TILE), floori((feet.y - 1.0) / WizardRoute.TILE))
 
 
@@ -531,7 +525,7 @@ func _mend(delta: float, fighting: bool) -> float:
 		_camped = true
 		_camped_for = 0.0
 		return 0.0
-	if _knows("chant:bonfire"):
+	if knows("chant:bonfire"):
 		if not _quiet_here():  # not here: it goes on a while, and tries again
 			_mend_wait = 5.0
 			return NAN
@@ -574,7 +568,7 @@ func _bonfire_near(point: Vector2, reach: float) -> Bonfire:
 ## When it has got nowhere for a long time (a way its map has wrong, a ledge it cannot reach, a wind it cannot walk against), it drops what it was
 ## after and goes after something else, and if that does not help either it wanders a few steps, as a person does who has no idea what is wrong.
 func _watch_progress(delta: float) -> void:
-	if wizard.global_position.distance_to(_anchor) > STUCK_RADIUS or _resting or _goal == "":
+	if wizard.global_position.distance_to(_anchor) > STUCK_RADIUS or _resting or goal == "":
 		_anchor = wizard.global_position
 		_anchored_for = 0.0
 		return
@@ -583,15 +577,15 @@ func _watch_progress(delta: float) -> void:
 		return
 	_anchored_for = 0.0
 	_unsticks += 1
-	if _goal == "page" and is_instance_valid(_goal_page):
-		_skip[_goal_page.get_instance_id()] = GIVE_UP
-	elif _goal == "portal" and is_instance_valid(_goal_portal):
-		_skip[_goal_portal.get_instance_id()] = GIVE_UP
-	elif _goal == "gate":
-		_skip[_gate_key(_goal_gate)] = GIVE_UP
-	_goal = ""
-	_goal_timer = 0.0
-	_route.clear()
+	if goal == "page" and is_instance_valid(_goal_page):
+		skip[_goal_page.get_instance_id()] = GIVE_UP
+	elif goal == "portal" and is_instance_valid(_goal_portal):
+		skip[_goal_portal.get_instance_id()] = GIVE_UP
+	elif goal == "gate":
+		skip[gates.gate_key(gates.goal_gate)] = GIVE_UP
+	goal = ""
+	goal_timer = 0.0
+	route.clear()
 	if _unsticks >= 2:
 		_unsticks = 0
 		_wander_dir = -1.0 if rng.randf() < 0.5 else 1.0
@@ -629,10 +623,10 @@ func _assailed(delta: float) -> float:
 	var away := signf(wizard.global_position.x - mob.global_position.x)
 	if away == 0.0:
 		away = -wizard.facing
-	var spell_name := clearing_spell("giant" if mob.max_hp >= 1000 else "creature")
-	if spell_name != "" and not wizard.is_drawing() and _cast_cooldown <= 0.0 and _react <= 0.0:
-		_goal_gate = {"kind": "giant" if mob.max_hp >= 1000 else "creature", "entry": {"mob": mob, "nodes": [mob]}, "target": mob.center()}
-		_cast_cooldown = 1.4
+	var spell_name := gates.clearing_spell("giant" if mob.max_hp >= 1000 else "creature")
+	if spell_name != "" and not wizard.is_drawing() and cast_cooldown <= 0.0 and react <= 0.0:
+		gates.goal_gate = {"kind": "giant" if mob.max_hp >= 1000 else "creature", "entry": {"mob": mob, "nodes": [mob]}, "target": mob.center()}
+		cast_cooldown = 1.4
 		hand.begin_cast(spell_name, hand.gate_stroke(spell_name, mob.center()), ATTACK_DRAW)
 		return 0.0
 	if wizard.is_drawing():
@@ -655,29 +649,29 @@ func _travel(delta: float) -> float:
 	var at_the_goal := _at_the_goal(delta)
 	if not is_nan(at_the_goal):
 		return at_the_goal
-	var short_of_page := _goal == "page" and _route.done() and is_instance_valid(_goal_page) and _tile_of(_goal_page.global_position).distance_to(_tile_of(wizard.global_position)) > PAGE_REACH + 2  # (its way stopped at the edge of what it knew: it looks again from there)
-	if (_goal == "" and _goal_timer <= 0.0) or _goal_lost() or short_of_page or ((_goal == "foe" or _goal == "exit" or _goal == "explore") and (_goal_timer <= 0.0 or _route.done())):
+	var short_of_page := goal == "page" and route.done() and is_instance_valid(_goal_page) and tile_of(_goal_page.global_position).distance_to(tile_of(wizard.global_position)) > PAGE_REACH + 2  # (its way stopped at the edge of what it knew: it looks again from there)
+	if (goal == "" and goal_timer <= 0.0) or _goal_lost() or short_of_page or ((goal == "foe" or goal == "exit" or goal == "explore") and (goal_timer <= 0.0 or route.done())):
 		_choose_goal()
 	if wizard.swim_time > 0.0:
 		return _swim(delta, false, Vector2.ZERO)
-	if _goal != "" and not _route.done() and wizard.is_on_floor():  # (a wizard in the air cannot stop for it; after the goal is chosen, so that a gate on the way is seen before the first step towards it)
-		var crossing := _crossing_ahead()
-		_cross_run = 0.0
-		if not crossing.is_empty() and _cross(crossing):
-			return _cross_run
+	if goal != "" and not route.done() and wizard.is_on_floor():  # (a wizard in the air cannot stop for it; after the goal is chosen, so that a gate on the way is seen before the first step towards it)
+		var crossing := gates.crossing_ahead()
+		gates.cross_run = 0.0
+		if not crossing.is_empty() and gates.cross(crossing):
+			return gates.cross_run
 	# Standing on a wooden platform or a ridge that the map does not know, high over the ground it does know: it steps down through it.
 	_off_map_check -= delta
 	if _off_map_check <= 0.0 and wizard.is_on_floor():
 		_off_map_check = 0.4
-		var here := _tile_of(wizard.global_position)
+		var here := tile_of(wizard.global_position)
 		var known: Vector2i = wizard.nav.nearest(here, true)
 		_off_map = known != WorldNav.NONE and known.y - here.y >= 3 and absi(known.x - here.x) <= 6
 	if _off_map and wizard.is_on_floor():
 		wizard.drop_through()
 	var volcano := danger.volcano_near(wizard.global_position, VOLCANO_FLEE) if not moves.busy() else Vector2.INF
 	if volcano != Vector2.INF and not wizard.lava_proof() and wizard.is_on_floor():
-		_goal = ""  # a volcano is awake close by: it goes away from it, and chooses what to do when it is far enough off
-		_goal_timer = 0.5
+		goal = ""  # a volcano is awake close by: it goes away from it, and chooses what to do when it is far enough off
+		goal_timer = 0.5
 		return signf(wizard.global_position.x - volcano.x) * WALK_SPEED
 	return _follow_route(delta)
 
@@ -695,7 +689,7 @@ func _held_up(delta: float) -> float:
 	if wizard.is_drawing():
 		return 0.0
 	_watch_progress(delta)
-	if _goal != "" and _route.remaining() > HASTE_FROM and wizard.haste_time <= 0.0 and _haste_wait <= 0.0 and _knows("chant:haste") and _quiet_here():
+	if goal != "" and route.remaining() > HASTE_FROM and wizard.haste_time <= 0.0 and _haste_wait <= 0.0 and knows("chant:haste") and _quiet_here():
 		_haste_wait = 25.0
 		chant.open("haste")  # (it stops to say it, as a person does)
 		return 0.0
@@ -711,8 +705,8 @@ func _held_up(delta: float) -> float:
 			wizard.request_jump()
 			_jump_cooldown = 0.5
 		return _escape_dir * WALK_SPEED * 1.3
-	if _walking_pads():
-		return _cross_run
+	if gates.walking_pads():
+		return gates.cross_run
 	if _resting and wizard.stamina >= minf(REST_UNTIL, wizard.max_stamina * 0.9):  # (a wizard worn down to a small maximum rests up to that, not up to more than it can ever hold)
 		_resting = false
 	elif not _resting and wizard.stamina < minf(REST_BELOW, wizard.max_stamina * 0.3) and wizard.is_on_floor():
@@ -729,60 +723,60 @@ func _held_up(delta: float) -> float:
 func _at_the_goal(delta: float) -> float:
 	_read_page_underfoot()
 	if _last_feet.distance_to(wizard.global_position) > 250.0 and _last_feet != Vector2.INF:  # a portal has carried it off: the way it was going is no use
-		_goal = ""
-		_goal_timer = 0.0
+		goal = ""
+		goal_timer = 0.0
 	_last_feet = wizard.global_position
-	if _goal == "portal" and _route.done():
+	if goal == "portal" and route.done():
 		if is_instance_valid(_goal_portal) and _goal_portal.lift > 0.0 and _portal_jumping < PORTAL_JUMP_FOR and not _goal_lost():
 			return _jump_for_portal(delta)  # it stands under a portal hung in the air and leaps for it
-		_skip[_goal_portal.get_instance_id()] = GIVE_UP  # it has come to the portal and nothing came of it
-		_goal = ""
-		_goal_timer = 0.0
-	if _goal == "page" and _route.done() and not _goal_lost() and is_instance_valid(_goal_page):
+		skip[_goal_portal.get_instance_id()] = GIVE_UP  # it has come to the portal and nothing came of it
+		goal = ""
+		goal_timer = 0.0
+	if goal == "page" and route.done() and not _goal_lost() and is_instance_valid(_goal_page):
 		var short: Vector2 = _goal_page.global_position - wizard.global_position
 		if absf(short.x) > PAGE_TOUCH and absf(short.x) < PAGE_STEPS and absf(short.y) < PAGE_STEPS and _page_steps < PAGE_STEPS_TIME:
 			_page_steps += delta  # the way ends a little short of it (the ground it lies on is not on the map): the last steps are walked
 			return signf(short.x) * WALK_SPEED
-	if _goal == "page" and _route.done() and not _goal_lost():  # it has come to the place, and the page is not to be had from there
-		_skip[_goal_page.get_instance_id()] = GIVE_UP
-		_goal = ""
-		_goal_timer = 0.0
-	if _goal == "gate":
-		if _gate_open(_goal_gate["entry"]):
-			_goal = ""
-			_goal_timer = 0.0
-		elif _route.done():
-			_work_gate()
+	if goal == "page" and route.done() and not _goal_lost():  # it has come to the place, and the page is not to be had from there
+		skip[_goal_page.get_instance_id()] = GIVE_UP
+		goal = ""
+		goal_timer = 0.0
+	if goal == "gate":
+		if gates.gate_open(gates.goal_gate["entry"]):
+			goal = ""
+			goal_timer = 0.0
+		elif route.done():
+			gates.work_gate()
 			return 0.0
-	var creature := _creature_ahead()
+	var creature := gates.creature_ahead()
 	if not creature.is_empty():
-		_goal_gate = creature
-		_goal = "gate"
-		_gate_tries = 0
-		_clear_gate(creature["target"])
+		gates.goal_gate = creature
+		goal = "gate"
+		gates.gate_tries = 0
+		gates.clear_gate(creature["target"])
 		return 0.0
 	return NAN
 
 
 ## One step along its route: the way the route points, and the lava that may lie on it, which it waits out, runs over or turns from.
 func _follow_route(delta: float) -> float:
-	var steer := _route.steer(wizard, delta)
+	var steer := route.steer(wizard, delta)
 	if steer["replan"]:
-		stuck_at.append("%s %s" % [str(_tile_of(wizard.global_position)), _route.status()])
+		stuck_at.append("%s %s" % [str(tile_of(wizard.global_position)), route.status()])
 		_stuck_on_goal()
-	if _route.waiting_for_stair and _goal == "explore":
+	if route.waiting_for_stair and goal == "explore":
 		_stair_wait += delta
 		if _stair_wait > STAIR_PATIENCE:  # a person does not stand at a stair for half a minute just to see what lies past it: they look elsewhere
 			_stair_wait = 0.0
-			var far := _route.last()
+			var far := route.last()
 			if far != WorldNav.NONE:  # the place it was going to is given up (a floor above or below as well as one along)
 				_explored[_square_of(Vector2(far.x * WizardRoute.TILE, far.y * WizardRoute.TILE))] = true
 			for k in range(0, 3):
 				_explored[_square_of(wizard.global_position + Vector2(signf(_explore_dir) * k * 600.0, 0.0))] = true
 			_explore_dir = -_explore_dir
-			_goal = ""
-			_goal_timer = 0.0
-			_route.clear()
+			goal = ""
+			goal_timer = 0.0
+			route.clear()
 	else:
 		_stair_wait = 0.0
 	var ahead := signf(steer["dir"])
@@ -792,22 +786,22 @@ func _follow_route(delta: float) -> float:
 			# lava or an eruption lies on the way: it keeps its distance, backing away if it is close, and waits for it to pass or cool; when that takes
 			# too long it looks for another way
 			_danger_wait += delta
-			_route.wait()
+			route.wait()
 			if _danger_wait > DASH_AFTER and wizard.max_stamina >= DASH_MIN_MAX and _lethal_stretch(ahead) <= DASH_MAX:  # a narrow stretch is not worth a wait: a person runs over it and takes the hit
 				_dash = 1.6
 				_danger_wait = 0.0
 				return steer["dir"] * WALK_SPEED
 			if _danger_wait > DANGER_WAIT_MAX:
 				_danger_wait = 0.0
-				if _goal == "page" and is_instance_valid(_goal_page):
-					_skip[_goal_page.get_instance_id()] = GIVE_UP
-				elif _goal == "explore":  # it will not look that way again: it turns round and tries the other side
+				if goal == "page" and is_instance_valid(_goal_page):
+					skip[_goal_page.get_instance_id()] = GIVE_UP
+				elif goal == "explore":  # it will not look that way again: it turns round and tries the other side
 					for k in range(0, 7):
 						_explored[_square_of(wizard.global_position + Vector2(ahead * k * 600.0, 0.0))] = true
 					_explore_dir = -ahead
-				_goal = ""
-				_goal_timer = 0.0
-				_route.clear()
+				goal = ""
+				goal_timer = 0.0
+				route.clear()
 			return -ahead * WALK_SPEED * 0.8 if near else 0.0
 		_danger_wait = maxf(_danger_wait - delta * 0.15, 0.0)  # (backing off and coming back does not start the waiting over)
 	else:
@@ -847,7 +841,7 @@ func _swim(delta: float, fighting: bool, to_player: Vector2) -> float:
 		return 0.0
 	var line := target - here
 	if not _for_air and not fighting and line.length() < SWIM_ARRIVE:
-		_route.clear()  # it is there: what comes next is chosen afresh
+		route.clear()  # it is there: what comes next is chosen afresh
 		return 0.0
 	var blocked := wizard.is_on_wall() and absf(line.x) > SWIM_ARRIVE  # (a stroke takes it up over what is in the way)
 	var keep_up := _for_air and not wizard.underwater() and wizard.velocity.y > 0.0  # (its head over the water while it breathes)
@@ -864,16 +858,16 @@ func _swim(delta: float, fighting: bool, to_player: Vector2) -> float:
 
 ## Where its journey goes, swimming: the page it wants, or the end of its route (a place to look at, the rival it hunts). INF when it has none.
 func _swim_goal() -> Vector2:
-	if _goal == "page" and is_instance_valid(_goal_page):
+	if goal == "page" and is_instance_valid(_goal_page):
 		return _goal_page.global_position + Vector2(0.0, -20.0)
-	if not _route.done():
-		var end := _route.last()
+	if not route.done():
+		var end := route.last()
 		if end != WorldNav.NONE:
 			var at := Vector2((end.x + 0.5) * WizardRoute.TILE, (end.y + 1) * WizardRoute.TILE) + wizard.center() - wizard.global_position
 			if _inside_solid(at):  # the map of the ways does not know a wreck's hull: a place inside one is given up as seen, and another is chosen
 				_explored[_square_of(at)] = true
-				_route.clear()
-				_goal = ""
+				route.clear()
+				goal = ""
 				return Vector2.INF
 			return at
 	return Vector2.INF
@@ -925,219 +919,14 @@ func _lethal_stretch(ahead: float) -> float:
 	return INF
 
 
-## The crossing the way goes over soon, if the way over it is not made: {"kind", "key", "span", "post"}. A pit counts when it is the next few tiles
-## off, a sentinel from much farther, for it sees a long way.
-func _crossing_ahead() -> Dictionary:
-	var world := _world()
-	for moves in SENTINEL_LOOKOUT:
-		var key := _toll_between(_route.ahead(moves - 1) if moves > 0 else wizard.nav.nearest(_tile_of(wizard.global_position), true), _route.ahead(moves))
-		if key == "" or _bridged.has(key):
-			continue
-		for crossing: Dictionary in world.crossings():
-			if crossing["key"] == key and (moves < 4 or crossing["kind"] == "sentinel"):
-				return crossing
-	return {}
-
-
-## While it is on a row of pads it has laid over water, it walks along them to the end of the row rather than hopping from one to the next (a hop
-## that lands a little short drops it in). True when it is walking them (or standing at the end of the row), with the speed in `_cross_run`.
-func _walking_pads() -> bool:
-	if _pad_walk.is_empty() or not wizard.is_on_floor():
-		return false
-	var world := _world()
-	for crossing: Dictionary in world.crossings():
-		if not _pad_walk.has(crossing["key"]):
-			continue
-		var span: Rect2 = crossing["span"]
-		var dir: int = _pad_walk[crossing["key"]]["dir"]
-		var end: float = _pad_walk[crossing["key"]]["end"]
-		var x := wizard.global_position.x
-		if x < span.position.x - WizardRoute.TILE or x > span.end.x + WizardRoute.TILE or (end - x) * dir < -WizardRoute.TILE:
-			continue  # not on this row
-		_cross_run = dir * WALK_SPEED if (end - x) * dir > 8.0 else 0.0
-		return true
-	return false
-
-
-## The crossing whose toll lies on a move from one tile to the next, or "": a long jump over a pit passes over tiles that the path never names.
-func _toll_between(from: Vector2i, to: Vector2i) -> String:
-	if to == WorldNav.NONE:
-		return ""
-	for step in range(1, absi(to.x - from.x) + 1):
-		var key: String = wizard.nav.toll_at(Vector2i(from.x + step * signi(to.x - from.x), to.y if step == absi(to.x - from.x) else from.y))
-		if key != "":
-			return key
-	return wizard.nav.toll_at(to)
-
-
-## Makes the way over a crossing, a stroke at a time. True while it is at it and must stand; false when it may walk on (a sentinel too
-## far off to see it yet, or nothing it can do).
-func _cross(crossing: Dictionary) -> bool:
-	if wizard.is_drawing() or _react > 0.0:
-		return true
-	if crossing["kind"] == "sentinel":
-		return _cross_sentinel(crossing)
-	var spell_name := _way_over(crossing)
-	if spell_name == "":
-		return false
-	var span: Rect2 = crossing["span"]
-	var dir := 1 if span.get_center().x > wizard.global_position.x else -1
-	if _pads.has(crossing["key"]):
-		dir = _pads[crossing["key"]]["dir"]  # a row of pads is laid along the way it set out
-	_cross_run = 0.0
-	match spell_name:
-		"Geyser", "Rocket Jump", "Push", "Liana", "Updraft", "Great Oak", "Tornado":
-			return _cross_by_lift(crossing, spell_name, span, dir)
-		"Obsidian Armor":
-			_cross_by_wading(crossing, spell_name, span, dir)
-		"chant:deep_breath":
-			return _cross_by_breath(crossing, spell_name, span, dir)
-		"Shadow Step":
-			_cross_by_leap(crossing, span, dir, 2.0 * SpellData.SPELLS[spell_name].cost, {"steps": clampi(ceili((span.size.x - 200.0) / 300.0), LEAP_STEPS, 5)})
-		"chant:double_jump":
-			if _at_the_edge(span, dir) and wizard.is_on_floor() and (wizard.air_jump_time > 0.0 or chant.type_then_say("double_jump")):
-				_start_leap(crossing, span, dir, {"steps": 0, "double": true})
-		"leap:air":
-			_cross_by_air(crossing, span, dir)
-		"Lily Pads":
-			_cross_by_pads(crossing, spell_name, span, dir)
-		_:  # a bridge across the whole of it
-			if wizard.stamina >= SpellData.SPELLS[spell_name].cost:
-				hand.begin_cast(spell_name, hand.bridge_stroke(spell_name, span), ATTACK_DRAW)
-				settle = SETTLE
-				_bridged[crossing["key"]] = LASTS[spell_name]
-	return true
-
-
-## A sentinel in the way: it covers itself from the post, once near enough to see it.
-func _cross_sentinel(crossing: Dictionary) -> bool:
-	if wizard.center().distance_to(crossing["post"].center()) > COVER_RANGE:
-		return false
-	var used := _cover(crossing["post"], int(crossing.get("posts", 1)) > 1)
-	if used == "":
-		return false
-	_bridged[crossing["key"]] = LASTS[used]
-	return true
-
-
-## Walks toward the near edge of a crossing, and says so while it is still on the way (see _cross_run). True once it stands at the edge.
-func _at_the_edge(span: Rect2, dir: int, ahead := 20.0) -> bool:
-	var edge := span.position.x if dir > 0 else span.end.x
-	if (edge - wizard.global_position.x) * dir > ahead:
-		_cross_run = dir * WALK_SPEED
-		return false
-	return true
-
-
-## Begins a leap across a crossing (see _leaping), with the fields that differ by the way it is made.
-func _start_leap(crossing: Dictionary, span: Rect2, dir: int, extra: Dictionary) -> void:
-	moves.start_leap(crossing["key"], span, dir, extra)
-
-
-## It walks up to the face of the wall and stands there while the ground bubbles under it, while it shoves itself up, while it climbs a vine,
-## a column of air or an oak, or while a whirlwind flings it.
-func _cross_by_lift(crossing: Dictionary, spell_name: String, span: Rect2, dir: int) -> bool:
-	var face := span.position.x - 36.0 if dir > 0 else span.end.x + 36.0
-	if absf(face - wizard.global_position.x) > 12.0:
-		_cross_run = clampf(face - wizard.global_position.x, -WALK_SPEED, WALK_SPEED)
-	elif wizard.is_on_floor() and wizard.stamina >= SpellData.SPELLS[spell_name].cost and not moves.begin_lift(spell_name, crossing["key"], dir, span):
-		return false
-	return true
-
-
-## It puts on black glass at the edge, wades through the lava, and gets up the far side by a lift.
-func _cross_by_wading(crossing: Dictionary, spell_name: String, span: Rect2, dir: int) -> void:
-	if not _at_the_edge(span, dir):
-		return
-	if wizard.is_on_floor() and wizard.stamina >= SpellData.SPELLS[spell_name].cost + SpellData.SPELLS[way_up()].cost:
-		hand.begin_cast(spell_name, BrainStrokes.offset(GestureTemplates.preview_points("circle"), wizard.center(), 0.8), QUICK_DRAW)
-		moves.wade = {"dir": dir, "key": crossing["key"], "span": span, "stage": 0, "waited": 0.0}
-
-
-## It walks to the edge of the gas, holds its breath, and walks through.
-func _cross_by_breath(crossing: Dictionary, spell_name: String, span: Rect2, dir: int) -> bool:
-	if not _at_the_edge(span, dir, BREATH_AHEAD):
-		return true
-	if wizard.deep_breath_time > 0.0 or chant.type_then_say(spell_name.substr(6)):
-		_bridged[crossing["key"]] = minf(wizard.deep_breath_time, GAS_WALK) if wizard.deep_breath_time > 0.0 else GAS_WALK
-		settle = SETTLE
-	elif chant.is_typing():
-		pass  # it is typing the words, standing at the edge
-	else:
-		_cannot[crossing["key"]] = GIVE_UP
-		return false
-	return true
-
-
-## It walks to the edge, waits there until it is on the ground with strength to spare, and leaps.
-func _cross_by_leap(crossing: Dictionary, span: Rect2, dir: int, needs: float, extra: Dictionary) -> void:
-	if _at_the_edge(span, dir) and wizard.is_on_floor() and wizard.stamina >= needs:
-		_start_leap(crossing, span, dir, extra)
-
-
-## It jumps from the edge, and in the air a rocket throws it up and a feather lets it drift down, across.
-func _cross_by_air(crossing: Dictionary, span: Rect2, dir: int) -> void:
-	if not _at_the_edge(span, dir) or not wizard.is_on_floor():
-		return
-	var air: Array[String] = []
-	for helper: String in ["Rocket Jump", "Featherfall"]:
-		if _knows(helper):
-			air.append(helper)
-	var cost := 0.0
-	for helper in air:
-		cost += SpellData.SPELLS[helper].cost
-	if wizard.stamina >= cost:
-		_start_leap(crossing, span, dir, {"steps": 0, "helpers": air})
-
-
-## A row of pads at a time, as far as it reaches, and the next when it has come to the end of that.
-func _cross_by_pads(crossing: Dictionary, spell_name: String, span: Rect2, dir: int) -> void:
-	if wizard.stamina < SpellData.SPELLS[spell_name].cost:
-		return
-	var reach := span.grow_individual(WizardRoute.TILE, 0.0, WizardRoute.TILE, 0.0)  # pads run a tile onto the bank at each end
-	var near := reach.position.x if dir > 0 else reach.end.x
-	var front: float = _pads[crossing["key"]]["front"] if _pads.has(crossing["key"]) else near
-	var from_x := maxf(front, wizard.global_position.x) if dir > 0 else minf(front, wizard.global_position.x)
-	var to_x := clampf(from_x + dir * PADS_REACH, reach.position.x, reach.end.x)
-	var row := Rect2(minf(from_x, to_x), span.position.y, absf(to_x - from_x), span.size.y)
-	hand.begin_cast(spell_name, hand.bridge_stroke(spell_name, row), ATTACK_DRAW)
-	settle = SETTLE
-	var over := (to_x - (reach.end.x if dir > 0 else reach.position.x)) * dir >= 0.0
-	_pads[crossing["key"]] = {"dir": dir, "front": to_x}
-	_pad_walk[crossing["key"]] = {"dir": dir, "end": to_x}
-	_bridged[crossing["key"]] = LASTS[spell_name] if over else SETTLE + absf(to_x - from_x) / WALK_SPEED - 0.8  # the next row goes down when it is near the end of this one
-	if over:
-		_pads.erase(crossing["key"])
-
-
-## Draws what keeps a sentinel from hitting it: smoke over the statue, or a Barrier, or a Decoy. The name of the spell, or "" when it can do none.
-func _cover(post: Node2D, many := false) -> String:
-	for spell_name: String in (COVER_ALL if many else COVERS):  # (a screen over one shooter does nothing against the rest: a shield goes with the wizard)
-		if not _knows(spell_name) or wizard.stamina < SpellData.SPELLS[spell_name].cost:
-			continue
-		var around: Vector2 = wizard.center()
-		match spell_name:
-			"Smoke Screen":
-				var base: Vector2 = post.center()
-				hand.begin_cast(spell_name, BrainStrokes.offset(GestureTemplates.preview_points("smoke"), base + Vector2(0, -30.0), 0.9), QUICK_DRAW)
-			"Eclipse":
-				hand.begin_cast(spell_name, BrainStrokes.offset(GestureTemplates.preview_points("eclipse"), post.center() + Vector2(0, -20.0), 1.0), QUICK_DRAW)
-			"Barrier":
-				hand.begin_cast(spell_name, BrainStrokes.offset(GestureTemplates.preview_points("circle"), around, 0.8), QUICK_DRAW)
-			"Decoy":
-				hand.begin_cast(spell_name, BrainStrokes.offset(GestureTemplates.preview_points("eight"), around + Vector2(-40.0 * signf(post.center().x - around.x), 0.0), 0.7), QUICK_DRAW)
-		return spell_name
-	return ""
-
-
 ## Reads the page it stands under, if it does not have it.
 func _read_page_underfoot() -> void:
 	for pickup: PagePickup in wizard.get_tree().get_nodes_in_group("pages"):
 		if pickup.gives(wizard.ledger) and pickup.is_under(wizard):
 			wizard.get_parent().read_page(pickup, wizard)
 			_replans = 0
-			_goal = ""
-			_goal_timer = 0.0
+			goal = ""
+			goal_timer = 0.0
 			return
 
 
@@ -1153,20 +942,20 @@ func _jump_for_portal(delta: float) -> float:
 
 ## The page it was going to has gone: someone else read it, or it has it already.
 func _goal_lost() -> bool:
-	if _goal == "page" and _wise_to_mirages and is_instance_valid(_goal_page) and _goal_page is Mirage:
+	if goal == "page" and _wise_to_mirages and is_instance_valid(_goal_page) and _goal_page is Mirage:
 		return true
-	if _goal == "portal":
+	if goal == "portal":
 		return not is_instance_valid(_goal_portal) or _goal_portal.is_closing() or _goal_portal.remaining() < PORTAL_LEFT * 0.5
-	return _goal == "page" and (not is_instance_valid(_goal_page) or not _goal_page.gives(wizard.ledger))
+	return goal == "page" and (not is_instance_valid(_goal_page) or not _goal_page.gives(wizard.ledger))
 
 
 ## Picks what to go for: the page nearest by the way it must walk, and when there is none to be had, the nearest wizard.
 func _choose_goal() -> void:
-	_goal_timer = GOAL_EVERY
+	goal_timer = GOAL_EVERY
 	_sight_timer = 0.0
 	_note_sights(0.0)  # (what lies in view now is known now)
-	_goal = ""
-	var start: Vector2i = wizard.nav.nearest(_tile_of(wizard.global_position), true)
+	goal = ""
+	var start: Vector2i = wizard.nav.nearest(tile_of(wizard.global_position), true)
 	if start == WorldNav.NONE:
 		return
 	var found := _pick_page(start)
@@ -1175,22 +964,22 @@ func _choose_goal() -> void:
 	best_path.assign(found["path"])
 	var portal := _nearest_portal(start)
 	if portal.has("portal") and (best_page == null or (portal["path"].size() < best_path.size() and rng.randf() < PORTAL_CHANCE)):
-		_goal = "portal"
+		goal = "portal"
 		_goal_portal = portal["portal"]
 		_portal_jumping = 0.0
-		_route.set_path(portal["path"])
+		route.set_path(portal["path"])
 		return
 	if _foe != null and _strength >= BOLD_ABOVE and (best_page == null or best_path.size() > HUNT_PAGE_NEAR):  # feeling strong, it goes after a rival rather than a page that lies far off
-		var hunt: Array[Vector2i] = _path(start, wizard.nav.nearest(_tile_of(sight.foe_feet())))
+		var hunt: Array[Vector2i] = find_path(start, wizard.nav.nearest(tile_of(sight.foe_feet())))
 		if not hunt.is_empty():
-			_goal = "foe"
-			_route.set_path(hunt)
+			goal = "foe"
+			route.set_path(hunt)
 			return
 	if best_page != null:
-		_goal = "page"
+		goal = "page"
 		_goal_page = best_page
 		_page_steps = 0.0
-		_route.set_path(best_path)
+		route.set_path(best_path)
 		return
 	if _choose_explore(start):
 		return
@@ -1198,16 +987,16 @@ func _choose_goal() -> void:
 		return
 	var exit := wizard.get_tree().get_first_node_in_group(&"exit_points")  # a room's way out, when nothing is left to take
 	if exit != null:
-		var way: Array[Vector2i] = _path(start, wizard.nav.nearest(_tile_of(exit.global_position)))
+		var way: Array[Vector2i] = find_path(start, wizard.nav.nearest(tile_of(exit.global_position)))
 		if not way.is_empty():
-			_goal = "exit"
-			_route.set_path(way)
+			goal = "exit"
+			route.set_path(way)
 			return
 	if _foe != null:
-		var path: Array[Vector2i] = _path(start, wizard.nav.nearest(_tile_of(sight.foe_feet())))
+		var path: Array[Vector2i] = find_path(start, wizard.nav.nearest(tile_of(sight.foe_feet())))
 		if not path.is_empty():
-			_goal = "foe"
-			_route.set_path(path)
+			goal = "foe"
+			route.set_path(path)
 
 
 ## The page it will go for from where it stands: the one that seems nearest of those it knows of and can reach, and the way to it ({"page", "path"}). The
@@ -1217,13 +1006,13 @@ func _pick_page(start: Vector2i) -> Dictionary:
 	var best_path: Array[Vector2i] = []
 	var best_worth := INF
 	for pickup: PagePickup in wizard.get_tree().get_nodes_in_group("pages"):
-		if not pickup.gives(wizard.ledger) or _skip.has(pickup.get_instance_id()) or (pickup is Mirage and _wise_to_mirages):
+		if not pickup.gives(wizard.ledger) or skip.has(pickup.get_instance_id()) or (pickup is Mirage and _wise_to_mirages):
 			continue
 		if _sight_is_limited() and not _seen_pages.has(pickup.get_instance_id()):
 			continue  # it has not set eyes on that one
 		if danger.volcano_near(pickup.global_position, VOLCANO_KEEP_OFF) != Vector2.INF and not wizard.lava_proof():
 			continue  # a page by a volcano that is erupting is left until it is over
-		var tile := _tile_of(pickup.global_position)
+		var tile := tile_of(pickup.global_position)
 		var stand: Vector2i = wizard.nav.nearest(tile)
 		var path: Array[Vector2i] = []
 		if absi(stand.x - tile.x) + absi(stand.y - tile.y) <= PAGE_REACH:
@@ -1231,7 +1020,7 @@ func _pick_page(start: Vector2i) -> Dictionary:
 			if path.is_empty() and stand == start:
 				path = [start]  # it stands where the way to the page ends: nothing to walk, though the page may lie a few steps off
 		if path.is_empty():
-			_skip[pickup.get_instance_id()] = GIVE_UP  # no way there that a wizard can walk
+			skip[pickup.get_instance_id()] = GIVE_UP  # no way there that a wizard can walk
 			continue
 		# How far it seems: the way, when it knows the ground the way goes over; else as the crow flies, all a person can guess of ground unseen.
 		var known := not _sight_is_limited() or _through_known(path, start, stand)
@@ -1242,9 +1031,9 @@ func _pick_page(start: Vector2i) -> Dictionary:
 			best_path = path if known else _no_path()
 			best_worth = worth
 	if best_page != null and best_path.is_empty():  # it knows of the page but not the way: as far toward it as the ground it has seen takes it
-		best_path = _toward_known(start, wizard.nav.nearest(_tile_of(best_page.global_position)))
+		best_path = _toward_known(start, wizard.nav.nearest(tile_of(best_page.global_position)))
 		if best_path.is_empty():
-			_skip[best_page.get_instance_id()] = LOOK_AGAIN  # nothing it knows leads nearer: it looks about, and comes back to it
+			skip[best_page.get_instance_id()] = LOOK_AGAIN  # nothing it knows leads nearer: it looks about, and comes back to it
 			best_page = null
 	return {"page": best_page, "path": best_path}
 
@@ -1314,8 +1103,8 @@ func _choose_explore(start: Vector2i) -> bool:
 					break  # (the nearest unexplored square this way on this floor is the one to weigh)
 		if not best_path.is_empty():
 			_explore_dir = best_dir
-			_goal = "explore"
-			_route.set_path(best_path)
+			goal = "explore"
+			route.set_path(best_path)
 			return true
 		_explored.clear()  # it has been everywhere it can get to: it looks again
 	return false
@@ -1342,9 +1131,9 @@ func _nearest_portal(start: Vector2i) -> Dictionary:
 	if open.size() < 2:
 		return best
 	for portal: FieldPortal in open:
-		if portal.remaining() < PORTAL_LEFT or portal.lift > PortalField.JUMPABLE or _skip.has(portal.get_instance_id()):  # one hung higher than a jump reaches is not for it
+		if portal.remaining() < PORTAL_LEFT or portal.lift > PortalField.JUMPABLE or skip.has(portal.get_instance_id()):  # one hung higher than a jump reaches is not for it
 			continue
-		var path: Array[Vector2i] = _path(start, wizard.nav.nearest(_tile_of(portal.global_position + Vector2(0.0, Portal.RY + portal.lift))))
+		var path: Array[Vector2i] = find_path(start, wizard.nav.nearest(tile_of(portal.global_position + Vector2(0.0, Portal.RY + portal.lift))))
 		if not path.is_empty() and (best.is_empty() or path.size() < best["path"].size()):
 			best = {"portal": portal, "path": path}
 	return best
@@ -1352,39 +1141,39 @@ func _nearest_portal(start: Vector2i) -> Dictionary:
 
 ## When no page is to be had, the nearest gate that it holds a spell for: it goes to the place short of it. True when it has set out.
 func _choose_gate(start: Vector2i) -> bool:
-	var world := _world()
+	var world := the_world()
 	if world == null:
 		return false
 	var best := {}
 	var best_path: Array[Vector2i] = []
 	for gate: Dictionary in world.closed_gates():
-		if _skip.has(_gate_key(gate)) or clearing_spell(gate["kind"]) == "":
+		if skip.has(gates.gate_key(gate)) or gates.clearing_spell(gate["kind"]) == "":
 			continue
 		var floor_tile: Vector2i = gate["outside"] + Vector2i(0, -1)
 		var stand: Vector2i = wizard.nav.nearest(floor_tile)
 		var path: Array[Vector2i] = []
 		if absi(stand.x - floor_tile.x) + absi(stand.y - floor_tile.y) <= 3:
-			path = _path(start, stand)
+			path = find_path(start, stand)
 		if path.is_empty():
-			_skip[_gate_key(gate)] = GIVE_UP
+			skip[gates.gate_key(gate)] = GIVE_UP
 			continue
 		if best.is_empty() or path.size() < best_path.size():
 			best = gate
 			best_path = path
 	if best.is_empty():
 		return false
-	_goal = "gate"
-	_goal_gate = best
-	_gate_tries = 0
-	_gate_gone = 0
-	_route.set_path(best_path)
+	goal = "gate"
+	gates.goal_gate = best
+	gates.gate_tries = 0
+	gates.gate_gone = 0
+	route.set_path(best_path)
 	return true
 
 
 ## The way to a place, as a person would know it (owner, 2026-11-12: the brain planned its ways with the whole world's map, ground it had never
 ## seen included). In a match, when the way goes over ground it has not seen, it goes only as far toward the place as the ground it has seen
 ## takes it (_toward_known); there it sees more, and finds the way on from there. In a room (the tutorial, the waiting room) the ground is all in view.
-func _path(from: Vector2i, to: Vector2i) -> Array[Vector2i]:
+func find_path(from: Vector2i, to: Vector2i) -> Array[Vector2i]:
 	var full := _raw_path(from, to)
 	if full.is_empty() or not _sight_is_limited() or _through_known(full, from, to):
 		return full
@@ -1425,145 +1214,18 @@ func _no_path() -> Array[Vector2i]:
 ## The way from one tile to another that it can walk, over the whole world's map: not over a crossing it holds no spell for.
 func _raw_path(from: Vector2i, to: Vector2i) -> Array[Vector2i]:
 	var shut := []
-	var world := _world()
+	var world := the_world()
 	if world != null:
 		for crossing: Dictionary in world.crossings():
-			if _way_over(crossing) == "" or _cannot.has(crossing["key"]):
+			if gates.way_over(crossing) == "" or gates.cannot.has(crossing["key"]):
 				shut.append(crossing["key"])
 	return wizard.nav.path(from, to, shut)
 
 
-## The way it will go over this crossing, the one it likes best of those it knows and that will carry it so far, or "".
-func _way_over(crossing: Dictionary) -> String:
-	for spell_name: String in WAYS.get(crossing["kind"], []):
-		if _usable(spell_name) and (spell_name != "chant:double_jump" or (crossing["span"] as Rect2).size.x <= DOUBLE_JUMP_REACH):
-			return spell_name
-	return ""
-
-
-## The spell it will make its way over a crossing with, the one it likes best of those it knows, or "".
-func _way(kind: String) -> String:
-	for spell_name: String in WAYS.get(kind, []):
-		if _usable(spell_name):
-			return spell_name
-	return ""
-
-
 ## What it does to forget a page or place it was bound for, to choose again.
 func forget_goal() -> void:
-	_goal = ""
-	_goal_timer = 0.0
-
-
-## A crossing it fell short of: it will not try it again for a while.
-func give_up_on(key: String) -> void:
-	_cannot[key] = GIVE_UP
-
-
-## A crossing it has made its way over: the way holds for a moment.
-func crossed(key: String, seconds := 2.0) -> void:
-	_bridged[key] = seconds
-
-
-## The spell that lifts it out of a pit of lava, or "": a vine would burn in the lava.
-func way_up() -> String:
-	for spell_name in ["Geyser", "Push"]:
-		if _knows(spell_name):
-			return spell_name
-	return ""
-
-
-## Whether it can cross with a spell: it holds the page, and for black glass, a way up the far side of the pit as well.
-func _usable(spell_name: String) -> bool:
-	if spell_name == "leap:air":
-		return _knows("Rocket Jump") or _knows("Featherfall")
-	return _knows(spell_name) and (spell_name != "Obsidian Armor" or way_up() != "")
-
-
-## What a gate is called on the list of what it has given up.
-func _gate_key(gate: Dictionary) -> String:
-	return "gate %s" % str(gate["outside"])
-
-
-## At the gate: strikes it when it is near enough, and otherwise steps up to it, for the part of it that is left may lie farther in.
-func _work_gate() -> void:
-	var world := _world()
-	var target: Vector2 = world.gate_target(_goal_gate["entry"])
-	var across: float = target.x - wizard.global_position.x
-	var reach: int = STRIKE_REACH.get(clearing_spell(_goal_gate["kind"]), 5)
-	if absf(across) <= reach * WizardRoute.TILE and absf(target.y - wizard.center().y) <= minf(reach, 6) * WizardRoute.TILE:
-		_clear_gate(target)
-		return
-	var side := -1 if across > 0.0 else 1  # it stands on the side it came by
-	var tile := _tile_of(target)
-	var stand: Vector2i = wizard.nav.nearest(Vector2i(tile.x + side * STRIKE_STAND, tile.y))
-	var path: Array[Vector2i] = _path(wizard.nav.nearest(_tile_of(wizard.global_position), true), stand)
-	if path.is_empty() or absi(stand.x - tile.x) > reach + 2 or absi(stand.y - tile.y) > 6:
-		_skip[_gate_key(_goal_gate)] = GIVE_UP
-		_goal = ""
-		_goal_timer = 0.0
-	else:
-		_route.set_path(path)
-
-
-## Whether a gate has been cleared: a piece of the world marks itself open; a creature in the way is cleared when it is dead or asleep.
-func _gate_open(entry: Dictionary) -> bool:
-	if entry.get("open", false):
-		return true
-	if entry.has("mob"):
-		var mob = entry["mob"]
-		return not is_instance_valid(mob) or mob.is_dead() or mob.is_fainted()
-	return false
-
-
-## A creature in the way ahead that it holds a spell for: it deals with it where it stands before it walks on.
-func _creature_ahead() -> Dictionary:
-	var world := _world()
-	if world == null or not wizard.is_on_floor():
-		return {}
-	var toward := signf(float(_route.ahead(1).x - _tile_of(wizard.global_position).x)) if not _route.done() and _route.ahead(1) != WorldNav.NONE else wizard.facing
-	for gate: Dictionary in world.closed_gates():
-		if gate["kind"] != "creature" and gate["kind"] != "giant":
-			continue
-		var spell_name := clearing_spell(gate["kind"])
-		if spell_name == "" or _gate_open(gate["entry"]):
-			continue
-		var apart: Vector2 = gate["target"] - wizard.center()
-		if signf(apart.x) == toward and absf(apart.x) < float(STRIKE_REACH.get(spell_name, 8)) * WizardRoute.TILE * 0.7 and absf(apart.y) < 120.0:
-			return gate
-	return {}
-
-
-## The spell it will clear this kind of gate with: one it knows and can pay for, or "".
-func clearing_spell(kind: String) -> String:
-	for spell_name: String in CLEARS.get(kind, []):
-		if _knows(spell_name) and wizard.stamina >= SpellData.SPELLS[spell_name].cost:
-			return spell_name
-	return ""
-
-
-## At the gate: strikes it, and again, until it is open or it has tried enough.
-func _clear_gate(target: Vector2) -> void:
-	if wizard.is_drawing() or _cast_cooldown > 0.0 or _react > 0.0:
-		return
-	var spell_name := clearing_spell(_goal_gate["kind"])
-	if spell_name == "" or _gate_tries >= CLEAR_TRIES:
-		_skip[_gate_key(_goal_gate)] = GIVE_UP
-		_goal = ""
-		_goal_timer = 0.0
-		return
-	var gone: int = _goal_gate["entry"].get("gone", []).count(true)
-	if gone > _gate_gone:  # a piece has gone since it last struck: it has the whole of its tries for the next
-		_gate_tries = 0
-	_gate_gone = gone
-	_gate_tries += 1
-	_cast_cooldown = 2.2
-	hand.begin_cast(spell_name, hand.gate_stroke(spell_name, target), ATTACK_DRAW)
-
-
-## What the gate it is working on has in the way (a cloud of gas, a wall): each may be gone by now, so each is to be checked.
-func gate_nodes() -> Array:
-	return _goal_gate["entry"].get("nodes", [])
+	goal = ""
+	goal_timer = 0.0
 
 
 ## The height of the ground under a point (a little above it, looking down).
@@ -1577,27 +1239,27 @@ func ground_under(point: Vector2) -> float:
 ## It is getting nowhere on its way: find the way again, and after a few tries give the page up for a while.
 func _stuck_on_goal() -> void:
 	_replans += 1
-	if _goal == "portal" and _replans >= 3 and is_instance_valid(_goal_portal):
-		_skip[_goal_portal.get_instance_id()] = GIVE_UP
+	if goal == "portal" and _replans >= 3 and is_instance_valid(_goal_portal):
+		skip[_goal_portal.get_instance_id()] = GIVE_UP
 		_replans = 0
 		_choose_goal()
 		return
-	if _goal == "page" and _replans >= 3 and is_instance_valid(_goal_page):
-		_skip[_goal_page.get_instance_id()] = GIVE_UP
+	if goal == "page" and _replans >= 3 and is_instance_valid(_goal_page):
+		skip[_goal_page.get_instance_id()] = GIVE_UP
 		_replans = 0
 		_choose_goal()
 		return
-	var start: Vector2i = wizard.nav.nearest(_tile_of(wizard.global_position), true)
-	var path: Array[Vector2i] = _path(start, _route.goal())
+	var start: Vector2i = wizard.nav.nearest(tile_of(wizard.global_position), true)
+	var path: Array[Vector2i] = find_path(start, route.goal())
 	if path.is_empty():
-		_goal = ""
+		goal = ""
 	else:
-		_route.set_path(path)
+		route.set_path(path)
 
 
 ## What it is doing, for a report.
 func status() -> String:
-	return "%s (%s)" % [_goal if _goal != "" else "nothing", _route.status()]
+	return "%s (%s)" % [goal if goal != "" else "nothing", route.status()]
 
 
 # --- Reactions --------------------------------------------------------------------------------------------------
@@ -1606,7 +1268,7 @@ func status() -> String:
 ## The sentinels that have it in sight, when it holds a spell to meet them with.
 func _watchers() -> Array:
 	var out := []
-	if not COVERS.any(_knows):
+	if not COVERS.any(knows):
 		return out
 	for post: Sentinel in wizard.get_tree().get_nodes_in_group("sentinels"):
 		if post.sees(wizard.center()):
@@ -1616,11 +1278,11 @@ func _watchers() -> Array:
 
 func _choose_defence(eta: float) -> String:
 	var options := {"jump": 1.0}
-	if _knows("Gust") and wizard.stamina >= 15.0 and eta > QUICK_DRAW + 0.05:
+	if knows("Gust") and wizard.stamina >= 15.0 and eta > QUICK_DRAW + 0.05:
 		options["reflect"] = 0.6 + 1.6 * skill  # a skilled wizard sends your spells back at you
-	if _knows("Barrier") and wizard.stamina >= 35.0 and eta > QUICK_DRAW + 0.05:
+	if knows("Barrier") and wizard.stamina >= 35.0 and eta > QUICK_DRAW + 0.05:
 		options["shield"] = 0.5
-	if _knows("Shadow Step") and wizard.stamina >= 10.0:
+	if knows("Shadow Step") and wizard.stamina >= 10.0:
 		options["blink_side"] = 0.7
 	if not wizard.is_on_floor():
 		options.erase("jump")
@@ -1635,11 +1297,11 @@ func _choose_repel() -> String:
 		options["surf"] = 0.9
 	if _ready_to_cast("Spore Puff") and danger.clear_line(wizard.center(), sight.seen_center(_foe)):
 		options["spores"] = 1.1
-	if _knows("Push") and wizard.stamina >= 10.0:
+	if knows("Push") and wizard.stamina >= 10.0:
 		options["push"] = 1.5
-	if _knows("Shadow Step") and wizard.stamina >= 10.0:
+	if knows("Shadow Step") and wizard.stamina >= 10.0:
 		options["blink_away"] = 1.0
-	if _knows("Fire Breath") and wizard.stamina >= 16.0 and danger.clear_line(wizard.center(), sight.seen_center(_foe)):
+	if knows("Fire Breath") and wizard.stamina >= 16.0 and danger.clear_line(wizard.center(), sight.seen_center(_foe)):
 		options["breath"] = 1.3
 	return _pick(options) if not options.is_empty() else "escape"
 
@@ -1661,7 +1323,7 @@ func _act(reaction: String) -> void:
 		"cover":
 			var watchers := _watchers()
 			if not watchers.is_empty():
-				_cover(watchers[0])
+				gates.cover(watchers[0])
 			_defend_cooldown = 4.0
 		"shield":
 			hand.begin_cast("Barrier", BrainStrokes.offset(GestureTemplates.preview_points("circle"), wizard.center(), 0.8), QUICK_DRAW)
@@ -1674,7 +1336,7 @@ func _act(reaction: String) -> void:
 				_escape_dir = _safe_side()  # (once it has chosen a way out, it keeps to it for a while rather than turning back at every lick of flame)
 				_escape_commit = 1.8
 			_escape_time = 0.6
-			if _knows("Shadow Step") and wizard.stamina >= 12.0 and rng.randf() < skill * 0.6:
+			if knows("Shadow Step") and wizard.stamina >= 12.0 and rng.randf() < skill * 0.6:
 				var from: Vector2 = wizard.center()
 				hand.begin_cast("Shadow Step", BrainStrokes.line(from, from + Vector2(_escape_dir * 240.0, -12.0)), QUICK_DRAW)  # (to the safe side, not away from the rival)
 			_defend_cooldown = 0.6
@@ -2008,7 +1670,7 @@ func _ceiling_over(point: Vector2) -> bool:
 ## Whether it may cast a spell now: it holds the page, is not silenced, has not just cast it for itself, and has the strength (blood is paid
 ## in maximum stamina, and never to the last drop).
 func _ready_to_cast(spell_name: String) -> bool:
-	if not _knows(spell_name) or _rest.has(spell_name) or wizard.silenced() or wizard.rage_time > 0.0 or SpellLimits.refusal(wizard, spell_name) != "":
+	if not knows(spell_name) or _rest.has(spell_name) or wizard.silenced() or wizard.rage_time > 0.0 or SpellLimits.refusal(wizard, spell_name) != "":
 		return false
 	if _read_until.get(spell_name, 0.0) > clock:
 		return false  # a page just read: it is still looking at the picture
@@ -2035,7 +1697,7 @@ func _tend(to_player: Vector2, sees: bool, fighting: bool) -> bool:
 		weights["Adrenaline"] = 1.2
 	if fighting and sees and gap < 260.0 and wizard.max_stamina > 90.0 and not wizard.wild:
 		weights["Wild Shape"] = 1.1  # a rival close at hand: it comes at them with claws
-	if _goal != "page" and scent <= 0.0 and SpellTargets.wizards(wizard.get_tree()).size() > 1:
+	if goal != "page" and scent <= 0.0 and SpellTargets.wizards(wizard.get_tree()).size() > 1:
 		weights["Hunter's Mark"] = 1.0
 	if fighting:
 		if low and gap > 140.0 and wizard.fade_time <= 0.0:

@@ -42,7 +42,7 @@ func scorched() -> bool:
 ## True over a volcano that is awake, or lava from one that still runs: it passes, and nothing walks on into it meanwhile.
 func lethal_at(point: Vector2) -> bool:
 	for node in wizard.get_tree().get_nodes_in_group("danger"):
-		if ((node is Eruption and node.is_awake()) or (node is Pond and node.cools and node.molten()) or (node is Bramble and brain.clearing_spell("brambles") == "")) and node.danger_at(point):  # (thorns are not walked into by someone with no fire to burn them)
+		if ((node is Eruption and node.is_awake()) or (node is Pond and node.cools and node.molten()) or (node is Bramble and brain.gates.clearing_spell("brambles") == "")) and node.danger_at(point):  # (thorns are not walked into by someone with no fire to burn them)
 			return true
 	return in_shoal(point)
 

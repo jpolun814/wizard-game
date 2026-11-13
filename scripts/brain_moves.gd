@@ -54,7 +54,7 @@ func start_leap(key: String, span: Rect2, dir: int, extra: Dictionary) -> void:
 func begin_lift(spell_name: String, key: String, dir: int, span: Rect2) -> bool:
 	var needed := wizard.global_position.y - (span.position.y - LIFT_CLEARANCE)
 	if wizard.test_move(wizard.global_transform, Vector2(0.0, -needed)):  # rock overhead stops the water short of the top
-		brain.give_up_on(key)
+		brain.gates.give_up_on(key)
 		return false
 	lift = {"spell": spell_name, "dir": dir, "key": key, "span": span, "drawn": false, "thrown": false, "waited": 0.0}
 	return true
@@ -69,7 +69,7 @@ func wading(delta: float) -> float:
 	if wizard.is_drawing():
 		return 0.0
 	if wade["waited"] > WADE_WAIT or (wade["stage"] == 0 and wade["waited"] > 3.0 and wizard.obsidian_time <= 0.0):
-		brain.give_up_on(wade["key"])
+		brain.gates.give_up_on(wade["key"])
 		wade = {}
 		return 0.0
 	if wade["stage"] == 0:
@@ -83,7 +83,7 @@ func wading(delta: float) -> float:
 	var side := Rect2(Vector2(span.end.x if dir > 0 else span.position.x - 96.0, floor_y), Vector2(96.0, span.end.y - floor_y))
 	var key: String = wade["key"]
 	wade = {}
-	begin_lift(brain.way_up(), key, dir, side)
+	begin_lift(brain.gates.way_up(), key, dir, side)
 	return 0.0
 
 
@@ -95,8 +95,8 @@ func leaping(delta: float) -> float:
 		if leap["jumped"]:  # down again: over, or in the pit
 			var across: bool = (wizard.global_position.x - span.get_center().x) * dir > span.size.x * 0.5
 			if not across:
-				brain.give_up_on(leap["key"])
-			brain.crossed(leap["key"])
+				brain.gates.give_up_on(leap["key"])
+			brain.gates.crossed(leap["key"])
 			leap = {}
 			brain.forget_goal()
 			return 0.0
@@ -118,7 +118,7 @@ func leaping(delta: float) -> float:
 		wizard.request_jump()  # the second jump, at the top of the first
 		leap["double"] = false
 	if leap["air"] > LEAP_AIR_MAX:  # held against a rock face: it lets go of the jump and falls
-		brain.give_up_on(leap["key"])
+		brain.gates.give_up_on(leap["key"])
 		leap = {}
 		return 0.0
 	var beyond: bool = (wizard.global_position.x - span.get_center().x) * dir > span.size.x * 0.5 - 40.0
@@ -172,7 +172,7 @@ func lifting(delta: float) -> float:
 			wizard.climb_up = false
 		elif lift["waited"] > VINE_WAIT:
 			wizard.climb_up = false
-			brain.give_up_on(lift["key"])
+			brain.gates.give_up_on(lift["key"])
 			lift = {}
 			return 0.0
 		else:
@@ -190,8 +190,8 @@ func lifting(delta: float) -> float:
 			return dir * WizardRoute.MAX_AIR_SPEED
 		var across: bool = past or on_top  # (or on top of the wall)
 		if not across:  # down again on the near side: the water did not throw it high enough
-			brain.give_up_on(lift["key"])
-		brain.crossed(lift["key"])
+			brain.gates.give_up_on(lift["key"])
+		brain.gates.crossed(lift["key"])
 		lift = {}
 		brain.forget_goal()
 		return 0.0
@@ -219,7 +219,7 @@ func climb_oak(delta: float, span: Rect2, dir: int) -> float:
 				best = ledge
 				best_rise = rise
 	if best_rise == 0.0 or lift["waited"] > OAK_WAIT:  # no ledge it can reach: the oak is given up
-		brain.give_up_on(lift["key"])
+		brain.gates.give_up_on(lift["key"])
 		lift = {}
 		return 0.0
 	var under := clampf(feet.x, best.position.x + 12.0, best.end.x - 12.0)
