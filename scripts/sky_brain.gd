@@ -40,10 +40,10 @@ func think(delta: float) -> void:
 		if _skip[key] <= 0.0:
 			_skip.erase(key)
 	_note_sights(delta)
-	_track_shots()
-	_look_about(delta)
-	_notice_decoys()
-	_foe = _lure.caster if _lure != null else _nearest_foe()
+	sight.track_shots()
+	sight.look_about(delta)
+	sight.notice_decoys()
+	_foe = sight.lure.caster if sight.lure != null else sight.nearest_foe()
 	_strength_in -= delta
 	if _strength_in <= 0.0:
 		_strength_in = 1.0
@@ -57,11 +57,11 @@ func think(delta: float) -> void:
 	var to_player := Vector2.ZERO
 	var sees := false
 	if is_instance_valid(foe):
-		to_player = seen_center(foe) - wizard.center()
-		sees = (wizard.eyes.sees_point(_lure.center()) if _lure != null else eyes_see(foe)) and danger.clear_line(wizard.center(), seen_center(foe))
+		to_player = sight.seen_center(foe) - wizard.center()
+		sees = (wizard.eyes.sees_point(sight.lure.center()) if sight.lure != null else eyes_see(foe)) and danger.clear_line(wizard.center(), sight.seen_center(foe))
 	var fighting := sees and to_player.length() < ENGAGE
 	if _react <= 0.0 and not wizard.is_drawing():
-		var shot := incoming_shot()
+		var shot := sight.incoming_shot()
 		if not shot.is_empty() and _defend_cooldown <= 0.0:
 			_threat_dir = shot["dir"]
 			var choice := _choose_defence(shot["eta"])
@@ -161,7 +161,7 @@ func _journey(delta: float) -> Vector2:
 			_goal = ""
 			_goal_timer = 0.0
 	elif _goal == "foe" and is_instance_valid(_foe):
-		_target = seen_center(_foe)
+		_target = sight.seen_center(_foe)
 	if _target == Vector2.INF:
 		return Vector2.ZERO
 	var gap := _target.distance_to(wizard.center())

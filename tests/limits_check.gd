@@ -57,13 +57,13 @@ func _ready() -> void:
 	me.fade_from_sight(20.0)
 	await _frames(3)
 	_verdict(not brain.eyes_see(me), "a person who has cast Sneak is not seen by a brain")
-	var last_seen: Vector2 = brain._known[me.get_instance_id()]["at"] if brain._known.has(me.get_instance_id()) else Vector2.INF
+	var last_seen: Vector2 = brain.sight.known[me.get_instance_id()]["at"] if brain.sight.known.has(me.get_instance_id()) else Vector2.INF
 	me.global_position = looker.global_position + Vector2(-Eyes.HALF.x - 400.0, 0.0)  # they slip away unseen, out of its sight (and out of bumping reach)
 	await _frames(30)
-	var thought: Vector2 = brain.seen_feet(me)
+	var thought: Vector2 = brain.sight.seen_feet(me)
 	_verdict(thought.distance_to(last_seen) < 2.0, "it thinks them where it last saw them, not where they went (%s)" % (thought - last_seen))
-	await _frames(int((WizardBrain.REMEMBER + 0.5) * 60.0))
-	_verdict(not brain._known.has(me.get_instance_id()), "and after a while forgets them")
+	await _frames(int((BrainSight.REMEMBER + 0.5) * 60.0))
+	_verdict(not brain.sight.known.has(me.get_instance_id()), "and after a while forgets them")
 	me.global_position = looker.global_position + Vector2(200.0, 0.0)  # back on its screen, still faded
 	await _frames(3)
 	_verdict(not brain.eyes_see(me), "(still unseen on its screen)")
@@ -123,7 +123,7 @@ func _ready() -> void:
 	await _frames(40)
 	shadow.global_position = looker.global_position + Vector2(220.0, 0.0)
 	await _frames(10)
-	_verdict(brain._lure == shadow and brain._foe == other, "a shadow it did not see conjured is taken for its caster")
+	_verdict(brain.sight.lure == shadow and brain._foe == other, "a shadow it did not see conjured is taken for its caster")
 	shadow.queue_free()
 	await _frames(3)
 	var seen := Decoy.new()
@@ -131,7 +131,7 @@ func _ready() -> void:
 	seen.position = looker.global_position + Vector2(220.0, 0.0)  # conjured before its eyes
 	world.add_child(seen)
 	await _frames(10)
-	_verdict(brain._lure != seen, "one it watched come out of nothing is known for a shadow")
+	_verdict(brain.sight.lure != seen, "one it watched come out of nothing is known for a shadow")
 	seen.queue_free()
 	me.fade_time = 0.0
 

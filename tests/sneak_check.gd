@@ -43,7 +43,7 @@ func _ready() -> void:
 	_verdict(HuntersMark.nearest_other(get_tree(), me.center(), me) != rival, "the Hunter's Mark does not lead to them")
 	var hunter: Wizard = other
 	hunter.global_position = rival.global_position + Vector2(400.0, 0.0)
-	var foe: Wizard = hunter.brain._nearest_foe()
+	var foe: Wizard = hunter.brain.sight.nearest_foe()
 	_verdict(foe != rival, "another wizard's brain does not pick them out (%s)" % foe)
 	rival.break_sneak()
 	await get_tree().process_frame

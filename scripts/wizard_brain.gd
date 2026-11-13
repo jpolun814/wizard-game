@@ -16,7 +16,6 @@ extends RefCounted
 ##     picked by weight. Projectiles are aimed where you are going, not where you are.
 
 const WALK_SPEED := 300.0
-const REMEMBER := 8.0         # seconds a rival gone out of sight is still thought to be where it was last seen
 const ENGAGE := 620.0         # a wizard this close, and in sight, is a fight; farther off, it is a journey
 const PAGE_REACH := 4          # tiles: a page further than this from any place to stand is not one it can get
 const GOAL_EVERY := 4.0       # seconds between looking for a nearer page
@@ -37,8 +36,6 @@ const EXPLORE_FLOOR := 12     # tiles between one floor of a tall building and t
 const EXPLORE_STEP := 20    # tiles between the places it picks to look at, going along
 const READ_MIN := 0.87       # seconds a new page is looked at before its spell is drawn (the middle half of the recordings)
 const READ_MAX := 1.55
-const ATTENTION_CONE := 0.8  # radians either side of the way to its rival that it watches closely
-const ATTENTION_LAG := 0.25  # seconds before it takes in a shot from elsewhere (on top of the time it takes to answer it)
 const LONG_FALL := 300.0  # a drop this deep below its feet is a long fall, worth a Featherfall
 const HASTE_FROM := 160      # moves left on a journey before it says the chant of swift feet (it takes 30 words a minute to say: shorter than this it saves no time)
 const MEND_BELOW := 0.5    # a wizard worn down below this share of the greatest maximum lights a bonfire and rests by it
@@ -166,9 +163,8 @@ var _camped_for := 0.0
 var _mend_wait := 0.0
 var _stroke_in := 0.0         # seconds to its next stroke in the water
 var _for_air := false         # it is on its way up for air
-var _clock := 0.0                 # seconds this brain has been thinking
-var _first_seen := {}             # shot instance id -> the time on _clock it first came on its screen (see _noticed)
-var _read_until := {}             # page -> the time on _clock until which it is still reading it (see _note_new_pages)
+var clock := 0.0                 # seconds this brain has been thinking
+var _read_until := {}             # page -> the time on clock until which it is still reading it (see _note_new_pages)
 var _pages_noted := -1
 var _ledger_noted: Ledger
 var _haste_wait := 0.0
@@ -183,16 +179,13 @@ var _dash := 0.0               # seconds it runs on across lava, whatever it doe
 var _danger_wait := 0.0       # seconds it has stood waiting for danger on its way to pass
 var _hop_timer := 1.5  # counting down to its next hop while it walks
 var pressure := 0.0          # how many shots you have thrown at it lately
-var _seen_shots := {}
 var _recent: Array[String] = []  # its last two attacks, which it avoids repeating
 var rng := RandomNumberGenerator.new()
 var hand: BrainHand
 var chant: BrainChant
 var danger: BrainDanger
+var sight: BrainSight
 var _foe: Wizard                 # the wizard it is dealing with: the nearest of the others it knows of
-var _lure: Decoy                 # a shadow it takes for a rival, and deals with as if it were them (see _notice_decoys)
-var _shadows := {}                # decoy instance id -> true when it knows it for a shadow, false when it is fooled
-var _known := {}                  # rival instance id -> {"wizard", "at" (feet when last seen), "age" (seconds since)} (see _look_about)
 var _route := WizardRoute.new()
 var _goal := ""                  # what it is travelling to: "page", "foe", or "" for nothing
 var _goal_page: PagePickup
@@ -221,7 +214,7 @@ var _leap := {}                  # a jump over a chasm: {"dir": -1 or 1, "key", 
 var _cannot := {}                # crossing (by key) -> seconds more that it will not try it, having fallen in
 var _replans := 0                # times in a row it has had to find its way again
 var _eye_time := 0.0              # seconds since it sent out a Scrying Eye, counting down (its window shows someone, not where they are)
-var _scent := 0.0                # seconds that a Hunter's Mark lasts for it: a wizard faded from sight can be found
+var scent := 0.0                # seconds that a Hunter's Mark lasts for it: a wizard faded from sight can be found
 var _tend_cooldown := 3.0        # counting down to the next time it looks to its own needs
 var _rest := {}                  # a spell (or "chase") -> seconds before it uses it for itself again
 
@@ -231,13 +224,14 @@ func _init(body: Wizard) -> void:
 	hand = BrainHand.new(self, body)
 	chant = BrainChant.new(self, body)
 	danger = BrainDanger.new(self, body)
+	sight = BrainSight.new(self, body)
 	rng.randomize()
 	skill = GameSettings.rival_skill()
 
 
 ## A Hunter's Mark was cast: for a while it can find a wizard who has faded from sight.
 func catch_scent(seconds: float) -> void:
-	_scent = maxf(_scent, seconds)
+	scent = maxf(scent, seconds)
 
 
 ## Called when the wizard takes damage. A real hit while it draws breaks its spell, and being badly hurt makes it
@@ -277,7 +271,7 @@ func _quiet_here() -> bool:
 		return false
 	if _assailant() != null:
 		return false
-	if is_instance_valid(_foe) and not _foe.dead and _foe_feet().distance_to(wizard.global_position) < 450.0:
+	if is_instance_valid(_foe) and not _foe.dead and sight.foe_feet().distance_to(wizard.global_position) < 450.0:
 		return false
 	for dx in [-200.0, -120.0, -60.0, 0.0, 60.0, 120.0, 200.0]:
 		if danger.in_danger(wizard.center() + Vector2(dx, 0.0)) or danger.in_danger(wizard.global_position + Vector2(dx, -6.0)):
@@ -304,7 +298,7 @@ func think(delta: float) -> void:
 	_goal_timer -= delta
 	settle -= delta
 	_tend_cooldown -= delta
-	_scent -= delta
+	scent -= delta
 	_eye_time -= delta
 	chant.tick(delta)
 	_note_sights(delta)
@@ -331,10 +325,10 @@ func think(delta: float) -> void:
 	if wizard.nav != null and wizard.nav.version != _nav_version:
 		_nav_version = wizard.nav.version
 		_skip.clear()  # a gate has been cleared: pages that could not be reached may be reachable now
-	_track_shots()
-	_look_about(delta)
-	_notice_decoys()
-	_foe = _lure.caster if _lure != null else _nearest_foe()
+	sight.track_shots()
+	sight.look_about(delta)
+	sight.notice_decoys()
+	_foe = sight.lure.caster if sight.lure != null else sight.nearest_foe()
 	_strength_in -= delta
 	if _strength_in <= 0.0:
 		_strength_in = 1.0
@@ -361,9 +355,9 @@ func think(delta: float) -> void:
 		wizard.walk(_travel(delta) if SpellTargets.wizards(wizard.get_tree()).size() > 1 or wizard.get_tree().get_first_node_in_group(&"gate_source") != null else 0.0)  # (alone in a match it has won; alone in a room it goes on)
 		return
 	var foe: Wizard = _foe
-	var in_view := wizard.eyes.sees_point(_lure.center()) if _lure != null else eyes_see(foe)
-	var to_player: Vector2 = seen_center(foe) - wizard.center()
-	var sees := in_view and danger.clear_line(wizard.center(), seen_center(foe))
+	var in_view := wizard.eyes.sees_point(sight.lure.center()) if sight.lure != null else eyes_see(foe)
+	var to_player: Vector2 = sight.seen_center(foe) - wizard.center()
+	var sees := in_view and danger.clear_line(wizard.center(), sight.seen_center(foe))
 	var fighting := sees and to_player.length() < ENGAGE
 
 	_push_through -= delta
@@ -375,7 +369,7 @@ func think(delta: float) -> void:
 		if _react <= 0.0:
 			_act(_reaction)
 	elif not wizard.is_drawing():
-		var shot := incoming_shot()
+		var shot := sight.incoming_shot()
 		if not shot.is_empty() and _defend_cooldown <= 0.0:
 			_threat_dir = shot["dir"]
 			_plan(_choose_defence(shot["eta"]), _reaction_time())
@@ -482,90 +476,6 @@ func _feel_strength(_rival: Wizard) -> float:
 	# A rival's strength and book are not seen (no bar hangs over them): it judges itself against what a rival is like, not against this one.
 	var edge := clampf(0.5 + (wizard.max_stamina - Wizard.MAX_STAMINA * 0.75) / 200.0, 0.0, 1.0)
 	return armed * 0.5 + health * 0.3 + edge * 0.2
-
-
-## What it knows of the others, as a person knows it: where each was when it last saw them. A rival on its screen and in plain sight is seen
-## where they are; one that goes out of sight is thought to be where it was last seen, and is forgotten after a while. A scent (Hunter's Mark) shows
-## them wherever they are, as it would show a person. The Chant of the Scrying Eye does not: a person's window shows someone, but not where they are.
-func _look_about(delta: float) -> void:
-	for other: Wizard in SpellTargets.wizards(wizard.get_tree()):
-		if other == wizard:
-			continue
-		var id := other.get_instance_id()
-		if (eyes_see(other) or _scent > 0.0) and not (_lure != null and _lure.caster == other):
-			_known[id] = {"wizard": other, "at": other.global_position, "age": 0.0}
-		elif _known.has(id):
-			_known[id]["age"] += delta
-	for id in _known.keys():
-		var entry: Dictionary = _known[id]
-		if entry["age"] > REMEMBER or not is_instance_valid(entry["wizard"]) or entry["wizard"].dead:
-			_known.erase(id)
-
-
-## Where it thinks its rival stands: where they are when it sees them, where it last saw them, or where the shadow it takes for them stands.
-func _foe_feet() -> Vector2:
-	if not is_instance_valid(_foe):
-		return wizard.global_position
-	return seen_feet(_foe)
-
-
-## Where a rival looks to be standing, to it (see _foe_feet).
-func seen_feet(other: Wizard) -> Vector2:
-	if not is_instance_valid(other):
-		return wizard.global_position
-	if other == _foe and is_instance_valid(_lure) and not _lure.is_dead():
-		return _lure.global_position
-	var entry: Dictionary = _known.get(other.get_instance_id(), {})
-	return entry["at"] if entry.get("age", 0.0) > 0.0 else other.global_position
-
-
-## The middle of a rival's body, where it thinks they stand.
-func seen_center(other: Wizard) -> Vector2:
-	return seen_feet(other) + other.center_offset()
-
-
-## A Decoy looks like any wizard to everyone but its caster. It takes one for its caster unless it saw it come out of nothing, or it is its own;
-## the nearest figure it sees, real or shadow, is the one it deals with. A shadow that wears through is known for what it was.
-func _notice_decoys() -> void:
-	if _lure != null and (not is_instance_valid(_lure) or _lure.is_dead()):
-		_lure = null
-	var nearest_gap := INF
-	for id in _known:
-		if _known[id]["age"] <= 0.0:
-			nearest_gap = minf(nearest_gap, wizard.global_position.distance_to(_known[id]["at"]))
-	var best: Decoy = null
-	for node in wizard.get_tree().get_nodes_in_group("decoys"):
-		var decoy := node as Decoy
-		if decoy.is_dead() or not is_instance_valid(decoy.caster) or decoy.caster == wizard:
-			continue
-		var id := decoy.get_instance_id()
-		var seen := wizard.eyes.sees_point(decoy.center())
-		if seen and not _shadows.has(id):
-			_shadows[id] = decoy.age() < 0.4  # it watched it come: it knows it for a shadow
-		if not seen or _shadows.get(id, true):
-			continue
-		var gap := wizard.global_position.distance_to(decoy.global_position)
-		if gap < nearest_gap:
-			nearest_gap = gap
-			best = decoy
-	_lure = best
-	if _lure != null:
-		_known[_lure.caster.get_instance_id()] = {"wizard": _lure.caster, "at": _lure.global_position, "age": 0.0}
-	if _shadows.size() > 64:
-		_shadows.clear()
-
-
-## The nearest of the other wizards it knows of (sees, or saw a little while ago), or null when it knows of none.
-func _nearest_foe() -> Wizard:
-	var best: Wizard = null
-	var best_gap := INF
-	for id in _known:
-		var entry: Dictionary = _known[id]
-		var gap: float = wizard.global_position.distance_to(entry["at"])
-		if gap < best_gap:
-			best = entry["wizard"]
-			best_gap = gap
-	return best
 
 
 ## Whether a wizard cannot move freely: rooted, or slowed.
@@ -1414,7 +1324,7 @@ func _choose_goal() -> void:
 		_route.set_path(portal["path"])
 		return
 	if _foe != null and _strength >= BOLD_ABOVE and (best_page == null or best_path.size() > HUNT_PAGE_NEAR):  # feeling strong, it goes after a rival rather than a page that lies far off
-		var hunt: Array[Vector2i] = _path(start, wizard.nav.nearest(_tile_of(_foe_feet())))
+		var hunt: Array[Vector2i] = _path(start, wizard.nav.nearest(_tile_of(sight.foe_feet())))
 		if not hunt.is_empty():
 			_goal = "foe"
 			_route.set_path(hunt)
@@ -1437,7 +1347,7 @@ func _choose_goal() -> void:
 			_route.set_path(way)
 			return
 	if _foe != null:
-		var path: Array[Vector2i] = _path(start, wizard.nav.nearest(_tile_of(_foe_feet())))
+		var path: Array[Vector2i] = _path(start, wizard.nav.nearest(_tile_of(sight.foe_feet())))
 		if not path.is_empty():
 			_goal = "foe"
 			_route.set_path(path)
@@ -1781,44 +1691,6 @@ func status() -> String:
 # --- Reactions --------------------------------------------------------------------------------------------------
 
 
-## The nearest of your shots that will hit it soon: {"eta": seconds, "dir": its direction}, or nothing.
-func incoming_shot() -> Dictionary:
-	var best := {}
-	for node in wizard.get_tree().get_nodes_in_group("projectiles"):
-		if node.caster == wizard or not wizard.eyes.sees_node(node):
-			continue  # (a shot off its screen, or in smoke or the dark, is not seen coming)
-		if not _noticed(node):
-			continue
-		var velocity: Vector2 = node.velocity()
-		var rel: Vector2 = wizard.center() - node.global_position
-		var closing := rel.dot(velocity.normalized())
-		if closing <= 0.0:
-			continue
-		var eta := closing / velocity.length()
-		var miss := (rel - velocity.normalized() * closing).length()
-		if eta < 0.9 and miss < 28.0 and (best.is_empty() or eta < best["eta"]):
-			best = {"eta": eta, "dir": velocity.normalized()}
-	return best
-
-
-## Attention: a person watches the rival they are fighting, and takes in what comes from elsewhere a moment late. A shot from the side of its rival is
-## seen at once; one from anywhere else only after it has been on the screen a little while.
-func _noticed(node: Node2D) -> bool:
-	var id := node.get_instance_id()
-	if not _first_seen.has(id):
-		_first_seen[id] = _clock
-		if _first_seen.size() > 64:
-			_first_seen.clear()
-			_first_seen[id] = _clock
-	if not is_instance_valid(_foe):
-		return true  # nothing holds its eye: it sees what comes
-	var to_foe := seen_center(_foe) - wizard.center()
-	var to_shot := node.global_position - wizard.center()
-	if to_foe.length() < 1.0 or absf(to_foe.angle_to(to_shot)) < ATTENTION_CONE:
-		return true
-	return _clock - float(_first_seen[id]) >= ATTENTION_LAG
-
-
 ## The sentinels that have it in sight, when it holds a spell to meet them with.
 func _watchers() -> Array:
 	var out := []
@@ -1828,16 +1700,6 @@ func _watchers() -> Array:
 		if post.sees(wizard.center()):
 			out.append(post)
 	return out
-
-
-## Counts how many shots you have thrown lately, so it knows when to put up walls.
-func _track_shots() -> void:
-	for node in wizard.get_tree().get_nodes_in_group("projectiles"):
-		if node.caster != wizard and not _seen_shots.has(node.get_instance_id()) and wizard.eyes.sees_node(node):
-			_seen_shots[node.get_instance_id()] = true
-			pressure += 1.0
-	if _seen_shots.size() > 64:
-		_seen_shots.clear()
 
 
 func _choose_defence(eta: float) -> String:
@@ -1859,13 +1721,13 @@ func _choose_repel() -> String:
 		options["geyser"] = 1.0
 	if _ready_to_cast("Tide Surf"):
 		options["surf"] = 0.9
-	if _ready_to_cast("Spore Puff") and danger.clear_line(wizard.center(), seen_center(_foe)):
+	if _ready_to_cast("Spore Puff") and danger.clear_line(wizard.center(), sight.seen_center(_foe)):
 		options["spores"] = 1.1
 	if _knows("Push") and wizard.stamina >= 10.0:
 		options["push"] = 1.5
 	if _knows("Shadow Step") and wizard.stamina >= 10.0:
 		options["blink_away"] = 1.0
-	if _knows("Fire Breath") and wizard.stamina >= 16.0 and danger.clear_line(wizard.center(), seen_center(_foe)):
+	if _knows("Fire Breath") and wizard.stamina >= 16.0 and danger.clear_line(wizard.center(), sight.seen_center(_foe)):
 		options["breath"] = 1.3
 	return _pick(options) if not options.is_empty() else "escape"
 
@@ -1905,26 +1767,26 @@ func _act(reaction: String) -> void:
 				hand.begin_cast("Shadow Step", BrainStrokes.line(from, from + Vector2(_escape_dir * 240.0, -12.0)), QUICK_DRAW)  # (to the safe side, not away from the rival)
 			_defend_cooldown = 0.6
 		"push":
-			var away: Vector2 = (seen_center(foe) - wizard.center()).normalized()
-			hand.begin_cast("Push", hand.push_stroke(seen_center(foe), away), QUICK_DRAW)
+			var away: Vector2 = (sight.seen_center(foe) - wizard.center()).normalized()
+			hand.begin_cast("Push", hand.push_stroke(sight.seen_center(foe), away), QUICK_DRAW)
 			_defend_cooldown = 1.5
 		"breath":
-			hand.begin_cast("Fire Breath", hand.breath_stroke(seen_center(foe)), QUICK_DRAW + 0.1)
+			hand.begin_cast("Fire Breath", hand.breath_stroke(sight.seen_center(foe)), QUICK_DRAW + 0.1)
 			_defend_cooldown = 1.8
 		"spores":
-			hand.begin_cast("Spore Puff", hand.breath_stroke(seen_center(foe)), QUICK_DRAW + 0.1)
+			hand.begin_cast("Spore Puff", hand.breath_stroke(sight.seen_center(foe)), QUICK_DRAW + 0.1)
 			_defend_cooldown = 1.8
 		"geyser":  # the ground bubbles under its feet and throws it off
-			hand.begin_cast("Geyser", BrainStrokes.offset(GestureTemplates.preview_points("geyser"), seen_feet(foe) + Vector2(0.0, -24.0), 0.6), QUICK_DRAW)
+			hand.begin_cast("Geyser", BrainStrokes.offset(GestureTemplates.preview_points("geyser"), sight.seen_feet(foe) + Vector2(0.0, -24.0), 0.6), QUICK_DRAW)
 			_defend_cooldown = 1.8
 		"surf":
-			hand.begin_cast("Tide Surf", hand.surf_stroke(signf(seen_feet(foe).x - wizard.global_position.x)), QUICK_DRAW)
+			hand.begin_cast("Tide Surf", hand.surf_stroke(signf(sight.seen_feet(foe).x - wizard.global_position.x)), QUICK_DRAW)
 			_defend_cooldown = 1.8
 
 
 ## Steps away from the player along the ground, or past them if its back is to a wall.
 func _blink_away(foe: Wizard) -> void:
-	var away := -signf(seen_feet(foe).x - wizard.global_position.x)
+	var away := -signf(sight.seen_feet(foe).x - wizard.global_position.x)
 	if away == 0.0:
 		away = 1.0
 	var room := (ArenaGen.right_edge() - wizard.global_position.x) if away > 0.0 else (wizard.global_position.x - ArenaGen.left_edge())
@@ -2013,7 +1875,7 @@ func _safe_side() -> float:
 	if reach[0] == reach[1]:
 		if _escape_dir != 0.0:
 			return _escape_dir
-		return -signf(seen_feet(_foe).x - wizard.global_position.x) if _foe != null else 1.0
+		return -signf(sight.seen_feet(_foe).x - wizard.global_position.x) if _foe != null else 1.0
 	var best := -1.0 if reach[0] < reach[1] else 1.0
 	if _escape_dir != 0.0 and reach[0 if _escape_dir < 0.0 else 1] <= reach[0 if best < 0.0 else 1] * 1.6 + 60.0:
 		return _escape_dir  # the way it was already running is nearly as good: it does not turn back and forth in the flow
@@ -2039,7 +1901,7 @@ func _attack(to_player: Vector2, sees: bool) -> bool:
 		"Frostbolt": (0.4 if foe.is_slowed() else 1.6) if sees else 0.0,
 		"Spark": 2.2 if still or stuck else 1.0,
 		"Stonefall": 3.0 if stuck else (1.8 if still else 0.5),
-		"Icicles": 2.0 if _ceiling_over(seen_center(foe)) else 0.0,  # they hang from a ceiling, wherever there is one over you
+		"Icicles": 2.0 if _ceiling_over(sight.seen_center(foe)) else 0.0,  # they hang from a ceiling, wherever there is one over you
 		"Spore Puff": 1.6 if gap < 240.0 else 0.0,
 		"Stalagmite": (2.0 if still or stuck else 1.0) if grounded and gap < 360.0 else 0.0,
 		"Bramble": (1.4 if closing else 0.7) if grounded and gap > 100.0 else 0.0,
@@ -2098,7 +1960,7 @@ func _attack(to_player: Vector2, sees: bool) -> bool:
 
 ## True when something solid (a platform or the ground) is above you, so nothing from the sky can reach you.
 func _sheltered() -> bool:
-	var top: Vector2 = seen_center(_foe) + Vector2(0, -50)
+	var top: Vector2 = sight.seen_center(_foe) + Vector2(0, -50)
 	# Cast from the sky down, the way lightning comes: a one-way platform only stops things from above.
 	var query := PhysicsRayQueryParameters2D.create(top + Vector2(0, -600), top)
 	query.collision_mask = 1 | 16
@@ -2120,7 +1982,7 @@ func predict(seconds: float) -> Vector2:
 	var foe: Wizard = _foe
 	var lead: Vector2 = foe.velocity * seconds * skill
 	lead.y = 0.0 if foe.stands() else lead.y * 0.5
-	return seen_center(foe) + lead
+	return sight.seen_center(foe) + lead
 
 
 ## A brain that has watched a mirage fade learns to see the waver of the next, and does not go for it.
@@ -2180,7 +2042,7 @@ func _catch_fall() -> void:
 ## A page newly in its book is looked at before its spell can be drawn: a person reads the picture first, about a second (the book stays open
 ## at a new page for 0.87 to 1.55 s in the middle half of the recordings). The pages it starts with are known already.
 func _note_new_pages(delta: float) -> void:
-	_clock += delta
+	clock += delta
 	if wizard.ledger == null:
 		return
 	var pages: Dictionary = wizard.ledger.pages
@@ -2191,7 +2053,7 @@ func _note_new_pages(delta: float) -> void:
 	_pages_noted = pages.size()
 	for page in pages:
 		if not _read_until.has(page):
-			_read_until[page] = 0.0 if fresh else _clock + rng.randf_range(READ_MIN, READ_MAX)
+			_read_until[page] = 0.0 if fresh else clock + rng.randf_range(READ_MIN, READ_MAX)
 
 
 ## True while it stands still to draw.
@@ -2236,7 +2098,7 @@ func _ceiling_over(point: Vector2) -> bool:
 func _ready_to_cast(spell_name: String) -> bool:
 	if not _knows(spell_name) or _rest.has(spell_name) or wizard.silenced() or wizard.rage_time > 0.0 or SpellLimits.refusal(wizard, spell_name) != "":
 		return false
-	if _read_until.get(spell_name, 0.0) > _clock:
+	if _read_until.get(spell_name, 0.0) > clock:
 		return false  # a page just read: it is still looking at the picture
 	var spell: Spell = SpellData.SPELLS[spell_name]
 	if spell.pays_max():
@@ -2261,7 +2123,7 @@ func _tend(to_player: Vector2, sees: bool, fighting: bool) -> bool:
 		weights["Adrenaline"] = 1.2
 	if fighting and sees and gap < 260.0 and wizard.max_stamina > 90.0 and not wizard.wild:
 		weights["Wild Shape"] = 1.1  # a rival close at hand: it comes at them with claws
-	if _goal != "page" and _scent <= 0.0 and SpellTargets.wizards(wizard.get_tree()).size() > 1:
+	if _goal != "page" and scent <= 0.0 and SpellTargets.wizards(wizard.get_tree()).size() > 1:
 		weights["Hunter's Mark"] = 1.0
 	if fighting:
 		if low and gap > 140.0 and wizard.fade_time <= 0.0:
@@ -2302,11 +2164,11 @@ func _ready_lift() -> String:
 func _chase(to_player: Vector2) -> bool:
 	if not wizard.is_on_floor() or _rest.has("chase") or not _lift.is_empty():
 		return false
-	var rise := wizard.global_position.y - seen_feet(_foe).y
+	var rise := wizard.global_position.y - sight.seen_feet(_foe).y
 	if rise < CHASE_ABOVE or absf(to_player.x) > 320.0:
 		return false
 	var dir := 1 if to_player.x >= 0.0 else -1
-	var span := Rect2(seen_feet(_foe).x - 24.0, seen_feet(_foe).y - 6.0, 48.0, 12.0)
+	var span := Rect2(sight.seen_feet(_foe).x - 24.0, sight.seen_feet(_foe).y - 6.0, 48.0, 12.0)
 	for spell_name: String in LIFTS:
 		if not _ready_to_cast(spell_name) or (spell_name == "Great Oak" and rise > OAK_CHASE_MAX):
 			continue

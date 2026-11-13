@@ -10,8 +10,8 @@ out here and say what changed in `02_codebase_map.md`.
 - `Arena` has a `class_name`, and `SpellSpawner` (`scripts/spells/spell_spawner.gd`) holds what each spell makes. `arena.gd` went from 1,349 to 836 lines. This is the pattern to repeat:
   a `RefCounted` class that is given its owner, keeps one job, and is reached through a public field (`arena.spawner`). The compiler finds every missed reference, so a step is quick to check.
 
-- The brain's first three pieces are out (2026-11-13): `BrainStrokes` (the static helpers), `BrainHand` (strokes and casting) and `BrainChant` (the chant box). `wizard_brain.gd` went from 2,866 to
-  2,403 lines. What is left of the table below is `BrainSight`, `BrainExplore`, `BrainTravel`, `BrainGates`, `BrainCombat` and what remains of `BrainMend` (`_mend`, the bonfire). They share
+- The brain's first five pieces are out (2026-11-13): `BrainStrokes` (the static helpers), `BrainHand` (strokes and casting), `BrainChant` (the chant box), `BrainDanger` and `BrainSight`. `wizard_brain.gd` went from 2,866 to
+  about 2,150 lines. What is left of the table below is `BrainExplore`, `BrainTravel`, `BrainGates`, `BrainCombat` and what remains of `BrainMend` (`_mend`, the bonfire). They share
   state (`settle`, `_camped`, `_goal`, `_foe`) that has to be given a home before they move: each field goes to the piece that writes it, or to a small object that all are given.
 
 - `World`: `WorldCreatures`, `WorldScenery`, `WorldPages`, `WorldGates` and `MatchEnd` are out (2026-11-13), and `_raise_biome_life` is one function per biome. `world.gd` is now about 840 lines (from 1,775). Left: `WorldSeats` and `WorldStages`. The match's `@rpc` methods must stay on the `World` node (an RPC needs a node), as small stubs that call the piece.

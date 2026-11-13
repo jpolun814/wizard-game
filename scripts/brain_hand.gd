@@ -37,78 +37,78 @@ func stand_still() -> void:
 ## The gesture for an attack, drawn where the spell should land.
 func attack_stroke(spell_name: String) -> PackedVector2Array:
 	var foe: Wizard = brain.foe()
-	var feet: Vector2 = brain.seen_feet(foe)
-	var facing := signf(brain.seen_feet(foe).x - wizard.global_position.x)
+	var feet: Vector2 = brain.sight.seen_feet(foe)
+	var facing := signf(brain.sight.seen_feet(foe).x - wizard.global_position.x)
 	if facing == 0.0:
 		facing = 1.0
 	match spell_name:
 		"Pebble":  # lobbed: aimed above the rival by as far as the stone will have fallen on the way
 			var start: Vector2 = wizard.center() + Vector2(facing * 12.0, -6.0)
-			var flight: float = start.distance_to(brain.seen_center(foe)) / Pebble.SPEED
+			var flight: float = start.distance_to(brain.sight.seen_center(foe)) / Pebble.SPEED
 			var target := brain.predict(flight)
 			target.y -= 0.5 * Pebble.FALL * flight * flight
 			var aim := (target - start).angle() + brain.rng.randfn(0.0, 0.1 * (1.0 - brain.skill))
 			return BrainStrokes.line(start, start + Vector2.from_angle(aim) * 90.0)
 		"Hailstorm":  # a cloud over the rival's head, and the hail falls from it
-			return BrainStrokes.offset(GestureTemplates.preview_points("hailstorm"), Vector2(brain.seen_center(foe).x + 20.0, brain.seen_center(foe).y - 120.0), 1.0)
+			return BrainStrokes.offset(GestureTemplates.preview_points("hailstorm"), Vector2(brain.sight.seen_center(foe).x + 20.0, brain.sight.seen_center(foe).y - 120.0), 1.0)
 		"Ignite", "Frostbolt", "Barbs":
 			var start: Vector2 = wizard.center() + Vector2(facing * 12.0, -6.0)
-			var target := brain.predict(start.distance_to(brain.seen_center(foe)) / SHOT_SPEED)
+			var target := brain.predict(start.distance_to(brain.sight.seen_center(foe)) / SHOT_SPEED)
 			var aim := (target - start).angle() + brain.rng.randfn(0.0, 0.16 * (1.0 - brain.skill))
 			return BrainStrokes.line(start, start + Vector2.from_angle(aim) * 90.0)
 		"Spark":
 			var x := brain.predict(WizardBrain.ATTACK_DRAW * 0.8).x
-			return BrainStrokes.offset(GestureTemplates.preview_points("zigzag"), Vector2(x, brain.seen_center(foe).y - 90.0), 1.0)
+			return BrainStrokes.offset(GestureTemplates.preview_points("zigzag"), Vector2(x, brain.sight.seen_center(foe).y - 90.0), 1.0)
 		"Stonefall":
 			var x := brain.predict(WizardBrain.ATTACK_DRAW + 0.6).x
-			return BrainStrokes.offset(GestureTemplates.preview_points("stonefall"), Vector2(x, brain.seen_center(foe).y - 130.0), 0.8)
+			return BrainStrokes.offset(GestureTemplates.preview_points("stonefall"), Vector2(x, brain.sight.seen_center(foe).y - 130.0), 0.8)
 		"Tornado":
-			var x: float = lerpf(wizard.global_position.x, brain.seen_feet(foe).x, 0.45)
+			var x: float = lerpf(wizard.global_position.x, brain.sight.seen_feet(foe).x, 0.45)
 			return BrainStrokes.offset(GestureTemplates.preview_points("tornado"), Vector2(x, feet.y - 90.0), 0.9)
 		"Ice Prison":
 			return BrainStrokes.offset(GestureTemplates.preview_points("circle"), brain.predict(WizardBrain.ATTACK_DRAW * 0.6), 0.8)
 		"Earthquake":
 			# Drawn in the air above the middle of the fight, where the peaks read clearly.
-			return BrainStrokes.offset(GestureTemplates.preview_points("earthquake"), Vector2(brain.predict(WizardBrain.ATTACK_DRAW * 0.6).x, brain.seen_center(foe).y - 120.0), 1.0)
+			return BrainStrokes.offset(GestureTemplates.preview_points("earthquake"), Vector2(brain.predict(WizardBrain.ATTACK_DRAW * 0.6).x, brain.sight.seen_center(foe).y - 120.0), 1.0)
 		"Mudslide":
 			var x := brain.predict(WizardBrain.ATTACK_DRAW * 0.6).x
 			return BrainStrokes.offset(GestureTemplates.preview_points("wave"), Vector2(x, feet.y - 60.0), 1.0)
 		"Black Hole":
 			# Beyond you if you are close (it drags you away from it), between you if you keep shooting at it.
-			var spot: Vector2 = brain.seen_center(foe) + Vector2(facing * 80.0, 0.0)
+			var spot: Vector2 = brain.sight.seen_center(foe) + Vector2(facing * 80.0, 0.0)
 			if brain.pressure > 1.5:
-				spot = wizard.center().lerp(brain.seen_center(foe), 0.4)
+				spot = wizard.center().lerp(brain.sight.seen_center(foe), 0.4)
 			var spiral := GestureTemplates.preview_points("spiral")
 			# The black hole forms where the spiral ends, so place the spiral's end on the spot.
 			return BrainStrokes.offset(spiral, spot - (spiral[spiral.size() - 1] - BrainStrokes.box_centre(spiral)), 1.0)
 		"Firewall":
-			var x: float = lerpf(wizard.global_position.x, brain.seen_feet(foe).x, 0.5)
-			var toward := signf(brain.seen_feet(foe).x - wizard.global_position.x)  # a wall between them: up from the ground, then out across the way
+			var x: float = lerpf(wizard.global_position.x, brain.sight.seen_feet(foe).x, 0.5)
+			var toward := signf(brain.sight.seen_feet(foe).x - wizard.global_position.x)  # a wall between them: up from the ground, then out across the way
 			return BrainStrokes.offset(facing_flipped(GestureTemplates.preview_points("flame_wall"), toward), Vector2(x - toward * 50.0, feet.y - 50.0), 0.8)
 		"Blizzard":
-			return BrainStrokes.offset(GestureTemplates.preview_points("snowfall"), Vector2(feet.x - 30.0, brain.seen_center(foe).y - 70.0), 0.8)
+			return BrainStrokes.offset(GestureTemplates.preview_points("snowfall"), Vector2(feet.x - 30.0, brain.sight.seen_center(foe).y - 70.0), 0.8)
 		"Fire Breath", "Spore Puff":
-			return breath_stroke(brain.seen_center(foe))
+			return breath_stroke(brain.sight.seen_center(foe))
 		"Stalagmite":
 			return BrainStrokes.offset(GestureTemplates.preview_points("stalagmite"), Vector2(brain.predict(WizardBrain.ATTACK_DRAW * 0.6).x, feet.y - 40.0), 0.9)
 		"Bramble":
-			return BrainStrokes.offset(GestureTemplates.preview_points("bramble"), Vector2(lerpf(wizard.global_position.x, brain.seen_feet(foe).x, 0.8), feet.y - 16.0), 1.0)
+			return BrainStrokes.offset(GestureTemplates.preview_points("bramble"), Vector2(lerpf(wizard.global_position.x, brain.sight.seen_feet(foe).x, 0.8), feet.y - 16.0), 1.0)
 		"Flytrap":
 			return BrainStrokes.offset(GestureTemplates.preview_points("jaws"), Vector2(brain.predict(WizardBrain.ATTACK_DRAW * 0.6).x, feet.y - 30.0), 0.8)
 		"Icicles":  # Vs hung over its head, their tips just above it
-			return BrainStrokes.offset(GestureTemplates.preview_points("icicles"), Vector2(brain.seen_center(foe).x, brain.seen_center(foe).y - 35.0), 0.9)
+			return BrainStrokes.offset(GestureTemplates.preview_points("icicles"), Vector2(brain.sight.seen_center(foe).x, brain.sight.seen_center(foe).y - 35.0), 0.9)
 		"Sinkhole":  # a U drawn into the ground under its feet
 			return BrainStrokes.offset(GestureTemplates.preview_points("pit"), Vector2(brain.predict(WizardBrain.ATTACK_DRAW * 0.6).x, feet.y + 20.0), 0.8)
 		"Hex":
 			return BrainStrokes.offset(GestureTemplates.preview_points("pentagram"), brain.predict(0.3), 0.5)
 		"Vacuum":
-			return BrainStrokes.offset(GestureTemplates.preview_points("lungs"), brain.seen_center(foe), 0.5)
+			return BrainStrokes.offset(GestureTemplates.preview_points("lungs"), brain.sight.seen_center(foe), 0.5)
 		"Faint":
-			return BrainStrokes.offset(GestureTemplates.preview_points("spiral"), brain.seen_center(foe), 0.5)
+			return BrainStrokes.offset(GestureTemplates.preview_points("spiral"), brain.sight.seen_center(foe), 0.5)
 		"Fight or Flight":
-			return BrainStrokes.offset(GestureTemplates.preview_points("question"), brain.seen_center(foe), 0.6)
+			return BrainStrokes.offset(GestureTemplates.preview_points("question"), brain.sight.seen_center(foe), 0.6)
 		"Silence":
-			return BrainStrokes.offset(GestureTemplates.preview_points("silence"), brain.seen_center(foe), 0.6)
+			return BrainStrokes.offset(GestureTemplates.preview_points("silence"), brain.sight.seen_center(foe), 0.6)
 		"Tide Surf", "Thorn Whip", "Leech":
 			return surf_stroke(facing)
 		"Flaming Sphere":  # a ring and a level line toward it, along the ground beside the wizard
@@ -123,7 +123,7 @@ func attack_stroke(spell_name: String) -> PackedVector2Array:
 			var pointing: float = (brain.predict(0.4) - wizard.center()).angle() + brain.rng.randfn(0.0, 0.1 * (1.0 - brain.skill))
 			return BrainStrokes.offset(turned(GestureTemplates.preview_points("arrow"), pointing), wizard.center(), 0.8)
 		"Hemorrhage":  # a drop of blood drawn over the rival
-			return BrainStrokes.offset(GestureTemplates.preview_points("flare"), brain.seen_center(foe), 0.6)
+			return BrainStrokes.offset(GestureTemplates.preview_points("flare"), brain.sight.seen_center(foe), 0.6)
 		"Supernova":  # a planet and its ring, drawn where the sun should hang: over the rival
 			return BrainStrokes.offset(GestureTemplates.preview_points("saturn"), brain.predict(WizardBrain.ATTACK_DRAW), 0.8)
 		"Scythe":  # a crescent drawn in front of the wizard
@@ -287,7 +287,7 @@ func tend_stroke(spell_name: String, to_player: Vector2) -> PackedVector2Array:
 		"Glowcap":
 			return BrainStrokes.offset(GestureTemplates.preview_points("circle"), here + Vector2(dir * 60.0, 0.0), 0.6)
 		"Moonbeam":
-			var at: Vector2 = brain.seen_feet(brain.foe()) if brain.foe() != null else feet
+			var at: Vector2 = brain.sight.seen_feet(brain.foe()) if brain.foe() != null else feet
 			return BrainStrokes.line(Vector2(at.x, at.y - 70.0), Vector2(at.x, at.y + 10.0))
 		"Adrenaline":
 			return BrainStrokes.offset(GestureTemplates.preview_points("zigzag"), here, 0.6)
@@ -309,7 +309,7 @@ func tend_stroke(spell_name: String, to_player: Vector2) -> PackedVector2Array:
 		"Decoy":
 			return BrainStrokes.offset(GestureTemplates.preview_points("eight"), here + Vector2(-dir * 50.0, 0.0), 0.7)
 		"Eclipse":
-			return BrainStrokes.offset(GestureTemplates.preview_points("eclipse"), brain.seen_center(brain.foe()), 1.0)
+			return BrainStrokes.offset(GestureTemplates.preview_points("eclipse"), brain.sight.seen_center(brain.foe()), 1.0)
 		"Crimson Veil":
 			return BrainStrokes.line(Vector2(here.x, here.y - 50.0), Vector2(here.x, here.y + 20.0))
 		"Obsidian Armor":

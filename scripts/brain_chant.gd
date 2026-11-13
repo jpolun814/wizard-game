@@ -71,7 +71,7 @@ func while_typing() -> String:
 	wizard.walk(0.0)
 	age += wizard.get_physics_process_delta_time()
 	var foe := brain.foe()
-	var threatened := not brain.incoming_shot().is_empty() or (is_instance_valid(foe) and brain.eyes_see(foe) and foe.center().distance_to(wizard.center()) < WizardBrain.TOO_CLOSE)
+	var threatened := not brain.sight.incoming_shot().is_empty() or (is_instance_valid(foe) and brain.eyes_see(foe) and foe.center().distance_to(wizard.center()) < WizardBrain.TOO_CLOSE)
 	if threatened:
 		close()
 		return ""
