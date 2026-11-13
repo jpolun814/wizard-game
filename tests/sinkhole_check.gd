@@ -73,7 +73,7 @@ func _ready() -> void:
 	_verdict(world.nav.can_stand(floor_tile), "the wizards' map has the floor of the pit to stand on (tile %s)" % floor_tile)
 	var made: int = world.nav.version
 	var timed := Time.get_ticks_usec()
-	world._build_nav()
+	world.build_nav()
 	print("INFO  the map of the ways was made %d time(s) so far; making it again takes %d ms" % [made, (Time.get_ticks_usec() - timed) / 1000])
 	# A second pit dug close beside the first must not leave a thin wall of rock between them.
 	for gap in [25.0, 60.0]:

@@ -209,7 +209,7 @@ func _plan() -> void:
 				_player().global_position = at
 				_player().velocity = Vector2.ZERO
 				_arena._ground.watch([at] as Array[Vector2], true)  # the ground there is built before the wizard stands on it
-				_arena._safe_spot = at
+				_arena.safe_spot = at
 				_arena._dark.hide()
 				_arena.get_node("Player/Camera2D").zoom = Vector2(1.0, 1.0)
 				_arena.get_node("Player/Camera2D").reset_smoothing()
@@ -341,7 +341,7 @@ func _plan() -> void:
 			print("%s  the nearest page is %d px from the start, under a minute's walk" % ["PASS" if near < 3000.0 else "FAIL", near])
 			var buried := 0
 			for pickup: PagePickup in pickups:
-				var floor_y: float = _arena._floor_under(pickup.global_position).y
+				var floor_y: float = _arena.floor_under(pickup.global_position).y
 				if absf(floor_y - pickup.global_position.y) > 2.0 or _arena.in_rock(pickup.global_position + Vector2(0, -16.0)):
 					buried += 1
 			print("%s  every page lies on the floor, out of the rock (%d off)" % ["PASS" if buried == 0 else "FAIL", buried])
@@ -1232,17 +1232,17 @@ func _plan_cave() -> void:
 	_at(t, func() -> void: _snap("top"))
 	_at(t + 0.5, func() -> void:
 		_arena.get_node("Player/Camera2D").zoom = Vector2.ONE
-		_player().global_position = _arena._stand_at(_arena.markers[graph.deepest]) + Vector2(-380.0, 0.0))
+		_player().global_position = _arena.stand_at(_arena.markers[graph.deepest]) + Vector2(-380.0, 0.0))
 	_at(t + 1.5, func() -> void: _snap("deep_hall"))
 	# A Stonefall cast in a cave starts under its roof and lands on the floor, never inside rock.
 	_at(t + 1.8, func() -> void:
-		var spot: Vector2 = _arena._stand_at(_arena.markers[graph.deepest]) + Vector2(-380.0, -60.0)
+		var spot: Vector2 = _arena.stand_at(_arena.markers[graph.deepest]) + Vector2(-380.0, -60.0)
 		_cast("Stonefall", _stroke("stonefall", spot)))
 	_at(t + 3.8, func() -> void:
 		var rock: Node2D = null
 		for node in _arena.get_tree().get_nodes_in_group("rocks"):
 			rock = node
-		var floor_y: float = _arena._stand_at(_arena.markers[graph.deepest]).y
+		var floor_y: float = _arena.stand_at(_arena.markers[graph.deepest]).y
 		print("%s  a Stonefall cast in a cave lands on the floor (rock at %s)" % ["PASS" if rock != null and not _arena.in_rock(rock.global_position) and absf(rock.global_position.y - floor_y) < 200.0 else "FAIL", str(rock.global_position) if rock else "none"]))
 
 
@@ -1277,7 +1277,7 @@ func _plan_gates() -> void:
 				back -= 1.0  # the passage may begin with a wall that far back: come nearer
 		var spot := Vector2((at.x - back) * tile, floor_row * tile - 4.0)
 		if not kind in ["gas", "dark"]:
-			spot = _arena._floor_under(spot + Vector2(0, -0.5 * tile)) - Vector2(0, 4.0)  # the passage may slope: the floor is where this column has it (searched from just above, since the roof may be low)
+			spot = _arena.floor_under(spot + Vector2(0, -0.5 * tile)) - Vector2(0, 4.0)  # the passage may slope: the floor is where this column has it (searched from just above, since the roof may be low)
 		_arena._ground.watch([spot] as Array[Vector2], true)  # the ground there is built before the wizard is set down on it
 		return spot
 	for kind in ["chasm", "flood", "piranhas", "sentinel", "ice", "dark", "gas"]:

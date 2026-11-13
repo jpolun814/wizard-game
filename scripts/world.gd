@@ -21,10 +21,8 @@ const NAV_DELAY := 0.4  # seconds after a pit is dug before the wizards' map of 
 var _nav_waiting := false
 var _dug_tiles := {}  # the tiles of the ground that pits have taken away, so the map of the ways can be made again without them
 var _built: Dictionary  # what the generator made, kept to build the ways again when a gate is cleared
-var _since_gates := 0.0
 var _planks := []  # the castle's swinging stairs: [{"hinge", "ends", "ways"}]
 var _weather: Array[Weather] = []
-var _gates_open := false
 const DEEP := Color(0.3, 0.27, 0.42)  # the colour of everything unlit, just under the ground
 const BLACK := Color(0.015, 0.015, 0.03)  # and far down: nothing shows without a light
 const DARKEN_ROWS := 16.0  # how far under the surface it takes for the light of the day to fade
@@ -179,7 +177,7 @@ func _begin_encounter(camera: Camera2D) -> void:
 	player.flying = flies()
 	player.fly_box = fly_box()
 	player.position = places()[my_seat()]
-	_safe_spot = player.position
+	safe_spot = player.position
 	_spawn_wizards()
 	if Net.dedicated:
 		_give_player_to_a_brain()
@@ -266,7 +264,7 @@ func _begin_encounter(camera: Camera2D) -> void:
 				shoal.count = pit.size.x / 3
 				add_child(shoal)
 				entry["nodes"] = [shoal]  # killed to a fish, the pit is open
-	_name_gates()
+	gate_work.name_pieces()
 	_dark = CanvasModulate.new()  # under the ground it is dark; only fire and the flare light the way
 	_dark.add_to_group("darkness")
 	add_child(_dark)
@@ -276,6 +274,7 @@ func _begin_encounter(camera: Camera2D) -> void:
 var creatures := WorldCreatures.new(self)
 var scenery := WorldScenery.new(self)
 var pages := WorldPages.new(self)
+var gate_work := WorldGates.new(self)
 const SEA_VIEW := 30.0      # where the view rests in the ocean, against the feet (elsewhere it is 150 px over them): far enough down to see the floor
 
 
@@ -458,7 +457,7 @@ func stand_at(tile: Vector2i) -> Vector2:
 
 
 const DROP_HEIGHT := 200.0  # how far over the ground a wizard comes out of the portal at most
-var _safe_spot := Vector2.ZERO  # the last place the wizard stood on firm ground
+var safe_spot := Vector2.ZERO  # the last place the wizard stood on firm ground
 var _buried := 0.0              # how long the wizard has been inside rock
 
 
@@ -532,7 +531,7 @@ func _process(delta: float) -> void:
 		_watch_falls()
 		pages.tell_left(delta)
 	_watch_portal(delta)
-	_watch_gates(delta)
+	gate_work.watch(delta)
 	if player.dead:
 		_follow_watched()
 		return
@@ -541,14 +540,14 @@ func _process(delta: float) -> void:
 	if _body_in_rock(player.global_position) or player.global_position.y > ArenaGen.world_size.y * TILE:
 		_buried += delta
 		if _buried > 0.2:
-			player.global_position = _safe_spot
+			player.global_position = safe_spot
 			player.velocity = Vector2.ZERO
 			player.reset_physics_interpolation()
 			_buried = 0.0
 	else:
 		_buried = 0.0
 		if player.is_on_floor():
-			_safe_spot = player.global_position
+			safe_spot = player.global_position
 
 
 ## How bright an unlit place is, 0 (black) to 1, as it would look on the screen of someone standing there: the same tint _process gives the
@@ -705,32 +704,8 @@ func _collapse() -> void:
 		get_tree().change_scene_to_file(Loading.SCREEN))
 
 
-## Every half second: a gate whose ice, wall, thorns or gas are all gone is open, and the wizards' ways are built again without it.
-func _watch_gates(delta: float) -> void:
-	_since_gates += delta
-	if _since_gates < 0.5:
-		return
-	_since_gates = 0.0
-	var changed := false
-	for entry in gates:
-		if entry.get("open", false) or not entry.has("nodes"):
-			continue
-		var gone: Array[bool] = []
-		for node in entry["nodes"]:  # (untyped: it may be a freed object)
-			gone.append(not is_instance_valid(node) or node.is_queued_for_deletion())
-		if gone != entry.get("gone", []):
-			entry["gone"] = gone
-			changed = true
-		if not gone.has(false):
-			entry["open"] = true
-	if changed:
-		_build_nav()
-		if Net.online() and Net.is_host():
-			Net.send(self, &"_gates_cleared", [_cleared_gate_names()])
-
-
 ## The wizards' map of the ways, built again from the world as it is now: the gates that are still shut, and the ground as it has been dug.
-func _build_nav() -> void:
+func build_nav() -> void:
 	var shut := WorldBuilder.shut(_built, true)
 	var cells: TileGrid = shut["cells"]
 	for tile: Vector2i in _dug_tiles:
@@ -759,107 +734,42 @@ func _on_ground_dug(area: Rect2) -> void:
 		_nav_waiting = true
 		get_tree().create_timer(NAV_DELAY).timeout.connect(func() -> void:
 			_nav_waiting = false
-			_build_nav())
+			build_nav())
 
 
-## Every piece of a gate has the same name on every machine, so the host can say which are gone.
-func _name_gates() -> void:
-	for g in gates.size():
-		var nodes: Array = gates[g].get("nodes", [])
-		for k in nodes.size():
-			nodes[k].name = "Gate%d_%d" % [g, k]
-
-
-## The names of the pieces of gates that are gone, here.
-func _cleared_gate_names() -> Array[String]:
-	var out: Array[String] = []
-	for g in gates.size():
-		var nodes: Array = gates[g].get("nodes", [])
-		for k in nodes.size():
-			if not is_instance_valid(nodes[k]) or nodes[k].is_queued_for_deletion():
-				out.append("Gate%d_%d" % [g, k])
-	return out
-
-
-## In a network game each machine runs the gates for itself, so a spell that clears one on the host's might just miss on another's. The
-## host's are the ones that count: what is gone there goes here too.
 @rpc("authority", "call_remote", "reliable")
 func _gates_cleared(names: Array) -> void:
-	for gate_name: String in names:
-		var piece := get_node_or_null(NodePath(gate_name))
-		if piece != null and not piece.is_queued_for_deletion():
-			piece.queue_free()
+	gate_work.receive_cleared(names)
 
 
-## The gates that spells can clear and have not yet: {"kind", "outside": a floor tile just short of it, "target": a point in pixels to strike}.
+## The gates that spells can clear and have not yet (see WorldGates.closed).
 func closed_gates() -> Array[Dictionary]:
-	var out: Array[Dictionary] = []
-	for entry in gates:
-		if entry.get("open", false) or not entry.has("nodes"):
-			continue
-		out.append({"kind": entry["kind"], "outside": entry["outside"], "target": gate_target(entry), "entry": entry})
-	return out
+	return gate_work.closed()
 
 
-## The gates that a spell lets a wizard past, and does not clear: {"kind", "key" (see WorldNav.toll_at), "span": the top of a pit, a wall or a stretch of gas in pixels, "post": a sentinel}.
+## The gates that a spell lets a wizard past, and does not clear (see WorldGates.crossings).
 func crossings() -> Array[Dictionary]:
-	var out: Array[Dictionary] = []
-	for entry in gates:
-		if entry["kind"] not in WorldBuilder.CROSSINGS:
-			continue
-		var found := {"kind": entry["kind"], "key": WorldBuilder.toll_key(entry), "post": entry.get("post")}
-		if entry.has("pit") or entry["kind"] in ["chasm", "flood"]:
-			var rect: Rect2i = entry["solve"][0]["rect"]
-			found["span"] = Rect2(Vector2(rect.position * TILE), Vector2(rect.size * TILE))
-		elif entry["kind"] == "gas":
-			var stretch: Array = entry["blocks"]
-			var first_tile: Vector2i = stretch[0]
-			found["span"] = Rect2(Vector2(first_tile * TILE), Vector2(stretch.size() * TILE, TILE))
-		elif entry["kind"] == "wall":
-			var columns: Array = entry["columns"]
-			found["span"] = Rect2(Vector2(columns[0]["x"] * TILE, columns[0]["top"] * TILE), Vector2(columns.size() * TILE, (columns[0]["bottom"] - columns[0]["top"]) * TILE))
-		out.append(found)
-	return out
+	return gate_work.crossings()
 
 
-## The point of a gate to strike: the part of it that is nearest the side one comes by, of what is left of it.
+## The point of a gate to strike (see WorldGates.target).
 func gate_target(entry: Dictionary) -> Vector2:
-	var t := float(TILE)
-	var outside: Vector2i = entry["outside"]
-	match entry["kind"]:
-		"brambles":
-			var first: int = entry["first"]
-			var floors: PackedInt32Array = entry["floors"]
-			var best := -1  # the thicket nearest the way in, of those still standing
-			for k in entry["nodes"].size():
-				var node = entry["nodes"][k]
-				if is_instance_valid(node) and not node.is_queued_for_deletion():
-					var middle := mini(k * WorldScenery.THORN_CHUNK + WorldScenery.THORN_CHUNK / 2, floors.size() - 1)
-					var kept := mini(best * WorldScenery.THORN_CHUNK + WorldScenery.THORN_CHUNK / 2, floors.size() - 1)
-					if best < 0 or absi(first + middle - outside.x) < absi(first + kept - outside.x):
-						best = k
-			var column := mini(maxi(best, 0) * WorldScenery.THORN_CHUNK + WorldScenery.THORN_CHUNK / 2, floors.size() - 1)
-			return Vector2((first + column + 0.5) * t, floors[column] * t - 17.0)
-		"gas":
-			var best := -1
-			for k in entry["banks"].size():
-				var node = entry["nodes"][k]
-				if not is_instance_valid(node) or node.is_queued_for_deletion():
-					continue
-				if best < 0 or absi(entry["banks"][k]["x"] - outside.x) < absi(entry["banks"][best]["x"] - outside.x):
-					best = k
-			var bank: Dictionary = entry["banks"][maxi(best, 0)]
-			return Vector2((bank["x"] + 0.5) * t, (bank["floors"][0] + bank["tops"][0]) * 0.5 * t)
-	if entry["kind"] == "piranhas":  # the water over the fish that is nearest the way in
-		if not is_instance_valid(entry["nodes"][0]):  # shocked to the last fish
-			return Vector2((outside.x + 0.5) * t, outside.y * t)
-		var shoal: Piranhas = entry["nodes"][0]
-		return Vector2(shoal.fish_x_near(outside.x * t), (entry["pit"] as Rect2i).position.y * t + 8.0)
-	var best: Dictionary = entry["columns"][0]  # ice and wall: a column of it
-	for column: Dictionary in entry["columns"]:
-		if absi(column["x"] - outside.x) < absi(best["x"] - outside.x):
-			best = column
-	return Vector2((best["x"] + 0.5) * t, (best["top"] + best["bottom"]) * 0.5 * t)
+	return gate_work.target(entry)
+
+
+## The kinds of gate this world has, for the F1 panel.
+func gate_kinds() -> Array:
+	return gate_work.kinds()
+
+
+## The F1 panel's way to a gate of this kind.
+func go_to_gate(kind: String) -> void:
+	gate_work.go_to(kind)
+
+
+## The Rift may now set the wizard down in the locked areas: the F1 panel does this.
+func open_gates() -> void:
+	gate_work.open_all()
 
 
 ## Out of the match: while other wizards still live the match goes on, and the camera follows one of them. Otherwise the run is over.
@@ -1071,7 +981,7 @@ func _fade_to_room() -> void:
 func _rift_spot(from: Vector2) -> Vector2:
 	var spots: Array[Vector2] = []
 	for room in graph.rooms:
-		if room["lock"] != -1 and not _gates_open:
+		if room["lock"] != -1 and not gate_work.opened:
 			continue
 		var spot := stand_at(markers[room["id"]])
 		if spot.distance_to(from) > 400.0:
@@ -1092,36 +1002,4 @@ func floor_under(point: Vector2) -> Vector2:
 	return Vector2(x, (row + 1) * TILE)
 
 
-## The kinds of gate this world has, for the F1 panel.
-func gate_kinds() -> Array:
-	var kinds := []
-	for entry in gates:
-		if not kinds.has(entry["kind"]):
-			kinds.append(entry["kind"])
-	return kinds
 
-
-var _tour := {}  # kind -> how many times the panel has gone to a gate of that kind, so each press goes to the next one
-
-## Sets the wizard down on the floor just outside a gate of this kind, on the way in from the open side. Each press goes to the next.
-func go_to_gate(kind: String) -> void:
-	var found := []
-	for entry in gates:
-		if entry["kind"] == kind:
-			found.append(entry)
-	if found.is_empty():
-		return
-	var at: Vector2i = found[_tour.get(kind, 0) % found.size()]["outside"]
-	_tour[kind] = _tour.get(kind, 0) + 1
-	player.global_position = Vector2((at.x + 0.5) * float(TILE), at.y * float(TILE) - 4.0)
-	player.velocity = Vector2.ZERO
-	_safe_spot = player.global_position
-	_ground.watch([player.global_position], true)
-	var camera: Camera2D = player.get_node_or_null("Camera2D")
-	if camera != null:
-		camera.reset_smoothing()
-
-
-## The Rift may now set the wizard down in the locked areas. Spells are what get a wizard in on foot: the F1 panel does this.
-func open_gates() -> void:
-	_gates_open = true
