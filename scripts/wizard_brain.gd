@@ -662,6 +662,42 @@ func _assailed(delta: float) -> float:
 
 ## Walks the way to what it is after, and reads a page when it stands under one. Returns the speed to walk at.
 func _travel(delta: float) -> float:
+	var held := _held_up(delta)
+	if not is_nan(held):
+		return held
+	var at_the_goal := _at_the_goal(delta)
+	if not is_nan(at_the_goal):
+		return at_the_goal
+	var short_of_page := _goal == "page" and _route.done() and is_instance_valid(_goal_page) and _tile_of(_goal_page.global_position).distance_to(_tile_of(wizard.global_position)) > PAGE_REACH + 2  # (its way stopped at the edge of what it knew: it looks again from there)
+	if (_goal == "" and _goal_timer <= 0.0) or _goal_lost() or short_of_page or ((_goal == "foe" or _goal == "exit" or _goal == "explore") and (_goal_timer <= 0.0 or _route.done())):
+		_choose_goal()
+	if wizard.swim_time > 0.0:
+		return _swim(delta, false, Vector2.ZERO)
+	if _goal != "" and not _route.done() and wizard.is_on_floor():  # (a wizard in the air cannot stop for it; after the goal is chosen, so that a gate on the way is seen before the first step towards it)
+		var crossing := _crossing_ahead()
+		_cross_run = 0.0
+		if not crossing.is_empty() and _cross(crossing):
+			return _cross_run
+	# Standing on a wooden platform or a ridge that the map does not know, high over the ground it does know: it steps down through it.
+	_off_map_check -= delta
+	if _off_map_check <= 0.0 and wizard.is_on_floor():
+		_off_map_check = 0.4
+		var here := _tile_of(wizard.global_position)
+		var known: Vector2i = wizard.nav.nearest(here, true)
+		_off_map = known != WorldNav.NONE and known.y - here.y >= 3 and absi(known.x - here.x) <= 6
+	if _off_map and wizard.is_on_floor():
+		wizard.drop_through()
+	var volcano := danger.volcano_near(wizard.global_position, VOLCANO_FLEE) if _lift.is_empty() and _leap.is_empty() and _wade.is_empty() else Vector2.INF
+	if volcano != Vector2.INF and not wizard.lava_proof() and wizard.is_on_floor():
+		_goal = ""  # a volcano is awake close by: it goes away from it, and chooses what to do when it is far enough off
+		_goal_timer = 0.5
+		return signf(wizard.global_position.x - volcano.x) * WALK_SPEED
+	return _follow_route(delta)
+
+
+## What keeps it from going on with its journey this frame: a manoeuvre in hand (a leap, a wade, a lift), a creature at its heels, a chant to say, a stroke
+## to draw, a place to wander or escape to, a row of pads to walk, or a rest. The speed to walk at when there is one, and NAN when there is none.
+func _held_up(delta: float) -> float:
 	if not _leap.is_empty():
 		return _leaping(delta)
 	if not _wade.is_empty():
@@ -702,6 +738,12 @@ func _travel(delta: float) -> float:
 		return 0.0
 	if wizard.nav == null:
 		return 0.0
+	return NAN
+
+
+## What it does on coming to its goal (a portal to leap for, a page to walk the last steps to, a gate to work, a creature to clear from the way). The speed to
+## walk at when it does one of them, and NAN when it has not come to anything.
+func _at_the_goal(delta: float) -> float:
 	_read_page_underfoot()
 	if _last_feet.distance_to(wizard.global_position) > 250.0 and _last_feet != Vector2.INF:  # a portal has carried it off: the way it was going is no use
 		_goal = ""
@@ -736,30 +778,11 @@ func _travel(delta: float) -> float:
 		_gate_tries = 0
 		_clear_gate(creature["target"])
 		return 0.0
-	var short_of_page := _goal == "page" and _route.done() and is_instance_valid(_goal_page) and _tile_of(_goal_page.global_position).distance_to(_tile_of(wizard.global_position)) > PAGE_REACH + 2  # (its way stopped at the edge of what it knew: it looks again from there)
-	if (_goal == "" and _goal_timer <= 0.0) or _goal_lost() or short_of_page or ((_goal == "foe" or _goal == "exit" or _goal == "explore") and (_goal_timer <= 0.0 or _route.done())):
-		_choose_goal()
-	if wizard.swim_time > 0.0:
-		return _swim(delta, false, Vector2.ZERO)
-	if _goal != "" and not _route.done() and wizard.is_on_floor():  # (a wizard in the air cannot stop for it; after the goal is chosen, so that a gate on the way is seen before the first step towards it)
-		var crossing := _crossing_ahead()
-		_cross_run = 0.0
-		if not crossing.is_empty() and _cross(crossing):
-			return _cross_run
-	# Standing on a wooden platform or a ridge that the map does not know, high over the ground it does know: it steps down through it.
-	_off_map_check -= delta
-	if _off_map_check <= 0.0 and wizard.is_on_floor():
-		_off_map_check = 0.4
-		var here := _tile_of(wizard.global_position)
-		var known: Vector2i = wizard.nav.nearest(here, true)
-		_off_map = known != WorldNav.NONE and known.y - here.y >= 3 and absi(known.x - here.x) <= 6
-	if _off_map and wizard.is_on_floor():
-		wizard.drop_through()
-	var volcano := danger.volcano_near(wizard.global_position, VOLCANO_FLEE) if _lift.is_empty() and _leap.is_empty() and _wade.is_empty() else Vector2.INF
-	if volcano != Vector2.INF and not wizard.lava_proof() and wizard.is_on_floor():
-		_goal = ""  # a volcano is awake close by: it goes away from it, and chooses what to do when it is far enough off
-		_goal_timer = 0.5
-		return signf(wizard.global_position.x - volcano.x) * WALK_SPEED
+	return NAN
+
+
+## One step along its route: the way the route points, and the lava that may lie on it, which it waits out, runs over or turns from.
+func _follow_route(delta: float) -> float:
 	var steer := _route.steer(wizard, delta)
 	if steer["replan"]:
 		stuck_at.append("%s %s" % [str(_tile_of(wizard.global_position)), _route.status()])
