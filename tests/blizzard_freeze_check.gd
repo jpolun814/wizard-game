@@ -31,7 +31,7 @@ func _ready() -> void:
 	world.add_child(snow)
 	snow.setup("Blizzard", Vector2(feet.x - 160.0, feet.y - 20.0), 0.0)
 	# Another wizard and a skeleton in it.
-	var mob: Node2D = world._add_mob("basic", feet + Vector2(60.0, 0.0))
+	var mob: Node2D = world.add_mob("basic", feet + Vector2(60.0, 0.0))
 	await _wait(0.5)
 	_verdict(snow.danger_at(feet + Vector2(0.0, -10.0)), "the snow is a danger where it falls")
 	_verdict(not snow.danger_at(feet + Vector2(600.0, -10.0)), "and not out beside it")

@@ -106,7 +106,7 @@ func _cast(spell_name: String, stroke: PackedVector2Array) -> void:
 
 func _summon_at(kind: String, x: float) -> Node2D:
 	var ground := SpellTargets.solid_below(_arena.get_world_2d(), Vector2(x, ArenaGen.GROUND_Y - 4.0 * ArenaGen.TILE))
-	return _arena._add_mob(kind, ground)
+	return _arena.add_mob(kind, ground)
 
 
 func _plan() -> void:
@@ -796,7 +796,7 @@ func _plan_checks() -> void:
 	# A decoy draws a walker's attention.
 	_at(3.0, func() -> void: _reset_room(10, "Decoy"))
 	_at(3.1, func() -> void:
-		var walker: Node2D = _arena._add_mob("basic", _feet(16))
+		var walker: Node2D = _arena.add_mob("basic", _feet(16))
 		walker._spawn = 0.0)
 	_at(3.2, func() -> void: _cast("Decoy", _stroke("eight", _feet(10) + Vector2(150, -50), 0.8)))
 	_at(3.8, func() -> void:

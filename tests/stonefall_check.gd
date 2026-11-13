@@ -45,7 +45,7 @@ func _ready() -> void:
 
 ## Draws a boulder `height` px over the ground at `at`, with a dummy under it, and says how much it hurt the dummy.
 func _drop(at: Vector2, height: float) -> int:
-	var dummy: Mob = _world._add_mob("dummy", at)
+	var dummy: Mob = _world.add_mob("dummy", at)
 	dummy.max_hp = 1000
 	dummy.hp = 1000
 	for f in 90:

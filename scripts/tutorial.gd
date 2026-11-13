@@ -214,19 +214,19 @@ func _add_pond(span: Vector2i, level: float) -> Piranhas:
 
 
 func _add_targets() -> void:
-	_dummy = _add_mob("dummy", Vector2(ArenaGen.column_x(DUMMY_COL), ArenaGen.surface_y(_cells, DUMMY_COL))) as Mob
+	_dummy = add_mob("dummy", Vector2(ArenaGen.column_x(DUMMY_COL), ArenaGen.surface_y(_cells, DUMMY_COL))) as Mob
 	_dummy.max_hp = DUMMY_HP
 	_dummy.hp = DUMMY_HP
 	_dummy.facing = -1.0
 	_dummy.felled_stays = true
-	_giant = _add_mob("giant", Vector2(ArenaGen.column_x(GIANT_COL), ArenaGen.surface_y(_cells, GIANT_COL))) as Mob
+	_giant = add_mob("giant", Vector2(ArenaGen.column_x(GIANT_COL), ArenaGen.surface_y(_cells, GIANT_COL))) as Mob
 	_giant.facing = -1.0
 	_giant.faint_stays = true
 	_giant.max_hp = GIANT_HP
 	_giant.hp = GIANT_HP
 	for span: Vector2i in THICKETS:
 		_plant_thicket(span, _thickets)
-	var runner := _add_mob("runner", Vector2(ArenaGen.column_x(SLOW_POST), ArenaGen.surface_y(_cells, SLOW_POST))) as Mob
+	var runner := add_mob("runner", Vector2(ArenaGen.column_x(SLOW_POST), ArenaGen.surface_y(_cells, SLOW_POST))) as Mob
 	runner.guards = true
 	runner.post_x = runner.global_position.x
 	for span: Vector2i in GAUNTLET_THICKETS:
@@ -243,11 +243,11 @@ func _add_targets() -> void:
 		add_child(watcher)
 	_spread_gas(GAS_SPAN, _gas)
 	for col: int in SKELETONS:
-		var skeleton := _add_mob("earth_melee", Vector2(ArenaGen.column_x(col), ArenaGen.surface_y(_cells, col))) as Mob
+		var skeleton := add_mob("earth_melee", Vector2(ArenaGen.column_x(col), ArenaGen.surface_y(_cells, col))) as Mob
 		skeleton.guards = true
 		skeleton.post_x = skeleton.global_position.x
 	for col: int in TURRETS + TURRETS_TWO:
-		var turret := _add_mob("turret", Vector2(ArenaGen.column_x(col), ArenaGen.surface_y(_cells, col)))
+		var turret := add_mob("turret", Vector2(ArenaGen.column_x(col), ArenaGen.surface_y(_cells, col)))
 		turret.facing = -1.0
 
 

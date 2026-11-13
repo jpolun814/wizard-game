@@ -80,12 +80,12 @@ func _build_map() -> Variant:
 	_planks = built["planks"]
 	tiled_ground = true
 	_start_tile = built["start"]
-	_spawn_tiles = built["spawns"]
+	spawn_tiles = built["spawns"]
 	if random_start and not Net.online():
-		_start_tile = _spawn_tiles[randi() % _spawn_tiles.size()]  # not seeded, so the same world starts you somewhere new
+		_start_tile = spawn_tiles[randi() % spawn_tiles.size()]  # not seeded, so the same world starts you somewhere new
 	var shut := WorldBuilder.shut(built, true)
 	nav = WorldNav.new()
-	nav.build(shut["cells"], built["size"].y, shut["barred"], _spawn_tiles[0], shut["tolls"], shut["links"], shut["climbs"])
+	nav.build(shut["cells"], built["size"].y, shut["barred"], spawn_tiles[0], shut["tolls"], shut["links"], shut["climbs"])
 	return built["cells"]
 
 
@@ -95,7 +95,7 @@ const STATS_AFTER := 3.0  # seconds after the person wins before their stats com
 const BACK_TO_ROOM := 10.0  # seconds after a network match is won before everyone is back in the waiting room
 var nav: WorldNav  # the ways about the world on foot, with every gate shut
 var _start_tile := Vector2i.ZERO
-var _spawn_tiles: Array[Vector2i] = []  # the starting places, far apart; the player takes one and a wizard each of the others
+var spawn_tiles: Array[Vector2i] = []  # the starting places, far apart; the player takes one and a wizard each of the others
 var _since_count := 0.0
 var _won := false
 var _win_stats_due := false  # the person has won and their stats have not come up yet
@@ -220,7 +220,7 @@ func _begin_encounter(camera: Camera2D) -> void:
 			shoal.name = "Shoal%d" % entry["a"]
 			add_child(shoal)
 	_lay_landmarks()
-	_raise_the_dead()
+	creatures.raise()
 	_plant_graves()
 	_grow_trees()
 	_raise_the_gale()
@@ -307,8 +307,7 @@ func _lay_landmarks() -> void:
 		_grow_thorns({"floors": floors.slice(thicket["a"], thicket["b"] + 1), "first": thicket["a"]})
 
 
-var _dead: Array[Mob] = []  # the roaming mobs (the graveyard's dead, the castle's giant), in the order the seed raised them: the host's move, the others' show
-var _dead_sent := 0.0
+var creatures := WorldCreatures.new(self)
 const GRAVES := ["grave_1", "grave_2", "grave_3", "grave_4"]
 ## The graveyard's tombstones: one now and then along the whole ground, from the seed, leaning a little. They are only to be seen.
 func _plant_graves() -> void:
@@ -390,13 +389,10 @@ func _raise_biome_life() -> void:
 				var crypt := Crypt.new()
 				crypt.position = Vector2((column + 0.5) * tile, floors[column] * tile + 2.0)
 				add_child(crypt)
-				var guard: Mob = _add_mob("basic", _floor_under(Vector2((column + 4.5) * tile, floors[column] * tile - 40.0)))
-				guard.name = "Dead%d" % _dead.size()  # kept in step across the network like the roaming dead
-				guard.max_hp = DEAD_HEALTH
-				guard.hp = DEAD_HEALTH
-				guard.shared = true
-				guard.puppet = not Net.is_host()
-				_dead.append(guard)
+				var guard: Mob = add_mob("basic", floor_under(Vector2((column + 4.5) * tile, floors[column] * tile - 40.0)))
+				guard.max_hp = WorldCreatures.DEAD_HEALTH
+				guard.hp = WorldCreatures.DEAD_HEALTH
+				creatures.enlist(guard)  # kept in step across the network like the roaming dead
 		"jungle":
 			var perches: Array[Vector2] = []
 			var trees: Array = graph.surface["trees"]
@@ -528,7 +524,7 @@ func _lay_sea() -> void:
 		wreck.position = Vector2((at_column + 0.5) * tile, floors[at_column] * tile)
 		add_child(wreck)
 	var starts: Array = graph.surface["starts"].duplicate()  # where nothing else floats: the starting places, and the rafts
-	for spawn in _spawn_tiles:  # each wizard starts on a raft of driftwood over its place, out at sea
+	for spawn in spawn_tiles:  # each wizard starts on a raft of driftwood over its place, out at sea
 		if spawn.y + 1 <= int(_sea["row"]):
 			continue  # (a place on an island stands on the island)
 		var raft := Driftwood.new()
@@ -609,108 +605,9 @@ func _wash_out_the_colour() -> void:
 	add_child(layer)
 
 
-const DEAD_HEALTH := 15  # what one of the graveyard's skeletons has: a spell or two puts it down
-const DEAD_PER_COLUMNS := 90  # the graveyard has a skeleton for this many columns of its width
-const GIANT_ROOMS := [7, 24, 33, 50, 59, 76]  # columns from a castle's west end to the middle of a ground-floor room with open floor
-const UPPER_KNIGHT_PER_COLUMNS := 160  # and fewer on the floors above, one for this many columns
-const KNIGHT_PER_COLUMNS := 80  # the castle world has a knight on guard for this many columns of its width
-const GIANT_PER_COLUMNS := 300  # the castle world has a giant for this many columns of its width
-const DEAD_KEEP_AWAY := 45    # columns from every starting place that none rise
-## On the host, tells the others a few times a second where each of the dead is, which way it faces and whether it is drawing back to strike.
-func _share_the_dead(delta: float) -> void:
-	if _dead.is_empty() or not Net.online() or not Net.is_host():
-		return
-	_dead_sent += delta
-	if _dead_sent < 0.05:
-		return
-	_dead_sent = 0.0
-	var places := PackedVector2Array()
-	var faces := PackedFloat32Array()
-	var swings := PackedByteArray()
-	for mob in _dead:
-		var here := is_instance_valid(mob) and not mob.is_dead()
-		places.append(mob.global_position if here else Vector2.ZERO)
-		faces.append(mob.facing if here else 1.0)
-		swings.append(1 if here and mob.is_drawing_back() else 0)
-	Net.send(self, &"_dead_at", [places, faces, swings])
-
-
 @rpc("authority", "call_remote", "unreliable")
 func _dead_at(places: PackedVector2Array, faces: PackedFloat32Array, swings: PackedByteArray) -> void:
-	for k in mini(places.size(), _dead.size()):
-		var mob := _dead[k]
-		if is_instance_valid(mob) and not mob.is_dead() and places[k] != Vector2.ZERO:  # (nothing at the origin means the host's one is gone)
-			mob.net_position = places[k]
-			mob.net_facing = faces[k]
-			mob.net_swing = swings[k] == 1
-
-
-## Some biomes have things that roam: the graveyard's dead walk it (skeletons), and the castle world has a giant that wanders between the
-## castles. They amble about until the player comes near, then give chase. They rise from the ground at places the seed picks, and (like
-## all of a world's mobs) only trouble the player of the machine they stand on.
-func _raise_the_dead() -> void:
-	var biome := SurfaceGen.biome_at(graph.surface, graph.surface["start"])
-	if biome == "graveyard":
-		_raise_roamers("basic", WorldGraph.size.x / DEAD_PER_COLUMNS, 4409)
-	elif biome == "castle":
-		_raise_roamers("giant", maxi(2, WorldGraph.size.x / GIANT_PER_COLUMNS), 6143)
-		_raise_roamers("knight", maxi(4, WorldGraph.size.x / KNIGHT_PER_COLUMNS), 7919)
-		_raise_upper_knights(maxi(2, WorldGraph.size.x / UPPER_KNIGHT_PER_COLUMNS), 7933)
-
-
-## Knights on guard on the upper floors of the castles, each a few columns from a spot where a page may lie (one of Pages.CASTLE_SPOTS above the ground).
-func _raise_upper_knights(wanted: int, salt: int) -> void:
-	var rng := RandomNumberGenerator.new()
-	rng.seed = seed_value + salt
-	var castles: Array = graph.surface["castles"]
-	var spots: Array[Vector2i] = []
-	for spot: Vector2i in Pages.CASTLE_SPOTS:
-		if spot.y > 0:
-			spots.append(spot)
-	if castles.is_empty() or spots.is_empty():
-		return
-	for i in wanted:
-		var spot: Vector2i = spots[rng.randi_range(0, spots.size() - 1)]
-		var castle_at: int = castles[rng.randi_range(0, castles.size() - 1)]
-		var up := Vector2((castle_at + spot.x + 3.5) * TILE, (WorldGraph.SURFACE_ROW - spot.y) * TILE - 40.0)
-		var mob: Mob = _add_mob("knight", _floor_under(up))
-		mob.name = "Dead%d" % _dead.size()
-		mob.guards = true
-		mob.post_x = mob.global_position.x
-		mob.shared = true
-		mob.puppet = not Net.is_host()
-		_dead.append(mob)
-
-
-func _raise_roamers(kind: String, wanted: int, salt: int) -> void:
-	var rng := RandomNumberGenerator.new()
-	rng.seed = seed_value + salt
-	var castles: Array = graph.surface["castles"]
-	var tries := 0
-	while wanted > 0 and tries < 400:
-		tries += 1
-		var column := rng.randi_range(SurfaceGen.MARGIN + 10, WorldGraph.size.x - SurfaceGen.MARGIN - 10)
-		if not castles.is_empty():  # in the castle world they walk the ground floors, in a room with a clear floor
-			column = castles[rng.randi_range(0, castles.size() - 1)] + GIANT_ROOMS[rng.randi_range(0, GIANT_ROOMS.size() - 1)]
-		var near := false
-		for spawn in _spawn_tiles:
-			near = near or absi(spawn.x - column) < DEAD_KEEP_AWAY
-		if near:
-			continue
-		var mob: Mob = _add_mob(kind, _floor_under(Vector2((column + 0.5) * TILE, graph.surface["floor"][column] * TILE - 40.0)))
-		mob.name = "Dead%d" % _dead.size()  # the same on every machine, so the host's can tell the others' puppets what it does
-		if kind == "basic":
-			mob.max_hp = DEAD_HEALTH
-			mob.hp = DEAD_HEALTH
-		if kind == "knight":
-			mob.guards = true
-			mob.post_x = mob.global_position.x
-		else:
-			mob.roams = true
-		mob.shared = true
-		mob.puppet = not Net.is_host()
-		_dead.append(mob)
-		wanted -= 1
+	creatures.receive(places, faces, swings)
 
 
 ## Thorns over a stretch of a passage's floor, grown in thickets a few tiles long, so fire burns one thicket at a time and a way
@@ -780,7 +677,7 @@ func _new_brain(body: Wizard) -> WizardBrain:
 ## Where each seat starts, in the world. Playing alone the player has a place of their own and the others the places farthest from it,
 ## in an order drawn from the seed; in a network game every seat's place is drawn from the seed, so every machine agrees on them.
 func _places() -> Array[Vector2]:
-	var places := _spawn_tiles.duplicate()
+	var places := spawn_tiles.duplicate()
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed_value + 4421
 	var out: Array[Vector2] = []
@@ -891,7 +788,7 @@ func _drop_pages(wizard: Wizard) -> void:
 		held.append(each)
 	if held.is_empty():
 		return
-	var spot := wizard.global_position + Vector2(0.0, 40.0) if _flies() else on_ridge(wizard.global_position, _floor_under(wizard.global_position))  # on a ridge, the book lies on it; in the sky it hangs where they fell
+	var spot := wizard.global_position + Vector2(0.0, 40.0) if _flies() else on_ridge(wizard.global_position, floor_under(wizard.global_position))  # on a ridge, the book lies on it; in the sky it hangs where they fell
 	var name := "Spoils" + String(wizard.name)
 	_lay_spoils(name, held, spot)
 	Net.send(self, &"_lay_spoils", [name, held, spot])
@@ -1023,7 +920,7 @@ func _process(delta: float) -> void:
 	var day: Color = SurfaceGen.LOOKS[SurfaceGen.biome_at(graph.surface, column + ArenaGen.sky_xl)]["tint"]
 	_dark.color = day.lerp(DEEP, depth).lerp(BLACK, far)
 	_update_weather(under)
-	_share_the_dead(delta)
+	creatures.share(delta)
 	_count_wizards(delta)
 	MatchStats.tick(delta)
 	if Net.is_host():
@@ -1233,7 +1130,7 @@ func _build_nav() -> void:
 	var cells: TileGrid = shut["cells"]
 	for tile: Vector2i in _dug_tiles:
 		cells.erase(tile)
-	nav.build(cells, _built["size"].y, shut["barred"], _spawn_tiles[0], shut["tolls"], shut["links"], shut["climbs"])
+	nav.build(cells, _built["size"].y, shut["barred"], spawn_tiles[0], shut["tolls"], shut["links"], shut["climbs"])
 
 
 ## The ground has been dug (a Sinkhole): the tiles it took away are open air to the wizards' map, which is made again.
@@ -1619,14 +1516,14 @@ func _lay_pages() -> void:
 				pickup.position = Vector2((column + 0.5) * TILE, graph.surface["floor"][column] * float(TILE) + 2.0) + JungleTree.perch(tree["size"], tree["mirror"])
 				add_child(pickup)
 				continue
-			pickup.position = _floor_under(Vector2((column + 0.5) * TILE, graph.surface["floor"][column] * TILE - 40.0))
+			pickup.position = floor_under(Vector2((column + 0.5) * TILE, graph.surface["floor"][column] * TILE - 40.0))
 			add_child(pickup)
 			continue
 		var spot := _stand_at(_markers[room])
 		var k: int = count.get(room, 0)
 		count[room] = k + 1
 		var lie := spot + Vector2((k - 0.5) * 70.0 if k > 0 else 0.0, 0.0)
-		pickup.position = _floor_under(lie)  # on the floor, wherever the marker's tile ends
+		pickup.position = floor_under(lie)  # on the floor, wherever the marker's tile ends
 		add_child(pickup)
 	if not _carried:
 		_lay_clusters(layout.size())
@@ -1689,14 +1586,14 @@ func _lay_clusters(first: int) -> void:
 ## Where `count` pages may lie by a spawn: on the ground a wizard can walk to without a jump, nearest first, a few tiles apart. A spawn with
 ## too little room round it gets the rest set down on the last spot, a little to one side of each other.
 func _cluster_spots(origin: Vector2, count: int) -> Array[Vector2]:
-	var feet := _floor_under(origin - Vector2(0.0, 8.0))
+	var feet := floor_under(origin - Vector2(0.0, 8.0))
 	var column := floori(origin.x / TILE)
 	var reachable: Array[Vector2] = []  # the floor at each column a wizard can walk to, nearest first
 	for side in [1, -1]:
 		var last := feet
 		for step in range(1, CLUSTER_REACH):
 			var at: int = column + step * side
-			var floor_at := _floor_under(Vector2((at + 0.5) * TILE, last.y - 8.0))
+			var floor_at := floor_under(Vector2((at + 0.5) * TILE, last.y - 8.0))
 			if absf(floor_at.y - last.y) > TILE or absf(floor_at.y - feet.y) > TILE * 3.0:
 				break  # a step too high, or a drop, ends the walk
 			if _in_rock(Vector2(floor_at.x, floor_at.y - 24.0)) or _in_rock(Vector2(floor_at.x, floor_at.y - 56.0)):
@@ -1730,7 +1627,7 @@ func _tree_at(column: int) -> Dictionary:
 
 
 ## The top of the floor under a point (out of the rock first when it is in it), asked of the tiles, which are there before the ground is built.
-func _floor_under(point: Vector2) -> Vector2:
+func floor_under(point: Vector2) -> Vector2:
 	var x := point.x
 	var row := floori((point.y - 1.0) / TILE)
 	while row > 0 and _in_rock(Vector2(x, (row + 0.5) * TILE)):

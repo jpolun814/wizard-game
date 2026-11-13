@@ -42,7 +42,7 @@ func _ready() -> void:
 
 ## A dummy standing on the ground, this far from the wizard.
 func _dummy(dx: float) -> Mob:
-	var dummy: Mob = _world._add_mob("dummy", _spot + Vector2(dx, 0.0))
+	var dummy: Mob = _world.add_mob("dummy", _spot + Vector2(dx, 0.0))
 	dummy.max_hp = 500
 	dummy.hp = 500
 	return dummy

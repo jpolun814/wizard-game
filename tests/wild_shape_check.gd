@@ -42,7 +42,7 @@ func _ready() -> void:
 	_verdict(is_equal_approx(_player.max_stamina, Wizard.WILD_STAMINA), "the wolf has a pool of its own (%.0f)" % _player.max_stamina)
 	_verdict(_player.silenced() and _player.is_muted(), "and can cast and chant nothing")
 	_verdict(String(_player._sprite.sprite_frames.resource_path) != "" or _player._sprite.sprite_frames.has_animation("release"), "and wears the wolf's frames")
-	var dummy: Mob = _world._add_mob("basic", _spot + Vector2(50.0, 0.0))
+	var dummy: Mob = _world.add_mob("basic", _spot + Vector2(50.0, 0.0))
 	dummy._spawn = 0.0
 	dummy.set_physics_process(false)
 	dummy.max_hp = 500
@@ -54,7 +54,7 @@ func _ready() -> void:
 	await _wait(0.5)
 	_verdict(dummy.hp < 500, "a swipe of the claws hurts whoever is in front (%d of 500 left)" % dummy.hp)
 	_verdict(_player.wild and _player.max_stamina == pool, "and does not use up the pool")
-	var far: Mob = _world._add_mob("basic", _spot + Vector2(-400.0, 0.0))
+	var far: Mob = _world.add_mob("basic", _spot + Vector2(-400.0, 0.0))
 	far._spawn = 0.0
 	far.set_physics_process(false)
 	far.max_hp = 500

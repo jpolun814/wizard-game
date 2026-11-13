@@ -175,7 +175,7 @@ func _add_ponds() -> void:
 func _add_targets() -> void:
 	for entry in [["dummy", 16], ["dummy", 18], ["turret", 20], ["dummy", 25], ["dummy", 31], ["dummy", 33]]:
 		var col: int = entry[1]
-		var mob := _add_mob(entry[0], Vector2(ArenaGen.column_x(col), ArenaGen.surface_y(_cells, col)))
+		var mob := add_mob(entry[0], Vector2(ArenaGen.column_x(col), ArenaGen.surface_y(_cells, col)))
 		mob.facing = -1.0
 
 

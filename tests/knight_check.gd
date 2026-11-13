@@ -30,7 +30,7 @@ func _ready() -> void:
 			found.global_position = Vector2(-9000.0, -9000.0)
 			found.remove_from_group("wizards")
 	rival.set_physics_process(false)
-	var knight: Mob = world._add_mob("knight", feet)
+	var knight: Mob = world.add_mob("knight", feet)
 	knight.guards = true
 	knight.post_x = feet.x
 	await get_tree().create_timer(1.0).timeout

@@ -42,7 +42,7 @@ func _ready() -> void:
 
 
 func _mob(kind: String, dx: float) -> Mob:
-	var mob: Mob = _world._add_mob(kind, _spot + Vector2(dx, 0.0))
+	var mob: Mob = _world.add_mob(kind, _spot + Vector2(dx, 0.0))
 	mob.max_hp = 500
 	mob.hp = 500
 	return mob

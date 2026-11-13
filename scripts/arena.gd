@@ -220,7 +220,7 @@ func _begin_encounter(_camera: Camera2D) -> void:
 	pass
 
 
-func _add_mob(kind: String, feet: Vector2) -> Node2D:
+func add_mob(kind: String, feet: Vector2) -> Node2D:
 	if Mob.KINDS[kind].role == "wizard":
 		return _add_wizard(kind, feet)
 	var mob := MOB_SCENE.instantiate()
@@ -812,7 +812,7 @@ func summon_far_side(kind: String) -> void:
 	var half_view := get_viewport().get_visible_rect().size.x * 0.5 / zoom
 	var x := clampf(player.global_position.x + player.facing * half_view * 0.75, ArenaGen.left_edge() + 24.0, ArenaGen.right_edge() - 24.0)
 	var ground := SpellTargets.solid_below(get_world_2d(), Vector2(x, ArenaGen.GROUND_Y - 4.0 * TILE))
-	_add_mob(kind, ground)
+	add_mob(kind, ground)
 
 
 ## Debug: removes every enemy at once.

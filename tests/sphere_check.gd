@@ -76,7 +76,7 @@ func _ball() -> FlamingSphere:
 
 
 func _roll() -> void:
-	var dummy: Mob = _world._add_mob("dummy", _spot + Vector2(1100.0, LIFT))
+	var dummy: Mob = _world.add_mob("dummy", _spot + Vector2(1100.0, LIFT))
 	dummy.max_hp = 500
 	dummy.hp = 500
 	await _wait(1.6)

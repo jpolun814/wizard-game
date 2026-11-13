@@ -23,7 +23,7 @@ func _ready() -> void:
 	_player = get_tree().get_first_node_in_group("player")
 	_feet = _player.global_position
 	_player.facing = 1.0
-	var dummy: Mob = _lab._add_mob("dummy", _feet + Vector2(220.0, 0.0))
+	var dummy: Mob = _lab.add_mob("dummy", _feet + Vector2(220.0, 0.0))
 	dummy.max_hp = 5000
 	dummy.hp = 5000
 	await get_tree().create_timer(1.8).timeout

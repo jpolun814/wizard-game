@@ -43,10 +43,10 @@ func _cast(spell: String, targeting := "positional") -> void:
 
 
 func _thunderclap() -> void:
-	var dummy: Mob = _world._add_mob("dummy", _spot + Vector2(120.0, 0.0))
+	var dummy: Mob = _world.add_mob("dummy", _spot + Vector2(120.0, 0.0))
 	dummy.max_hp = 500
 	dummy.hp = 500
-	var far: Mob = _world._add_mob("dummy", _spot + Vector2(Thunderclap.RADIUS + 200.0, 0.0))
+	var far: Mob = _world.add_mob("dummy", _spot + Vector2(Thunderclap.RADIUS + 200.0, 0.0))
 	far.max_hp = 500
 	far.hp = 500
 	var rival: Wizard = _world._rivals[0]
