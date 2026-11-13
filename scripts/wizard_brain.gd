@@ -992,15 +992,8 @@ func _toll_between(from: Vector2i, to: Vector2i) -> String:
 func _cross(crossing: Dictionary) -> bool:
 	if wizard.is_drawing() or _react > 0.0:
 		return true
-	var kind: String = crossing["kind"]
-	if kind == "sentinel":
-		if wizard.center().distance_to(crossing["post"].center()) > COVER_RANGE:
-			return false
-		var used := _cover(crossing["post"], int(crossing.get("posts", 1)) > 1)
-		if used == "":
-			return false
-		_bridged[crossing["key"]] = LASTS[used]
-		return true
+	if crossing["kind"] == "sentinel":
+		return _cross_sentinel(crossing)
 	var spell_name := _way_over(crossing)
 	if spell_name == "":
 		return false
@@ -1010,80 +1003,129 @@ func _cross(crossing: Dictionary) -> bool:
 		dir = _pads[crossing["key"]]["dir"]  # a row of pads is laid along the way it set out
 	_cross_run = 0.0
 	match spell_name:
-		"Geyser", "Rocket Jump", "Push", "Liana", "Updraft", "Great Oak", "Tornado":  # it walks up to the face of the wall and stands there while the ground bubbles under it, while it shoves itself up, while it climbs a vine, a column of air or an oak, or while a whirlwind flings it
-			var face := span.position.x - 36.0 if dir > 0 else span.end.x + 36.0
-			if absf(face - wizard.global_position.x) > 12.0:
-				_cross_run = clampf(face - wizard.global_position.x, -WALK_SPEED, WALK_SPEED)
-			elif wizard.is_on_floor() and wizard.stamina >= SpellData.SPELLS[spell_name].cost and not _begin_lift(spell_name, crossing["key"], dir, span):
-				return false
-		"Obsidian Armor":  # it puts on black glass at the edge, wades through the lava, and gets up the far side by a lift
-			var edge := span.position.x if dir > 0 else span.end.x
-			if (edge - wizard.global_position.x) * dir > 20.0:
-				_cross_run = dir * WALK_SPEED
-			elif wizard.is_on_floor() and wizard.stamina >= SpellData.SPELLS[spell_name].cost + SpellData.SPELLS[_way_up()].cost:
-				hand.begin_cast(spell_name, BrainStrokes.offset(GestureTemplates.preview_points("circle"), wizard.center(), 0.8), QUICK_DRAW)
-				_wade = {"dir": dir, "key": crossing["key"], "span": span, "stage": 0, "waited": 0.0}
-		"chant:deep_breath":  # it walks to the edge of the gas, holds its breath, and walks through
-			var edge := span.position.x if dir > 0 else span.end.x
-			if (edge - wizard.global_position.x) * dir > BREATH_AHEAD:
-				_cross_run = dir * WALK_SPEED
-			elif wizard.deep_breath_time > 0.0 or chant.type_then_say(spell_name.substr(6)):
-				_bridged[crossing["key"]] = minf(wizard.deep_breath_time, GAS_WALK) if wizard.deep_breath_time > 0.0 else GAS_WALK
-				settle = SETTLE
-			elif chant.is_typing():
-				pass  # it is typing the words, standing at the edge
-			else:
-				_cannot[crossing["key"]] = GIVE_UP
-				return false
-		"Shadow Step":  # it walks to the edge, waits there until it is on the ground with strength to spare, and leaps
-			var edge := span.position.x if dir > 0 else span.end.x
-			if (edge - wizard.global_position.x) * dir > 20.0:
-				_cross_run = dir * WALK_SPEED
-			elif wizard.is_on_floor() and wizard.stamina >= 2.0 * SpellData.SPELLS[spell_name].cost:
-				var steps := clampi(ceili((span.size.x - 200.0) / 300.0), LEAP_STEPS, 5)
-				_leap = {"dir": dir, "key": crossing["key"], "steps": steps, "span": span, "jumped": false, "air": 0.0}
-		"chant:double_jump":  # it walks to the edge, says the chant, and jumps, and jumps again at the top
-			var edge := span.position.x if dir > 0 else span.end.x
-			if (edge - wizard.global_position.x) * dir > 20.0:
-				_cross_run = dir * WALK_SPEED
-			elif wizard.is_on_floor() and (wizard.air_jump_time > 0.0 or chant.type_then_say("double_jump")):
-				_leap = {"dir": dir, "key": crossing["key"], "steps": 0, "span": span, "jumped": false, "air": 0.0, "double": true}
-		"leap:air":  # it jumps from the edge, and in the air a rocket throws it up and a feather lets it drift down, across
-			var edge := span.position.x if dir > 0 else span.end.x
-			if (edge - wizard.global_position.x) * dir > 20.0:
-				_cross_run = dir * WALK_SPEED
-			elif wizard.is_on_floor():
-				var air: Array[String] = []
-				for helper: String in ["Rocket Jump", "Featherfall"]:
-					if _knows(helper):
-						air.append(helper)
-				var cost := 0.0
-				for helper in air:
-					cost += SpellData.SPELLS[helper].cost
-				if wizard.stamina >= cost:
-					_leap = {"dir": dir, "key": crossing["key"], "steps": 0, "span": span, "jumped": false, "air": 0.0, "helpers": air}
-		"Lily Pads":  # a row at a time, as far as it reaches, and the next when it has come to the end of that
-			if wizard.stamina >= SpellData.SPELLS[spell_name].cost:
-				var reach := span.grow_individual(WizardRoute.TILE, 0.0, WizardRoute.TILE, 0.0)  # pads run a tile onto the bank at each end
-				var near := reach.position.x if dir > 0 else reach.end.x
-				var front: float = _pads[crossing["key"]]["front"] if _pads.has(crossing["key"]) else near
-				var from_x := maxf(front, wizard.global_position.x) if dir > 0 else minf(front, wizard.global_position.x)
-				var to_x := clampf(from_x + dir * PADS_REACH, reach.position.x, reach.end.x)
-				var row := Rect2(minf(from_x, to_x), span.position.y, absf(to_x - from_x), span.size.y)
-				hand.begin_cast(spell_name, hand.bridge_stroke(spell_name, row), ATTACK_DRAW)
-				settle = SETTLE
-				var over := (to_x - (reach.end.x if dir > 0 else reach.position.x)) * dir >= 0.0
-				_pads[crossing["key"]] = {"dir": dir, "front": to_x}
-				_pad_walk[crossing["key"]] = {"dir": dir, "end": to_x}
-				_bridged[crossing["key"]] = LASTS[spell_name] if over else SETTLE + absf(to_x - from_x) / WALK_SPEED - 0.8  # the next row goes down when it is near the end of this one
-				if over:
-					_pads.erase(crossing["key"])
+		"Geyser", "Rocket Jump", "Push", "Liana", "Updraft", "Great Oak", "Tornado":
+			return _cross_by_lift(crossing, spell_name, span, dir)
+		"Obsidian Armor":
+			_cross_by_wading(crossing, spell_name, span, dir)
+		"chant:deep_breath":
+			return _cross_by_breath(crossing, spell_name, span, dir)
+		"Shadow Step":
+			_cross_by_leap(crossing, span, dir, 2.0 * SpellData.SPELLS[spell_name].cost, {"steps": clampi(ceili((span.size.x - 200.0) / 300.0), LEAP_STEPS, 5)})
+		"chant:double_jump":
+			if _at_the_edge(span, dir) and wizard.is_on_floor() and (wizard.air_jump_time > 0.0 or chant.type_then_say("double_jump")):
+				_start_leap(crossing, span, dir, {"steps": 0, "double": true})
+		"leap:air":
+			_cross_by_air(crossing, span, dir)
+		"Lily Pads":
+			_cross_by_pads(crossing, spell_name, span, dir)
 		_:  # a bridge across the whole of it
 			if wizard.stamina >= SpellData.SPELLS[spell_name].cost:
 				hand.begin_cast(spell_name, hand.bridge_stroke(spell_name, span), ATTACK_DRAW)
 				settle = SETTLE
 				_bridged[crossing["key"]] = LASTS[spell_name]
 	return true
+
+
+## A sentinel in the way: it covers itself from the post, once near enough to see it.
+func _cross_sentinel(crossing: Dictionary) -> bool:
+	if wizard.center().distance_to(crossing["post"].center()) > COVER_RANGE:
+		return false
+	var used := _cover(crossing["post"], int(crossing.get("posts", 1)) > 1)
+	if used == "":
+		return false
+	_bridged[crossing["key"]] = LASTS[used]
+	return true
+
+
+## Walks toward the near edge of a crossing, and says so while it is still on the way (see _cross_run). True once it stands at the edge.
+func _at_the_edge(span: Rect2, dir: int, ahead := 20.0) -> bool:
+	var edge := span.position.x if dir > 0 else span.end.x
+	if (edge - wizard.global_position.x) * dir > ahead:
+		_cross_run = dir * WALK_SPEED
+		return false
+	return true
+
+
+## Begins a leap across a crossing (see _leaping), with the fields that differ by the way it is made.
+func _start_leap(crossing: Dictionary, span: Rect2, dir: int, extra: Dictionary) -> void:
+	_leap = {"dir": dir, "key": crossing["key"], "span": span, "jumped": false, "air": 0.0}
+	_leap.merge(extra)
+
+
+## It walks up to the face of the wall and stands there while the ground bubbles under it, while it shoves itself up, while it climbs a vine,
+## a column of air or an oak, or while a whirlwind flings it.
+func _cross_by_lift(crossing: Dictionary, spell_name: String, span: Rect2, dir: int) -> bool:
+	var face := span.position.x - 36.0 if dir > 0 else span.end.x + 36.0
+	if absf(face - wizard.global_position.x) > 12.0:
+		_cross_run = clampf(face - wizard.global_position.x, -WALK_SPEED, WALK_SPEED)
+	elif wizard.is_on_floor() and wizard.stamina >= SpellData.SPELLS[spell_name].cost and not _begin_lift(spell_name, crossing["key"], dir, span):
+		return false
+	return true
+
+
+## It puts on black glass at the edge, wades through the lava, and gets up the far side by a lift.
+func _cross_by_wading(crossing: Dictionary, spell_name: String, span: Rect2, dir: int) -> void:
+	if not _at_the_edge(span, dir):
+		return
+	if wizard.is_on_floor() and wizard.stamina >= SpellData.SPELLS[spell_name].cost + SpellData.SPELLS[_way_up()].cost:
+		hand.begin_cast(spell_name, BrainStrokes.offset(GestureTemplates.preview_points("circle"), wizard.center(), 0.8), QUICK_DRAW)
+		_wade = {"dir": dir, "key": crossing["key"], "span": span, "stage": 0, "waited": 0.0}
+
+
+## It walks to the edge of the gas, holds its breath, and walks through.
+func _cross_by_breath(crossing: Dictionary, spell_name: String, span: Rect2, dir: int) -> bool:
+	if not _at_the_edge(span, dir, BREATH_AHEAD):
+		return true
+	if wizard.deep_breath_time > 0.0 or chant.type_then_say(spell_name.substr(6)):
+		_bridged[crossing["key"]] = minf(wizard.deep_breath_time, GAS_WALK) if wizard.deep_breath_time > 0.0 else GAS_WALK
+		settle = SETTLE
+	elif chant.is_typing():
+		pass  # it is typing the words, standing at the edge
+	else:
+		_cannot[crossing["key"]] = GIVE_UP
+		return false
+	return true
+
+
+## It walks to the edge, waits there until it is on the ground with strength to spare, and leaps.
+func _cross_by_leap(crossing: Dictionary, span: Rect2, dir: int, needs: float, extra: Dictionary) -> void:
+	if _at_the_edge(span, dir) and wizard.is_on_floor() and wizard.stamina >= needs:
+		_start_leap(crossing, span, dir, extra)
+
+
+## It jumps from the edge, and in the air a rocket throws it up and a feather lets it drift down, across.
+func _cross_by_air(crossing: Dictionary, span: Rect2, dir: int) -> void:
+	if not _at_the_edge(span, dir) or not wizard.is_on_floor():
+		return
+	var air: Array[String] = []
+	for helper: String in ["Rocket Jump", "Featherfall"]:
+		if _knows(helper):
+			air.append(helper)
+	var cost := 0.0
+	for helper in air:
+		cost += SpellData.SPELLS[helper].cost
+	if wizard.stamina >= cost:
+		_start_leap(crossing, span, dir, {"steps": 0, "helpers": air})
+
+
+## A row of pads at a time, as far as it reaches, and the next when it has come to the end of that.
+func _cross_by_pads(crossing: Dictionary, spell_name: String, span: Rect2, dir: int) -> void:
+	if wizard.stamina < SpellData.SPELLS[spell_name].cost:
+		return
+	var reach := span.grow_individual(WizardRoute.TILE, 0.0, WizardRoute.TILE, 0.0)  # pads run a tile onto the bank at each end
+	var near := reach.position.x if dir > 0 else reach.end.x
+	var front: float = _pads[crossing["key"]]["front"] if _pads.has(crossing["key"]) else near
+	var from_x := maxf(front, wizard.global_position.x) if dir > 0 else minf(front, wizard.global_position.x)
+	var to_x := clampf(from_x + dir * PADS_REACH, reach.position.x, reach.end.x)
+	var row := Rect2(minf(from_x, to_x), span.position.y, absf(to_x - from_x), span.size.y)
+	hand.begin_cast(spell_name, hand.bridge_stroke(spell_name, row), ATTACK_DRAW)
+	settle = SETTLE
+	var over := (to_x - (reach.end.x if dir > 0 else reach.position.x)) * dir >= 0.0
+	_pads[crossing["key"]] = {"dir": dir, "front": to_x}
+	_pad_walk[crossing["key"]] = {"dir": dir, "end": to_x}
+	_bridged[crossing["key"]] = LASTS[spell_name] if over else SETTLE + absf(to_x - from_x) / WALK_SPEED - 0.8  # the next row goes down when it is near the end of this one
+	if over:
+		_pads.erase(crossing["key"])
 
 
 ## Starts a lift up a wall from where it stands (see _lifting). False, and the wall is given up for a while, when rock overhead would stop it short.
