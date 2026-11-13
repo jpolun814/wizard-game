@@ -1,5 +1,5 @@
 class_name World
-extends "res://scripts/arena.gd"
+extends Arena
 
 ## A generated world: a web of halls joined by tunnels, built from a seed (see WorldGraph and WorldBuilder).
 ## Enemies, pages and gates come later. The player
@@ -238,7 +238,7 @@ func _begin_encounter(camera: Camera2D) -> void:
 		swing.ends.assign(_planks[index]["ends"])
 		swing.ways = _planks[index]["ways"]
 		swing.seed_value = seed_value + 71 + index
-		swing.stone = _earth_texture()  # the stairs are of the same stone as the castle
+		swing.stone = earth_texture()  # the stairs are of the same stone as the castle
 		add_child(swing)
 	for entry in _gates:
 		match entry["kind"]:
@@ -257,7 +257,7 @@ func _begin_encounter(camera: Camera2D) -> void:
 			"dark":
 				var bed := SpikeBed.new()
 				bed.strips = entry["strips"]
-				bed.rock = _earth_texture()
+				bed.rock = earth_texture()
 				add_child(bed)
 			"gas":
 				_spread_gas(entry)
@@ -470,7 +470,7 @@ func _raise_biome_life() -> void:
 			cave.floors = floors  # (a roofed world keeps no sky of its own: its roof is worked out from the ground)
 			cave.seed_value = seed_value + 61
 			cave.player = player
-			cave.earth = _earth_texture()
+			cave.earth = earth_texture()
 			add_child(cave)
 			_timed.append(cave)
 		"ashlands":
@@ -891,7 +891,7 @@ func _drop_pages(wizard: Wizard) -> void:
 		held.append(each)
 	if held.is_empty():
 		return
-	var spot := wizard.global_position + Vector2(0.0, 40.0) if _flies() else _on_ridge(wizard.global_position, _floor_under(wizard.global_position))  # on a ridge, the book lies on it; in the sky it hangs where they fell
+	var spot := wizard.global_position + Vector2(0.0, 40.0) if _flies() else on_ridge(wizard.global_position, _floor_under(wizard.global_position))  # on a ridge, the book lies on it; in the sky it hangs where they fell
 	var name := "Spoils" + String(wizard.name)
 	_lay_spoils(name, held, spot)
 	Net.send(self, &"_lay_spoils", [name, held, spot])

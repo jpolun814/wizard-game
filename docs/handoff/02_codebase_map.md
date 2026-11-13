@@ -53,7 +53,7 @@ never block each other.
 
 ### Core flow
 - **`arena.gd`:** builds the map (the waiting room and the world override `_build_map` and `_begin_encounter`), wires
-  every signal, and routes spells: `spawn_spell` and `_place_shapes`. It also handles the wizard's casts
+  every signal, and hands spells to `SpellSpawner` (`scripts/spells/spell_spawner.gd`, which makes what each spell conjures and where it lands: `spawn`, `place_shapes`). It also handles the wizard's casts
   (`cast_by`, one path for every wizard), rituals (`_on_ritual_finished`), death and restart, pause, debug summons and
   the Insight tooltip. `_is_ground_at` decides where a Stone Wall may start: the ground, a platform, or another
   stone wall.
@@ -68,7 +68,7 @@ never block each other.
   - `mouth()` gives the Fire Breath origin.
 
 ### The waiting room
-- **`lab.gd`** (`scenes/lab.tscn`, the waiting room the first screen leads to): extends `arena.gd` and overrides its `_where_are_we`,
+- **`lab.gd`** (`scenes/lab.tscn`, the waiting room the first screen leads to): extends `Arena` and overrides its `_where_are_we`,
   `_build_map` and `_begin_encounter`. A long map with a lava pit, a gap, a pond, a hill, dummies and a turret; infinite
   stamina, health that comes back, night on N, reset on R. Its portal starts a match in `scenes/world.tscn`; the worlds are described below.
   `tests/showcase.gd` with `scenario=spells` casts every spell here and photographs it.

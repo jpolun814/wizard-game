@@ -1,5 +1,5 @@
 class_name Lab
-extends "res://scripts/arena.gd"
+extends Arena
 
 ## The waiting room: the place before a run, where every spell can be tried. It is one long map with something to
 ## try each spell on: dummies that never fall, a turret that shoots, a pond, a pit of lava, a gap, and a hill. You

@@ -23,7 +23,7 @@ func _ready() -> void:
 	player.global_position = ground + Vector2(-200.0, -40.0)
 	var tip := ground + Vector2(0.0, -90.0)
 	var peak := PackedVector2Array([tip + Vector2(-30.0, 90.0), tip, tip + Vector2(30.0, 90.0)])
-	lab._place_shapes("Stalagmite", {"shapes": [peak], "line": peak})
+	lab.spawner.place_shapes("Stalagmite", {"shapes": [peak], "line": peak})
 	await get_tree().create_timer(0.6).timeout
 	var spikes := get_tree().get_nodes_in_group("danger").filter(func(n: Node) -> bool: return n is Stalagmite)
 	_check(spikes.size() == 1, "one spike rises from the drawn peak (%d)" % spikes.size())

@@ -289,7 +289,7 @@ func _lay_spikes() -> void:
 			floors.append(roundi(ArenaGen.surface_y(_cells, col + k) / float(ArenaGen.TILE)))
 		strips.append({"x": col, "width": 3, "floors": floors})
 	_spikes = SpikeBed.new()
-	_spikes.rock = _earth_texture()
+	_spikes.rock = earth_texture()
 	_spikes.strips = strips
 	add_child(_spikes)
 
@@ -307,7 +307,7 @@ func _lay_pit_spikes() -> void:
 			strips.append({"x": col, "width": 3, "floors": floors})
 			col += 3
 	_pit_spikes = SpikeBed.new()
-	_pit_spikes.rock = _earth_texture()
+	_pit_spikes.rock = earth_texture()
 	_pit_spikes.always_seen = true
 	_pit_spikes.strips = strips
 	add_child(_pit_spikes)

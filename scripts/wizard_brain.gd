@@ -121,7 +121,6 @@ const EYE_SECONDS := 20.0         # how long what a brain sees through its Scryi
 const GAS_WALK := 20.0            # seconds the way through gas is taken to be open after the chant (the breath is held for longer)
 const LIFT_CLEARANCE := 40.0    # pixels it must be thrown above the top of a wall to get over it
 const STRIKE_STAND := 4       # tiles: and it steps up to this far from it
-const ICICLE_REACH := 420.0      # pixels over a rival that a ceiling can hang an icicle from (the arena's own reach)
 const JUMP_REACH := 130.0       # pixels a jump carries it up: the highest ledge it will jump for
 const TORNADO_WAIT := 2.5       # seconds it walks into a whirlwind it has drawn, waiting to be flung, before it takes it for a miss
 const OAK_GROW := 1.1           # seconds it waits for a great oak to stand before it climbs
@@ -2669,7 +2668,7 @@ func _in_dark() -> bool:
 
 ## Whether there is a ceiling over a point that an icicle could hang from.
 func _ceiling_over(point: Vector2) -> bool:
-	var query := PhysicsRayQueryParameters2D.create(point, point + Vector2(0.0, -ICICLE_REACH))
+	var query := PhysicsRayQueryParameters2D.create(point, point + Vector2(0.0, -SpellSpawner.ICICLE_REACH))
 	query.collision_mask = 1
 	var hit := wizard.get_world_2d().direct_space_state.intersect_ray(query)
 	return not hit.is_empty() and hit["normal"].y > 0.3

@@ -563,7 +563,7 @@ clean. It was cleaned up once, without losing any behaviour. Keep it that way:
   became `Mudslide`; the fire walker's effect became `"burning"` when it stopped leaving a trail).
 - **One script per spell effect.** Never add a branch on the spell's name (`if spell == "..."`) to a shared
   script. Simple effects extend `SpellEffect` (`scripts/spells/spell_effect.gd`) and fill in `_begin`, `_act`
-  and `_finish`; bigger ones are their own Node. Add the new class to `arena._new_effect` or `spawn_spell`.
+  and `_finish`; bigger ones are their own Node. Add the new class to `SpellSpawner` (`scripts/spells/spell_spawner.gd`: `_new_effect` or `spawn`).
   A new `class_name` is only registered after `godot --import`.
 - **Every spell** joins the `"danger"` group, and implements `danger_at(point)` (the AI wizards avoid danger,
   their own spells included, since they hurt them too). Anything else in `"danger"` (lava) must have it too: it is called on every member.

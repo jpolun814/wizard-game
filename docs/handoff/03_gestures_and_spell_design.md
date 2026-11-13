@@ -50,7 +50,7 @@
      `_max_deviation`, compare arm lengths, check whether the stroke closes (start near end), and use total
      turning angle measured over spans of a few pixels (2 px steps are noisy).
 3. **Preview:** add `preview_points("my_shape")`, plus `preview_ground` if it must start on the ground.
-4. **Routing:** route it in `arena.spawn_spell` or `_place_shapes`.
+4. **Routing:** route it in `SpellSpawner.spawn` or `place_shapes`.
 5. **Tests:** add the gesture to the mirrored list in `tests/test_gestures.gd` if direction shouldn't matter,
    plus any special checks. The rotated-cone checks are an example.
 6. **Dark wizard:** a score in `WizardBrain._attack` and a stroke in `_attack_stroke`, using preview points
