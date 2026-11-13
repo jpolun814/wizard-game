@@ -45,7 +45,7 @@ static func gain(tree: SceneTree) -> float:
 
 
 ## Shakes the camera in the current scene, if there is one, and the screen every AI wizard would have (Eyes): a shake that reaches a person's
-## screen reaches theirs too, and their hand shakes with it as a person's does (WizardBrain._shaken). Call it from anywhere.
+## screen reaches theirs too, and their hand shakes with it as a person's does (BrainHand.shaken). Call it from anywhere.
 static func shake_scene(tree: SceneTree, amount: float) -> void:
 	var camera := tree.get_first_node_in_group("game_camera") as GameCamera
 	if camera:

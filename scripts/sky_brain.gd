@@ -25,8 +25,7 @@ var _orbit := 1.0               # which way round a rival it circles
 func think(delta: float) -> void:
 	_hurt_age += delta
 	_note_new_pages(delta)
-	_hold_still -= delta
-	_draw_when_still()
+	hand.tick(delta)
 	_cast_cooldown -= delta
 	_defend_cooldown -= delta
 	_goal_timer -= delta
@@ -58,8 +57,8 @@ func think(delta: float) -> void:
 	var to_player := Vector2.ZERO
 	var sees := false
 	if is_instance_valid(foe):
-		to_player = _seen_center(foe) - wizard.center()
-		sees = (wizard.eyes.sees_point(_lure.center()) if _lure != null else eyes_see(foe)) and _clear_line(wizard.center(), _seen_center(foe))
+		to_player = seen_center(foe) - wizard.center()
+		sees = (wizard.eyes.sees_point(_lure.center()) if _lure != null else eyes_see(foe)) and _clear_line(wizard.center(), seen_center(foe))
 	var fighting := sees and to_player.length() < ENGAGE
 	if _react <= 0.0 and not wizard.is_drawing():
 		var shot := _incoming_shot()
@@ -68,7 +67,7 @@ func think(delta: float) -> void:
 			var choice := _choose_defence(shot["eta"])
 			if choice == "":
 				_dodge = DODGE_FOR  # nothing to put up against it: it gets out of the way
-				_dodge_dir = _threat_dir.orthogonal() * (1.0 if _rng.randf() < 0.5 else -1.0)
+				_dodge_dir = _threat_dir.orthogonal() * (1.0 if rng.randf() < 0.5 else -1.0)
 				_defend_cooldown = 0.8
 			else:
 				_plan(choice, _reaction_time())
@@ -91,7 +90,7 @@ func think(delta: float) -> void:
 		elif foe.has_shield():
 			_cast_cooldown = 0.3
 		elif _attack(to_player, sees):
-			_cast_cooldown = lerpf(2.8, 1.5, skill) + _rng.randf() * 0.8
+			_cast_cooldown = lerpf(2.8, 1.5, skill) + rng.randf() * 0.8
 		else:
 			_cast_cooldown = 0.4
 
@@ -145,7 +144,7 @@ func _footwork_in_the_air(to_player: Vector2) -> Vector2:
 		return toward * 0.8
 	_strafe_timer -= 0.016
 	if _strafe_timer <= 0.0:
-		_strafe_timer = _rng.randf_range(1.2, 2.6)
+		_strafe_timer = rng.randf_range(1.2, 2.6)
 		_orbit = -_orbit
 	return toward.orthogonal() * _orbit * 0.35
 
@@ -162,7 +161,7 @@ func _journey(delta: float) -> Vector2:
 			_goal = ""
 			_goal_timer = 0.0
 	elif _goal == "foe" and is_instance_valid(_foe):
-		_target = _seen_center(_foe)
+		_target = seen_center(_foe)
 	if _target == Vector2.INF:
 		return Vector2.ZERO
 	var gap := _target.distance_to(wizard.center())
@@ -231,8 +230,8 @@ func _explore_point() -> Vector2:
 	var best := Vector2.INF
 	var best_new := false
 	for k in 8:
-		var dir := Vector2.RIGHT.rotated(_rng.randf() * TAU)
-		var spot := here + dir * _rng.randf_range(EXPLORE_REACH * 0.5, EXPLORE_REACH)
+		var dir := Vector2.RIGHT.rotated(rng.randf() * TAU)
+		var spot := here + dir * rng.randf_range(EXPLORE_REACH * 0.5, EXPLORE_REACH)
 		if box.size != Vector2.ZERO:
 			spot = spot.clamp(box.position + Vector2(200.0, 200.0), box.end - Vector2(200.0, 200.0))
 		var fresh := not _explored.has(_square_of(spot))
@@ -244,15 +243,9 @@ func _explore_point() -> Vector2:
 	return best
 
 
-## Its eyes for the drag of the screen: the screen does not fall with it, so the view's own motion is all that bends a stroke here (see WizardBrain._drag_ok).
-func _drag_ok(spell_name: String, draw_time: float) -> bool:
-	var row: Dictionary = BrainStrokes.drift_table().get(spell_name, {})
-	if not row.has("right"):
-		return true
-	var slide := wizard.eyes.slide_over(draw_time, wizard.velocity, 0.0)
-	var allow_x: float = row["right"] if slide.x >= 0.0 else row["left"]
-	var allow_y: float = row["down"] if slide.y >= 0.0 else row["up"]
-	return absf(slide.x) <= allow_x * DRAG_MARGIN and absf(slide.y) <= allow_y * DRAG_MARGIN
+## The screen does not fall with a wizard that flies, so the view's own motion is all that bends a stroke here (see BrainHand.drag_ok).
+func drag_gravity() -> float:
+	return 0.0
 
 
 ## A wizard that flies is never "on the floor": a shot's dodge by jumping and the rest are left out.

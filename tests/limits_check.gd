@@ -60,7 +60,7 @@ func _ready() -> void:
 	var last_seen: Vector2 = brain._known[me.get_instance_id()]["at"] if brain._known.has(me.get_instance_id()) else Vector2.INF
 	me.global_position = looker.global_position + Vector2(-Eyes.HALF.x - 400.0, 0.0)  # they slip away unseen, out of its sight (and out of bumping reach)
 	await _frames(30)
-	var thought: Vector2 = brain._seen_feet(me)
+	var thought: Vector2 = brain.seen_feet(me)
 	_verdict(thought.distance_to(last_seen) < 2.0, "it thinks them where it last saw them, not where they went (%s)" % (thought - last_seen))
 	await _frames(int((WizardBrain.REMEMBER + 0.5) * 60.0))
 	_verdict(not brain._known.has(me.get_instance_id()), "and after a while forgets them")
@@ -90,7 +90,7 @@ func _ready() -> void:
 	looker.brain = brain
 	brain._open_chant("haste")
 	_verdict(brain.is_typing() and not looker.start_drawing(near, Color.WHITE, func(_p: PackedVector2Array) -> void: pass, 0.5), "nor while a chant is being typed")
-	_verdict(not brain._begin_cast("Ignite", near, 0.5) and not brain.is_typing(), "a brain that wants to draw closes the chant box first, and the words are lost")
+	_verdict(not brain.hand.begin_cast("Ignite", near, 0.5) and not brain.is_typing(), "a brain that wants to draw closes the chant box first, and the words are lost")
 
 	# The view drags a stroke: a click held still while the wizard walks draws a line, as it does for a person.
 	var walker := Walker.new(looker)
@@ -148,11 +148,11 @@ func _ready() -> void:
 		if looker.eyes.shake_px() < 0.1:
 			break
 		await _frames(1)
-	_verdict(looker.eyes.shake_px() < 0.5 and brain._shaken(line) == line, "a still screen leaves a stroke as it was drawn")
+	_verdict(looker.eyes.shake_px() < 0.5 and brain.hand.shaken(line) == line, "a still screen leaves a stroke as it was drawn")
 	GameCamera.shake_near(get_tree(), looker.global_position + Vector2(5000.0, 0.0), 0.8, 900.0)
 	_verdict(looker.eyes.shake_px() < 0.5, "an eruption far off does not shake its screen")
 	GameCamera.shake_near(get_tree(), looker.global_position + Vector2(100.0, 0.0), 0.8, 900.0)
-	var shaken := brain._shaken(line)
+	var shaken := brain.hand.shaken(line)
 	_verdict(looker.eyes.shake_px() > 2.0 and shaken != line, "one close by shakes its screen (%.1f px) and the stroke it draws with it" % looker.eyes.shake_px())
 	await _frames(int(3.0 * 60.0))
 	_verdict(looker.eyes.shake_px() < 0.5, "and the shake dies away as a person's does")
