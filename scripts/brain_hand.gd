@@ -274,3 +274,97 @@ func shaken(points: PackedVector2Array) -> PackedVector2Array:
 	for p in points:
 		shaken.append(p + Vector2(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)) * px)
 	return shaken
+
+
+## The stroke of a spell it casts for itself.
+func tend_stroke(spell_name: String, to_player: Vector2) -> PackedVector2Array:
+	var dir := signf(to_player.x) if to_player.x != 0.0 else 1.0
+	var here: Vector2 = wizard.center()
+	var feet: Vector2 = wizard.global_position
+	match spell_name:
+		"Flare":
+			return BrainStrokes.offset(GestureTemplates.preview_points("flare"), here + Vector2(0.0, -40.0), 0.6)
+		"Glowcap":
+			return BrainStrokes.offset(GestureTemplates.preview_points("circle"), here + Vector2(dir * 60.0, 0.0), 0.6)
+		"Moonbeam":
+			var at: Vector2 = brain.seen_feet(brain.foe()) if brain.foe() != null else feet
+			return BrainStrokes.line(Vector2(at.x, at.y - 70.0), Vector2(at.x, at.y + 10.0))
+		"Adrenaline":
+			return BrainStrokes.offset(GestureTemplates.preview_points("zigzag"), here, 0.6)
+		"Wild Shape":
+			return BrainStrokes.offset(GestureTemplates.preview_points("eclipse"), here, 0.9)
+		"Hunter's Mark":
+			return BrainStrokes.offset(GestureTemplates.preview_points("arrow"), here, 0.6)
+		"Sneak":  # a wave deep enough not to be read as a flick, which is a Shadow Step on the same buttons
+			var wave := PackedVector2Array()
+			for i in 61:
+				wave.append(here + Vector2(180.0 * i / 60.0 - 90.0, 28.0 * sin(TAU * 3.0 * i / 60.0)))
+			return BrainStrokes.densify(wave)
+		"Stone Wall":  # begun in the ground a step toward you, and drawn up and a little toward you
+			var x := feet.x + dir * 70.0
+			return BrainStrokes.line(Vector2(x, brain.ground_under(Vector2(x, feet.y)) + 4.0), Vector2(x + dir * 20.0, brain.ground_under(Vector2(x, feet.y)) - 90.0))
+		"Smoke Screen":
+			var middle := lerpf(feet.x, feet.x + to_player.x, 0.5)
+			return BrainStrokes.offset(GestureTemplates.preview_points("smoke"), Vector2(middle, feet.y - 50.0), 0.9)
+		"Decoy":
+			return BrainStrokes.offset(GestureTemplates.preview_points("eight"), here + Vector2(-dir * 50.0, 0.0), 0.7)
+		"Eclipse":
+			return BrainStrokes.offset(GestureTemplates.preview_points("eclipse"), brain.seen_center(brain.foe()), 1.0)
+		"Crimson Veil":
+			return BrainStrokes.line(Vector2(here.x, here.y - 50.0), Vector2(here.x, here.y + 20.0))
+		"Obsidian Armor":
+			return BrainStrokes.offset(GestureTemplates.preview_points("circle"), here, 0.8)
+		"Featherfall":
+			return BrainStrokes.offset(GestureTemplates.preview_points("feather"), here, 0.9)
+	return PackedVector2Array()
+
+
+## The stroke that makes a way over a pit of water, along the width of it at its surface: a wave for Frost Bridge, a row of loops for Lily Pads.
+func bridge_stroke(spell_name: String, span: Rect2) -> PackedVector2Array:
+	var level := span.position.y
+	var out := PackedVector2Array()
+	if spell_name == "Frost Bridge":
+		var steps := 80
+		for i in steps + 1:
+			var x := span.size.x * i / steps
+			out.append(Vector2(span.position.x + x, level + 14.0 * sin(x / 22.0)))
+	else:
+		var loops := maxi(roundi(span.size.x / 31.0), 2)  # small loops, two to a pad, so that the pad's height is the line's own
+		var steps := loops * 16
+		for i in steps + 1:
+			var angle := TAU * loops * i / steps
+			out.append(Vector2(span.position.x + span.size.x * i / steps - 10.0 * sin(angle), level - 8.0 - 10.0 * cos(angle)))
+	return BrainStrokes.densify(out)
+
+
+## The stroke of a spell that strikes a point.
+func gate_stroke(spell_name: String, point: Vector2) -> PackedVector2Array:
+	match spell_name:
+		"Ignite", "Frostbolt":
+			var start: Vector2 = wizard.center() + Vector2(signf(point.x - wizard.center().x) * 12.0, -6.0)
+			return BrainStrokes.line(start, start + (point - start).normalized() * 90.0)
+		"Faint":
+			return BrainStrokes.offset(GestureTemplates.preview_points("spiral"), point, 0.5)
+		"Fire Breath":
+			return breath_stroke(point)
+		"Stonefall":
+			return BrainStrokes.offset(GestureTemplates.preview_points("stonefall"), Vector2(point.x, point.y - 130.0), 0.8)
+		"Earthquake":
+			return BrainStrokes.offset(GestureTemplates.preview_points("earthquake"), Vector2(point.x, point.y - 120.0), 1.0)
+		"Firewall":  # a line up and then a line out over the place: a short wall
+			var ground := brain.ground_under(point)
+			return BrainStrokes.offset(GestureTemplates.preview_points("flame_wall"), Vector2(point.x - 40.0, ground - 50.0), 0.8)
+		"Tornado":
+			return BrainStrokes.offset(GestureTemplates.preview_points("tornado"), Vector2(point.x, brain.ground_under(point) - 90.0), 0.9)
+		"Spark":
+			return BrainStrokes.offset(GestureTemplates.preview_points("zigzag"), Vector2(point.x, point.y - 90.0), 1.0)
+		"Gust":
+			var from: Vector2 = wizard.center()
+			var cloud := point  # the wind takes a cloud by its middle, which may lie off the point struck, down a slope
+			var near := INF
+			for node in brain.gate_nodes():  # (untyped: it may be a freed object)
+				if is_instance_valid(node) and not node.is_queued_for_deletion() and node.global_position.distance_to(from) < near:
+					near = node.global_position.distance_to(from)
+					cloud = node.global_position
+			return BrainStrokes.line(from, from + (cloud - from).normalized() * 90.0)
+	return PackedVector2Array()
