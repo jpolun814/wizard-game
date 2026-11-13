@@ -460,7 +460,7 @@ python tools/run_checks.py --full                              # all of them, ab
 | Flora | Barbs | a flick | a short spread of thorns | stone, fire |
 | Earth | Pebble | a flick | a stone that falls as it flies (goes over a wall that stops a flat shot) | cover |
 | Flora | Thorn Whip | the Tide Surf wave | a lash that drags the first thing it meets toward the caster (a wizard, an enemy, a loose page) | a wall, fire; a giant is too heavy |
-| Flora | Insect Plague | an infinity sign, like a bee's wings | a stinging swarm, one cloud that ticks, drawn as insects; it follows the nearest wizard (the caster after a few seconds) | one hit, fire, water, smoke, wind |
+| Flora | Insect Plague | an infinity sign, like a bee's wings | a stinging swarm, one cloud that ticks, drawn as insects; it follows the nearest wizard it can see (the caster after a few seconds) | one hit, fire, water, wind; a Barrier, a faded (Sneak) wizard, smoke or a stone wall in its way |
 | Necromancy | Leech | the Tide Surf wave, aimed at a wizard | a tether (`Leech`): while it holds, every stamina spell the caster casts is paid half by the caster and half by the other end; it breaks when they lose sight of each other, move too far apart, or either falls | a wall, distance |
 | Air | Thunderclap | a cloud (a ring begun at its bottom), then a lightning bolt: a zigzag down out of it | thunder (a recording): throws back everyone near except the caster (no harm) and dazes them (`Wizard.daze_time`: slow, and no spell or chant) | stay out of its reach |
 | Fire | Rocket Jump | an arrow pointing up (drawn with the fire button) | flame from the feet lifts the caster slowly at first and then faster, about 480 px up (`RocketJump`, `Wizard.rocket_time`) | none needed |

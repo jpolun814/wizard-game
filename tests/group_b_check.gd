@@ -36,6 +36,7 @@ func _ready() -> void:
 	await _wait(0.5)
 	await _whip()
 	await _swarm()
+	await _swarm_counters()
 	print("the thorn whip and the swarm work" if _failures == 0 else "%d FAILED" % _failures)
 	get_tree().quit(1 if _failures > 0 else 0)
 
@@ -216,6 +217,59 @@ func _swarm() -> void:
 	swarm._age = InsectPlague.HARD_LIMIT - 0.2
 	await _wait(0.6)
 	_verdict(_swarm_now() == null, "and it does not last for ever")
+
+
+## What a swarm cannot get past or find: a Barrier turns it away, a wizard faded from sight or behind smoke is not found, a stone wall stops it.
+func _swarm_counters() -> void:
+	_player.global_position = _spot + Vector2(-900.0, 0.0)  # out of its sight, so that only the rival is there to follow
+	_player.velocity = Vector2.ZERO
+	var at := _spot + Vector2(0.0, -40.0)
+	_rival.global_position = _spot + Vector2(380.0, 0.0)
+	_rival.velocity = Vector2.ZERO
+	_rival.max_stamina = 200.0
+	await _wait(0.3)
+	_rival.raise_shield(30.0)
+	_cast("Insect Plague", "positional", 0.0, at)
+	await _wait(4.0)
+	_verdict(_swarm_now() == null and _rival.max_stamina == 200.0, "a Barrier turns the swarm away, unhurt (%.0f lost)" % (200.0 - _rival.max_stamina))
+	_rival._shield_time = 0.0
+	_rival.fade_from_sight(30.0)
+	_cast("Insect Plague", "positional", 0.0, at)
+	var swarm := _swarm_now()
+	var start := swarm.global_position
+	await _wait(3.0)
+	_verdict(swarm.global_position.distance_to(start) < 20.0 and _rival.max_stamina == 200.0, "it cannot find a wizard who has faded from sight (%.0f px moved)" % swarm.global_position.distance_to(start))
+	swarm.disperse()
+	await _wait(0.8)
+	_rival.fade_time = 0.0
+	var smoke := Node.new()  # a bank of smoke that no line of sight passes through
+	var script := GDScript.new()
+	script.source_code = "extends Node
+func blocks(_a, _b):
+	return true
+"
+	script.reload()
+	smoke.set_script(script)
+	smoke.add_to_group("sight_blockers")
+	_world.add_child(smoke)
+	_cast("Insect Plague", "positional", 0.0, at)
+	swarm = _swarm_now()
+	start = swarm.global_position
+	await _wait(3.0)
+	_verdict(swarm.global_position.distance_to(start) < 20.0 and _rival.max_stamina == 200.0, "nor one behind a bank of smoke (%.0f px moved)" % swarm.global_position.distance_to(start))
+	swarm.disperse()
+	smoke.queue_free()
+	await _wait(0.8)
+	var wall := _wall(200.0, 260.0)
+	wall.add_to_group("walls")
+	_cast("Insect Plague", "positional", 0.0, at)
+	swarm = _swarm_now()
+	await _wait(5.0)
+	_verdict(swarm != null and not swarm.is_queued_for_deletion() and swarm.global_position.x < wall.global_position.x and _rival.max_stamina == 200.0, "a stone wall stops it in its path (it is at %.0f, the wall at %.0f)" % [swarm.global_position.x - _spot.x, wall.global_position.x - _spot.x])
+	swarm.disperse()
+	wall.queue_free()
+	_rival.global_position = Vector2(-9000.0, -9000.0)
+	_player.global_position = _spot
 
 
 func _swarm_now() -> InsectPlague:

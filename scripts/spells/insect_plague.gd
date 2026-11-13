@@ -3,7 +3,8 @@ extends SpellEffect
 
 ## Insect Plague: a swarm of stinging insects, built as one cloud that ticks and drawn as many insects. It goes after the nearest wizard within reach,
 ## the caster too once it has been out a few seconds, and stings whoever is in it. One hit on it, a flame, water, smoke or wind, and the whole swarm
-## disperses. It gives up when it has had no one to follow for a while, and lasts no longer than a fixed time in all.
+## disperses, and so does a swarm that meets a Barrier. It cannot make out anyone who has faded from sight (Sneak) or who stands behind a bank of smoke, and a
+## stone wall stops it in its path. It gives up when it has had no one to follow for a while, and lasts no longer than a fixed time in all.
 
 const RADIUS := 26.0            # the size of the cloud
 const SIGHT := 520.0            # how far off it notices a wizard
@@ -44,7 +45,9 @@ func _act(delta: float) -> void:
 		_idle = 0.0
 		var to := SpellTargets.center_of(_target) - global_position
 		if to.length() > 6.0:
-			global_position += to.normalized() * minf(Wizard.SPEED * SPEED_SHARE * delta, to.length())
+			var step := to.normalized() * minf(Wizard.SPEED * SPEED_SHARE * delta, to.length())
+			if not _walled(global_position + step):
+				global_position += step
 	if _struck():
 		disperse()
 		return
@@ -61,6 +64,8 @@ func _nearest_wizard() -> Wizard:
 	for wizard: Wizard in SpellTargets.wizards(get_tree()):
 		if wizard.dead or (wizard == caster and _age < IGNORES_CASTER):
 			continue
+		if not wizard.is_seen_from(global_position) or SpellTargets.sight_blocked(get_tree(), global_position, SpellTargets.center_of(wizard)):
+			continue  # one who has faded from sight, or stands behind smoke, is not to be found
 		var gap := SpellTargets.center_of(wizard).distance_to(global_position)
 		if gap < best_gap:
 			best_gap = gap
@@ -81,7 +86,19 @@ func _sting() -> void:
 	Sfx.play("mob_hurt", global_position, -22.0)
 
 
-## True when something has hit the swarm: a shot, a flame, a cloud of smoke or water, or a gust of wind.
+## True when a stone wall (or any wall that was raised) stands at the point: the swarm does not fly through it.
+func _walled(point: Vector2) -> bool:
+	var query := PhysicsPointQueryParameters2D.new()
+	query.position = point
+	query.collision_mask = 1
+	for hit in get_world_2d().direct_space_state.intersect_point(query, 4):
+		var body: Object = hit["collider"]
+		if body is Node and (body.is_in_group("walls") or (body.get_parent() != null and body.get_parent().is_in_group("walls"))):
+			return true
+	return false
+
+
+## True when something has hit the swarm: a shot, a flame, a cloud of smoke or water, a gust of wind, or a Barrier.
 func _struck() -> bool:
 	for shot: Node2D in get_tree().get_nodes_in_group("shots"):
 		if shot.global_position.distance_to(global_position) < RADIUS + 12.0:
@@ -103,6 +120,9 @@ func _struck() -> bool:
 		for body in get_overlapping_bodies():
 			if SpellTargets.affects(body) and pool.holds(body):
 				return true  # and so is one on someone who has jumped in
+	for wizard: Wizard in SpellTargets.wizards(get_tree()):
+		if wizard.has_shield() and SpellTargets.center_of(wizard).distance_to(global_position) < Wizard.SHIELD_RADIUS + RADIUS:
+			return true  # a Barrier turns it away
 	for area in get_overlapping_areas():
 		if area is Gust or area is PushZone or area is Tornado or area is LavaBall:
 			return true  # wind, and a thrown flame
