@@ -12,7 +12,7 @@ const DAZE := 4.0      # seconds
 
 func _begin(origin: Vector2, _aim_angle: float) -> void:
 	_life = 0.5
-	var middle: Vector2 = caster.center() if caster != null and is_instance_valid(caster) else origin
+	var middle: Vector2 = caster.center() if is_instance_valid(caster) else origin
 	global_position = middle
 	var tree := get_tree()
 	for body in SpellTargets.all(tree):

@@ -119,7 +119,7 @@ func _physics_process(delta: float) -> void:
 
 ## True once the pool's liquid is flowing, so the water is wherever the liquid is rather than the rectangle the pool began as.
 func _follows_liquid() -> bool:
-	return pond != null and is_instance_valid(pond) and pond.grid != null
+	return is_instance_valid(pond) and pond.grid != null
 
 
 ## The stretch of water the fish can swim in now: the unbroken run of columns where the liquid is deep enough, that the fish are in (or, failing

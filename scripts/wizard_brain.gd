@@ -303,7 +303,7 @@ func _quiet_here() -> bool:
 		return false
 	if _assailant() != null:
 		return false
-	if _foe != null and is_instance_valid(_foe) and not _foe.dead and _foe_feet().distance_to(wizard.global_position) < 450.0:
+	if is_instance_valid(_foe) and not _foe.dead and _foe_feet().distance_to(wizard.global_position) < 450.0:
 		return false
 	for dx in [-200.0, -120.0, -60.0, 0.0, 60.0, 120.0, 200.0]:
 		if _in_danger(wizard.center() + Vector2(dx, 0.0)) or _in_danger(wizard.global_position + Vector2(dx, -6.0)):
@@ -534,16 +534,16 @@ func _look_about(delta: float) -> void:
 
 ## Where it thinks its rival stands: where they are when it sees them, where it last saw them, or where the shadow it takes for them stands.
 func _foe_feet() -> Vector2:
-	if _foe == null or not is_instance_valid(_foe):
+	if not is_instance_valid(_foe):
 		return wizard.global_position
 	return _seen_feet(_foe)
 
 
 ## Where a rival looks to be standing, to it (see _foe_feet).
 func _seen_feet(other: Wizard) -> Vector2:
-	if other == null or not is_instance_valid(other):
+	if not is_instance_valid(other):
 		return wizard.global_position
-	if other == _foe and _lure != null and is_instance_valid(_lure) and not _lure.is_dead():
+	if other == _foe and is_instance_valid(_lure) and not _lure.is_dead():
 		return _lure.global_position
 	var entry: Dictionary = _known.get(other.get_instance_id(), {})
 	return entry["at"] if entry.get("age", 0.0) > 0.0 else other.global_position
@@ -566,7 +566,7 @@ func _notice_decoys() -> void:
 	var best: Decoy = null
 	for node in wizard.get_tree().get_nodes_in_group("decoys"):
 		var decoy := node as Decoy
-		if decoy.is_dead() or decoy.caster == null or not is_instance_valid(decoy.caster) or decoy.caster == wizard:
+		if decoy.is_dead() or not is_instance_valid(decoy.caster) or decoy.caster == wizard:
 			continue
 		var id := decoy.get_instance_id()
 		var seen := wizard.eyes.sees_point(decoy.center())
@@ -670,7 +670,7 @@ func _while_typing() -> void:
 	wizard.walk(0.0)
 	_typing_age += wizard.get_physics_process_delta_time()
 	var shot := _incoming_shot()
-	var threatened := not shot.is_empty() or (_foe != null and is_instance_valid(_foe) and eyes_see(_foe) and _foe.center().distance_to(wizard.center()) < TOO_CLOSE)
+	var threatened := not shot.is_empty() or (is_instance_valid(_foe) and eyes_see(_foe) and _foe.center().distance_to(wizard.center()) < TOO_CLOSE)
 	if threatened:
 		_break_typing()
 		return
@@ -1940,7 +1940,7 @@ func _noticed(node: Node2D) -> bool:
 		if _first_seen.size() > 64:
 			_first_seen.clear()
 			_first_seen[id] = _clock
-	if _foe == null or not is_instance_valid(_foe):
+	if not is_instance_valid(_foe):
 		return true  # nothing holds its eye: it sees what comes
 	var to_foe := _seen_center(_foe) - wizard.center()
 	var to_shot := node.global_position - wizard.center()
@@ -2002,7 +2002,7 @@ func _choose_repel() -> String:
 
 func _act(reaction: String) -> void:
 	var foe: Wizard = _foe
-	if (foe == null or not is_instance_valid(foe)) and reaction in ["push", "breath", "spores", "geyser", "surf", "blink_side", "blink_away"]:
+	if (not is_instance_valid(foe)) and reaction in ["push", "breath", "spores", "geyser", "surf", "blink_side", "blink_away"]:
 		return  # (a reaction planned against a rival who is gone from its mind by the time it comes)
 	match reaction:
 		"jump":
@@ -2222,7 +2222,6 @@ func _attack(to_player: Vector2, sees: bool) -> bool:
 	var still: bool = foe.velocity.length() < 30.0
 	var stuck: bool = _held(foe)
 	var grounded: bool = foe.stands()
-	var same_ground: bool = grounded and wizard.is_on_floor() and absf(_seen_feet(foe).y - wizard.global_position.y) < 8.0
 	var closing: bool = signf(foe.velocity.x) == signf(-to_player.x) and absf(foe.velocity.x) > 60.0
 	var aim_ok := absf(to_player.normalized().x) > 0.4  # a near-vertical stroke is a poor flick
 	var scores := {

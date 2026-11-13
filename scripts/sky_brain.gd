@@ -57,7 +57,7 @@ func think(delta: float) -> void:
 	var foe: Wizard = _foe
 	var to_player := Vector2.ZERO
 	var sees := false
-	if foe != null and is_instance_valid(foe):
+	if is_instance_valid(foe):
 		to_player = _seen_center(foe) - wizard.center()
 		sees = (wizard.eyes.sees_point(_lure.center()) if _lure != null else eyes_see(foe)) and _clear_line(wizard.center(), _seen_center(foe))
 	var fighting := sees and to_player.length() < ENGAGE
@@ -161,7 +161,7 @@ func _journey(delta: float) -> Vector2:
 			_skip[_goal_page.get_instance_id()] = GIVE_UP_PAGE
 			_goal = ""
 			_goal_timer = 0.0
-	elif _goal == "foe" and _foe != null and is_instance_valid(_foe):
+	elif _goal == "foe" and is_instance_valid(_foe):
 		_target = _seen_center(_foe)
 	if _target == Vector2.INF:
 		return Vector2.ZERO
@@ -217,7 +217,7 @@ func _choose_where() -> void:
 		_goal = "page"
 		_goal_page = best
 		return
-	if _foe != null and is_instance_valid(_foe) and _strength >= BOLD_ABOVE:
+	if is_instance_valid(_foe) and _strength >= BOLD_ABOVE:
 		_goal = "foe"
 		return
 	_goal = "explore"

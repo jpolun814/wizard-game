@@ -166,7 +166,7 @@ func _lights_now() -> Array:
 ## True when another wizard can be made out: on the screen, in plain sight, and not faded from sight (unless a hex's star floats over them,
 ## or they are close enough to be bumped into).
 func sees_wizard(other: Wizard) -> bool:
-	if other == null or not is_instance_valid(other) or other.dead:
+	if not is_instance_valid(other) or other.dead:
 		return false
 	if not other.is_seen_from(wizard.center()):
 		return false
@@ -175,7 +175,7 @@ func sees_wizard(other: Wizard) -> bool:
 
 ## True when a thing (a shot, a creature, a page) can be seen.
 func sees_node(node: Node2D) -> bool:
-	if node == null or not is_instance_valid(node):
+	if not is_instance_valid(node):
 		return false
 	return sees_point(SpellTargets.center_of(node) if node is CollisionObject2D else node.global_position)
 

@@ -2,15 +2,13 @@ class_name Blizzard
 extends SpellEffect
 
 ## Snow falling from clouds along the drawn line down to the ground under it, under a faint white wash. Anything in it
-## is slowed, and stays slowed for a moment after leaving. A lasting blizzard (the spell) snows until it is put out:
-## what lands builds up into a pile that settles like real snow, can be walked on, and is melted by fire. A passing
-## fall (an ice enemy's trail) lasts a few seconds and leaves no pile.
+## is slowed, and stays slowed for a moment after leaving. It snows until it is put out:
+## what lands builds up into a pile that settles like real snow, can be walked on, and is melted by fire.
 
 const CHILL_TO_FREEZE := 5.0  # seconds in the snow before the cold takes hold
 const CHILL_FADE := 1.5       # chill leaves this many times as fast as it comes, once out of the snow
 const IMMUNE_FOR := 1.5       # seconds after the ice thaws that the cold cannot take hold again
 const FROST_FROM := 0.2       # the share of the chill at which frost starts to show on a body
-const TRAIL_LIFE := 6.0
 const SLOW_SECONDS := 2.0
 const STEP := 6.0  # the ground under the snow is measured, and the pile kept, in columns this wide
 const PILE_GROW := 2.0  # landed snow builds up this many pixels a second, at most up to the clouds
@@ -24,39 +22,33 @@ const CLOUDS := [preload("res://art/props/cloud_snow_big.png"), preload("res://a
 		preload("res://art/props/cloud_snow_small_2.png")]
 
 var polygon := PackedVector2Array()  # the band along the drawn line, from its left end; set before setup
-var lasting := true
 var _floors := PackedFloat32Array()  # the ground under each column, relative to the line
 var _pile := PackedFloat32Array()  # how deep the landed snow is in each column
 var _pile_shapes: Array[CollisionShape2D] = []
 var _shape_heights := PackedFloat32Array()  # the height each column's solid shape was last given
 var _pile_timer := 0.0
 var _dissipating := false
-var _chill := {}  # body -> seconds of cold it has taken, for the lasting storm only
+var _chill := {}  # body -> seconds of cold it has taken
 var _frozen_here := {}  # body -> true, for the bodies this storm has frozen, so the end of their ice is noticed
 
 
 func _begin(origin: Vector2, _aim_angle: float) -> void:
 	add_to_group("clouds")
-	if lasting:
-		_life = INF
-		add_to_group("lasting")
-		add_to_group("danger")
-	else:
-		_life = TRAIL_LIFE
+	_life = INF
+	add_to_group("lasting")
+	add_to_group("danger")
 	_floors = _measure_ground()
 	_pile.resize(_floors.size())
 	_pile.fill(0.0)
 	var band := ConvexPolygonShape2D.new()
 	band.points = polygon
 	_add_shape(band)
-	if lasting:
-		_build_pile_body()
+	_build_pile_body()
 	Sfx.play("snow", origin)
 
 
 func _act(delta: float) -> void:
-	if lasting:
-		_grow_pile(delta)
+	_grow_pile(delta)
 	_tick -= delta
 	if _tick <= 0.0:
 		_tick = 0.5
@@ -70,15 +62,14 @@ func _act(delta: float) -> void:
 		else:
 			body.apply_debuff("slow", SLOW_SECONDS)
 		inside[body] = true
-	if lasting:
-		for body in SpellTargets.all(get_tree()):
-			if not inside.has(body) and SpellTargets.affects(body) and _snowed_on(body):
-				inside[body] = true  # the snow falls the whole way down to the ground, not only where the clouds are
-				if body.is_in_group("mobs"):
-					body.apply_slow(SLOW_SECONDS)
-				else:
-					body.apply_debuff("slow", SLOW_SECONDS)
-		_take_the_cold(inside, delta)
+	for body in SpellTargets.all(get_tree()):
+		if not inside.has(body) and SpellTargets.affects(body) and _snowed_on(body):
+			inside[body] = true  # the snow falls the whole way down to the ground, not only where the clouds are
+			if body.is_in_group("mobs"):
+				body.apply_slow(SLOW_SECONDS)
+			else:
+				body.apply_debuff("slow", SLOW_SECONDS)
+	_take_the_cold(inside, delta)
 
 
 ## The cold takes hold of whoever stays in the snow, and lets go of whoever leaves it. Enough of it freezes a body in ice, as an Ice Prison does,
@@ -137,7 +128,7 @@ func _snowed_on(body: Node2D) -> bool:
 
 ## True where the snow falls on a wizard standing in it, for the wizards that step out of danger.
 func danger_at(point: Vector2) -> bool:
-	if not lasting or _floors.is_empty():
+	if _floors.is_empty():
 		return false
 	var from := global_position.x
 	if point.x < from or point.x > from + _width():
@@ -215,7 +206,7 @@ func _grow_pile(delta: float) -> void:
 ## A fire that strikes the bank (a fireball against its wall) melts the snow there at once: a bite out of it, deepest where it struck.
 static func melt_at(tree: SceneTree, point: Vector2) -> void:
 	for cloud: Node in tree.get_nodes_in_group("clouds"):
-		if cloud is Blizzard and cloud.lasting:
+		if cloud is Blizzard:
 			cloud._bite(point)
 
 

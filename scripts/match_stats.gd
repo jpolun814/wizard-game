@@ -65,7 +65,7 @@ static func _enter_world() -> void:
 
 ## Counts the time, and adds a point to every chart now and then.
 static func tick(delta: float) -> void:
-	if me == null or not is_instance_valid(me) or me.dead or finished:
+	if not is_instance_valid(me) or me.dead or finished:
 		return
 	seconds += delta
 	_clock += delta
@@ -92,14 +92,14 @@ static func finish() -> void:
 
 ## How many pages the person's book holds: spells and incantations both.
 static func pages_known() -> int:
-	if me == null or not is_instance_valid(me):
+	if not is_instance_valid(me):
 		return 0
 	return me.ledger.count()
 
 
 ## The wizard a thing belongs to: a wizard, or whoever cast a spell or raised a skeleton. Null for a thing that belongs to no one.
 static func owner_of(thing: Variant) -> Wizard:
-	if thing == null or not is_instance_valid(thing):
+	if not is_instance_valid(thing):
 		return null  # (it may be a node that has been freed since, so it is asked about before it is used)
 	if thing is Wizard:
 		return thing

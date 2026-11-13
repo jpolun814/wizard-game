@@ -98,6 +98,6 @@ func _process(delta: float) -> void:
 ## Where the person looking is: their wizard, or the middle of the screen when they are not in a body.
 func _viewer(camera: Camera2D) -> Vector2:
 	var player := get_tree().get_first_node_in_group("player") as Node2D
-	if player != null and is_instance_valid(player):
+	if is_instance_valid(player):
 		return SpellTargets.center_of(player)
 	return camera.get_screen_center_position() if camera != null else Vector2.ZERO

@@ -94,7 +94,7 @@ func _on_shown_or_hidden() -> void:
 func _process(delta: float) -> void:
 	if not is_visible_in_tree():
 		return
-	if watched == null or not is_instance_valid(watched) or watched.dead:
+	if not is_instance_valid(watched) or watched.dead:
 		_watch(null)
 		_pick_time -= delta
 		if _pick_time <= 0.0:

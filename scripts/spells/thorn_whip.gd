@@ -98,7 +98,7 @@ func _grab(thing: Node2D) -> void:
 
 
 func _act(delta: float) -> void:
-	if _held == null or not is_instance_valid(_held) or _burnt:
+	if not is_instance_valid(_held) or _burnt:
 		return
 	if _age < LASH:
 		return  # the lash has not reached it yet
@@ -106,9 +106,9 @@ func _act(delta: float) -> void:
 		_bitten = true
 		SpellTargets.hurt(_held, HARM, "Flora", false, false, self)
 		Fx.burst(get_parent(), SpellTargets.center_of(_held), Color("#8fd35a"), 6, 70.0, 0.3, false)
-		if _held is Wizard and caster != null and is_instance_valid(caster):
+		if _held is Wizard and is_instance_valid(caster):
 			_held.push((caster.global_position + Vector2(0.0, -20.0) - SpellTargets.center_of(_held)).normalized() * YANK)  # a yank, not a tug
-	var home: Vector2 = caster.global_position + Vector2(0.0, -20.0) if caster != null and is_instance_valid(caster) else _from
+	var home: Vector2 = caster.global_position + Vector2(0.0, -20.0) if is_instance_valid(caster) else _from
 	if _holds_page:
 		var to_home := home - _held.global_position
 		if to_home.length() < 40.0:

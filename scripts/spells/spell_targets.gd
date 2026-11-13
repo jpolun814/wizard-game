@@ -7,7 +7,7 @@ extends RefCounted
 
 ## True when a spell can hurt the body: a wizard, or an enemy, still standing.
 static func affects(body: Node) -> bool:
-	if body == null or not is_instance_valid(body):
+	if not is_instance_valid(body):
 		return false
 	if body.is_in_group("wizards"):
 		return not body.dead
@@ -16,7 +16,7 @@ static func affects(body: Node) -> bool:
 
 ## The wizard whose blow this is: the wizard themselves, or the one whose spell (it knows its caster) did it. Nothing for an enemy's or the world's.
 static func striker_of(by: Node) -> Wizard:
-	if by == null or not is_instance_valid(by):
+	if not is_instance_valid(by):
 		return null  # (a spell whose caster has left the world)
 	if by is Wizard:
 		return by

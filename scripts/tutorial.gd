@@ -426,7 +426,7 @@ func _rescue_from_pits(column: float) -> void:
 ## The giant does not leave its place. It fights as any giant does, so whoever walks past it is hit by its own blows, and nothing else (the room never kills
 ## anyone for where they stand or what they did: only what strikes them, a blow, a bolt, spikes, bites or thorns).
 func _hold_the_giant() -> void:
-	if _giant != null and is_instance_valid(_giant) and not _giant.is_dead() and not _giant.is_fainted():
+	if is_instance_valid(_giant) and not _giant.is_dead() and not _giant.is_fainted():
 		_giant.apply_root(0.5)
 
 

@@ -111,7 +111,6 @@ var last_spell := ""
 var _walk := 0.0  # the speed a brain asks to walk at, left or right, in pixels a second
 var _jump_strength := 1.0  # how much of a full jump a brain asked for
 var climb_up := false  # what a brain asks of a vine; a person's keys say the same
-var climb_down := false
 var let_go := false
 var _stroke := PackedVector2Array()  # the spell a brain's wizard is drawing, and how far on it is
 var _draw_time := 0.0
@@ -992,7 +991,7 @@ func _climb() -> bool:
 	if _vine != null and (not is_instance_valid(_vine) or not _vine.can_grab(hands)):
 		_vine = null
 	var up := Input.is_action_pressed("move_up") if brain == null else climb_up
-	var down := Input.is_action_pressed("move_down") if brain == null else climb_down
+	var down := Input.is_action_pressed("move_down") if brain == null else false
 	var letting_go := Input.is_action_pressed("let_go") if brain == null else let_go
 	var sideways := Input.get_axis("move_left", "move_right") if brain == null else clampf(_walk / SPEED, -1.0, 1.0)
 	if _vine == null:

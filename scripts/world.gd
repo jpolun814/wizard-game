@@ -416,7 +416,7 @@ func _raise_biome_life() -> void:
 			for bridge: Dictionary in JungleTree.bridges(trees, floors):
 				var span := CanopyBridge.new()
 				span.width = (bridge["last"] - bridge["first"] + 1) * tile
-				span.position = Vector2(bridge["first"] * tile, floors[bridge["tree"]] * tile + 2.0 - JungleTree.LEDGES[JungleTree.VINE_LEDGE][0] * float(trees[0]["size"] if false else _tree_size(bridge["tree"])))
+				span.position = Vector2(bridge["first"] * tile, floors[bridge["tree"]] * tile + 2.0 - JungleTree.LEDGES[JungleTree.VINE_LEDGE][0] * float(_tree_size(bridge["tree"])))
 				add_child(span)
 			_squall = Squall.new()
 			_squall.rain = true
@@ -1391,7 +1391,7 @@ func _record_match(place: int) -> void:
 
 ## The story of the match so far, over the screen: where the person came, and charts of what they did.
 func _show_stats() -> void:
-	if _stats != null and is_instance_valid(_stats):
+	if is_instance_valid(_stats):
 		return
 	_stats = StatsScreen.new()
 	hud.add_child(_stats)
@@ -1407,7 +1407,7 @@ func _show_win_stats() -> void:
 	_win_stats_due = false
 	if _leaving:
 		return
-	if _stats == null or not is_instance_valid(_stats):
+	if not is_instance_valid(_stats):
 		_stats = StatsScreen.new()
 		hud.add_child(_stats)
 	hud.move_child(_stats, -1)
@@ -1428,7 +1428,7 @@ func debug_lose() -> void:
 
 ## The person asks to see their stats again, once the match is over for them.
 func _look_at_stats() -> void:
-	if _stats == null or not is_instance_valid(_stats):
+	if not is_instance_valid(_stats):
 		_stats = StatsScreen.new()
 		hud.add_child(_stats)
 	hud.move_child(_stats, -1)  # over everything else on the layer
@@ -1492,7 +1492,7 @@ func _count_wizards(delta: float) -> void:
 
 ## The ending waits while the person is reading their stats, so it never cuts in on them.
 func _epilogue_when_stats_are_away(look: String, palette: int) -> void:
-	if _win_stats_due or (_stats != null and is_instance_valid(_stats) and _stats.visible):
+	if _win_stats_due or (is_instance_valid(_stats) and _stats.visible):
 		get_tree().create_timer(0.5).timeout.connect(_epilogue_when_stats_are_away.bind(look, palette))
 		return
 	_end_with_epilogue(look, palette)
@@ -1707,7 +1707,6 @@ func _cluster_spots(origin: Vector2, count: int) -> Array[Vector2]:
 			reachable.append(floor_at)
 	reachable.sort_custom(func(a: Vector2, b: Vector2) -> bool: return absf(a.x - origin.x) < absf(b.x - origin.x))
 	var out: Array[Vector2] = []
-	var side_taken := {1: false, -1: false}
 	for spot in reachable:
 		var gap_ok := true
 		for other in out:
