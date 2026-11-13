@@ -126,6 +126,7 @@ never block each other.
     school-coloured outline, the hit flash and the frozen look.
   - Every attack is telegraphed: a melee wind-up, a shooter's charge.
 - **`wizard_brain.gd`:** the AI wizards (see `06_enemies_and_ai.md`); `sky_brain.gd` in the sky.
+  The brain is being split into skills, each a `RefCounted` given the brain and its wizard (`docs/handoff/17_redesign_plan.md`): `brain_hand.gd` (`BrainHand`: every stroke, how it is drawn and when; `brain.hand`), `brain_chant.gd` (`BrainChant`: the chant box; `brain.chant`) and `brain_strokes.gd` (`BrainStrokes`: static shape helpers, the drift table and the quickest-stroke floor).
 - **Other pieces:** `enemy_bolt.gd` (a turret's or sentinel's shot, reflectable), `hazard.gd` (burning ground where a volcano's lava lands).
 
 ### Visuals

@@ -10,6 +10,10 @@ out here and say what changed in `02_codebase_map.md`.
 - `Arena` has a `class_name`, and `SpellSpawner` (`scripts/spells/spell_spawner.gd`) holds what each spell makes. `arena.gd` went from 1,349 to 836 lines. This is the pattern to repeat:
   a `RefCounted` class that is given its owner, keeps one job, and is reached through a public field (`arena.spawner`). The compiler finds every missed reference, so a step is quick to check.
 
+- The brain's first three pieces are out (2026-11-13): `BrainStrokes` (the static helpers), `BrainHand` (strokes and casting) and `BrainChant` (the chant box). `wizard_brain.gd` went from 2,866 to
+  2,403 lines. What is left of the table below is `BrainSight`, `BrainExplore`, `BrainTravel`, `BrainGates`, `BrainCombat` and what remains of `BrainMend` (`_mend`, the bonfire). They share
+  state (`settle`, `_camped`, `_goal`, `_foe`) that has to be given a home before they move: each field goes to the piece that writes it, or to a small object that all are given.
+
 ## Ground rules for every step
 
 - **Behaviour does not change.** A refactor that fixes a bug or adds a feature is two changes: make them apart.
