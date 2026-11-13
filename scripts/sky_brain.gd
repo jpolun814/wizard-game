@@ -246,7 +246,7 @@ func _explore_point() -> Vector2:
 
 ## Its eyes for the drag of the screen: the screen does not fall with it, so the view's own motion is all that bends a stroke here (see WizardBrain._drag_ok).
 func _drag_ok(spell_name: String, draw_time: float) -> bool:
-	var row: Dictionary = _drift_table().get(spell_name, {})
+	var row: Dictionary = BrainStrokes.drift_table().get(spell_name, {})
 	if not row.has("right"):
 		return true
 	var slide := wizard.eyes.slide_over(draw_time, wizard.velocity, 0.0)

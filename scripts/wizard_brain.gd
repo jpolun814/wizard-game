@@ -35,8 +35,6 @@ const PUSH_THROUGH_FOR := 5.0   # seconds it goes on through danger after backin
 const PAGE_GLOW := 120.0  # a page shines: its glow shows at the edge of the screen when it lies this far past it
 const EXPLORE_FLOOR := 12     # tiles between one floor of a tall building and the next, when it looks for pages above or below
 const EXPLORE_STEP := 20    # tiles between the places it picks to look at, going along
-const DRIFT_FILE := "res://ai/stroke_drift.json"
-const HUMAN_FILE := "res://ai/human_limits.json"  # what people's bodies were measured to do (tools/measure_human.py)
 const CHORD_GAP_MIN := 0.01  # seconds between the first button of a chord and the last (the middle half of 135 chords recorded)
 const CHORD_GAP_MAX := 0.05
 const READ_MIN := 0.87       # seconds a new page is looked at before its spell is drawn (the middle half of the recordings)
@@ -178,14 +176,12 @@ var _typing := ""                # the chant it is typing, and will say when _se
 var _hold_still := 0.0
 var _stroke_in := 0.0         # seconds to its next stroke in the water
 var _for_air := false         # it is on its way up for air
-static var _human := {}
 var _clock := 0.0                 # seconds this brain has been thinking
 var _first_seen := {}             # shot instance id -> the time on _clock it first came on its screen (see _noticed)
 var _read_until := {}             # page -> the time on _clock until which it is still reading it (see _note_new_pages)
 var _pages_noted := -1
 var _ledger_noted: Ledger
 var _pending := {}                # a stroke it stopped to draw: drawn as soon as it stands still enough (see _draw_when_still)
-static var _drift := {}
 var _typing_age := 0.0
 var _typing_total := 1.0           # seconds since the chant box was opened
 var _said := {}                   # chant id -> whether it took, for a chant just typed and said, until whoever asked for it looks (see _type_then_say)
@@ -1150,7 +1146,7 @@ func _cross(crossing: Dictionary) -> bool:
 			if (edge - wizard.global_position.x) * dir > 20.0:
 				_cross_run = dir * WALK_SPEED
 			elif wizard.is_on_floor() and wizard.stamina >= SpellData.SPELLS[spell_name].cost + SpellData.SPELLS[_way_up()].cost:
-				_begin_cast(spell_name, _offset(GestureTemplates.preview_points("circle"), wizard.center(), 0.8), QUICK_DRAW)
+				_begin_cast(spell_name, BrainStrokes.offset(GestureTemplates.preview_points("circle"), wizard.center(), 0.8), QUICK_DRAW)
 				_wade = {"dir": dir, "key": crossing["key"], "span": span, "stage": 0, "waited": 0.0}
 		"chant:deep_breath":  # it walks to the edge of the gas, holds its breath, and walks through
 			var edge := span.position.x if dir > 0 else span.end.x
@@ -1274,7 +1270,7 @@ func _leaping(delta: float) -> float:
 	if not helpers.is_empty() and not wizard.is_drawing():
 		if helpers[0] == "Rocket Jump" and wizard.velocity.y < -40.0 and _leap["air"] > 0.12:
 			helpers.pop_front()
-			_begin_cast("Rocket Jump", _offset(GestureTemplates.preview_points("rocket"), wizard.center(), 0.6), LEAP_DRAW)
+			_begin_cast("Rocket Jump", BrainStrokes.offset(GestureTemplates.preview_points("rocket"), wizard.center(), 0.6), LEAP_DRAW)
 		elif helpers[0] == "Featherfall" and wizard.velocity.y > -20.0:
 			helpers.pop_front()
 			_begin_cast("Featherfall", _tend_stroke("Featherfall", Vector2.ZERO), LEAP_DRAW)
@@ -1291,7 +1287,7 @@ func _leaping(delta: float) -> float:
 	if _leap["steps"] > 0 and not wizard.is_drawing() and not beyond and (wizard.velocity.y > -40.0 or _leap["steps"] < LEAP_STEPS):
 		_leap["steps"] -= 1
 		var start: Vector2 = wizard.center()
-		_begin_cast("Shadow Step", _line(start, start + Vector2(dir * SpellData.STEP_MAX, -10.0).normalized() * SpellData.STEP_MAX), LEAP_DRAW)
+		_begin_cast("Shadow Step", BrainStrokes.line(start, start + Vector2(dir * SpellData.STEP_MAX, -10.0).normalized() * SpellData.STEP_MAX), LEAP_DRAW)
 	return dir * WizardRoute.MAX_AIR_SPEED
 
 
@@ -1309,22 +1305,22 @@ func _lifting(delta: float) -> float:
 		if _lift["spell"] == "Push":
 			_begin_cast("Push", _push_stroke(feet, Vector2(dir * 0.2, -1.0).normalized()), QUICK_DRAW)
 		elif _lift["spell"] == "Liana":  # a vine from the ground at its feet, taller than the wall
-			_begin_cast("Liana", _offset(GestureTemplates.preview_points("vine"), Vector2(feet.x + 50.0 * VINE_SCALE, wizard.global_position.y - 75.0 * VINE_SCALE), VINE_SCALE), QUICK_DRAW)
+			_begin_cast("Liana", BrainStrokes.offset(GestureTemplates.preview_points("vine"), Vector2(feet.x + 50.0 * VINE_SCALE, wizard.global_position.y - 75.0 * VINE_SCALE), VINE_SCALE), QUICK_DRAW)
 		elif _lift["spell"] == "Rocket Jump":  # an arrow up drawn at its feet: the flame throws it high
-			_begin_cast("Rocket Jump", _offset(GestureTemplates.preview_points("rocket"), feet, 0.6), QUICK_DRAW)
+			_begin_cast("Rocket Jump", BrainStrokes.offset(GestureTemplates.preview_points("rocket"), feet, 0.6), QUICK_DRAW)
 		elif _lift["spell"] == "Updraft":  # a column of air where it stands
-			_begin_cast("Updraft", _offset(GestureTemplates.preview_points("updraft"), feet, 0.6), QUICK_DRAW)
+			_begin_cast("Updraft", BrainStrokes.offset(GestureTemplates.preview_points("updraft"), feet, 0.6), QUICK_DRAW)
 		elif _lift["spell"] == "Tornado":  # a whirlwind a step ahead of it, to walk into
-			_begin_cast("Tornado", _offset(GestureTemplates.preview_points("tornado"), Vector2(feet.x + dir * 60.0, wizard.global_position.y - 90.0), 0.9), ATTACK_DRAW)
+			_begin_cast("Tornado", BrainStrokes.offset(GestureTemplates.preview_points("tornado"), Vector2(feet.x + dir * 60.0, wizard.global_position.y - 90.0), 0.9), ATTACK_DRAW)
 		elif _lift["spell"] == "Great Oak":  # a trunk drawn up from the ground a step ahead of it
 			var shape := GestureTemplates.preview_points("tree")
 			var foot := Vector2(feet.x + dir * 50.0, wizard.global_position.y - 4.0)
 			var moved := PackedVector2Array()
 			for p in shape:
 				moved.append(foot + (p - shape[0]) * 0.7)
-			_begin_cast("Great Oak", _densify(moved), ATTACK_DRAW)
+			_begin_cast("Great Oak", BrainStrokes.densify(moved), ATTACK_DRAW)
 		else:
-			_begin_cast("Geyser", _offset(GestureTemplates.preview_points("geyser"), feet, 0.6), QUICK_DRAW)
+			_begin_cast("Geyser", BrainStrokes.offset(GestureTemplates.preview_points("geyser"), feet, 0.6), QUICK_DRAW)
 		return 0.0
 	if _lift["spell"] == "Great Oak" and not _lift["thrown"]:  # it climbs the oak's ledges one by one
 		var step := _climb_oak(delta, span, dir)
@@ -1412,7 +1408,7 @@ func _bridge_stroke(spell_name: String, span: Rect2) -> PackedVector2Array:
 		for i in steps + 1:
 			var angle := TAU * loops * i / steps
 			out.append(Vector2(span.position.x + span.size.x * i / steps - 10.0 * sin(angle), level - 8.0 - 10.0 * cos(angle)))
-	return _densify(out)
+	return BrainStrokes.densify(out)
 
 
 ## Draws what keeps a sentinel from hitting it: smoke over the statue, or a Barrier, or a Decoy. The name of the spell, or "" when it can do none.
@@ -1424,13 +1420,13 @@ func _cover(post: Node2D, many := false) -> String:
 		match spell_name:
 			"Smoke Screen":
 				var base: Vector2 = post.center()
-				_begin_cast(spell_name, _offset(GestureTemplates.preview_points("smoke"), base + Vector2(0, -30.0), 0.9), QUICK_DRAW)
+				_begin_cast(spell_name, BrainStrokes.offset(GestureTemplates.preview_points("smoke"), base + Vector2(0, -30.0), 0.9), QUICK_DRAW)
 			"Eclipse":
-				_begin_cast(spell_name, _offset(GestureTemplates.preview_points("eclipse"), post.center() + Vector2(0, -20.0), 1.0), QUICK_DRAW)
+				_begin_cast(spell_name, BrainStrokes.offset(GestureTemplates.preview_points("eclipse"), post.center() + Vector2(0, -20.0), 1.0), QUICK_DRAW)
 			"Barrier":
-				_begin_cast(spell_name, _offset(GestureTemplates.preview_points("circle"), around, 0.8), QUICK_DRAW)
+				_begin_cast(spell_name, BrainStrokes.offset(GestureTemplates.preview_points("circle"), around, 0.8), QUICK_DRAW)
 			"Decoy":
-				_begin_cast(spell_name, _offset(GestureTemplates.preview_points("eight"), around + Vector2(-40.0 * signf(post.center().x - around.x), 0.0), 0.7), QUICK_DRAW)
+				_begin_cast(spell_name, BrainStrokes.offset(GestureTemplates.preview_points("eight"), around + Vector2(-40.0 * signf(post.center().x - around.x), 0.0), 0.7), QUICK_DRAW)
 		return spell_name
 	return ""
 
@@ -1845,22 +1841,22 @@ func _gate_stroke(spell_name: String, point: Vector2) -> PackedVector2Array:
 	match spell_name:
 		"Ignite", "Frostbolt":
 			var start: Vector2 = wizard.center() + Vector2(signf(point.x - wizard.center().x) * 12.0, -6.0)
-			return _line(start, start + (point - start).normalized() * 90.0)
+			return BrainStrokes.line(start, start + (point - start).normalized() * 90.0)
 		"Faint":
-			return _offset(GestureTemplates.preview_points("spiral"), point, 0.5)
+			return BrainStrokes.offset(GestureTemplates.preview_points("spiral"), point, 0.5)
 		"Fire Breath":
 			return _breath_stroke(point)
 		"Stonefall":
-			return _offset(GestureTemplates.preview_points("stonefall"), Vector2(point.x, point.y - 130.0), 0.8)
+			return BrainStrokes.offset(GestureTemplates.preview_points("stonefall"), Vector2(point.x, point.y - 130.0), 0.8)
 		"Earthquake":
-			return _offset(GestureTemplates.preview_points("earthquake"), Vector2(point.x, point.y - 120.0), 1.0)
+			return BrainStrokes.offset(GestureTemplates.preview_points("earthquake"), Vector2(point.x, point.y - 120.0), 1.0)
 		"Firewall":  # a line up and then a line out over the place: a short wall
 			var ground := _ground_under(point)
-			return _offset(GestureTemplates.preview_points("flame_wall"), Vector2(point.x - 40.0, ground - 50.0), 0.8)
+			return BrainStrokes.offset(GestureTemplates.preview_points("flame_wall"), Vector2(point.x - 40.0, ground - 50.0), 0.8)
 		"Tornado":
-			return _offset(GestureTemplates.preview_points("tornado"), Vector2(point.x, _ground_under(point) - 90.0), 0.9)
+			return BrainStrokes.offset(GestureTemplates.preview_points("tornado"), Vector2(point.x, _ground_under(point) - 90.0), 0.9)
 		"Spark":
-			return _offset(GestureTemplates.preview_points("zigzag"), Vector2(point.x, point.y - 90.0), 1.0)
+			return BrainStrokes.offset(GestureTemplates.preview_points("zigzag"), Vector2(point.x, point.y - 90.0), 1.0)
 		"Gust":
 			var from: Vector2 = wizard.center()
 			var cloud := point  # the wind takes a cloud by its middle, which may lie off the point struck, down a slope
@@ -1869,7 +1865,7 @@ func _gate_stroke(spell_name: String, point: Vector2) -> PackedVector2Array:
 				if is_instance_valid(node) and not node.is_queued_for_deletion() and node.global_position.distance_to(from) < near:
 					near = node.global_position.distance_to(from)
 					cloud = node.global_position
-			return _line(from, from + (cloud - from).normalized() * 90.0)
+			return BrainStrokes.line(from, from + (cloud - from).normalized() * 90.0)
 	return PackedVector2Array()
 
 
@@ -2011,7 +2007,7 @@ func _act(reaction: String) -> void:
 		"reflect":
 			# A Gust blown toward where the shot came from: it turns the shot round and sends it back.
 			var start: Vector2 = wizard.center() - _threat_dir * 20.0
-			_begin_cast("Gust", _line(start, start - _threat_dir * 90.0), QUICK_DRAW)
+			_begin_cast("Gust", BrainStrokes.line(start, start - _threat_dir * 90.0), QUICK_DRAW)
 			_defend_cooldown = 1.4
 		"cover":
 			var watchers := _watchers()
@@ -2019,7 +2015,7 @@ func _act(reaction: String) -> void:
 				_cover(watchers[0])
 			_defend_cooldown = 4.0
 		"shield":
-			_begin_cast("Barrier", _offset(GestureTemplates.preview_points("circle"), wizard.center(), 0.8), QUICK_DRAW)
+			_begin_cast("Barrier", BrainStrokes.offset(GestureTemplates.preview_points("circle"), wizard.center(), 0.8), QUICK_DRAW)
 			_defend_cooldown = 2.5
 		"blink_side", "blink_away":
 			_blink_away(foe)
@@ -2031,7 +2027,7 @@ func _act(reaction: String) -> void:
 			_escape_time = 0.6
 			if _knows("Shadow Step") and wizard.stamina >= 12.0 and _rng.randf() < skill * 0.6:
 				var from: Vector2 = wizard.center()
-				_begin_cast("Shadow Step", _line(from, from + Vector2(_escape_dir * 240.0, -12.0)), QUICK_DRAW)  # (to the safe side, not away from the rival)
+				_begin_cast("Shadow Step", BrainStrokes.line(from, from + Vector2(_escape_dir * 240.0, -12.0)), QUICK_DRAW)  # (to the safe side, not away from the rival)
 			_defend_cooldown = 0.6
 		"push":
 			var away: Vector2 = (_seen_center(foe) - wizard.center()).normalized()
@@ -2044,7 +2040,7 @@ func _act(reaction: String) -> void:
 			_begin_cast("Spore Puff", _breath_stroke(_seen_center(foe)), QUICK_DRAW + 0.1)
 			_defend_cooldown = 1.8
 		"geyser":  # the ground bubbles under its feet and throws it off
-			_begin_cast("Geyser", _offset(GestureTemplates.preview_points("geyser"), _seen_feet(foe) + Vector2(0.0, -24.0), 0.6), QUICK_DRAW)
+			_begin_cast("Geyser", BrainStrokes.offset(GestureTemplates.preview_points("geyser"), _seen_feet(foe) + Vector2(0.0, -24.0), 0.6), QUICK_DRAW)
 			_defend_cooldown = 1.8
 		"surf":
 			_begin_cast("Tide Surf", _surf_stroke(signf(_seen_feet(foe).x - wizard.global_position.x)), QUICK_DRAW)
@@ -2060,7 +2056,7 @@ func _blink_away(foe: Wizard) -> void:
 	if room < 120.0:
 		away = -away  # cornered: go past the player instead
 	var start: Vector2 = wizard.center()
-	_begin_cast("Shadow Step", _line(start, start + Vector2(away * 240.0, -12.0)), QUICK_DRAW)
+	_begin_cast("Shadow Step", BrainStrokes.line(start, start + Vector2(away * 240.0, -12.0)), QUICK_DRAW)
 
 
 # --- Footwork ---------------------------------------------------------------------------------------------------
@@ -2316,31 +2312,31 @@ func _attack_stroke(spell_name: String) -> PackedVector2Array:
 			var target := _predict(flight)
 			target.y -= 0.5 * Pebble.FALL * flight * flight
 			var aim := (target - start).angle() + _rng.randfn(0.0, 0.1 * (1.0 - skill))
-			return _line(start, start + Vector2.from_angle(aim) * 90.0)
+			return BrainStrokes.line(start, start + Vector2.from_angle(aim) * 90.0)
 		"Hailstorm":  # a cloud over the rival's head, and the hail falls from it
-			return _offset(GestureTemplates.preview_points("hailstorm"), Vector2(_seen_center(foe).x + 20.0, _seen_center(foe).y - 120.0), 1.0)
+			return BrainStrokes.offset(GestureTemplates.preview_points("hailstorm"), Vector2(_seen_center(foe).x + 20.0, _seen_center(foe).y - 120.0), 1.0)
 		"Ignite", "Frostbolt", "Barbs":
 			var start: Vector2 = wizard.center() + Vector2(facing * 12.0, -6.0)
 			var target := _predict(start.distance_to(_seen_center(foe)) / SHOT_SPEED)
 			var aim := (target - start).angle() + _rng.randfn(0.0, 0.16 * (1.0 - skill))
-			return _line(start, start + Vector2.from_angle(aim) * 90.0)
+			return BrainStrokes.line(start, start + Vector2.from_angle(aim) * 90.0)
 		"Spark":
 			var x := _predict(ATTACK_DRAW * 0.8).x
-			return _offset(GestureTemplates.preview_points("zigzag"), Vector2(x, _seen_center(foe).y - 90.0), 1.0)
+			return BrainStrokes.offset(GestureTemplates.preview_points("zigzag"), Vector2(x, _seen_center(foe).y - 90.0), 1.0)
 		"Stonefall":
 			var x := _predict(ATTACK_DRAW + 0.6).x
-			return _offset(GestureTemplates.preview_points("stonefall"), Vector2(x, _seen_center(foe).y - 130.0), 0.8)
+			return BrainStrokes.offset(GestureTemplates.preview_points("stonefall"), Vector2(x, _seen_center(foe).y - 130.0), 0.8)
 		"Tornado":
 			var x: float = lerpf(wizard.global_position.x, _seen_feet(foe).x, 0.45)
-			return _offset(GestureTemplates.preview_points("tornado"), Vector2(x, feet.y - 90.0), 0.9)
+			return BrainStrokes.offset(GestureTemplates.preview_points("tornado"), Vector2(x, feet.y - 90.0), 0.9)
 		"Ice Prison":
-			return _offset(GestureTemplates.preview_points("circle"), _predict(ATTACK_DRAW * 0.6), 0.8)
+			return BrainStrokes.offset(GestureTemplates.preview_points("circle"), _predict(ATTACK_DRAW * 0.6), 0.8)
 		"Earthquake":
 			# Drawn in the air above the middle of the fight, where the peaks read clearly.
-			return _offset(GestureTemplates.preview_points("earthquake"), Vector2(_predict(ATTACK_DRAW * 0.6).x, _seen_center(foe).y - 120.0), 1.0)
+			return BrainStrokes.offset(GestureTemplates.preview_points("earthquake"), Vector2(_predict(ATTACK_DRAW * 0.6).x, _seen_center(foe).y - 120.0), 1.0)
 		"Mudslide":
 			var x := _predict(ATTACK_DRAW * 0.6).x
-			return _offset(GestureTemplates.preview_points("wave"), Vector2(x, feet.y - 60.0), 1.0)
+			return BrainStrokes.offset(GestureTemplates.preview_points("wave"), Vector2(x, feet.y - 60.0), 1.0)
 		"Black Hole":
 			# Beyond you if you are close (it drags you away from it), between you if you keep shooting at it.
 			var spot: Vector2 = _seen_center(foe) + Vector2(facing * 80.0, 0.0)
@@ -2348,56 +2344,56 @@ func _attack_stroke(spell_name: String) -> PackedVector2Array:
 				spot = wizard.center().lerp(_seen_center(foe), 0.4)
 			var spiral := GestureTemplates.preview_points("spiral")
 			# The black hole forms where the spiral ends, so place the spiral's end on the spot.
-			return _offset(spiral, spot - (spiral[spiral.size() - 1] - _centre_of(spiral)), 1.0)
+			return BrainStrokes.offset(spiral, spot - (spiral[spiral.size() - 1] - BrainStrokes.box_centre(spiral)), 1.0)
 		"Firewall":
 			var x: float = lerpf(wizard.global_position.x, _seen_feet(foe).x, 0.5)
 			var toward := signf(_seen_feet(foe).x - wizard.global_position.x)  # a wall between them: up from the ground, then out across the way
-			return _offset(_facing_flipped(GestureTemplates.preview_points("flame_wall"), toward), Vector2(x - toward * 50.0, feet.y - 50.0), 0.8)
+			return BrainStrokes.offset(_facing_flipped(GestureTemplates.preview_points("flame_wall"), toward), Vector2(x - toward * 50.0, feet.y - 50.0), 0.8)
 		"Blizzard":
-			return _offset(GestureTemplates.preview_points("snowfall"), Vector2(feet.x - 30.0, _seen_center(foe).y - 70.0), 0.8)
+			return BrainStrokes.offset(GestureTemplates.preview_points("snowfall"), Vector2(feet.x - 30.0, _seen_center(foe).y - 70.0), 0.8)
 		"Fire Breath", "Spore Puff":
 			return _breath_stroke(_seen_center(foe))
 		"Stalagmite":
-			return _offset(GestureTemplates.preview_points("stalagmite"), Vector2(_predict(ATTACK_DRAW * 0.6).x, feet.y - 40.0), 0.9)
+			return BrainStrokes.offset(GestureTemplates.preview_points("stalagmite"), Vector2(_predict(ATTACK_DRAW * 0.6).x, feet.y - 40.0), 0.9)
 		"Bramble":
-			return _offset(GestureTemplates.preview_points("bramble"), Vector2(lerpf(wizard.global_position.x, _seen_feet(foe).x, 0.8), feet.y - 16.0), 1.0)
+			return BrainStrokes.offset(GestureTemplates.preview_points("bramble"), Vector2(lerpf(wizard.global_position.x, _seen_feet(foe).x, 0.8), feet.y - 16.0), 1.0)
 		"Flytrap":
-			return _offset(GestureTemplates.preview_points("jaws"), Vector2(_predict(ATTACK_DRAW * 0.6).x, feet.y - 30.0), 0.8)
+			return BrainStrokes.offset(GestureTemplates.preview_points("jaws"), Vector2(_predict(ATTACK_DRAW * 0.6).x, feet.y - 30.0), 0.8)
 		"Icicles":  # Vs hung over its head, their tips just above it
-			return _offset(GestureTemplates.preview_points("icicles"), Vector2(_seen_center(foe).x, _seen_center(foe).y - 35.0), 0.9)
+			return BrainStrokes.offset(GestureTemplates.preview_points("icicles"), Vector2(_seen_center(foe).x, _seen_center(foe).y - 35.0), 0.9)
 		"Sinkhole":  # a U drawn into the ground under its feet
-			return _offset(GestureTemplates.preview_points("pit"), Vector2(_predict(ATTACK_DRAW * 0.6).x, feet.y + 20.0), 0.8)
+			return BrainStrokes.offset(GestureTemplates.preview_points("pit"), Vector2(_predict(ATTACK_DRAW * 0.6).x, feet.y + 20.0), 0.8)
 		"Hex":
-			return _offset(GestureTemplates.preview_points("pentagram"), _predict(0.3), 0.5)
+			return BrainStrokes.offset(GestureTemplates.preview_points("pentagram"), _predict(0.3), 0.5)
 		"Vacuum":
-			return _offset(GestureTemplates.preview_points("lungs"), _seen_center(foe), 0.5)
+			return BrainStrokes.offset(GestureTemplates.preview_points("lungs"), _seen_center(foe), 0.5)
 		"Faint":
-			return _offset(GestureTemplates.preview_points("spiral"), _seen_center(foe), 0.5)
+			return BrainStrokes.offset(GestureTemplates.preview_points("spiral"), _seen_center(foe), 0.5)
 		"Fight or Flight":
-			return _offset(GestureTemplates.preview_points("question"), _seen_center(foe), 0.6)
+			return BrainStrokes.offset(GestureTemplates.preview_points("question"), _seen_center(foe), 0.6)
 		"Silence":
-			return _offset(GestureTemplates.preview_points("silence"), _seen_center(foe), 0.6)
+			return BrainStrokes.offset(GestureTemplates.preview_points("silence"), _seen_center(foe), 0.6)
 		"Tide Surf", "Thorn Whip", "Leech":
 			return _surf_stroke(facing)
 		"Flaming Sphere":  # a ring and a level line toward it, along the ground beside the wizard
-			return _offset(_facing_flipped(GestureTemplates.preview_points("sphere"), facing), wizard.center() + Vector2(facing * 50.0, 0.0), 0.8)
+			return BrainStrokes.offset(_facing_flipped(GestureTemplates.preview_points("sphere"), facing), wizard.center() + Vector2(facing * 50.0, 0.0), 0.8)
 		"Mirage":  # a tall box drawn on the ground a little ahead of it
-			return _offset(GestureTemplates.preview_points("portrait"), Vector2(wizard.center().x + facing * 90.0, wizard.global_position.y - 60.0), 0.8)
+			return BrainStrokes.offset(GestureTemplates.preview_points("portrait"), Vector2(wizard.center().x + facing * 90.0, wizard.global_position.y - 60.0), 0.8)
 		"Raise Dead":  # a cross drawn upright in the ground beside it: the skeleton rises there, on its way toward you
-			return _offset(GestureTemplates.preview_points("latin_cross"), Vector2(wizard.center().x + facing * 70.0, wizard.global_position.y - 40.0), 0.8)
+			return BrainStrokes.offset(GestureTemplates.preview_points("latin_cross"), Vector2(wizard.center().x + facing * 70.0, wizard.global_position.y - 40.0), 0.8)
 		"Insect Plague":  # an infinity sign, the wings of a bee, beside it: the swarm sets off from there
-			return _offset(GestureTemplates.preview_points("lungs"), wizard.center() + Vector2(facing * 50.0, -10.0), 0.7)
+			return BrainStrokes.offset(GestureTemplates.preview_points("lungs"), wizard.center() + Vector2(facing * 50.0, -10.0), 0.7)
 		"Eldritch Blast":  # an arrow pointing at the rival
 			var pointing: float = (_predict(0.4) - wizard.center()).angle() + _rng.randfn(0.0, 0.1 * (1.0 - skill))
-			return _offset(_turned(GestureTemplates.preview_points("arrow"), pointing), wizard.center(), 0.8)
+			return BrainStrokes.offset(_turned(GestureTemplates.preview_points("arrow"), pointing), wizard.center(), 0.8)
 		"Hemorrhage":  # a drop of blood drawn over the rival
-			return _offset(GestureTemplates.preview_points("flare"), _seen_center(foe), 0.6)
+			return BrainStrokes.offset(GestureTemplates.preview_points("flare"), _seen_center(foe), 0.6)
 		"Supernova":  # a planet and its ring, drawn where the sun should hang: over the rival
-			return _offset(GestureTemplates.preview_points("saturn"), _predict(ATTACK_DRAW), 0.8)
+			return BrainStrokes.offset(GestureTemplates.preview_points("saturn"), _predict(ATTACK_DRAW), 0.8)
 		"Scythe":  # a crescent drawn in front of the wizard
-			return _offset(GestureTemplates.preview_points("crescent"), wizard.center() + Vector2(facing * 40.0, 0.0), 0.8)
+			return BrainStrokes.offset(GestureTemplates.preview_points("crescent"), wizard.center() + Vector2(facing * 40.0, 0.0), 0.8)
 		"Thunderclap":  # a cloud and a bolt, drawn on itself
-			return _offset(GestureTemplates.preview_points("thunderclap"), wizard.center() + Vector2(0.0, -30.0), 0.8)
+			return BrainStrokes.offset(GestureTemplates.preview_points("thunderclap"), wizard.center() + Vector2(0.0, -30.0), 0.8)
 	return PackedVector2Array()
 
 
@@ -2415,7 +2411,7 @@ func _surf_stroke(side: float) -> PackedVector2Array:
 	var out := PackedVector2Array()
 	for p in wave:
 		out.append(Vector2(p.x * (side if side != 0.0 else 1.0), p.y))
-	return _offset(out, wizard.center() + Vector2(side * 70.0, -10.0), 1.0)
+	return BrainStrokes.offset(out, wizard.center() + Vector2(side * 70.0, -10.0), 1.0)
 
 
 ## A stroke drawn the other way round, for a foe on the left.
@@ -2467,7 +2463,7 @@ func _breath_stroke(target: Vector2) -> PackedVector2Array:
 	var out := PackedVector2Array()
 	for p in GestureTemplates.preview_points("cone"):
 		out.append(tip + p.rotated(aim) * size)
-	return _densify(out)
+	return BrainStrokes.densify(out)
 
 
 ## A Push: a circle round you, starting on its far side, then a line out of it pointing away from the wizard.
@@ -2478,7 +2474,7 @@ func _push_stroke(around: Vector2, away: Vector2) -> PackedVector2Array:
 		pts.append(around + Vector2.from_angle(start_angle + TAU * i / 32.0) * 30.0)
 	var exit := pts[pts.size() - 1]
 	pts.append(exit + away * 90.0)
-	return _densify(pts)
+	return BrainStrokes.densify(pts)
 
 
 ## Starts the wizard drawing a spell's gesture. The spell happens when the drawing is done, if nothing breaks it.
@@ -2499,7 +2495,7 @@ func _begin_cast(spell_name: String, stroke: PackedVector2Array, draw_time: floa
 	var data: Spell = SpellData.SPELLS[spell_name]
 	var mask: int = data.buttons
 	var caster: Caster = wizard.caster
-	draw_time = maxf(draw_time, _quickest_stroke(spell_name))  # never quicker than people draw it
+	draw_time = maxf(draw_time, BrainStrokes.quickest_stroke(spell_name))  # never quicker than people draw it
 	if mask & (mask - 1) != 0:
 		draw_time += _rng.randf_range(CHORD_GAP_MIN, CHORD_GAP_MAX)  # the buttons of a chord go down one after another, not in one instant
 	return wizard.start_drawing(stroke, SpellData.SCHOOL_COLORS[data.school], func(points: PackedVector2Array) -> void:
@@ -2510,22 +2506,13 @@ func _begin_cast(spell_name: String, stroke: PackedVector2Array, draw_time: floa
 ## and each spell's shape stands only so much of it (measured with the recognizer: tests/measure_drift.gd, ai/stroke_drift.json). A person learns
 ## which spells they can draw on the run; this is that knowledge.
 func _drag_ok(spell_name: String, draw_time: float) -> bool:
-	var row: Dictionary = _drift_table().get(spell_name, {})
+	var row: Dictionary = BrainStrokes.drift_table().get(spell_name, {})
 	if not row.has("right"):
 		return true  # a stroke that is read only in the world (a ceiling, water): not measured
 	var slide := wizard.eyes.slide_over(draw_time, wizard.velocity, 0.0 if wizard.is_on_floor() else wizard.gravity)
 	var allow_x: float = row["right"] if slide.x >= 0.0 else row["left"]
 	var allow_y: float = row["down"] if slide.y >= 0.0 else row["up"]
 	return absf(slide.x) <= allow_x * DRAG_MARGIN and absf(slide.y) <= allow_y * DRAG_MARGIN
-
-
-static func _drift_table() -> Dictionary:
-	if _drift.is_empty():
-		var file := FileAccess.open(DRIFT_FILE, FileAccess.READ)
-		_drift = JSON.parse_string(file.get_as_text()) if file != null else {"": {}}
-		if _drift == null or _drift.is_empty():
-			_drift = {"": {}}
-	return _drift
 
 
 ## How far it would fall from here before it met ground or a platform (a long way, when there is nothing under it).
@@ -2570,19 +2557,6 @@ func _catch_fall() -> void:
 		_hold_still = HOLD_STILL
 		return
 	_begin_cast("Featherfall", _tend_stroke("Featherfall", Vector2.ZERO), QUICK_DRAW)
-
-
-## The quickest a person draws a spell: the quick end (the 25th percentile) of the strokes recorded for it, where there are enough of them
-## (ai/human_limits.json, from tools/measure_human.py). Spells people were not recorded drawing often have no floor.
-static func _quickest_stroke(spell_name: String) -> float:
-	if _human.is_empty():
-		var file := FileAccess.open(HUMAN_FILE, FileAccess.READ)
-		var parsed = JSON.parse_string(file.get_as_text()) if file != null else null
-		_human = parsed if parsed is Dictionary else {"strokes": {}}
-	var row = _human.get("strokes", {}).get(spell_name)
-	if row is Dictionary and row.get("n", 0) >= 3:
-		return row["p25"]
-	return 0.0
 
 
 ## A page newly in its book is looked at before its spell can be drawn: a person reads the picture first, about a second (the book stays open
@@ -2740,39 +2714,39 @@ func _tend_stroke(spell_name: String, to_player: Vector2) -> PackedVector2Array:
 	var feet: Vector2 = wizard.global_position
 	match spell_name:
 		"Flare":
-			return _offset(GestureTemplates.preview_points("flare"), here + Vector2(0.0, -40.0), 0.6)
+			return BrainStrokes.offset(GestureTemplates.preview_points("flare"), here + Vector2(0.0, -40.0), 0.6)
 		"Glowcap":
-			return _offset(GestureTemplates.preview_points("circle"), here + Vector2(dir * 60.0, 0.0), 0.6)
+			return BrainStrokes.offset(GestureTemplates.preview_points("circle"), here + Vector2(dir * 60.0, 0.0), 0.6)
 		"Moonbeam":
 			var at: Vector2 = _seen_feet(_foe) if _foe != null else feet
-			return _line(Vector2(at.x, at.y - 70.0), Vector2(at.x, at.y + 10.0))
+			return BrainStrokes.line(Vector2(at.x, at.y - 70.0), Vector2(at.x, at.y + 10.0))
 		"Adrenaline":
-			return _offset(GestureTemplates.preview_points("zigzag"), here, 0.6)
+			return BrainStrokes.offset(GestureTemplates.preview_points("zigzag"), here, 0.6)
 		"Wild Shape":
-			return _offset(GestureTemplates.preview_points("eclipse"), here, 0.9)
+			return BrainStrokes.offset(GestureTemplates.preview_points("eclipse"), here, 0.9)
 		"Hunter's Mark":
-			return _offset(GestureTemplates.preview_points("arrow"), here, 0.6)
+			return BrainStrokes.offset(GestureTemplates.preview_points("arrow"), here, 0.6)
 		"Sneak":  # a wave deep enough not to be read as a flick, which is a Shadow Step on the same buttons
 			var wave := PackedVector2Array()
 			for i in 61:
 				wave.append(here + Vector2(180.0 * i / 60.0 - 90.0, 28.0 * sin(TAU * 3.0 * i / 60.0)))
-			return _densify(wave)
+			return BrainStrokes.densify(wave)
 		"Stone Wall":  # begun in the ground a step toward you, and drawn up and a little toward you
 			var x := feet.x + dir * 70.0
-			return _line(Vector2(x, _ground_under(Vector2(x, feet.y)) + 4.0), Vector2(x + dir * 20.0, _ground_under(Vector2(x, feet.y)) - 90.0))
+			return BrainStrokes.line(Vector2(x, _ground_under(Vector2(x, feet.y)) + 4.0), Vector2(x + dir * 20.0, _ground_under(Vector2(x, feet.y)) - 90.0))
 		"Smoke Screen":
 			var middle := lerpf(feet.x, feet.x + to_player.x, 0.5)
-			return _offset(GestureTemplates.preview_points("smoke"), Vector2(middle, feet.y - 50.0), 0.9)
+			return BrainStrokes.offset(GestureTemplates.preview_points("smoke"), Vector2(middle, feet.y - 50.0), 0.9)
 		"Decoy":
-			return _offset(GestureTemplates.preview_points("eight"), here + Vector2(-dir * 50.0, 0.0), 0.7)
+			return BrainStrokes.offset(GestureTemplates.preview_points("eight"), here + Vector2(-dir * 50.0, 0.0), 0.7)
 		"Eclipse":
-			return _offset(GestureTemplates.preview_points("eclipse"), _seen_center(_foe), 1.0)
+			return BrainStrokes.offset(GestureTemplates.preview_points("eclipse"), _seen_center(_foe), 1.0)
 		"Crimson Veil":
-			return _line(Vector2(here.x, here.y - 50.0), Vector2(here.x, here.y + 20.0))
+			return BrainStrokes.line(Vector2(here.x, here.y - 50.0), Vector2(here.x, here.y + 20.0))
 		"Obsidian Armor":
-			return _offset(GestureTemplates.preview_points("circle"), here, 0.8)
+			return BrainStrokes.offset(GestureTemplates.preview_points("circle"), here, 0.8)
 		"Featherfall":
-			return _offset(GestureTemplates.preview_points("feather"), here, 0.9)
+			return BrainStrokes.offset(GestureTemplates.preview_points("feather"), here, 0.9)
 	return PackedVector2Array()
 
 
@@ -2802,41 +2776,6 @@ func _chase(to_player: Vector2) -> bool:
 		if _begin_lift(spell_name, "chase", dir, span):
 			return true
 	return false
-
-
-# --- Shapes -----------------------------------------------------------------------------------------------------
-
-
-func _line(a: Vector2, b: Vector2) -> PackedVector2Array:
-	return _densify(PackedVector2Array([a, b]))
-
-
-## A preview shape, scaled, with the middle of its bounding box moved to a point.
-func _offset(shape: PackedVector2Array, middle: Vector2, scale: float) -> PackedVector2Array:
-	var centre := _box_centre(shape)
-	var out := PackedVector2Array()
-	for p in shape:
-		out.append(middle + (p - centre) * scale)
-	return _densify(out)
-
-
-func _box_centre(points: PackedVector2Array) -> Vector2:
-	return GestureTemplates.bounds(points).get_center()
-
-
-func _centre_of(points: PackedVector2Array) -> Vector2:
-	return _box_centre(points)
-
-
-## The stroke with points every two pixels, as dense as one drawn with the mouse.
-func _densify(points: PackedVector2Array) -> PackedVector2Array:
-	var out := PackedVector2Array()
-	for i in points.size() - 1:
-		var steps := maxi(1, int(points[i].distance_to(points[i + 1]) / 2.0))
-		for k in steps:
-			out.append(points[i].lerp(points[i + 1], float(k) / steps))
-	out.append(points[points.size() - 1])
-	return out
 
 
 ## Picks a key at random, weighted by its value. Returns "" when every weight is zero.

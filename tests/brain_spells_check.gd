@@ -53,7 +53,7 @@ class ShootingBrain extends WizardBrain:
 		var start: Vector2 = wizard.center() + Vector2(signf(target.center().x - wizard.center().x) * 12.0, -6.0)
 		# A prop, not a wizard under test: the shot goes off at once, straight at the target (a stroke drawn while the test carries this wizard
 		# about would be dragged by its view, as any wizard's is, and the shots would go astray).
-		wizard.caster.cast_stroke(SpellData.SPELLS["Ignite"].buttons, _line(start, start + (target.center() - start).normalized() * 90.0))
+		wizard.caster.cast_stroke(SpellData.SPELLS["Ignite"].buttons, BrainStrokes.line(start, start + (target.center() - start).normalized() * 90.0))
 
 
 var _dice := 0  # dice=N rolls the dice differently, to look for a roll that fails
