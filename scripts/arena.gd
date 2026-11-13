@@ -254,6 +254,35 @@ func _new_brain(body: Wizard) -> WizardBrain:
 	return WizardBrain.new(body)
 
 
+## The screen goes black over everything (a layer above the interface), and then `then` is called: the way out of a world.
+func fade_to_black(seconds: float, then: Callable) -> void:
+	var black := _black_cover(0.0)
+	var tween := black.create_tween()
+	tween.tween_property(black, "color:a", 1.0, seconds)
+	tween.tween_callback(then)
+
+
+## The world comes out of the dark.
+func fade_from_black(seconds: float) -> void:
+	var black := _black_cover(1.0)
+	var tween := black.create_tween()
+	tween.tween_property(black, "color:a", 0.0, seconds)
+	tween.tween_callback(black.get_parent().queue_free)
+
+
+## A black cover over the whole screen, on a layer above the interface, as clear or as dark as `alpha` says.
+func _black_cover(alpha: float) -> ColorRect:
+	var layer := CanvasLayer.new()
+	layer.layer = 100
+	var black := ColorRect.new()
+	black.color = Color(0, 0, 0, alpha)
+	black.set_anchors_preset(Control.PRESET_FULL_RECT)
+	black.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.add_child(black)
+	add_child(layer)
+	return black
+
+
 ## True in a world with no ground, where every wizard flies (World).
 func flies() -> bool:
 	return false

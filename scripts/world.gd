@@ -590,7 +590,7 @@ func _restore_player() -> void:
 	var state: Dictionary = MatchState.vitals[my_seat()]
 	player.max_stamina = state["max"]
 	player.stamina = state["stamina"]
-	_fade_from_black()
+	fade_from_black(1.2)
 
 
 ## A wizard beaten in an earlier world is still out in this one, and watches.
@@ -598,21 +598,6 @@ func _stay_out() -> void:
 	if carried and not MatchState.vitals[my_seat()]["alive"]:
 		player.max_stamina = 1.0
 		player.take_damage(1)
-
-
-## The world comes out of the dark, after a collapse.
-func _fade_from_black() -> void:
-	var layer := CanvasLayer.new()
-	layer.layer = 100
-	var black := ColorRect.new()
-	black.color = Color.BLACK
-	black.set_anchors_preset(Control.PRESET_FULL_RECT)
-	black.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	layer.add_child(black)
-	add_child(layer)
-	var tween := black.create_tween()
-	tween.tween_property(black, "color:a", 0.0, 1.2)
-	tween.tween_callback(layer.queue_free)
 
 
 ## Counts down to the collapse of the portal: the warning, the shaking, and then the new world.
@@ -681,17 +666,7 @@ func _collapse() -> void:
 	next_seed = MatchState.advance(ledgers, state, Incantation.seed_count())
 	leave_network_scene()
 	Sfx.play("portal_enter", player.center(), -2.0)
-	var layer := CanvasLayer.new()
-	layer.layer = 100
-	var black := ColorRect.new()
-	black.color = Color(0, 0, 0, 0)
-	black.set_anchors_preset(Control.PRESET_FULL_RECT)
-	black.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	layer.add_child(black)
-	add_child(layer)
-	var tween := black.create_tween()
-	tween.tween_property(black, "color:a", 1.0, 0.7)
-	tween.tween_callback(func() -> void:
+	fade_to_black(0.7, func() -> void:
 		Loading.quiet = true
 		get_tree().change_scene_to_file(Loading.SCREEN))
 

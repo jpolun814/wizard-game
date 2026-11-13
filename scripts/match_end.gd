@@ -171,17 +171,7 @@ func _roll_the_epilogue(look: String, palette: int) -> void:
 	Epilogue.winner_look = look
 	Epilogue.winner_palette = palette
 	World.next_seed = -1
-	var layer := CanvasLayer.new()
-	layer.layer = 100
-	var black := ColorRect.new()
-	black.color = Color(0, 0, 0, 0)
-	black.set_anchors_preset(Control.PRESET_FULL_RECT)
-	black.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	layer.add_child(black)
-	world.add_child(layer)
-	var tween := black.create_tween()
-	tween.tween_property(black, "color:a", 1.0, 0.8)
-	tween.tween_callback(world.get_tree().change_scene_to_file.bind("res://scenes/epilogue.tscn"))
+	world.fade_to_black(0.8, world.get_tree().change_scene_to_file.bind("res://scenes/epilogue.tscn"))
 
 
 ## The end of a network match: everyone is back in the waiting room, for the next one.
@@ -197,17 +187,7 @@ func back_to_room() -> void:
 func _fade_to_room() -> void:
 	world.leave_network_scene()
 	World.next_seed = -1
-	var layer := CanvasLayer.new()
-	layer.layer = 100
-	var black := ColorRect.new()
-	black.color = Color(0, 0, 0, 0)
-	black.set_anchors_preset(Control.PRESET_FULL_RECT)
-	black.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	layer.add_child(black)
-	world.add_child(layer)
-	var tween := black.create_tween()
-	tween.tween_property(black, "color:a", 1.0, 0.8)
-	tween.tween_callback(world.get_tree().change_scene_to_file.bind("res://scenes/lab.tscn"))
+	world.fade_to_black(0.8, world.get_tree().change_scene_to_file.bind("res://scenes/lab.tscn"))
 
 
 func input(event: InputEvent) -> void:
