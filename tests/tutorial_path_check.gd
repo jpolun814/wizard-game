@@ -393,14 +393,14 @@ func _dark_pond() -> void:
 	_verdict(_deaths == deaths and _column() >= span.y + 3.0, "and after a Spark it is waded across (column %.1f)" % _column())
 
 
-## The slowing place: fast skeletons stand guard, and a Mudslide or a Blizzard laid under them slows them.
+## The slowing place: one fast skeleton stands guard, and a Mudslide or a Blizzard laid under it slows it.
 func _slowing() -> void:
 	var runners := []
 	for node: Node in get_tree().get_nodes_in_group("mobs"):
 		if node is Mob and node.kind == "runner":
 			runners.append(node)
-	_verdict(runners.size() == Tutorial.SLOW_POSTS.size(), "the fast skeletons stand at their posts (%d)" % runners.size())
-	_verdict(Mob.KINDS["runner"].speed > 2.0, "they run faster than a wizard walks")
+	_verdict(runners.size() == 1, "one fast skeleton stands at its post (%d)" % runners.size())
+	_verdict(Mob.KINDS["runner"].speed > 2.0, "it runs faster than a wizard walks")
 	var foe: Mob = runners[0]
 	var mud := Mudslide.new()
 	mud.width = 200.0
@@ -409,6 +409,11 @@ func _slowing() -> void:
 	for f in 40:
 		await get_tree().physics_frame
 	_verdict(foe.is_slowed(), "a Mudslide under one slows it")
+	_put(Tutorial.SLOW_ZONE.x + 10)
+	player.take_damage(8, false)  # one blow from it is a death: the wizard is on their feet again at the start of the place
+	for f in 30:
+		await get_tree().physics_frame
+	_verdict(_column() < Tutorial.SLOW_ZONE.x, "a blow in the slowing place is a death (column %.1f)" % _column())
 
 
 ## The gauntlet: a tall wall, a pit at the foot of every pit, and each gate kills whoever is caught in it.
