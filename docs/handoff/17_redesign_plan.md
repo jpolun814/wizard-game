@@ -16,6 +16,9 @@ out here and say what changed in `02_codebase_map.md`.
 
 - `World`: `WorldCreatures`, `WorldScenery`, `WorldPages`, `WorldGates` and `MatchEnd` are out (2026-11-13), and `_raise_biome_life` is one function per biome. `world.gd` is now about 840 lines (from 1,775). Left: `WorldSeats` and `WorldStages`. The match's `@rpc` methods must stay on the `World` node (an RPC needs a node), as small stubs that call the piece.
 
+- `Caster._end` is now four steps (2026-11-13): it reads the stroke, `_read_special` finds the shapes the recognizer cannot tell apart, `_settle` decides the flicks, crosses and flames, and `_resolve` casts or misfires. The detector chain is still an if/elif list inside `_read_special`; the table the plan asks for (a detector as an entry) is not done.
+- `Wizard._physics_process` is now a few lines over `_tick_timers`, `_fall`, `_steer`, `_shoved` and `_move_on`, with `_walking_speed()` for the speed factors. The status list (`WizardStatus`) and movement modes are not done: the timers are public fields that spells, the brain and the tests read directly, so each would have to be moved with its readers.
+
 ## Ground rules for every step
 
 - **Behaviour does not change.** A refactor that fixes a bug or adds a feature is two changes: make them apart.

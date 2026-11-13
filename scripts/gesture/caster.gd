@@ -150,6 +150,19 @@ func _end() -> void:
 	var result := recognizer.recognize(relative, _templates_for(options))
 	var score: float = result.score
 	var gesture: String = GestureTemplates.ALIASES.get(result.name, result.name)
+	var read := _read_special(relative, options, gesture, score)
+	gesture = read["gesture"]
+	score = read["score"]
+	var info: Dictionary = read["info"]
+	var ring_split: int = read["ring_split"]
+	var latin: bool = read["latin"]
+	var settled := _settle(relative, options, gesture, score, latin)
+	_resolve(relative, options, settled["gesture"], settled["score"], info, ring_split, read["ring_centre"])
+
+
+## The shapes that are read from the stroke itself, since the recognizer cannot tell them apart reliably: each detector that finds its shape says so in
+## `gesture` and `score` (a certain read is 1.0) and fills in what the arena needs to place the effect. Returns {gesture, score, info, ring_split, ring_centre, latin}.
+func _read_special(relative: PackedVector2Array, options: Dictionary, gesture: String, score: float) -> Dictionary:
 	# Some shapes are read from the stroke itself, since the recognizer can't tell them apart reliably. The
 	# info dictionary carries what the arena needs to place each effect.
 	var info := {"radius": 0.0, "pieces": 1, "shapes": [], "line": PackedVector2Array(), "rect": Rect2()}
@@ -285,6 +298,12 @@ func _end() -> void:
 		info["pieces"] = icicles.size()
 		for tri in icicles:
 			info["shapes"].append(_to_world(tri))
+	return {"gesture": gesture, "score": score, "info": info, "ring_split": ring_split, "ring_centre": ring_centre, "latin": latin}
+
+
+## What the read leaves to be settled: a straight stroke is a flick, a wall or a pull by the button, a cross or a flame that is not one is no spell, and a loop taken for a flame
+## is read again without the flames. Returns {gesture, score}.
+func _settle(relative: PackedVector2Array, options: Dictionary, gesture: String, score: float, latin: bool) -> Dictionary:
 	# A straight stroke can mean a wall (vertical), a pull (toward you) or a plain flick, depending on the button.
 	if gesture == "flick":
 		if options.has("wall") and _is_vertical(relative):
@@ -304,6 +323,11 @@ func _end() -> void:
 			var again := recognizer.recognize(relative, rest)
 			gesture = GestureTemplates.ALIASES.get(again.name, again.name)
 			score = again.score
+	return {"gesture": gesture, "score": score}
+
+
+## A stroke read: a spell is cast from it, when the shape is good enough and the buttons have a spell for it, and a misfire is reported when not.
+func _resolve(relative: PackedVector2Array, options: Dictionary, gesture: String, score: float, info: Dictionary, ring_split: int, ring_centre: Vector2) -> void:
 	var entry = options.get(gesture)
 	# A cast that works shows its name where it was drawn (the arena does that), so only failures are reported here.
 	# Stonefall's circle and drop and the flame are hard to draw cleanly, so they are read with a looser eye than the other shapes.
@@ -353,7 +377,6 @@ func _end() -> void:
 		info["extent"] = _extent(relative)  # how big it was drawn, for spells that grow with it
 		info["accuracy"] = _accuracy(relative, gesture, score)
 		cast_resolved.emit(entry.spell, entry.targeting, spawn, aim, info)
-
 
 
 ## The recognizer templates that mean something on a button. A straight line is wanted wherever any spell is drawn
