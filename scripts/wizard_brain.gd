@@ -280,6 +280,22 @@ func _quiet_here() -> bool:
 
 
 func think(delta: float) -> void:
+	_run_clocks(delta)
+	_sense(delta)
+	if chant.is_typing():  # the chant box is open: it can only type, or close the box to do something else (see BrainChant.while_typing)
+		_chant_said(chant.while_typing())
+		return
+	if _foe == null and _eye_time <= 0.0 and not wizard.ledger.is_settled("scrying_eye") and SpellTargets.wizards(wizard.get_tree()).size() > 1 and wizard.ledger.knows_chant("scrying_eye"):
+		chant.type_then_say("scrying_eye")  # it has lost track of everyone: it sends out an eye once, as a person would (see BrainChant.while_typing); the window stays
+	if _foe == null:
+		_alone(delta)
+		return
+	_with_a_rival(delta)
+
+
+## What runs out as time goes: the cooldowns, the rests, the things it has set aside (pages it gave up, ways it cannot make, bridges laid), and the chant
+## it has to break off when it is jostled.
+func _run_clocks(delta: float) -> void:
 	_hurt_age += delta
 	_note_new_pages(delta)
 	_dash -= delta
@@ -325,6 +341,10 @@ func think(delta: float) -> void:
 	if wizard.nav != null and wizard.nav.version != _nav_version:
 		_nav_version = wizard.nav.version
 		_skip.clear()  # a gate has been cleared: pages that could not be reached may be reachable now
+
+
+## Looking about: the shots, the others it knows of, the shadows, the rival it deals with now, and how strong it feels against them.
+func _sense(delta: float) -> void:
 	sight.track_shots()
 	sight.look_about(delta)
 	sight.notice_decoys()
@@ -333,27 +353,28 @@ func think(delta: float) -> void:
 	if _strength_in <= 0.0:
 		_strength_in = 1.0
 		_strength = _feel_strength(_foe)
-	if chant.is_typing():  # the chant box is open: it can only type, or close the box to do something else (see BrainChant.while_typing)
-		_chant_said(chant.while_typing())
+
+
+## No rival in mind (the last wizard standing, or it knows of no one else): it looks after itself and goes about its journey.
+func _alone(delta: float) -> void:
+	if _react > 0.0:  # (a reaction it has planned still comes: nothing else counts it down here)
+		_react -= delta
+		if _react <= 0.0:
+			_act(_reaction)
+	# It still looks after itself: a light in the dark, its strength, the scent of whoever it has lost.
+	if _react <= 0.0 and _tend_cooldown <= 0.0 and not wizard.is_drawing() and _lift.is_empty() and _leap.is_empty() and _wade.is_empty() and not _smothering():
+		_tend_cooldown = 0.6 + rng.randf() * 0.6
+		if _tend(Vector2.ZERO, false, false):
+			_tend_cooldown = 1.4 + rng.randf() * 0.8
+	var mending := _mend(delta, false) if _lift.is_empty() and _leap.is_empty() and _wade.is_empty() else NAN
+	if not is_nan(mending):
+		wizard.walk(mending)
 		return
-	if _foe == null and _eye_time <= 0.0 and not wizard.ledger.is_settled("scrying_eye") and SpellTargets.wizards(wizard.get_tree()).size() > 1 and wizard.ledger.knows_chant("scrying_eye"):
-		chant.type_then_say("scrying_eye")  # it has lost track of everyone: it sends out an eye once, as a person would (see BrainChant.while_typing); the window stays
-	if _foe == null:  # the last wizard standing, or it knows of no one else (none in sight): it goes about its journey
-		if _react > 0.0:  # (a reaction it has planned still comes: nothing else counts it down here)
-			_react -= delta
-			if _react <= 0.0:
-				_act(_reaction)
-		# It still looks after itself: a light in the dark, its strength, the scent of whoever it has lost.
-		if _react <= 0.0 and _tend_cooldown <= 0.0 and not wizard.is_drawing() and _lift.is_empty() and _leap.is_empty() and _wade.is_empty() and not _smothering():
-			_tend_cooldown = 0.6 + rng.randf() * 0.6
-			if _tend(Vector2.ZERO, false, false):
-				_tend_cooldown = 1.4 + rng.randf() * 0.8
-		var mending := _mend(delta, false) if _lift.is_empty() and _leap.is_empty() and _wade.is_empty() else NAN
-		if not is_nan(mending):
-			wizard.walk(mending)
-			return
-		wizard.walk(_travel(delta) if SpellTargets.wizards(wizard.get_tree()).size() > 1 or wizard.get_tree().get_first_node_in_group(&"gate_source") != null else 0.0)  # (alone in a match it has won; alone in a room it goes on)
-		return
+	wizard.walk(_travel(delta) if SpellTargets.wizards(wizard.get_tree()).size() > 1 or wizard.get_tree().get_first_node_in_group(&"gate_source") != null else 0.0)  # (alone in a match it has won; alone in a room it goes on)
+
+
+## A rival in mind: it reacts to what comes at it, looks after itself, and keeps its footing, its journey or its fight.
+func _with_a_rival(delta: float) -> void:
 	var foe: Wizard = _foe
 	var in_view := wizard.eyes.sees_point(sight.lure.center()) if sight.lure != null else eyes_see(foe)
 	var to_player: Vector2 = sight.seen_center(foe) - wizard.center()
