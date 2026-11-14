@@ -84,7 +84,7 @@ func tend(to_player: Vector2, sees: bool, fighting: bool) -> bool:
 			weights["Stone Wall"] = 1.4
 		if brain.pressure > 1.0 and gap > 150.0:
 			weights["Smoke Screen"] = 1.0
-		if sees and gap > 110.0 and gap < 380.0 and brain.profile.after_me(brain.opponent) and brain.profile.shown_any(brain.opponent, BrainProfile.SHOOTERS):
+		if not BrainProfile.off("wall") and sees and gap > 110.0 and gap < 380.0 and brain.profile.after_me(brain.opponent) and brain.profile.shown_any(brain.opponent, BrainProfile.SHOOTERS):
 			weights["Stone Wall"] = maxf(weights.get("Stone Wall", 0.0), 1.8)  # a rival who keeps shooting at it along the ground: it puts a wall up
 		if brain.pressure > 1.2:
 			weights["Decoy"] = 1.0

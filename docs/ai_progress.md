@@ -139,6 +139,6 @@ Order: 35-38 and 62, then 49-51 and 56-57, then 61; 63 waits for the owner.
 | 5 | As 4 with the window shortened to a screen, and the "last two" hunt removed | 0.653 ± 0.022 of 90 (60-29-1) | 4.33 vs 4.67 of 30 (19-8) |
 | 6 | Quick bolts at a rival who is drawing, Ice Prison in water, Silence for a rival who has shown a book's worth, a flinch after a blow, defence by shot speed | 0.659 ± 0.030 of 90 (51-33-6) | 4.08 vs 4.92 of 30 (19-8) |
 | 7 | As 6, with Silence for a rival seen casting in the last 15 seconds | 0.641 ± 0.022 of 90 (57-31-2) | 4.09 vs 4.91 of 30 (21-8) |
-| 8 | As 7, with a Stone Wall raised against a rival seen casting straight shots at it | running | running |
+| 8 | As 7, with a Stone Wall raised against a rival seen casting straight shots at it | 0.610 ± 0.028 of 90 (57-28-5) | 4.28 vs 4.72 of 30 (20-9) |
 
 Rows 4 and 5 are the same idea set; the spread between them (0.668 and 0.653) is the noise of the measure.
