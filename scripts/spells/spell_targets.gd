@@ -59,6 +59,18 @@ static func all(tree: SceneTree) -> Array:
 	return out
 
 
+## The one of these bodies whose middle is nearest a point, if it is nearer than `within`; null when none is.
+static func nearest_to(bodies: Array, point: Vector2, within := INF) -> Node2D:
+	var best: Node2D = null
+	var best_distance := within
+	for body: Node2D in bodies:
+		var distance := center_of(body).distance_to(point)
+		if distance < best_distance:
+			best_distance = distance
+			best = body
+	return best
+
+
 ## The wizards still standing: the player, and every other wizard that is not beaten.
 static func wizards(tree: SceneTree) -> Array:
 	var out := []

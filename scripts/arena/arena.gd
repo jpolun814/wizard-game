@@ -479,7 +479,7 @@ func _is_ground_at(point: Vector2) -> bool:
 	query.transform = Transform2D(0.0, point)
 	query.collision_mask = 1
 	for hit in get_world_2d().direct_space_state.intersect_shape(query, 8):
-		if hit["collider"].has_meta("stone_wall"):
+		if hit["collider"].is_in_group("stone_walls"):
 			return true
 	return false
 

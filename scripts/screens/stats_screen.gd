@@ -114,13 +114,12 @@ func _turn(by: int) -> void:
 
 
 func _input(event: InputEvent) -> void:
-	var key := event as InputEventKey
-	if not visible or key == null or not key.pressed or key.echo:
+	if not visible:
 		return
-	if key.keycode == KEY_LEFT:
+	if event.is_action_pressed("ui_left"):
 		_turn(-1)
 		get_viewport().set_input_as_handled()
-	elif key.keycode == KEY_RIGHT:
+	elif event.is_action_pressed("ui_right"):
 		_turn(1)
 		get_viewport().set_input_as_handled()
 

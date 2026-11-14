@@ -75,16 +75,9 @@ func _about_creature(mob: Mob) -> String:
 ## The enemy or the other wizard closest to the pointer, if it is within reach.
 func _body_under_pointer() -> Node2D:
 	var pointer := arena.get_global_mouse_position()
-	var best: Node2D = null
-	var best_distance := REACH
-	for body: Node2D in arena.get_tree().get_nodes_in_group("mobs") + arena.get_tree().get_nodes_in_group("wizards"):
-		if body == arena.player or (body is Wizard and body.is_unseen()):
-			continue
-		var distance: float = body.center().distance_to(pointer)
-		if distance < best_distance:
-			best_distance = distance
-			best = body
-	return best
+	var others := (arena.get_tree().get_nodes_in_group("mobs") + arena.get_tree().get_nodes_in_group("wizards")).filter(
+		func(body: Node2D) -> bool: return body != arena.player and not (body is Wizard and body.is_unseen()))
+	return SpellTargets.nearest_to(others, pointer, REACH)
 
 
 func _school(school: String) -> String:

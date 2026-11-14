@@ -338,7 +338,7 @@ func _page_spell(column: VBoxContainer, spell_name: String) -> void:
 	column.add_child(top)
 	if _is_new(spell_name):
 		column.add_child(_new_badge())
-	var gesture: String = s.preview if s.preview != "" else s.gesture
+	var gesture: String = s.gesture
 	var preview := StrokePreview.new(GestureTemplates.preview_points(gesture), GestureTemplates.preview_ground(gesture), 150.0)
 	preview.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	column.add_child(preview)

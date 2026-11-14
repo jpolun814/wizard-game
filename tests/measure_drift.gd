@@ -40,7 +40,7 @@ func _process(_delta: float) -> bool:
 	names.sort()
 	for spell_name: String in names:
 		var s: Spell = SpellData.SPELLS[spell_name]
-		var shape := _densify(GestureTemplates.preview_points(s.preview if s.preview != "" else s.gesture))
+		var shape := _densify(GestureTemplates.preview_points(s.gesture))
 		var row := {"size": GestureTemplates.bounds(shape).size.length()}
 		if not _reads(spell_name, s, shape, Vector2.ZERO):
 			row["clean"] = false  # the picture itself is not read here (it needs a world: a ceiling, water); no figure for it

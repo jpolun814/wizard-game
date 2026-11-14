@@ -9,6 +9,8 @@ var first := 0  # the column the first of those is
 var seed_value := 0
 
 var _puffs: Array[Sprite2D] = []
+var _homes := PackedFloat32Array()   # where each puff drifts about
+var _phases := PackedFloat32Array()  # and where it is in its drift
 var _t := 0.0
 
 
@@ -23,8 +25,8 @@ func _ready() -> void:
 		puff.modulate = Color(0.8, 0.82, 0.88, rng.randf_range(0.2, 0.34))
 		puff.position = Vector2((first + column) * float(ArenaGen.TILE), floors[column] * float(ArenaGen.TILE) - rng.randf_range(4.0, 26.0))
 		puff.z_index = 2
-		puff.set_meta("home", puff.position.x)
-		puff.set_meta("phase", rng.randf() * TAU)
+		_homes.append(puff.position.x)
+		_phases.append(rng.randf() * TAU)
 		add_child(puff)
 		_puffs.append(puff)
 		column += rng.randi_range(5, 9)
@@ -32,5 +34,5 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	_t += delta
-	for puff in _puffs:
-		puff.position.x = float(puff.get_meta("home")) + sin(_t * 0.2 + float(puff.get_meta("phase"))) * 60.0
+	for i in _puffs.size():
+		_puffs[i].position.x = _homes[i] + sin(_t * 0.2 + _phases[i]) * 60.0

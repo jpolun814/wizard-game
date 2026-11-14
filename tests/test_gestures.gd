@@ -35,7 +35,7 @@ func _initialize() -> void:
 func _process(_delta: float) -> bool:
 	for spell_name in SpellData.SPELLS:
 		var s: Spell = SpellData.SPELLS[spell_name]
-		var shape := GestureTemplates.preview_points(s.preview if s.preview != "" else s.gesture)
+		var shape := GestureTemplates.preview_points(s.gesture)
 		for size in [0.7, 1.0, 1.6]:
 			for shaky in [false, true]:
 				_check(spell_name, s.buttons, shape, size, shaky, false)

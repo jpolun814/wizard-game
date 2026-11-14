@@ -505,7 +505,7 @@ func _plan() -> void:
 			for i in 40:
 				_at(0.5 + i * 0.3, func() -> void:
 					var spell_name: String = names[rng.randi() % names.size()]
-					var gesture: String = SpellData.SPELLS[spell_name].preview if SpellData.SPELLS[spell_name].preview != "" else SpellData.SPELLS[spell_name].gesture
+					var gesture: String = SpellData.SPELLS[spell_name].gesture
 					var spot: Vector2 = _player().global_position + Vector2(rng.randf_range(-250.0, 250.0), rng.randf_range(-160.0, -20.0))
 					if gesture == "stone_wall":
 						spot.y = ArenaGen.GROUND_Y - 40.0

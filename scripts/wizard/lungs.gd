@@ -35,10 +35,6 @@ func dry(delta: float) -> void:
 	_time = maxf(_time - delta, 0.0)
 
 
-func is_wet() -> bool:
-	return _time > 0.0
-
-
 func tint() -> Color:
 	return _tint
 

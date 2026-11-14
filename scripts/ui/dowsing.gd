@@ -10,16 +10,8 @@ var ledger: Ledger       # the pages the speaker has read
 
 ## The nearest page that the ledger lacks, to a point, or null when there is none.
 static func nearest_unread(tree: SceneTree, point: Vector2, held: Ledger) -> PagePickup:
-	var best: PagePickup = null
-	var best_distance := INF
-	for page: PagePickup in tree.get_nodes_in_group("pages"):
-		if not unread(page, held):
-			continue
-		var distance := page.global_position.distance_to(point)
-		if distance < best_distance:
-			best_distance = distance
-			best = page
-	return best
+	var unseen := tree.get_nodes_in_group("pages").filter(func(page: PagePickup) -> bool: return unread(page, held))
+	return SpellTargets.nearest_to(unseen, point) as PagePickup
 
 
 ## True when reading the page would teach the ledger something.

@@ -13,16 +13,8 @@ var _age := 0.0
 
 ## The nearest living wizard to a point, other than the one given, or null when nobody else is left.
 static func nearest_other(tree: SceneTree, point: Vector2, not_this: Wizard) -> Wizard:
-	var best: Wizard = null
-	var best_distance := INF
-	for wizard: Wizard in SpellTargets.wizards(tree):
-		if wizard == not_this or not wizard.is_seen_from(point):
-			continue
-		var distance := wizard.center().distance_to(point)
-		if distance < best_distance:
-			best_distance = distance
-			best = wizard
-	return best
+	var in_sight := SpellTargets.wizards(tree).filter(func(wizard: Wizard) -> bool: return wizard != not_this and wizard.is_seen_from(point))
+	return SpellTargets.nearest_to(in_sight, point) as Wizard
 
 
 func _ready() -> void:

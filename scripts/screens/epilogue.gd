@@ -41,6 +41,7 @@ var _lectern: Lectern
 var _winner: Node2D
 var _sprite: AnimatedSprite2D
 var _carried: Sprite2D  # the book, floating beside the winner
+var _book_set := false  # it has been set down on the stand, and no longer follows them
 var _carried_aura: BookAura  # its glow and smoke, which go where it goes
 var _hammer: Sprite2D
 var _face := 1.0
@@ -100,7 +101,7 @@ func _process(delta: float) -> void:
 	_t += delta
 	while not _cues.is_empty() and _cues[0][0] <= _t:
 		_cues.pop_front()[1].call()
-	if is_instance_valid(_carried) and not _carried.has_meta("set"):
+	if is_instance_valid(_carried) and not _book_set:
 		var follow := 1.0 - exp(-5.0 * delta)  # it trails a little behind them, as a flare does
 		_carried.position = _carried.position.lerp(_winner.position + _carried_rest(), follow)
 	if is_instance_valid(_carried_aura):
@@ -154,7 +155,7 @@ func _walk_in() -> void:
 
 ## The book floats from the winner's side to its place on the stand, and settles there with its glow.
 func _set_the_book_down() -> void:
-	_carried.set_meta("set", true)
+	_book_set = true
 	var top := _lectern.global_position + Vector2(0.0, -Lectern.STAND.get_height() + Lectern.BOOK_FOOT * Lectern.BOOK_SCALE)
 	var tween := create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	tween.tween_property(_carried, "position", top, 0.7)

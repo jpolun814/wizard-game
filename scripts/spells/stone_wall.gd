@@ -63,7 +63,7 @@ func _add_slab() -> void:
 	block.shape = solid
 	block.position = Vector2(_length * 0.5, 0.0)
 	_slab = StaticBody2D.new()
-	_slab.set_meta("stone_wall", true)
+	_slab.add_to_group("stone_walls")
 	_slab.add_child(block)
 	_slab.scale = Vector2(_grow, 1.0)  # the slab is solid only as far as it has grown
 	add_child(_slab)

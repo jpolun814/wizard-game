@@ -4,7 +4,7 @@ extends CanvasLayer
 ## A testing panel, opened and closed with F1. Each button summons one enemy kind on the far side of the screen;
 ## the last row clears the enemies or fills you back up.
 
-var arena: Node
+var arena: Arena
 var panel: PanelContainer
 var _world_buttons: Array[Button] = []
 
@@ -40,26 +40,25 @@ func _ready() -> void:
 	tools.add_child(_button("Clear enemies", func() -> void: arena.clear_enemies()))
 	tools.add_child(_button("Refill", _refill))
 	tools.add_child(_button("All spells", func() -> void: arena.learn_every_page()))
-	if arena.has_method("open_gates"):
-		tools.add_child(_button("Rift into locked areas", func() -> void: arena.open_gates()))
-	if arena.has_method("go_to_epilogue"):
-		tools.add_child(_button("The ending", func() -> void: arena.go_to_epilogue()))
-	if arena.has_method("debug_win"):  # the match ends: every other wizard falls, or the person does
-		tools.add_child(_button("Win game", func() -> void: _end_the_match(true)))
-		tools.add_child(_button("Lose game", func() -> void: _end_the_match(false)))
-	if arena.has_method("gate_kinds"):
-		var heading := Label.new()
-		heading.text = "Go to a gate (each press, the next one)"
-		heading.add_theme_font_size_override("font_size", 13)
-		column.add_child(heading)
-		var gates := GridContainer.new()
-		gates.columns = 3
-		gates.add_theme_constant_override("h_separation", 4)
-		gates.add_theme_constant_override("v_separation", 4)
-		column.add_child(gates)
-		for kind: String in arena.gate_kinds():
-			gates.add_child(_button(kind.capitalize(), arena.go_to_gate.bind(kind)))
-	if arena.has_method("go_to_stage") and not Net.online():  # in a network game the host's clock moves everyone together
+	var world := arena as World  # only a match has gates, worlds and an ending
+	if world == null:
+		return
+	tools.add_child(_button("Rift into locked areas", func() -> void: world.open_gates()))
+	tools.add_child(_button("The ending", func() -> void: world.go_to_epilogue()))
+	tools.add_child(_button("Win game", func() -> void: _end_the_match(true)))  # the match ends: every other wizard falls, or the person does
+	tools.add_child(_button("Lose game", func() -> void: _end_the_match(false)))
+	var gates_heading := Label.new()
+	gates_heading.text = "Go to a gate (each press, the next one)"
+	gates_heading.add_theme_font_size_override("font_size", 13)
+	column.add_child(gates_heading)
+	var gates := GridContainer.new()
+	gates.columns = 3
+	gates.add_theme_constant_override("h_separation", 4)
+	gates.add_theme_constant_override("v_separation", 4)
+	column.add_child(gates)
+	for kind: String in world.gate_kinds():
+		gates.add_child(_button(kind.capitalize(), world.go_to_gate.bind(kind)))
+	if not Net.online():  # in a network game the host's clock moves everyone together
 		var heading := Label.new()
 		heading.text = "Go to a world of the match"
 		heading.add_theme_font_size_override("font_size", 13)
@@ -70,7 +69,7 @@ func _ready() -> void:
 		worlds.add_theme_constant_override("v_separation", 4)
 		column.add_child(worlds)
 		for stage in MatchState.STAGES.size():
-			var button := _button("", arena.go_to_stage.bind(stage))
+			var button := _button("", world.go_to_stage.bind(stage))
 			button.custom_minimum_size = Vector2(160, 0)
 			worlds.add_child(button)
 			_world_buttons.append(button)
@@ -86,7 +85,7 @@ func _ready() -> void:
 		biomes.add_theme_constant_override("v_separation", 4)
 		column.add_child(biomes)
 		for biome: String in SurfaceGen.BIOMES:
-			var button := _button(SurfaceGen.LOOKS[biome]["title"], arena.go_to_biome.bind(biome))
+			var button := _button(SurfaceGen.LOOKS[biome]["title"], world.go_to_biome.bind(biome))
 			button.custom_minimum_size = Vector2(160, 0)
 			biomes.add_child(button)
 
@@ -94,10 +93,11 @@ func _ready() -> void:
 ## Puts the panel away and ends the match for real: the person wins (every other wizard is beaten) or loses (they are), and what follows is what the game does.
 func _end_the_match(won: bool) -> void:
 	visible = false
+	var world := arena as World
 	if won:
-		arena.debug_win()
+		world.debug_win()
 	else:
-		arena.debug_lose()
+		world.debug_lose()
 
 
 func _button(text: String, action: Callable) -> Button:

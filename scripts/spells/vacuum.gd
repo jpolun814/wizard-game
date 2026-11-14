@@ -16,14 +16,7 @@ var _bubble: Sprite2D
 
 ## Whoever is closest to a point, if they are near enough to be under the sign. Only wizards breathe.
 static func nearest_under(tree: SceneTree, point: Vector2) -> Wizard:
-	var best: Wizard = null
-	var best_distance := REACH
-	for wizard: Wizard in SpellTargets.wizards(tree):
-		var distance := wizard.center().distance_to(point)
-		if distance < best_distance:
-			best_distance = distance
-			best = wizard
-	return best
+	return SpellTargets.nearest_to(SpellTargets.wizards(tree), point, REACH) as Wizard
 
 
 ## Lets go of everyone this wizard has smothered: they have cast something else.

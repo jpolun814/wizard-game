@@ -63,6 +63,7 @@ var _demo: MenuSign  # on the left page: the sign of the choice the pointer or t
 var _ink: MenuInk   # the stroke being drawn
 var _recognizer := UnistrokeRecognizer.new()
 var _signs: Dictionary = {}  # Button -> the name of its sign
+var _small_signs: Dictionary = {}  # Button -> the little drawing of its sign beside it
 var _pixel := 4
 var _stroke := PackedVector2Array()
 var _drawing := false
@@ -309,7 +310,7 @@ func _write_signs() -> void:
 		button.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		button.focus_entered.connect(_show_sign.bind(table[button]))
 		button.mouse_entered.connect(_show_sign.bind(table[button]))
-		button.set_meta("sign", small)
+		_small_signs[button] = small
 
 
 ## Drawing a sign: the left button held draws a stroke, wherever it is not over a choice (that is a click); when it is let go the stroke is read.
@@ -355,8 +356,7 @@ func _read_stroke() -> void:
 func _choose(button: Button) -> void:
 	_busy = true
 	_ink.flare()
-	var small: MenuSign = button.get_meta("sign")
-	small.flare()
+	_small_signs[button].flare()
 	_show_sign(_signs[button])  # the left page shows the sign that was drawn, whatever the pointer had last been over
 	_demo.flare()
 	get_tree().create_timer(0.45).timeout.connect(func() -> void:

@@ -84,10 +84,10 @@ var _unrest := 0.6  # how unstable the portal is: 0 to 1, and it grows as the fi
 var _crackle := 0.0
 var _portal_home := Vector2.ZERO
 var _cues: Array = []  # [seconds, Callable], in order
-var _wizards: Array[Node2D] = []  # the four
-var _extras: Array[Node2D] = []   # the six
-var _all: Array[Node2D] = []      # the four, then the six
-var _pile: Array[Sprite2D] = []
+var _wizards: Array[IntroWizard] = []  # the four
+var _extras: Array[IntroWizard] = []   # the six
+var _all: Array[IntroWizard] = []      # the four, then the six
+var _pile: Array[IntroPage] = []
 var _portal: Portal
 var _camera: Camera2D
 var _following: Node2D  # the camera runs beside this one, when it is set
@@ -120,7 +120,7 @@ func _ready() -> void:
 	_cue(0.0, func() -> void: _fade(0.0, 0.7))
 	_follow_the_first()
 	for entry: Dictionary in WIZARDS + EXTRAS:  # each comes in by its own way, at its own time
-		var body: Node2D = _all[(WIZARDS + EXTRAS).find(entry)]
+		var body: IntroWizard = _all[(WIZARDS + EXTRAS).find(entry)]
 		_cue(entry["at"], _arrive.bind(body, entry))
 	_cue(2.4, _pull_back)  # the first has arrived, and the shot opens out on the whole ring
 	for at in [3.0, 4.6]:  # the portal is never still: it surges now and then, and everyone in the hall flinches
@@ -202,7 +202,7 @@ func _build_pile(rng: RandomNumberGenerator) -> void:
 			Fx.draw_glow(_halo, Vector2(PILE_X, FLOOR_Y - 14.0), 44.0 * breathe, Color(GOLD.r, GOLD.g, GOLD.b, 0.35)))
 	add_child(_halo)
 	for i in PAGES_IN_PILE:
-		var page := Sprite2D.new()
+		var page := IntroPage.new()
 		page.texture = PAGE
 		page.offset = Vector2(0.0, -PAGE.get_height() * 0.5)
 		page.scale = Vector2.ONE * PAGE_SCALE
@@ -210,8 +210,6 @@ func _build_pile(rng: RandomNumberGenerator) -> void:
 		page.rotation = rng.randf_range(-1.35, 1.35)
 		page.modulate = Color(0.9 + rng.randf() * 0.1, 0.85 + rng.randf() * 0.1, 0.8)
 		page.z_index = 1
-		page.set_meta("vel", Vector2.ZERO)
-		page.set_meta("spin", 0.0)
 		page.visible = false  # it is still in the book
 		add_child(page)
 		_pile.append(page)
@@ -267,9 +265,9 @@ func _seat_styles() -> Array:
 	return out
 
 
-func _make_wizard(entry: Dictionary) -> Node2D:
+func _make_wizard(entry: Dictionary) -> IntroWizard:
 	var to: float = entry["to"]
-	var body := Node2D.new()
+	var body := IntroWizard.new()
 	body.position = Vector2(float(entry.get("from", to)), FLOOR_Y)
 	body.z_index = 2
 	var sprite := AnimatedSprite2D.new()
@@ -283,10 +281,9 @@ func _make_wizard(entry: Dictionary) -> Node2D:
 	sprite.flip_h = face < 0.0
 	sprite.play("idle")
 	body.add_child(sprite)
-	body.set_meta("face", face)
-	body.set_meta("alive", true)
-	body.set_meta("here", false)  # in its place, and standing
-	body.set_meta("colour", entry["colour"])
+	body.sprite = sprite
+	body.face = face
+	body.colour = entry["colour"]
 	if entry["mode"] == "blink":
 		body.modulate.a = 0.0  # it is not there until it steps out of the light
 	add_child(body)
@@ -391,25 +388,24 @@ func _fade(to: float, seconds: float) -> void:
 	create_tween().tween_property(_black, "color:a", to, seconds)
 
 
-func _play(wizard: Node2D, what: String, facing: float) -> void:
-	var sprite: AnimatedSprite2D = wizard.get_child(0)
-	wizard.set_meta("face", facing)
-	sprite.flip_h = facing < 0.0
-	sprite.play("release" if what == "grab" else what)  # (grabbing is the thrust of the staff)
+func _play(wizard: IntroWizard, what: String, facing: float) -> void:
+	wizard.face = facing
+	wizard.sprite.flip_h = facing < 0.0
+	wizard.sprite.play("release" if what == "grab" else what)  # (grabbing is the thrust of the staff)
 
 
 ## Runs a wizard to a spot on the floor at a speed, then stands it facing a way.
-func _run_to(wizard: Node2D, x: float, face: float, speed: float, then := "idle") -> Tween:
+func _run_to(wizard: IntroWizard, x: float, face: float, speed: float, then := "idle") -> Tween:
 	_play(wizard, "run", signf(x - wizard.position.x))
 	var tween := create_tween()
 	tween.tween_property(wizard, "position:x", x, absf(x - wizard.position.x) / speed)
 	tween.tween_callback(_play.bind(wizard, then, face))
-	tween.tween_callback(wizard.set_meta.bind("here", true))
+	tween.tween_callback(func() -> void: wizard.here = true)
 	return tween
 
 
 ## A wizard comes into the hall the way its entry says: running, walking, or stepping out of a puff of light where it stands.
-func _arrive(wizard: Node2D, entry: Dictionary) -> void:
+func _arrive(wizard: IntroWizard, entry: Dictionary) -> void:
 	var to: float = entry["to"]
 	var face := 1.0 if to < PILE_X else -1.0
 	match entry["mode"]:
@@ -423,13 +419,13 @@ func _arrive(wizard: Node2D, entry: Dictionary) -> void:
 			Sfx.play("blink", spot, -8.0)
 			Fx.burst(self, spot, CRACKLE_COLOUR, 12, 140.0, 0.5, true)
 			create_tween().tween_property(wizard, "modulate:a", 1.0, 0.25)
-			wizard.set_meta("here", true)
+			wizard.here = true
 
 
 ## Where a wizard's staff is, for a spark or a bolt.
 func _staff(index: int) -> Vector2:
 	var wizard := _all[index]
-	return wizard.position + Vector2(float(wizard.get_meta("face")) * 38.0, -62.0)
+	return wizard.position + Vector2(wizard.face * 38.0, -62.0)
 
 
 ## The portal surges: it flares, the hall shakes, and everyone flinches from it.
@@ -441,7 +437,7 @@ func _pulse(power: float) -> void:
 		Sfx.play("thunder", _book.global_position, -16.0 + power * 6.0)
 		Fx.burst(self, _book.global_position, GOLD, 10, 140.0, 0.5, true)
 		for wizard in _all:
-			if wizard.get_meta("alive") and wizard.get_meta("here"):
+			if wizard.alive and wizard.here:
 				_flinch(wizard)
 		return
 	_portal.modulate = Color(1.0 + power, 0.9 + power * 0.6, 1.2 + power)
@@ -449,25 +445,25 @@ func _pulse(power: float) -> void:
 	Sfx.play("thunder", _portal.global_position, -16.0 + power * 6.0)
 	Fx.burst(self, _portal.position, CRACKLE_COLOUR, 10, 160.0, 0.5, true)
 	for wizard in _all:
-		if wizard.get_meta("alive") and wizard.get_meta("here"):
+		if wizard.alive and wizard.here:
 			_flinch(wizard)
 
 
-func _flinch(wizard: Node2D) -> void:
-	var face: float = wizard.get_meta("face")
+func _flinch(wizard: IntroWizard) -> void:
+	var face := wizard.face
 	_play(wizard, "hit", face)
 	var tween := create_tween()
 	tween.tween_interval(0.3)
 	tween.tween_callback(func() -> void:
-		if wizard.get_meta("alive"):
+		if wizard.alive:
 			_play(wizard, "idle", face))
 
 
 ## A wizard raises their staff at the others: their own colour gathers on it, and they hold the pose.
 func _draw_on_the_others(index: int) -> void:
 	var wizard := _all[index]
-	var face: float = wizard.get_meta("face")
-	var colour: Color = wizard.get_meta("colour")
+	var face := wizard.face
+	var colour := wizard.colour
 	_play(wizard, "grab", face)
 	Sfx.play("push", wizard.position, -14.0)
 	Fx.burst(self, _staff(index), colour, 14, 120.0, 0.5, true)
@@ -486,7 +482,7 @@ func _the_hall_cracks() -> void:
 	var at := _book.global_position + Vector2(0.0, -Lectern.book_height() * 0.5)
 	_book.visible = false
 	_lectern.quiet()
-	for page: Node2D in _pile:  # the pages burst out of it, where it hung
+	for page: IntroPage in _pile:  # the pages burst out of it, where it hung
 		page.position = at + Vector2(randf_range(-10.0, 10.0), randf_range(-14.0, 14.0))
 		page.visible = true
 	_blast(at, 2.2)
@@ -563,7 +559,7 @@ func _shoot(from_index: int, to_index: int, kills := false) -> void:
 	var from_at := _staff(from_index)
 	var to_wizard := _all[to_index]
 	var to_at := to_wizard.position + Vector2(0.0, -55.0)
-	var colour: Color = _all[from_index].get_meta("colour")
+	var colour: Color = _all[from_index].colour
 	_play(_all[from_index], "grab", signf(to_at.x - from_at.x))
 	Sfx.play("push", from_at, -6.0)
 	var bolt := _make_bolt(from_at, colour)
@@ -581,8 +577,8 @@ func _clash(a: int, b: int) -> void:
 	_play(_all[b], "grab", signf(from_a.x - from_b.x))
 	Sfx.play("push", from_a, -6.0)
 	Sfx.play("push", from_b, -6.0)
-	var colour_a: Color = _all[a].get_meta("colour")
-	var colour_b: Color = _all[b].get_meta("colour")
+	var colour_a: Color = _all[a].colour
+	var colour_b: Color = _all[b].colour
 	var bolt_a := _make_bolt(from_a, colour_a)
 	var bolt_b := _make_bolt(from_b, colour_b)
 	create_tween().tween_property(bolt_b, "position", middle, 0.35)
@@ -604,13 +600,13 @@ func _clash(a: int, b: int) -> void:
 func _struck(bolt: Node2D, index: int, colour: Color, kills: bool) -> void:
 	bolt.queue_free()
 	var wizard := _all[index]
-	var face: float = wizard.get_meta("face")
+	var face := wizard.face
 	_shake = maxf(_shake, 0.8)
 	_unrest = minf(_unrest + 0.04, 1.0)
 	Sfx.play("player_hurt" if index == 0 else "mob_hurt", wizard.position, -4.0)
 	Fx.burst(self, wizard.position + Vector2(0.0, -55.0), colour, 16, 190.0, 0.5, true)
 	if kills:
-		wizard.set_meta("alive", false)
+		wizard.alive = false
 		for child in wizard.get_children():
 			if child is GPUParticles2D or child is CPUParticles2D:
 				child.emitting = false  # the glow on its staff goes out
@@ -629,24 +625,24 @@ func _struck(bolt: Node2D, index: int, colour: Color, kills: bool) -> void:
 
 ## A blast of something that lands: every page near it is shoved away from it and tossed up, tumbling.
 func _blast(at: Vector2, power: float) -> void:
-	for page: Node2D in _pile:
+	for page: IntroPage in _pile:
 		var away := page.position - at
 		var near := 1.0 - away.length() / BLAST_REACH
 		if near <= 0.0:
 			continue
 		near *= power
-		var vel: Vector2 = page.get_meta("vel")
+		var vel: Vector2 = page.vel
 		vel += away.normalized() * 260.0 * near + Vector2(randf_range(-40.0, 40.0), -randf_range(180.0, 380.0) * near)
-		page.set_meta("vel", vel)
-		page.set_meta("landed", false)
-		page.set_meta("spin", float(page.get_meta("spin")) + randf_range(-14.0, 14.0) * near)
+		page.vel = vel
+		page.landed = false
+		page.spin += randf_range(-14.0, 14.0) * near
 
 
 ## A bolt that misses and lands on the floor at x, and throws the pages about where it lands.
 func _stray(index: int, x: float) -> void:
 	var from_at := _staff(index)
 	var to_at := Vector2(x, FLOOR_Y - 6.0)
-	var colour: Color = _all[index].get_meta("colour")
+	var colour: Color = _all[index].colour
 	_play(_all[index], "grab", signf(to_at.x - from_at.x))
 	Sfx.play("push", from_at, -6.0)
 	var bolt := _make_bolt(from_at, colour)
@@ -663,8 +659,8 @@ func _stray(index: int, x: float) -> void:
 
 ## The pages fall, tumble, and slide on the floor; the portal draws at the ones that have been thrown high, and at all of them once it tears.
 func _move_pages(delta: float) -> void:
-	for page: Node2D in _pile.duplicate():
-		var vel: Vector2 = page.get_meta("vel")
+	for page: IntroPage in _pile.duplicate():
+		var vel: Vector2 = page.vel
 		var height := FLOOR_Y - 1.0 - page.position.y
 		var drawn := _torn or (height > PULL_HEIGHT and _unrest > 0.8)
 		if vel == Vector2.ZERO and not drawn:
@@ -685,27 +681,27 @@ func _move_pages(delta: float) -> void:
 				continue
 		page.position += vel * delta
 		if drawn:
-			page.rotation += float(page.get_meta("spin")) * delta
+			page.rotation += page.spin * delta
 		if page.position.y >= FLOOR_Y - 1.0 and vel.y > 0.0 and not _torn:
 			page.position.y = FLOOR_Y - 1.0  # it lands flat, with no bounce, slides a little, and lies still
-			vel = Vector2(vel.x * 0.5 if not page.get_meta("landed", false) else move_toward(vel.x, 0.0, 420.0 * delta), 0.0)
-			if not page.get_meta("landed", false):
-				page.set_meta("landed", true)
+			vel = Vector2(vel.x * 0.5 if not page.landed else move_toward(vel.x, 0.0, 420.0 * delta), 0.0)
+			if not page.landed:
+				page.landed = true
 				var settle := create_tween().set_parallel(true)
 				settle.tween_property(page, "rotation", randf_range(-1.2, 1.2), 0.25)
 				settle.tween_property(page, "scale:x", PAGE_SCALE, 0.25)
 			if absf(vel.x) < 12.0:
 				vel = Vector2.ZERO
-		page.set_meta("vel", vel)
+		page.vel = vel
 
 
 ## How a loose sheet of paper moves through the air: the air takes its speed away, it drops slowly and slips from side to side as it comes down, it
 ## tips over one way and then the other, and it turns over, so it is sometimes seen edge on.
-func _flutter(page: Node2D, vel: Vector2, delta: float) -> Vector2:
+func _flutter(page: IntroPage, vel: Vector2, delta: float) -> Vector2:
 	if page.position.y >= FLOOR_Y - 1.5:
 		return vel  # it is on the floor: sliding, not drifting
-	var phase: float = float(page.get_meta("flutter", randf() * TAU)) + delta * 4.5
-	page.set_meta("flutter", phase)
+	var phase: float = page.flutter + delta * 4.5
+	page.flutter = phase
 	vel *= 1.0 - minf(delta * FLUTTER_DRAG, 1.0)
 	vel.y = minf(vel.y + GRAVITY * 0.5 * delta, FLUTTER_FALL)
 	vel.x += cos(phase) * FLUTTER_SWAY * delta
@@ -715,7 +711,7 @@ func _flutter(page: Node2D, vel: Vector2, delta: float) -> Vector2:
 
 
 ## The portal takes a page: it shrinks into the ring and the ring flares.
-func _swallowed(page: Node2D) -> void:
+func _swallowed(page: IntroPage) -> void:
 	_pile.erase(page)
 	Sfx.play("page_1", _portal.global_position, -10.0)
 	Fx.burst(self, _portal.position, Color("#c8a8ff"), 8, 110.0, 0.4, true)
@@ -746,7 +742,7 @@ func _the_portal_tears() -> void:
 		var wizard := _wizards[i]
 		var tween := create_tween()
 		tween.tween_interval(0.5 + i * 0.12)
-		tween.tween_callback(_play.bind(wizard, "hit", float(wizard.get_meta("face"))))  # off their feet
+		tween.tween_callback(_play.bind(wizard, "hit", wizard.face))  # off their feet
 		tween.tween_property(wizard, "position", _portal.position + Vector2(0.0, 40.0), 1.4 - i * 0.1).set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_IN)
 		tween.tween_callback(Sfx.play.bind("gravity", _portal.global_position, -6.0, 0.05, 0.8))
 		tween.tween_property(wizard, "scale", Vector2.ONE * 0.2, 0.25)

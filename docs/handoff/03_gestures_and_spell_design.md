@@ -5,7 +5,7 @@
 1. **Recording:** the player holds one or more mouse buttons. Every button pressed during the stroke is added to
    `_active_mask`, so Left then Middle counts as Earth. Points are recorded relative to where the press began.
 2. **On release** (`Caster._end`):
-   - **Too short:** a stroke shorter than `min_stroke_length` (20 px) is ignored.
+   - **Too short:** a stroke shorter than `MIN_STROKE_LENGTH` (20 px) is ignored.
    - **Recognizer:** the $1 recognizer scores the stroke against **only the templates bound to that button
      combination** (`StrokeReader.templates_for`). This restriction is why a Stonefall can't come out as a Tornado.
    - **Shape detectors** then run for shapes $1 handles badly (all in `StrokeShapes`, asked by `StrokeReader._detect` and claimed in `_read_shapes`): `inward_spiral`, `ring_then_line_split` (Push),

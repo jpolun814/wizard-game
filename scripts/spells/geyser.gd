@@ -128,8 +128,8 @@ func _douse_shots() -> void:
 		if shot.is_in_group("fires") and column.has_point(shot.global_position):
 			Fx.smoke(get_parent(), shot.global_position, Color(0.9, 0.95, 1.0, 0.6), 4, 24.0, 40.0)
 			Sfx.play("freeze", shot.global_position, -6.0)
-			if shot.has_method("_finish"):
-				shot._finish()
+			if shot is SpellEffect:
+				shot.end()
 			else:
 				shot.queue_free()
 

@@ -24,14 +24,7 @@ static func multiplier(tree: SceneTree, body: Node) -> float:
 
 ## Whoever is closest to a point, if they are near enough to be under the star.
 static func nearest_under(tree: SceneTree, point: Vector2) -> Node2D:
-	var best: Node2D = null
-	var best_distance := REACH
-	for body in SpellTargets.all(tree):
-		var distance := SpellTargets.center_of(body).distance_to(point)
-		if distance < best_distance:
-			best_distance = distance
-			best = body
-	return best
+	return SpellTargets.nearest_to(SpellTargets.all(tree), point, REACH)
 
 
 func _ready() -> void:
@@ -49,7 +42,7 @@ func _ready() -> void:
 
 func _physics_process(delta: float) -> void:
 	_age += delta
-	if not is_instance_valid(target) or _age >= SECONDS or (target.has_method("is_dead") and target.is_dead()) or ("dead" in target and target.dead):
+	if not is_instance_valid(target) or _age >= SECONDS or (target is Mob and target.is_dead()) or (target is Wizard and target.dead):
 		queue_free()
 		return
 	# The mark floats above the head, bobbing, and blinks out over its last moments.

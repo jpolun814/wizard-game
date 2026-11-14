@@ -70,18 +70,17 @@ func _physics_process(delta: float) -> void:
 func _sound(delta: float) -> void:
 	var slot := _slot_at(seconds)
 	var swinging := slot > 0 and seconds - _begins[slot] < _swings[slot]
-	var sfx := get_node_or_null("/root/Sfx")
 	var camera := get_viewport().get_camera_2d()
-	if sfx == null or camera == null:
+	if camera == null:
 		return
 	var heard := camera.get_screen_center_position().distance_to(global_position + Vector2(_way * _length * 0.5, 0.0).rotated(rotation)) < HEARD_WITHIN
 	if swinging and heard:
 		_grind -= delta
 		if _grind <= 0.0:
 			_grind = GRIND_GAP * _rng_gap()
-			sfx.call("play", "stones", global_position + Vector2(_way * _length * 0.5, 0.0).rotated(rotation), -3.0, 0.2, 0.32)
+			Sfx.play("stones", global_position + Vector2(_way * _length * 0.5, 0.0).rotated(rotation), -3.0, 0.2, 0.32)
 	elif _was_swinging and not swinging and heard:
-		sfx.call("play", "stones", global_position + Vector2(_way * _length, 0.0).rotated(rotation), 0.0, 0.1, 0.25)
+		Sfx.play("stones", global_position + Vector2(_way * _length, 0.0).rotated(rotation), 0.0, 0.1, 0.25)
 	_was_swinging = swinging
 
 

@@ -25,14 +25,8 @@ var _facing := 1.0
 
 ## The decoy that is nearest to a point and close enough to be noticed, or null.
 static func nearest(tree: SceneTree, point: Vector2, within: float) -> Decoy:
-	var best: Decoy = null
-	var best_distance := within
-	for decoy in tree.get_nodes_in_group("decoys"):
-		var distance: float = decoy.center().distance_to(point)
-		if not decoy.is_dead() and distance < best_distance:
-			best_distance = distance
-			best = decoy
-	return best
+	var standing := tree.get_nodes_in_group("decoys").filter(func(decoy: Decoy) -> bool: return not decoy.is_dead())
+	return SpellTargets.nearest_to(standing, point, within) as Decoy
 
 
 func _ready() -> void:

@@ -50,12 +50,12 @@ func _process(delta: float) -> void:
 	if Input.is_action_pressed("school_middle"):
 		now |= SpellData.MIDDLE
 	_held = 0 if now == 0 else (_held | now)
-	var wizard: Node2D = _player()
-	var menu := get_tree().get_first_node_in_group(&"hud")
-	if wizard == null or (menu != null and menu.call("is_paused")):  # the pause menu is the home screen's kind of place: an ordinary pointer
+	var wizard := _player()
+	var menu := get_tree().get_first_node_in_group(&"hud") as Hud
+	if wizard == null or (menu != null and menu.is_paused()):  # the pause menu is the home screen's kind of place: an ordinary pointer
 		_target = POINTER
 	else:
-		var middle: Vector2 = get_viewport().get_canvas_transform() * Vector2(wizard.call("center"))
+		var middle: Vector2 = get_viewport().get_canvas_transform() * wizard.center()
 		var away: Vector2 = get_viewport().get_mouse_position() - middle
 		if away.length() > DEAD_ZONE:
 			_target = rad_to_deg(atan2(away.x, -away.y))
@@ -144,8 +144,8 @@ func _outlined(wand: Image) -> Image:
 
 
 ## The wizard a person plays, if there is one.
-func _player() -> Node2D:
+func _player() -> Wizard:
 	for node in get_tree().get_nodes_in_group("wizards"):
-		if node is Node2D and node.get("brain") == null and is_instance_valid(node):
+		if node is Wizard and node.brain == null and is_instance_valid(node):
 			return node
 	return null

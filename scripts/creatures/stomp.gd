@@ -42,7 +42,7 @@ func wall_ahead() -> bool:
 	if hit.is_empty():
 		return false
 	var blocker: Object = hit["collider"]
-	return blocker.has_meta("stone_wall") or blocker.is_in_group("rocks")
+	return blocker.is_in_group("stone_walls") or blocker.is_in_group("rocks")
 
 
 ## The foot comes down.

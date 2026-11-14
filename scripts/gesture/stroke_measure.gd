@@ -42,19 +42,9 @@ static func count_crossings(points: PackedVector2Array) -> int:
 	var count := 0
 	for i in range(points.size() - 1):
 		for j in range(i + 2, points.size() - 1):
-			if segments_cross(points[i], points[i + 1], points[j], points[j + 1]):
+			if Geometry2D.segment_intersects_segment(points[i], points[i + 1], points[j], points[j + 1]) != null:
 				count += 1
 	return count
-
-
-static func segments_cross(a: Vector2, b: Vector2, c: Vector2, d: Vector2) -> bool:
-	var ab := b - a
-	var cd := d - c
-	var side_1 := ab.cross(c - a)
-	var side_2 := ab.cross(d - a)
-	var side_3 := cd.cross(a - c)
-	var side_4 := cd.cross(b - c)
-	return side_1 * side_2 < 0.0 and side_3 * side_4 < 0.0
 
 
 ## The total angle a stroke turns through, signed: a full clockwise circle is about TAU.

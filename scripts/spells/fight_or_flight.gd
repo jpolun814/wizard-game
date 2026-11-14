@@ -23,14 +23,7 @@ var _until_cast := 0.4
 
 ## Whoever is closest to a point, if they are near enough to be under the sign.
 static func nearest_under(tree: SceneTree, point: Vector2) -> Wizard:
-	var best: Wizard = null
-	var best_distance := REACH
-	for wizard: Wizard in SpellTargets.wizards(tree):
-		var distance := wizard.center().distance_to(point)
-		if distance < best_distance:
-			best_distance = distance
-			best = wizard
-	return best
+	return SpellTargets.nearest_to(SpellTargets.wizards(tree), point, REACH) as Wizard
 
 
 func _ready() -> void:
@@ -81,7 +74,7 @@ func _cast_at_random() -> void:
 	if known.is_empty():
 		return
 	var pick: Spell = known[randi() % known.size()]
-	var shape := GestureTemplates.preview_points(pick.preview if pick.preview != "" else pick.gesture)
+	var shape := GestureTemplates.preview_points(pick.gesture)
 	if shape.size() < 2:
 		return
 	var low := shape[0]

@@ -112,9 +112,9 @@ func _burn() -> void:
 			_burnt[body.get_instance_id()] = BURN_GAP
 			SpellTargets.hurt(body, BURN, "Fire", false, true, self)
 			var throw := Vector2(direction * KNOCK.x, KNOCK.y)
-			if body.has_method("knock_back"):  # (an enemy, whatever group it is in just now)
+			if body is Mob:
 				body.knock_back(throw)
-			elif body.has_method("push"):
+			elif body is Wizard:
 				body.push(throw)
 
 

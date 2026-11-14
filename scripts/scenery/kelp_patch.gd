@@ -16,6 +16,7 @@ var bases: Array[Vector2] = []  # where each strand stands: the world position o
 var seed_value := 0
 var _area := Rect2()
 var _strands: Array[Sprite2D] = []
+var _phases := PackedFloat32Array()  # where each strand is in its sway, so that no two sway together
 var _t := 0.0
 var _check := 0.0
 
@@ -36,7 +37,7 @@ func _ready() -> void:
 		strand.scale = Vector2(SIZE, SIZE)
 		strand.position = base - global_position
 		strand.modulate = TINT.lerp(Color(0.08, 0.3, 0.3, 0.92), rng.randf())
-		strand.set_meta("phase", rng.randf() * TAU)
+		_phases.append(rng.randf() * TAU)
 		add_child(strand)
 		_strands.append(strand)
 		_area = _area.expand(Vector2(base.x - 24.0, base.y - tall)).expand(Vector2(base.x + 24.0, base.y))
@@ -44,8 +45,8 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	_t += delta
-	for strand in _strands:
-		strand.rotation = sin(_t * 1.1 + strand.get_meta("phase")) * 0.07  # (it sways from its foot)
+	for i in _strands.size():
+		_strands[i].rotation = sin(_t * 1.1 + _phases[i]) * 0.07  # (it sways from its foot)
 
 
 func _physics_process(delta: float) -> void:

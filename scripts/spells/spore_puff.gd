@@ -128,7 +128,7 @@ func _poison() -> void:
 				SpellTargets.hurt(body, DAMAGE, "Flora", false, false, self)
 				if body is Wizard:
 					body.apply_debuff("tangle", SLOW_SECONDS)  # choking, they can barely walk
-				elif body.has_method("apply_slow"):
+				elif body is Mob:
 					body.apply_slow(SLOW_SECONDS)
 				break
 

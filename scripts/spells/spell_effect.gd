@@ -38,7 +38,12 @@ func _act(_delta: float) -> void:
 	pass
 
 
-## Ends the effect.
+## Ends the effect now, as when something puts it out: each kind ends in its own way.
+func end() -> void:
+	_finish()
+
+
+## How the effect ends when its life is up.
 func _finish() -> void:
 	queue_free()
 

@@ -31,7 +31,7 @@ var _bitten := false
 
 func _begin(origin: Vector2, aim_angle: float) -> void:
 	_dir = Vector2.from_angle(aim_angle)
-	_from = caster.center() if caster != null and caster.has_method("center") else origin
+	_from = SpellTargets.center_of(caster) if caster is Node2D else origin
 	global_position = _from
 	_life = HOLD
 	Sfx.play("push", _from, -6.0)

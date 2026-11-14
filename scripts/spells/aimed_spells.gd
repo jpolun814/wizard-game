@@ -17,14 +17,7 @@ func recipes() -> Dictionary:
 
 ## Whoever a blood spell is aimed at: the one nearest the stroke.
 static func blood_target(tree: SceneTree, origin: Vector2) -> Node2D:
-	var best: Node2D = null
-	var best_distance := Hex.REACH
-	for body in SpellTargets.all(tree):
-		var distance := SpellTargets.center_of(body).distance_to(origin)
-		if distance < best_distance:
-			best_distance = distance
-			best = body
-	return best
+	return SpellTargets.nearest_to(SpellTargets.all(tree), origin, Hex.REACH)
 
 
 func _say_no_one(c: SpellCast, colour: Color) -> void:

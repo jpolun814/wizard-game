@@ -10,7 +10,6 @@ const FLIGHT := 0.5          # seconds in the air: a short throw
 const BURN_REACH := 26.0     # how near a flame must be to burn it
 const ART := preload("res://art/fx/thorn.png")
 
-var _speed_scale := 1.0
 
 
 func _begin(origin: Vector2, aim_angle: float) -> void:
@@ -40,7 +39,7 @@ func damage() -> int:
 
 
 func velocity() -> Vector2:
-	return aim * SPEED * _speed_scale
+	return aim * SPEED
 
 
 func _act(delta: float) -> void:

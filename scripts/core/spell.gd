@@ -15,7 +15,6 @@ enum Size { NONE, RADIUS, REACH, LINE_WIDTH, LINE_SPAN, LENGTH, STEP_LENGTH, ARE
 @export var cost := 10.0
 @export_multiline var effect := ""  ## what it does, for the spellbook
 @export var damage := ""            ## a short figure for the spellbook
-@export var preview := ""           ## a gesture to draw in the spellbook instead of `gesture`, when they differ
 @export var colour := Color(0, 0, 0, 0)  ## the glow of a spell that is not its school's colour; transparent means the school's
 @export var size_from := Size.NONE
 @export var size_unit := 1.0

@@ -9,7 +9,7 @@ signal cast_resolved(spell: String, targeting: String, origin: Vector2, aim: flo
 signal misfired
 
 @export var tolerance := 0.70          # minimum $1 score to count as a cast
-@export var min_stroke_length := 20.0  # shorter strokes are ignored as clicks
+const MIN_STROKE_LENGTH := 20.0  # shorter strokes are ignored as clicks
 @export var wall_tolerance_deg := 20.0  # straight strokes this close to vertical are walls
 const MIN_POINT_SPACING := 2.0
 
@@ -141,7 +141,7 @@ func _end() -> void:
 	for p in _stroke:
 		relative.append(p - _origin)
 
-	if UnistrokeRecognizer.path_length(relative) < min_stroke_length:
+	if UnistrokeRecognizer.path_length(relative) < MIN_STROKE_LENGTH:
 		return  # too short to be a spell: silent, since the stroke itself shows it was not one (a click on a flare snuffs it)
 
 	var options: Dictionary = _bindings.get(mask, {})

@@ -506,7 +506,7 @@ func _write_page(area: Control, page: String) -> void:
 		column.add_child(_ink(Spellbook.ritual_effect(id), 20, Spellbook.SUBTLE, false, true))
 	else:
 		var spell: Spell = SpellData.SPELLS[page]
-		var gesture: String = spell.preview if spell.preview != "" else spell.gesture
+		var gesture: String = spell.gesture
 		var picture := StrokePreview.new(GestureTemplates.preview_points(gesture), GestureTemplates.preview_ground(gesture), 140.0)
 		picture.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 		column.add_child(picture)
