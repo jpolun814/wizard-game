@@ -125,38 +125,18 @@ func _build_collision() -> void:
 ## open ground there to dig.
 func dig(at: Vector2, half_width: float, depth: float, profile := PackedFloat32Array()) -> bool:
 	var way := -1.0 if _faces_down_near(at) else 1.0  # a pit sinks into the ground below; under a roof it is dug up into the rock above
-	# Rock too thin to stand between this pit and another one beside it goes too: the pit reaches across to the other.
-	var left := at.x - half_width
-	var right := at.x + half_width
-	for step in range(0, int(THIN_WALL), 4):
-		if not solid_at(Vector2(at.x - half_width, at.y + 8.0 * way)):
-			break
-		if not solid_at(Vector2(at.x - half_width - step, at.y + 8.0 * way)):
-			left = at.x - half_width - step - 10.0
-			break
-	for step in range(0, int(THIN_WALL), 4):
-		if not solid_at(Vector2(at.x + half_width, at.y + 8.0 * way)):
-			break
-		if not solid_at(Vector2(at.x + half_width + step, at.y + 8.0 * way)):
-			right = at.x + half_width + step + 10.0
-			break
+	var span := _pit_span(at, half_width, way)
+	var left := span.x
+	var right := span.y
 	at.x = (left + right) * 0.5
 	half_width = (right - left) * 0.5
-	var best_loop := -1
-	var best_distance := 48.0
-	for l in _loops.size():
-		var outline: PackedVector2Array = _loops[l]
-		for k in outline.size():
-			var distance := Geometry2D.get_closest_point_to_segment(at, outline[k], outline[(k + 1) % outline.size()]).distance_to(at)
-			if distance < best_distance:
-				best_distance = distance
-				best_loop = l
+	var best_loop := _loop_near(at)
 	if best_loop < 0:
 		return false
 	var points := _densified(_loops[best_loop], 8.0)  # long straight runs have only their ends, and a pit is narrower than that
 	var count := points.size()
 	var best_index := 0
-	best_distance = INF
+	var best_distance := INF
 	for k in count:
 		var distance := points[k].distance_to(at)
 		if distance < best_distance:
@@ -176,15 +156,7 @@ func dig(at: Vector2, half_width: float, depth: float, profile := PackedFloat32A
 	var left_to_right := a.x <= b.x
 	var near := a if left_to_right else b
 	var far := b if left_to_right else a
-	var bowl := PackedVector2Array()
-	var steps := 16 if not profile.is_empty() else 8
-	for s in steps + 1:
-		var u := float(s) / steps
-		var surface := near.lerp(far, u)
-		var sink := depth * Terrain.pit_share(u, profile)  # steep walls and a flat floor, or the drawn U
-		bowl.append(surface + Vector2(0.0, sink * way))
-	if not left_to_right:
-		bowl.reverse()
+	var bowl := _bowl_between(near, far, depth, profile, way, left_to_right)
 	# The pit is joined to the outline as a shape, not spliced in along the surface: a pit beside another one then runs into it, and no thin wall is
 	# left standing between them.
 	# Its sides rise above the highest of the surface it was dug in, so that no sliver of the ground is left standing over the line the bowl was drawn along
@@ -213,6 +185,54 @@ func dig(at: Vector2, half_width: float, depth: float, profile := PackedFloat32A
 		_loops.append(piece)
 	_rebuild()
 	return true
+
+
+## How far a pit really reaches: rock too thin to stand between this pit and another one beside it goes too, so the pit reaches across to the other. Returns (left, right) in x.
+func _pit_span(at: Vector2, half_width: float, way: float) -> Vector2:
+	# Rock too thin to stand between this pit and another one beside it goes too: the pit reaches across to the other.
+	var left := at.x - half_width
+	var right := at.x + half_width
+	for step in range(0, int(THIN_WALL), 4):
+		if not solid_at(Vector2(at.x - half_width, at.y + 8.0 * way)):
+			break
+		if not solid_at(Vector2(at.x - half_width - step, at.y + 8.0 * way)):
+			left = at.x - half_width - step - 10.0
+			break
+	for step in range(0, int(THIN_WALL), 4):
+		if not solid_at(Vector2(at.x + half_width, at.y + 8.0 * way)):
+			break
+		if not solid_at(Vector2(at.x + half_width + step, at.y + 8.0 * way)):
+			right = at.x + half_width + step + 10.0
+			break
+	return Vector2(left, right)
+
+
+## The outline (an index into `_loops`) whose edge lies nearest a point, within 48 px; -1 when none does.
+func _loop_near(at: Vector2) -> int:
+	var best_loop := -1
+	var best_distance := 48.0
+	for l in _loops.size():
+		var outline: PackedVector2Array = _loops[l]
+		for k in outline.size():
+			var distance := Geometry2D.get_closest_point_to_segment(at, outline[k], outline[(k + 1) % outline.size()]).distance_to(at)
+			if distance < best_distance:
+				best_distance = distance
+				best_loop = l
+	return best_loop
+
+
+## The floor of a pit from one end of its surface to the other: steep walls and a flat floor, or the drawn U, sunk `way` (down into the ground, or up into a roof).
+func _bowl_between(near: Vector2, far: Vector2, depth: float, profile: PackedFloat32Array, way: float, left_to_right: bool) -> PackedVector2Array:
+	var bowl := PackedVector2Array()
+	var steps := 16 if not profile.is_empty() else 8
+	for s in steps + 1:
+		var u := float(s) / steps
+		var surface := near.lerp(far, u)
+		var sink := depth * Terrain.pit_share(u, profile)  # steep walls and a flat floor, or the drawn U
+		bowl.append(surface + Vector2(0.0, sink * way))
+	if not left_to_right:
+		bowl.reverse()
+	return bowl
 
 
 ## True when the outline nearest a point, within reach, has its air below it there: the underside of a roof. Whether it bounds a hollow or a
