@@ -43,6 +43,27 @@ func build(cells: TileGrid, bottom: int, blocked := {}, anchor := Vector2i(-1, -
 	var standing := {}
 	for tile in tiles:
 		standing[tile] = true
+	_add_lifts(links, standing, out, back)
+	_add_climbs(climbs, standing, out, back)
+	var keep := _keep_the_ways_home(tiles, out, back, anchor)
+	_astar.reserve_space(keep.size())
+	for id: int in keep:
+		_astar.add_point(id, Vector2(_tile(id)))
+	for id: int in keep:
+		for to in out[id]:
+			if keep.has(to):
+				_astar.connect_points(id, to, false)
+	for key: String in tolls:
+		_tolls[key] = PackedInt32Array()
+		for tile: Vector2i in tolls[key]:
+			if _astar.has_point(_id(tile)):
+				_tolls[key].append(_id(tile))
+				_toll_at[_id(tile)] = key
+				_astar.set_point_disabled(_id(tile), true)  # (a crossing is walked only when a path is asked for it: see path)
+
+
+## The moves up onto a wall and down off it, for each link: moves no one makes without a lift.
+func _add_lifts(links: Array, standing: Dictionary, out: Dictionary, back: Dictionary) -> void:
 	for link: Dictionary in links:  # up onto a wall, and down off it: moves no one makes without a lift
 		for side in ["left", "right"]:
 			var top: Vector2i = link["top_" + side]
@@ -59,12 +80,20 @@ func build(cells: TileGrid, bottom: int, blocked := {}, anchor := Vector2i(-1, -
 				out[_id(top)].append(_id(floor_tile))
 				back[_id(top)].append(_id(floor_tile))
 				back[_id(floor_tile)].append(_id(top))
+
+
+## Up a vine, or up or down a stair (a fall from a vine's ledge is a move the walking already holds).
+func _add_climbs(climbs: Array, standing: Dictionary, out: Dictionary, back: Dictionary) -> void:
 	for climb: Dictionary in climbs:  # up a vine, or up or down a stair (a fall from a vine's ledge is a move the walking already holds)
 		if standing.has(climb["from"]) and standing.has(climb["to"]):
 			out[_id(climb["from"])].append(_id(climb["to"]))
 			if not back.has(_id(climb["to"])):
 				back[_id(climb["to"])] = PackedInt32Array()
 			back[_id(climb["to"])].append(_id(climb["from"]))
+
+
+## The ids worth keeping: those that can be left as well as come to, from the tile nearest the anchor (all of them when there is no anchor).
+func _keep_the_ways_home(tiles: Array[Vector2i], out: Dictionary, back: Dictionary, anchor: Vector2i) -> Dictionary:
 	var keep := {}
 	if anchor.x >= 0 and not tiles.is_empty():
 		var start := tiles[0]  # the place to stand that is nearest the anchor
@@ -79,20 +108,7 @@ func build(cells: TileGrid, bottom: int, blocked := {}, anchor := Vector2i(-1, -
 	else:
 		for id: int in out:
 			keep[id] = true
-	_astar.reserve_space(keep.size())
-	for id: int in keep:
-		_astar.add_point(id, Vector2(_tile(id)))
-	for id: int in keep:
-		for to in out[id]:
-			if keep.has(to):
-				_astar.connect_points(id, to, false)
-	for key: String in tolls:
-		_tolls[key] = PackedInt32Array()
-		for tile: Vector2i in tolls[key]:
-			if _astar.has_point(_id(tile)):
-				_tolls[key].append(_id(tile))
-				_toll_at[_id(tile)] = key
-				_astar.set_point_disabled(_id(tile), true)  # (a crossing is walked only when a path is asked for it: see path)
+	return keep
 
 
 ## Every id that can be got to from one, along these links.
