@@ -6,14 +6,19 @@ out here and say what changed in `02_codebase_map.md`.
 
 ## State of play (end of 2026-11-13)
 
-Done, each with the quick set green and the full set showing only the known failures (`16_open_work.md`):
+Done, each with the quick set green and the full set showing only the known failures (`16_open_work.md`); the state is as of 2026-11-13 evening:
 
 | File | Was | Now | What moved |
 |---|---|---|---|
 | `wizard_brain.gd` | 2,866 | about 640 | `BrainStrokes`, `BrainHand`, `BrainChant`, `BrainDanger`, `BrainSight`, `BrainMoves`, `BrainGates`, `BrainExplore`, `BrainMend`, `BrainCombat` and `BrainTravel` (with the choosing of a goal); `think` and `_travel` read as steps; `_cross` is one function per way over; `SkyBrain` shares the senses and the lists |
 | `world.gd` | 1,775 | about 650 | `WorldCreatures`, `WorldScenery` (one function per biome), `WorldPages`, `WorldGates`, `WorldSeats`, `MatchEnd`, `WorldStages`; one black-cover helper in `Arena` |
-| `wizard.gd` | 1,432 | 1,460 | no class moved: `_physics_process` is steps over `_tick_timers`, `_fall`, `_steer`, `_shoved`, `_move_on`; `_walking_speed()`. The timed conditions were already `StatusEffects` timers behind properties |
-| `caster.gd` | 1,218 | 1,241 | `_end` is `_read_special`, `_settle` and `_resolve` |
+| `wizard.gd` | 1,432 | about 1,130 | `WildShape` (`wizard.wolf`), `Pen` (`wizard.pen`), `Lungs` (`wizard.lungs`), `Pad` (`wizard.pad`), `VineHold` (`wizard.vine`) and `BarrierBubble`; `_physics_process` is steps over `_tick_timers`, `_fall`, `_steer`, `_shoved`, `_move_on`. The timed conditions were already `StatusEffects` timers |
+| `caster.gd` | 1,218 | about 260 | input, drawing and casting only. The reading of a stroke is `StrokeReader` (`reader`: `read`, `settle`) giving a `StrokeReading`, over `StrokeShapes` (the detectors) and `StrokeMeasure` (the measures), all static and pure |
+| `arena.gd` | 1,349 | about 500 | `SpellSpawner` (four recipe tables), `Rituals`, `Casting`, `InsightTip` |
+| `mob.gd` | | about 790 | `Stomp` |
+| long functions | | none over 60 lines but 20 | `WorldBuilder.build`, `_profile` and `_make_gate`, `SurfaceGen.build`, `World._begin_encounter`, `Pages.plan` and `WorldGraph._lock` are steps over small functions; what is left are tables (`preview_points`, `recognizer_templates`) and drawing code |
+| inner classes | | none | each is a file of its own (`CaveDraw`, `RockFace`, `BlankPage`, `MatchTrace`, `Menu*`, `BookArt`, `MouseIcon`, `KeyCap`, `StrokePreview`) |
+| `scripts/` | 150 loose files | folders | `core`, `wizard`, `brain`, `arena`, `creatures`, `scenery`, `terrain`, `screens`, `ui`, `fx` beside `gesture`, `spells`, `world`, `hud` (see `02_codebase_map.md`) |
 
 **Not done, and why.**
 
@@ -23,7 +28,7 @@ Done, each with the quick set green and the full set showing only the known fail
 - **Gate crossing by kind is unverified:** `cross_check` needs a seed that has the kind (`NOTE seed N has no flood gate` is printed otherwise); the seeds in its header no longer have them, and seed 13 (the only flood found among seeds 1 to 35) fails the same way before and after the work.
 - **`SkyBrain`** still has its own `think`, `_journey` and `_choose_where`, which are the sky's own business (flying, no ground).
 - **Movement modes in `Wizard`** (walking, swimming, flying, wild) are still branches in `_fall` and `_steer`.
-- **The caster's detector table.** `_read_special` is still a list of `if` and `elif` over locals that rule each other out (`star`, `slashed`, `spiral`, `ring_split`); it cannot become a plain table without giving each detector its own context.
+- **The caster's detector table.** `StrokeReader._read_shapes` claims in an order that is the order the detectors rule each other out; each detector is now asked once, up front (`_detect`). It could become a table only if each row said what it rules out.
 
 **Watch the AI by eye before going further** (`tests/arena_sim.tscn -- seed=7 seconds=300 watch=1`, in a window). The checks prove the brain still casts, crosses and fights; only the owner can say it still looks like a person.
 
