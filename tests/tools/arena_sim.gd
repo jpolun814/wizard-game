@@ -29,6 +29,8 @@ var _kill_at := -1.0  # kill=SECONDS fells the wizard with the most pages then, 
 var _killed := false
 var _log: FileAccess  # log=FILE writes what every wizard does, four times a second, and each cast and wound, for studying how they behave
 var _log_t := 0.0
+var _duel := false  # duel=1: only the first two wizards fight, near each other, with the spells named in a= and b= (comma separated), for filming
+var _duel_spells: Array = [[], []]
 var _frames_dir := ""  # frames=DIR: a picture of the screen, 640 wide, every `every` frames, for making a GIF of the match (needs a window)
 var _every := 5
 var _frame_count := 0
@@ -67,6 +69,13 @@ func _ready() -> void:
 		elif arg.begins_with("frames="):
 			_frames_dir = arg.substr(7)
 			DirAccess.make_dir_recursive_absolute(_frames_dir)
+		elif arg == "duel=1":
+			_duel = true
+			_watch = true
+		elif arg.begins_with("a="):
+			_duel_spells[0] = arg.substr(2).split(",")
+		elif arg.begins_with("b="):
+			_duel_spells[1] = arg.substr(2).split(",")
 		elif arg.begins_with("every="):
 			_every = int(arg.substr(6))
 		elif arg.begins_with("shotat="):
@@ -103,6 +112,8 @@ func _ready() -> void:
 	for wizard: Wizard in get_tree().get_nodes_in_group("wizards"):
 		if wizard != _world.player:
 			_wizards.append(wizard)
+	if _duel:
+		_set_up_duel()
 	if _log != null:
 		for w in _wizards:
 			var who: String = w.look + str(_wizards.find(w))
@@ -120,6 +131,21 @@ func _ready() -> void:
 	for wizard in _wizards:
 		_seen.append({"kind": wizard.look, "pages": wizard.ledger.count()})
 		print("   %s at %s holds %d pages" % [wizard.look, str(wizard.global_position), wizard.ledger.count()])
+
+
+## The first two wizards face each other on the ground by the first one's start, with the spells they were given; everyone else is put away.
+func _set_up_duel() -> void:
+	for k in range(2, _wizards.size()):
+		_wizards[k].set_physics_process(false)
+		_wizards[k].global_position = Vector2(-9000.0, -9000.0 - 200.0 * k)
+	var a: Wizard = _wizards[0]
+	var b: Wizard = _wizards[1]
+	var spot := a.global_position
+	a.global_position = _world.ground_below(spot + Vector2(0.0, -300.0))
+	b.global_position = _world.ground_below(spot + Vector2(300.0, -300.0))
+	for k in 2:
+		for page: String in _duel_spells[k]:
+			_wizards[k].ledger.learn(page)
 
 
 func _physics_process(delta: float) -> void:
@@ -150,7 +176,9 @@ func _physics_process(delta: float) -> void:
 					pick = target  # no fight anywhere: it stays with the one it had
 				target = pick
 				_watched = target
-			if _follow < 0:
+			if _duel and is_instance_valid(_wizards[1]):
+				_camera.global_position = (_wizards[0].global_position + _wizards[1].global_position) * 0.5 + Vector2(0.0, -40.0)
+			elif _follow < 0:
 				_camera.global_position = target.global_position
 	if _shot != "" and _clock > _shot_at:
 		get_viewport().get_texture().get_image().save_png(_shot)

@@ -4,7 +4,7 @@ You are one of eight wizards dropped into the same world, and everyone starts wi
 
 It is a 2D side-view duel made in Godot, in dark pixel art.
 
-![Wizards trading spells in a jungle](docs/media/jungle_duel.gif)
+![Two wizards in a jungle: an ice bolt, a bubble of air and fire breath](docs/media/jungle_duel.gif)
 
 ## You cast by drawing
 
@@ -15,7 +15,7 @@ There is no spell bar. To cast, you hold down a mouse button and draw the spell'
 - The dearer a spell is, the more involved its shape. A quick flick throws a fireball; a star about to die takes two loops drawn in one go.
 - A few spells are rituals instead. Press Enter and type a chant in pseudo-Latin. The cleaner your typing, the stronger the result, and a sloppy chant can go wrong.
 
-![Wizards trading fire in a graveyard](docs/media/graveyard_fire.gif)
+![A wall of flame between two wizards in a graveyard](docs/media/graveyard_fire.gif)
 
 The other seven wizards cast the same spells the same way. When one of them throws a fireball, you can watch the stroke being drawn a moment before.
 
@@ -37,7 +37,7 @@ A match is you and seven rivals (friends over a network, with AI wizards in any 
 
 Pages are dealt out when the match starts, so no two wizards begin with the same ones and no page is lying in the world once someone has read it. Some places are locked until you have a spell that opens them.
 
-![Another fight in the graveyard](docs/media/graveyard_geyser.gif)
+![Fire breath and lightning on the snowy peaks](docs/media/peaks_fire.gif)
 
 ## Other things in the box
 
@@ -118,7 +118,7 @@ Some rules worth knowing before you add anything:
 The simulation can record itself. It needs a window and a fixed frame rate:
 
 ```
-godot --fixed-fps 60 --path . tests/tools/arena_sim.tscn -- seed=3 seconds=100 watch=1 zoom=2 frames=OUT_DIR every=5
+godot --fixed-fps 60 --path . tests/tools/arena_sim.tscn -- seed=3 seconds=45 duel=1 zoom=2.2 "a=Ignite,Fire Breath" "b=Frostbolt,Barrier" frames=OUT_DIR every=5
 ```
 
-That saves a small picture every five frames, which Pillow can put together into a GIF. Different `seed` values give different first worlds.
+`duel=1` puts two wizards face to face with the spells named in `a=` and `b=`, and the rest of the match is put away. A small picture is saved every five frames, and Pillow can put them together into a GIF. Different `seed` values give different first worlds. Give each frame its own palette when you do, or the pale colors go wrong.

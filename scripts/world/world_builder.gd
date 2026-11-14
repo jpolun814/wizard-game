@@ -766,6 +766,9 @@ static func _open_above(cells: TileGrid, profile: Dictionary, plan: Dictionary, 
 static func _marker(profile: Dictionary, plan: Dictionary) -> Vector2i:
 	var room: Dictionary = plan["room"]
 	var xl: int = profile["xl"]
+	if room.has("surface"):  # the open ground rolls: the marker is the level ground pinned at the middle (see the pins of the surface room in build)
+		var middle: int = room["cx"]
+		return Vector2i(middle, profile["floor"][middle - xl] - 1)
 	var best := -1
 	for i in profile["floor"].size():
 		var c: int = xl + i
