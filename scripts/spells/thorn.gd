@@ -4,9 +4,9 @@ extends Projectile
 ## One thorn of a volley of Barbs: a short, quick shot that does a little harm. Stone and cover stop it, a Barrier turns it, and a flame burns it up
 ## in the air. It behaves as any other shot (it is in the "shots" group, so wind turns it and a Black Hole bends it).
 
-const SPEED := 520.0
-const HARM := 3
-const FLIGHT := 0.5          # seconds in the air: a short throw
+const SPEED := 560.0
+const HARM := 5
+const FLIGHT := 0.8          # seconds in the air: a short throw, a little over four hundred pixels
 const BURN_REACH := 26.0     # how near a flame must be to burn it
 const ART := preload("res://art/fx/thorn.png")
 

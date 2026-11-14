@@ -15,7 +15,7 @@ const ATTACKS := ["Ignite", "Fire Breath", "Spark", "Frostbolt", "Stonefall", "S
 		"Eldritch Blast", "Hemorrhage", "Supernova", "Scythe"]
 ## The attacks a wizard can start with (see deal): the ones that are worth a first page alone. Harsher spells (Supernova, Flaming Sphere) and weaker ones
 ## (Hailstorm, Thorn Whip) are found, not dealt.
-const RANGED := ["Ignite", "Fire Breath", "Spark", "Frostbolt", "Stonefall", "Barbs", "Pebble", "Eldritch Blast"]
+const RANGED := ["Ignite", "Fire Breath", "Spark", "Frostbolt", "Stonefall", "Barbs", "Pebble", "Eldritch Blast", "Spore Puff", "Scythe", "Insect Plague", "Hemorrhage"]
 const MOVES := ["Shadow Step", "Push", "Liana", "Geyser", "Updraft", "Tornado", "Great Oak", "Rocket Jump"]
 const DEFENCES := ["Barrier", "Decoy", "Stone Wall", "Smoke Screen", "Gust", "Eclipse", "Sneak", "Featherfall", "Mirage"]
 const CHANTS := ["chant:bonfire", "chant:rift"]

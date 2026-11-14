@@ -10,5 +10,5 @@ gesture = "flick"
 targeting = "directional"
 cost = 10.0
 effect = "Fling a volley of thorns."
-damage = "3 dmg"
+damage = "5 dmg"
 effect_path = "res://scripts/spells/barbs.gd"
