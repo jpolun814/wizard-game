@@ -142,3 +142,5 @@ Order: 35-38 and 62, then 49-51 and 56-57, then 61; 63 waits for the owner.
 | 8 | As 7, with a Stone Wall raised against a rival seen casting straight shots at it | 0.610 ± 0.028 of 90 (57-28-5) | 4.28 vs 4.72 of 30 (20-9) |
 
 Rows 4 and 5 are the same idea set; the spread between them (0.668 and 0.653) is the noise of the measure.
+
+| 9 | Wall A/B, 150 duels, seed 2000 | wall off: 0.682 +- 0.020 (97-45-8); wall on: 0.653 +- 0.017 (91-51-6). Difference 0.03, about 1 SE: noise, not clear harm. Kept (owner rule); AI_OFF=wall remains for re-testing. |
