@@ -53,6 +53,55 @@ const JUMP_FAR := 9     # how far a jump at (nearly) the same height reaches: a 
 static func build(graph: WorldGraph, rng: RandomNumberGenerator) -> Dictionary:
 	var size := WorldGraph.size
 	var cells := TileGrid.new(size, ArenaGen.GROUND)
+	var laid := _plan_halls(graph)
+	var plans: Dictionary = laid["plans"]
+	var tunnels: Array = laid["tunnels"]
+	var ponds := []
+	var hazards := {}
+	var profiles := {}
+	var castles: Array = graph.surface["castles"]
+	plans[0]["pins"].append(Vector3i(graph.rooms[0]["cx"] - SurfaceGen.START_FLAT, graph.rooms[0]["cx"] + SurfaceGen.START_FLAT, graph.rooms[0]["cx"]))  # level ground to start on
+	for room in graph.rooms:
+		profiles[room["id"]] = _surface_profile(graph, plans[0]) if room.has("surface") else _profile(plans[room["id"]], rng)
+	_carve_halls(cells, graph, profiles, ponds, hazards)
+	for thicket: Dictionary in graph.surface["thorns"]:  # the jungle's thickets are jumped, not waded: the wizards' ways do not go through them
+		for c in range(thicket["a"], thicket["b"] + 1):
+			hazards[Vector2i(c, profiles[0]["floor"][c - profiles[0]["xl"]] - 1)] = true
+	var carved := []
+	for tunnel in tunnels:
+		carved.append(_carve_tunnel(cells, tunnel["from"], tunnel["to"], tunnel["slope"], tunnel["surface_x"], rng, tunnel["gate"] in ["chasm", "flood", "brambles", "dark", "gas", "piranhas"]))
+	var markers := {}
+	for room in graph.rooms:
+		markers[room["id"]] = _marker(profiles[room["id"]], plans[room["id"]])
+		if not room.has("surface"):
+			plans[room["id"]]["pins"].append(Vector2i(markers[room["id"]].x - 3, markers[room["id"]].x + 3))  # keep the marker clear
+			_formations(cells, profiles[room["id"]], plans[room["id"]], rng)
+	for k in tunnels.size():
+		if tunnels[k]["lid"]:
+			_lid(cells, tunnels[k], carved[k])
+	var spawns: Array[Vector2i] = []
+	var sky_floor: PackedInt32Array = profiles[0]["floor"]
+	for spawn in graph.spawns:
+		var x: int = spawn["x"] - spawn["side"] * 5  # on the flat ground behind the way down, not in its trench
+		spawns.append(Vector2i(x, sky_floor[x - profiles[0]["xl"]] - 1))
+	var built := _raise_castles(cells, graph, castles, markers)
+	var hall: Array = built["hall"]
+	var planks: Array = built["planks"]
+	# What bars each gated tunnel is made in it: a lava chasm, a stretch of thorns or a sheer wall.
+	var gates := []
+	for k in tunnels.size():
+		if tunnels[k]["lock"] >= 0:
+			var gate := _make_gate(cells, tunnels[k], carved[k], ponds, hazards, profiles[0])
+			gate["lock"] = tunnels[k]["lock"]
+			gates.append(gate)
+	return {"cells": cells, "size": size, "markers": markers, "start": markers[graph.start], "ponds": ponds,
+			"hazards": hazards, "castle": castles[0] if not castles.is_empty() else -1, "castles": castles, "roofed": graph.surface["roofed"], "hall": hall, "planks": planks, "profiles": profiles, "sky": {"xl": profiles[0]["xl"], "floor": profiles[0]["floor"], "roof_top": _roof_top(profiles[0])},
+			"surface": graph.surface, "gates": gates, "spawns": spawns}
+
+
+## What each hall wants of the ground (its plan: the stretches kept level, the pits, the shafts, the sides a tunnel leaves by) and the tunnels between them, from the graph.
+## Returns {"plans": {room id: plan}, "tunnels": [...]}.
+static func _plan_halls(graph: WorldGraph) -> Dictionary:
 	var plans := {}
 	for room in graph.rooms:
 		plans[room["id"]] = {"room": room, "pins": [], "pits": [], "shafts": [], "left": false, "right": false}
@@ -82,13 +131,11 @@ static func build(graph: WorldGraph, rng: RandomNumberGenerator) -> Dictionary:
 			else:
 				plans[room["id"]]["left"] = true
 				plans[room["id"]]["pins"].append(Vector2i(mouth.x, mouth.x + EXIT_FLAT))
-	var ponds := []
-	var hazards := {}
-	var profiles := {}
-	var castles: Array = graph.surface["castles"]
-	plans[0]["pins"].append(Vector3i(graph.rooms[0]["cx"] - SurfaceGen.START_FLAT, graph.rooms[0]["cx"] + SurfaceGen.START_FLAT, graph.rooms[0]["cx"]))  # level ground to start on
-	for room in graph.rooms:
-		profiles[room["id"]] = _surface_profile(graph, plans[0]) if room.has("surface") else _profile(plans[room["id"]], rng)
+	return {"plans": plans, "tunnels": tunnels}
+
+
+## Cuts every hall out of the rock, with the open sky over a cavern's roof, and gathers their pools (and the tiles of lava) into `ponds` and `hazards`.
+static func _carve_halls(cells: TileGrid, graph: WorldGraph, profiles: Dictionary, ponds: Array, hazards: Dictionary) -> void:
 	for room in graph.rooms:
 		_carve_hall(cells, profiles[room["id"]])
 		if room.has("surface") and graph.surface["roofed"]:  # over the roof of the cavern lies open sky, for a wizard to see and to dig out to
@@ -102,26 +149,11 @@ static func build(graph: WorldGraph, rng: RandomNumberGenerator) -> Dictionary:
 				for c in range(pond["a"], pond["b"] + 1):
 					for r in range(pond["surface"], pond["surface"] + pond["depth"] + 1):
 						hazards[Vector2i(c, r)] = true
-	for thicket: Dictionary in graph.surface["thorns"]:  # the jungle's thickets are jumped, not waded: the wizards' ways do not go through them
-		for c in range(thicket["a"], thicket["b"] + 1):
-			hazards[Vector2i(c, profiles[0]["floor"][c - profiles[0]["xl"]] - 1)] = true
-	var carved := []
-	for tunnel in tunnels:
-		carved.append(_carve_tunnel(cells, tunnel["from"], tunnel["to"], tunnel["slope"], tunnel["surface_x"], rng, tunnel["gate"] in ["chasm", "flood", "brambles", "dark", "gas", "piranhas"]))
-	var markers := {}
-	for room in graph.rooms:
-		markers[room["id"]] = _marker(profiles[room["id"]], plans[room["id"]])
-		if not room.has("surface"):
-			plans[room["id"]]["pins"].append(Vector2i(markers[room["id"]].x - 3, markers[room["id"]].x + 3))  # keep the marker clear
-			_formations(cells, profiles[room["id"]], plans[room["id"]], rng)
-	for k in tunnels.size():
-		if tunnels[k]["lid"]:
-			_lid(cells, tunnels[k], carved[k])
-	var spawns: Array[Vector2i] = []
-	var sky_floor: PackedInt32Array = profiles[0]["floor"]
-	for spawn in graph.spawns:
-		var x: int = spawn["x"] - spawn["side"] * 5  # on the flat ground behind the way down, not in its trench
-		spawns.append(Vector2i(x, sky_floor[x - profiles[0]["xl"]] - 1))
+
+
+## The castles of the castle world, side by side, and the wall at either end of the row. The surface hall's marker moves to stand in the first castle.
+## Returns {"hall": ..., "planks": ...}: the church halls and the swinging stairs.
+static func _raise_castles(cells: TileGrid, graph: WorldGraph, castles: Array, markers: Dictionary) -> Dictionary:
 	var hall: Array = []
 	var planks: Array = []
 	for k in castles.size():
@@ -135,16 +167,7 @@ static func build(graph: WorldGraph, rng: RandomNumberGenerator) -> Dictionary:
 		for c in range(0, castles[0]) + range(castles[castles.size() - 1] + CASTLE_WIDTH, graph.surface["floor"].size()):
 			for h in CASTLE_TOWER + (2 if (c / 2) % 2 == 0 else 0):  # with merlons, as the towers have
 				cells.put(Vector2i(c, ground - 1 - h), ArenaGen.STONE)
-	# What bars each gated tunnel is made in it: a lava chasm, a stretch of thorns or a sheer wall.
-	var gates := []
-	for k in tunnels.size():
-		if tunnels[k]["lock"] >= 0:
-			var gate := _make_gate(cells, tunnels[k], carved[k], ponds, hazards, profiles[0])
-			gate["lock"] = tunnels[k]["lock"]
-			gates.append(gate)
-	return {"cells": cells, "size": size, "markers": markers, "start": markers[graph.start], "ponds": ponds,
-			"hazards": hazards, "castle": castles[0] if not castles.is_empty() else -1, "castles": castles, "roofed": graph.surface["roofed"], "hall": hall, "planks": planks, "profiles": profiles, "sky": {"xl": profiles[0]["xl"], "floor": profiles[0]["floor"], "roof_top": _roof_top(profiles[0])},
-			"surface": graph.surface, "gates": gates, "spawns": spawns}
+	return {"hall": hall, "planks": planks}
 
 
 ## The first row of the roof of the great cavern in each column (the ground of the world above it), or none where the world has no roof.
