@@ -87,7 +87,7 @@ var palette := 0:  # which set of colors it wears (see WizardLook)
 		palette = value
 		if is_node_ready():
 			_paint()
-var brain: WizardBrain  # what plays this wizard; none while a person does
+var brain: RefCounted  # what plays this wizard (a WizardBrain, or SkyBrain); none while a person does
 var caster: Caster  # a brain's wizard draws its spells through this; a person's strokes are read by the arena's own
 var nav: WorldNav  # the ways about the world, for a wizard that walks it by itself; none in the waiting room
 var last_spell := ""

@@ -33,6 +33,15 @@ static func quickest_stroke(spell_name: String) -> float:
 	return 0.0
 
 
+## How long a person usually takes over a spell's stroke: the middle of the strokes recorded for it, where there are enough of them, else `fallback`.
+static func usual_stroke(spell_name: String, fallback: float) -> float:
+	quickest_stroke(spell_name)  # (reads the file)
+	var row = _human.get("strokes", {}).get(spell_name)
+	if row is Dictionary and row.get("n", 0) >= 3:
+		return row["median"]
+	return fallback
+
+
 static func line(a: Vector2, b: Vector2) -> PackedVector2Array:
 	return densify(PackedVector2Array([a, b]))
 

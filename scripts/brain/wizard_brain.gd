@@ -63,6 +63,9 @@ const TIMID_STAND := 260.0    # (a timid wizard that is this close, or closer, f
 const TOO_CLOSE := 95.0       # this close it acts to get you off it
 const INTERRUPT_DAMAGE := 6   # a hit this big while it draws breaks the spell
 const QUICK_DRAW := 0.35      # defensive signs are drawn quickly
+const ATTACK_GAP_SLOW := 1.6   # seconds between one attack and the next, for the least and the most skilled (plus a little spread): a person who has thrown one looks at what it did
+const ATTACK_GAP_QUICK := 0.8
+const ATTACK_GAP_SPREAD := 0.4
 const ATTACK_DRAW := 0.8      # attacks take longer, which is your chance to interrupt them
 const ATTACK_RANGE := 460.0   # it only casts at you from about a screen away, never across the map
 const CLEARS := {  # the gates a wizard clears, and the spells that do it, best first: any fire burns growth and gas and melts ice, wind thins gas, stone breaks ice and walls
@@ -411,7 +414,7 @@ func _attack(foe: Wizard, to_player: Vector2, sees: bool) -> void:
 		elif foe.has_shield():
 			cast_cooldown = 0.3  # nothing gets through a Barrier; wait it out
 		elif combat.attack(to_player, sees):
-			cast_cooldown = lerpf(2.8, 1.5, skill) + rng.randf() * 0.8
+			cast_cooldown = lerpf(ATTACK_GAP_SLOW, ATTACK_GAP_QUICK, skill) + rng.randf() * ATTACK_GAP_SPREAD
 		else:
 			cast_cooldown = 0.4
 

@@ -3,6 +3,13 @@ extends RefCounted
 
 ## How an AI wizard fights: when and what it attacks with, the footwork around a rival, how it answers a shot (a dodge, a Barrier, a blink), where it stands and when it goes for a way up to a rival.
 
+## How much each attack has come to for the AI in play (tools/ai_yield.py: the damage that followed a cast, per cast, over many duels), as a share of what
+## a spell of its kind is worth: a person who has fought a lot knows which of their spells land and which are thrown away. Spells not named count for 1.
+const WORTH := {
+	"Scythe": 2.0, "Spark": 1.6, "Stonefall": 1.5, "Spore Puff": 1.5, "Fire Breath": 1.4, "Hemorrhage": 1.0, "Eldritch Blast": 1.0, "Ignite": 1.0, "Barbs": 1.0,
+	"Stalagmite": 1.0, "Pebble": 0.55, "Frostbolt": 0.4, "Insect Plague": 0.45, "Ice Prison": 0.25, "Blizzard": 0.3, "Tornado": 0.3, "Firewall": 0.3,
+}
+
 var defend_cooldown := 0.0
 var escape_commit := 0.0     # seconds it keeps the way it chose out of danger
 var escape_dir := 0.0
@@ -81,6 +88,7 @@ func attack(to_player: Vector2, sees: bool) -> bool:
 		for spell_name in ["Ignite", "Frostbolt", "Ice Prison", "Black Hole", "Firewall", "Fire Breath", "Barbs", "Thorn Whip", "Leech", "Eldritch Blast", "Hemorrhage", "Scythe"]:
 			scores[spell_name] = 0.0
 	for spell_name in scores.keys():
+		scores[spell_name] *= WORTH.get(spell_name, 1.0)
 		if not brain.ready_to_cast(spell_name):
 			scores[spell_name] = 0.0
 		elif spell_name in recent:
@@ -91,7 +99,7 @@ func attack(to_player: Vector2, sees: bool) -> bool:
 	recent.push_front(choice)
 	if recent.size() > 2:
 		recent.pop_back()
-	brain.hand.begin_cast(choice, brain.hand.attack_stroke(choice), WizardBrain.ATTACK_DRAW, true)
+	brain.hand.begin_cast(choice, brain.hand.attack_stroke(choice), BrainStrokes.usual_stroke(choice, WizardBrain.ATTACK_DRAW * 0.6), true)  # (as long as a person takes over it: a fireball is a flick)
 	return true
 
 
