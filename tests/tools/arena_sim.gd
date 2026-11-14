@@ -5,7 +5,7 @@ extends Node
 ## for balancing them. It needs the game's own scenes, so it runs as a scene, and with a fixed frame rate so that a minute of play takes seconds:
 ##
 ##     godot --headless --path . --fixed-fps 60 tests/tools/arena_sim.tscn -- seed=7 seconds=240
-## Other arguments: watch=1 follows a wizard with a camera (run without --headless to see it), report=SECONDS between reports (default 30), keep=1 to leave the player's wizard in play as a target that stands still.
+## Other arguments: watch=1 follows a wizard with a camera (run without --headless to see it), frames=DIR and every=N save a small picture every N frames for a GIF, report=SECONDS between reports (default 30), keep=1 to leave the player's wizard in play as a target that stands still.
 ## It prints a summary at the end and exits with code 1 when a wizard never gets going (reads no page in the time) or falls out of the world.
 
 var seed_value := 7
@@ -29,6 +29,9 @@ var _kill_at := -1.0  # kill=SECONDS fells the wizard with the most pages then, 
 var _killed := false
 var _log: FileAccess  # log=FILE writes what every wizard does, four times a second, and each cast and wound, for studying how they behave
 var _log_t := 0.0
+var _frames_dir := ""  # frames=DIR: a picture of the screen, 640 wide, every `every` frames, for making a GIF of the match (needs a window)
+var _every := 5
+var _frame_count := 0
 var _shot_at := 2.0  # shotat=SECONDS: when shot= takes its picture
 var _follow := -1  # follow=N: the camera stays on the Nth wizard
 var _probe := Vector2(-1, 0)  # probe=N,SECONDS prints every variable of the Nth wizard's brain at that time
@@ -61,6 +64,11 @@ func _ready() -> void:
 			_kill_at = float(arg.substr(5))
 		elif arg.begins_with("log="):
 			_log = FileAccess.open(arg.substr(4), FileAccess.WRITE)
+		elif arg.begins_with("frames="):
+			_frames_dir = arg.substr(7)
+			DirAccess.make_dir_recursive_absolute(_frames_dir)
+		elif arg.begins_with("every="):
+			_every = int(arg.substr(6))
 		elif arg.begins_with("shotat="):
 			_shot_at = float(arg.substr(7))
 		elif arg.begins_with("follow="):
@@ -147,6 +155,11 @@ func _physics_process(delta: float) -> void:
 	if _shot != "" and _clock > _shot_at:
 		get_viewport().get_texture().get_image().save_png(_shot)
 		_shot = ""
+	if _frames_dir != "" and Engine.get_physics_frames() % _every == 0:
+		var picture := get_viewport().get_texture().get_image()
+		picture.resize(640, 360, Image.INTERPOLATE_LANCZOS)
+		picture.save_png("%s/f%05d.png" % [_frames_dir, _frame_count])
+		_frame_count += 1
 	_log_t += delta
 	if _log != null and _log_t >= 0.25:
 		_log_t = 0.0
