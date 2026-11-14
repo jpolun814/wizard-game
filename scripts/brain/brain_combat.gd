@@ -231,6 +231,8 @@ func footwork(delta: float, to_player: Vector2, sees: bool) -> float:
 		dir = toward
 	elif wizard.stamina < 45.0 and not BrainProfile.off("still"):
 		dir = 0.0  # it stands to get its strength back: stamina returns only to one who is still
+		if not BrainProfile.off("rest") and gap > WizardBrain.TOO_CLOSE and not covered_at(wizard.center() - Vector2(0, 50)):
+			dir = roof_side()  # (it rests under a roof if one is a few steps off: nothing falls on a wizard getting their breath back)
 	else:
 		strafe_timer -= delta
 		if strafe_timer <= 0.0:
