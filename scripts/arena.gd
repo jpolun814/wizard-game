@@ -8,9 +8,7 @@ extends Node2D
 const MOB_SCENE := preload("res://scenes/mob.tscn")
 const WIZARD_SCENE := preload("res://scenes/wizard.tscn")
 const TILE := ArenaGen.TILE
-const INSIGHT_REACH := 40.0  # how close the pointer must be to an enemy for Insight to show it
 const STROKE_STEP := 8.0  # the points of a stroke the other machines are sent are this far apart
-const HOODED_WIZARD := "Hooded Wizard"  # what Insight calls the wizard in the player's own look
 
 @onready var player: Wizard = $Player
 
@@ -22,8 +20,7 @@ var _minimap: Minimap
 var grade_biome := ""  # the cast of colour the world is seen through (see Grade), the same for anything that shows a second view of it
 var greyed := false  # the world is seen without colour (the graveyard), and so is anything that shows a second view of it
 var _eye: ScryingEye  # the window of the Chant of the Scrying Eye, bottom right
-var _insight_tip: PanelContainer  # the hover tooltip Insight shows over an enemy
-var _insight_text: RichTextLabel
+var insight := InsightTip.new(self)  # the hover tooltip Insight shows over an enemy
 ## The minimap is hidden until its chant brings it into view. Health and stamina are always shown.
 var revealed := {"minimap": false, "insight": false, "scrying_eye": false}
 var _rng := RandomNumberGenerator.new()
@@ -342,7 +339,7 @@ func _process(_delta: float) -> void:
 		revealed[module] = revealed[module] or player.ledger.is_settled(module)  # a later world of the match keeps what was said in an earlier one
 	_minimap.visible = revealed["minimap"]
 	_eye.visible = revealed["scrying_eye"]
-	_update_insight()
+	insight.update()
 
 
 ## A stroke with its points at least STROKE_STEP apart, which is all a likeness needs to draw it: a fraction of what is sent.
@@ -367,16 +364,7 @@ func _build_overlays() -> void:
 	_eye.arena = self
 	_eye.visible = false
 	hud.add_child(_eye)
-	_insight_tip = PanelContainer.new()
-	_insight_tip.visible = false
-	_insight_tip.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_insight_text = RichTextLabel.new()
-	_insight_text.bbcode_enabled = true
-	_insight_text.fit_content = true
-	_insight_text.custom_minimum_size = Vector2(260, 0)
-	_insight_text.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_insight_tip.add_child(_insight_text)
-	hud.add_child(_insight_tip)
+	insight.build(hud)
 
 
 ## The map as tile blocks. Cell (0, 0) is the top-left corner of the arena, and y grows downward.
@@ -494,66 +482,6 @@ func _is_ground_at(point: Vector2) -> bool:
 		if hit["collider"].has_meta("stone_wall"):
 			return true
 	return false
-
-
-## While Insight is on, hovering an enemy or a wizard shows its health, weaknesses and resistances in a small tooltip.
-func _update_insight() -> void:
-	var body: Node2D = _body_under_pointer() if revealed["insight"] else null
-	_insight_tip.visible = body != null
-	if body == null:
-		return
-	if body is Wizard:  # a rival wizard's stamina is shown nowhere else, and the spells it has pages for, each in the colour of its school
-		var wizard: Wizard = body
-		var title := HOODED_WIZARD  # the hooded look has no MobKind: only a person wears it, and in a network game another may
-		var desc: String = Mob.KINDS["dark_wizard"].desc
-		if Mob.KINDS.has(wizard.look):
-			title = Mob.KINDS[wizard.look].display_name
-			desc = Mob.KINDS[wizard.look].desc
-		_insight_text.text = "[b]%s[/b]   Stamina %d / %d
-[i]%s[/i]" % [title, wizard.stamina, wizard.max_stamina, desc]
-		var lines := ""
-		for spell_name: String in SpellData.SPELLS:
-			if wizard.ledger.knows_spell(spell_name):
-				var colour: Color = SpellData.SCHOOL_COLORS[SpellData.SPELLS[spell_name].school]
-				lines += "
-[color=#%s]%s[/color]" % [colour.lightened(0.15).to_html(false), spell_name]
-		_insight_text.text += "
-
-Knows:" + lines
-	else:
-		var mob: Mob = body
-		var data: MobKind = Mob.KINDS[mob.kind]
-		var weak := _school_bb(data.weak) if data.weak != "" else "nothing"
-		var resist := _school_bb(data.resist) if data.resist != "" else "nothing"
-		_insight_text.text = "[b]%s[/b]   Stamina %d / %d
-Weak to %s
-Resists %s
-[i]%s[/i]" % [
-			data.display_name, mob.hp, mob.max_hp,
-			weak, resist, data.desc,
-		]
-	var screen := get_viewport().get_visible_rect().size
-	var tip_size := _insight_tip.get_combined_minimum_size()
-	_insight_tip.position = (get_viewport().get_mouse_position() + Vector2(18, 18)).min(screen - tip_size - Vector2(8, 8)).max(Vector2(8, 8))  # kept on the screen, even with a long list
-
-
-## The enemy or the other wizard closest to the pointer, if it is within reach.
-func _body_under_pointer() -> Node2D:
-	var pointer := get_global_mouse_position()
-	var best: Node2D = null
-	var best_distance := INSIGHT_REACH
-	for body: Node2D in get_tree().get_nodes_in_group("mobs") + get_tree().get_nodes_in_group("wizards"):
-		if body == player or (body is Wizard and body.is_unseen()):
-			continue
-		var distance: float = body.center().distance_to(pointer)
-		if distance < best_distance:
-			best_distance = distance
-			best = body
-	return best
-
-
-func _school_bb(school: String) -> String:
-	return "[color=#%s]%s[/color]" % [SpellData.SCHOOL_COLORS[school].to_html(false), school]
 
 
 ## The surface directly below a point (the floor or a platform), so things placed there sit on the ground.

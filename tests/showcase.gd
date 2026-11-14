@@ -327,8 +327,8 @@ func _plan() -> void:
 				wizard.set_physics_process(false)
 				wizard.global_position = _arena.get_global_mouse_position() - (wizard.center() - wizard.global_position))
 			_at(t + 0.5, func() -> void:
-				_arena._update_insight()
-				verdict.call(_arena._insight_tip.visible and "Knows" in _arena._insight_text.text, "Insight lists what a dark wizard knows")
+				_arena.insight.update()
+				verdict.call(_arena.insight.shown() and "Knows" in _arena.insight.says(), "Insight lists what a dark wizard knows")
 				_snap("insight"))
 		"pages":
 			var tile := float(ArenaGen.TILE)
