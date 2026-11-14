@@ -410,7 +410,7 @@ python tools/run_checks.py --full                              # all of them, ab
 | School | Spell | Shape | Real thing | Counterplay |
 |---|---|---|---|---|
 | Fire | Ignite | straight flick | thrown fireball | dodge, Gust, walls |
-| Fire | Firewall | a line up, then a line out to either side: the second line is how wide the wall is, and the wider it is the more it costs (`Caster._up_and_out`, one `Firewall` column every 26 px along it) | burning brush line | it's passable and only burns; walk out of it |
+| Fire | Firewall | a line up, then a line out to either side: the second line is how wide the wall is, and the wider it is the more it costs (`StrokeShapes.up_and_out`, one `Firewall` column every 26 px along it) | burning brush line | it's passable and only burns; walk out of it |
 | Fire | Fire Breath | cone `<` | flamethrower from the mouth (follows facing, rises on a jump) | cover, Barrier, distance |
 | Fire | Smoke Screen | wavy line going up | a bank of smoke enemies cannot see through | wind (Tornado, Gust), Tsunami |
 | Fire | Flare | flame: a loop with its point up | a small harmless flame that follows you and lights the dark | it burns out |

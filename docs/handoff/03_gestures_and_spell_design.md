@@ -7,13 +7,13 @@
 2. **On release** (`Caster._end`):
    - **Too short:** a stroke shorter than `min_stroke_length` (20 px) is ignored.
    - **Recognizer:** the $1 recognizer scores the stroke against **only the templates bound to that button
-     combination** (`_templates_for`). This restriction is why a Stonefall can't come out as a Tornado.
-   - **Shape detectors** then run for shapes $1 handles badly: `_inward_spiral`, `_ring_then_line_split` (Push),
-     `_box`, `_snowfall_line`, `_funnel_stroke`, `_cloud_line` (also Frost Bridge's wave), `_pit_stroke`, `_cone`,
-     `_icicle_triangles`, `_rising_wave` (Smoke Screen), `_stem_and_arc` (a stroke that sets off upward and curls: Liana,
-     Geyser, Spore Puff and Great Oak, told apart by proportions in `_stem_gesture`), `_big_wave` (Tsunami, cut: still wired, no spell uses it), `_coil`
-     (Tornado), `_sawtooth` (Bramble), `_w_shape` (Flytrap) and `_loop_row` (Lily Pads). Flare, Decoy, Eclipse and Hex are
-     $1 templates (a flame, a figure of eight, a crescent, a pentagram, a geyser peak). A detector match sets score 1.0 and fills `info`.
+     combination** (`StrokeReader.templates_for`). This restriction is why a Stonefall can't come out as a Tornado.
+   - **Shape detectors** then run for shapes $1 handles badly (all in `StrokeShapes`, asked by `StrokeReader._detect` and claimed in `_read_shapes`): `inward_spiral`, `ring_then_line_split` (Push),
+     `snowfall_line`, `cloud_line` (also Frost Bridge's wave), `pit_stroke`, `cone`,
+     `icicle_triangles`, `rising_wave` (Smoke Screen), `stem_and_arc` (a stroke that sets off upward and curls: Liana,
+     Geyser, Spore Puff and Great Oak, told apart by proportions in `stem_gesture`), `big_wave` (Tsunami, cut: still wired, no spell uses it), `coil`
+     (Tornado), `sawtooth` (Bramble), `w_shape` (Flytrap) and `pad_line` (Lily Pads). Flare, Decoy, Eclipse and Hex are
+     $1 templates (a flame, a figure of eight, a crescent, a pentagram, a geyser peak). A detector match claims the reading (`StrokeReading.claim`: score 1.0) and fills `info`.
    - **Straight strokes:** a flick that is near-vertical becomes `wall` (Firewall). A flick starting on solid
      ground with Earth held becomes `stone_wall`.
    - **Thresholds:** a score below `tolerance` (0.70) is a misfire, which costs
@@ -44,10 +44,10 @@
 2. **Template or detector:**
    - **$1 template** (for an outline-like shape): add to `recognizer_templates()`, plus an alias if several
      templates mean one gesture.
-   - **Detector** (for a structural shape): write `_my_shape(points) -> Dictionary` in `caster.gd`. Call it only
-     when `options.has("my_shape")`, and fill `info`.
+   - **Detector** (for a structural shape): write `my_shape(points) -> Dictionary` as a static function in `gesture/stroke_shapes.gd`. Ask it in `StrokeReader._detect` only
+     when `options.has("my_shape")`, and claim it in `_read_shapes` at the place where it must rule others out, with what `info` needs.
    - Robust detectors measure structure, not exact geometry. Count turns, check straightness with
-     `_max_deviation`, compare arm lengths, check whether the stroke closes (start near end), and use total
+     `StrokeMeasure.max_deviation`, compare arm lengths, check whether the stroke closes (start near end), and use total
      turning angle measured over spans of a few pixels (2 px steps are noisy).
 3. **Preview:** add `preview_points("my_shape")`, plus `preview_ground` if it must start on the ground.
 4. **Routing:** a simple effect needs nothing (its resource names the script). A spell that needs more gets a recipe in one of the four tables (`CasterSpells`, `AimedSpells`, `PlacedSpells`, `ShapeSpells`, in `scripts/spells/`) and lists itself in that table's `recipes`.

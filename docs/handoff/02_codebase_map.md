@@ -78,11 +78,14 @@ never block each other.
   `tests/showcase.gd` with `scenario=spells` casts every spell here and photographs it.
 
 ### Casting
-- **`gesture/caster.gd`:** hold buttons, record points, release, then `_end()`.
-  - `_end()` runs the $1 recognizer restricted to the held buttons' templates, then the shape detectors (spiral,
-    ring with a line, box, snowfall, funnel, cloud, crack, pit, cone, icicles).
-  - It emits `cast_resolved(spell, targeting, origin, aim, info)`, or `misfired`.
+- **`gesture/caster.gd`:** hold buttons, record points, release, then `_end()`; draws the trail.
+  - `_end()` hands the stroke to `reader` (`StrokeReader`, `gesture/stroke_reader.gd`), which runs the $1 recognizer restricted to the held buttons' templates, asks every
+    shape detector the buttons allow (`_detect`), claims the first that finds its shape in the order they rule each other out (`_read_shapes`), and settles what is left
+    (`settle`: flicks, walls, a cross or a flame that is not one). The answer is a `StrokeReading` (gesture, score, `info`, the ring's split and centre).
+  - `_resolve` turns the reading into a cast: it emits `cast_resolved(spell, targeting, origin, aim, info)`, or `misfired`.
   - `cast_stroke(mask, points)` lets the AI wizards and the tests cast without a mouse.
+- **`gesture/stroke_shapes.gd`** (`StrokeShapes`) and **`stroke_measure.gd`** (`StrokeMeasure`): the detectors, all static and pure (points in, answer out): the named shapes (a ring
+  with a line, a V, a coil, a feather, a cloud, a cross...) and the plain measures (extent, centroid, turning, crossings, `to_world`).
 - **`gesture/gesture_templates.gd`:** the $1 templates, `ALIASES`, `preview_points(gesture)` (the spellbook
   picture, which is also the stroke the wizard draws), and `preview_ground`.
 - **`gesture/unistroke_recognizer.gd`:** the $1 recognizer. `recognize(points, only)` limits it to the named
