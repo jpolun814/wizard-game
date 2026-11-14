@@ -167,7 +167,7 @@ func _covered(screen: Node) -> int:
 		for spread in ceili(screen.call("_pages_of", tome).size() / 2.0):
 			screen.set("_spread", spread)
 			screen.call("_show_spread")
-			blank += screen.find_children("*", "Control", true, false).filter(func(c: Control) -> bool: return c is LibraryScreen.Torn and not c.is_queued_for_deletion()).size()
+			blank += screen.find_children("*", "Control", true, false).filter(func(c: Control) -> bool: return c is BlankPage and not c.is_queued_for_deletion()).size()
 	screen.close_tome()
 	return blank
 

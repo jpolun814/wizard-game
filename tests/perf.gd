@@ -51,7 +51,7 @@ func _process(delta: float) -> void:
 				for c in _arena.get_children():
 					if c is Terrain:
 						for d in c.get_children():
-							if d is Terrain.CaveDraw:
+							if d is CaveDraw:
 								d.visible = false
 			"nohud":
 				_arena.hud.visible = false

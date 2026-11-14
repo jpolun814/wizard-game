@@ -153,11 +153,11 @@ func _draw() -> void:
 	var uvs := PackedVector2Array()
 	for point in outline:
 		uvs.append(point / stone.get_size())
-	draw_colored_polygon(outline, Terrain.STONE_FILL)
+	draw_colored_polygon(outline, CaveDraw.STONE_FILL)
 	draw_polygon(outline, PackedColorArray([Color.WHITE]), uvs, stone)
 	var closed := PackedVector2Array(outline)
 	closed.append(outline[0])
-	draw_polyline(closed, Terrain.RIM, 3.0)
+	draw_polyline(closed, CaveDraw.RIM, 3.0)
 
 
 ## True while it is on its way from one landing to another.

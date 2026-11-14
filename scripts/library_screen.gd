@@ -26,76 +26,12 @@ var _tome := ""               # the tome being read: a school, CHANTS, or "" whe
 var _spread := 0
 var _shelf: Control
 var _reading: Control         # the open book with its ribbons and arrows
-var _book: Spellbook.BookArt
+var _book: BookArt
 var _writing: Control         # both pages, hidden while the book falls open or a leaf turns
 var _areas: Array[Control] = []
 var _numbers: Array[Label] = []
 var _ribbons: Control
 var _back: Button
-
-
-## A page with nothing on it yet: a faint hatching and a torn corner.
-class Torn extends Control:
-	func _draw() -> void:
-		for k in 5:
-			var y := size.y * (0.2 + 0.12 * k)
-			draw_line(Vector2(size.x * 0.12, y), Vector2(size.x * 0.88, y), Color(Spellbook.PAPER_DARK, 0.28), 2.0)
-		var corner := PackedVector2Array([Vector2(size.x, size.y - 150.0), Vector2(size.x - 120.0, size.y - 60.0), Vector2(size.x - 60.0, size.y - 40.0), Vector2(size.x, size.y)])
-		draw_colored_polygon(corner, Color(Spellbook.PAPER_DARK, 0.35))
-
-
-## The damage dealt and taken through a match, drawn as two inked lines. The match is cut into the worlds it went through, each named across its stretch.
-class Trace extends Control:
-	var dealt: Array
-	var taken: Array
-	var sections: Array  # [name, where it begins as a share of the match]
-
-	func _init(dealt_line: Array, taken_line: Array, stretches: Array) -> void:
-		dealt = dealt_line
-		taken = taken_line
-		sections = stretches
-		mouse_filter = Control.MOUSE_FILTER_IGNORE
-
-	func _draw() -> void:
-		# Every world the person was in is named, however short the stay. A name goes in the first row where it clears the one before, with its first letter
-		# at its own mark, or as near it as the right edge allows; a stay too short for its name takes a row below, so no name is written over another.
-		var font: Font = LibraryScreen.JERSEY
-		var row_ends: Array[float] = []
-		var spots: Array = []  # [name, x, row]
-		for k in sections.size():
-			var name: String = sections[k][0]
-			var wide := font.get_string_size(name, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 17).x
-			var at := minf(size.x * float(sections[k][1]) + 4.0, maxf(size.x - wide - 2.0, 0.0))
-			var row := 0
-			while row < row_ends.size() and row_ends[row] > at:
-				row += 1
-			if row == row_ends.size():
-				row_ends.append(0.0)
-			row_ends[row] = at + wide + 6.0
-			spots.append([name, at, row])
-		var band := 4.0 + 17.0 * maxi(row_ends.size(), 1)  # the strip along the top that carries the names of the worlds
-		for k in sections.size():
-			var from_x: float = size.x * float(sections[k][1])
-			var to_x: float = size.x * float(sections[k + 1][1]) if k + 1 < sections.size() else size.x
-			if k % 2 == 0:
-				draw_rect(Rect2(from_x, 0.0, to_x - from_x, size.y - 2.0), Color(Spellbook.PAPER_DARK, 0.3))
-			if k > 0:
-				draw_line(Vector2(from_x, 0.0), Vector2(from_x, size.y - 2.0), Color(Spellbook.SUBTLE, 0.7), 2.0)
-		for spot: Array in spots:
-			draw_string(font, Vector2(spot[1], 15.0 + 17.0 * int(spot[2])), spot[0], HORIZONTAL_ALIGNMENT_LEFT, -1.0, 17, Spellbook.TEXT_INK)
-		draw_line(Vector2(0.0, size.y - 1.0), Vector2(size.x, size.y - 1.0), Color(Spellbook.PAPER_DARK, 0.7), 2.0)
-		var top := 1.0
-		for v: int in dealt + taken:
-			top = maxf(top, float(v))
-		var low := (band if not sections.is_empty() else 2.0)
-		for pair in [[taken, Spellbook.SUBTLE], [dealt, Spellbook.HEADING]]:
-			var line: Array = pair[0]
-			if line.size() < 2:
-				continue
-			var points := PackedVector2Array()
-			for k in line.size():
-				points.append(Vector2(size.x * k / (line.size() - 1.0), low + (size.y - low - 4.0) * (1.0 - float(line[k]) / top)))
-			draw_polyline(points, pair[1], 2.0, true)
 
 
 func _ready() -> void:
@@ -394,7 +330,7 @@ func _build_reading() -> void:
 	_reading.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_reading.visible = false
 	add_child(_reading)
-	_book = Spellbook.BookArt.new()
+	_book = BookArt.new()
 	_book.size = Spellbook.FRAME * Spellbook.SCALE
 	_book.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_book.position = (get_viewport_rect().size * 0.5 - Spellbook.OPEN_MIDDLE * Spellbook.SCALE).floor()
@@ -535,7 +471,7 @@ func _write_page(area: Control, page: String) -> void:
 		_write_match(area, int(page.get_slice(":", 2)))
 		return
 	if not _known(page):
-		var blank := Torn.new()
+		var blank := BlankPage.new()
 		blank.size = area.size
 		blank.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		area.add_child(blank)
@@ -560,9 +496,9 @@ func _write_page(area: Control, page: String) -> void:
 	top.add_child(heading)
 	if not chant:
 		var spell: Spell = SpellData.SPELLS[page]
-		top.add_child(Spellbook.MouseIcon.new(spell.buttons, SpellData.SCHOOL_COLORS[spell.school]))
+		top.add_child(MouseIcon.new(spell.buttons, SpellData.SCHOOL_COLORS[spell.school]))
 	else:
-		top.add_child(Spellbook.KeyCap.new("Enter"))
+		top.add_child(KeyCap.new("Enter"))
 	column.add_child(top)
 	if chant:
 		var id := page.trim_prefix("chant:")
@@ -571,7 +507,7 @@ func _write_page(area: Control, page: String) -> void:
 	else:
 		var spell: Spell = SpellData.SPELLS[page]
 		var gesture: String = spell.preview if spell.preview != "" else spell.gesture
-		var picture := Spellbook.Preview.new(GestureTemplates.preview_points(gesture), GestureTemplates.preview_ground(gesture), 140.0)
+		var picture := StrokePreview.new(GestureTemplates.preview_points(gesture), GestureTemplates.preview_ground(gesture), 140.0)
 		picture.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 		column.add_child(picture)
 		column.add_child(_ink(spell.effect, 22, Spellbook.TEXT_INK, false, true))
@@ -622,7 +558,7 @@ func _write_match(area: Control, index: int) -> void:
 		var biome := str(stage[0])
 		var title := str(SurfaceGen.LOOKS[biome]["title"]).trim_prefix("The ") if SurfaceGen.LOOKS.has(biome) else biome
 		sections.append([title, clampf(float(stage[1]) / total, 0.0, 1.0)])
-	var trace := Trace.new(m.get("dealt_line", []), m.get("taken_line", []), sections)
+	var trace := MatchTrace.new(m.get("dealt_line", []), m.get("taken_line", []), sections)
 	trace.custom_minimum_size = Vector2(0.0, 120.0)
 	column.add_child(trace)
 	var favourite := ""

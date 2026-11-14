@@ -465,7 +465,7 @@ func _show_keys() -> void:
 		var line := HBoxContainer.new()
 		line.add_theme_constant_override("separation", 10)
 		for cap: String in String(key[0]).split(" ", false):
-			line.add_child(Spellbook.KeyCap.new(cap))
+			line.add_child(KeyCap.new(cap))
 		var words := Label.new()
 		words.text = key[1]
 		words.add_theme_font_size_override("font_size", 20)

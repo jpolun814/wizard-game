@@ -1,3 +1,4 @@
+class_name Menu
 extends Control
 
 ## The first screen: single player (play, or the tutorial), multiplayer (host a game for friends, or join a friend's game by its address), and
@@ -57,9 +58,9 @@ var _ranges: Array[TextureRect] = []  # the far and near scenery, farthest first
 var _wizard: AnimatedSprite2D
 var _embers: CPUParticles2D
 var _title: Label
-var _book: Spellbook.BookArt
-var _demo: Sign  # on the left page: the sign of the choice the pointer or the keyboard is on, drawn out again and again
-var _ink: Ink   # the stroke being drawn
+var _book: BookArt
+var _demo: MenuSign  # on the left page: the sign of the choice the pointer or the keyboard is on, drawn out again and again
+var _ink: MenuInk   # the stroke being drawn
 var _recognizer := UnistrokeRecognizer.new()
 var _signs: Dictionary = {}  # Button -> the name of its sign
 var _pixel := 4
@@ -172,14 +173,14 @@ func _dress() -> void:
 	fade.set_color(2, Color(0.8, 0.2, 0.1, 0.0))
 	_embers.color_ramp = fade
 	add_child(_embers)
-	_book = Spellbook.BookArt.new()
+	_book = BookArt.new()
 	_book.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_book)
-	_demo = Sign.new()
+	_demo = MenuSign.new()
 	_demo.animated = true
 	_demo.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_demo)
-	_ink = Ink.new()
+	_ink = MenuInk.new()
 	_ink.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_ink)
 	_title = Label.new()
@@ -297,7 +298,7 @@ func _write_signs() -> void:
 		var parent := button.get_parent()
 		parent.add_child(row)
 		parent.move_child(row, button.get_index())
-		var small := Sign.new()
+		var small := MenuSign.new()
 		small.gesture = table[button]
 		small.custom_minimum_size = Vector2(48, 48)
 		small.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -354,7 +355,7 @@ func _read_stroke() -> void:
 func _choose(button: Button) -> void:
 	_busy = true
 	_ink.flare()
-	var small: Sign = button.get_meta("sign")
+	var small: MenuSign = button.get_meta("sign")
 	small.flare()
 	_show_sign(_signs[button])  # the left page shows the sign that was drawn, whatever the pointer had last been over
 	_demo.flare()
@@ -423,98 +424,3 @@ func _on_disconnected(reason: String) -> void:
 	Net.farewell = ""  # said here already
 
 
-## A sign, as a picture in ink: drawn whole, or drawn out stroke by stroke again and again to show how.
-class Sign extends Control:
-	var gesture := ""
-	var animated := false
-	var _clock := 0.0
-	var _flare := 0.0
-
-	func restart() -> void:
-		_clock = 0.0
-		queue_redraw()
-
-	func flare() -> void:
-		_flare = 1.0
-
-	func _process(delta: float) -> void:
-		if animated and visible:
-			_clock += delta
-			queue_redraw()
-		if _flare > 0.0:
-			_flare = maxf(_flare - delta * 2.0, 0.0)
-			queue_redraw()
-
-	func _draw() -> void:
-		var points := PackedVector2Array(SHAPES[gesture]) if SHAPES.has(gesture) else GestureTemplates.preview_points(gesture)
-		if points.size() < 2:
-			return
-		var box := Rect2(points[0], Vector2.ZERO)
-		for point in points:
-			box = box.expand(point)
-		var fit := minf(size.x * 0.84 / maxf(box.size.x, 1.0), size.y * 0.84 / maxf(box.size.y, 1.0))
-		var fitted := PackedVector2Array()
-		for point in points:
-			fitted.append((point - box.get_center()) * fit + size * 0.5)
-		var shown := fitted
-		var head := fitted[fitted.size() - 1]
-		if animated:
-			var share := clampf(fposmod(_clock, 3.2) / 2.2, 0.0, 1.0)  # drawn out over two seconds, held a moment, then again
-			shown = _part(fitted, share)
-			head = shown[shown.size() - 1]
-		var width := 4.0 if animated else 3.0
-		if shown.size() >= 2:
-			draw_polyline(shown, Color(INK, 0.82), width, true)
-		if animated:
-			draw_circle(head, 6.0, Color(GLOW, 0.35))
-			draw_circle(head, 3.0, Color(1.0, 0.92, 0.6, 0.9))
-		if _flare > 0.0:
-			draw_polyline(fitted, Color(GLOW, _flare * 0.8), width + 8.0 * _flare, true)
-			draw_polyline(fitted, Color(1.0, 0.95, 0.75, _flare), width, true)
-
-	## The first share of a line, by its length.
-	static func _part(line: PackedVector2Array, share: float) -> PackedVector2Array:
-		var left := UnistrokeRecognizer.path_length(line) * share
-		var out := PackedVector2Array([line[0]])
-		for k in range(1, line.size()):
-			var step := line[k - 1].distance_to(line[k])
-			if step >= left:
-				out.append(line[k - 1].lerp(line[k], left / maxf(step, 0.001)))
-				return out
-			out.append(line[k])
-			left -= step
-		return out
-
-
-## The stroke being drawn, glowing, and fading when it is let go.
-class Ink extends Control:
-	var _points := PackedVector2Array()
-	var _fade := 0.0
-	var _letting_go := false
-	var _flare := 0.0
-
-	func set_stroke(points: PackedVector2Array) -> void:
-		_points = points.duplicate()
-		_fade = 1.0
-		_letting_go = false
-		queue_redraw()
-
-	func let_go() -> void:
-		_letting_go = true
-
-	func flare() -> void:
-		_flare = 1.0
-
-	func _process(delta: float) -> void:
-		if _letting_go and _fade > 0.0:
-			_fade = maxf(_fade - delta * (2.0 if _flare > 0.0 else 1.2), 0.0)
-			queue_redraw()
-		if _flare > 0.0:
-			_flare = maxf(_flare - delta * 2.0, 0.0)
-
-	func _draw() -> void:
-		if _points.size() < 2 or _fade <= 0.0:
-			return
-		draw_polyline(_points, Color(GLOW, 0.28 * _fade), 12.0, true)
-		draw_polyline(_points, Color(GLOW, 0.6 * _fade), 6.0, true)
-		draw_polyline(_points, Color(1.0, 0.95, 0.75, _fade), 2.5, true)

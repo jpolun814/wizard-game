@@ -366,14 +366,14 @@ func _make(key: Vector2i) -> void:
 	if _built.has(key):
 		return
 	var nodes: Array = []
-	var back := Face.new()
+	var back := RockFace.new()
 	back.world = self
 	back.key = key
 	back.z_index = -10
 	add_child(back)
 	nodes.append(back)
 	if _segments.has(key) and not _islands.is_empty():
-		var front := Face.new()
+		var front := RockFace.new()
 		front.world = self
 		front.key = key
 		front.front = true
@@ -490,15 +490,3 @@ func _grass_at(point: Vector2) -> Texture2D:
 	return grass_texture
 
 
-## One chunk's drawing.
-class Face extends Node2D:
-	var world: RockWorld
-	var key := Vector2i.ZERO
-	var front := false
-	var _keep := []  # the meshes drawn, so they are not freed while shown
-
-	func _ready() -> void:
-		texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
-
-	func _draw() -> void:
-		_keep = world.paint(self, key, front)

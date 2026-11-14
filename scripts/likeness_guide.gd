@@ -32,7 +32,7 @@ func _ready() -> void:
 	name_label.add_theme_color_override("font_color", ACCENT.lightened(0.25))
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	top.add_child(name_label)
-	top.add_child(Spellbook.KeyCap.new("Enter"))
+	top.add_child(KeyCap.new("Enter"))
 	column.add_child(top)
 	var plate := PanelContainer.new()
 	var plate_style := StyleBoxFlat.new()
