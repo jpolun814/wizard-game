@@ -600,6 +600,17 @@ func _lock(rng: RandomNumberGenerator) -> void:
 	for k in links.size():
 		_adjacent[links[k]["a"]].append(Vector2i(links[k]["b"], k))
 		_adjacent[links[k]["b"]].append(Vector2i(links[k]["a"], k))
+	_choose_locks()
+	_pick_gates(rng)
+	# Smaller (inner) areas are marked last, so a room belongs to the innermost lock around it.
+	for lock in locks:
+		for id in lock["rooms"]:
+			rooms[id]["lock"] = lock["id"]
+	_place_keys()
+
+
+## Which passages are locked: the ones with the most halls only behind them that do not lie inside another, then one near every starting place that has none near. Fills `locks`.
+func _choose_locks() -> void:
 	var bridges: Array = []
 	var small: Array = []  # one or two halls behind a gate: only used to put a gate near a starting place
 	for k in links.size():
@@ -637,6 +648,10 @@ func _lock(rng: RandomNumberGenerator) -> void:
 	chosen.sort_custom(func(x: Dictionary, y: Dictionary) -> bool: return x["rooms"].size() > y["rooms"].size())
 	for bridge in chosen:
 		locks.append({"id": locks.size(), "link": bridge["link"], "rooms": bridge["rooms"], "key": -1})
+
+
+## What bars each locked passage: the kind used least so far among those the passage has room for, so a world has a mix of them. Sets which way each leads inward.
+func _pick_gates(rng: RandomNumberGenerator) -> void:
 	var used := {}
 	for lock in locks:
 		links[lock["link"]]["lock"] = lock["id"]
@@ -655,11 +670,10 @@ func _lock(rng: RandomNumberGenerator) -> void:
 				choice.append(kind)
 		lock["gate"] = choice[rng.randi() % choice.size()]
 		used[lock["gate"]] = used.get(lock["gate"], 0) + 1
-	# Smaller (inner) areas are marked last, so a room belongs to the innermost lock around it.
-	for lock in locks:
-		for id in lock["rooms"]:
-			rooms[id]["lock"] = lock["id"]
-	# Keys: dead ends and vaults outside every locked area, each a long way from its gate.
+
+
+## Keys: dead ends and vaults outside every locked area, each a long way from its gate.
+func _place_keys() -> void:
 	var taken_keys := {}
 	for lock in locks:
 		var best := -1
