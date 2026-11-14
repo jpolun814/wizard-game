@@ -6,10 +6,10 @@ old rectangle.
 
 ## The parts
 
-- `scripts/liquid_grid.gd` (`LiquidGrid`): cells of `CELL` = 16 px, each holding an amount of liquid from 0 to 1. Each step a cell gives to the cell
+- `scripts/terrain/liquid_grid.gd` (`LiquidGrid`): cells of `CELL` = 16 px, each holding an amount of liquid from 0 to 1. Each step a cell gives to the cell
   below, then to either side, then pushes up when it holds more than its share (so connected vessels level out). It conserves liquid exactly.
   Only cells with liquid in them are worked on, and the grid goes to sleep when nothing moves (`asleep`; `wake()` starts it again).
-- `scripts/pond.gd` (`Pond`): still the node everything finds by the `"ponds"` group, with the same `width`, `depth`, `lava`, `freeze_span` and
+- `scripts/terrain/pond.gd` (`Pond`): still the node everything finds by the `"ponds"` group, with the same `width`, `depth`, `lava`, `freeze_span` and
   `danger_at`. Its liquid is a `LiquidGrid` over `region()`: the pool plus `SIDE` px to each side and `BELOW` below, room for liquid to run into a
   pit. Ask `wet_at(point)`, `surface_at(x)` and `holds(body)` rather than using the pool's rectangle, which only says where the pool began.
 - `Terrain.solid_at(point)`: what the liquid takes for ground. Tiled worlds use the tiles when no outline is near and the smoothed outlines

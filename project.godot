@@ -17,10 +17,10 @@ config/icon="res://icon.svg"
 
 [autoload]
 
-Sfx="*res://scripts/sfx.gd"
-Net="*res://scripts/net.gd"
-WandCursor="*res://scripts/wand_cursor.gd"
-Warmup="*res://scripts/warmup.gd"
+Sfx="*res://scripts/core/sfx.gd"
+Net="*res://scripts/core/net.gd"
+WandCursor="*res://scripts/ui/wand_cursor.gd"
+Warmup="*res://scripts/core/warmup.gd"
 
 [debug]
 

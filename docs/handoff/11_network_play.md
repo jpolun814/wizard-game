@@ -17,12 +17,12 @@ Friends play together over a network: one hosts, the others join by address. It 
 
 | Piece | Where | What it does |
 |---|---|---|
-| `Net` autoload | `scripts/net.gd` | host / join / leave, the roster (people in seat order, the host first), which scene each machine is in, `Net.send(node, method, args)` (an rpc to every machine in the same scene) |
-| First screen | `scenes/menu.tscn`, `scripts/menu.gd` | the main scene: Play alone, Host a game, Join (address box, remembered in `user://settings.cfg`) |
-| A wizard on another machine | `scripts/wizard.gd` (`share`, `is_person`, `is_likeness`, `_follow`, `_tell_others`) | a *likeness*: the same `Wizard` scene with a `MultiplayerSynchronizer` added, driven by the machine that owns it |
+| `Net` autoload | `scripts/core/net.gd` | host / join / leave, the roster (people in seat order, the host first), which scene each machine is in, `Net.send(node, method, args)` (an rpc to every machine in the same scene) |
+| First screen | `scenes/menu.tscn`, `scripts/screens/menu.gd` | the main scene: Play alone, Host a game, Join (address box, remembered in `user://settings.cfg`) |
+| A wizard on another machine | `scripts/wizard/wizard.gd` (`share`, `is_person`, `is_likeness`, `_follow`, `_tell_others`) | a *likeness*: the same `Wizard` scene with a `MultiplayerSynchronizer` added, driven by the machine that owns it |
 | Casting | `arena.casting.by` -> `_everywhere` / `arena.spawn_seen` | the driving machine pays for the spell, then every machine spawns the same spell from the same origin with the same random seed |
-| Waiting room | `scripts/lab.gd` (`_meet_people`, `_stepped_in`, `_go`) | likenesses of everyone, the host's address in the title, the portal waits for every person |
-| A match | `scripts/world.gd` (`my_seat`, `places` (in `WorldSeats`, `world.seat_work`: `spawn`, `watch_falls`), `_begin_collapse`, `_gates_cleared`, `_back_to_room`) | seats, brains on the host, pages, books of the fallen, the collapse, gates, the end |
+| Waiting room | `scripts/arena/lab.gd` (`_meet_people`, `_stepped_in`, `_go`) | likenesses of everyone, the host's address in the title, the portal waits for every person |
+| A match | `scripts/arena/world.gd` (`my_seat`, `places` (in `WorldSeats`, `world.seat_work`: `spawn`, `watch_falls`), `_begin_collapse`, `_gates_cleared`, `_back_to_room`) | seats, brains on the host, pages, books of the fallen, the collapse, gates, the end |
 
 **Who drives what.** Every wizard has a multiplayer authority: a person's wizard is driven by that person's machine; a brain's by the
 host. Only the driving machine moves the wizard and changes its stamina, status and death. On the other machines the same node is a

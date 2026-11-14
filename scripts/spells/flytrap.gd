@@ -37,7 +37,7 @@ func _ready() -> void:
 	_picture.z_index = 1
 	_picture.scale = Vector2(SIZE, SIZE)
 	_picture.material = ShaderMaterial.new()
-	_picture.material.shader = preload("res://scripts/flytrap_ground.gdshader")
+	_picture.material.shader = preload("res://scripts/terrain/flytrap_ground.gdshader")
 	_picture.material.set_shader_parameter("soil_row", SOIL)
 	_picture.modulate = LURKING_TINT
 	_picture.play("waiting")

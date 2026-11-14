@@ -35,7 +35,7 @@ def prepare(folder):
     shutil.copytree(ROOT, project, ignore=shutil.ignore_patterns(".git", "aseprite", "art_source", "*.zip", "__pycache__"))
     _tool(project, "init", "--non-interactive")
     text = open(os.path.join(project, "project.godot"), encoding="utf-8").read()
-    text = text.replace('WandCursor="*res://scripts/wand_cursor.gd"', 'WandCursor="*res://scripts/wand_cursor.gd"\n_GDTCoverage="*res://addons/gd-tools-coverage/coverage.gd"', 1)
+    text = text.replace('WandCursor="*res://scripts/ui/wand_cursor.gd"', 'WandCursor="*res://scripts/ui/wand_cursor.gd"\n_GDTCoverage="*res://addons/gd-tools-coverage/coverage.gd"', 1)
     text = text.replace("[debug]\n", "[debug]\n\ngdscript/warnings/inference_on_variant=0\n", 1)  # its counters would otherwise be refused by the game's strict warnings
     open(os.path.join(project, "project.godot"), "w", encoding="utf-8").write(text)
     config = os.path.join(project, "gd-tools.toml")

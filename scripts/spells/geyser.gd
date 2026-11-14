@@ -39,7 +39,7 @@ func _ready() -> void:
 	add_to_group("danger")
 	z_index = 3
 	material = ShaderMaterial.new()  # shaded in dithered bands, like the pools
-	(material as ShaderMaterial).shader = preload("res://scripts/pixel_liquid.gdshader")
+	(material as ShaderMaterial).shader = preload("res://scripts/terrain/pixel_liquid.gdshader")
 	(material as ShaderMaterial).set_shader_parameter("levels", 14.0)
 	# Small jets hiss up out of the cracking ground.
 	_hiss = CPUParticles2D.new()

@@ -85,6 +85,6 @@ static func paint(material: ShaderMaterial, look: String, palette: int) -> void:
 ## A material with the wizard's shader, showing a look in a set of colours: for a figure drawn outside a wizard (a cut-scene's, or a portrait's).
 static func material_for(look: String, palette: int) -> ShaderMaterial:
 	var material := ShaderMaterial.new()
-	material.shader = load("res://scripts/wet.gdshader")
+	material.shader = load("res://scripts/fx/wet.gdshader")
 	paint(material, look, palette)
 	return material

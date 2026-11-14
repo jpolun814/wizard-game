@@ -130,7 +130,7 @@ each new spell with the checklist in `CLAUDE.md` §6, and expect the owner to ve
 - **Said once, kept for the match:** Land, Insight, the Second Leap and Swift Feet (`Ledger.LASTING`, `Ledger.settle`): the gift stays through every world once the chant works. The others (Bonfire, Boundless Vigour, Rift, Deep Breath, Mark, Return) are cast again each time.
 - **Chanting needs breath:** nobody can chant while `Lungs.holding()` (under water, in the Chant of the Deep Breath, or `smothered` by Vacuum). New ways to hold the breath set that, and need no check of their own. While held without the chant, the air (`breath`) runs down and then the wizard suffocates.
 - **Scrying** (`Scrying`, `EdgeArrows` group `"scryings"`): the chant fixes an arrow at the screen edge on the nearest page the speaker has not read; it goes when that page is read, and chanting again looks for another.
-- **Existing:** the `RITUALS` table in `scripts/ritual_input.gd` holds them: Land (minimap), Insight (enemy info), Bonfire (a healing fire), Boundless Vigour (endless stamina), Second Leap, Rift, Swift Feet, Deep Breath, Mark and Return.
+- **Existing:** the `RITUALS` table in `scripts/arena/ritual_input.gd` holds them: Land (minimap), Insight (enemy info), Bonfire (a healing fire), Boundless Vigour (endless stamina), Second Leap, Rift, Swift Feet, Deep Breath, Mark and Return.
 - **Chants are Latin-ish and grammatical-sounding.** Longer chants are for stronger effects.
 - **Accuracy sets power.** Stopping partway does nothing; garbling backfires.
 - **Text:** the spellbook shows each ritual's name, chant and one short line. Never repeat "costs no stamina".

@@ -181,7 +181,7 @@ func _start_animating() -> void:
 func _apply_material() -> void:
 	var school: String = KINDS[kind].school
 	_material = ShaderMaterial.new()
-	_material.shader = load("res://scripts/mob.gdshader")
+	_material.shader = load("res://scripts/creatures/mob.gdshader")
 	_material.set_shader_parameter("school_color", _school_colour())
 	_material.set_shader_parameter("tint", 0.0 if school in ["", "Shadow"] else 0.22)
 	_material.set_shader_parameter("outline", 0.0 if school == "" else 0.9)

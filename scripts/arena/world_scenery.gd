@@ -372,7 +372,7 @@ func wash_out_the_colour() -> void:
 	wash.set_anchors_preset(Control.PRESET_FULL_RECT)
 	wash.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var material := ShaderMaterial.new()
-	material.shader = preload("res://scripts/grayscale.gdshader")
+	material.shader = preload("res://scripts/ui/grayscale.gdshader")
 	wash.material = material
 	layer.add_child(wash)
 	world.add_child(layer)

@@ -251,7 +251,7 @@ func _ready() -> void:
 	_overlay.draw.connect(_draw_overlay)
 	add_child(_overlay)
 	_wet_material = ShaderMaterial.new()
-	_wet_material.shader = load("res://scripts/wet.gdshader")
+	_wet_material.shader = load("res://scripts/fx/wet.gdshader")
 	_sprite.material = _wet_material
 	_paint()
 	# The staff's head glows in the school's colour while a stroke is being drawn.

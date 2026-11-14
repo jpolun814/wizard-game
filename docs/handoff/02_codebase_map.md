@@ -1,14 +1,20 @@
 # Codebase map
 
 Godot 4.7.2 and GDScript. The main scene is `scenes/menu.tscn`, the first screen (play alone, host, join), which leads to
-`scenes/lab.tscn`, the waiting room. Its portal opens `scenes/world.tscn`, a generated world. Two autoloads: `Sfx` (`scripts/sfx.gd`)
-and `Net` (`scripts/net.gd`, network play: see `11_network_play.md`).
+`scenes/lab.tscn`, the waiting room. Its portal opens `scenes/world.tscn`, a generated world. Two autoloads: `Sfx` (`scripts/core/sfx.gd`)
+and `Net` (`scripts/core/net.gd`, network play: see `11_network_play.md`).
 The viewport is 1280x720, with stretch mode `canvas_items`.
+
+## Where the scripts live (`scripts/`)
+
+`core/` (autoloads, spell and page data, the match's records), `wizard/` (the body and its pieces), `brain/` (the AI wizards), `arena/` (the arena, worlds, rituals, casting, the waiting room, the tutorial, portals),
+`creatures/` (mobs and what they shoot), `scenery/` (living scenery and backdrops), `terrain/` (ground, pools, gates, bonfires, pages on the floor), `screens/` (menu, intro, library, spellbook and the other whole screens),
+`ui/` (hud, camera, cursor, tooltips), `fx/` (effects and art helpers), plus `gesture/`, `spells/`, `world/` (generation) and `hud/` as before. Shaders sit beside the script that uses them.
 
 ## How a frame of the game fits together
 
 ```
-Arena (scripts/arena.gd)            the base of the waiting room and the world: the player, spells, rituals, HUD
+Arena (scripts/arena/arena.gd)            the base of the waiting room and the world: the player, spells, rituals, HUD
  ├─ Backdrop                         parallax scenery (CanvasLayer -20 sky + Parallax2D layers)
  ├─ Terrain                          tiles, collision strips, props
  ├─ Player (scenes/wizard.tscn)      the human wizard: CharacterBody2D, origin at the feet; Camera2D (zoom 1.5) inside
@@ -53,10 +59,10 @@ never block each other.
 
 ### Core flow
 - **`arena.gd`:** builds the map (the waiting room and the world override `_build_map` and `_begin_encounter`), wires
-  every signal, and hands the rest to pieces it holds: `arena.casting` (`Casting`, `scripts/casting.gd`: a read stroke, one path for every wizard, what refuses a cast, what it
+  every signal, and hands the rest to pieces it holds: `arena.casting` (`Casting`, `scripts/arena/casting.gd`: a read stroke, one path for every wizard, what refuses a cast, what it
   costs, the misfire and the flourish), `arena.spawner` (`SpellSpawner`, `scripts/spells/spell_spawner.gd`: what each spell conjures and where it lands, from four tables of
   recipes, `CasterSpells`, `AimedSpells`, `PlacedSpells` and `ShapeSpells`, each recipe given a `SpellCast`; a spell with no recipe is the simple effect its resource names),
-  `arena.rituals` (`Rituals`, `scripts/rituals.gd`: the chant box, what each chant does, the bonfire, the Rift, the Scrying Eye) and `arena.insight` (`InsightTip`: the
+  `arena.rituals` (`Rituals`, `scripts/arena/rituals.gd`: the chant box, what each chant does, the bonfire, the Rift, the Scrying Eye) and `arena.insight` (`InsightTip`: the
   hover tooltip). The arena itself keeps the rpc calls (`kindle`, `show_chant`, `show_eye`, `spawn_seen`), which must stay on the node. `_is_ground_at` decides where a
   Stone Wall may start: the ground, a platform, or another stone wall.
 - **`arena_gen.gd`:** chunk-based map generation and the `BIOMES` table (tiles, backdrop, props per level).
@@ -112,7 +118,7 @@ never block each other.
     `frost_bridge.gd`, `geyser.gd`, `tsunami.gd`, `spore_puff.gd`, `eclipse.gd`, `hex.gd`, `decoy.gd`.
   - **Plants** extend `flora_spell.gd` (`FloraSpell`), which gives them fire damage: `bramble.gd`, `liana.gd`,
     `great_oak.gd`, `flytrap.gd`, `lily_pads.gd`. Fire touching one (`SpellTargets.fire_touching`) burns it away.
-  - **Ponds** (`scripts/pond.gd`): water or lava sunk in the ground, which Frost Bridge freezes and Lily Pads float on. Drawn behind the ground so only the hollow shows; a water pond puts out fire shots (`shots` + `fires`) that fall in. Its liquid really flows (`scripts/liquid_grid.gd`, chapter 12): a pit dug beside it fills from it. Piranhas, ice and the wizards' map of the ways follow it, and Geyser and Tide Surf lift, carry and spill real water (chapter 12).
+  - **Ponds** (`scripts/terrain/pond.gd`): water or lava sunk in the ground, which Frost Bridge freezes and Lily Pads float on. Drawn behind the ground so only the hollow shows; a water pond puts out fire shots (`shots` + `fires`) that fall in. Its liquid really flows (`scripts/terrain/liquid_grid.gd`, chapter 12): a pit dug beside it fills from it. Piranhas, ice and the wizards' map of the ways follow it, and Geyser and Tide Surf lift, carry and spill real water (chapter 12).
 - **`spell_targets.gd`:** who can be hurt (`affects`, `hurt`, `all`, `hurt_within`; no sides), the ground (`ground_below`,
   `solid_below`, `surface_over`), fire (`fire_points`, `fire_heat_near`) and `shot_damage`.
 - **Conventions:**
@@ -186,13 +192,13 @@ The match (a last-wizard-standing race for pages) runs on these. `World` extends
 
 - `scripts/spells/`: `barbs.gd`, `thorn.gd`, `pebble.gd`, `hailstorm.gd`, `hail_stone.gd`, `featherfall.gd`, `thorn_whip.gd`, `insect_plague.gd`, `leech.gd`, `mirage.gd`,
   `flaming_sphere.gd`. Raise Dead has no script of its own: `arena._raise_dead` makes a `Mob` (`Mob.master`, `_foe`, `_follow_master`, `_share_raised`).
-- `scripts/dowsing.gd` (was `scrying.gd`), `scripts/scrying_eye.gd`, `scripts/eye_mark.gd`, `scripts/hud/circle_mask.gdshader`.
+- `scripts/ui/dowsing.gd` (was `scrying.gd`), `scripts/ui/scrying_eye.gd`, `scripts/wizard/eye_mark.gd`, `scripts/hud/circle_mask.gdshader`.
 - Groups: `"leeches"`, `"squalls"` (`Squall.rain`), `"dowsings"`, `"eye_marks"`, `"ground_watchers"` (anything that keeps the ground near it made: a Flaming Sphere, the Scrying Eye's camera;
   read by `World._process`).
 - `Wizard.feather_time`, `Pages.start_empty`/`cluster_of`, `WorldPages._lay_clusters`, `Library.title_of`/`average_accuracy`, `SpellData.school_name`.
 
 ## Added 2026-11-06
-- `scripts/warmup.gd` (an autoload, `Warmup`): at start-up it loads the pictures and sounds that spells use on other threads (`ResourceLoader.load_threaded_request`), then the spell scripts one a frame on the main thread (never together: a script compiled while its pictures were being read on another core once failed to preload one). Without it the first cast of each spell stalled a frame or several.
+- `scripts/core/warmup.gd` (an autoload, `Warmup`): at start-up it loads the pictures and sounds that spells use on other threads (`ResourceLoader.load_threaded_request`), then the spell scripts one a frame on the main thread (never together: a script compiled while its pictures were being read on another core once failed to preload one). Without it the first cast of each spell stalled a frame or several.
 - `Mob.shared`: a skeleton the world keeps in step across the network (a roamer or a crypt guard); only these tell the other machines when they fall.
 - Group `canopy`: the ledges of a jungle great tree; sky spells (Spark, Boulder) pass through them (`tests/canopy_check.tscn`).
 - `GameSettings.rival_skill()`: the AI wizards' skill from the Settings page (0.4, 0.65, 0.85).

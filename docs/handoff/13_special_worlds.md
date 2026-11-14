@@ -8,7 +8,7 @@ has a sea over it, not open sky).
 ## The portal fields (`portals`, "The Portal Fields")
 
 A gentle, bare world (graveyard tiles and backdrop, a violet tint) with normal pages and no hazards, where portals open every few seconds and carry a wizard to another.
-`PortalField` (`scripts/portal_field.gd`, raised in `WorldScenery.raise_biome_life`) works out which portals are open from the seed and the world's age alone (`_timed`), so every
+`PortalField` (`scripts/arena/portal_field.gd`, raised in `WorldScenery.raise_biome_life`) works out which portals are open from the seed and the world's age alone (`_timed`), so every
 machine of a match sees the same ones.
 
 - Every `INTERVAL` (5 s) a wave opens: the first two or three portals, later ones none to eight, each in a stretch of the world the seed shuffles. Each stays `LIFETIME`

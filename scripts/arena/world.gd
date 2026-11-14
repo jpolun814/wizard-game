@@ -9,7 +9,7 @@ extends Arena
 static var next_seed := -1
 
 const WIZARDS := WorldGraph.PLAYERS  # the wizards in a world: the player and the rest
-const PortalCollapse := preload("res://scripts/portal_collapse.gd")
+const PortalCollapse := preload("res://scripts/arena/portal_collapse.gd")
 
 var seed_value := 0
 var ledgers: Array[Ledger] = []  # the pages each wizard holds, the player's first

@@ -51,7 +51,7 @@ Done, each with the quick set green and the full set showing only the known fail
 - **Tests that reach into private members are tests to fix**, not reasons to keep a member private (the stalagmite and ridge checks did this).
 - Python edit scripts go in the scratchpad; a regex that moves code must keep each file's line endings (some files are stored with CRLF: `git ls-files --eol`).
 
-## `scripts/wizard_brain.gd` (2,866 lines, 138 functions, 93 variables, 103 constants)
+## `scripts/brain/wizard_brain.gd` (2,866 lines, 138 functions, 93 variables, 103 constants)
 
 **What is wrong.** One class holds every part of the AI's mind. Its own header says it works in four layers, but the code does not: the layers are not separate, and 354 lines
 read `wizard.` directly. The big functions are the ones that grew a branch for every new situation: `_travel` (159 lines), `think` (158), `_attack_stroke` (99, a branch per
@@ -79,7 +79,7 @@ other files unchanged: GDScript has no partial classes, and a base class cannot 
 - The safety net is wide: `brain_spells_check`, `brains_start_check`, `route_check`, `cross_check`, `gate_check`, `tutorial_ai_check` (fails already), `arena_sim`, and the sims in
   `CLAUDE.md` section 12. After the brain is touched, run all of them, and watch a sim by eye: the owner judges the AI by what looks like a person.
 
-## `scripts/world.gd` (1,775 lines, 93 functions, 44 variables)
+## `scripts/arena/world.gd` (1,775 lines, 93 functions, 44 variables)
 
 **What is wrong.** A `World` is a match's world, and the file does the work of seven things: it builds the map and the backdrop, dresses the biome (landmarks, graves, trees, the gale,
 sky and sea), raises the creatures that roam (the dead, the knights, the giant) and shares them over the network, seats the wizards and gives them brains, runs the collapse into the
@@ -105,7 +105,7 @@ set by the dressing and read by the frame loop; `_dead` and `_dead_sent` belong 
 - The safety net: `flow_check`, `collapse_check`, `cluster_check`, `brains_start_check`, `ocean_world_check`, `sky_world_check`, `test_stages`, `test_world` (fails on seeds 7, 15, 23 already),
   `eruption_check`, the showcase `life` scenario with a seed for each biome, `net_match_check`, and `dedicated_check`.
 
-## `scripts/wizard.gd` (1,432 lines, 100 functions, 109 variables, 65 constants)
+## `scripts/wizard/wizard.gd` (1,432 lines, 100 functions, 109 variables, 65 constants)
 
 **What is wrong.** The body, every status that can happen to it, every way it moves, and the way it looks are in one class. The statuses are each a few fields, a timer and a branch in
 `_physics_process` (127 lines): freeze, shield, obsidian, wild shape, sneak, surf, rocket, haste, adrenaline, daze, rage, silence, blind, the breath and drowning. The ways of moving
@@ -143,6 +143,6 @@ After each file: update the map in `02_codebase_map.md`, the line counts above, 
 
 ## Smaller things seen on the way (not part of the redesign)
 
-- `scripts/wizard.gd`'s header says "the three others'": there are seven others in a match.
+- `scripts/wizard/wizard.gd`'s header says "the three others'": there are seven others in a match.
 - `wizard_brain.gd`'s `_begin_cast` warns about a stroke with a point that is not a number; it is defensive code for a fault in the gesture code. Find the fault, then remove the guard.
 - `intro.gd` is 762 lines for a cut-scene, and `library_screen.gd`, `menu.gd` and `stats_screen.gd` build their screens in code in long functions. They have not been looked at for structure.

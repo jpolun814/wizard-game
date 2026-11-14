@@ -1,4 +1,4 @@
-"""Makes art/props/notice.png, the notice pinned to the pedestal in the opening cut-scene (scripts/intro.gd): the loose page's art with the
+"""Makes art/props/notice.png, the notice pinned to the pedestal in the opening cut-scene (scripts/screens/intro.gd): the loose page's art with the
 lines of writing painted out, so words can be set on it. Run from the game folder: python -I tools/prepare_notice.py"""
 import os
 

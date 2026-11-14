@@ -4,7 +4,7 @@
 
 The stand is the stone tomb in nikllamadev's Dungeon Castle pixel art pack (CC-BY 4.0), made wider and taller by repeating one column and one row of its own body, so a book and a plaque fit it. The plaque is the owner's own pixel art
 (plaque.aseprite, 64x64, one layer): it is cropped to its edges, and the black scribble that stood for writing is filled with the plate's gold, so the
-words can be lettered over it by scripts/lectern.gd.
+words can be lettered over it by scripts/screens/lectern.gd.
 """
 import struct
 import sys

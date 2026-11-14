@@ -4,7 +4,7 @@ in the same shading, in a colour theme of its own. Run from the game folder:
 
     python -I tools/make_wizard_colours.py
 
-Then `godot --headless --import` makes the .import files. The variants are used by the opening cut-scene (scripts/intro.gd): ten wizards, no two alike.
+Then `godot --headless --import` makes the .import files. The variants are used by the opening cut-scene (scripts/screens/intro.gd): ten wizards, no two alike.
 """
 import colorsys
 import glob

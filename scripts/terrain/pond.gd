@@ -73,7 +73,7 @@ var _air_dirty := true
 
 func _ready() -> void:
 	material = ShaderMaterial.new()  # dithered bands, as pixel art is shaded
-	(material as ShaderMaterial).shader = preload("res://scripts/pixel_liquid.gdshader")
+	(material as ShaderMaterial).shader = preload("res://scripts/terrain/pixel_liquid.gdshader")
 	(material as ShaderMaterial).set_shader_parameter("levels", 14.0)
 	_reach = CollisionShape2D.new()
 	_reach.shape = RectangleShape2D.new()

@@ -82,7 +82,7 @@
   - Frames are cut so the feet sit on the bottom edge and the body's lower half is centred, using
     `body_column`.
   - Body boxes for hitboxes come from columns that are mostly solid, so a held staff doesn't widen the hitbox.
-  - The result is written to `scripts/pixel_art.gd`.
+  - The result is written to `scripts/fx/pixel_art.gd`.
 - **Tiles:**
   - Each biome names the 16 px tiles that play each **role** (TL, T, TR, L, C, R, BL, B, BR, D).
   - Each 32 px atlas piece is composed from four of them (`LAYOUT`).
@@ -129,13 +129,13 @@ The packs come from different artists, so three things tie them together:
   now makes `art/tiles/earth_<tiles>.png` (stones with dark seams, lit from the top left) and `art/tiles/lip_<tiles>.png` (the grassy,
   mossy, ashen or frosted lip along each surface) for every tile set, each from a four-step ramp of its own. `Terrain` takes the earth of
   the world's first biome; the lip follows each biome's span. Change a ramp in the script, run it, then `godot --import`.
-- **The grade.** `Grade` (`scripts/grade.gd`, `grade.gdshader`) is a layer over every world and under the interface: shadows pulled toward
+- **The grade.** `Grade` (`scripts/ui/grade.gd`, `grade.gdshader`) is a layer over every world and under the interface: shadows pulled toward
   one deep violet, colours drawn a little together, lights warmed a touch, corners darkened. Tune it there, not per biome.
 - **Pixel size.** The earth and lip are drawn with 2x2 blocks, like the other tiles.
 
 ### Loose rock, vines and glow (second cohesion pass)
 
-- `RockArt` (`scripts/rock_art.gd`) cuts boulders, stone walls, stalagmites, icicles and Ice Prison blocks from the world's own earth texture, brightened so they read over the ground. Nothing loose is a plain polygon with a texture on it.
+- `RockArt` (`scripts/terrain/rock_art.gd`) cuts boulders, stone walls, stalagmites, icicles and Ice Prison blocks from the world's own earth texture, brightened so they read over the ground. Nothing loose is a plain polygon with a texture on it.
 - Vines use `art/props/dusk_vine.png` (made by `tools/prepare_vines.py`) so they share the Great Oak's colours; the Great Oak's trunk is walk-through, its ledges are solid.
 - Air spells (Gust, Push, Updraft) all take `SpellData.SCHOOL_COLORS["Air"]`.
 - Glowcap grows from the ground; a wizard who walks into it eats it (`GlowAura` gives the glow). The spellbook line must not say so.

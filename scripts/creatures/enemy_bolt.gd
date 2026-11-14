@@ -42,7 +42,7 @@ static func fire(parent: Node, origin: Vector2, target: Vector2, color: Color, d
 	var shot := PixelFx.sprite("magic_bolt", 14.0)
 	shot.scale = Vector2.ONE * 2.0
 	var recolour := ShaderMaterial.new()
-	recolour.shader = load("res://scripts/mob.gdshader")
+	recolour.shader = load("res://scripts/creatures/mob.gdshader")
 	recolour.set_shader_parameter("school_color", color)
 	recolour.set_shader_parameter("tint", 1.0)
 	shot.material = recolour

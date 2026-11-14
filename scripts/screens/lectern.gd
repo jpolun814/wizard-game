@@ -1,7 +1,7 @@
 class_name Lectern
 extends Area2D
 
-## The spellbook on its stand, which starts a run: in the waiting room a person touches it, and the cut-scene (scripts/intro.gd) opens on the same
+## The spellbook on its stand, which starts a run: in the waiting room a person touches it, and the cut-scene (scripts/screens/intro.gd) opens on the same
 ## book and the same stand. The stand is a stone tomb (nikllamadev's Dungeon Castle pack, widened) and the warning is on a gold plaque on its face (the owner's
 ## own art), both cut by tools/prepare_lectern.py. The words are so small that nobody can read them until the camera is brought close in the cut-scene.
 ## The node stands on the floor, and the book rests on top of the stand.
