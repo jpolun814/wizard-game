@@ -340,30 +340,7 @@ func _with_a_rival(delta: float) -> void:
 	_push_through -= delta
 	combat.escape_commit -= delta
 	_escapes = maxf(_escapes - delta * 0.5, 0.0)
-	# Reactions.
-	if react > 0.0:
-		react -= delta
-		if react <= 0.0:
-			combat.act(_reaction)
-	elif not wizard.pen.active():
-		var shot := sight.incoming_shot()
-		if not shot.is_empty() and combat.defend_cooldown <= 0.0:
-			combat.threat_dir = shot["dir"]
-			_plan(combat.choose_defence(shot["eta"]), _reaction_time())
-		elif (travel.dash <= 0.0 and danger.scorched()) or danger.bitten() or (_push_through <= 0.0 and (danger.in_danger(wizard.global_position + Vector2(0, -6)) or danger.in_danger(wizard.center()))):
-			_plan("escape", _reaction_time() * 0.6)
-			settle = 0.0  # nobody stands in the fire to finish a chant
-			chant.typing = ""
-			mend.camped = false
-			_escapes += 1.0
-			if _escapes > 3.0 and not danger.scorched() and not danger.bitten():  # it keeps backing out of the same thing that lies on its way: it goes through it this once
-				_push_through = PUSH_THROUGH_FOR
-				_escapes = 0.0
-		elif combat.defend_cooldown <= 0.0 and not watchers().is_empty():
-			_plan("cover", _reaction_time())
-		elif fighting and to_player.length() < TOO_CLOSE and combat.defend_cooldown <= 0.0:
-			_plan(combat.choose_repel(), _reaction_time())
-
+	_react(delta, fighting, to_player)
 	# Looking after itself: its lights, its strength, a wall between it and you, a way up to you.
 	if react <= 0.0 and mend.tend_cooldown <= 0.0 and not wizard.pen.active() and not moves.busy() and not smothering():
 		mend.tend_cooldown = 0.6 + rng.randf() * 0.6
@@ -397,7 +374,37 @@ func _with_a_rival(delta: float) -> void:
 	if not fighting or (strength < TIMID_BELOW and to_player.length() > TIMID_STAND and _daunted >= TIMID_HESITATE):
 		return
 
-	# Attacks.
+	_attack(foe, to_player, sees)
+
+
+## What comes at it: a reaction already planned is carried out when its time is up; otherwise it answers a shot, fire, thorns or a rival too close.
+func _react(delta: float, fighting: bool, to_player: Vector2) -> void:
+	if react > 0.0:
+		react -= delta
+		if react <= 0.0:
+			combat.act(_reaction)
+	elif not wizard.pen.active():
+		var shot := sight.incoming_shot()
+		if not shot.is_empty() and combat.defend_cooldown <= 0.0:
+			combat.threat_dir = shot["dir"]
+			_plan(combat.choose_defence(shot["eta"]), _reaction_time())
+		elif (travel.dash <= 0.0 and danger.scorched()) or danger.bitten() or (_push_through <= 0.0 and (danger.in_danger(wizard.global_position + Vector2(0, -6)) or danger.in_danger(wizard.center()))):
+			_plan("escape", _reaction_time() * 0.6)
+			settle = 0.0  # nobody stands in the fire to finish a chant
+			chant.typing = ""
+			mend.camped = false
+			_escapes += 1.0
+			if _escapes > 3.0 and not danger.scorched() and not danger.bitten():  # it keeps backing out of the same thing that lies on its way: it goes through it this once
+				_push_through = PUSH_THROUGH_FOR
+				_escapes = 0.0
+		elif combat.defend_cooldown <= 0.0 and not watchers().is_empty():
+			_plan("cover", _reaction_time())
+		elif fighting and to_player.length() < TOO_CLOSE and combat.defend_cooldown <= 0.0:
+			_plan(combat.choose_repel(), _reaction_time())
+
+
+## Its attacks, one when the last is over and nothing hinders it.
+func _attack(foe: Wizard, to_player: Vector2, sees: bool) -> void:
 	if cast_cooldown <= 0.0 and not wizard.pen.active() and react <= 0.0:
 		if smothering() or hiding():
 			cast_cooldown = 0.3  # another spell would let the breath go; and a wizard out of sight is shown by casting
