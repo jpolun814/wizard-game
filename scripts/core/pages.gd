@@ -143,15 +143,7 @@ static func title_of(page: String) -> String:
 ## Where each page lies: [{"page", "room": a room's id}], from the graph and a rng. The pages the wizards start with are left off the map.
 ## `allotted` is the world's own pages from the match's allotment; without it every page no one was dealt lies in the world.
 static func plan(graph: WorldGraph, rng: RandomNumberGenerator, dealt: Array[Ledger], allotted: Array = [], gate_kinds := [], spare: Array[String] = [], held: Array[Ledger] = []) -> Array:
-	var items: Array[String] = []
-	if not allotted.is_empty():
-		var mine: Array[String] = []
-		mine.assign(allotted)
-		items = with_openers(mine, spare, held, gate_kinds)
-	else:
-		for page in every():
-			if not dealt.any(func(ledger: Ledger) -> bool: return ledger.knows(page)):
-				items.append(page)
+	var items := _pages_to_lay(dealt, allotted, gate_kinds, spare, held)
 	var lockable: Array[String] = []
 	var open: Array[String] = []
 	for page in items:
@@ -199,25 +191,7 @@ static func plan(graph: WorldGraph, rng: RandomNumberGenerator, dealt: Array[Led
 		if room["lock"] == -1 and not room.has("surface"):
 			free.append(room["id"])
 	if free.is_empty():  # a world with no caves: some lie at the landmarks (a volcano's rim, a mountain's top), the rest out in the open, spread along it
-		var landmarks: Array = graph.surface["landmarks"]
-		var in_trees: bool = not graph.surface["trees"].is_empty()  # the jungle's pages are nearly all up in its trees, spread along them
-		var wanted := mini(landmarks.size(), rest.size() * 3 / 4 if in_trees else rest.size() / 2)
-		var taken: Array[int] = outdoors.duplicate()  # where pages lie so far: out in the open, none lies close to another
-		if in_trees:
-			for k in wanted:
-				placed.append({"page": rest.pop_back(), "room": 0, "x": landmarks[k * landmarks.size() / wanted]})
-		else:
-			for landmark: int in landmarks:
-				if placed.size() - outdoors.size() >= wanted:
-					break
-				if _far_from(landmark, taken):
-					placed.append({"page": rest.pop_back(), "room": 0, "x": landmark})
-					taken.append(landmark)
-		for column in _spread_columns(graph, rest.size()):
-			if not in_trees:
-				column = _moved_apart(graph, column, taken)
-				taken.append(column)
-			placed.append({"page": rest.pop_back(), "room": 0, "x": column})
+		_lay_in_the_open(graph, rest, outdoors, placed)
 		return placed
 	var open_halls := free.duplicate()
 	while not rest.is_empty():
@@ -228,6 +202,44 @@ static func plan(graph: WorldGraph, rng: RandomNumberGenerator, dealt: Array[Led
 		placed.append({"page": rest.pop_back(), "room": room})
 		spots.append(Vector2(graph.rooms[room]["cx"], graph.rooms[room]["cy"]))
 	return placed
+
+
+## The pages this world lays: its own from the match's allotment (with the ones that open its gates), or, with no allotment, every page no one was dealt.
+static func _pages_to_lay(dealt: Array[Ledger], allotted: Array, gate_kinds: Array, spare: Array[String], held: Array[Ledger]) -> Array[String]:
+	var items: Array[String] = []
+	if not allotted.is_empty():
+		var mine: Array[String] = []
+		mine.assign(allotted)
+		items = with_openers(mine, spare, held, gate_kinds)
+	else:
+		for page in every():
+			if not dealt.any(func(ledger: Ledger) -> bool: return ledger.knows(page)):
+				items.append(page)
+	return items
+
+
+## A world with no caves: some pages lie at the landmarks (a volcano's rim, a mountain's top), the rest out in the open, spread along the world.
+## `rest` is what is still to be laid; `outdoors` the columns already taken.
+static func _lay_in_the_open(graph: WorldGraph, rest: Array[String], outdoors: Array[int], placed: Array) -> void:
+	var landmarks: Array = graph.surface["landmarks"]
+	var in_trees: bool = not graph.surface["trees"].is_empty()  # the jungle's pages are nearly all up in its trees, spread along them
+	var wanted := mini(landmarks.size(), rest.size() * 3 / 4 if in_trees else rest.size() / 2)
+	var taken: Array[int] = outdoors.duplicate()  # where pages lie so far: out in the open, none lies close to another
+	if in_trees:
+		for k in wanted:
+			placed.append({"page": rest.pop_back(), "room": 0, "x": landmarks[k * landmarks.size() / wanted]})
+	else:
+		for landmark: int in landmarks:
+			if placed.size() - outdoors.size() >= wanted:
+				break
+			if _far_from(landmark, taken):
+				placed.append({"page": rest.pop_back(), "room": 0, "x": landmark})
+				taken.append(landmark)
+	for column in _spread_columns(graph, rest.size()):
+		if not in_trees:
+			column = _moved_apart(graph, column, taken)
+			taken.append(column)
+		placed.append({"page": rest.pop_back(), "room": 0, "x": column})
 
 
 ## The room, of those given, whose middle is farthest from every spot already taken (the first when nothing is).
