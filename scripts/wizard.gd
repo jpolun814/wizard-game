@@ -11,9 +11,6 @@ signal debuff_applied(kind: String)
 signal died
 
 const SPEED := 300.0
-const BREATH := 8.0  # seconds under water before the wizard starts to drown
-const DEEP_BREATH := 45.0  # seconds the Blessing of the Deep Breath holds the wizard's breath: it counts down from the chant
-const DROWN_RATE := 3.0  # most stamina lost per second while out of breath, and it does not come back by itself
 const HASTE := 1.6  # how much faster the Chant of Swift Feet makes the wizard
 const JUMP_VELOCITY := -520.0
 const JUMP_COST := 5.0  # stamina a jump takes; with less than this, you can't jump
@@ -126,8 +123,7 @@ var tangle_time: float: # caught in thorns: nearly stopped, and unable to jump w
 var deep_breath_time: float: # the Blessing of the Deep Breath: the breath is held while this lasts, under water or not
 	get: return _status.left(&"deep_breath")
 	set(seconds): _status.set_left(&"deep_breath", seconds)
-var breath := BREATH  # seconds of air left while the breath is held without the Blessing of the Deep Breath
-var smothered := false  # the air is drawn out of the wizard's lungs (Vacuum sets and clears this)
+var lungs := Lungs.new(self)  # the air it holds, and the water around it
 var haste_time: float: # the Chant of Swift Feet: faster on foot while this lasts
 	get: return _status.left(&"haste") if not ledger.is_settled("haste") else 1.0e9
 	set(seconds): _status.set_left(&"haste", seconds)
@@ -189,10 +185,6 @@ var _since_spend := 0.0
 var _stepping := false  # the wizard is moving their body along the ground (the last frame): the stamina does not come back meanwhile
 var facing := 1.0
 var _flash := 0.0        # red flash after being hit
-var _liquid := Color.WHITE  # the colour of the water or lava the wizard stands in
-var _liquid_time := 0.0
-var _liquid_y := INF  # the height of the surface of that liquid
-var _in_lava := false
 var _grace := 0.0        # time left of the safety after a hit
 var _coyote := 0.0
 var _jump_buffer := 0.0
@@ -523,40 +515,16 @@ func _on_animation_finished() -> void:
 			fade.tween_callback(queue_free)
 
 
-## Standing in water or lava: the part of the wizard below the surface takes its colour for a moment after each call, so
-## leaving it fades back at once.
+## Standing in water or lava (a creature has the same call).
 func soak(tint: Color, surface_y := INF, lava := false) -> void:
-	_liquid = tint
-	_liquid_y = surface_y
-	_in_lava = lava
-	_liquid_time = 0.15
+	lungs.soak(tint, surface_y, lava)
 
 
-## The height of the surface of the water the wizard is in, or INF when it is in none.
-func water_surface() -> float:
-	return _liquid_y if _liquid_time > 0.0 and not _in_lava else INF
-
-
-## True when the wizard's head is under the surface of water.
-func underwater() -> bool:
-	return _liquid_time > 0.0 and not _in_lava and global_position.y - BODY_HEIGHT + 10.0 > _liquid_y
-
-
-## True while the wizard holds their breath, for any reason: under water, in the Blessing of the Deep Breath, in a block of ice, or with the air drawn out of them.
-## Gas does no harm to anyone holding their breath, and nobody can chant.
-func holding_breath() -> bool:
-	return underwater() or smothered or deep_breath_time > 0.0 or is_frozen()
-
-
-## The air is drawn out of the wizard's lungs, or let back in. They hold their breath as they do under water, with what air they have.
-func smother(on: bool) -> void:
-	smothered = on
-
-
-## The chant cannot be said under water, so the lungs are full when it takes hold, and breathing starts again, full, when it ends.
-func grant_deep_breath(seconds: float) -> void:
-	deep_breath_time = seconds
-	breath = BREATH
+## The breath has run out under water: the most stamina goes, until the wizard breathes again.
+func drown(amount: float) -> void:
+	max_stamina -= amount
+	stamina = minf(stamina, maxf(max_stamina, 0.0))
+	_check_death()
 
 
 func apply_debuff(kind: String, seconds: float) -> void:
@@ -679,49 +647,13 @@ func status_text() -> String:
 
 ## A soft shadow on the ground under the wizard. It shrinks and fades the higher the wizard is above the ground.
 func _draw() -> void:
-	_draw_breath()
+	lungs.draw_bubbles()
 	var below := _ground_distance()
 	if below < 0.0:
 		return
 	var fade := clampf(1.0 - below / 160.0, 0.0, 1.0)
 	var width := 15.0 * (0.6 + 0.4 * fade)
 	_draw_ellipse(Vector2(0, below), width, width * 0.28, Color(0, 0, 0, 0.32 * fade))
-
-
-## Air under water: a row of bubbles over the head, one for each second left.
-func _draw_breath() -> void:
-	if dead or is_likeness():
-		return
-	var bubble := Fx.tex("circle_05")
-	if not holding_breath() and breath >= BREATH:
-		return  # the bar shows while the breath is held, under water, and while the lungs fill again
-	var left := deep_breath_time if deep_breath_time > 0.0 else breath  # the chant's held breath, when there is one, in place of the air
-	var count := ceili(maxf(left, 0.0))
-	var width := minf(14.0, 160.0 / maxf(count, 1.0))
-	var size := minf(10.0, width - 1.0)
-	for i in count:
-		var at := Vector2((i - (count - 1) * 0.5) * width, -BODY_HEIGHT - 20.0)
-		draw_texture_rect(bubble, Rect2(at - Vector2(size, size) * 0.5, Vector2(size, size)), false, Color(0.75, 0.92, 1.0, 0.9))
-	if left <= 0.0:
-		draw_texture_rect(bubble, Rect2(Vector2(-6, -BODY_HEIGHT - 14.0), Vector2(12, 12)), false, Color(1.0, 0.4, 0.4, 0.9))
-
-
-## While the breath is held (under water, or with the air drawn out) the air runs down, and once it is gone the most stamina does too,
-## until the wizard breathes again. That loss is only made good the usual ways. The Blessing of the Deep Breath holds the breath without using the air.
-func _breathe(delta: float) -> void:
-	if dead:
-		return
-	if deep_breath_time > 0.0:
-		breath = BREATH
-	elif underwater() or smothered or is_frozen():  # (in a block of ice there is no breathing either)
-		if breath > 0.0:
-			breath = maxf(breath - delta, 0.0)
-		else:
-			max_stamina -= DROWN_RATE * delta
-			stamina = minf(stamina, maxf(max_stamina, 0.0))
-			_check_death()
-	else:
-		breath = minf(breath + delta * BREATH * 2.0, BREATH)
 
 
 ## How far below the feet the ground is, or -1 if there is none within reach.
@@ -783,7 +715,7 @@ func _tick_timers(delta: float) -> void:
 	_shield_emitter.emitting = _shield_time > 0.0
 	if fainted and stamina >= GET_UP:
 		fainted = false  # the stamina is back: up again
-	_breathe(delta)
+	lungs.tick(delta)
 	rage_time = maxf(rage_time - delta, 0.0)
 	fear_time = maxf(fear_time - delta, 0.0)
 	swim_time = maxf(swim_time - delta, 0.0)
@@ -1069,10 +1001,9 @@ func _animate(delta: float) -> void:
 	_flash = maxf(_flash - delta, 0.0)
 	# After a hit the wizard blinks while it can't be hurt again.
 	var blink := _grace > 0.0 and int(_grace * 20.0) % 2 == 0
-	_liquid_time = maxf(_liquid_time - delta, 0.0)
-	var wet := _liquid_time > 0.0
-	_wet_material.set_shader_parameter("water_y", _liquid_y if wet else 1000000.0)
-	_wet_material.set_shader_parameter("water_tint", _liquid)
+	lungs.dry(delta)
+	_wet_material.set_shader_parameter("water_y", lungs.liquid_surface())
+	_wet_material.set_shader_parameter("water_tint", lungs.tint())
 	if is_unseen() != _hidden:  # a wizard faded from sight is not drawn at all for anyone but themselves (the wizard is left as it was when it comes back)
 		_hidden = is_unseen()
 		visible = not _hidden

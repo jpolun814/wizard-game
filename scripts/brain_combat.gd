@@ -45,7 +45,7 @@ func attack(to_player: Vector2, sees: bool) -> bool:
 		"Flytrap": 1.3 if grounded and (still or stuck) else 0.0,  # a trap snaps shut on whoever stands in it
 		"Sinkhole": 1.5 if grounded and (still or stuck) and gap < 340.0 else 0.0,
 		"Hex": 1.4 if Hex.multiplier(wizard.get_tree(), foe) <= 1.0 else 0.0,
-		"Vacuum": 1.5 if not foe.smothered and gap < 400.0 else 0.0,
+		"Vacuum": 1.5 if not foe.lungs.smothered and gap < 400.0 else 0.0,
 		"Faint": 1.6 if not foe.fainted and gap < 400.0 else 0.0,
 		"Fight or Flight": 0.6 if foe.rage_time <= 0.0 and foe.fear_time <= 0.0 else 0.0,
 		"Silence": (1.8 if foe.pen.active() else 0.6) if gap > Silence.RADIUS + 45.0 else 0.0,  # the ring is drawn round you, so well clear of it

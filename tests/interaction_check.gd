@@ -101,15 +101,15 @@ func _ready() -> void:
 	wiz.ledger.settle("double_jump")
 	_verdict(wiz.haste_time > 1000.0 and wiz.air_jump_time > 1000.0, "once said, Swift Feet and the Second Leap hold for good")
 
-	_verdict(not wiz.holding_breath(), "a wizard in the open air is not holding their breath")
+	_verdict(not wiz.lungs.holding(), "a wizard in the open air is not holding their breath")
 	var max_before := wiz.max_stamina
-	wiz.smother(true)
-	_verdict(wiz.holding_breath(), "a wizard with the air drawn out holds their breath")
+	wiz.lungs.smother(true)
+	_verdict(wiz.lungs.holding(), "a wizard with the air drawn out holds their breath")
 	for k in 600:
 		await get_tree().physics_frame
 	_verdict(wiz.max_stamina < max_before, "and when the air runs out they suffocate (%.0f to %.0f)" % [max_before, wiz.max_stamina])
-	wiz.smother(false)
-	_verdict(not wiz.holding_breath(), "and they breathe again when it is let back in")
+	wiz.lungs.smother(false)
+	_verdict(not wiz.lungs.holding(), "and they breathe again when it is let back in")
 
 	var victim: Wizard = null
 	for other: Wizard in SpellTargets.wizards(get_tree()):
@@ -117,18 +117,18 @@ func _ready() -> void:
 			victim = other
 	world.spawn_spell("Vacuum", "positional", victim.center() + Vector2(20.0, -10.0), 0.0, {}, wiz)
 	await get_tree().physics_frame
-	_verdict(victim.smothered and victim.holding_breath(), "a Vacuum drawn over someone smothers them")
+	_verdict(victim.lungs.smothered and victim.lungs.holding(), "a Vacuum drawn over someone smothers them")
 	wiz.damaged.emit(5)
 	await get_tree().physics_frame
 	await get_tree().physics_frame
-	_verdict(not victim.smothered, "and lets go when its caster is hurt")
+	_verdict(not victim.lungs.smothered, "and lets go when its caster is hurt")
 	world.spawn_spell("Vacuum", "positional", victim.center(), 0.0, {}, wiz)
 	await get_tree().physics_frame
-	_verdict(victim.smothered, "a Vacuum drawn again smothers them again")
+	_verdict(victim.lungs.smothered, "a Vacuum drawn again smothers them again")
 	world.spawn_spell("Gust", "directional", wiz.center(), 0.0, {"length": 80.0}, wiz)
 	await get_tree().physics_frame
 	await get_tree().physics_frame
-	_verdict(not victim.smothered, "and lets go when its caster casts something else")
+	_verdict(not victim.lungs.smothered, "and lets go when its caster casts something else")
 
 	var column := Updraft.new()
 	column.global_position = wiz.global_position

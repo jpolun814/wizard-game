@@ -74,12 +74,12 @@ func _run(world: World) -> void:
 			deepest = c
 	wizard.global_position = Vector2((deepest + 0.5) * World.TILE, floors[deepest] * float(World.TILE) - 200.0)
 	wizard.velocity = Vector2.ZERO
-	var before := wizard.breath
+	var before := wizard.lungs.air
 	for k in 90:
 		await get_tree().physics_frame
-	print("   wizard at ", wizard.global_position, " sea ", sea.position, " floor ", floors[deepest], " swim ", wizard.swim_time, " breath ", wizard.breath, " under ", wizard.underwater())
+	print("   wizard at ", wizard.global_position, " sea ", sea.position, " floor ", floors[deepest], " swim ", wizard.swim_time, " breath ", wizard.lungs.air, " under ", wizard.lungs.submerged())
 	_check(wizard.swim_time > 0.0, "a wizard out of its depth swims")
-	_check(wizard.breath < before, "and its breath runs down under the water")
+	_check(wizard.lungs.air < before, "and its breath runs down under the water")
 	# The same wizard in a wreck's air pocket keeps its breath.
 	var wreck: Wreck = world.get_children().filter(func(n: Node) -> bool: return n is Wreck).front()
 	_check(AirPocket.holds(get_tree(), wreck.pocket.global_position + Vector2(0.0, -40.0)), "a wreck has an air pocket")
@@ -98,7 +98,7 @@ func _run(world: World) -> void:
 		var on := on_wreck.global_position + Vector2((spot.x - Wreck.ORIGIN.x) * side, spot.y - Wreck.ORIGIN.y)
 		wizard.global_position = on + Vector2(0.0, -70.0)
 		wizard.velocity = Vector2.ZERO
-		wizard.breath = Wizard.BREATH
+		wizard.lungs.air = Lungs.BREATH
 		for k in 100:
 			await get_tree().physics_frame
 		var rests := absf(wizard.global_position.y - on.y) < 24.0 and wizard.global_position.y < on_wreck.global_position.y - 30.0

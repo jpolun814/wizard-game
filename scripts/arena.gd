@@ -557,7 +557,7 @@ func _start_ritual() -> void:
 	if player.is_muted():
 		_on_feedback("Wait for your voice to return.", Color.ORANGE)
 		return
-	if player.holding_breath():
+	if player.lungs.holding():
 		return  # the bubbles over the head say why
 	ritual.open()
 	# Stop this key press from also reaching the text box it just opened.
@@ -569,7 +569,7 @@ func _on_ritual_finished(id: String, acc: float, unfinished: bool) -> void:
 	if not player.ledger.knows_chant(id):
 		_misfire_puff()
 		return
-	if player.holding_breath():
+	if player.lungs.holding():
 		return
 	if unfinished:
 		# Stopping a chant partway lets the words fade harmlessly; only a garbled chant backfires.
@@ -642,7 +642,7 @@ func _grant_chant(speaker: Wizard, id: String) -> void:
 		"haste":
 			speaker.grant_haste(20.0)
 		"deep_breath":
-			speaker.grant_deep_breath(speaker.DEEP_BREATH)
+			speaker.lungs.grant_deep(Lungs.DEEP_BREATH)
 		"bonfire":
 			if speaker.brain != null:  # (the person's own bonfire is made by their ritual, with the power of how well they said it)
 				var spot := _bonfire_spot(speaker)
@@ -653,7 +653,7 @@ func _grant_chant(speaker: Wizard, id: String) -> void:
 ## A brain's wizard says one of the chants that give a gift, or lights a bonfire (the others make marks and portals, which have only the player's own).
 ## It says it perfectly. False when it does not know the chant, cannot speak or is under water.
 func chant_by(speaker: Wizard, id: String) -> bool:
-	if not is_instance_valid(speaker) or speaker.dead or not speaker.ledger.knows_chant(id) or speaker.is_muted() or speaker.is_frozen() or speaker.holding_breath():
+	if not is_instance_valid(speaker) or speaker.dead or not speaker.ledger.knows_chant(id) or speaker.is_muted() or speaker.is_frozen() or speaker.lungs.holding():
 		return false
 	speaker.break_sneak()
 	_show_chant(String(speaker.name))

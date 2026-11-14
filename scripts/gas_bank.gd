@@ -91,7 +91,7 @@ func _physics_process(delta: float) -> void:
 			continue
 		if body.is_in_group("mobs"):
 			body.take_damage(DAMAGE, "Flora")
-		elif not body.holding_breath():  # whoever holds their breath is not poisoned
+		elif not body.lungs.holding():  # whoever holds their breath is not poisoned
 			body.take_damage(DAMAGE, false, true)  # no grace between breaths, but a Barrier keeps it off
 
 

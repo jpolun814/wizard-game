@@ -36,7 +36,7 @@ static func release(tree: SceneTree, by: Wizard) -> void:
 func _ready() -> void:
 	add_to_group("vacuums")
 	z_index = 9
-	target.smother(true)
+	target.lungs.smother(true)
 	if caster != null:
 		caster.damaged.connect(_on_caster_hurt)
 	_bubble = Sprite2D.new()
@@ -62,4 +62,4 @@ func _physics_process(delta: float) -> void:
 
 func _exit_tree() -> void:
 	if is_instance_valid(target):
-		target.smother(false)
+		target.lungs.smother(false)

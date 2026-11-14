@@ -19,6 +19,6 @@ static func refusal(wizard: Wizard, spell: String) -> String:
 			return "No ground"
 		if NOT_NEEDED_IN_THE_AIR.has(spell):
 			return "No need"
-	if wizard.underwater() and SpellData.SPELLS.has(spell) and SpellData.SPELLS[spell].school == "Fire":
+	if wizard.lungs.submerged() and SpellData.SPELLS.has(spell) and SpellData.SPELLS[spell].school == "Fire":
 		return "Fizzles"
 	return ""

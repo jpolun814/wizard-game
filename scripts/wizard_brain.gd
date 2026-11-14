@@ -218,7 +218,7 @@ func _typing_disturbed() -> bool:
 ## Whether this is a place to stand and type: it stands on the ground and is not being hurt, no creature or rival is near enough to come at it, and
 ## nothing that burns, shoves or bites lies within a few paces. It looks at what is there, not at a clock.
 func quiet_here() -> bool:
-	if not wizard.is_on_floor() or absf(wizard.velocity.x) > 30.0 or _hurt_age < 1.5 or wizard.underwater():  # (no one chants under water: the sea is no place to stand and type)
+	if not wizard.is_on_floor() or absf(wizard.velocity.x) > 30.0 or _hurt_age < 1.5 or wizard.lungs.submerged():  # (no one chants under water: the sea is no place to stand and type)
 		return false
 	if assailant() != null:
 		return false

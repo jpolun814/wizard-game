@@ -115,7 +115,7 @@ func _plan() -> void:
 		for gate in (_arena.gates if "_gates" in _arena else []):
 			if absf(gate["at"].x * 32.0 - _player().global_position.x) < 1500.0 and absf(gate["at"].y * 32.0 - _player().global_position.y) < 1000.0:
 				print("  DEBUG near gate ", gate["kind"], gate["at"]))
-	_player().died.connect(func() -> void: print("  DEBUG the wizard died at %s, max %s, underwater %s, t=%.1f" % [str(_player().global_position), str(_player().max_stamina), str(_player().underwater()), _t]))
+	_player().died.connect(func() -> void: print("  DEBUG the wizard died at %s, max %s, underwater %s, t=%.1f" % [str(_player().global_position), str(_player().max_stamina), str(_player().lungs.submerged()), _t]))
 	if scenario == "cave":
 		for q in range(1, 400):  # the checks walk through gates; a wizard nearly spent is filled up again, so none ends the run
 			_at(q * 1.0, func() -> void:
@@ -416,7 +416,7 @@ func _plan() -> void:
 			_at(5.0, func() -> void:
 				_player().global_position = Vector2(ArenaGen.column_x(8), ArenaGen.GROUND_Y + 90.0))
 			_at(11.5, func() -> void:
-				print("breath ", _player().breath, " max ", _player().max_stamina)
+				print("breath ", _player().lungs.air, " max ", _player().max_stamina)
 				_snap("drowning"))
 		"world":
 			_at(0.4, func() -> void:

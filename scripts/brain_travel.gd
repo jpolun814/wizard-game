@@ -220,9 +220,9 @@ func swim(delta: float, fighting: bool, to_player: Vector2) -> float:
 	var air := nearest_air(here)
 	if wizard.deep_breath_time > 0.0:
 		for_air = false
-	elif wizard.underwater() and wizard.breath < (absf(air.x - here.x) + absf(air.y - here.y)) / WizardBrain.SWIM_RISE + WizardBrain.AIR_SPARE:  # (the way across and then up, which it may have to take)
+	elif wizard.lungs.submerged() and wizard.lungs.air < (absf(air.x - here.x) + absf(air.y - here.y)) / WizardBrain.SWIM_RISE + WizardBrain.AIR_SPARE:  # (the way across and then up, which it may have to take)
 		for_air = true
-	elif for_air and wizard.breath >= Wizard.BREATH * 0.95:
+	elif for_air and wizard.lungs.air >= Lungs.BREATH * 0.95:
 		for_air = false
 	var target := air
 	if not for_air:
@@ -237,7 +237,7 @@ func swim(delta: float, fighting: bool, to_player: Vector2) -> float:
 		brain.route.clear()  # it is there: what comes next is chosen afresh
 		return 0.0
 	var blocked := wizard.is_on_wall() and absf(line.x) > WizardBrain.SWIM_ARRIVE  # (a stroke takes it up over what is in the way)
-	var keep_up := for_air and not wizard.underwater() and wizard.velocity.y > 0.0  # (its head over the water while it breathes)
+	var keep_up := for_air and not wizard.lungs.submerged() and wizard.velocity.y > 0.0  # (its head over the water while it breathes)
 	var overhead := line.y < -24.0 and absf(line.x) > 12.0 and not brain.danger.clear_line(here, target)  # something solid over the straight way (a wreck's hull): across under it first, then up
 	if ((line.y < -24.0 and not overhead) or blocked or keep_up) and stroke_in <= 0.0:
 		stroke_in = Wizard.STROKE_EVERY
@@ -278,7 +278,7 @@ func inside_solid(point: Vector2) -> bool:
 ## The nearest air from under the water: the surface straight over it when nothing solid is in the way, else over open water a little to one side,
 ## or an air pocket (AirPocket) if one is nearer.
 func nearest_air(here: Vector2) -> Vector2:
-	var top := wizard.water_surface()
+	var top := wizard.lungs.surface()
 	if top == INF:
 		return here  # (in no water: it is breathing)
 	var best := Vector2.INF

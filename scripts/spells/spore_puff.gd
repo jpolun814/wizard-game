@@ -123,7 +123,7 @@ func _poison() -> void:
 			if body == caster_node and puff["pos"].distance_to(puff["born"]) < 60.0:
 				continue
 			if middle.distance_to(puff["pos"]) <= _radius(puff) + 8.0:
-				if body is Wizard and body.holding_breath():
+				if body is Wizard and body.lungs.holding():
 					break  # whoever holds their breath is not poisoned
 				SpellTargets.hurt(body, DAMAGE, "Flora", false, false, self)
 				if body is Wizard:
