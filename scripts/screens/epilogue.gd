@@ -1,11 +1,9 @@
 class_name Epilogue
-extends Node2D
+extends CutScene
 
 ## The cut-scene after a win, in the waiting room's place. The last wizard standing carries the torn book back to its stand, sets it down, and
 ## nails a second plaque under the first, which says what they think of the whole business: the camera comes close on the stand, and a hammer drives
 ## the plaque in and then cuts the words into it. Then it is back to the waiting room. Any key skips it.
-
-signal finished  # the scene is over, and the next one is about to load
 
 const ROOM := "res://scenes/lab.tscn"
 const FLOOR_Y := float(ArenaGen.GROUND_Y)
@@ -26,17 +24,9 @@ const END := 11.5  # seconds
 static var winner_look := "wizard"  # set before the scene loads: which wizard won
 static var winner_palette := 0  # and the colours they wore
 
-var next_scene := ROOM  # empty to stay on when it is over (a test does that)
 var look := ""  # who won; if it is not set, whoever World left in winner_look
 var palette := -1  # in what colours; if it is not set, what World left in winner_palette
 var plaque: Node2D  # the second plaque, once it is up
-var _t := 0.0
-var _cues: Array = []
-var _leaving := false
-var _camera: Camera2D
-var _shot_tween: Tween
-var _black: ColorRect
-var _hint: Label
 var _lectern: Lectern
 var _winner: Node2D
 var _sprite: AnimatedSprite2D
@@ -45,6 +35,10 @@ var _book_set := false  # it has been set down on the stand, and no longer follo
 var _carried_aura: BookAura  # its glow and smoke, which go where it goes
 var _hammer: Sprite2D
 var _face := 1.0
+
+
+func _init() -> void:
+	next_scene = ROOM
 
 
 func _ready() -> void:
@@ -93,29 +87,14 @@ func _ready() -> void:
 	_cues.sort_custom(func(a: Array, b: Array) -> bool: return a[0] < b[0])
 
 
-func _cue(seconds: float, action: Callable) -> void:
-	_cues.append([seconds, action])
-
-
 func _process(delta: float) -> void:
-	_t += delta
-	while not _cues.is_empty() and _cues[0][0] <= _t:
-		_cues.pop_front()[1].call()
+	_run_cues(delta)
 	if is_instance_valid(_carried) and not _book_set:
 		var follow := 1.0 - exp(-5.0 * delta)  # it trails a little behind them, as a flare does
 		_carried.position = _carried.position.lerp(_winner.position + _carried_rest(), follow)
 	if is_instance_valid(_carried_aura):
 		_carried_aura.position = _carried.position + Vector2(0.0, -Lectern.book_height() * 0.5)
 	_hint.visible = _t > 1.0 and not _leaving
-
-
-func _unhandled_input(event: InputEvent) -> void:
-	if _leaving or not (event is InputEventKey or event is InputEventMouseButton) or not event.is_pressed() or event.is_echo():
-		return
-	get_viewport().set_input_as_handled()
-	_cues.clear()
-	_fade(1.0, 0.3)
-	_cue(_t + 0.3, _leave)
 
 
 ## Where the book hangs beside the winner: up by their shoulder, bobbing as it floats.
@@ -222,47 +201,7 @@ func _lift_the_hammer() -> void:
 	gone.tween_callback(_hammer.queue_free)
 
 
-func _shot(at: Vector2, zoom: float, seconds: float) -> void:
-	if _shot_tween != null:
-		_shot_tween.kill()
-	_shot_tween = create_tween().set_parallel(true).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	_shot_tween.tween_property(_camera, "position", at, seconds)
-	_shot_tween.tween_property(_camera, "zoom", Vector2(zoom, zoom), seconds)
-
-
-func _fade(to: float, seconds: float) -> void:
-	create_tween().tween_property(_black, "color:a", to, seconds)
-
-
-func _build_overlay() -> void:
-	var layer := CanvasLayer.new()
-	layer.layer = 50
-	add_child(layer)
-	_hint = Label.new()
-	_hint.theme_type_variation = &"Outlined"
-	_hint.text = "Press any key to skip"
-	_hint.add_theme_font_size_override("font_size", 16)
-	_hint.add_theme_color_override("font_color", Color(0.8, 0.78, 0.9, 0.7))
-	_hint.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-	_hint.offset_left = -260.0
-	_hint.offset_top = -40.0
-	_hint.offset_right = -20.0
-	_hint.offset_bottom = -12.0
-	_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	_hint.visible = false
-	layer.add_child(_hint)
-	_black = ColorRect.new()
-	_black.color = Color.BLACK
-	_black.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_black.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	layer.add_child(_black)
-
-
-func _leave() -> void:
-	if _leaving:
-		return
-	_leaving = true
-	finished.emit()
-	if next_scene != "":
-		World.next_seed = -1
-		get_tree().change_scene_to_file(next_scene)
+## Back in the waiting room a new match is dealt its own seed.
+func _go_on() -> void:
+	World.next_seed = -1
+	super._go_on()

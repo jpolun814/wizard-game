@@ -38,6 +38,7 @@ var _fight_dir := ""  # fightshots=DIR: pictures of the first wizards who come t
 var _fight_frames := 0
 var _fight_t := 0.0
 var _look_for_fight := 0.0
+var _watched: Wizard  # whom the camera is on, while there is a fight to watch
 var _watch := false  # watch=1: a camera follows a wizard still standing, for looking at the match in a window
 var _camera: Camera2D
 
@@ -125,7 +126,7 @@ func _physics_process(delta: float) -> void:
 			_camera.global_position = _wizards[_follow].global_position
 		var followed := _wizards.filter(func(w) -> bool: return is_instance_valid(w) and not w.dead)
 		if not followed.is_empty():
-			var target: Wizard = _camera.get_meta(&"target", null) if _camera.has_meta(&"target") else null
+			var target := _watched
 			_look_for_fight -= delta
 			if _look_for_fight <= 0.0 or target == null or not is_instance_valid(target) or target.dead:
 				_look_for_fight = 2.0
@@ -140,7 +141,7 @@ func _physics_process(delta: float) -> void:
 				if target != null and is_instance_valid(target) and not target.dead and target.global_position.distance_to(pick.global_position) > 1.0 and best > 380.0:
 					pick = target  # no fight anywhere: it stays with the one it had
 				target = pick
-				_camera.set_meta(&"target", target)
+				_watched = target
 			if _follow < 0:
 				_camera.global_position = target.global_position
 	if _shot != "" and _clock > _shot_at:

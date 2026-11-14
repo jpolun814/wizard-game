@@ -146,8 +146,8 @@ static func lit_by(lights: Array, point: Vector2) -> bool:
 ## How bright the unlit world looks on this wizard's screen: the world's tint where it stands, or a room's darkness.
 func light_level() -> float:
 	var tree := wizard.get_tree()
-	var world := tree.get_first_node_in_group(&"world")
-	if world != null and world.has_method("light_level_at"):
+	var world := tree.get_first_node_in_group(&"world") as World
+	if world != null:
 		return world.light_level_at(wizard.center())
 	for node in tree.get_nodes_in_group("darkness"):
 		if node is CanvasModulate and node.visible:

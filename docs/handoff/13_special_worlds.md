@@ -50,7 +50,7 @@ Breath is the only pressure: no damage from depth, and fire fizzles under water.
 The wizards are falling through the sky: no ground, no jumping and no platforms. Check: `tests/checks/sky_world_check.tscn` (add `-- out=DIR` for a picture of a bolt).
 
 - **The world:** the air is rows `SKY_TOP_ROW` to `SKY_BOTTOM_ROW` (6 to 66), `MatchState.SKY_SHARE` (0.35) of a stage's width (owner, 2026-11-12: too large, twice).
-  Far under it lies rock nobody reaches (`SKY_FLOOR_ROW`). `World.flies()` is true when `graph.surface["air"]` is not empty; `World._fly_box()` is the room.
+  Far under it lies rock nobody reaches (`SKY_FLOOR_ROW`). `World.flies()` is true when `graph.surface["air"]` is not empty; `World.fly_box()` is the room.
 - **Flying** (`Wizard.flying`, `fly_box`, `_fly`): A/D and W/S steer (`FLY_SPEED`); with nothing pressed a wizard drifts down (`FLY_DRIFT`); the edge of the room stops
   them, with no wall drawn. There is no running animation, only rising and falling poses, and streaks rush up past the camera (`Weather` "fall_wind").
 - **Pages** (`FallingPage`) rise through the falling wizards, as paper falls slower than a person, swinging and tipping as they go (`RATE_LEAST` to `RATE_MOST`,

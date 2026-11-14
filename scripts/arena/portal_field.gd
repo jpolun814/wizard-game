@@ -165,8 +165,7 @@ func _physics_process(_delta: float) -> void:
 			var exit: FieldPortal = others[rng.randi_range(0, others.size() - 1)]
 			_recent[shot] = SHOT_COOLDOWN
 			shot.global_position = exit.global_position + shot.heading() * 36.0
-			if shot.has_method("reset_physics_interpolation"):
-				shot.reset_physics_interpolation()
+			shot.reset_physics_interpolation()
 			break
 
 
@@ -185,7 +184,6 @@ func _on_entered(portal: FieldPortal, body: Node2D) -> void:
 	_recent[body] = COOLDOWN
 	carried.emit(body)
 	body.global_position = exit.global_position + Vector2(0.0, Portal.RY)
-	if body.has_method("reset_physics_interpolation"):
-		body.reset_physics_interpolation()
-	if body.get("velocity") != null:
+	body.reset_physics_interpolation()
+	if body is CharacterBody2D:
 		body.velocity = Vector2.ZERO

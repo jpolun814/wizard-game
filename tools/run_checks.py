@@ -53,6 +53,15 @@ SLOW = [("tutorial_ai_check", "scene", "seconds=1100 speed=4"), ("route_check#a"
 )]
 
 
+def test_file(name, extension):
+    """Where a check's file is: the checks, the looks (a scenario of the showcase) or the tools (a simulation) folder of tests/."""
+    for folder in ("checks", "looks", "tools"):
+        path = "tests/%s/%s.%s" % (folder, name, extension)
+        if os.path.exists(path):
+            return path
+    return "tests/checks/%s.%s" % (name, extension)
+
+
 NET_PORTS = {}  # each network check has a port of its own, so that they can run at the same time
 NET_PORTS_LOCK = threading.Lock()
 
@@ -69,7 +78,7 @@ def run_net(check, folder, project, extra_env, instrumented):
     started = time.time()
     procs, logs = [], []
     for role in args.split(","):
-        command = [GODOT, "--headless", "--path", ".", "tests/checks/%s.tscn" % name, "--", "role=" + role.split(" ")[0]] + role.split(" ")[1:]
+        command = [GODOT, "--headless", "--path", ".", test_file(name, "tscn"), "--", "role=" + role.split(" ")[0]] + role.split(" ")[1:]
         env = dict(os.environ, **extra_env(name + "_" + role.split(" ")[0]))
         env["WIZARD_PORT"] = str(port_for(name))
         log = open(os.path.join(folder, "net_%s_%s.txt" % (name, role.split(" ")[0])), "wb")  # a file, not a pipe: nobody reads a pipe until the end, and a full one stops the copy
@@ -103,9 +112,9 @@ def run_one(check, folder, project, extra_env, instrumented):
         return run_net(check, folder, project, extra_env, instrumented)
     command = [GODOT, "--headless"]
     if kind == "script":
-        command += ["--path", project, "-s", "tests/checks/%s.gd" % name.split("#")[0]]
+        command += ["--path", project, "-s", test_file(name.split("#")[0], "gd")]
     else:
-        command += ["--fixed-fps", "60", "--path", project, "tests/checks/%s.tscn" % name.split(":")[0].split("#")[0]]
+        command += ["--fixed-fps", "60", "--path", project, test_file(name.split(":")[0].split("#")[0], "tscn")]
     if args:
         command += ["--"] + args.split()
     env = dict(os.environ, **extra_env(name.replace(":", "_").replace("#", "_")))  # (a colon cannot be in a file name)

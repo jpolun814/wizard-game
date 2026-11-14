@@ -1,5 +1,5 @@
 class_name Intro
-extends Node2D
+extends CutScene
 
 ## The cut-scene between the waiting room and a world. It opens on one wizard, whoever is watching, running through a cathedral hall at night to
 ## the spellbook, bound and glowing, hanging over the floor of the hall. Other wizards arrive, ten in all, each in a colour of its own, and every one
@@ -9,8 +9,6 @@ extends Node2D
 ## up into it, still firing at one another as they are lifted, in a bloom of light.
 ## The camera runs beside the first wizard, pulls back to show the ring, cuts in close on the duel, and looks up at the tear.
 ## The same scene plays whether the other three wizards are AI or real players: on each machine the first wizard is the person at it. Any key skips it.
-
-signal finished  # the scene is over, and the next one is about to load
 
 const LOADING := "res://scenes/loading.tscn"
 const PAGE := preload("res://art/props/page.png")
@@ -78,24 +76,15 @@ const FIGHT := [
 ]
 const END := 14.1  # seconds, from the first frame to the world
 
-var next_scene := LOADING  # set before it enters the tree; empty to stay on when it is over (a test does that)
-var _t := 0.0
 var _unrest := 0.6  # how unstable the portal is: 0 to 1, and it grows as the fight goes on
 var _crackle := 0.0
 var _portal_home := Vector2.ZERO
-var _cues: Array = []  # [seconds, Callable], in order
 var _wizards: Array[IntroWizard] = []  # the four
 var _extras: Array[IntroWizard] = []   # the six
 var _all: Array[IntroWizard] = []      # the four, then the six
 var _pile: Array[IntroPage] = []
 var _portal: Portal
-var _camera: Camera2D
-var _following: Node2D  # the camera runs beside this one, when it is set
-var _shot_tween: Tween
-var _hint: Label
-var _black: ColorRect
 var _shake := 0.0
-var _leaving := false
 var _halo: Node2D
 var _bloom: Node2D
 var _bloom_k := 0.0  # how far the light of the tearing portal has spread: 0 to 1
@@ -107,6 +96,10 @@ var _stream: Node2D  # the strands of smoke between the book and the portal, whi
 var _plume: Tween  # and the smoke that keeps rising from where the book was
 var _opened := false  # the book has come apart and the portal is open
 var _torn := false  # the portal has torn, and draws at everything
+
+
+func _init() -> void:
+	next_scene = LOADING
 
 
 func _ready() -> void:
@@ -149,9 +142,7 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
-	_t += delta
-	while not _cues.is_empty() and _cues[0][0] <= _t:
-		_cues.pop_front()[1].call()
+	_run_cues(delta)
 	_shake = maxf(_shake - delta * 1.6, 0.0)
 	_camera.offset = Vector2(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)) * _shake * 4.0
 	if _following != null:
@@ -162,19 +153,6 @@ func _process(delta: float) -> void:
 	_halo.queue_redraw()
 	_bloom.queue_redraw()
 	_destabilise(delta)
-
-
-func _unhandled_input(event: InputEvent) -> void:
-	if _leaving or not (event is InputEventKey or event is InputEventMouseButton) or not event.is_pressed() or event.is_echo():
-		return
-	get_viewport().set_input_as_handled()
-	_cues.clear()
-	_fade(1.0, 0.3)
-	_cue(_t + 0.3, _leave)
-
-
-func _cue(seconds: float, action: Callable) -> void:
-	_cues.append([seconds, action])
 
 
 # --- The set ------------------------------------------------------------------------------------------------------
@@ -333,30 +311,6 @@ func _destabilise(delta: float) -> void:
 		Sfx.play("thunder", _portal.position, -24.0)
 
 
-func _build_overlay() -> void:
-	var layer := CanvasLayer.new()
-	layer.layer = 50
-	add_child(layer)
-	_hint = Label.new()
-	_hint.theme_type_variation = &"Outlined"
-	_hint.text = "Press any key to skip"
-	_hint.add_theme_font_size_override("font_size", 16)
-	_hint.add_theme_color_override("font_color", Color(0.8, 0.78, 0.9, 0.7))
-	_hint.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-	_hint.offset_left = -260.0
-	_hint.offset_top = -40.0
-	_hint.offset_right = -20.0
-	_hint.offset_bottom = -12.0
-	_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	_hint.visible = false
-	layer.add_child(_hint)
-	_black = ColorRect.new()
-	_black.color = Color.BLACK
-	_black.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_black.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	layer.add_child(_black)
-
-
 # --- The camera ---------------------------------------------------------------------------------------------------
 
 
@@ -365,27 +319,12 @@ func _follow_the_first() -> void:
 	_following = _wizards[0]
 
 
-## Cuts the camera to a place and a zoom over a few seconds, easing in and out.
-func _shot(at: Vector2, zoom: float, seconds: float) -> void:
-	_following = null
-	if _shot_tween != null:
-		_shot_tween.kill()
-	_shot_tween = create_tween().set_parallel(true).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	_shot_tween.tween_property(_camera, "position", at, seconds)
-	_shot_tween.tween_property(_camera, "zoom", Vector2(zoom, zoom), seconds)
-
-
 ## The first wizard has come in: the camera lets go of it and opens out on the whole ring.
 func _pull_back() -> void:
 	_shot(Vector2(PILE_X, FLOOR_Y - 130.0), WIDE, 1.5)
 
 
 # --- The story ----------------------------------------------------------------------------------------------------
-
-
-## Fades the black over everything to this much (0 clear, 1 black).
-func _fade(to: float, seconds: float) -> void:
-	create_tween().tween_property(_black, "color:a", to, seconds)
 
 
 func _play(wizard: IntroWizard, what: String, facing: float) -> void:
@@ -749,10 +688,3 @@ func _the_portal_tears() -> void:
 		tween.parallel().tween_property(wizard, "modulate:a", 0.0, 0.25)
 
 
-func _leave() -> void:
-	if _leaving:
-		return
-	_leaving = true
-	finished.emit()
-	if next_scene != "":
-		get_tree().change_scene_to_file(next_scene)

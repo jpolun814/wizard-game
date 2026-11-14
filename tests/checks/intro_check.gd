@@ -13,6 +13,7 @@ var _out := ""
 var _mode := "full"
 var _failures := 0
 var _done_at := -1.0
+var _pressed := false  # the key that skips the scene has been pressed
 var _clock := 0.0
 var _shots := [0.5, 1.4, 2.2, 3.0, 4.2, 5.5, 6.3, 7.8, 8.6, 9.6, 10.4, 11.2]
 var _checks := {}  # seconds -> Callable
@@ -62,8 +63,8 @@ func _process(delta: float) -> void:
 		if _clock >= t:
 			_shots.erase(t)
 			_snap(t)
-	if _mode == "skip" and _clock >= 2.0 and not _intro._leaving and _done_at < 0.0 and not has_meta("pressed"):
-		set_meta("pressed", true)
+	if _mode == "skip" and _clock >= 2.0 and not _intro._leaving and _done_at < 0.0 and not _pressed:
+		_pressed = true
 		var key := InputEventKey.new()
 		key.keycode = KEY_SPACE
 		key.physical_keycode = KEY_SPACE
@@ -142,7 +143,7 @@ func _check_the_six_have_fallen() -> void:
 	_verdict(down == 6, "all six of the others have fallen (%d)" % down)
 	var up := 0
 	for wizard in _intro._wizards:
-		if wizard.get_meta("alive"):
+		if wizard.alive:
 			up += 1
 	_verdict(up == 4, "and the four are still standing (%d)" % up)
 
