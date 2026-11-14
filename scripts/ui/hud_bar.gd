@@ -43,7 +43,7 @@ func _draw() -> void:
 		draw_rect(Rect2(inner.position, Vector2(width, inner.size.y)), fill)
 		draw_rect(Rect2(inner.position, Vector2(width, 2)), fill.lightened(0.35))
 		draw_rect(Rect2(inner.position + Vector2(0, inner.size.y - 2), Vector2(width, 2)), fill.darkened(0.35))
-	var font: Font = preload("res://fonts/Jersey15-Regular.ttf")
+	var font: Font = Lettering.PIXEL
 	if title != "":
 		var text := "%s  %d / %d" % [title, roundi(_value), roundi(_max)]
 		var font_size := int(size.y * 0.78)

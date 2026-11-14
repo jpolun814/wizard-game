@@ -108,6 +108,7 @@ GODOT="/c/Users/Jordan Polun/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.
 "$GODOT" --headless -s tests/checks/test_gestures.gd                  # must print "784 of 784" (or more, if you add checks)
 "$GODOT" --headless -s tests/checks/test_pages.gd                     # the pages each wizard is dealt and a ledger's rules
 "$GODOT" --headless --path . tests/checks/intro_check.tscn            # the cut-scene (add `-- mode=skip`, or `-- out=DIR` for pictures, without --headless)
+"$GODOT" --headless --path . tests/checks/scripts_load_check.tscn     # every script of the game and the tests loads (the start-up reaches only some)
 "$GODOT" --headless --path . tests/checks/flow_check.tscn             # lab, portal, cut-scene, loading, world
 "$GODOT" --headless -s tests/checks/test_nav.gd -- seeds=6            # the wizards' map of the ways agrees with the generator's
 "$GODOT" --headless -s tests/checks/test_stages.gd -- seeds=6         # the smaller worlds a match collapses into: walkable, spread starts, every page placed

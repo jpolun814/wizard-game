@@ -20,7 +20,7 @@ func _process(delta: float) -> void:
 func _draw() -> void:
 	var view := get_viewport_rect().size
 	var transform := get_viewport().get_canvas_transform()
-	var font: Font = preload("res://fonts/Jersey15-Regular.ttf")
+	var font: Font = Lettering.PIXEL
 	for thing in get_tree().get_nodes_in_group(group):
 		var target: Node2D = thing.target if "target" in thing else thing
 		if not is_instance_valid(target) or target.is_in_group("player"):

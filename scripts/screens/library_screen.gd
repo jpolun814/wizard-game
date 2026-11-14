@@ -9,7 +9,6 @@ extends Control
 const MENU := "res://scenes/menu.tscn"
 const PAGE_COLOUR := Color("#ffe9a0")
 const DIM := Color(0.62, 0.58, 0.72)
-const JERSEY := preload("res://fonts/Jersey15-Regular.ttf")
 const WORLDS := ["graveyard", "mountains", "jungle", "ashlands", "castle", "underground", "portals", "ocean", "sky"]
 const CHANTS := "chants"
 const CHRONICLE := "chronicle"
@@ -365,7 +364,7 @@ func _build_reading() -> void:
 		arrow.flat = true
 		arrow.focus_mode = Control.FOCUS_NONE
 		arrow.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-		arrow.add_theme_font_override("font", JERSEY)
+		arrow.add_theme_font_override("font", Lettering.PIXEL)
 		arrow.add_theme_font_size_override("font_size", 40)
 		arrow.add_theme_color_override("font_color", PAGE_COLOUR)
 		arrow.add_theme_color_override("font_hover_color", Color.WHITE)
@@ -385,7 +384,7 @@ func _make_ribbon(value: String, words: String, at: Vector2) -> Button:
 	ribbon.size = RIBBON_SIZE
 	ribbon.focus_mode = Control.FOCUS_NONE
 	ribbon.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	ribbon.add_theme_font_override("font", JERSEY)
+	ribbon.add_theme_font_override("font", Lettering.PIXEL)
 	ribbon.add_theme_font_size_override("font_size", 22)
 	ribbon.add_theme_color_override("font_color", Color(1.0, 0.95, 0.85))
 	ribbon.add_theme_color_override("font_hover_color", Color.WHITE)
@@ -614,7 +613,7 @@ func _figure(page: String, table: String) -> String:
 func _ink(text: String, size: int, color: Color, title := false, wrap := false) -> Label:
 	var label := Label.new()
 	label.text = text
-	label.add_theme_font_override("font", Lettering.FACE if title else JERSEY)
+	label.add_theme_font_override("font", Lettering.FACE if title else Lettering.PIXEL)
 	label.add_theme_font_size_override("font_size", size)
 	label.add_theme_color_override("font_color", color)
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART if wrap else TextServer.AUTOWRAP_OFF

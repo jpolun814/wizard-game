@@ -62,21 +62,7 @@ func _dress() -> void:
 	_dressed = true
 	_view.add_child(Grade.for_biome(arena.grade_biome))
 	if arena.grayed:
-		_view.add_child(_gray_layer())
-
-
-## The wash of gray that takes the color out of the graveyard, as laid over the screen (see WorldScenery.wash_out_the_color).
-func _gray_layer() -> CanvasLayer:
-	var layer := CanvasLayer.new()
-	layer.layer = 2
-	var wash := ColorRect.new()
-	wash.set_anchors_preset(Control.PRESET_FULL_RECT)
-	wash.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var material := ShaderMaterial.new()
-	material.shader = preload("res://scripts/ui/grayscale.gdshader")
-	wash.material = material
-	layer.add_child(wash)
-	return layer
+		_view.add_child(Grade.gray_wash())
 
 
 ## When the window is hidden nothing is drawn in it, and no ground is kept for it.

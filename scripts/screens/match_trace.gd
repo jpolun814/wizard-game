@@ -16,7 +16,7 @@ func _init(dealt_line: Array, taken_line: Array, stretches: Array) -> void:
 func _draw() -> void:
 	# Every world the person was in is named, however short the stay. A name goes in the first row where it clears the one before, with its first letter
 	# at its own mark, or as near it as the right edge allows; a stay too short for its name takes a row below, so no name is written over another.
-	var font: Font = LibraryScreen.JERSEY
+	var font: Font = Lettering.PIXEL
 	var row_ends: Array[float] = []
 	var spots: Array = []  # [name, x, row]
 	for k in sections.size():

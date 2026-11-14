@@ -18,7 +18,6 @@ const LEARNED := Color("#7fd3ff")
 const CAST := Color("#7fe08a")
 const MISSED := Color("#b9a0ff")
 const KILLS := Color("#ffd85a")
-const BODY: Font = preload("res://fonts/Jersey15-Regular.ttf")  # numbers and small words
 const HEAD: Font = Lettering.FACE  # the big words and the title of each page
 const MIST: Shader = preload("res://scripts/ui/crystal_ball.gdshader")
 const PAGES := ["The end", "Blows struck", "Spells learned", "Casting", "The fallen", "The tally", "Favorites"]
@@ -203,8 +202,8 @@ func _page_end() -> void:
 	var left := _center.x - _radius
 	var heading := "Victory" if placement == 1 else "Eliminated"
 	f.draw_string(HEAD, Vector2(left, _center.y - 20.0), heading, HORIZONTAL_ALIGNMENT_CENTER, width, 66, KILLS if placement == 1 else TAKEN)
-	f.draw_string(BODY, Vector2(left, _center.y + 44.0), "#%d of %d" % [placement, field], HORIZONTAL_ALIGNMENT_CENTER, width, 54, TEXT)  # (Olde Tome has no numbers)
-	f.draw_string(BODY, Vector2(left, _center.y + 88.0), "Survived  %s" % _clock(MatchStats.seconds), HORIZONTAL_ALIGNMENT_CENTER, width, 27, DIM)
+	f.draw_string(Lettering.PIXEL, Vector2(left, _center.y + 44.0), "#%d of %d" % [placement, field], HORIZONTAL_ALIGNMENT_CENTER, width, 54, TEXT)  # (Olde Tome has no numbers)
+	f.draw_string(Lettering.PIXEL, Vector2(left, _center.y + 88.0), "Survived  %s" % _clock(MatchStats.seconds), HORIZONTAL_ALIGNMENT_CENTER, width, 27, DIM)
 
 
 ## The tally: the plain numbers.
@@ -241,7 +240,7 @@ func _page_favourites() -> void:
 	var top := _center.y - 4.0 - 17.0 * (rows.size() + (1 if schools.size() > 0 else 0))
 	_list(rows.slice(0, first_of_damage), top)
 	if schools.size() > 0:
-		_face.draw_string(BODY, Vector2(_center.x - _radius * 0.52, top + 34.0 * first_of_damage + 26.0), "Damage by school", HORIZONTAL_ALIGNMENT_LEFT, -1.0, 27, DIM)
+		_face.draw_string(Lettering.PIXEL, Vector2(_center.x - _radius * 0.52, top + 34.0 * first_of_damage + 26.0), "Damage by school", HORIZONTAL_ALIGNMENT_LEFT, -1.0, 27, DIM)
 		_list(rows.slice(first_of_damage), top + 34.0 * first_of_damage + 34.0)
 
 
@@ -252,8 +251,8 @@ func _list(rows: Array, top: float) -> void:
 	for index in rows.size():
 		var y := top + 34.0 * index
 		_face.draw_rect(Rect2(left, y + 8.0, 10.0, 10.0), rows[index][2])
-		_face.draw_string(BODY, Vector2(left + 20.0, y + 26.0), rows[index][0], HORIZONTAL_ALIGNMENT_LEFT, width - 20.0, 27, TEXT)
-		_face.draw_string(BODY, Vector2(left, y + 26.0), rows[index][1], HORIZONTAL_ALIGNMENT_RIGHT, width, 27, DIM)
+		_face.draw_string(Lettering.PIXEL, Vector2(left + 20.0, y + 26.0), rows[index][0], HORIZONTAL_ALIGNMENT_LEFT, width - 20.0, 27, TEXT)
+		_face.draw_string(Lettering.PIXEL, Vector2(left, y + 26.0), rows[index][1], HORIZONTAL_ALIGNMENT_RIGHT, width, 27, DIM)
 
 
 ## A line chart in the glass: a line for each series (the running total at every sample) and a few levels to read it by.
@@ -269,9 +268,9 @@ func _chart(title: String, lines: Array, stepped := false) -> void:
 	for step in 5:  # the levels, with the value of each
 		var level := plot.end.y - plot.size.y * step / 4.0
 		f.draw_line(Vector2(plot.position.x, level), Vector2(plot.end.x, level), GRID, 1.0)
-		f.draw_string(BODY, Vector2(plot.position.x + 4.0, level - 3.0), str(roundi(top * step / 4.0)), HORIZONTAL_ALIGNMENT_LEFT, -1.0, 18, DIM)
-	f.draw_string(BODY, Vector2(plot.position.x, plot.end.y + 22.0), "0:00", HORIZONTAL_ALIGNMENT_LEFT, -1.0, 18, DIM)
-	f.draw_string(BODY, Vector2(plot.end.x - 60.0, plot.end.y + 22.0), _clock(last), HORIZONTAL_ALIGNMENT_RIGHT, 60.0, 18, DIM)
+		f.draw_string(Lettering.PIXEL, Vector2(plot.position.x + 4.0, level - 3.0), str(roundi(top * step / 4.0)), HORIZONTAL_ALIGNMENT_LEFT, -1.0, 18, DIM)
+	f.draw_string(Lettering.PIXEL, Vector2(plot.position.x, plot.end.y + 22.0), "0:00", HORIZONTAL_ALIGNMENT_LEFT, -1.0, 18, DIM)
+	f.draw_string(Lettering.PIXEL, Vector2(plot.end.x - 60.0, plot.end.y + 22.0), _clock(last), HORIZONTAL_ALIGNMENT_RIGHT, 60.0, 18, DIM)
 	_charts.append({"box": plot, "plot": plot, "last": last, "top": top, "lines": lines, "title": title})
 	var key_x := _center.x - 48.0 * lines.size()
 	for line: Array in lines:
@@ -290,7 +289,7 @@ func _chart(title: String, lines: Array, stepped := false) -> void:
 			f.draw_colored_polygon(fill, Color(line[1], 0.14))
 			f.draw_polyline(points, Color(line[1], 0.35), 7.0, true)  # a glow under the line
 			f.draw_polyline(points, line[1], 3.0, true)
-		f.draw_string(BODY, Vector2(key_x, plot.position.y - 12.0), line[0], HORIZONTAL_ALIGNMENT_LEFT, -1.0, 22, line[1])
+		f.draw_string(Lettering.PIXEL, Vector2(key_x, plot.position.y - 12.0), line[0], HORIZONTAL_ALIGNMENT_LEFT, -1.0, 22, line[1])
 		key_x += 96.0
 
 
@@ -322,7 +321,7 @@ func _draw_reading(view: Vector2) -> void:
 		_face.draw_rect(tip, Color(0.02, 0.0, 0.05, 0.95))
 		_face.draw_rect(tip, BRASS, false, 1.0)
 		for index in rows.size():
-			_face.draw_string(BODY, tip.position + Vector2(10.0, 24.0 + 24.0 * index), rows[index], HORIZONTAL_ALIGNMENT_LEFT, tip.size.x - 14.0, 22, colors[index])
+			_face.draw_string(Lettering.PIXEL, tip.position + Vector2(10.0, 24.0 + 24.0 * index), rows[index], HORIZONTAL_ALIGNMENT_LEFT, tip.size.x - 14.0, 22, colors[index])
 		return
 
 

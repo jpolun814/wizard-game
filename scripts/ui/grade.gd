@@ -19,6 +19,20 @@ const CASTS := {
 }
 
 
+## The wash of gray that takes the color out of the graveyard, as a layer to lay over a view of the world (the screen's own, and the Scrying Eye's window).
+static func gray_wash() -> CanvasLayer:
+	var layer := CanvasLayer.new()
+	layer.layer = 2
+	var wash := ColorRect.new()
+	wash.set_anchors_preset(Control.PRESET_FULL_RECT)
+	wash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var material := ShaderMaterial.new()
+	material.shader = preload("res://scripts/ui/grayscale.gdshader")
+	wash.material = material
+	layer.add_child(wash)
+	return layer
+
+
 var biome := ""  # the place it is laid over, which others ask for (see Bonfire)
 
 

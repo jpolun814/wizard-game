@@ -6,9 +6,6 @@ extends Control
 
 signal closed
 
-const LETTERING := preload("res://fonts/Jersey15-Regular.ttf")
-const GOLD := Color("#c89a3c")
-
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS  # it works while the game is paused
@@ -23,7 +20,7 @@ func _ready() -> void:
 	var plate := PanelContainer.new()
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(0.09, 0.05, 0.14)
-	style.border_color = GOLD
+	style.border_color = Lettering.GOLD
 	style.set_border_width_all(3)
 	style.set_corner_radius_all(4)
 	style.set_content_margin_all(26)
@@ -68,13 +65,7 @@ func _input(event: InputEvent) -> void:
 
 
 func _heading(text: String, size: int) -> Label:
-	var label := Label.new()
-	label.text = text
-	label.add_theme_font_override("font", LETTERING)
-	label.add_theme_font_size_override("font_size", size)
-	label.add_theme_color_override("font_color", GOLD if size < 30 else Color(0.9, 0.8, 1.0))
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	return label
+	return Lettering.heading(text, size, Lettering.GOLD if size < 30 else Color(0.9, 0.8, 1.0))
 
 
 func _row(text: String, control: Control) -> HBoxContainer:
@@ -82,7 +73,7 @@ func _row(text: String, control: Control) -> HBoxContainer:
 	row.add_theme_constant_override("separation", 24)
 	var label := Label.new()
 	label.text = text
-	label.add_theme_font_override("font", LETTERING)
+	label.add_theme_font_override("font", Lettering.PIXEL)
 	label.add_theme_font_size_override("font_size", 22)
 	label.custom_minimum_size.x = 190.0
 	row.add_child(label)

@@ -6,8 +6,6 @@ extends CanvasLayer
 
 signal closed
 
-const LETTERING := preload("res://fonts/Jersey15-Regular.ttf")
-const GOLD := Color("#c89a3c")
 
 var wizard: Wizard  # the one the person plays, which wears what is chosen
 var _plate: PanelContainer
@@ -22,7 +20,7 @@ func _ready() -> void:
 	var plate := PanelContainer.new()
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(0.09, 0.05, 0.14, 0.94)
-	style.border_color = GOLD
+	style.border_color = Lettering.GOLD
 	style.set_border_width_all(3)
 	style.set_corner_radius_all(4)
 	style.set_content_margin_all(18)
@@ -42,14 +40,14 @@ func _ready() -> void:
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 12)
 	plate.add_child(column)
-	column.add_child(_heading("Your wizard", 30, Color(0.9, 0.8, 1.0)))
+	column.add_child(Lettering.heading("Your wizard", 30, Color(0.9, 0.8, 1.0)))
 	var figures := HBoxContainer.new()
 	figures.add_theme_constant_override("separation", 10)
 	figures.alignment = BoxContainer.ALIGNMENT_CENTER
 	column.add_child(figures)
 	for look: String in WizardLook.LOOKS:
 		figures.add_child(_figure_button(look))
-	column.add_child(_heading("Colors", 22, GOLD))
+	column.add_child(Lettering.heading("Colors", 22, Lettering.GOLD))
 	var grid := GridContainer.new()
 	grid.columns = 4
 	grid.add_theme_constant_override("h_separation", 8)
@@ -89,16 +87,6 @@ func _input(event: InputEvent) -> void:
 	if event.is_action_pressed("pause"):
 		get_viewport().set_input_as_handled()
 		close()
-
-
-func _heading(text: String, size: int, color: Color) -> Label:
-	var label := Label.new()
-	label.text = text
-	label.add_theme_font_override("font", LETTERING)
-	label.add_theme_font_size_override("font_size", size)
-	label.add_theme_color_override("font_color", color)
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	return label
 
 
 ## A button showing a figure as it stands, drawn to the height it has in the game, all of them on one line.
@@ -175,7 +163,7 @@ func _show_choice() -> void:
 func _edge(chosen: bool) -> StyleBoxFlat:
 	var box := StyleBoxFlat.new()
 	box.bg_color = Color(0.13, 0.09, 0.2)
-	box.border_color = GOLD if chosen else Color(0.3, 0.25, 0.4)
+	box.border_color = Lettering.GOLD if chosen else Color(0.3, 0.25, 0.4)
 	box.set_border_width_all(3)  # always the same width, so that choosing does not change the size of anything
 	box.set_corner_radius_all(3)
 	return box

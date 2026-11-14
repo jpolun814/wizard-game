@@ -366,16 +366,7 @@ func wash_out_the_color() -> void:
 	if SurfaceGen.biome_at(world.graph.surface, world.graph.surface["start"]) != "graveyard":
 		return
 	world.grayed = true  # (the Scrying Eye's window is washed out too)
-	var layer := CanvasLayer.new()
-	layer.layer = 2
-	var wash := ColorRect.new()
-	wash.set_anchors_preset(Control.PRESET_FULL_RECT)
-	wash.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var material := ShaderMaterial.new()
-	material.shader = preload("res://scripts/ui/grayscale.gdshader")
-	wash.material = material
-	layer.add_child(wash)
-	world.add_child(layer)
+	world.add_child(Grade.gray_wash())
 
 
 ## Thorns over a stretch of a passage's floor, grown in thickets a few tiles long, so fire burns one thicket at a time and a way
