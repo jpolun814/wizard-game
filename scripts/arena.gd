@@ -5,8 +5,6 @@ extends Node2D
 ## Arena: the map, the player,
 ## fast spells, rituals and the spellbook.
 
-const RIFT_WEAR := 35.0  # what a Rift takes off the most stamina you can have
-const RIFT_LEAST := 20.0  # the least stamina a Rift can be cast with, and the least it leaves as the most
 const PERFECT_CAST := 0.95  # accuracy a cast needs for the flourish
 const MOB_SCENE := preload("res://scenes/mob.tscn")
 const WIZARD_SCENE := preload("res://scenes/wizard.tscn")
@@ -29,12 +27,13 @@ var _eye: ScryingEye  # the window of the Chant of the Scrying Eye, bottom right
 var _insight_tip: PanelContainer  # the hover tooltip Insight shows over an enemy
 var _insight_text: RichTextLabel
 ## The minimap is hidden until its chant brings it into view. Health and stamina are always shown.
-var _revealed := {"minimap": false, "insight": false, "scrying_eye": false}
+var revealed := {"minimap": false, "insight": false, "scrying_eye": false}
 var _rng := RandomNumberGenerator.new()
 var debug_panel: DebugPanel  # F1 opens it: buttons that summon enemies for testing
 var _cells: Variant = {}  # the generated arena's tiles: a Dictionary (see ArenaGen) or a TileGrid
 var _ground: Terrain
 var spawner := SpellSpawner.new(self)  # what each spell makes
+var rituals := Rituals.new(self)  # the chants
 var tiled_ground := false  # true when the ground is tiles all the way, as in a generated world; set by _build_map
 
 func _ready() -> void:
@@ -81,7 +80,7 @@ func _ready() -> void:
 
 	ritual = RitualInput.new()
 	add_child(ritual)
-	ritual.finished.connect(_on_ritual_finished)
+	ritual.finished.connect(rituals.finished)
 	player.damaged.connect(_on_player_damaged)
 	PlayRecorder.attach(self, player, ritual)  # F9 records how this person plays, through every world (see PlayRecorder)
 	player.debuff_applied.connect(_on_debuff_applied)
@@ -320,7 +319,7 @@ func _input(event: InputEvent) -> void:
 	if ritual.visible or hud.is_paused() or player.dead:
 		return
 	if event.is_action_pressed("start_ritual"):
-		_start_ritual()
+		rituals.start()
 
 
 func _process(_delta: float) -> void:
@@ -340,10 +339,10 @@ func _process(_delta: float) -> void:
 	player.cast_color = caster.drawing_color()  # and the crystal shows the school being drawn
 	if Net.online():
 		player.shown_stroke = _thinned(caster.stroke())  # the others see the stroke being drawn, as you see theirs
-	for module: String in _revealed:
-		_revealed[module] = _revealed[module] or player.ledger.is_settled(module)  # a later world of the match keeps what was said in an earlier one
-	_minimap.visible = _revealed["minimap"]
-	_eye.visible = _revealed["scrying_eye"]
+	for module: String in revealed:
+		revealed[module] = revealed[module] or player.ledger.is_settled(module)  # a later world of the match keeps what was said in an earlier one
+	_minimap.visible = revealed["minimap"]
+	_eye.visible = revealed["scrying_eye"]
 	_update_insight()
 
 
@@ -391,7 +390,7 @@ func _on_hud_clicked(event: InputEvent, module: String) -> void:
 	var click := event as InputEventMouseButton
 	if click == null or not click.pressed:
 		return
-	_revealed[module] = false
+	revealed[module] = false
 
 
 ## The visible HUD modules on screen. The caster ignores presses that start over them.
@@ -409,7 +408,7 @@ func _visible_hud_rects() -> Array[Rect2]:
 func _on_cast_resolved(spell: String, targeting: String, origin: Vector2, aim: float, info: Dictionary) -> void:
 	cast_by(spell, targeting, origin, aim, info, player)
 	if not player.ledger.knows_spell(spell):
-		_misfire_puff()  # a spell whose page has not been found is a shape that matches nothing
+		misfire_puff()  # a spell whose page has not been found is a shape that matches nothing
 
 
 ## A wizard's stroke has been read, the player's or a brain's: the same rules for both. It pays for the spell first. What tells a
@@ -531,7 +530,7 @@ func spawn_spell(spell: String, targeting: String, origin: Vector2, aim: float, 
 
 func _on_misfire() -> void:
 	player.drain(MISFIRE_COST)
-	_misfire_puff()
+	misfire_puff()
 
 
 ## A brain's wizard drew a stroke that means nothing: it pays what a person pays (no word is drawn: no person reads it).
@@ -543,7 +542,7 @@ func misfire_by(wizard: Wizard) -> void:
 
 
 ## What a shape or a chant that means nothing does: a puff, a sound and one word, so a player with the sound off still knows.
-func _misfire_puff() -> void:
+func misfire_puff() -> void:
 	if is_in_group(&"world"):
 		MatchStats.miss()  # a stroke that matched nothing is a try that did not go off
 	Sfx.play("misfire", player.center())
@@ -551,189 +550,37 @@ func _misfire_puff() -> void:
 	FloatText.spawn(self, get_global_mouse_position() + Vector2(0, -22), "Misfire", Color(0.75, 0.75, 0.82), 0.9)  # for a player with the sound off
 
 
-func _start_ritual() -> void:
-	if player.is_frozen():
-		return
-	if player.is_muted():
-		_on_feedback("Wait for your voice to return.", Color.ORANGE)
-		return
-	if player.lungs.holding():
-		return  # the bubbles over the head say why
-	ritual.open()
-	# Stop this key press from also reaching the text box it just opened.
-	get_viewport().set_input_as_handled()
-
-
-func _on_ritual_finished(id: String, acc: float, unfinished: bool) -> void:
-	var data: Dictionary = RitualInput.RITUALS[id]
-	if not player.ledger.knows_chant(id):
-		_misfire_puff()
-		return
-	if player.lungs.holding():
-		return
-	if unfinished:
-		# Stopping a chant partway lets the words fade harmlessly; only a garbled chant backfires.
-		return
-	player.break_sneak()
-	player.ledger.mark_cast("chant:" + id)
-	if data["kind"] == "toggle":
-		_on_toggle_chant(data, acc)
-		return
-
-	if id == "rift" and (player.max_stamina - RIFT_WEAR < RIFT_LEAST or player.stamina < RIFT_LEAST):
-		_on_feedback("Too frail." if player.stamina >= RIFT_LEAST else "Too tired.", Color("#ffb86b"))
-		Sfx.play("misfire", player.center(), -6.0)
-		return
-	var power := RitualInput.power_for(acc)
-	if power <= 0.0:
-		player.take_damage(15)
-		Sfx.play("explosion", player.center())
-		Fx.impact(self, player.center(), Color("#ff4a4a"), 50.0)
-		return
-
-	_show_chant(String(player.name))
-	Net.send(self, &"_show_chant", [String(player.name)])
-	_grant_chant(player, id)
-	match id:
-		"rift":
-			_rift()
-		"dowsing":
-			_dowse()
-		"bonfire":
-			var spot := _bonfire_spot()  # beside the wizard, not under them
-			_kindle(spot, power)
-			Net.send(self, &"_kindle", [spot, power])
-
-
-## The Chant of Dowsing: an arrow points to the nearest page the player has not read, until they read it. Chanting again looks for another.
-func _dowse() -> void:
-	for old in get_tree().get_nodes_in_group("dowsings"):
-		old.queue_free()
-	var page := Dowsing.nearest_unread(get_tree(), player.center(), player.ledger)
-	if page == null:
-		_on_feedback("Nothing left to find.", Color("#ffe9a0"))
-		return
-	var dowsing := Dowsing.new()
-	dowsing.target = page
-	dowsing.ledger = player.ledger
-	add_child(dowsing)
-
-
 ## A bonfire burns at a spot, on every machine of a network game.
 @rpc("any_peer", "call_remote", "reliable")
-func _kindle(spot: Vector2, power: float) -> void:
-	if Bonfire.drowned(get_tree(), spot):  # under water it is out as soon as it is lit: a puff of steam, as a fire shot that falls in
-		Fx.smoke(self, spot + Vector2(0.0, -12.0), Color(0.9, 0.95, 1.0, 0.6), 5, 24.0, 40.0)
-		return
-	var fire := Bonfire.new()
-	add_child(fire)
-	fire.power = power
-	fire.global_position = spot
-
-
-## The chants that give their speaker something, for a while or (see Ledger.LASTING) for the rest of the match.
-func _grant_chant(speaker: Wizard, id: String) -> void:
-	speaker.ledger.settle(id)
-	match id:
-		"boundless":
-			speaker.grant_unlimited(20.0)
-		"double_jump":
-			speaker.grant_air_jump(20.0)
-		"haste":
-			speaker.grant_haste(20.0)
-		"deep_breath":
-			speaker.lungs.grant_deep(Lungs.DEEP_BREATH)
-		"bonfire":
-			if speaker.brain != null:  # (the person's own bonfire is made by their ritual, with the power of how well they said it)
-				var spot := _bonfire_spot(speaker)
-				_kindle(spot, 1.0)
-				Net.send(self, &"_kindle", [spot, 1.0])
-
-
-## A brain's wizard says one of the chants that give a gift, or lights a bonfire (the others make marks and portals, which have only the player's own).
-## It says it perfectly. False when it does not know the chant, cannot speak or is under water.
-func chant_by(speaker: Wizard, id: String) -> bool:
-	if not is_instance_valid(speaker) or speaker.dead or not speaker.ledger.knows_chant(id) or speaker.is_muted() or speaker.is_frozen() or speaker.lungs.holding():
-		return false
-	speaker.break_sneak()
-	_show_chant(String(speaker.name))
-	Net.send(self, &"_show_chant", [String(speaker.name)])
-	_grant_chant(speaker, id)
-	return true
+func kindle(spot: Vector2, power: float) -> void:
+	rituals.kindle(spot, power)
 
 
 ## A little eye floats over a wizard while another watches them through the Chant of the Scrying Eye. Every machine shows it.
 func eye_on(wizard: Wizard, on: bool) -> void:
-	_show_eye(String(wizard.name), on)
-	Net.send(self, &"_show_eye", [String(wizard.name), on])
+	show_eye(String(wizard.name), on)
+	Net.send(self, &"show_eye", [String(wizard.name), on])
 
 
 @rpc("any_peer", "call_remote", "reliable")
-func _show_eye(wizard_name: String, on: bool) -> void:
-	var wizard := get_node_or_null(NodePath(wizard_name)) as Wizard
-	if wizard == null:
-		return
-	var mark := wizard.get_node_or_null("EyeMark")
-	if on and mark == null:
-		mark = EyeMark.new()
-		mark.name = "EyeMark"
-		wizard.add_child(mark)
-	elif not on and mark != null:
-		mark.queue_free()
+func show_eye(wizard_name: String, on: bool) -> void:
+	rituals.show_eye(wizard_name, on)
 
 
 ## A chant takes hold: a ring of light under the speaker, seen and heard on every machine of a network game.
 @rpc("any_peer", "call_remote", "reliable")
-func _show_chant(speaker_name: String) -> void:
-	var speaker := get_node_or_null(NodePath(speaker_name)) as Wizard
-	if speaker == null:
-		return
-	Sfx.play("ritual_ok", speaker.center())
-	Fx.pop(self, speaker.global_position + Vector2(0, -2), "magic_02", Color(1.0, 0.9, 0.6), 80.0, 0.8, 1.3, 2.0)
+func show_chant(speaker_name: String) -> void:
+	rituals.show_chant(speaker_name)
 
 
-## Where a bonfire is made: on the ground 80 px in front of the wizard, or behind them when there is a drop or a wall there.
-func _bonfire_spot(of: Wizard = null) -> Vector2:
-	var who: Wizard = of if of != null else player
-	for side: float in [float(who.facing), -float(who.facing)]:
-		var from: Vector2 = who.global_position + Vector2(side * 80.0, -48.0)  # above the ground there, even where it rises
-		var hit := ground_below(from)
-		if hit.y < from.y + 200.0 and absf(hit.y - who.global_position.y) < 120.0:
-			return hit
-	return who.global_position
-
-
-## The Rift: the wizard is torn away and set down somewhere else, with no stamina left and 20 less to ever have.
-func _rift() -> void:
-	var colour: Color = SpellData.SCHOOL_COLORS["Shadow"]
-	var start: Vector2 = player.global_position
-	player.max_stamina -= RIFT_WEAR
-	player.drain(player.stamina)
-	player.stamina = minf(player.stamina, player.max_stamina)
-	player.global_position = _rift_spot(start)
-	player.reset_physics_interpolation()
-	player.velocity = Vector2.ZERO
-	Fx.pop(self, start + Vector2(0, -24), "twirl_02", colour, 60.0, 0.3, 0.3, 8.0)
-	Fx.burst(self, start + Vector2(0, -24), colour, 16, 140.0, 0.3, true)
-	Fx.pop(self, player.global_position + Vector2(0, -24), "twirl_02", colour, 24.0, 0.3, 2.4, -8.0)
-	Fx.burst(self, player.global_position + Vector2(0, -24), colour, 16, 140.0, 0.3, true)
-	Sfx.play("gravity", player.global_position, -2.0)
+## A brain's wizard speaks a chant (see Rituals.said_by).
+func chant_by(speaker: Wizard, id: String) -> bool:
+	return rituals.said_by(speaker, id)
 
 
 ## Where a Rift sets the wizard down: somewhere along the floor of this room. A world picks one of its halls instead.
-func _rift_spot(from: Vector2) -> Vector2:
+func rift_spot(from: Vector2) -> Vector2:
 	return Vector2(randf_range(ArenaGen.left_edge() + 80.0, ArenaGen.right_edge() - 80.0), from.y)
-
-
-## A toggle chant shows or hides a HUD module. Incantations cost no stamina.
-func _on_toggle_chant(data: Dictionary, acc: float) -> void:
-	if acc < RitualInput.BACKFIRE_BELOW:
-		_on_feedback("Check the words and try again.", Color.GRAY)
-		return
-	var module: String = data["module"]
-	_revealed[module] = true  # said once, it holds for the rest of the match
-	player.ledger.settle(module)
-	Sfx.play("ritual_ok", player.center(), -6.0)
 
 
 func _on_player_damaged(_amount: int) -> void:
@@ -744,10 +591,10 @@ func _on_debuff_applied(kind: String) -> void:
 	match kind:
 		"mute":
 			ritual.cancel()
-			_on_feedback("Wait for your voice to return.", Color.ORANGE)
+			feedback("Wait for your voice to return.", Color.ORANGE)
 
 
-func _on_feedback(text: String, color: Color) -> void:
+func feedback(text: String, color: Color) -> void:
 	hud.show_message(text, color)
 
 
@@ -772,7 +619,7 @@ func _is_ground_at(point: Vector2) -> bool:
 
 ## While Insight is on, hovering an enemy or a wizard shows its health, weaknesses and resistances in a small tooltip.
 func _update_insight() -> void:
-	var body: Node2D = _body_under_pointer() if _revealed["insight"] else null
+	var body: Node2D = _body_under_pointer() if revealed["insight"] else null
 	_insight_tip.visible = body != null
 	if body == null:
 		return

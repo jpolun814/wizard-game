@@ -48,10 +48,10 @@ func _ready() -> void:
 	await _frames(90)  # the rift's own wound leaves a moment of grace
 	var health: float = player.max_stamina
 	_arena.player.stamina = player.max_stamina
-	_arena._on_ritual_finished("haste", 0.2, false)
+	_arena.rituals.finished("haste", 0.2, false)
 	_verdict(player.max_stamina < health, "a garbled chant backfires")
 	health = player.max_stamina
-	_arena._on_ritual_finished("haste", 0.2, true)
+	_arena.rituals.finished("haste", 0.2, true)
 	_verdict(player.max_stamina == health, "a chant stopped short fades harmlessly")
 	_say("deep_breath")
 	_verdict(player.deep_breath_time > 0.0, "the Deep Breath: the breath is held")

@@ -149,7 +149,7 @@ func _ready() -> void:
 	var seer: Wizard = world.player
 	seer.ledger = Ledger.of(["Ignite"])  # (the waiting room's book holds everything; this one holds almost nothing)
 	seer.ledger.learn("chant:dowsing")
-	world._on_ritual_finished("dowsing", 1.0, false)
+	world.rituals.finished("dowsing", 1.0, false)
 	await get_tree().process_frame
 	var shown := get_tree().get_nodes_in_group("dowsings")
 	_verdict(shown.size() == 1 and shown[0].target is PagePickup, "the Chant of Dowsing points to a page")

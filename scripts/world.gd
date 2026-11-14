@@ -624,7 +624,7 @@ func _back_to_room() -> void:
 
 
 ## A Rift sets the wizard down in another hall, picked by chance, and none behind a gate.
-func _rift_spot(from: Vector2) -> Vector2:
+func rift_spot(from: Vector2) -> Vector2:
 	var spots: Array[Vector2] = []
 	for room in graph.rooms:
 		if room["lock"] != -1 and not gate_work.opened:

@@ -142,13 +142,13 @@ class Driver extends Node:
 
 	func _eye() -> void:
 		if role == "client":
-			world._on_toggle_chant(RitualInput.RITUALS["scrying_eye"], 1.0)
+			world.rituals.toggle(RitualInput.RITUALS["scrying_eye"], 1.0)
 		await _seconds(3.0)
 		var marks := get_tree().get_nodes_in_group("eye_marks").filter(func(m): return is_instance_valid(m) and not m.is_queued_for_deletion())
 		if not is_instance_valid(world):
 			return  # the other machine has already ended the match
 		var eye: ScryingEye = world._eye
-		_check(marks.size() == 1, "a little eye floats over the watched wizard on both machines (%d; window %s, watching %s, revealed %s)" % [marks.size(), eye.is_visible_in_tree(), eye.watched, world._revealed])
+		_check(marks.size() == 1, "a little eye floats over the watched wizard on both machines (%d; window %s, watching %s, revealed %s)" % [marks.size(), eye.is_visible_in_tree(), eye.watched, world.revealed])
 
 	func _scene(path: String) -> Node:
 		await _until(func() -> bool: return get_tree().current_scene != null and get_tree().current_scene.scene_file_path == path and get_tree().current_scene.is_node_ready())

@@ -105,10 +105,10 @@ func _run(world: World) -> void:
 		_check(rests, "a wizard comes to rest on the %s of a wreck turned %s (%.0f, the hull at %.0f, the floor at %.0f)" % ["bow" if spot.x < 288.0 else "deck", "right" if side > 0.0 else "left", wizard.global_position.y, on.y, on_wreck.global_position.y])
 	# A bonfire lit on the sea floor goes out at once; one on the island in the middle burns.
 	var fires_before := _count(world, Bonfire)
-	world._kindle(Vector2((deepest + 0.5) * World.TILE, floors[deepest] * float(World.TILE)), 1.0)
+	world.kindle(Vector2((deepest + 0.5) * World.TILE, floors[deepest] * float(World.TILE)), 1.0)
 	_check(_count(world, Bonfire) == fires_before, "a bonfire under water goes out")
 	var middle := floors.size() / 2
-	world._kindle(Vector2((middle + 0.5) * World.TILE, floors[middle] * float(World.TILE)), 1.0)
+	world.kindle(Vector2((middle + 0.5) * World.TILE, floors[middle] * float(World.TILE)), 1.0)
 	_check(_count(world, Bonfire) == fires_before + 1, "a bonfire on the island burns")
 	print("RESULT  ", "FAILED" if failed else "ok")
 	get_tree().quit(1 if failed else 0)

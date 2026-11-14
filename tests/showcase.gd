@@ -310,7 +310,7 @@ func _plan() -> void:
 			t += 2.5
 			# The bonfire stands beside the wizard, on logs, not under them.
 			_at(t, func() -> void: _player().velocity = Vector2.ZERO)
-			_at(t + 1.0, func() -> void: _arena._on_ritual_finished("bonfire", 1.0, false))
+			_at(t + 1.0, func() -> void: _arena.rituals.finished("bonfire", 1.0, false))
 			_at(t + 2.2, func() -> void:
 				var fire: Node2D = null
 				for node in _arena.get_children():
@@ -322,7 +322,7 @@ func _plan() -> void:
 			t += 3.0
 			# Insight lists a dark wizard's spells.
 			_at(t, func() -> void:
-				_arena._revealed["insight"] = true
+				_arena.revealed["insight"] = true
 				var wizard := _summon_at("dark_wizard", _player().global_position.x + 200.0)
 				wizard.set_physics_process(false)
 				wizard.global_position = _arena.get_global_mouse_position() - (wizard.center() - wizard.global_position))
@@ -888,7 +888,7 @@ func _plan_checks() -> void:
 	_at(31.6, func() -> void:
 		_arena.get_tree().call_group("breakables", "queue_free")
 		_player().global_position = _feet(20) + Vector2(0.0, -30.0)
-		_arena._on_ritual_finished("bonfire", 1.0, false))
+		_arena.rituals.finished("bonfire", 1.0, false))
 	_at(33.2, func() -> void: _snap("bonfire"))
 	_at(33.6, func() -> void:
 		_arena.get_tree().call_group("mobs", "queue_free"))
@@ -1048,7 +1048,7 @@ func _plan_cave() -> void:
 		var before: Vector2 = _player().global_position
 		_player().max_stamina = 200.0
 		_player().stamina = 80.0
-		_arena._on_ritual_finished("rift", 1.0, false)
+		_arena.rituals.finished("rift", 1.0, false)
 		var moved: bool = _player().global_position.distance_to(before) > 400.0
 		var ok: bool = moved and _player().max_stamina == 150.0 and _player().stamina == 0.0 and not _arena._body_in_rock(_player().global_position)
 		print("%s  a Rift moves the wizard far, empties stamina and takes 50 off the most (max %d, stamina %d)" % ["PASS" if ok else "FAIL", _player().max_stamina, _player().stamina])
@@ -1069,7 +1069,7 @@ func _plan_cave() -> void:
 	_at(0.88, func() -> void:
 		var wizard: Node2D = _player()
 		var home: Vector2 = wizard.global_position
-		_arena._on_ritual_finished("haste", 1.0, false)
+		_arena.rituals.finished("haste", 1.0, false)
 		print("%s  the Chant of Swift Feet makes the wizard faster for a while" % ["PASS" if wizard.haste_time > 15.0 else "FAIL"])
 		wizard.global_position = home
 		wizard.haste_time = 0.0)

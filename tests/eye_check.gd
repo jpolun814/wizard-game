@@ -47,7 +47,7 @@ func _marks() -> Array:
 func _eye() -> void:
 	var window: ScryingEye = _world._eye
 	_verdict(not window.visible, "before the chant there is no window")
-	_world._on_ritual_finished("scrying_eye", 1.0, false)
+	_world.rituals.finished("scrying_eye", 1.0, false)
 	await _wait(0.6)
 	_verdict(window.visible, "once the chant is said a window opens")
 	_verdict(window.watched != null and window.watched != _player and not window.watched.dead, "it shows another wizard that is standing")

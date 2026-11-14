@@ -342,7 +342,7 @@ func _on_seed_spoken(text: String) -> void:
 	_tune(Incantation.seed_of(text))
 	if Net.online() and not Net.is_host():
 		_tune.rpc_id(1, Incantation.seed_of(text))
-	_on_feedback("Touch the book to enter that world.", Color("#c8a8ff"))
+	feedback("Touch the book to enter that world.", Color("#c8a8ff"))
 	Sfx.play("ritual_ok", player.center(), -6.0)
 
 
