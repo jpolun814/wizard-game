@@ -93,6 +93,15 @@ func hurt(other: Wizard) -> bool:
 	return is_instance_valid(other) and wounds.get(other.get_instance_id(), 0.0) > 45.0
 
 
+## Seconds since it last saw this rival cast anything (a large number when it has not).
+func cast_age(other: Wizard) -> float:
+	var youngest := 999.0
+	if is_instance_valid(other):
+		for entry: Dictionary in seen.get(other.get_instance_id(), {}).values():
+			youngest = minf(youngest, brain.clock - float(entry["at"]))
+	return youngest
+
+
 ## How many different spells it has seen this rival cast lately.
 func known_count(other: Wizard) -> int:
 	var n := 0

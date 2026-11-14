@@ -152,7 +152,7 @@ func _cleverness(scores: Dictionary, foe: Wizard, gap: float) -> void:
 			_boost(scores, spell_name, 1.6, k)
 	if foe.lungs.submerged():  # a rival in the water is frozen in it
 		_boost(scores, "Ice Prison", 2.5, k)
-	if prof.known_count(foe) >= 3:  # a rival who has shown a book's worth of spells is silenced
+	if prof.cast_age(foe) < 15.0:  # a rival who has been casting at it lately is shut up
 		_boost(scores, "Silence", 1.5, k)
 	if prof.hurt(foe):
 		_boost(scores, "Hex", 1.5, k)

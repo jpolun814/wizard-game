@@ -129,3 +129,15 @@ Order: 35-38 and 62, then 49-51 and 56-57, then 61; 63 waits for the owner.
 - 56 and the "last two" hunt (counted who was left alive; built and removed), 57 (the collapse pulls everyone: nothing to do), 59 (made-up mistakes: owner decision 2026-11-09), 66 (sound from off the screen),
   82 "pace by number alive", 84 "play to a human opponent". Ideas that need to know the whole world are re-read as "what has it seen?" or dropped.
 - Still to fix in what exists: `covered_at` looks 600 px above a head (a screen shows 240); the old `SpellTargets.wizards` uses in `knowledge_check`'s `KNOWN` list.
+
+### Results so far (new brain against the frozen old one; duels = share of damage, royales = mean place, lower is better)
+
+| # | Change | Duels | Matches |
+|---|---|---|---|
+| 3 | Rival profile; water against fire; slow-then-crush; blood spells kept for when it can afford them; crowd avoidance (4+ in sight); roof against Spark/Stonefall; stand still to regain stamina; no stepping off a ledge | 0.640 ± 0.023 of 90 (52-33-5); with Frostbolt+Stonefall in the book 0.654 ± 0.026 of 60 | 4.67 vs 4.33 of 30 (14-11); with crowd avoidance off 4.49 vs 4.51 (18-11) |
+| 4 | Tells (a chanting rival is hit), a winded or wounded rival is pressed, what lands this match is cast more, four fighting styles, Hex then a heavy blow, crowd avoidance only for 4+ | 0.668 ± 0.022 of 90 (49-34-7) | 4.22 vs 4.78 of 30 (20-8) |
+| 5 | As 4 with the window shortened to a screen, and the "last two" hunt removed | 0.653 ± 0.022 of 90 (60-29-1) | 4.33 vs 4.67 of 30 (19-8) |
+| 6 | Quick bolts at a rival who is drawing, Ice Prison in water, Silence for a rival who has shown a book's worth, a flinch after a blow, defence by shot speed | 0.659 ± 0.030 of 90 (51-33-6) | 4.08 vs 4.92 of 30 (19-8) |
+| 7 | As 6, with Silence for a rival seen casting in the last 15 seconds | running | running |
+
+Rows 4 and 5 are the same idea set; the spread between them (0.668 and 0.653) is the noise of the measure.
