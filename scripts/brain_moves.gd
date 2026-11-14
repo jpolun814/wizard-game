@@ -169,14 +169,14 @@ func lifting(delta: float) -> float:
 		lift["waited"] += delta
 		if wizard.global_position.y < span.position.y - VINE_OVER:
 			lift["thrown"] = true
-			wizard.climb_up = false
+			wizard.pad.climb = false
 		elif lift["waited"] > VINE_WAIT:
-			wizard.climb_up = false
+			wizard.pad.climb = false
 			brain.gates.give_up_on(lift["key"])
 			lift = {}
 			return 0.0
 		else:
-			wizard.climb_up = true
+			wizard.pad.climb = true
 			return 0.0
 	if wizard.is_on_floor():
 		var wait := LIFT_WAIT if lift["spell"] == "Geyser" or lift["spell"] == "Updraft" else (TORNADO_WAIT if lift["spell"] == "Tornado" else SHOVE_WAIT)

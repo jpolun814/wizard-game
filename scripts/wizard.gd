@@ -31,7 +31,6 @@ const COYOTE_TIME := 0.1      # a jump still works this long after walking off a
 const JUMP_BUFFER := 0.12     # a jump pressed this long before landing happens on landing
 const HURT_GRACE := 0.5       # after a hit, further hits are ignored this long
 const STEP_EVERY := 0.32      # seconds between footstep sounds while running
-const CLIMB_SPEED := 170.0    # how fast the wizard climbs a vine
 ## The animations of the three newer figures (and the werewolf), whose frames are cut to these names.
 const ANIMATIONS := {
 	"idle": {"fps": 8.0}, "run": {"fps": 12.0}, "jump": {"fps": 10.0, "loop": false}, "fall": {"fps": 8.0},
@@ -72,9 +71,7 @@ const FLY_SPEED := 300.0     # sideways and up and down
 const FLY_DRIFT := 30.0      # how fast the wizard drifts down when nothing is pressed
 const FLY_ACCEL := 900.0     # how quickly the up and down speed follows the keys
 var swim_time := 0.0         # above zero while the wizard is out of its depth in a sea (see swim)
-var swim_down := false       # what a brain asks of the water: dive
 var flying := false          # set by a world with no ground (the sky): the wizard steers freely instead of walking
-var fly_y := 0.0             # what a brain asks of the air, up and down: -1 is up, 1 is down
 var fly_box := Rect2()       # where a flying wizard's feet may be: it stops at the edge of it. Empty: anywhere
 var _feather_motes := 0.0
 var gravity: float = ProjectSettings.get_setting("physics/2d/default_gravity")
@@ -97,10 +94,9 @@ var brain: WizardBrain  # what plays this wizard; none while a person does
 var caster: Caster  # a brain's wizard draws its spells through this; a person's strokes are read by the arena's own
 var nav: WorldNav  # the ways about the world, for a wizard that walks it by itself; none in the waiting room
 var last_spell := ""
-var _walk := 0.0  # the speed a brain asks to walk at, left or right, in pixels a second
+var pad := Pad.new(self)  # what a brain asks of the body (a person's keys say the same)
+var vine := VineHold.new(self)  # the vine (Liana) the wizard is hanging on, if any
 var _jump_strength := 1.0  # how much of a full jump a brain asked for
-var climb_up := false  # what a brain asks of a vine; a person's keys say the same
-var let_go := false
 var pen := Pen.new(self)  # the stroke a brain's wizard is drawing
 var eyes: Eyes                      # the screen a person in this wizard's place would have
 var _overlay: Node2D  # draws the ice, and the stroke a brain's wizard is drawing, over the sprite
@@ -204,9 +200,7 @@ var _shield_emitter: CPUParticles2D
 var _shield: Node2D
 var _bubble: AnimatedSprite2D
 var _swirl: Sprite2D  # the wind turning round the Barrier
-var _vine: Node2D  # the vine (Liana) the wizard is hanging on, if any
 var _drop_time := 0.0          # while above zero, wooden platforms and stairs let the wizard through
-var _vine_cooldown := 0.0  # after letting go, a vine cannot be grabbed again for a moment
 
 # --- What the other machines of a network game see of this wizard (see share and Net) -------------------------------------
 ## Only the machine that drives a wizard (its multiplayer authority) moves it and decides what happens to it. A MultiplayerSynchronizer
@@ -696,12 +690,12 @@ func _physics_process(delta: float) -> void:
 	_tick_timers(delta)
 	_fall(delta)
 	var can_move := movement_enabled and root_time <= 0.0 and not dead and not fainted
-	_vine_cooldown -= delta
-	if brain == null and can_move and is_on_floor() and Input.is_action_pressed("move_down"):
+	vine.tick(delta)
+	if can_move and is_on_floor() and pad.drops():
 		_drop_time = 0.3
 	_drop_time -= delta
 	set_collision_mask_value(5, _drop_time <= 0.0)
-	if can_move and _climb():
+	if can_move and vine.climb():
 		return
 	_steer(delta, can_move)
 	_shoved(delta, can_move)
@@ -737,7 +731,7 @@ func _fall(delta: float) -> void:
 	if flying:
 		_fly(delta)  # no gravity: the air is steered through (see _fly)
 	elif swim_time > 0.0:
-		velocity.y = move_toward(velocity.y, DIVE_SPEED if _dives() else SINK_SPEED, SWIM_GRAVITY * delta)  # in deep water it sinks slowly, or dives
+		velocity.y = move_toward(velocity.y, DIVE_SPEED if pad.dives() else SINK_SPEED, SWIM_GRAVITY * delta)  # in deep water it sinks slowly, or dives
 	elif not is_on_floor():
 		velocity.y += gravity * delta
 		if feather_time > 0.0 and velocity.y > FEATHER_FALL:
@@ -758,7 +752,7 @@ func _fall(delta: float) -> void:
 ## What the wizard does with its legs: jumps, and runs or walks (or stands, when it cannot move).
 func _steer(delta: float, can_move: bool) -> void:
 	if can_move:
-		if brain == null and Input.is_action_just_pressed("jump"):
+		if pad.jump_pressed():
 			request_jump()
 		if flying:
 			_jump_buffer = 0.0  # there is nothing to jump from: the wizard steers
@@ -777,11 +771,11 @@ func _steer(delta: float, can_move: bool) -> void:
 			air_jump_ready = false
 			Sfx.play(WizardLook.jump_sound(look), global_position)
 		# Letting go of jump early cuts the jump short, so small hops are easy.
-		if brain == null and Input.is_action_just_released("jump") and velocity.y < JUMP_VELOCITY * 0.4 and swim_time <= 0.0 and not flying:
+		if pad.jump_released() and velocity.y < JUMP_VELOCITY * 0.4 and swim_time <= 0.0 and not flying:
 			velocity.y = JUMP_VELOCITY * 0.4
 		# Walking is free; running drains stamina. With none left you still walk, at half speed.
 		var speed := _walking_speed()
-		velocity.x = Input.get_axis("move_left", "move_right") * speed if brain == null else clampf(_walk, -speed, speed)
+		velocity.x = pad.walking(speed)
 		_stepping = absf(velocity.x) > 10.0 and not flying  # (flying is not a body's work: the stamina comes back all the while)
 		if is_on_floor() and absf(velocity.x) > 10.0 and stamina > 0.0 and not wolf.on:
 			drain(RUN_COST * delta, false)
@@ -841,54 +835,14 @@ func swim() -> void:
 	swim_time = 0.2
 
 
-## True while the wizard dives: a person holds S, a brain asks.
-func _dives() -> bool:
-	return Input.is_action_pressed("move_down") if brain == null else swim_down
-
-
-## Flying, in a world with no ground: steered up and down by the keys (or by a brain, with fly_y), and drifting down at its own pace when nothing is asked.
+## Flying, in a world with no ground: steered up and down by the keys (or by a brain, through the pad), and drifting down at its own pace when nothing is asked.
 func _fly(delta: float) -> void:
 	var free := movement_enabled and root_time <= 0.0 and not dead and not fainted and not drawn
 	var ask := 0.0
 	if free:
-		ask = Input.get_axis("move_up", "move_down") if brain == null else clampf(fly_y, -1.0, 1.0)
+		ask = pad.flying_ask()
 	var pace := FLY_SPEED * (0.5 if slow_time > 0.0 else 1.0) * (0.3 if tangle_time > 0.0 else 1.0) * (HASTE if haste_time > 0.0 else 1.0)
 	velocity.y = move_toward(velocity.y, ask * pace if ask != 0.0 else FLY_DRIFT, FLY_ACCEL * delta)
-
-
-## Hanging on a vine (Liana): W takes hold when the wizard is at one, W and S climb, and Space or a sideways key lets go.
-## Returns true while the wizard is on a vine, which takes over the whole frame's movement.
-func _climb() -> bool:
-	var hands := global_position + Vector2(0, -20)
-	if _vine != null and (not is_instance_valid(_vine) or not _vine.can_grab(hands)):
-		_vine = null
-	var up := Input.is_action_pressed("move_up") if brain == null else climb_up
-	var down := Input.is_action_pressed("move_down") if brain == null else false
-	var letting_go := Input.is_action_pressed("let_go") if brain == null else let_go
-	var sideways := Input.get_axis("move_left", "move_right") if brain == null else clampf(_walk / SPEED, -1.0, 1.0)
-	if _vine == null:
-		if _vine_cooldown > 0.0 or not up:
-			return false
-		for vine in get_tree().get_nodes_in_group("climbables"):
-			if vine.can_grab(hands):
-				_vine = vine
-				break
-		if _vine == null:
-			return false
-	if letting_go or absf(sideways) > 0.5:
-		# Let go: a hop off the vine in the way the wizard was leaning.
-		velocity = Vector2(sideways * SPEED, JUMP_VELOCITY * 0.6 if letting_go else 0.0)
-		_vine = null
-		_vine_cooldown = 0.3
-		return false
-	if down and is_on_floor():
-		_vine = null
-		_vine_cooldown = 0.3
-		return false
-	global_position.x = lerpf(global_position.x, _vine.vine_x(), 0.4)
-	velocity = Vector2(0.0, (1.0 if down else 0.0) * CLIMB_SPEED - (1.0 if up else 0.0) * CLIMB_SPEED)
-	move_and_slide()
-	return true
 
 
 ## Blessing of Skystep: one extra jump in the air, for a while.
@@ -1050,18 +1004,18 @@ func chant(id: String) -> bool:
 func _think(delta: float) -> void:
 	if fainted or is_frozen():  # down, or in a block of ice: nothing is drawn
 		pen.drop()
-		_walk = 0.0
+		pad.walk = 0.0
 		return
 	pen.tick(delta)
 	caster.anchor = center()
 	brain.think(delta)
 	if brain.holds_still():
-		_walk = 0.0  # it stops to draw
+		pad.walk = 0.0  # it stops to draw
 
 
 ## A brain asks to walk at a speed, left (negative) or right: the body keeps to what it can do.
 func walk(speed: float) -> void:
-	_walk = speed
+	pad.walk = speed
 
 
 ## A jump, asked for as a person asks with the key: it happens if the wizard is on the ground (or just left it) and has the stamina.

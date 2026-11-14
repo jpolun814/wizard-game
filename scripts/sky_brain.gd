@@ -65,7 +65,7 @@ func think(delta: float) -> void:
 		heading = Vector2.ZERO  # it stops to draw: the screen would drag the stroke out of shape
 	var way := heading.normalized() * speed if heading != Vector2.ZERO else Vector2.ZERO
 	wizard.walk(way.x * Wizard.FLY_SPEED)
-	wizard.fly_y = _hold_or(way.y)
+	wizard.pad.fly = _hold_or(way.y)
 	var running := absf(way.x) > 0.05 and not wizard.pen.active()
 	wizard.facing = signf(way.x) if running else (signf(to_player.x) if (fighting or wizard.pen.active()) and to_player.x != 0.0 else wizard.facing)
 	if not fighting or react > 0.0 or wizard.pen.active():

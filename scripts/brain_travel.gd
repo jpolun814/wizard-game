@@ -203,8 +203,8 @@ func follow_route(delta: float) -> float:
 		wizard.drop_through()
 	if steer["jump"] and wizard.is_on_floor():
 		wizard.request_jump()
-	wizard.climb_up = steer["climb"]  # at the foot of a rope ladder, the way up it
-	wizard.let_go = steer["let_go"]  # and the hop off it at the top
+	wizard.pad.climb = steer["climb"]  # at the foot of a rope ladder, the way up it
+	wizard.pad.let_go = steer["let_go"]  # and the hop off it at the top
 	return steer["dir"] * steer["speed"]
 
 
@@ -215,7 +215,7 @@ func follow_route(delta: float) -> float:
 ## last the way there: straight up when nothing is over it, else to an air pocket or to open water to one side. Returns its speed sideways.
 func swim(delta: float, fighting: bool, to_player: Vector2) -> float:
 	stroke_in -= delta
-	wizard.swim_down = false
+	wizard.pad.dive = false
 	var here := wizard.center()
 	var air := nearest_air(here)
 	if wizard.deep_breath_time > 0.0:
@@ -243,7 +243,7 @@ func swim(delta: float, fighting: bool, to_player: Vector2) -> float:
 		stroke_in = Wizard.STROKE_EVERY
 		wizard.request_jump()
 	elif line.y > 40.0 and not blocked:
-		wizard.swim_down = true
+		wizard.pad.dive = true
 		if wizard.is_on_floor():
 			wizard.drop_through()  # (on a deck or driftwood over where it is going: it goes down through it, as a person does with S)
 	return signf(line.x) * WizardBrain.WALK_SPEED if absf(line.x) > 12.0 else 0.0
