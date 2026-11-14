@@ -41,6 +41,15 @@ func attack_stroke(spell_name: String) -> PackedVector2Array:
 	var facing := signf(brain.sight.seen_feet(foe).x - wizard.global_position.x)
 	if facing == 0.0:
 		facing = 1.0
+	for kind: Callable in [_aimed_stroke, _over_the_foe_stroke, _at_its_feet_stroke, _beside_itself_stroke]:
+		var stroke: PackedVector2Array = kind.call(spell_name, foe, feet, facing)
+		if not stroke.is_empty():
+			return stroke
+	return PackedVector2Array()
+
+
+## A stroke that sends something at the rival: a line along the way it is to go, or a breath or a wave toward it.
+func _aimed_stroke(spell_name: String, foe: Wizard, feet: Vector2, facing: float) -> PackedVector2Array:
 	match spell_name:
 		"Pebble":  # lobbed: aimed above the rival by as far as the stone will have fallen on the way
 			var start: Vector2 = wizard.center() + Vector2(facing * 12.0, -6.0)
@@ -49,30 +58,37 @@ func attack_stroke(spell_name: String) -> PackedVector2Array:
 			target.y -= 0.5 * Pebble.FALL * flight * flight
 			var aim := (target - start).angle() + brain.rng.randfn(0.0, 0.1 * (1.0 - brain.skill))
 			return BrainStrokes.line(start, start + Vector2.from_angle(aim) * 90.0)
-		"Hailstorm":  # a cloud over the rival's head, and the hail falls from it
-			return BrainStrokes.offset(GestureTemplates.preview_points("hailstorm"), Vector2(brain.sight.seen_center(foe).x + 20.0, brain.sight.seen_center(foe).y - 120.0), 1.0)
 		"Ignite", "Frostbolt", "Barbs":
 			var start: Vector2 = wizard.center() + Vector2(facing * 12.0, -6.0)
 			var target := brain.predict(start.distance_to(brain.sight.seen_center(foe)) / SHOT_SPEED)
 			var aim := (target - start).angle() + brain.rng.randfn(0.0, 0.16 * (1.0 - brain.skill))
 			return BrainStrokes.line(start, start + Vector2.from_angle(aim) * 90.0)
+		"Fire Breath", "Spore Puff":
+			return breath_stroke(brain.sight.seen_center(foe))
+		"Tide Surf", "Thorn Whip", "Leech":
+			return surf_stroke(facing)
+		"Eldritch Blast":  # an arrow pointing at the rival
+			var pointing: float = (brain.predict(0.4) - wizard.center()).angle() + brain.rng.randfn(0.0, 0.1 * (1.0 - brain.skill))
+			return BrainStrokes.offset(turned(GestureTemplates.preview_points("arrow"), pointing), wizard.center(), 0.8)
+	return PackedVector2Array()
+
+
+## A stroke drawn over the rival, or in the air above it, where the spell is to fall or form.
+func _over_the_foe_stroke(spell_name: String, foe: Wizard, feet: Vector2, facing: float) -> PackedVector2Array:
+	match spell_name:
+		"Hailstorm":  # a cloud over the rival's head, and the hail falls from it
+			return BrainStrokes.offset(GestureTemplates.preview_points("hailstorm"), Vector2(brain.sight.seen_center(foe).x + 20.0, brain.sight.seen_center(foe).y - 120.0), 1.0)
 		"Spark":
 			var x := brain.predict(WizardBrain.ATTACK_DRAW * 0.8).x
 			return BrainStrokes.offset(GestureTemplates.preview_points("zigzag"), Vector2(x, brain.sight.seen_center(foe).y - 90.0), 1.0)
 		"Stonefall":
 			var x := brain.predict(WizardBrain.ATTACK_DRAW + 0.6).x
 			return BrainStrokes.offset(GestureTemplates.preview_points("stonefall"), Vector2(x, brain.sight.seen_center(foe).y - 130.0), 0.8)
-		"Tornado":
-			var x: float = lerpf(wizard.global_position.x, brain.sight.seen_feet(foe).x, 0.45)
-			return BrainStrokes.offset(GestureTemplates.preview_points("tornado"), Vector2(x, feet.y - 90.0), 0.9)
 		"Ice Prison":
 			return BrainStrokes.offset(GestureTemplates.preview_points("circle"), brain.predict(WizardBrain.ATTACK_DRAW * 0.6), 0.8)
 		"Earthquake":
 			# Drawn in the air above the middle of the fight, where the peaks read clearly.
 			return BrainStrokes.offset(GestureTemplates.preview_points("earthquake"), Vector2(brain.predict(WizardBrain.ATTACK_DRAW * 0.6).x, brain.sight.seen_center(foe).y - 120.0), 1.0)
-		"Mudslide":
-			var x := brain.predict(WizardBrain.ATTACK_DRAW * 0.6).x
-			return BrainStrokes.offset(GestureTemplates.preview_points("wave"), Vector2(x, feet.y - 60.0), 1.0)
 		"Black Hole":
 			# Beyond you if you are close (it drags you away from it), between you if you keep shooting at it.
 			var spot: Vector2 = brain.sight.seen_center(foe) + Vector2(facing * 80.0, 0.0)
@@ -81,24 +97,10 @@ func attack_stroke(spell_name: String) -> PackedVector2Array:
 			var spiral := GestureTemplates.preview_points("spiral")
 			# The black hole forms where the spiral ends, so place the spiral's end on the spot.
 			return BrainStrokes.offset(spiral, spot - (spiral[spiral.size() - 1] - BrainStrokes.box_centre(spiral)), 1.0)
-		"Firewall":
-			var x: float = lerpf(wizard.global_position.x, brain.sight.seen_feet(foe).x, 0.5)
-			var toward := signf(brain.sight.seen_feet(foe).x - wizard.global_position.x)  # a wall between them: up from the ground, then out across the way
-			return BrainStrokes.offset(facing_flipped(GestureTemplates.preview_points("flame_wall"), toward), Vector2(x - toward * 50.0, feet.y - 50.0), 0.8)
 		"Blizzard":
 			return BrainStrokes.offset(GestureTemplates.preview_points("snowfall"), Vector2(feet.x - 30.0, brain.sight.seen_center(foe).y - 70.0), 0.8)
-		"Fire Breath", "Spore Puff":
-			return breath_stroke(brain.sight.seen_center(foe))
-		"Stalagmite":
-			return BrainStrokes.offset(GestureTemplates.preview_points("stalagmite"), Vector2(brain.predict(WizardBrain.ATTACK_DRAW * 0.6).x, feet.y - 40.0), 0.9)
-		"Bramble":
-			return BrainStrokes.offset(GestureTemplates.preview_points("bramble"), Vector2(lerpf(wizard.global_position.x, brain.sight.seen_feet(foe).x, 0.8), feet.y - 16.0), 1.0)
-		"Flytrap":
-			return BrainStrokes.offset(GestureTemplates.preview_points("jaws"), Vector2(brain.predict(WizardBrain.ATTACK_DRAW * 0.6).x, feet.y - 30.0), 0.8)
 		"Icicles":  # Vs hung over its head, their tips just above it
 			return BrainStrokes.offset(GestureTemplates.preview_points("icicles"), Vector2(brain.sight.seen_center(foe).x, brain.sight.seen_center(foe).y - 35.0), 0.9)
-		"Sinkhole":  # a U drawn into the ground under its feet
-			return BrainStrokes.offset(GestureTemplates.preview_points("pit"), Vector2(brain.predict(WizardBrain.ATTACK_DRAW * 0.6).x, feet.y + 20.0), 0.8)
 		"Hex":
 			return BrainStrokes.offset(GestureTemplates.preview_points("pentagram"), brain.predict(0.3), 0.5)
 		"Vacuum":
@@ -109,8 +111,40 @@ func attack_stroke(spell_name: String) -> PackedVector2Array:
 			return BrainStrokes.offset(GestureTemplates.preview_points("question"), brain.sight.seen_center(foe), 0.6)
 		"Silence":
 			return BrainStrokes.offset(GestureTemplates.preview_points("silence"), brain.sight.seen_center(foe), 0.6)
-		"Tide Surf", "Thorn Whip", "Leech":
-			return surf_stroke(facing)
+		"Hemorrhage":  # a drop of blood drawn over the rival
+			return BrainStrokes.offset(GestureTemplates.preview_points("flare"), brain.sight.seen_center(foe), 0.6)
+		"Supernova":  # a planet and its ring, drawn where the sun should hang: over the rival
+			return BrainStrokes.offset(GestureTemplates.preview_points("saturn"), brain.predict(WizardBrain.ATTACK_DRAW), 0.8)
+	return PackedVector2Array()
+
+
+## A stroke drawn on the ground at the rival's feet, or between them and the wizard.
+func _at_its_feet_stroke(spell_name: String, foe: Wizard, feet: Vector2, facing: float) -> PackedVector2Array:
+	match spell_name:
+		"Tornado":
+			var x: float = lerpf(wizard.global_position.x, brain.sight.seen_feet(foe).x, 0.45)
+			return BrainStrokes.offset(GestureTemplates.preview_points("tornado"), Vector2(x, feet.y - 90.0), 0.9)
+		"Mudslide":
+			var x := brain.predict(WizardBrain.ATTACK_DRAW * 0.6).x
+			return BrainStrokes.offset(GestureTemplates.preview_points("wave"), Vector2(x, feet.y - 60.0), 1.0)
+		"Firewall":
+			var x: float = lerpf(wizard.global_position.x, brain.sight.seen_feet(foe).x, 0.5)
+			var toward := signf(brain.sight.seen_feet(foe).x - wizard.global_position.x)  # a wall between them: up from the ground, then out across the way
+			return BrainStrokes.offset(facing_flipped(GestureTemplates.preview_points("flame_wall"), toward), Vector2(x - toward * 50.0, feet.y - 50.0), 0.8)
+		"Stalagmite":
+			return BrainStrokes.offset(GestureTemplates.preview_points("stalagmite"), Vector2(brain.predict(WizardBrain.ATTACK_DRAW * 0.6).x, feet.y - 40.0), 0.9)
+		"Bramble":
+			return BrainStrokes.offset(GestureTemplates.preview_points("bramble"), Vector2(lerpf(wizard.global_position.x, brain.sight.seen_feet(foe).x, 0.8), feet.y - 16.0), 1.0)
+		"Flytrap":
+			return BrainStrokes.offset(GestureTemplates.preview_points("jaws"), Vector2(brain.predict(WizardBrain.ATTACK_DRAW * 0.6).x, feet.y - 30.0), 0.8)
+		"Sinkhole":  # a U drawn into the ground under its feet
+			return BrainStrokes.offset(GestureTemplates.preview_points("pit"), Vector2(brain.predict(WizardBrain.ATTACK_DRAW * 0.6).x, feet.y + 20.0), 0.8)
+	return PackedVector2Array()
+
+
+## A stroke drawn by the wizard on itself or on the ground beside it.
+func _beside_itself_stroke(spell_name: String, foe: Wizard, feet: Vector2, facing: float) -> PackedVector2Array:
+	match spell_name:
 		"Flaming Sphere":  # a ring and a level line toward it, along the ground beside the wizard
 			return BrainStrokes.offset(facing_flipped(GestureTemplates.preview_points("sphere"), facing), wizard.center() + Vector2(facing * 50.0, 0.0), 0.8)
 		"Mirage":  # a tall box drawn on the ground a little ahead of it
@@ -119,13 +153,6 @@ func attack_stroke(spell_name: String) -> PackedVector2Array:
 			return BrainStrokes.offset(GestureTemplates.preview_points("latin_cross"), Vector2(wizard.center().x + facing * 70.0, wizard.global_position.y - 40.0), 0.8)
 		"Insect Plague":  # an infinity sign, the wings of a bee, beside it: the swarm sets off from there
 			return BrainStrokes.offset(GestureTemplates.preview_points("lungs"), wizard.center() + Vector2(facing * 50.0, -10.0), 0.7)
-		"Eldritch Blast":  # an arrow pointing at the rival
-			var pointing: float = (brain.predict(0.4) - wizard.center()).angle() + brain.rng.randfn(0.0, 0.1 * (1.0 - brain.skill))
-			return BrainStrokes.offset(turned(GestureTemplates.preview_points("arrow"), pointing), wizard.center(), 0.8)
-		"Hemorrhage":  # a drop of blood drawn over the rival
-			return BrainStrokes.offset(GestureTemplates.preview_points("flare"), brain.sight.seen_center(foe), 0.6)
-		"Supernova":  # a planet and its ring, drawn where the sun should hang: over the rival
-			return BrainStrokes.offset(GestureTemplates.preview_points("saturn"), brain.predict(WizardBrain.ATTACK_DRAW), 0.8)
 		"Scythe":  # a crescent drawn in front of the wizard
 			return BrainStrokes.offset(GestureTemplates.preview_points("crescent"), wizard.center() + Vector2(facing * 40.0, 0.0), 0.8)
 		"Thunderclap":  # a cloud and a bolt, drawn on itself
