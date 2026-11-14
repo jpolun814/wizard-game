@@ -96,7 +96,7 @@ func _over_the_foe_stroke(spell_name: String, foe: Wizard, feet: Vector2, facing
 				spot = wizard.center().lerp(brain.sight.seen_center(foe), 0.4)
 			var spiral := GestureTemplates.preview_points("spiral")
 			# The black hole forms where the spiral ends, so place the spiral's end on the spot.
-			return BrainStrokes.offset(spiral, spot - (spiral[spiral.size() - 1] - BrainStrokes.box_centre(spiral)), 1.0)
+			return BrainStrokes.offset(spiral, spot - (spiral[spiral.size() - 1] - BrainStrokes.box_center(spiral)), 1.0)
 		"Blizzard":
 			return BrainStrokes.offset(GestureTemplates.preview_points("snowfall"), Vector2(feet.x - 30.0, brain.sight.seen_center(foe).y - 70.0), 0.8)
 		"Icicles":  # Vs hung over its head, their tips just above it

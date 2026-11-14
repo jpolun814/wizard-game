@@ -29,7 +29,7 @@ static func port() -> int:
 const MENU := "res://scenes/menu.tscn"
 const GIVE_UP_MS := 8000  # a host that has not answered for this long is taken to be gone
 const VIRTUAL_CARDS := ["vethernet", "virtual", "vmware", "vbox", "hyper-v", "wsl", "loopback", "docker", "tailscale", "zerotier"]
-const RIVAL_PALETTES := [0, 4, 5, 2]  # the sets of colours (see WizardLook.PALETTES) brains wear in turn once the figures are used up
+const RIVAL_PALETTES := [0, 4, 5, 2]  # the sets of colors (see WizardLook.PALETTES) brains wear in turn once the figures are used up
 const SEATS := WorldGraph.PLAYERS  # wizards in a match; the seats nobody takes are played by brains
 const LOOKS := ["wizard", "dark_wizard", "pyre_wizard", "bone_wizard", "fire_wizard", "wanderer", "lightning_mage"]  # the look of each seat, in order
 
@@ -191,7 +191,7 @@ func look_of(peer: int) -> String:
 	return chosen if WizardLook.is_look(chosen) else LOOKS[clampi(seat_of(peer), 0, LOOKS.size() - 1)]
 
 
-## The set of colours a person's wizard wears.
+## The set of colors a person's wizard wears.
 func palette_of(peer: int) -> int:
 	if peer == my_id():
 		return int(GameSettings.get_value("palette"))
@@ -205,7 +205,7 @@ func person_in_seat(seat: int) -> int:
 	return my_id() if seat == 0 else 0
 
 
-## The look and colours the wizard in a seat wears, a person's or a brain's.
+## The look and colors the wizard in a seat wears, a person's or a brain's.
 func style_of_seat(seat: int) -> Dictionary:
 	var person := person_in_seat(seat)
 	if person > 0:
@@ -229,7 +229,7 @@ func rival_look(seat: int) -> String:
 	return pool[brains_before % pool.size()]
 
 
-## The set of colours a brain's wizard in a seat wears: the original while there are figures left that no one has taken, and then, for the brains that
+## The set of colors a brain's wizard in a seat wears: the original while there are figures left that no one has taken, and then, for the brains that
 ## must share a figure, other sets in turn, so that no two wizards of a match look the same.
 func rival_palette(seat: int) -> int:
 	var taken := 0

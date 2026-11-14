@@ -1,5 +1,5 @@
 """Builds art/props/magic_mirror.png: the animated oval mirror of "Magic Mirror/Portal Pixel Sprite" (That One Annoying Pub Player, CC0,
-https://opengameart.org/content/magic-mirrorportal-pixel-sprite), recoloured to the game's look: a gold rim with a dark edge round it, and violet glass
+https://opengameart.org/content/magic-mirrorportal-pixel-sprite), recolored to the game's look: a gold rim with a dark edge round it, and violet glass
 with a glint that sweeps across it. Only the still frames are used (16 to 39 of the sheet: the glass, and its glints), not the opening or the cracking.
 
     python -I tools/prepare_mirror.py path/to/MagicMirror.png
@@ -21,7 +21,7 @@ SHINE = (250, 240, 255, 255)
 OUT = os.path.join(os.path.dirname(__file__), "..", "art", "props", "magic_mirror.png")
 
 
-def recolour(frame):
+def recolor(frame):
     out = Image.new("RGBA", (frame.width + 2, frame.height + 2), (0, 0, 0, 0))
     for y in range(frame.height):
         for x in range(frame.width):
@@ -55,7 +55,7 @@ def main():
     for k in range(FIRST, LAST + 1):
         col, row = k % 8, k // 8
         cell = sheet.crop((col * 32, row * 32, col * 32 + 32, row * 32 + 32)).crop(BOX)
-        frames.append(recolour(cell))
+        frames.append(recolor(cell))
     strip = Image.new("RGBA", (frames[0].width * len(frames), frames[0].height), (0, 0, 0, 0))
     for k, frame in enumerate(frames):
         strip.paste(frame, (k * frame.width, 0))

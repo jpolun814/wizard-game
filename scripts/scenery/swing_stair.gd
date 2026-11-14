@@ -46,7 +46,7 @@ func _ready() -> void:
 	sync_to_physics = false
 	z_index = 1
 	texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
-	_rng.seed = hash(seed_value)  # neighbouring seeds would give neighbouring first numbers, and the stairs would begin together
+	_rng.seed = hash(seed_value)  # neighboring seeds would give neighboring first numbers, and the stairs would begin together
 	_tip_cut = Vector2(_rng.randf_range(0.25, 0.6), _rng.randf_range(0.25, 0.6))
 	for k in STATIONS + 1:
 		_underside.append(_rng.randf_range(0.65, 1.2))

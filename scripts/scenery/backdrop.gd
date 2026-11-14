@@ -3,14 +3,14 @@ extends Node2D
 
 ## The scenery behind the arena, from ansimuz's GothicVania packs (see tools/prepare_gothic_art.py): a blood-moon
 ## sky over crags and a graveyard, a jungle under a dark canopy, or the inside of a cathedral. Each layer
-## slides past slower the farther away it is. Where a layer's picture ends, its edge colour carries on, so a high
+## slides past slower the farther away it is. Where a layer's picture ends, its edge color carries on, so a high
 ## jump or a fall never shows a gap.
 
-## Each place: a sky fixed to the screen (or none), the colour behind everything, and its layers farthest first.
+## Each place: a sky fixed to the screen (or none), the color behind everything, and its layers farthest first.
 ## A layer is [file, how fast it scrolls against the camera, where its bottom edge sits in the world, how fast it
-## drifts, whether its top colour carries on up past it, and how many times its own size it is drawn: far scenery
+## drifts, whether its top color carries on up past it, and how many times its own size it is drawn: far scenery
 ## can be drawn big, which also makes it read as farther off]. Layers only slide sideways: up and down they stay put,
-## so they always meet the ground the same way. Every layer's bottom colour carries on down.
+## so they always meet the ground the same way. Every layer's bottom color carries on down.
 const PLACES := {
 	"cemetery": {"sky": "res://art/backgrounds/cemetery/sky.png", "fill": Color("#2c0127"), "layers": [
 		["res://art/backgrounds/cemetery/far.png", Vector2(0.12, 1.0), 214.0, 0.0, false, 1.0],
@@ -82,7 +82,7 @@ func build(backdrop: String, ground_y := -1.0) -> void:
 		parallax.add_child(sprite)
 		if place == "jungle" and layer[1].x > 0.1:
 			sprite.modulate = Color(0.55, 0.72, 0.68)  # the painted trunks sit in haze, so that the trees that can be climbed stand out from them
-		# Carry the picture's top and bottom colours on past its edges, where they are solid.
+		# Carry the picture's top and bottom colors on past its edges, where they are solid.
 		var image := texture.get_image()
 		if image.is_compressed():
 			image.decompress()
@@ -103,11 +103,11 @@ func set_opacity(amount: float) -> void:
 		part.modulate.a = amount
 
 
-func _band(parent: Node, rect: Rect2, colour: Color) -> void:
+func _band(parent: Node, rect: Rect2, color: Color) -> void:
 	var band := ColorRect.new()
 	band.position = rect.position
 	band.size = rect.size
-	band.color = colour
+	band.color = color
 	parent.add_child(band)
 
 
@@ -138,8 +138,8 @@ func _build_sky(spec: Dictionary) -> void:
 
 ## Ribbons of green and violet light that sway and brighten across the top of the sky of the snowy peaks.
 func _hang_aurora(sky_layer: CanvasLayer) -> void:
-	var colours := [Color(0.3, 1.0, 0.6, 0.0), Color(0.5, 0.9, 1.0, 0.0), Color(0.7, 0.4, 1.0, 0.0)]
-	for k in colours.size():
+	var colors := [Color(0.3, 1.0, 0.6, 0.0), Color(0.5, 0.9, 1.0, 0.0), Color(0.7, 0.4, 1.0, 0.0)]
+	for k in colors.size():
 		var ribbon := TextureRect.new()
 		ribbon.texture = Fx.tex("smoke_01")
 		ribbon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
@@ -148,7 +148,7 @@ func _hang_aurora(sky_layer: CanvasLayer) -> void:
 		ribbon.material = Fx.additive()
 		ribbon.size = Vector2(900.0, 120.0)
 		ribbon.position = Vector2(-120.0 + k * 330.0, 20.0 + k * 22.0)
-		ribbon.self_modulate = Color(colours[k], 0.3)  # (the fade between places is on modulate)
+		ribbon.self_modulate = Color(colors[k], 0.3)  # (the fade between places is on modulate)
 		sky_layer.add_child(ribbon)
 		_sky_parts.append(ribbon)
 		var sway := create_tween().set_loops()

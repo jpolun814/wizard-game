@@ -22,7 +22,7 @@ var _t := 0.0
 var _sprite: Sprite2D
 var _hint: Label
 var _color := CHANT_COLOR  # the outline
-var _glow := CHANT_COLOR   # the light, in the school's own colour
+var _glow := CHANT_COLOR   # the light, in the school's own color
 var _chimed := false
 var _cards: Array[Sprite2D] = []  # the pages of a fan
 
@@ -51,14 +51,14 @@ func _ready() -> void:
 	_hint.visible = false
 	add_child(_hint)
 	material = Fx.additive()  # the halo below adds light to what is behind it
-	var light := PointLight2D.new()  # and lights the dark round it, in the school's colour
+	var light := PointLight2D.new()  # and lights the dark round it, in the school's color
 	light.texture = Fx.tex("light_01")
 	light.texture_scale = 420.0 / Fx.TEX_SIZE
 	light.color = _glow
 	light.energy = 0.9
 	light.position = Vector2(0, -FLOAT)
 	add_child(light)
-	var sparks := Fx.trail(_glow, 14, 1.4, 25.0, Vector2(0, -18), "star_04", 9.0)  # motes of its colour drifting up off it
+	var sparks := Fx.trail(_glow, 14, 1.4, 25.0, Vector2(0, -18), "star_04", 9.0)  # motes of its color drifting up off it
 	sparks.local_coords = true
 	sparks.position = Vector2(0, -FLOAT)
 	sparks.emission_shape = CPUParticles2D.EMISSION_SHAPE_SPHERE
@@ -68,15 +68,15 @@ func _ready() -> void:
 	sparks.emitting = true
 
 
-## A material that outlines a page in a colour.
-func _outlined(colour: Color) -> ShaderMaterial:
+## A material that outlines a page in a color.
+func _outlined(color: Color) -> ShaderMaterial:
 	var outline := ShaderMaterial.new()
 	outline.shader = OUTLINE
-	outline.set_shader_parameter("outline_color", colour)
+	outline.set_shader_parameter("outline_color", color)
 	return outline
 
 
-## The pages of a fan lie spread like a hand of cards, each leaning a little more than the one before and outlined in the colour of its own school.
+## The pages of a fan lie spread like a hand of cards, each leaning a little more than the one before and outlined in the color of its own school.
 ## `_sprite` is only the holder that bobs and sways, with the cards hanging from it.
 func _fan_out() -> void:
 	_sprite.texture = null
@@ -89,8 +89,8 @@ func _fan_out() -> void:
 		card.rotation = lean
 		card.position = Vector2(lean * 90.0, lean * lean * 70.0)  # the outer cards sit a little lower, as a hand of cards does
 		card.z_index = k  # later cards over earlier ones
-		var school_colour: Color = SpellData.SCHOOL_COLORS[SpellData.SPELLS[spoils[k]].school] if SpellData.SPELLS.has(spoils[k]) else CHANT_COLOR
-		card.material = _outlined(school_colour.lightened(0.2))
+		var school_color: Color = SpellData.SCHOOL_COLORS[SpellData.SPELLS[spoils[k]].school] if SpellData.SPELLS.has(spoils[k]) else CHANT_COLOR
+		card.material = _outlined(school_color.lightened(0.2))
 		_sprite.add_child(card)
 		_cards.append(card)
 

@@ -20,8 +20,8 @@ static func blood_target(tree: SceneTree, origin: Vector2) -> Node2D:
 	return SpellTargets.nearest_to(SpellTargets.all(tree), origin, Hex.REACH)
 
 
-func _say_no_one(c: SpellCast, colour: Color) -> void:
-	FloatText.spawn(_arena, c.origin + Vector2(0, -20), "Aim at someone", colour, 0.9)
+func _say_no_one(c: SpellCast, color: Color) -> void:
+	FloatText.spawn(_arena, c.origin + Vector2(0, -20), "Aim at someone", color, 0.9)
 
 
 func _leech(c: SpellCast) -> void:

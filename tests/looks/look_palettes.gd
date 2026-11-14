@@ -1,6 +1,6 @@
 extends Node2D
 
-## Pictures of the three figures in every set of colours, side by side, drawn at the sizes the game draws them (a line marks the height of the head).
+## Pictures of the three figures in every set of colors, side by side, drawn at the sizes the game draws them (a line marks the height of the head).
 ## Needs a window:   godot --path . tests/looks/look_palettes.tscn -- out=DIR
 
 func _ready() -> void:

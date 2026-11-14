@@ -136,18 +136,18 @@ func _draw() -> void:
 		swell += sin(_age * 9.0 + u * 0.12) * 2.5
 		top.append(Vector2(u * direction, 6.0 - swell * rise))
 	var points := PackedVector2Array()
-	var colours := PackedColorArray()
+	var colors := PackedColorArray()
 	for point in top:
 		points.append(point)
-		colours.append(Pond.WATER_TOP.lerp(Pond.WATER_RIM, clampf((6.0 - point.y) / HEIGHT, 0.0, 1.0) * 0.25))
+		colors.append(Pond.WATER_TOP.lerp(Pond.WATER_RIM, clampf((6.0 - point.y) / HEIGHT, 0.0, 1.0) * 0.25))
 	var foot := Vector2(top[top.size() - 1].x, 6.0)
 	points.append(foot)
-	colours.append(Pond.WATER_BOTTOM)
+	colors.append(Pond.WATER_BOTTOM)
 	points.append(Vector2(top[0].x, 6.0))
-	colours.append(Pond.WATER_BOTTOM)
-	for c in colours.size():
-		colours[c].a = fade
-	draw_polygon(points, colours)
+	colors.append(Pond.WATER_BOTTOM)
+	for c in colors.size():
+		colors[c].a = fade
+	draw_polygon(points, colors)
 	var edge := Pond.WATER_RIM
 	edge.a = fade
 	draw_polyline(top, edge, 2.0)

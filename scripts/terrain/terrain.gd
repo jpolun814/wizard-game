@@ -2,7 +2,7 @@ class_name Terrain
 extends Node2D
 
 ## The arena's ground, drawn from ansimuz's GothicVania tiles and made solid. Each cell picks the tile piece that fits
-## its neighbours (a top edge, a corner, a ledge end, the deep earth further down), so the ground reads as shapes
+## its neighbors (a top edge, a corner, a ledge end, the deep earth further down), so the ground reads as shapes
 ## rather than a grid. Every piece is pixel art at the same size as the characters.
 ## Collision is built from long strips, one per run of solid cells in a row, so characters slide along the ground
 ## without catching on the seams between tiles. Platforms are one-way: you jump up through them and land on top, and
@@ -154,7 +154,7 @@ func _piece_for(cell: Vector2i, material: int) -> Vector2i:
 		right = true
 	if material == ArenaGen.GROUND:
 		# The ground meets the walls at both ends of the map, so it carries on under them.
-		# A neighbour that has ground just under this row joins on too: on a slope the next column's top is one row lower,
+		# A neighbor that has ground just under this row joins on too: on a slope the next column's top is one row lower,
 		# and without this every step would get a rounded end and read as a separate block.
 		left = left or cells.has(cell + Vector2i.LEFT) or cells.has(cell + Vector2i.LEFT + Vector2i.DOWN)
 		right = right or cells.has(cell + Vector2i.RIGHT) or cells.has(cell + Vector2i.RIGHT + Vector2i.DOWN)
@@ -288,7 +288,7 @@ func _ground_y(x: float) -> float:
 const HALL_CHUNK := 40  # columns of a castle's inside painted as one piece
 
 var _rock_world: RockWorld
-var _tile_state := {}  # tile -> 1 if it and all its neighbours are rock, 0 if all are air, 2 if an outline runs near it (see solid_at)
+var _tile_state := {}  # tile -> 1 if it and all its neighbors are rock, 0 if all are air, 2 if an outline runs near it (see solid_at)
 var _changed: Array[Rect2] = []  # where pits have been dug, so the tiles no longer tell what is ground there
 var _solid: StaticBody2D  # the waiting room's solid ground, made again when a pit is dug
 

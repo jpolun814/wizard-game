@@ -5,5 +5,5 @@ extends Node2D
 var face := 1.0       # the way it looks: 1 to the right, -1 to the left
 var alive := true
 var here := false     # in its place, and standing
-var colour := Color.WHITE  # the colour of its bolts
+var color := Color.WHITE  # the color of its bolts
 var sprite: AnimatedSprite2D

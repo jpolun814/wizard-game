@@ -104,10 +104,10 @@ func _draw() -> void:
 	var gap := a.distance_to(b)
 	var beads := maxi(1, int(gap / BEAD))
 	var texture := Fx.tex("circle_05")
-	var colour: Color = SpellData.SCHOOL_COLORS["Blood"].lightened(0.15)
+	var color: Color = SpellData.SCHOOL_COLORS["Blood"].lightened(0.15)
 	for k in beads + 1:
 		var along := float(k) / float(beads)
 		var sway := sin(_age * 6.0 + float(k) * 0.9) * 2.5
 		var at := a.lerp(b, along) + Vector2(0.0, sway)
 		var size := 6.0 + 2.0 * sin(_age * 9.0 - float(k) * 0.7)  # a pulse runs along it, from the target to the caster
-		draw_texture_rect(texture, Rect2(at - Vector2(size, size) * 0.5, Vector2(size, size)), false, colour)
+		draw_texture_rect(texture, Rect2(at - Vector2(size, size) * 0.5, Vector2(size, size)), false, color)

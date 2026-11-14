@@ -37,14 +37,14 @@ for course in range(SIZE // BRICK_H):
         base = palette[rng.randrange(1, max(2, len(palette) - 2))]
         for dx in range(BRICK_W - 1):
             for dy in range(BRICK_H - 1):
-                colour = list(base)
+                color = list(base)
                 if dy == 0:
-                    colour = [min(255, int(v * 1.25) + 6) for v in base]  # a lit top edge
+                    color = [min(255, int(v * 1.25) + 6) for v in base]  # a lit top edge
                 elif dy >= BRICK_H - 2:
-                    colour = [int(v * 0.8) for v in base]  # a shaded foot
+                    color = [int(v * 0.8) for v in base]  # a shaded foot
                 elif rng.random() < 0.12:
                     shade = rng.choice([0.88, 1.12])
-                    colour = [min(255, int(v * shade)) for v in base]
-                image.putpixel(((x0 + dx) % SIZE, (y0 + dy) % SIZE), tuple(colour) + (255,))
+                    color = [min(255, int(v * shade)) for v in base]
+                image.putpixel(((x0 + dx) % SIZE, (y0 + dy) % SIZE), tuple(color) + (255,))
 image.save(OUT)
 print("wrote", OUT, "palette", palette)

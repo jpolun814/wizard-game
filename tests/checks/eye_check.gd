@@ -20,7 +20,7 @@ func _ready() -> void:
 	World.next_seed = 8
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("seed="):
-			World.next_seed = int(arg.substr(5))  # (a graveyard's seed shows the window in grey)
+			World.next_seed = int(arg.substr(5))  # (a graveyard's seed shows the window in gray)
 	_world = load("res://scenes/world.tscn").instantiate()
 	add_child(_world)
 	await get_tree().process_frame
@@ -33,7 +33,7 @@ func _ready() -> void:
 	_player.ledger.learn_all()
 	await _wait(0.3)
 	await _eye()
-	print("biome ", _world.grade_biome, " greyed ", _world.greyed)
+	print("biome ", _world.grade_biome, " grayed ", _world.grayed)
 	print("the scrying eye sees" if _failures == 0 else "%d FAILED" % _failures)
 	get_tree().quit(1 if _failures > 0 else 0)
 

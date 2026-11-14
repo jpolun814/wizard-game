@@ -13,7 +13,7 @@ for x in range(tile.width):
     for y in range(tile.height):
         r, g, b, a = tile.getpixel((x, y))
         if a:
-            grey = (r + g + b) / 3.0
-            tile.putpixel((x, y), (int((r * 0.5 + grey * 0.5) * 0.62), int((g * 0.5 + grey * 0.5) * 0.55), int((b * 0.5 + grey * 0.5) * 0.5), a))
+            gray = (r + g + b) / 3.0
+            tile.putpixel((x, y), (int((r * 0.5 + gray * 0.5) * 0.62), int((g * 0.5 + gray * 0.5) * 0.55), int((b * 0.5 + gray * 0.5) * 0.5), a))
 tile.save(os.path.join(ROOT, "art", "props", "rope_ladder.png"))
 print("wrote rope ladder", tile.size)

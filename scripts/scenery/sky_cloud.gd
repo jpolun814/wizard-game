@@ -7,7 +7,7 @@ extends Node2D
 ##
 ## A plain cloud hides whoever is in it. It is drawn in front of the wizards, a little see-through, so a person can still see their own; for a brain's eyes it is a
 ## sight blocker (see `blocks`): a wizard in a cloud is not made out from far off, the same rule the ocean's kelp has.
-## A thundercloud (`storm`) is the same in grey. Every few seconds it flashes, and a moment later a bolt comes down: whoever is inside the cloud is shocked, and so
+## A thundercloud (`storm`) is the same in gray. Every few seconds it flashes, and a moment later a bolt comes down: whoever is inside the cloud is shocked, and so
 ## is whoever is under the bolt, which falls out of the cloud at a place the seed and the world's age have picked, as far as a little way outside it.
 ## The flash and a crackle of sparks where the bolt will land show it a moment before, so a person can steer round it.
 
@@ -125,9 +125,9 @@ func bolt_at(n: int) -> Vector2:
 
 
 ## The strip of sky a bolt comes down in, for a bolt that lands at a point of the cloud's own space.
-func _strip_for(n: int, centre: Vector2) -> Rect2:
+func _strip_for(n: int, center: Vector2) -> Rect2:
 	var at := bolt_at(n)
-	var foot := Vector2(centre.x + at.x, centre.y + at.y)
+	var foot := Vector2(center.x + at.x, center.y + at.y)
 	return Rect2(foot.x - STRIKE_WIDTH * 0.5, foot.y - STRIKE_HEIGHT, STRIKE_WIDTH, STRIKE_HEIGHT)
 
 

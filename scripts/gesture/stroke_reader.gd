@@ -50,14 +50,14 @@ func _read_shapes(relative: PackedVector2Array, origin: Vector2, options: Dictio
 		return reading.claim("hailstorm", {"line": to_world.call(PackedVector2Array([seen["hail"]["from"], seen["hail"]["to"]]))})
 	if not seen["feather"].is_empty():
 		return reading.claim("feather")
-	if not seen["spiral"].is_empty():  # a spiral wound inward is a Black Hole, centred where it ends up
+	if not seen["spiral"].is_empty():  # a spiral wound inward is a Black Hole, centerd where it ends up
 		return reading.claim("spiral", {"radius": seen["spiral"]["reach"], "center": origin + seen["spiral"]["center"]})
 	if seen["slashed"]:
 		return reading.claim("silence")
 	if reading.ring_split >= 0:  # a closed ring with a straight line out of it is a Push (or a ball of fire): the line can point any way
 		var ring := relative.slice(0, reading.ring_split)
-		reading.ring_centre = StrokeMeasure.centroid(ring)
-		return reading.claim("sphere" if options.has("sphere") else "circle_push", {"radius": StrokeMeasure.mean_distance(ring, reading.ring_centre)})
+		reading.ring_center = StrokeMeasure.centroid(ring)
+		return reading.claim("sphere" if options.has("sphere") else "circle_push", {"radius": StrokeMeasure.mean_distance(ring, reading.ring_center)})
 	for lined: Array in [["pads", "pads"], ["snowfall", "snow_line"], ["smoke", "smoke"], ["wave", "wave"]]:
 		if seen[lined[1]].size() >= (2 if lined[0] == "snowfall" else 1):
 			return reading.claim(lined[0], {"line": to_world.call(seen[lined[1]])})

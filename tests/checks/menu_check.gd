@@ -58,10 +58,10 @@ func _line(corners: Array) -> PackedVector2Array:
 	return points
 
 
-func _circle(centre: Vector2, radius: float) -> PackedVector2Array:
+func _circle(center: Vector2, radius: float) -> PackedVector2Array:
 	var points := PackedVector2Array()
 	for k in 41:
-		points.append(centre + Vector2(cos(k * TAU / 40.0), sin(k * TAU / 40.0)) * radius)
+		points.append(center + Vector2(cos(k * TAU / 40.0), sin(k * TAU / 40.0)) * radius)
 	return points
 
 

@@ -1,7 +1,7 @@
 class_name CanopyBridge
 extends Node2D
 
-## A rope bridge of planks hung between the high ledges of two neighbouring great trees of the jungle, so the treetops can be crossed without
+## A rope bridge of planks hung between the high ledges of two neighboring great trees of the jungle, so the treetops can be crossed without
 ## going down. Its origin is the left end of the planks, at the height of the ledges' tops. It is one-way, like the ledges: jump up through
 ## it, land on top, and S drops through.
 

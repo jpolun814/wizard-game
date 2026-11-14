@@ -199,9 +199,9 @@ def snow_lip(seed: int, ramp: list[str] = SNOW, name: str = "snow") -> None:
     px = img.load()
     heights = [5.0] * w
     for _ in range(7):  # rounded mounds of drift, wrapped round the strip
-        centre, radius, rise = rng.uniform(0, w), rng.uniform(4, 9), rng.uniform(1.5, 4.5)
+        center, radius, rise = rng.uniform(0, w), rng.uniform(4, 9), rng.uniform(1.5, 4.5)
         for x in range(w):
-            d = min(abs(x - centre), w - abs(x - centre))
+            d = min(abs(x - center), w - abs(x - center))
             if d < radius:
                 heights[x] = min(heights[x], 5.0 - rise * (1 - (d / radius) ** 2) ** 0.5)
     for x in range(w):

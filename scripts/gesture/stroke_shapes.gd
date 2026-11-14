@@ -79,8 +79,8 @@ static func hailstorm(points: PackedVector2Array) -> Dictionary:
 	if split < 0:
 		return {}
 	var ring := points.slice(0, split)
-	var centre := StrokeMeasure.centroid(ring)
-	if StrokeMeasure.mean_distance(ring, centre) < 12.0:
+	var center := StrokeMeasure.centroid(ring)
+	if StrokeMeasure.mean_distance(ring, center) < 12.0:
 		return {}
 	var tail := points.slice(split)
 	if tail.size() < 6:
@@ -107,7 +107,7 @@ static func hailstorm(points: PackedVector2Array) -> Dictionary:
 		return {}
 	if down.y <= 0.0 or absf(down.x) > down.y * 0.6:  # and the hail falls down
 		return {}
-	return {"from": centre, "to": corner}
+	return {"from": center, "to": corner}
 
 
 ## Featherfall: a feather drifting down. Three sweeps across, one after the other (left to right, back, and again), each bent down in the middle
@@ -222,7 +222,7 @@ static func is_upright_cross(points: PackedVector2Array) -> bool:
 	for cell: Vector2i in cells:
 		col_rows[cell.x] += 1
 		row_cols[cell.y] += 1
-	# The stem is the column (with a neighbour either side for a wobble) that reaches down the most rows; the bar is the row that reaches across the most columns.
+	# The stem is the column (with a neighbor either side for a wobble) that reaches down the most rows; the bar is the row that reaches across the most columns.
 	var stem := 0
 	var best := -1
 	for c in range(1, N - 1):
@@ -236,7 +236,7 @@ static func is_upright_cross(points: PackedVector2Array) -> bool:
 	if best < int(N * 0.8) or stem < int(N * 0.3) or stem > int(N * 0.7):
 		return false
 	best = 0
-	for r in range(1, N - 1):  # (a bar drawn on a slant lies across a few rows, so a row counts its neighbours too)
+	for r in range(1, N - 1):  # (a bar drawn on a slant lies across a few rows, so a row counts its neighbors too)
 		var across := 0
 		for c in N:
 			if cells.has(Vector2i(c, r - 1)) or cells.has(Vector2i(c, r)) or cells.has(Vector2i(c, r + 1)):
@@ -270,12 +270,12 @@ static func is_slashed_ring(points: PackedVector2Array) -> bool:
 	if split < 0:
 		return false
 	var ring := points.slice(0, split)
-	var centre := StrokeMeasure.centroid(ring)
-	var radius := StrokeMeasure.mean_distance(ring, centre)
+	var center := StrokeMeasure.centroid(ring)
+	var radius := StrokeMeasure.mean_distance(ring, center)
 	var tail := points.slice(split)
 	var tip := tail[tail.size() - 1]
-	var line := Geometry2D.get_closest_point_to_segment(centre, tail[0], tip)
-	return radius > 12.0 and tail[0].distance_to(tip) >= radius * 1.4 and line.distance_to(centre) <= radius * 0.5
+	var line := Geometry2D.get_closest_point_to_segment(center, tail[0], tip)
+	return radius > 12.0 and tail[0].distance_to(tip) >= radius * 1.4 and line.distance_to(center) <= radius * 0.5
 
 
 ## A cone drawn as <: two straight arms of similar length meeting at a point. Returns {"aim": the way from the
@@ -458,19 +458,19 @@ static func inward_spiral(points: PackedVector2Array) -> Dictionary:
 		return {}
 	# The middle is where the stroke ends up: the average of its last few points.
 	var tail := points.slice(int(points.size() * 0.85))
-	var centre := StrokeMeasure.centroid(tail)
-	var reach := points[0].distance_to(centre)
+	var center := StrokeMeasure.centroid(tail)
+	var reach := points[0].distance_to(center)
 	if reach < 30.0:
 		return {}
 	# Its distance from the middle must fall away: on average the second half is a good deal nearer than the first, and the last third than the
 	# first third. (Averages, since a hand-drawn spiral is never an even one.) It must also begin on the outside, not the middle of an outward one.
 	var third := points.size() / 3
 	var half := points.size() / 2
-	if StrokeMeasure.mean_distance(points.slice(half), centre) > StrokeMeasure.mean_distance(points.slice(0, half), centre) * 0.75:
+	if StrokeMeasure.mean_distance(points.slice(half), center) > StrokeMeasure.mean_distance(points.slice(0, half), center) * 0.75:
 		return {}
-	if StrokeMeasure.mean_distance(points.slice(points.size() - third), centre) > StrokeMeasure.mean_distance(points.slice(0, third), centre) * 0.62:
+	if StrokeMeasure.mean_distance(points.slice(points.size() - third), center) > StrokeMeasure.mean_distance(points.slice(0, third), center) * 0.62:
 		return {}
-	return {"center": centre, "reach": reach}
+	return {"center": center, "reach": reach}
 
 
 ## Storm Cloud: the bumpy top of a cloud, drawn across. Wide and low, always moving the same way across, with at

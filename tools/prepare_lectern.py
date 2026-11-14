@@ -55,10 +55,10 @@ edge = np.pad(~solid, 1, constant_values=True)  # outside the plaque, and a rim 
 outline = dark & (edge[:-2, 1:-1] | edge[2:, 1:-1] | edge[1:-1, :-2] | edge[1:-1, 2:])
 writing = dark & ~outline
 plate = px[solid & ~dark][:, :3]
-colour = np.median(plate, axis=0).astype(np.uint8)
-px[writing, :3] = colour
+color = np.median(plate, axis=0).astype(np.uint8)
+px[writing, :3] = color
 # the gold of the corners of the spellbook, in place of the plaque's own yellow, so the two belong to one place
-for old, new in {tuple(colour): (222, 158, 65), (255, 228, 0): (245, 196, 112), (0, 0, 0): (84, 50, 24)}.items():
+for old, new in {tuple(color): (222, 158, 65), (255, 228, 0): (245, 196, 112), (0, 0, 0): (84, 50, 24)}.items():
     px[solid & (px[:, :, :3] == old).all(axis=2), :3] = new
 Image.fromarray(px).save("art/props/lectern_plaque.png")
-print("plaque", plaque.size, "plate", tuple(colour), "filled", int(writing.sum()))
+print("plaque", plaque.size, "plate", tuple(color), "filled", int(writing.sum()))

@@ -29,11 +29,11 @@ static func max_deviation(points: PackedVector2Array) -> float:
 	return worst
 
 
-## The average distance of points from their centre: the radius of a drawn circle.
-static func mean_distance(points: PackedVector2Array, centre: Vector2) -> float:
+## The average distance of points from their center: the radius of a drawn circle.
+static func mean_distance(points: PackedVector2Array, center: Vector2) -> float:
 	var sum := 0.0
 	for p in points:
-		sum += p.distance_to(centre)
+		sum += p.distance_to(center)
 	return sum / points.size()
 
 

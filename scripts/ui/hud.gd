@@ -85,9 +85,9 @@ func _process(delta: float) -> void:
 
 
 ## A message along the bottom of the screen that fades after a few seconds.
-func show_message(text: String, colour: Color) -> void:
+func show_message(text: String, color: Color) -> void:
 	_feedback.text = text
-	_feedback.add_theme_color_override("font_color", colour)
+	_feedback.add_theme_color_override("font_color", color)
 	_feedback_time = 3.0
 
 

@@ -1,11 +1,11 @@
 class_name Grade
 extends CanvasLayer
 
-## The colour grade every world is seen through (see grade.gdshader): over the world, under the interface. Every world has the same grade, with a
+## The color grade every world is seen through (see grade.gdshader): over the world, under the interface. Every world has the same grade, with a
 ## cast of its own: cold in the peaks, green in the jungle, red in the ashlands, warm in the castle, so the art of each place is held together by one
 ## light. Shadows take the cast and the lights are tinted a little toward it.
 
-## Per biome: the colour the darkest shadows are pulled toward, the colour laid over the lights, and how dark the corners of the screen fall.
+## Per biome: the color the darkest shadows are pulled toward, the color laid over the lights, and how dark the corners of the screen fall.
 const CASTS := {
 	"graveyard": {"shadow": Vector3(0.09, 0.03, 0.10), "light": Vector3(1.03, 0.97, 1.04), "vignette": 0.42},
 	"jungle": {"shadow": Vector3(0.02, 0.08, 0.07), "light": Vector3(0.96, 1.05, 0.97), "vignette": 0.42},

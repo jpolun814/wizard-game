@@ -18,7 +18,7 @@ machine of a match sees the same ones.
 - Stepping into one (`FieldPortal.entered`) puts the wizard out of another open portal, picked at random; `COOLDOWN` (1 s) stops a wizard going straight back in.
   A shot that flies into one comes out of another, flying the same way.
 - The AI uses them (goal "portal") when there is no page to go for, or when one is nearer than the page. It goes only to ones on the ground.
-- Checks: `tests/checks/portal_world_check.tscn`, `tests/looks/portal_colours_look.tscn -- out=DIR`.
+- Checks: `tests/checks/portal_world_check.tscn`, `tests/looks/portal_colors_look.tscn -- out=DIR`.
 
 ## The ocean (`ocean`, "The Drowned Sea")
 

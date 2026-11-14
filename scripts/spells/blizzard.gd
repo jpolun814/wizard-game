@@ -263,7 +263,7 @@ func _draw() -> void:
 		var bob := roundf(sin(_age * 0.8 + i) * 2.0)
 		var at := Vector2(x, -60.0 - cloud.get_height() * 0.6 + bob)
 		draw_texture(cloud, at + Vector2(3.0, 7.0), Color(0.34, 0.4, 0.55, 0.8 * fade * grow))  # the dark underside of the cloud, a little below it
-		draw_texture(cloud, at, Color(0.7, 0.76, 0.9, fade * grow))  # storm cloud grey, not paper white
+		draw_texture(cloud, at, Color(0.7, 0.76, 0.9, fade * grow))  # storm cloud gray, not paper white
 		x += cloud.get_width() * 0.7
 		i += 1
 	# A haze of snow under the clouds that is thickest up under them and thins toward the ground and at both sides, so the storm has no

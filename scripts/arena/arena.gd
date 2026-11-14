@@ -17,8 +17,8 @@ var ritual: RitualInput
 var spellbook: Spellbook
 var hud: Hud
 var _minimap: Minimap
-var grade_biome := ""  # the cast of colour the world is seen through (see Grade), the same for anything that shows a second view of it
-var greyed := false  # the world is seen without colour (the graveyard), and so is anything that shows a second view of it
+var grade_biome := ""  # the cast of color the world is seen through (see Grade), the same for anything that shows a second view of it
+var grayed := false  # the world is seen without color (the graveyard), and so is anything that shows a second view of it
 var _eye: ScryingEye  # the window of the Chant of the Scrying Eye, bottom right
 var insight := InsightTip.new(self)  # the hover tooltip Insight shows over an enemy
 ## The minimap is hidden until its chant brings it into view. Health and stamina are always shown.

@@ -23,7 +23,7 @@ var _dug_tiles := {}  # the tiles of the ground that pits have taken away, so th
 var _built: Dictionary  # what the generator made, kept to build the ways again when a gate is cleared
 var _planks := []  # the castle's swinging stairs: [{"hinge", "ends", "ways"}]
 var _weather: Array[Weather] = []
-const DEEP := Color(0.3, 0.27, 0.42)  # the colour of everything unlit, just under the ground
+const DEEP := Color(0.3, 0.27, 0.42)  # the color of everything unlit, just under the ground
 const BLACK := Color(0.015, 0.015, 0.03)  # and far down: nothing shows without a light
 const DARKEN_ROWS := 16.0  # how far under the surface it takes for the light of the day to fade
 const BLACKEN_ROWS := 110.0  # and for the dark to become total
@@ -187,7 +187,7 @@ func _begin_encounter(camera: Camera2D) -> void:
 	scenery.grow_trees()
 	scenery.raise_the_gale()
 	scenery.raise_biome_life()
-	scenery.wash_out_the_colour()
+	scenery.wash_out_the_color()
 	grade_biome = SurfaceGen.biome_at(graph.surface, graph.surface["start"])
 	add_child(Grade.for_biome(grade_biome))
 	if MatchState.stage == 0:

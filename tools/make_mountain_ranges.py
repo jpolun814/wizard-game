@@ -3,7 +3,7 @@
 The ground the player walks on climbs in flanks of every steepness, with ledges and crags; these ranges now do the same, so no layer is
 a smooth hill. Each is a ridge made of straight runs of different slopes (some steep, some shallow, some a flat tread) with the odd ledge
 and a ragged edge, lit from the left, and the far one is capped with snow. Both repeat at their edges, as the scenery is laid side by side.
-Colours are those of tools/prepare_biome_backdrops.py. Run it from the project folder: python tools/make_mountain_ranges.py
+Colors are those of tools/prepare_biome_backdrops.py. Run it from the project folder: python tools/make_mountain_ranges.py
 """
 import os
 import numpy as np
@@ -12,7 +12,7 @@ from PIL import Image
 OUT = "art/backgrounds/mountains"
 
 
-def hexcolour(code):
+def hexcolor(code):
     return np.array([int(code[i:i + 2], 16) for i in (1, 3, 5)], dtype=np.float32)
 
 
@@ -46,16 +46,16 @@ def paint(width, height, top, clean, rock_top, rock_bottom, snow=None, snow_line
         lit = 1.2 if slope[x] > 0.6 else 0.72 if slope[x] < -0.6 else 0.96
         for y in range(max(top[x], 0), height):
             depth = (y - top[x]) / max(height - top[x], 1)
-            colour = hexcolour(rock_top) * (1 - depth) + hexcolour(rock_bottom) * depth
-            colour = colour * lit * dark
+            color = hexcolor(rock_top) * (1 - depth) + hexcolor(rock_bottom) * depth
+            color = color * lit * dark
             if cracks[y, x] or cracks[(y + 1) % height, (x + 1) % width]:  # a crack in the face, a few pixels long
-                colour = colour * 0.78
+                color = color * 0.78
             if snow is not None and top[x] < snow_line:
                 reach = (snow_line - top[x]) * 0.55 + 2 * np.sin(x / 2.3) + rng.integers(-1, 2)
                 if y - top[x] < reach:
                     shade = 1.0 - 0.45 * (y - top[x]) / max(reach, 1)
-                    colour = hexcolour(snow[0]) * shade + hexcolour(snow[1]) * (1 - shade)
-            image[y, x, :3] = np.clip(colour, 0, 255) / 255.0
+                    color = hexcolor(snow[0]) * shade + hexcolor(snow[1]) * (1 - shade)
+            image[y, x, :3] = np.clip(color, 0, 255) / 255.0
             image[y, x, 3] = 1.0
     return image
 

@@ -67,7 +67,7 @@ func _show_swing() -> void:
 	var blade := Sprite2D.new()
 	blade.texture = BLADE
 	blade.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	blade.material = Fx.additive()  # it is made of light, not iron: the colours of the art are only its shape
+	blade.material = Fx.additive()  # it is made of light, not iron: the colors of the art are only its shape
 	blade.modulate = Color(1.0, 0.4, 0.55, 0.9)
 	blade.scale = Vector2(2.0, 2.0)  # whole times the art, so the blade reaches as far as the swing hurts
 	blade.offset = Vector2(0.0, -30.0)

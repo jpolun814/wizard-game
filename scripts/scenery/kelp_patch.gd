@@ -4,7 +4,7 @@ extends Node2D
 ## A stand of kelp on the sea floor (chapter 20): single strands, drawn in front of whoever is among them, with gaps between so that a person can still see
 ## their own wizard. The drawing is all there is to the hiding for a person; for a brain's eyes the patch is a sight blocker (see `blocks`), which
 ## does the same for them: a wizard in the kelp is not made out from far off. It slows whoever wades through it, as the Mudslide does.
-## The strands are the jungle's hanging vine turned the right way up and dyed; the world's own colours do the rest.
+## The strands are the jungle's hanging vine turned the right way up and dyed; the world's own colors do the rest.
 
 const VINE := preload("res://art/props/jungle_vine.png")
 const SIZE := 2                # whole-number scales only: a strand is this many times the picture

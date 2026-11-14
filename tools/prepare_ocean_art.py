@@ -8,11 +8,11 @@
   Ship Pixel Background" (OGA-BY 3.0, opengameart.org/content/wrecked-and-sunken-ship-pixel-background), cut to the
   ship, with the sand fading out at both sides so it lies on any floor.
 
-The layers are bright and blue as they come: they are greyed a little, darkened and turned toward the sea's teal, so they
-sit in the dark with the rest of the game. The ship is all greens: its hull is given the colours of the driftwood (the town pack's
+The layers are bright and blue as they come: they are grayed a little, darkened and turned toward the sea's teal, so they
+sit in the dark with the rest of the game. The ship is all greens: its hull is given the colors of the driftwood (the town pack's
 planks as the game tints them, carried a little lighter so the planks and holes still show) and its bank of sand the sea floor's
 sand (tools/prepare_earth.py), each shade by its brightness, so it reads as a solid thing in the water and not as scenery (owner,
-2026-11-12). Nothing is drawn here: every pixel is the packs' own, in other colours.
+2026-11-12). Nothing is drawn here: every pixel is the packs' own, in other colors.
 """
 import os
 import sys
@@ -24,12 +24,12 @@ SAND = [(46, 43, 34), (67, 62, 48), (87, 80, 64), (107, 98, 76), (133, 122, 94)]
 SAND_GREEN = 140  # in the pack's picture, the bank's greens are at least this green, and the hull's are less
 
 
-def recolour_ship(im: Image.Image) -> Image.Image:
-    """Each of the picture's colours goes to the shade of wood or sand that is as far up its own ramp as it is up the picture's."""
+def recolor_ship(im: Image.Image) -> Image.Image:
+    """Each of the picture's colors goes to the shade of wood or sand that is as far up its own ramp as it is up the picture's."""
     px = im.load()
-    colours = sorted({px[x, y][:3] for y in range(im.size[1]) for x in range(im.size[0]) if px[x, y][3] > 0}, key=lambda c: c[0] * 0.3 + c[1] * 0.59 + c[2] * 0.11)
+    colors = sorted({px[x, y][:3] for y in range(im.size[1]) for x in range(im.size[0]) if px[x, y][3] > 0}, key=lambda c: c[0] * 0.3 + c[1] * 0.59 + c[2] * 0.11)
     mapping = {}
-    for group, ramp in [([c for c in colours if c[1] < SAND_GREEN], WOOD), ([c for c in colours if c[1] >= SAND_GREEN], SAND)]:
+    for group, ramp in [([c for c in colors if c[1] < SAND_GREEN], WOOD), ([c for c in colors if c[1] >= SAND_GREEN], SAND)]:
         for k, c in enumerate(group):
             mapping[c] = ramp[min(len(ramp) - 1, k * len(ramp) // max(len(group), 1))]
     out = im.copy()
@@ -51,8 +51,8 @@ def darken(im: Image.Image, k: float, tint: tuple) -> Image.Image:
     for y in range(im.size[1]):
         for x in range(im.size[0]):
             r, g, b, a = src[x, y]
-            grey = r * 0.3 + g * 0.59 + b * 0.11
-            dst[x, y] = tuple(int((c * 0.5 + grey * 0.5) * k * t) for c, t in zip((r, g, b), tint)) + (a,)
+            gray = r * 0.3 + g * 0.59 + b * 0.11
+            dst[x, y] = tuple(int((c * 0.5 + gray * 0.5) * k * t) for c, t in zip((r, g, b), tint)) + (a,)
     return out
 
 
@@ -65,7 +65,7 @@ def main() -> None:
         print("wrote", name)
     ship = Image.open(os.path.join(ship_dir, "3_145.png")).convert("RGBA")
     ship = ship.crop(ship.getbbox())
-    ship = recolour_ship(ship)
+    ship = recolor_ship(ship)
     px = ship.load()
     fade = 70
     for y in range(SAND_TOP, ship.size[1]):  # only the sand fades: the bow of the near half reaches the edge above it

@@ -42,7 +42,7 @@ static func layout(tree_size: int, mirrored: bool) -> Dictionary:
 	return {"first": first, "last": last, "vine": vine, "rows": ceili((ledge[0] * scale_up - 2.0) / TILE)}
 
 
-## The rope bridges between neighbouring large trees of the same size on level ground: [{"first", "last": the columns the bridge covers,
+## The rope bridges between neighboring large trees of the same size on level ground: [{"first", "last": the columns the bridge covers,
 ## "row": the row its planks lie on (the same as the two ledges it joins)}]. A bridge runs from the end of one tree's high ledge to the start of the next's.
 static func bridges(trees: Array, floors: PackedInt32Array) -> Array:
 	var out := []

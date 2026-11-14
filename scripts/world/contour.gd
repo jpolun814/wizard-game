@@ -3,7 +3,7 @@ extends RefCounted
 
 ## Traces the edge between rock and open air in a TileGrid into smooth closed outlines.
 ##
-## Each window of four tile centres has the outline pass through the middles of its edges (marching squares), so a wall of tiles
+## Each window of four tile centers has the outline pass through the middles of its edges (marching squares), so a wall of tiles
 ## is a straight line on the tile boundary and a staircase of tiles is a slope. The outlines are then spread evenly, rounded off
 ## and thinned where they run straight. Walking a whole world's tiles one by one would take seconds, so each row is read as runs
 ## of rock with the packed array's own search, and only the windows where a row differs from the one below it, or where a run
@@ -209,7 +209,7 @@ func _near_stone(point: Vector2) -> bool:
 	return false
 
 
-## An outline spread evenly along its length, then rounded off by averaging each point with its neighbours, then thinned
+## An outline spread evenly along its length, then rounded off by averaging each point with its neighbors, then thinned
 ## where it runs straight.
 func _smooth(points: PackedVector2Array) -> PackedVector2Array:
 	var length := 0.0

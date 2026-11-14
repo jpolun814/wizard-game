@@ -71,10 +71,10 @@ func _ready() -> void:
 				var value: int = terrain.data[(row + lo.y) * full_width + col + lo.x]
 				if value != 0:
 					var k := row * cols + col
-					var colour := ground if value == ArenaGen.GROUND + 1 else stone
-					bytes[k * 4] = colour.r8
-					bytes[k * 4 + 1] = colour.g8
-					bytes[k * 4 + 2] = colour.b8
+					var color := ground if value == ArenaGen.GROUND + 1 else stone
+					bytes[k * 4] = color.r8
+					bytes[k * 4 + 1] = color.g8
+					bytes[k * 4 + 2] = color.b8
 					bytes[k * 4 + 3] = 255
 		image = Image.create_from_data(cols, rows, false, Image.FORMAT_RGBA8, bytes)
 	else:

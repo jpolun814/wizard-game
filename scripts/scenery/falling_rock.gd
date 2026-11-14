@@ -9,7 +9,7 @@ const RADIUS := 22.0
 const DAMAGE := 10
 const SPRITE := preload("res://art/props/rock_spike_1.png")
 
-var tint := Color(1, 1, 1)  ## set by the cave: the colour of the ground's own rock
+var tint := Color(1, 1, 1)  ## set by the cave: the color of the ground's own rock
 var _speed := 0.0
 var _ground_y := 0.0
 var _struck := false

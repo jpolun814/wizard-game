@@ -1,6 +1,6 @@
 shader_type canvas_item;
 
-// A one-pixel glowing outline round whatever the sprite draws, in the colour given.
+// A one-pixel glowing outline round whatever the sprite draws, in the color given.
 uniform vec4 outline_color : source_color = vec4(1.0, 0.9, 0.6, 1.0);
 uniform float strength = 1.0;
 

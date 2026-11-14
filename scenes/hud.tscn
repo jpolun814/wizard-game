@@ -110,7 +110,7 @@ mouse_filter = 2
 script = ExtResource("3")
 group = &"hexes"
 caption = "Hexed"
-colour = Color(1, 0.42, 0.541, 1)
+color = Color(1, 0.42, 0.541, 1)
 outline = Color(0.15, 0.03, 0.06, 1)
 
 [node name="DowsingArrows" type="Control" parent="."]
@@ -124,7 +124,7 @@ mouse_filter = 2
 script = ExtResource("3")
 group = &"dowsings"
 caption = "Page"
-colour = Color(1, 0.91, 0.63, 1)
+color = Color(1, 0.91, 0.63, 1)
 outline = Color(0.15, 0.1, 0.03, 1)
 
 [node name="HuntArrows" type="Control" parent="."]
@@ -138,7 +138,7 @@ mouse_filter = 2
 script = ExtResource("3")
 group = &"hunts"
 caption = "Prey"
-colour = Color(0.9, 0.2, 0.25, 1)
+color = Color(0.9, 0.2, 0.25, 1)
 outline = Color(0.15, 0.02, 0.04, 1)
 
 [node name="GameOver" type="ColorRect" parent="."]

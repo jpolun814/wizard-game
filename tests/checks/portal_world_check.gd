@@ -1,6 +1,6 @@
 extends Node
 
-## The portal world: portals open on a rhythm, each a colour of its own, and walking into one brings you out of another.
+## The portal world: portals open on a rhythm, each a color of its own, and walking into one brings you out of another.
 ##
 ##     godot --headless --fixed-fps 60 --path . tests/checks/portal_world_check.tscn
 
@@ -81,7 +81,7 @@ func _run(world: World) -> void:
 		reachable_always = reachable_always and (open.is_empty() or grounded)
 	_check(reachable_always, "some portal that is open can always be reached from the ground, by walking or jumping")
 	_check(some_in_the_air, "and some hang in the air")
-	_check(shared == 0, "no two portals open together share a colour (most open at once: %d)" % most)
+	_check(shared == 0, "no two portals open together share a color (most open at once: %d)" % most)
 	_check(lasts, "each stays open for three intervals and no longer")
 	var sizes := {}
 	for wave in range(1, 60):
@@ -104,7 +104,7 @@ func _run(world: World) -> void:
 		var tints := {}
 		for p in live:
 			tints[p.tint.to_html()] = true
-		_check(tints.size() == live.size(), "each in its own colour")
+		_check(tints.size() == live.size(), "each in its own color")
 		world.player.global_position = a.global_position + Vector2(0.0, Portal.RY)
 		for k in 8:
 			await get_tree().physics_frame

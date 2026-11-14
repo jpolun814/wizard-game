@@ -75,7 +75,7 @@ func _player() -> Node2D:
 	return _arena.player
 
 
-## A stroke made of a shape's points, placed so its bounding box is centred on a point, at a size.
+## A stroke made of a shape's points, placed so its bounding box is centerd on a point, at a size.
 func _stroke(gesture: String, middle: Vector2, size := 1.0) -> PackedVector2Array:
 	var shape := GestureTemplates.preview_points(gesture)
 	var low := shape[0]
@@ -405,7 +405,7 @@ func _plan() -> void:
 					_exit_code = 1
 				_snap("known"))
 		"water":
-			# Wading, then diving, in the pond and the lava pit: only the part under the surface takes the colour.
+			# Wading, then diving, in the pond and the lava pit: only the part under the surface takes the color.
 			var spots := [[8, 0.0], [8, 30.0], [8, 90.0], [-20, 30.0]]
 			for i in spots.size():
 				_at(0.5 + i * 0.8, func() -> void:
@@ -438,7 +438,7 @@ func _plan() -> void:
 		"cave":
 			_plan_cave()
 		"kinds":
-			# Every enemy kind in a row, frozen in place, to check colours and sizes.
+			# Every enemy kind in a row, frozen in place, to check colors and sizes.
 			_at(0.3, func() -> void:
 				var x: float = _player().global_position.x - 330.0
 				var i := 0
@@ -536,7 +536,7 @@ func _plan() -> void:
 				_at(1.2 + i * 0.6, func() -> void: _snap())
 
 
-## A stroke that starts exactly at a point, rather than being centred on it: for spells placed where the stroke begins.
+## A stroke that starts exactly at a point, rather than being centerd on it: for spells placed where the stroke begins.
 func _stroke_from(gesture: String, start: Vector2, size := 1.0) -> PackedVector2Array:
 	var shape := GestureTemplates.preview_points(gesture)
 	var out := PackedVector2Array()

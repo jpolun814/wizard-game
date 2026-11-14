@@ -5,7 +5,7 @@ extends Node2D
 ## into one comes out of another that is open. Which open, where and how many all come from the world's seed and age, so every
 ## machine of a match sees the same portals at the same moment. The first wave is never fewer than two; each later one brings none to eight, spread from one end of the world to the other.
 ## Some hang in the air, but the first of every wave stands on the ground and some of the rest can be jumped to, so there is always a way in.
-## Each portal has a colour of its own: no two that are open at once share a hue.
+## Each portal has a color of its own: no two that are open at once share a hue.
 
 const INTERVAL := 5.0
 const LIFETIME := 15.0     # three intervals
@@ -107,9 +107,9 @@ func _id_of(wave: int, k: int) -> int:
 	return wave * 8 + k
 
 
-## The colour of a portal: the hues are dealt round in turn, so the ones open together are all different.
+## The color of a portal: the hues are dealt round in turn, so the ones open together are all different.
 static func tint_of(id: int) -> Color:
-	var order := (id * 5) % HUES  # five is coprime to twelve: neighbours in time are far apart in hue
+	var order := (id * 5) % HUES  # five is coprime to twelve: neighbors in time are far apart in hue
 	return Color.from_hsv(float(order) / HUES, 0.9, 1.0)
 
 

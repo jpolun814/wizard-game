@@ -2,7 +2,7 @@ class_name Intro
 extends CutScene
 
 ## The cut-scene between the waiting room and a world. It opens on one wizard, whoever is watching, running through a cathedral hall at night to
-## the spellbook, bound and glowing, hanging over the floor of the hall. Other wizards arrive, ten in all, each in a colour of its own, and every one
+## the spellbook, bound and glowing, hanging over the floor of the hall. Other wizards arrive, ten in all, each in a color of its own, and every one
 ## of them reaches for it. The pull of so many tears it apart: its pages burst loose and, with the book unbound, a portal opens in the ceiling and
 ## begins to come apart. They fight for the pages: bolts meet in the air and burst, and the blasts of those that land knock the pages about, and
 ## the portal takes the ones that are thrown high. Wizards fall one after another until four are left. Then the portal tears wide and pulls those four
@@ -31,24 +31,24 @@ const PULL_HEIGHT := 150.0  # how high over the floor a page must be before it f
 const TORN_PULL := 2600.0  # and once it tears, it draws at everything
 const GOLD := Color("#ffe9a0")
 const SKIP_HINT_AFTER := 1.0
-## The ten wizards: no two alike. Each is one of the four looks (the player's own and the dark, bone and pyre wizards), in its own colours: the
-## folders `art/chars/<look>_<colour>` are copies with the colours turned (see tools/make_wizard_colours.py). "colour" is the glow of its magic.
+## The ten wizards: no two alike. Each is one of the four looks (the player's own and the dark, bone and pyre wizards), in its own colors: the
+## folders `art/chars/<look>_<color>` are copies with the colors turned (see tools/make_wizard_colors.py). "color" is the glow of its magic.
 ## "to" is where it stands in the ring round the pile, "mode" how it comes (run, blink in with a puff of light, or walk), "at" when it does.
 ## The first is whoever is watching: it runs in from far off, and is the one of the four who are left that the camera follows. The first four are
 ## the ones who live to see the portal tear; the rest fall.
 const WIZARDS := [
-	{"art": "wizard", "look": "wizard", "colour": Color("#b080ff"), "to": -300.0, "from": -1050.0, "mode": "run", "at": 0.0},
-	{"art": "dark_wizard", "look": "dark_wizard", "colour": Color("#d070ff"), "to": -95.0, "mode": "blink", "at": 2.3},
-	{"art": "bone_wizard", "look": "bone_wizard", "colour": Color("#ff4a4a"), "to": 55.0, "from": 560.0, "mode": "walk", "at": 1.2},
-	{"art": "pyre_wizard", "look": "pyre_wizard", "colour": Color("#ffb040"), "to": 375.0, "from": 560.0, "mode": "walk", "at": 2.5},
+	{"art": "wizard", "look": "wizard", "color": Color("#b080ff"), "to": -300.0, "from": -1050.0, "mode": "run", "at": 0.0},
+	{"art": "dark_wizard", "look": "dark_wizard", "color": Color("#d070ff"), "to": -95.0, "mode": "blink", "at": 2.3},
+	{"art": "bone_wizard", "look": "bone_wizard", "color": Color("#ff4a4a"), "to": 55.0, "from": 560.0, "mode": "walk", "at": 1.2},
+	{"art": "pyre_wizard", "look": "pyre_wizard", "color": Color("#ffb040"), "to": 375.0, "from": 560.0, "mode": "walk", "at": 2.5},
 ]
 const EXTRAS := [
-	{"art": "wizard", "look": "wizard_emerald", "colour": Color("#5ae05a"), "to": -230.0, "mode": "blink", "at": 1.9},
-	{"art": "dark_wizard", "look": "dark_wizard_teal", "colour": Color("#38d8c8"), "to": -160.0, "mode": "blink", "at": 2.1},
-	{"art": "bone_wizard", "look": "bone_wizard_ice", "colour": Color("#58a8ff"), "to": 120.0, "from": 560.0, "mode": "walk", "at": 1.6},
-	{"art": "pyre_wizard", "look": "pyre_wizard_green", "colour": Color("#b8ff50"), "to": 185.0, "from": 560.0, "mode": "walk", "at": 1.9},
-	{"art": "wizard", "look": "wizard_amber", "colour": Color("#f0c040"), "to": 250.0, "from": 560.0, "mode": "walk", "at": 2.1},
-	{"art": "pyre_wizard", "look": "pyre_wizard_magenta", "colour": Color("#ff58d8"), "to": 310.0, "from": 560.0, "mode": "walk", "at": 2.3},
+	{"art": "wizard", "look": "wizard_emerald", "color": Color("#5ae05a"), "to": -230.0, "mode": "blink", "at": 1.9},
+	{"art": "dark_wizard", "look": "dark_wizard_teal", "color": Color("#38d8c8"), "to": -160.0, "mode": "blink", "at": 2.1},
+	{"art": "bone_wizard", "look": "bone_wizard_ice", "color": Color("#58a8ff"), "to": 120.0, "from": 560.0, "mode": "walk", "at": 1.6},
+	{"art": "pyre_wizard", "look": "pyre_wizard_green", "color": Color("#b8ff50"), "to": 185.0, "from": 560.0, "mode": "walk", "at": 1.9},
+	{"art": "wizard", "look": "wizard_amber", "color": Color("#f0c040"), "to": 250.0, "from": 560.0, "mode": "walk", "at": 2.1},
+	{"art": "pyre_wizard", "look": "pyre_wizard_magenta", "color": Color("#ff58d8"), "to": 310.0, "from": 560.0, "mode": "walk", "at": 2.3},
 ]
 ## How much each look is drawn at, so that all ten bodies are as tall as the wizard's (head to feet; a staff, a flame or a hood's point above the head does not count): the other three's art is smaller.
 const LOOK_SCALE := {"wizard": 1.0, "dark_wizard": 1.6, "bone_wizard": 1.6, "pyre_wizard": 1.8}  # (the four of a match are drawn at WizardLook's sizes instead)
@@ -213,14 +213,14 @@ func _build_wizards() -> void:
 		used[styles[k]["look"]] = true
 	for k in EXTRAS.size():
 		var entry: Dictionary = EXTRAS[k].duplicate()
-		if k < styles.size() - WIZARDS.size():  # the next seats of the match, in the looks and colours they will wear
+		if k < styles.size() - WIZARDS.size():  # the next seats of the match, in the looks and colors they will wear
 			var style: Dictionary = styles[WIZARDS.size() + k]
 			entry["art"] = style["look"]
 			entry["look"] = style["look"]
 			entry["palette"] = style["palette"]
 		used[entry["art"]] = true
 		entries.append(entry)
-	for k in range(EXTRAS.size() - 1, -1, -1):  # a look nobody wears yet takes the place of one of the old recoloured copies
+	for k in range(EXTRAS.size() - 1, -1, -1):  # a look nobody wears yet takes the place of one of the old recolored copies
 		for look: String in WizardLook.LOOKS:
 			if not used.has(look) and not entries[k].has("palette"):
 				entries[k]["art"] = look
@@ -233,7 +233,7 @@ func _build_wizards() -> void:
 	_all.append_array(_extras)
 
 
-## The look and colours of the four wizards of the match, the person at this machine first: the same ones that will stand in the world.
+## The look and colors of the four wizards of the match, the person at this machine first: the same ones that will stand in the world.
 func _seat_styles() -> Array:
 	var mine := maxi(Net.seat_of(Net.my_id()), 0) if Net.online() else 0
 	var out := [Net.style_of_seat(mine)]
@@ -261,7 +261,7 @@ func _make_wizard(entry: Dictionary) -> IntroWizard:
 	body.add_child(sprite)
 	body.sprite = sprite
 	body.face = face
-	body.colour = entry["colour"]
+	body.color = entry["color"]
 	if entry["mode"] == "blink":
 		body.modulate.a = 0.0  # it is not there until it steps out of the light
 	add_child(body)
@@ -398,15 +398,15 @@ func _flinch(wizard: IntroWizard) -> void:
 			_play(wizard, "idle", face))
 
 
-## A wizard raises their staff at the others: their own colour gathers on it, and they hold the pose.
+## A wizard raises their staff at the others: their own color gathers on it, and they hold the pose.
 func _draw_on_the_others(index: int) -> void:
 	var wizard := _all[index]
 	var face := wizard.face
-	var colour := wizard.colour
+	var color := wizard.color
 	_play(wizard, "grab", face)
 	Sfx.play("push", wizard.position, -14.0)
-	Fx.burst(self, _staff(index), colour, 14, 120.0, 0.5, true)
-	var glow := Fx.trail(colour, 12, 0.6, 20.0, Vector2(0, -20), "star_04", 6.0)  # it keeps crackling there
+	Fx.burst(self, _staff(index), color, 14, 120.0, 0.5, true)
+	var glow := Fx.trail(color, 12, 0.6, 20.0, Vector2(0, -20), "star_04", 6.0)  # it keeps crackling there
 	glow.position = Vector2(face * 38.0, -62.0)
 	glow.local_coords = true
 	wizard.add_child(glow)
@@ -477,34 +477,34 @@ func _open_the_portal() -> void:
 	create_tween().tween_property(_portal, "scale", Vector2.ONE * PORTAL_SCALE, 0.5).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 
-## A bolt of a wizard's own colour, leaving a trail, at a place.
-func _make_bolt(at: Vector2, colour: Color) -> Node2D:
+## A bolt of a wizard's own color, leaving a trail, at a place.
+func _make_bolt(at: Vector2, color: Color) -> Node2D:
 	var bolt := Node2D.new()
 	bolt.material = Fx.additive()
 	bolt.z_index = 3
 	bolt.position = at
 	bolt.draw.connect(func() -> void:
-		Fx.draw_glow(bolt, Vector2.ZERO, 40.0, Color(colour, 0.9))
+		Fx.draw_glow(bolt, Vector2.ZERO, 40.0, Color(color, 0.9))
 		Fx.draw_glow(bolt, Vector2.ZERO, 16.0, Color(1, 1, 1, 0.9)))
-	var trail := Fx.trail(colour, 30, 0.3, 14.0, Vector2.ZERO, "star_04", 7.0)
+	var trail := Fx.trail(color, 30, 0.3, 14.0, Vector2.ZERO, "star_04", 7.0)
 	trail.local_coords = false
 	bolt.add_child(trail)
 	add_child(bolt)
 	return bolt
 
 
-## One wizard fires at another with a bolt of their own colour. If it kills, the other goes down for good.
+## One wizard fires at another with a bolt of their own color. If it kills, the other goes down for good.
 func _shoot(from_index: int, to_index: int, kills := false) -> void:
 	var from_at := _staff(from_index)
 	var to_wizard := _all[to_index]
 	var to_at := to_wizard.position + Vector2(0.0, -55.0)
-	var colour: Color = _all[from_index].colour
+	var color: Color = _all[from_index].color
 	_play(_all[from_index], "grab", signf(to_at.x - from_at.x))
 	Sfx.play("push", from_at, -6.0)
-	var bolt := _make_bolt(from_at, colour)
+	var bolt := _make_bolt(from_at, color)
 	var tween := create_tween()
 	tween.tween_property(bolt, "position", to_at, 0.3)
-	tween.tween_callback(_struck.bind(bolt, to_index, colour, kills))
+	tween.tween_callback(_struck.bind(bolt, to_index, color, kills))
 
 
 ## Two wizards fire at once and the bolts meet over the pile and burst.
@@ -516,10 +516,10 @@ func _clash(a: int, b: int) -> void:
 	_play(_all[b], "grab", signf(from_a.x - from_b.x))
 	Sfx.play("push", from_a, -6.0)
 	Sfx.play("push", from_b, -6.0)
-	var colour_a: Color = _all[a].colour
-	var colour_b: Color = _all[b].colour
-	var bolt_a := _make_bolt(from_a, colour_a)
-	var bolt_b := _make_bolt(from_b, colour_b)
+	var color_a: Color = _all[a].color
+	var color_b: Color = _all[b].color
+	var bolt_a := _make_bolt(from_a, color_a)
+	var bolt_b := _make_bolt(from_b, color_b)
 	create_tween().tween_property(bolt_b, "position", middle, 0.35)
 	var tween := create_tween()
 	tween.tween_property(bolt_a, "position", middle, 0.35)
@@ -529,21 +529,21 @@ func _clash(a: int, b: int) -> void:
 		_shake = maxf(_shake, 0.9)
 		_unrest = minf(_unrest + 0.04, 1.0)
 		Sfx.play("explosion", middle, -10.0)
-		Fx.burst(self, middle, colour_a, 14, 200.0, 0.5, true)
-		Fx.burst(self, middle, colour_b, 14, 200.0, 0.5, true)
+		Fx.burst(self, middle, color_a, 14, 200.0, 0.5, true)
+		Fx.burst(self, middle, color_b, 14, 200.0, 0.5, true)
 		Fx.burst(self, middle, Color.WHITE, 8, 120.0, 0.3, true)
 		_blast(middle, 1.3))
 
 
 ## A bolt lands. One of the four is thrown back and a page flies out of their hands, into the portal; one of the six falls and does not get up.
-func _struck(bolt: Node2D, index: int, colour: Color, kills: bool) -> void:
+func _struck(bolt: Node2D, index: int, color: Color, kills: bool) -> void:
 	bolt.queue_free()
 	var wizard := _all[index]
 	var face := wizard.face
 	_shake = maxf(_shake, 0.8)
 	_unrest = minf(_unrest + 0.04, 1.0)
 	Sfx.play("player_hurt" if index == 0 else "mob_hurt", wizard.position, -4.0)
-	Fx.burst(self, wizard.position + Vector2(0.0, -55.0), colour, 16, 190.0, 0.5, true)
+	Fx.burst(self, wizard.position + Vector2(0.0, -55.0), color, 16, 190.0, 0.5, true)
 	if kills:
 		wizard.alive = false
 		for child in wizard.get_children():
@@ -581,10 +581,10 @@ func _blast(at: Vector2, power: float) -> void:
 func _stray(index: int, x: float) -> void:
 	var from_at := _staff(index)
 	var to_at := Vector2(x, FLOOR_Y - 6.0)
-	var colour: Color = _all[index].colour
+	var color: Color = _all[index].color
 	_play(_all[index], "grab", signf(to_at.x - from_at.x))
 	Sfx.play("push", from_at, -6.0)
-	var bolt := _make_bolt(from_at, colour)
+	var bolt := _make_bolt(from_at, color)
 	var tween := create_tween()
 	tween.tween_property(bolt, "position", to_at, 0.35)
 	tween.tween_callback(func() -> void:
@@ -592,7 +592,7 @@ func _stray(index: int, x: float) -> void:
 		_shake = maxf(_shake, 0.7)
 		_unrest = minf(_unrest + 0.03, 1.0)
 		Sfx.play("explosion", to_at, -10.0)
-		Fx.burst(self, to_at, colour, 16, 220.0, 0.5, true)
+		Fx.burst(self, to_at, color, 16, 220.0, 0.5, true)
 		_blast(to_at, 1.0))
 
 

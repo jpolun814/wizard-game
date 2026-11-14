@@ -20,7 +20,7 @@ static func cast(caster: Wizard) -> void:
 	jet.initial_velocity_min = 120.0
 	jet.initial_velocity_max = 220.0
 	caster.add_child(jet)
-	var smoke := Fx.trail(Color(0.32, 0.3, 0.3, 0.55), 60, 1.6, 30.0, Vector2(0.0, -20.0), "smoke_04", 34.0)  # a grey trail left hanging where the rocket has been
+	var smoke := Fx.trail(Color(0.32, 0.3, 0.3, 0.55), 60, 1.6, 30.0, Vector2(0.0, -20.0), "smoke_04", 34.0)  # a gray trail left hanging where the rocket has been
 	smoke.material = null  # not glowing, so it darkens what is behind it
 	smoke.position = Vector2.ZERO
 	smoke.direction = Vector2.DOWN

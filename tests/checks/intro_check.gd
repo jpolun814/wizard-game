@@ -35,7 +35,7 @@ func _ready() -> void:
 	var chosen := Net.look_of(Net.my_id())
 	var scale_ok := is_equal_approx(first.scale.x, WizardLook.scale_of(chosen))
 	_verdict(scale_ok, "the first wizard is the figure the person chose (%s), drawn at its size" % chosen)
-	_verdict(first.material is ShaderMaterial and first.get_parent().get_child_count() > 0, "and it wears the person's colours (a material set from their palette)")
+	_verdict(first.material is ShaderMaterial and first.get_parent().get_child_count() > 0, "and it wears the person's colors (a material set from their palette)")
 	_checks = {
 		1.0: _check_camera_runs_with_the_first,
 		1.5: _check_set,

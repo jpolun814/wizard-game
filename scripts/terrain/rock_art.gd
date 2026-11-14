@@ -10,7 +10,7 @@ const RIM := Color("#0d0916")
 const BRIGHTEN := 1.2  # loose rock is only a little brighter than the ground it lies on: the same stone, with the same dark seams
 
 
-## The earth's colour at a point, whole blocks of it.
+## The earth's color at a point, whole blocks of it.
 static func _earth(image: Image, x: int, y: int) -> Color:
 	var c := image.get_pixel(posmod(x, image.get_width()), posmod(y, image.get_height()))
 	return Color(minf(c.r * BRIGHTEN, 1.0), minf(c.g * BRIGHTEN, 1.0), minf(c.b * BRIGHTEN, 1.0), c.a)
@@ -46,10 +46,10 @@ static func boulder(earth: Texture2D, radius: float, seed_value: int) -> ImageTe
 			var light := normal.dot(Vector3(-0.55, -0.65, 0.5).normalized())
 			var base := _earth(image, x * BLOCK + offset.x, y * BLOCK + offset.y)
 			var shade := clampf(0.8 + light * 0.9, 0.5, 1.9)
-			var colour := Color(base.r * shade, base.g * shade, base.b * shade, 1.0)
+			var color := Color(base.r * shade, base.g * shade, base.b * shade, 1.0)
 			if d.length() > edge - 1.0:
-				colour = RIM.lerp(colour, 0.4)
-			out.set_pixel(x, y, colour)
+				color = RIM.lerp(color, 0.4)
+			out.set_pixel(x, y, color)
 	return ImageTexture.create_from_image(out)
 
 
@@ -92,10 +92,10 @@ static func slab(earth: Texture2D, length: float, thickness: float, knocked: flo
 				shade = 1.35  # the lit top
 			elif from_bottom < 2.0:
 				shade = 0.8  # the shaded underside
-			var colour := Color(base.r * shade, base.g * shade, base.b * shade, 1.0)
+			var color := Color(base.r * shade, base.g * shade, base.b * shade, 1.0)
 			if from_top < 1.0 or from_bottom < 1.0 or x == 0 or (taper > 0.0 and x == w - 1):
-				colour = RIM
-			out.set_pixel(x, y, colour)
+				color = RIM
+			out.set_pixel(x, y, color)
 	for k in int(knocked * w * h / 6.0):  # stone knocked away
 		var bx := rng.randi_range(0, w - 3)
 		var by := rng.randi_range(0, h - 3)
@@ -126,19 +126,19 @@ static func ice_sheet(width: float, seed_value: int) -> ImageTexture:
 			if y < h - rows or (edge < 1.0 and y < 3):
 				continue
 			var from_top := y - (h - rows)
-			var colour: Color
+			var color: Color
 			match from_top:
 				0:
-					colour = Color(0.86, 0.96, 1.0, 0.98)  # the lit top
+					color = Color(0.86, 0.96, 1.0, 0.98)  # the lit top
 				1:
-					colour = Color(0.56, 0.8, 0.95, 0.96)
+					color = Color(0.56, 0.8, 0.95, 0.96)
 				2, 3:
-					colour = Color(0.28, 0.5, 0.78, 0.95)
+					color = Color(0.28, 0.5, 0.78, 0.95)
 				_:
-					colour = Color(0.14, 0.28, 0.52, 0.95)  # the dark body, deep in the ice
+					color = Color(0.14, 0.28, 0.52, 0.95)  # the dark body, deep in the ice
 			if from_top == rows - 1:
-				colour = Color(0.08, 0.16, 0.34, 0.95)
-			out.set_pixel(x, y, colour)
+				color = Color(0.08, 0.16, 0.34, 0.95)
+			out.set_pixel(x, y, color)
 	for scratch: Array in scratches:  # pale scratches along the face
 		for k in int(scratch[2]):
 			var x: int = scratch[0] + k
@@ -201,18 +201,18 @@ static func spike(source: Texture2D, width: float, height: float, up: bool, ice:
 				continue
 			var base := _earth(image, x * BLOCK, y * BLOCK)
 			var shade := 1.2 - lit * 0.5  # the left of a spire is lit, the right in shadow
-			var colour: Color
+			var color: Color
 			if ice:
-				colour = Color(0.62 + base.r * 0.3, 0.8 + base.g * 0.15, 0.95, 0.92)
+				color = Color(0.62 + base.r * 0.3, 0.8 + base.g * 0.15, 0.95, 0.92)
 				if absf(lit + 0.45) < 0.14:
-					colour = Color(0.95, 0.99, 1.0, 0.95)  # the bright streak
+					color = Color(0.95, 0.99, 1.0, 0.95)  # the bright streak
 				elif lit > 0.3:
-					colour = colour.darkened(0.25)
+					color = color.darkened(0.25)
 			else:
-				colour = Color(base.r * shade, base.g * shade, base.b * shade, 1.0)
+				color = Color(base.r * shade, base.g * shade, base.b * shade, 1.0)
 				if rng.randf() < 0.04:
-					colour = colour.darkened(0.4)  # a crack
-			out.set_pixel(x, y, colour)
+					color = color.darkened(0.4)  # a crack
+			out.set_pixel(x, y, color)
 	# A dark rim round the spike, cut from the outside in.
 	var rimmed := out.duplicate()
 	for y in h:
@@ -262,20 +262,20 @@ static func ice_block(width: float, height: float, seed_value: int) -> ImageText
 			var depth_x := minf(float(x), float(w - 1 - x))
 			var depth_y := minf(float(y) - top + 1.0, float(h - 1 - y))
 			var depth := minf(depth_x, depth_y)
-			var colour := Color(0.72, 0.9, 1.0, 0.34)  # clear in the middle
+			var color := Color(0.72, 0.9, 1.0, 0.34)  # clear in the middle
 			if depth < 1.0:
-				colour = Color(0.12, 0.3, 0.45, 0.95)  # the outline
+				color = Color(0.12, 0.3, 0.45, 0.95)  # the outline
 			elif depth < 3.0:
 				if x < w * 0.5 and depth_x <= depth_y or y - top < 2.0:
-					colour = Color(0.88, 0.97, 1.0, 0.9)  # the lit bevel, left and top
+					color = Color(0.88, 0.97, 1.0, 0.9)  # the lit bevel, left and top
 				elif x >= w * 0.5 and depth_x <= depth_y or h - 1 - y < 2.0:
-					colour = Color(0.34, 0.6, 0.8, 0.9)  # the shaded bevel, right and foot
+					color = Color(0.34, 0.6, 0.8, 0.9)  # the shaded bevel, right and foot
 				else:
-					colour = Color(0.62, 0.84, 0.96, 0.75)
+					color = Color(0.62, 0.84, 0.96, 0.75)
 			else:
 				for streak: float in streaks:
 					var line := float(x) / w + float(y) / h * 0.7 - streak
 					if absf(line) < 0.035:
-						colour = Color(0.95, 1.0, 1.0, 0.55)
-			out.set_pixel(x, y, colour)
+						color = Color(0.95, 1.0, 1.0, 0.55)
+			out.set_pixel(x, y, color)
 	return ImageTexture.create_from_image(out)

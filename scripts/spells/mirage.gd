@@ -1,7 +1,7 @@
 class_name Mirage
 extends PagePickup
 
-## Mirage: a page that is not there. It floats and glows like the real thing, in the colour of some school, and wavers faintly. Every wizard
+## Mirage: a page that is not there. It floats and glows like the real thing, in the color of some school, and wavers faintly. Every wizard
 ## believes it is one they have not read. It fades the moment anyone comes near (the one who made it too) and leaves nothing behind. A wizard
 ## run by a brain that has watched one fade learns to see the waver, and stops going for them.
 

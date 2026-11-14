@@ -9,15 +9,15 @@ const LIFE := 0.8
 static var _font: Font
 
 
-## Shows text centred on a world point. size scales the text: 1 is a normal damage number.
-static func spawn(parent: Node, at: Vector2, text: String, colour: Color, size := 1.0) -> FloatText:
+## Shows text centerd on a world point. size scales the text: 1 is a normal damage number.
+static func spawn(parent: Node, at: Vector2, text: String, color: Color, size := 1.0) -> FloatText:
 	if parent == null:
 		return null
 	var label := FloatText.new()
 	label.text = text
 	label.add_theme_font_override("font", font())
 	label.add_theme_font_size_override("font_size", roundi(22 * size))
-	label.add_theme_color_override("font_color", colour)
+	label.add_theme_color_override("font_color", color)
 	label.add_theme_color_override("font_outline_color", Color(0.08, 0.04, 0.12))
 	label.add_theme_constant_override("outline_size", 5)
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER

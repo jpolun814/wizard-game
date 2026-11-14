@@ -361,11 +361,11 @@ func tree_size(column: int) -> int:
 	return 2
 
 
-## The graveyard is seen in grey: a layer over the world, under the interface, that takes the colour out of it.
-func wash_out_the_colour() -> void:
+## The graveyard is seen in gray: a layer over the world, under the interface, that takes the color out of it.
+func wash_out_the_color() -> void:
 	if SurfaceGen.biome_at(world.graph.surface, world.graph.surface["start"]) != "graveyard":
 		return
-	world.greyed = true  # (the Scrying Eye's window is washed out too)
+	world.grayed = true  # (the Scrying Eye's window is washed out too)
 	var layer := CanvasLayer.new()
 	layer.layer = 2
 	var wash := ColorRect.new()

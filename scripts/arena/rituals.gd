@@ -166,7 +166,7 @@ func _dowse() -> void:
 ## The Rift: the wizard is torn away and set down somewhere else, with no stamina left and 20 less to ever have.
 func _rift() -> void:
 	var player := arena.player
-	var colour: Color = SpellData.SCHOOL_COLORS["Shadow"]
+	var color: Color = SpellData.SCHOOL_COLORS["Shadow"]
 	var start: Vector2 = player.global_position
 	player.max_stamina -= RIFT_WEAR
 	player.drain(player.stamina)
@@ -174,10 +174,10 @@ func _rift() -> void:
 	player.global_position = arena.rift_spot(start)
 	player.reset_physics_interpolation()
 	player.velocity = Vector2.ZERO
-	Fx.pop(arena, start + Vector2(0, -24), "twirl_02", colour, 60.0, 0.3, 0.3, 8.0)
-	Fx.burst(arena, start + Vector2(0, -24), colour, 16, 140.0, 0.3, true)
-	Fx.pop(arena, player.global_position + Vector2(0, -24), "twirl_02", colour, 24.0, 0.3, 2.4, -8.0)
-	Fx.burst(arena, player.global_position + Vector2(0, -24), colour, 16, 140.0, 0.3, true)
+	Fx.pop(arena, start + Vector2(0, -24), "twirl_02", color, 60.0, 0.3, 0.3, 8.0)
+	Fx.burst(arena, start + Vector2(0, -24), color, 16, 140.0, 0.3, true)
+	Fx.pop(arena, player.global_position + Vector2(0, -24), "twirl_02", color, 24.0, 0.3, 2.4, -8.0)
+	Fx.burst(arena, player.global_position + Vector2(0, -24), color, 16, 140.0, 0.3, true)
 	Sfx.play("gravity", player.global_position, -2.0)
 
 

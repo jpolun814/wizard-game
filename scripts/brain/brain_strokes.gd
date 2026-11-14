@@ -39,14 +39,14 @@ static func line(a: Vector2, b: Vector2) -> PackedVector2Array:
 
 ## A preview shape, scaled, with the middle of its bounding box moved to a point.
 static func offset(shape: PackedVector2Array, middle: Vector2, scale: float) -> PackedVector2Array:
-	var centre := box_centre(shape)
+	var center := box_center(shape)
 	var out := PackedVector2Array()
 	for p in shape:
-		out.append(middle + (p - centre) * scale)
+		out.append(middle + (p - center) * scale)
 	return densify(out)
 
 
-static func box_centre(points: PackedVector2Array) -> Vector2:
+static func box_center(points: PackedVector2Array) -> Vector2:
 	return GestureTemplates.bounds(points).get_center()
 
 

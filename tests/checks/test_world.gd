@@ -214,7 +214,7 @@ func _fail(text: String) -> void:
 	print("FAIL  " + text)
 
 
-## One pixel block per tile: rock dark, castle stone tan, and each room's marker coloured by its kind.
+## One pixel block per tile: rock dark, castle stone tan, and each room's marker colored by its kind.
 func _picture(world: Dictionary, dir: String) -> void:
 	var scale := 1
 	var size: Vector2i = world["size"]

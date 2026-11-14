@@ -18,10 +18,10 @@ const HEADROOM := 32.0    # room above the surface, for liquid pushed up
 const LOOSE_HEADROOM := 96.0  # and above a puddle, which has no pool under it: the water poured in lands high in the grid
 const BELOW := 160.0      # and below the bed
 const RIM_OVERLAP := 12.0 # how far liquid runs under the ground beside it, to hide the gap between a square cell and the smooth edge of the ground
-const WATER_TOP := Color(0.15, 0.34, 0.5)     # the colours of water: lighter at the surface, darker below, with a bright edge
+const WATER_TOP := Color(0.15, 0.34, 0.5)     # the colors of water: lighter at the surface, darker below, with a bright edge
 const WATER_BOTTOM := Color(0.05, 0.1, 0.24)
 const WATER_RIM := Color(0.6, 0.78, 0.88)
-const SEA_CLEAR_TOP := 0.45     # how much of the deep sea's colour covers what lies behind it, at the surface and at the bottom
+const SEA_CLEAR_TOP := 0.45     # how much of the deep sea's color covers what lies behind it, at the surface and at the bottom
 const SEA_CLEAR_BOTTOM := 0.8
 const READ_CELLS := 256   # the most cells of new ground read in a frame, so that a pool spreading never stalls the game
 const GROW := 12           # cells added at an edge the liquid has run up to
@@ -64,7 +64,7 @@ var _watch: VisibleOnScreenNotifier2D
 var _runs: Array = []    # the grid's liquid as columns of stretches, worked out again when it changes
 var _runs_version := -1
 var _runs_made := -1.0  # when the drawn shapes were last worked out, by _t
-var _mesh: ArrayMesh      # the liquid as one mesh of coloured triangles, worked out when it changes, so drawing it each frame is one command
+var _mesh: ArrayMesh      # the liquid as one mesh of colored triangles, worked out when it changes, so drawing it each frame is one command
 var _edges: Array = []    # and the bright edges of its open surface: each {"line", "phase"}
 var _air: Array = []      # the open air round the liquid, cut to its space, for cutting the liquid to the ground
 var _air_area := Rect2()

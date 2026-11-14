@@ -22,10 +22,10 @@ const HAMMER_RAISED := HAMMER_STRUCK - 0.6  # and turned back to lift the head
 const END := 11.5  # seconds
 
 static var winner_look := "wizard"  # set before the scene loads: which wizard won
-static var winner_palette := 0  # and the colours they wore
+static var winner_palette := 0  # and the colors they wore
 
 var look := ""  # who won; if it is not set, whoever World left in winner_look
-var palette := -1  # in what colours; if it is not set, what World left in winner_palette
+var palette := -1  # in what colors; if it is not set, what World left in winner_palette
 var plaque: Node2D  # the second plaque, once it is up
 var _lectern: Lectern
 var _winner: Node2D

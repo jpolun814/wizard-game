@@ -1,16 +1,16 @@
 shader_type canvas_item;
 
-// Enemy sprites. A creature keeps its own colours but takes a little of its school's colour, and gets a one-pixel
-// outline in that colour, so you can tell its school at a glance without losing the art. Also flashes the sprite
+// Enemy sprites. A creature keeps its own colors but takes a little of its school's color, and gets a one-pixel
+// outline in that color, so you can tell its school at a glance without losing the art. Also flashes the sprite
 // when it is hit, and turns it icy while it is frozen.
 
 uniform vec4 school_color : source_color = vec4(1.0);
-uniform float tint = 0.0;          // 0 to 1: how much of the school's colour the body takes
-uniform float outline = 0.0;       // 0 to 1: how strong the school-coloured outline is
+uniform float tint = 0.0;          // 0 to 1: how much of the school's color the body takes
+uniform float outline = 0.0;       // 0 to 1: how strong the school-colored outline is
 uniform float flash = 0.0;         // 0 to 1: how far the sprite is washed to flash_color
 uniform vec4 flash_color : source_color = vec4(1.0);
 uniform float frozen = 0.0;        // 0 to 1: how icy it looks
-uniform float water_y = 1000000.0; // the surface of the water or lava it stands in: below it, the body takes the liquid's colour
+uniform float water_y = 1000000.0; // the surface of the water or lava it stands in: below it, the body takes the liquid's color
 uniform vec4 water_tint : source_color = vec4(1.0);
 
 // The sprite's modulate. In fragment(), COLOR already has the texture multiplied in, so the plain modulate is

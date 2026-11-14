@@ -8,7 +8,7 @@ var gesture: String
 var score: float
 var info := {"radius": 0.0, "pieces": 1, "shapes": [], "line": PackedVector2Array(), "rect": Rect2()}
 var ring_split := -1  # where a ring ends and the line out of it begins, or -1 when it is not a ring with a line
-var ring_centre := Vector2.ZERO
+var ring_center := Vector2.ZERO
 var latin := false  # a Latin cross was read from the stroke itself
 
 

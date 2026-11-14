@@ -52,7 +52,7 @@ stone", "turn to dust", "turn to ash"); everywhere else it means a direction or 
 and the fixed phrase no longer applies, the reader takes "to" as a direction, and the sentence snags. So: when a line says what a thing becomes, write "into" (or "become");
 keep "to" for those bare-noun idioms and for real directions.
 
-**American spelling (owner, 2026-11-07).** Anything a player reads uses American English: "Colors", "Favorite", "gray". The code and its comments may keep "colour".
+**American spelling (owner, 2026-11-07).** Anything a player reads uses American English: "Colors", "Favorite", "gray". The code and its comments use American spelling too, so a name is `color` and `center` everywhere.
 
 **The book's order and its NEW mark (owner, 2026-11-07).** In the tutorial the pages are in the order they were found. Everywhere else (a match) they are grouped by school, and within a school in the order found; chants come last (`Spellbook._build_pages`). A page of a spell not yet cast, or a chant not yet said, this game carries a gold star and "NEW!" under its name (`Ledger.mark_cast`, `Spellbook._new_badge`); the waiting room, where every page is known, marks nothing. The star is Kenney's `art/particles/star_07.png`.
 

@@ -57,8 +57,8 @@ func _ready() -> void:
 	_book = BookArt.new()
 	_book.size = FRAME * SCALE
 	add_child(_book)
-	_centre_book()
-	get_viewport().size_changed.connect(_centre_book)  # a window made full screen keeps the book in the middle
+	_center_book()
+	get_viewport().size_changed.connect(_center_book)  # a window made full screen keeps the book in the middle
 	_left = _page_column(PAGES[0])
 	_right = _page_column(PAGES[1])
 	_use_face(0)
@@ -189,7 +189,7 @@ func _set_writing(on: bool) -> void:
 
 
 ## The open book sits in the middle of the screen; its frame has an empty margin round it, partly off screen.
-func _centre_book() -> void:
+func _center_book() -> void:
 	_book.position = (get_viewport().get_visible_rect().size * 0.5 - OPEN_MIDDLE * SCALE).floor()
 
 
@@ -271,9 +271,9 @@ func _heading(text: String, size := 44) -> VBoxContainer:
 	return block
 
 
-func _rule(colour := PAPER_DARK) -> ColorRect:
+func _rule(color := PAPER_DARK) -> ColorRect:
 	var rule := ColorRect.new()
-	rule.color = colour
+	rule.color = color
 	rule.custom_minimum_size = Vector2(0, SCALE * 0.6)
 	return rule
 
@@ -293,7 +293,7 @@ func _school_row(school: String, mouse_scale := 1.0) -> HBoxContainer:
 	row.add_theme_constant_override("separation", 16)
 	row.add_child(MouseIcon.new(_school_mask(school), SpellData.SCHOOL_COLORS[school], mouse_scale))
 	var name := _title_label(SpellData.school_name(school), 38, TEXT_INK)
-	name.autowrap_mode = TextServer.AUTOWRAP_OFF  # a short name must keep its full width, or the row mis-centres
+	name.autowrap_mode = TextServer.AUTOWRAP_OFF  # a short name must keep its full width, or the row mis-centers
 	name.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(name)
 	return row
@@ -309,11 +309,11 @@ func _page_contents(column: VBoxContainer) -> void:
 		var row := _school_row(school, 1.5)
 		row.alignment = BoxContainer.ALIGNMENT_BEGIN
 		sheet.add_child(row)
-	var centre := CenterContainer.new()
-	centre.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	centre.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	centre.add_child(sheet)
-	column.add_child(centre)
+	var center := CenterContainer.new()
+	center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	center.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	center.add_child(sheet)
+	column.add_child(center)
 
 
 ## The names of a school's spells, in the order they are listed.

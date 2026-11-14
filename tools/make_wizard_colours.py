@@ -1,8 +1,8 @@
-"""Makes the colour variants of the wizards' sprites: a copy of a wizard's folder in art/chars with the hue of its robes, staff light and trim turned
-to another colour. Skin, hair, wood, and the near-black and near-white of the art are left as they are, so each variant is still the same figure
-in the same shading, in a colour theme of its own. Run from the game folder:
+"""Makes the color variants of the wizards' sprites: a copy of a wizard's folder in art/chars with the hue of its robes, staff light and trim turned
+to another color. Skin, hair, wood, and the near-black and near-white of the art are left as they are, so each variant is still the same figure
+in the same shading, in a color theme of its own. Run from the game folder:
 
-    python -I tools/make_wizard_colours.py
+    python -I tools/make_wizard_colors.py
 
 Then `godot --headless --import` makes the .import files. The variants are used by the opening cut-scene (scripts/screens/intro.gd): ten wizards, no two alike.
 """

@@ -51,7 +51,7 @@ func _stalagmites(c: SpellCast) -> void:
 
 func _tornado(c: SpellCast) -> void:
 	var tornado := Tornado.new()
-	tornado.position = c.centre()
+	tornado.position = c.center()
 	c.add(tornado)
 
 
@@ -65,7 +65,7 @@ func _blizzard(c: SpellCast) -> void:
 	var snow := Blizzard.new()
 	snow.polygon = PackedVector2Array([Vector2(0, -60), Vector2(right - left, -60), Vector2(right - left, 60), Vector2(0, 60)])
 	c.add(snow)
-	snow.setup(c.spell, Vector2(left, c.centre().y), 0.0)
+	snow.setup(c.spell, Vector2(left, c.center().y), 0.0)
 
 
 func _smoke_screen(c: SpellCast) -> void:
@@ -82,7 +82,7 @@ func _frost_bridge(c: SpellCast) -> void:
 
 func _geyser(c: SpellCast) -> void:
 	var geyser := Geyser.new()
-	geyser.position = _arena.landing(c.centre())  # under the middle of the peak, on the surface
+	geyser.position = _arena.landing(c.center())  # under the middle of the peak, on the surface
 	geyser.ground = _arena.terrain()
 	c.add(geyser)
 
@@ -114,7 +114,7 @@ func _lily_pads(c: SpellCast) -> void:
 func _mudslide(c: SpellCast) -> void:
 	var sand := Mudslide.new()
 	sand.width = SpellData.width_of(c.line())
-	sand.position = c.centre()
+	sand.position = c.center()
 	c.add(sand)
 
 
@@ -122,7 +122,7 @@ func _hailstorm(c: SpellCast) -> void:
 	var hail := Hailstorm.new()
 	hail.line = c.line()
 	c.add(hail)
-	hail.setup(c.spell, c.centre(), 0.0)
+	hail.setup(c.spell, c.center(), 0.0)
 
 
 func _ice_prison(c: SpellCast) -> void:

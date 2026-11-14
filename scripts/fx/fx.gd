@@ -17,14 +17,14 @@ static func tex(texture_name: String) -> Texture2D:
 	return _textures[texture_name]
 
 
-## Fades a colour from solid to transparent over a particle's life.
+## Fades a color from solid to transparent over a particle's life.
 static func fade_ramp(color: Color) -> Gradient:
 	var g := Gradient.new()
 	g.colors = PackedColorArray([color, Color(color.r, color.g, color.b, 0.0)])
 	return g
 
 
-## A colour that starts white-hot, turns to the colour, and fades out. Fire and magic burn like this.
+## A color that starts white-hot, turns to the color, and fades out. Fire and magic burn like this.
 static func hot_ramp(color: Color) -> Gradient:
 	var g := Gradient.new()
 	g.colors = PackedColorArray([Color(1, 1, 0.92, 1), color, Color(color.r * 0.6, color.g * 0.6, color.b * 0.6, 0.0)])
@@ -186,6 +186,6 @@ static func draw_orb(canvas: CanvasItem, radius: float, color: Color, core := Co
 	canvas.draw_circle(Vector2.ZERO, radius * 0.5, Color(core.r, core.g, core.b, 0.95))
 
 
-## Draws a glow texture centred on a point from inside a _draw(). The canvas should use additive blending.
+## Draws a glow texture centerd on a point from inside a _draw(). The canvas should use additive blending.
 static func draw_glow(canvas: CanvasItem, at: Vector2, radius: float, color: Color, texture := "circle_05") -> void:
 	canvas.draw_texture_rect(tex(texture), Rect2(at - Vector2.ONE * radius, Vector2.ONE * radius * 2.0), false, color)

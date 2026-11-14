@@ -42,10 +42,10 @@ func _spell_table() -> void:
 			all_found = false
 			lost = spell_name
 	_verdict(all_found, "every spell is found by its buttons and its shape (%s)" % ("none lost" if lost == "" else lost + " is not"))
-	var colours := true
+	var colors := true
 	for school: String in SpellData.SCHOOL_BUTTONS:
-		colours = colours and SpellData.SCHOOL_COLORS.has(school)
-	_verdict(colours, "every school has a colour")
+		colors = colors and SpellData.SCHOOL_COLORS.has(school)
+	_verdict(colors, "every school has a color")
 
 
 func _frames(count: int) -> void:

@@ -8,7 +8,7 @@ import os
 
 OUT = os.path.join(os.path.dirname(__file__), "..", "art", "fx")
 
-# One letter a colour; '.' is clear.
+# One letter a color; '.' is clear.
 KEY = {
     "d": (38, 66, 34, 255),     # deep green shaft
     "g": (74, 128, 56, 255),    # green

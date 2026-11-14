@@ -21,7 +21,7 @@ func _init(owner_wizard: Wizard) -> void:
 
 ## Starts drawing a stroke in front of the wizard. After draw_time it calls on_done with the stroke. Being hit hard while drawing breaks the spell (see
 ## WizardBrain.on_hurt). Returns false when the stroke cannot be begun.
-func begin(points: PackedVector2Array, colour: Color, on_done: Callable, draw_time := DRAW_TIME) -> bool:
+func begin(points: PackedVector2Array, color: Color, on_done: Callable, draw_time := DRAW_TIME) -> bool:
 	if active() or (wizard.brain != null and wizard.brain.chant.is_typing()):
 		return false
 	for point in points:
@@ -30,7 +30,7 @@ func begin(points: PackedVector2Array, colour: Color, on_done: Callable, draw_ti
 	_drag_from = wizard.eyes.center()
 	_drag = PackedVector2Array()
 	_stroke = points
-	wizard.cast_color = colour
+	wizard.cast_color = color
 	_on_drawn = on_done
 	_time = draw_time
 	_total = draw_time

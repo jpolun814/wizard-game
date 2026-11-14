@@ -265,7 +265,7 @@ func _show_hall(hole: PackedVector2Array) -> void:
 			draw_polygon(part, PackedColorArray([Color.WHITE]), uvs, picture)
 		column += 1.0
 
-## A piece of stone in its colour with a texture over it, at a scale of the texture's own size. A piece that cannot be cut into triangles whole (an edge
+## A piece of stone in its color with a texture over it, at a scale of the texture's own size. A piece that cannot be cut into triangles whole (an edge
 ## touching itself) is laid in convex parts.
 func _lay(piece: PackedVector2Array, texture: Texture2D, scale: float) -> void:
 	if Contour.area(piece) < 1.0:

@@ -182,9 +182,9 @@ def main():
     rng = random.Random(7)
     boards = [(70, 6), (138, 6), (206, 10)]
     bookcase(420, 216, boards, rng).save(os.path.join(OUT, "bookcase.png"))
-    for name, colour in SCHOOLS.items():
+    for name, color in SCHOOLS.items():
         r = random.Random(sum(map(ord, name)))
-        spine(24, 60, shade(hexc(colour), 0.5), r, True).save(os.path.join(OUT, "tome_%s.png" % name))
+        spine(24, 60, shade(hexc(color), 0.5), r, True).save(os.path.join(OUT, "tome_%s.png" % name))
     palette = ["#4a1c24", "#1f3a3a", "#3a2a4a", "#4a3a1c", "#243a24", "#2a2a3a", "#5a2a1a", "#33241c", "#1c2a3a", "#4a2a3a"]
     for n in range(14):
         r = random.Random(100 + n)

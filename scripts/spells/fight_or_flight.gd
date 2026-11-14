@@ -30,15 +30,15 @@ func _ready() -> void:
 	add_to_group("lasting")
 	fights = randf() < 0.5
 	z_index = 9
-	var colour := FIGHT if fights else FLIGHT
+	var color := FIGHT if fights else FLIGHT
 	_mark = Sprite2D.new()
 	_mark.texture = QUESTION
-	_mark.modulate = colour  # red for the one who fights, pale for the one who flees
+	_mark.modulate = color  # red for the one who fights, pale for the one who flees
 	_mark.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	_mark.scale = Vector2(2.0, 2.0)
 	add_child(_mark)
-	Fx.burst(get_parent(), target.center(), colour, 18, 160.0, 0.5, true)
-	Fx.impact(get_parent(), target.center(), colour, 50.0)
+	Fx.burst(get_parent(), target.center(), color, 18, 160.0, 0.5, true)
+	Fx.impact(get_parent(), target.center(), color, 50.0)
 	Sfx.play("heartbeat", target.center(), -2.0)
 	if target.is_likeness():
 		return  # the machine that plays them does the rest
@@ -95,7 +95,7 @@ func _cast_at_random() -> void:
 
 ## The glow behind the question mark over the head, red for the one who fights and pale for the one who flees. The mark bobs.
 func _draw() -> void:
-	var colour := FIGHT if fights else FLIGHT
-	Fx.draw_glow(self, Vector2.ZERO, 16.0, Color(colour.r, colour.g, colour.b, 0.45))
+	var color := FIGHT if fights else FLIGHT
+	Fx.draw_glow(self, Vector2.ZERO, 16.0, Color(color.r, color.g, color.b, 0.45))
 	if _mark != null:
 		_mark.position.y = -12.0 + sin(_age * 9.0) * 2.0  # (the mark is big enough that it must sit higher, clear of the head)

@@ -3,13 +3,13 @@ extends RefCounted
 
 ## Builds a random arena out of chunks. The ground is not flat: each chunk has a shape of its own (a hill, a dip,
 ## a slope up or down, a step or a plateau), and the chunk's platforms, pillars and mounds stand on that ground,
-## so they keep their place above it. Neighbouring columns never differ by more than one tile, so every slope is a
+## so they keep their place above it. Neighboring columns never differ by more than one tile, so every slope is a
 ## walkable stair: the wizard and the enemies hop up one tile at a time.
 
 const TILE := 32
 const CHUNK_WIDTH := 6
 const CHUNK_COUNT := 12  # the map is this many chunks wide
-const FIRST_COL := -36   # first floor column, so the map is centred on column 0
+const FIRST_COL := -36   # first floor column, so the map is centerd on column 0
 const LEFT_WALL := FIRST_COL - 1
 static var chunk_count := CHUNK_COUNT   # the tutorial room is wider than the others
 static var right_wall := FIRST_COL + CHUNK_WIDTH * CHUNK_COUNT

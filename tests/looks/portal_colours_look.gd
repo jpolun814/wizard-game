@@ -1,6 +1,6 @@
 extends Node
 
-## Pictures of a portal opening and closing, and of the twelve portal colours.   godot --path . tests/looks/portal_colours_look.tscn -- out=DIR (needs a window)
+## Pictures of a portal opening and closing, and of the twelve portal colors.   godot --path . tests/looks/portal_colors_look.tscn -- out=DIR (needs a window)
 
 func _ready() -> void:
 	var out_dir := ""

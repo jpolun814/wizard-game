@@ -1,6 +1,6 @@
 extends Node
 
-## Prints where the pages of a world lie along it (in columns) and the gaps between neighbours, to see whether they bunch up.
+## Prints where the pages of a world lie along it (in columns) and the gaps between neighbors, to see whether they bunch up.
 ##
 ##     godot --headless --fixed-fps 60 --path . tests/looks/pages_spread_look.tscn -- seeds=4,10,17
 

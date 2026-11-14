@@ -12,7 +12,7 @@ const HEAD_BELOW := 10.0  # the head is under when the surface is this far above
 var wizard: Wizard
 var air := BREATH  # seconds of air left while the breath is held without the Blessing of the Deep Breath
 var smothered := false  # the air is drawn out of the wizard's lungs (Vacuum sets and clears this)
-var _tint := Color.WHITE  # the colour of the water or lava the wizard stands in
+var _tint := Color.WHITE  # the color of the water or lava the wizard stands in
 var _time := 0.0
 var _surface := INF  # the height of the surface of that liquid
 var _lava := false
@@ -22,7 +22,7 @@ func _init(owner_wizard: Wizard) -> void:
 	wizard = owner_wizard
 
 
-## Standing in water or lava: the part of the wizard below the surface takes its colour for a moment after each call, so leaving it fades back at once.
+## Standing in water or lava: the part of the wizard below the surface takes its color for a moment after each call, so leaving it fades back at once.
 func soak(tint: Color, surface_y := INF, lava := false) -> void:
 	_tint = tint
 	_surface = surface_y
@@ -39,7 +39,7 @@ func tint() -> Color:
 	return _tint
 
 
-## The height of the surface of the liquid the wizard is in (water or lava), for the colour of its lower body; far below the world when in none.
+## The height of the surface of the liquid the wizard is in (water or lava), for the color of its lower body; far below the world when in none.
 func liquid_surface() -> float:
 	return _surface if _time > 0.0 else 1000000.0
 

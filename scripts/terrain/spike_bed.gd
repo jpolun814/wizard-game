@@ -78,7 +78,7 @@ func _physics_process(delta: float) -> void:
 			Fx.burst(get_parent(), SpellTargets.center_of(body), Color("#b04040"), 6, 90.0, 0.3)
 
 
-## What to multiply the grey spike art by so it looks cut from the ground's own rock: the earth's average color, scaled up to the art's brightness.
+## What to multiply the gray spike art by so it looks cut from the ground's own rock: the earth's average color, scaled up to the art's brightness.
 static func _tint_of(earth: Texture2D) -> Color:
 	var fallback := Color(0.62, 0.6, 0.68)
 	if earth == null:

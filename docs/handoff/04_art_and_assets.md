@@ -72,7 +72,7 @@
    - some sheets have an opaque teal or magenta background, which needs `key_out`;
    - some sheets are grids, not strips;
    - some attack frames have big white spell blasts baked in, so use only the clean frames.
-4. **Fit:** recolour to the school's colour with `recolour(image, ("ramp", dark, light))` or `("hue", degrees)`.
+4. **Fit:** recolour to the school's colour with `recolor(image, ("ramp", dark, light))` or `("hue", degrees)`.
    A hue turn keeps greys grey, which is useful for stone portals.
 
 ## The pipeline (`tools/prepare_gothic_art.py`)
@@ -116,7 +116,7 @@
 
 ## Backdrops (`backdrop.gd`)
 
-- **Layer format:** `[file, scroll_scale, bottom_y, drift, extend_top_colour, zoom]`.
+- **Layer format:** `[file, scroll_scale, bottom_y, drift, extend_top_color, zoom]`.
 - **Scroll:** the vertical scroll scale must be 1.
 - **Colour bands:** the bottom colour carries on downward. The top colour carries on upward only when
   `extend_top` is set. The swamp's trees have flat canopy bands that look bad stretched, so those layers draw

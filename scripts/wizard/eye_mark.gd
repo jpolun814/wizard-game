@@ -56,15 +56,15 @@ func _draw() -> void:
 			var dy := float(cy)
 			if not _inside(dx, dy, open):
 				continue
-			var colour := WHITE if dy <= 1.5 else SHADE
+			var color := WHITE if dy <= 1.5 else SHADE
 			var edge := not (_inside(dx - 1.0, dy, open) and _inside(dx + 1.0, dy, open) and _inside(dx, dy - 1.0, open) and _inside(dx, dy + 1.0, open))
 			var from_iris := Vector2(dx, dy) - look
 			if from_iris.length() <= 3.6:
-				colour = IRIS if from_iris.y < 1.0 else IRIS_DARK
+				color = IRIS if from_iris.y < 1.0 else IRIS_DARK
 				if absf(from_iris.x) <= 0.6 and absf(from_iris.y) <= 3.0:
-					colour = SLIT
+					color = SLIT
 				elif from_iris.x < -1.0 and from_iris.y < -1.5:
-					colour = WHITE  # a glint
+					color = WHITE  # a glint
 			if edge:
-				colour = OUTLINE
-			draw_rect(Rect2(Vector2(dx - 0.5, dy - 0.5) * PIXEL, Vector2(PIXEL, PIXEL)), colour)
+				color = OUTLINE
+			draw_rect(Rect2(Vector2(dx - 0.5, dy - 0.5) * PIXEL, Vector2(PIXEL, PIXEL)), color)

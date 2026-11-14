@@ -454,11 +454,11 @@ static func _eclipse(flipped: bool, mirrored: bool) -> PackedVector2Array:
 	for i in range(21):
 		var a := deg_to_rad(-90.0 - 180.0 * i / 20.0)
 		pts.append(Vector2(cos(a), sin(a)) * 50.0)
-	var centre := Vector2(52.5, 0.0)  # the inner edge is a wider circle through the same two tips, so the crescent has points
-	var from := (Vector2(0.0, 50.0) - centre).angle()
-	var to := (Vector2(0.0, -50.0) - centre).angle() + TAU
+	var center := Vector2(52.5, 0.0)  # the inner edge is a wider circle through the same two tips, so the crescent has points
+	var from := (Vector2(0.0, 50.0) - center).angle()
+	var to := (Vector2(0.0, -50.0) - center).angle() + TAU
 	for i in range(1, 21):
-		pts.append(centre + Vector2.from_angle(lerpf(from, to, i / 20.0)) * 72.5)
+		pts.append(center + Vector2.from_angle(lerpf(from, to, i / 20.0)) * 72.5)
 	for k in pts.size():
 		pts[k] = Vector2(-pts[k].x if mirrored else pts[k].x, -pts[k].y if flipped else pts[k].y)
 	return pts

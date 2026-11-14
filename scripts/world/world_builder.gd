@@ -625,7 +625,7 @@ static func _distance_to_pinned(pinned: PackedByteArray) -> PackedFloat32Array:
 	return out
 
 
-## Smooths a floor until neighbouring columns differ by at most one row, leaving the pinned columns where they are.
+## Smooths a floor until neighboring columns differ by at most one row, leaving the pinned columns where they are.
 static func _relax(floor_row: PackedInt32Array, pinned: PackedByteArray) -> void:
 	for pass_number in 6:
 		for i in range(1, floor_row.size()):

@@ -1,6 +1,6 @@
 extends SceneTree
 
-## Makes art/ui/wand_turns.png: every turn of the wand cursor (scripts/ui/wand_cursor.gd), with its jewel in the colour of every set of mouse buttons, so
+## Makes art/ui/wand_turns.png: every turn of the wand cursor (scripts/ui/wand_cursor.gd), with its jewel in the color of every set of mouse buttons, so
 ## the game cuts them out instead of turning the wand a pixel at a time while it runs. A row for each set of buttons held (0, nothing, to 7, all
 ## three), a column for each step. The pixels are the cursor's own, made by its own code. Run again after changing the wand or the cursor's code:
 ##

@@ -49,7 +49,7 @@ func _ready() -> void:
 	if is_instance_valid(caster) and absf(cos(aim)) > 0.2:
 		caster.facing = signf(cos(aim))
 	reach = clampf(reach, MIN_REACH, MAX_REACH)
-	# Drawn as solid colour, not light, so the flames stay orange against any backdrop. The puffs live in world
+	# Drawn as solid color, not light, so the flames stay orange against any backdrop. The puffs live in world
 	# space, so this node stays at the world's origin.
 	position = Vector2.ZERO
 	add_to_group("danger")

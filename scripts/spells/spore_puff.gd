@@ -164,8 +164,8 @@ func danger_at(point: Vector2) -> bool:
 func _draw() -> void:
 	for puff in _puffs:
 		var t: float = clampf(puff["age"] / LIFE, 0.0, 1.0)
-		var colour := Color(0.45, 0.8, 0.3, 0.55 * sin(PI * clampf(t * 1.15, 0.0, 1.0)))
+		var color := Color(0.45, 0.8, 0.3, 0.55 * sin(PI * clampf(t * 1.15, 0.0, 1.0)))
 		var half := _radius(puff) * 1.6
 		draw_set_transform(puff["pos"], puff["age"] * 0.4 * (1.0 if puff["size"] > 1.0 else -1.0), Vector2.ONE)
-		draw_texture_rect(_texture, Rect2(-half, -half, half * 2.0, half * 2.0), false, colour)
+		draw_texture_rect(_texture, Rect2(-half, -half, half * 2.0, half * 2.0), false, color)
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)

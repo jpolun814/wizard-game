@@ -15,7 +15,7 @@ enum Size { NONE, RADIUS, REACH, LINE_WIDTH, LINE_SPAN, LENGTH, STEP_LENGTH, ARE
 @export var cost := 10.0
 @export_multiline var effect := ""  ## what it does, for the spellbook
 @export var damage := ""            ## a short figure for the spellbook
-@export var colour := Color(0, 0, 0, 0)  ## the glow of a spell that is not its school's colour; transparent means the school's
+@export var color := Color(0, 0, 0, 0)  ## the glow of a spell that is not its school's color; transparent means the school's
 @export var size_from := Size.NONE
 @export var size_unit := 1.0
 @export var size_min := 1.0
@@ -30,7 +30,7 @@ var buttons: int:
 
 ## What it glows.
 func glow() -> Color:
-	return colour if colour.a > 0.0 else SpellData.SCHOOL_COLORS[school]
+	return color if color.a > 0.0 else SpellData.SCHOOL_COLORS[school]
 
 
 ## True when it is paid for in maximum stamina, which only healing brings back.

@@ -16,7 +16,7 @@ def hexa(code: str, alpha: int = 255) -> tuple:
 
 
 def from_rows(rows: list, key: dict) -> Image.Image:
-    """A picture from rows of characters; a space is clear, any other letter is a colour in key."""
+    """A picture from rows of characters; a space is clear, any other letter is a color in key."""
     width = max(len(r) for r in rows)
     image = Image.new("RGBA", (width, len(rows)), (0, 0, 0, 0))
     for y, row in enumerate(rows):
@@ -49,8 +49,8 @@ def line(points: set, a: tuple, b: tuple) -> None:
 def hex_mark() -> Image.Image:
     """A pentagram in one stroke, the same star the Hex is drawn as: a pale violet line, with a brighter point at each tip."""
     size = 21
-    centre = size // 2
-    tips = [(round(centre + 9.5 * math.cos(-math.pi / 2 + math.tau * k / 5)), round(centre + 9.5 * math.sin(-math.pi / 2 + math.tau * k / 5))) for k in range(5)]
+    center = size // 2
+    tips = [(round(center + 9.5 * math.cos(-math.pi / 2 + math.tau * k / 5)), round(center + 9.5 * math.sin(-math.pi / 2 + math.tau * k / 5))) for k in range(5)]
     pixels = set()
     for step in range(5):
         line(pixels, tips[(step * 2) % 5], tips[((step + 1) * 2) % 5])

@@ -155,15 +155,15 @@ func _shadow_step(c: SpellCast) -> void:
 		var closest := Geometry2D.get_closest_point_to_segment(middle, start + Vector2(0, -20), end + Vector2(0, -20))
 		if closest.distance_to(middle) <= 24.0:
 			SpellTargets.hurt(body, STEP_DAMAGE, "Shadow")
-	var colour: Color = SpellData.SCHOOL_COLORS["Shadow"]
-	Fx.pop(_arena, start + Vector2(0, -24), "twirl_02", colour, 60.0, 0.3, 0.3, 8.0)
-	Fx.burst(_arena, start + Vector2(0, -24), colour, 12, 120.0, 0.25, true)
+	var color: Color = SpellData.SCHOOL_COLORS["Shadow"]
+	Fx.pop(_arena, start + Vector2(0, -24), "twirl_02", color, 60.0, 0.3, 0.3, 8.0)
+	Fx.burst(_arena, start + Vector2(0, -24), color, 12, 120.0, 0.25, true)
 	caster.free_from_ground()  # a blink moves you out of the ground too
 	caster.global_position = end
 	caster.reset_physics_interpolation()
 	caster.velocity = Vector2.ZERO
-	Fx.pop(_arena, end + Vector2(0, -24), "twirl_02", colour, 24.0, 0.3, 2.4, -8.0)
-	Fx.burst(_arena, end + Vector2(0, -24), colour, 12, 120.0, 0.25, true)
+	Fx.pop(_arena, end + Vector2(0, -24), "twirl_02", color, 24.0, 0.3, 2.4, -8.0)
+	Fx.burst(_arena, end + Vector2(0, -24), color, 12, 120.0, 0.25, true)
 	Sfx.play("gravity", end, -2.0)  # a low whoosh like the other Shadow spells
 
 

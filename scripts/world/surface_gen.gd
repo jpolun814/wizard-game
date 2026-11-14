@@ -2,7 +2,7 @@ class_name SurfaceGen
 extends RefCounted
 
 ## The ground above the caves. Each world is one biome: the whole surface is that biome, from end to end (the seed picks
-## which, see MatchState). Heights are rows of tiles (a lower number is higher ground). Neighbouring columns never differ by
+## which, see MatchState). Heights are rows of tiles (a lower number is higher ground). Neighboring columns never differ by
 ## more than a row, so all of it can be walked. Nothing here uses randomness except the rng it is given.
 
 const BASE_ROW := 110       # the ground line of the plains
@@ -39,7 +39,7 @@ static func has_halls(biome: String) -> bool:
 	return biome == "underground"
 
 
-## What each biome looks like: the tiles of its grassy top, the backdrop, the colour its daylight is tinted, and the
+## What each biome looks like: the tiles of its grassy top, the backdrop, the color its daylight is tinted, and the
 ## things standing about on it.
 const CRYPT_SPACING := 80  # columns between one crypt and the next
 const TREE_GAP_LEAST := 3   # columns between one great tree and the next: a thick wood, where the crowns and ledges run into each other
@@ -436,7 +436,7 @@ static func _offsets(biome: String, n: int, rng: RandomNumberGenerator) -> Packe
 	return out
 
 
-## Smooths a ground line until neighbouring columns differ by at most one row, leaving the pinned columns where they are.
+## Smooths a ground line until neighboring columns differ by at most one row, leaving the pinned columns where they are.
 ## No pins at all (an empty array) is allowed.
 static func _relax(floor_row: PackedInt32Array, pinned: PackedByteArray, limits := PackedByteArray(), offset := 0) -> void:
 	for pass_number in 400:

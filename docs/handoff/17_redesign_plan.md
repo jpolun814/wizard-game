@@ -96,7 +96,7 @@ set by the dressing and read by the frame loop; `_dead` and `_dead_sent` belong 
 
 | Piece | What it holds |
 |---|---|
-| `WorldScenery` | `_lay_landmarks`, `_plant_graves`, `_grow_trees`, `_raise_the_gale`, `_raise_biome_life`, `_lay_sea`, `_raise_clouds`, `_wash_out_the_colour`, thorns and gas; and the fields it sets (the gale, the squall, the sea, the timed nodes). One function per biome, chosen by a table, not one function with a branch each. |
+| `WorldScenery` | `_lay_landmarks`, `_plant_graves`, `_grow_trees`, `_raise_the_gale`, `_raise_biome_life`, `_lay_sea`, `_raise_clouds`, `_wash_out_the_color`, thorns and gas; and the fields it sets (the gale, the squall, the sea, the timed nodes). One function per biome, chosen by a table, not one function with a branch each. |
 | `WorldCreatures` | the dead, the knights, the giant, the roamers, and `_share_the_dead` (the host's sharing); with the constants `DEAD_*`, `KNIGHT_*`, `GIANT_*` |
 | `WorldSeats` (done: `world.seat_work`) | `_spawn_wizards`, `_places`, `_stand_at`, `_new_brain`, the roster, `_watch_falls`, spectating |
 | `WorldStages` | `_begin_collapse`, `_collapse`, `go_to_stage`, `go_to_biome`, `_build_nav`, `_on_ground_dug` |

@@ -59,7 +59,7 @@ func _process(_delta: float) -> void:
 	queue_redraw()
 
 
-## While a stroke is being drawn, sparks follow the cursor in the school's colour.
+## While a stroke is being drawn, sparks follow the cursor in the school's color.
 func _update_emitter() -> void:
 	var drawing := _active_mask != 0
 	_emitter.emitting = drawing and not hide_trail
@@ -69,7 +69,7 @@ func _update_emitter() -> void:
 		_emitter.color_ramp = Fx.fade_ramp(_stroke_color)
 
 
-## The colour of the school that a button combination casts; white if it casts nothing.
+## The color of the school that a button combination casts; white if it casts nothing.
 ## True while a stroke is being drawn.
 func is_drawing() -> bool:
 	return _active_mask != 0
@@ -80,7 +80,7 @@ func stroke() -> PackedVector2Array:
 	return _stroke if is_drawing() else PackedVector2Array()
 
 
-## The colour of the school whose buttons are held for the stroke being drawn.
+## The color of the school whose buttons are held for the stroke being drawn.
 func drawing_color() -> Color:
 	return _school_color(_active_mask)
 
@@ -158,7 +158,7 @@ func _resolve(relative: PackedVector2Array, options: Dictionary, reading: Stroke
 	var score := reading.score
 	var info := reading.info
 	var ring_split := reading.ring_split
-	var ring_centre := reading.ring_centre
+	var ring_center := reading.ring_center
 	var entry = options.get(gesture)
 	# A cast that works shows its name where it was drawn (the arena does that), so only failures are reported here.
 	# Stonefall's circle and drop and the flame are hard to draw cleanly, so they are read with a looser eye than the other shapes.
@@ -179,9 +179,9 @@ func _resolve(relative: PackedVector2Array, options: Dictionary, reading: Stroke
 		# Directional spells leave from the stroke's start; positional ones center on the drawn shape.
 		var spawn := _origin if entry.targeting == "directional" else _stroke_center()
 		if ring_split >= 0:
-			# A Push comes from the circle's centre and points along the line drawn out of it.
-			spawn = _origin + ring_centre
-			aim = (relative[relative.size() - 1] - ring_centre).angle()
+			# A Push comes from the circle's center and points along the line drawn out of it.
+			spawn = _origin + ring_center
+			aim = (relative[relative.size() - 1] - ring_center).angle()
 		elif entry.targeting == "angled":
 			# Angled spells sit on the drawn shape and point along the stroke.
 			spawn = _stroke_centroid()
@@ -233,7 +233,7 @@ func _draw() -> void:
 	if hide_trail:
 		return
 	if _stroke.size() >= 2:
-		# A glow in the school's colour, with a bright core, so the stroke reads as magic.
+		# A glow in the school's color, with a bright core, so the stroke reads as magic.
 		var c := _stroke_color
 		var a := _stroke_alpha()
 		draw_polyline(_stroke, Color(c.r, c.g, c.b, 0.12 * a), 6.0)

@@ -13,17 +13,17 @@ SHARD = ["...#...", "..#h#..", "..#hb#.", ".#hhb#.", ".#hhbb#", ".#hbbb#", "#hhb
 COLOURS = {"#": (18, 58, 90, 255), "h": (216, 251, 255, 255), "b": (90, 215, 232, 255), "d": (42, 127, 168, 255), ".": (0, 0, 0, 0)}
 
 
-def draw(rows, colour_of, path):
+def draw(rows, color_of, path):
     im = Image.new("RGBA", (len(rows[0]), len(rows)), (0, 0, 0, 0))
     for y, row in enumerate(rows):
         for x, ch in enumerate(row):
-            im.putpixel((x, y), colour_of(ch))
+            im.putpixel((x, y), color_of(ch))
     im.save(path)
     return im
 
 
-def solid(colour):
-    c = tuple(int(colour[i:i + 2], 16) for i in (1, 3, 5)) + (255,)
+def solid(color):
+    c = tuple(int(color[i:i + 2], 16) for i in (1, 3, 5)) + (255,)
     return lambda ch: c if ch == "#" else (0, 0, 0, 0)
 
 

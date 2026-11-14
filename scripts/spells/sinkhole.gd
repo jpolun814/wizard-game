@@ -77,7 +77,7 @@ static func _lows(drawn: PackedVector2Array, count: int) -> PackedFloat32Array:
 			if absf(point.x - x) <= reach:
 				low = maxf(low, point.y)
 		out.append(low if low > -INF else NAN)
-	for i in count:  # a place no point of the stroke came near takes its neighbours' depth
+	for i in count:  # a place no point of the stroke came near takes its neighbors' depth
 		if is_nan(out[i]):
 			var before := i - 1
 			while before >= 0 and is_nan(out[before]):

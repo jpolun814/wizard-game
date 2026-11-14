@@ -20,8 +20,8 @@ var _backing: AnimatedSprite2D  # a dark copy of the ring under it, drawn the or
 func _ready() -> void:
 	super()
 	collision_mask = 6  # the player and the foes
-	_ring.modulate = ring_colour(tint)
-	_ring.modulate = ring_colour(tint) * 1.35  # brighter, and over a dark copy of itself (below), so that it is not see-through
+	_ring.modulate = ring_color(tint)
+	_ring.modulate = ring_color(tint) * 1.35  # brighter, and over a dark copy of itself (below), so that it is not see-through
 	_backing = AnimatedSprite2D.new()
 	_backing.sprite_frames = _ring.sprite_frames
 	_backing.scale = _ring.scale
@@ -72,6 +72,6 @@ func remaining() -> float:
 	return lifetime - age
 
 
-## The ring's picture is violet, so a colour laid over it is evened out first: green would otherwise come out brown, and red the same as orange.
-static func ring_colour(wanted: Color) -> Color:
+## The ring's picture is violet, so a color laid over it is evened out first: green would otherwise come out brown, and red the same as orange.
+static func ring_color(wanted: Color) -> Color:
 	return Color(wanted.r / 0.55, wanted.g / 0.4, wanted.b / 0.85) * 0.9

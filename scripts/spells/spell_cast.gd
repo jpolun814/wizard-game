@@ -29,7 +29,7 @@ func line() -> PackedVector2Array:
 
 
 ## The middle of the line that was drawn.
-func centre() -> Vector2:
+func center() -> Vector2:
 	var points := line()
 	var out := Vector2.ZERO
 	for p in points:

@@ -11,13 +11,13 @@ const VEIL_LIGHTS := 6  # the most lit patches the veil cuts out of the dark at 
 const VEIL_SHADER := """
 shader_type canvas_item;
 uniform vec2 size;
-uniform vec2 centre;
+uniform vec2 center;
 uniform float radius;
 uniform float strength;
 uniform vec4 lights[6];
 void fragment() {
 	vec2 p = UV * size;
-	float dark = mix(0.3, 1.0, smoothstep(radius * 0.75, radius * 1.25, distance(p, centre)));
+	float dark = mix(0.3, 1.0, smoothstep(radius * 0.75, radius * 1.25, distance(p, center)));
 	for (int i = 0; i < 6; i++) {
 		dark *= smoothstep(lights[i].z * 0.45, lights[i].z, distance(p, lights[i].xy));
 	}
@@ -80,7 +80,7 @@ func _update_veil(delta: float) -> void:
 	_veil.size = screen
 	var material := _veil.material as ShaderMaterial
 	material.set_shader_parameter("size", screen)
-	material.set_shader_parameter("centre", to_screen * watched.center())
+	material.set_shader_parameter("center", to_screen * watched.center())
 	material.set_shader_parameter("radius", SIGHT * zoom)
 	material.set_shader_parameter("strength", _veil_strength)
 	var lights: Array[Vector4] = []

@@ -8,7 +8,7 @@ const MIDDLE := 4
 ## The farthest a Shadow Step carries the caster, in pixels.
 const STEP_MAX := 300.0
 
-## Colour of each school: used to tint the enemies of that school and to glow the spells.
+## Color of each school: used to tint the enemies of that school and to glow the spells.
 const SCHOOL_COLORS := {
 	"Fire": Color("#ff6a2a"),
 	"Water": Color("#7fd8ff"),

@@ -157,7 +157,7 @@ static func _grow(rng: RandomNumberGenerator, surface_biome: String) -> WorldGra
 	return graph
 
 
-func neighbours(id: int) -> Array[int]:
+func neighbors(id: int) -> Array[int]:
 	var out: Array[int] = []
 	for link in links:
 		if link["a"] == id:
@@ -168,7 +168,7 @@ func neighbours(id: int) -> Array[int]:
 
 
 func linked(a: int, b: int) -> bool:
-	return neighbours(a).has(b)
+	return neighbors(a).has(b)
 
 
 ## Where a tunnel leaves a hall: the middle of its side, at floor level.
@@ -475,7 +475,7 @@ func _classify(rng: RandomNumberGenerator) -> void:
 	var queue: Array[int] = [0]
 	while not queue.is_empty():
 		var at: int = queue.pop_front()
-		for next in neighbours(at):
+		for next in neighbors(at):
 			if not depth.has(next):
 				depth[next] = depth[at] + 1
 				queue.append(next)
@@ -490,7 +490,7 @@ func _classify(rng: RandomNumberGenerator) -> void:
 	for room in rooms:
 		room["depth"] = depth.get(room["id"], 0)
 		room["zone"] = mini(2, room["depth"] * 3 / (farthest + 1))
-		if neighbours(room["id"]).size() == 1:
+		if neighbors(room["id"]).size() == 1:
 			room["kind"] = "branch"
 	rooms[start]["kind"] = "start"
 

@@ -189,20 +189,20 @@ func _ready() -> void:
 	queue_redraw()
 
 
-## Draws what lies above the snow line of a shape in snow, thinning out below the line: the shape is cut at the line, and its colour fades
+## Draws what lies above the snow line of a shape in snow, thinning out below the line: the shape is cut at the line, and its color fades
 ## with the height. `flat` is true for the lip, whose texture runs along the ridge and does not repeat down it.
 func _draw_snow(shape: PackedVector2Array, texture: Texture2D, texture_size: Vector2, tint: Color, flat: bool) -> void:
 	var reach := Rect2(Vector2(-1.0e6, -1.0e6), Vector2(2.0e6, 1.0e6 + snow_line + SNOW_FADE * 0.25 + 1.0e6 * 0.0))  # (everything above a little under the line)
 	var cut := Geometry2D.intersect_polygons(shape, PackedVector2Array([
 		reach.position, Vector2(reach.end.x, reach.position.y), reach.end, Vector2(reach.position.x, reach.end.y)]))
 	for piece: PackedVector2Array in cut:
-		var colours := PackedColorArray()
+		var colors := PackedColorArray()
 		var uvs := PackedVector2Array()
 		for point in piece:
 			var share := clampf((snow_line + SNOW_FADE * 0.25 - point.y) / (SNOW_FADE * 0.25), 0.0, 1.0)
-			colours.append(Color(tint.r, tint.g, tint.b, share))
+			colors.append(Color(tint.r, tint.g, tint.b, share))
 			uvs.append(Vector2(point.x / texture_size.x, (point.y - shape[0].y) / texture_size.y if flat else point.y / texture_size.y))
-		draw_polygon(piece, colours, uvs, texture)
+		draw_polygon(piece, colors, uvs, texture)
 
 
 func _draw() -> void:

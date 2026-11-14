@@ -148,10 +148,10 @@ func _turn_far_side_shots() -> void:
 			continue
 		var entry: Vector2 = _shots[shot] if _shots[shot] != null else shot.global_position
 		var entry_side := entry - global_position
-		var from_centre: Vector2 = shot.global_position - global_position
-		if _shots[shot] == null or _inside(shot.global_position) or from_centre.dot(entry_side) >= 0.0:
+		var from_center: Vector2 = shot.global_position - global_position
+		if _shots[shot] == null or _inside(shot.global_position) or from_center.dot(entry_side) >= 0.0:
 			continue
-		var back: Vector2 = -from_centre.normalized()
+		var back: Vector2 = -from_center.normalized()
 		_shots[shot] = null
 		shot.reflect(back)
 

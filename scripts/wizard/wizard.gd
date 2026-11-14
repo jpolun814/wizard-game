@@ -4,7 +4,7 @@ extends CharacterBody2D
 ## A wizard: the body every wizard in the game has, the player's and every other wizard's in a match. It is driven either by a person (the keyboard
 ## and the mouse) or by a WizardBrain, and from there it is the same body: the same walk, jump, stamina, wounds, shoves and status
 ## effects, so a spell does the same to any of them. Its origin is at its feet, so it stands exactly on whatever is under it.
-## Each wears one of the looks in WizardLook (and the colours of Net.rival_palette once the looks run out).
+## Each wears one of the looks in WizardLook (and the colors of Net.rival_palette once the looks run out).
 
 signal damaged(amount: int)
 signal debuff_applied(kind: String)
@@ -82,7 +82,7 @@ var look := "wizard":  # which wizard this is: the player's own, or the id of on
 		if is_node_ready():
 			dress()
 
-var palette := 0:  # which set of colours it wears (see WizardLook)
+var palette := 0:  # which set of colors it wears (see WizardLook)
 	set(value):
 		if value == palette:
 			return
@@ -164,7 +164,7 @@ var root_time: float: # no walking or jumping while above zero
 	get: return _status.left(&"root")
 	set(seconds): _status.set_left(&"root", seconds)
 var _stuck_time := 0.0         # how long a giant's stomp has the player stuck in the ground
-var _wet_material: ShaderMaterial  # cuts the body off at the waist while stuck, and colours the part under water or lava
+var _wet_material: ShaderMaterial  # cuts the body off at the waist while stuck, and colors the part under water or lava
 var blind_time: float: # the caster's gesture trail is hidden while above zero
 	get: return _status.left(&"blind")
 	set(seconds): _status.set_left(&"blind", seconds)
@@ -254,7 +254,7 @@ func _ready() -> void:
 	_wet_material.shader = load("res://scripts/fx/wet.gdshader")
 	_sprite.material = _wet_material
 	_paint()
-	# The staff's head glows in the school's colour while a stroke is being drawn.
+	# The staff's head glows in the school's color while a stroke is being drawn.
 	_glow = Sprite2D.new()
 	_glow.texture = Fx.tex("circle_05")
 	_glow.material = Fx.additive()
@@ -295,10 +295,10 @@ func thrust(seconds: float) -> void:
 	_releasing = seconds
 
 
-## Puts its set of colours on the sprite (the material is made a little after the frames are put on).
+## Puts its set of colors on the sprite (the material is made a little after the frames are put on).
 func _paint() -> void:
 	if _wet_material != null:
-		WizardLook.paint(_wet_material, look, 0 if wolf.on else palette)  # a werewolf keeps its own colours
+		WizardLook.paint(_wet_material, look, 0 if wolf.on else palette)  # a werewolf keeps its own colors
 
 
 ## Where the wizard's mouth is, for Fire Breath.
@@ -616,11 +616,11 @@ func _ground_distance() -> float:
 	return hit["position"].y - global_position.y if not hit.is_empty() else -1.0
 
 
-func _draw_ellipse(at: Vector2, rx: float, ry: float, colour: Color) -> void:
+func _draw_ellipse(at: Vector2, rx: float, ry: float, color: Color) -> void:
 	var points := PackedVector2Array()
 	for i in 20:
 		points.append(at + Vector2(cos(TAU * i / 20.0) * rx, sin(TAU * i / 20.0) * ry))
-	draw_colored_polygon(points, colour)
+	draw_colored_polygon(points, color)
 
 
 func _physics_process(delta: float) -> void:

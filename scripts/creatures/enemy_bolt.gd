@@ -38,14 +38,14 @@ static func fire(parent: Node, origin: Vector2, target: Vector2, color: Color, d
 	bolt.add_to_group("shots")
 	parent.add_child(bolt)
 	bolt.add_child(Fx.trail(color, 20, 0.25, 10.0, Vector2.ZERO, "circle_05", 7.0))
-	# A pixel-art shot in the shooter's colour: the sprite is recoloured by the mob shader.
+	# A pixel-art shot in the shooter's color: the sprite is recolored by the mob shader.
 	var shot := PixelFx.sprite("magic_bolt", 14.0)
 	shot.scale = Vector2.ONE * 2.0
-	var recolour := ShaderMaterial.new()
-	recolour.shader = load("res://scripts/creatures/mob.gdshader")
-	recolour.set_shader_parameter("school_color", color)
-	recolour.set_shader_parameter("tint", 1.0)
-	shot.material = recolour
+	var recolor := ShaderMaterial.new()
+	recolor.shader = load("res://scripts/creatures/mob.gdshader")
+	recolor.set_shader_parameter("school_color", color)
+	recolor.set_shader_parameter("tint", 1.0)
+	shot.material = recolor
 	bolt.add_child(shot)
 	return bolt
 
@@ -99,6 +99,6 @@ func _burst() -> void:
 	queue_free()
 
 
-## A soft glow in the shooter's colour behind the sprite.
+## A soft glow in the shooter's color behind the sprite.
 func _draw() -> void:
 	Fx.draw_glow(self, Vector2.ZERO, 14.0, Color(_color.r, _color.g, _color.b, 0.45))

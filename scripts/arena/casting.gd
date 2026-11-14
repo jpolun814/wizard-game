@@ -35,13 +35,13 @@ func by(spell: String, targeting: String, origin: Vector2, aim: float, info: Dic
 	var refusal: Dictionary = _refusal(spell, info, aim, origin, wizard)
 	if not refusal.is_empty():
 		if person:
-			_say(refusal["text"], refusal["colour"], label_at, wizard, refusal["sound"])
+			_say(refusal["text"], refusal["color"], label_at, wizard, refusal["sound"])
 		return
 	var spell_data: Spell = SpellData.SPELLS[spell]
 	var cost := spell_data.cost_for(info)
 	if not spell_data.pays_max():
 		cost = Leech.cost_after(arena.get_tree(), wizard, cost)  # on a tether, half of it falls on the other end
-	var colour := spell_data.glow()
+	var color := spell_data.glow()
 	var paid := wizard.pay_max(cost) if spell_data.pays_max() else wizard.spend(cost)
 	if not paid:
 		# Blood is never spent to the last drop. Said to whoever the wizard is, not only to a person.
@@ -51,29 +51,29 @@ func by(spell: String, targeting: String, origin: Vector2, aim: float, info: Dic
 		return
 	wizard.last_spell = spell
 	if person:
-		FloatText.spawn(arena, label_at, spell, colour.lightened(0.25), 0.9)
+		FloatText.spawn(arena, label_at, spell, color.lightened(0.25), 0.9)
 		if info.get("accuracy", 0.0) >= PERFECT:
-			_flourish(colour)
+			_flourish(color)
 	_everywhere(spell, targeting, origin, aim, info, wizard)
 
 
-## Why this cast does not go off, as {text, colour, sound}: the place forbids it (no ground to work on in the sky, no fire under the sea), or it finds no one to
+## Why this cast does not go off, as {text, color, sound}: the place forbids it (no ground to work on in the sky, no fire under the sea), or it finds no one to
 ## aim at. Nothing is paid then. An empty dictionary means nothing is wrong.
 func _refusal(spell: String, info: Dictionary, aim: float, origin: Vector2, wizard: Wizard) -> Dictionary:
 	if spell == "Icicles" and arena.spawner.shapes.icicle_spots(info).is_empty():
-		return {"text": "Aim under a ceiling", "colour": Color("#dff6ff"), "sound": true}
+		return {"text": "Aim under a ceiling", "color": Color("#dff6ff"), "sound": true}
 	var limit := SpellLimits.refusal(wizard, spell)
 	if limit != "":
-		return {"text": limit, "colour": Color("#ffb86b"), "sound": true}
+		return {"text": limit, "color": Color("#ffb86b"), "sound": true}
 	if spell == "Faint" and AimedSpells.blood_target(arena.get_tree(), origin) == null:
-		return {"text": "Aim at someone", "colour": Color("#ff9a9a"), "sound": false}  # nothing is paid for a cut that finds no one
+		return {"text": "Aim at someone", "color": Color("#ff9a9a"), "sound": false}  # nothing is paid for a cut that finds no one
 	if spell == "Leech" and Leech.pick(arena.get_tree(), wizard, aim) == null:
-		return {"text": "Aim at someone", "colour": Color("#ff9a9a"), "sound": false}  # nothing is paid for a tether that finds no one
+		return {"text": "Aim at someone", "color": Color("#ff9a9a"), "sound": false}  # nothing is paid for a tether that finds no one
 	return {}
 
 
-func _say(text: String, colour: Color, at: Vector2, wizard: Wizard, sound: bool) -> void:
-	FloatText.spawn(arena, at, text, colour, 0.9)
+func _say(text: String, color: Color, at: Vector2, wizard: Wizard, sound: bool) -> void:
+	FloatText.spawn(arena, at, text, color, 0.9)
 	if sound:
 		Sfx.play("misfire", wizard.center(), -6.0)
 
@@ -121,13 +121,13 @@ func misfire_puff() -> void:
 
 
 ## A perfect cast: a ring of the school's light opens round the wizard, sparks fly off it and a gold "Perfect" rises.
-func _flourish(colour: Color) -> void:
+func _flourish(color: Color) -> void:
 	var at: Vector2 = arena.player.center()
-	# A ring of light in the school's colour, opening round the wizard. It is a white texture, so the tint is the school's.
+	# A ring of light in the school's color, opening round the wizard. It is a white texture, so the tint is the school's.
 	var ring := Sprite2D.new()
 	ring.texture = Fx.tex("circle_03")
 	ring.material = Fx.additive()
-	ring.modulate = colour.lightened(0.35)
+	ring.modulate = color.lightened(0.35)
 	ring.position = at
 	ring.z_index = 8
 	ring.scale = Vector2.ONE * (30.0 / Fx.TEX_SIZE)
@@ -136,6 +136,6 @@ func _flourish(colour: Color) -> void:
 	open.tween_property(ring, "scale", Vector2.ONE * (150.0 / Fx.TEX_SIZE), 0.45).set_ease(Tween.EASE_OUT)
 	open.tween_property(ring, "modulate:a", 0.0, 0.45)
 	open.chain().tween_callback(ring.queue_free)
-	Fx.burst(arena, at, colour.lightened(0.6), 14, 170.0, 0.5, true, "star_04")
+	Fx.burst(arena, at, color.lightened(0.6), 14, 170.0, 0.5, true, "star_04")
 	FloatText.spawn(arena, at + Vector2(0, -52), "Perfect", Color("#ffe27a"), 1.0)
 	Sfx.play("pickup", at, -6.0)

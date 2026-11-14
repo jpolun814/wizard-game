@@ -22,7 +22,7 @@ var _view: SubViewport
 var _camera: Camera2D
 var _pick_time := 0.0
 var _window := SubViewportContainer.new()
-var _dressed := false      # the window has been given the colour of the world it shows
+var _dressed := false      # the window has been given the color of the world it shows
 
 
 func _ready() -> void:
@@ -54,19 +54,19 @@ func _ready() -> void:
 	_on_shown_or_hidden()
 
 
-## The window is seen through the same colour as the screen: the world's grade, and the graveyard's wash of grey. (Done when it is first shown, for the
-## world has chosen its colours by then.)
+## The window is seen through the same color as the screen: the world's grade, and the graveyard's wash of gray. (Done when it is first shown, for the
+## world has chosen its colors by then.)
 func _dress() -> void:
 	if _dressed:
 		return
 	_dressed = true
 	_view.add_child(Grade.for_biome(arena.grade_biome))
-	if arena.greyed:
-		_view.add_child(_grey_layer())
+	if arena.grayed:
+		_view.add_child(_gray_layer())
 
 
-## The wash of grey that takes the colour out of the graveyard, as laid over the screen (see WorldScenery.wash_out_the_colour).
-func _grey_layer() -> CanvasLayer:
+## The wash of gray that takes the color out of the graveyard, as laid over the screen (see WorldScenery.wash_out_the_color).
+func _gray_layer() -> CanvasLayer:
 	var layer := CanvasLayer.new()
 	layer.layer = 2
 	var wash := ColorRect.new()

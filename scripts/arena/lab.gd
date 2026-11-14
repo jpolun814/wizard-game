@@ -140,7 +140,7 @@ func _begin_encounter(camera: Camera2D) -> void:
 	_night.visible = false
 	_night.add_to_group("darkness")
 	add_child(_night)
-	add_child(Grade.new())  # the same colour grade as every world
+	add_child(Grade.new())  # the same color grade as every world
 	_player_light = PointLight2D.new()
 	_player_light.texture = Fx.tex("light_01")
 	_player_light.texture_scale = 2.4

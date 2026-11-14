@@ -33,7 +33,7 @@ var _face: Control  # over the ball, where the writing and the charts are drawn
 var _mist: ShaderMaterial
 var _charts: Array[Dictionary] = []  # where the chart was drawn this frame, for reading a value off it
 var _pointer := Vector2(-1.0, -1.0)
-var _centre := Vector2.ZERO
+var _center := Vector2.ZERO
 var _radius := 200.0
 var _left_arrow := Rect2()
 var _right_arrow := Rect2()
@@ -79,17 +79,17 @@ func _fit() -> void:
 	size = get_viewport_rect().size
 	var view := size
 	_radius = maxf(roundf(minf(view.x * 0.30, view.y * 0.33) / (BLOCK * 2.0)) * BLOCK * 2.0, BLOCK * 20.0)  # a whole number of blocks across
-	_centre = Vector2(view.x * 0.5, view.y * 0.47)
+	_center = Vector2(view.x * 0.5, view.y * 0.47)
 	if _ball != null:
-		_ball.position = _centre - Vector2(_radius, _radius)
+		_ball.position = _center - Vector2(_radius, _radius)
 		_ball.size = Vector2(_radius, _radius) * 2.0
 		_mist.set_shader_parameter("cells", _radius * 2.0 / BLOCK)
 		_face.position = Vector2.ZERO
 		_face.size = view
 		_button.size = Vector2(240.0, 44.0)
-		_button.position = Vector2(_centre.x - 120.0, _centre.y + _radius + 62.0)
-	_left_arrow = Rect2(_centre + Vector2(-_radius - 84.0, -34.0), Vector2(68.0, 68.0))
-	_right_arrow = Rect2(_centre + Vector2(_radius + 16.0, -34.0), Vector2(68.0, 68.0))
+		_button.position = Vector2(_center.x - 120.0, _center.y + _radius + 62.0)
+	_left_arrow = Rect2(_center + Vector2(-_radius - 84.0, -34.0), Vector2(68.0, 68.0))
+	_right_arrow = Rect2(_center + Vector2(_radius + 16.0, -34.0), Vector2(68.0, 68.0))
 	_redraw()
 
 
@@ -148,10 +148,10 @@ func _draw() -> void:
 	var view := get_viewport_rect().size
 	draw_rect(Rect2(Vector2.ZERO, view), Color(0.015, 0.0, 0.03, 0.9))
 	for ring in 5:  # a faint glow round the ball
-		draw_circle(_centre, _radius * (1.5 - 0.1 * ring), Color(0.4, 0.3, 0.8, 0.025))
-	var foot := _centre.y + _radius * 0.84
+		draw_circle(_center, _radius * (1.5 - 0.1 * ring), Color(0.4, 0.3, 0.8, 0.025))
+	var foot := _center.y + _radius * 0.84
 	for tier in [[0.62, 30.0, 0.0], [0.82, 22.0, 30.0], [1.02, 16.0, 52.0]]:  # a stand of three stepped tiers
-		var box := Rect2(_centre.x - _radius * tier[0], foot + tier[2], _radius * tier[0] * 2.0, tier[1])
+		var box := Rect2(_center.x - _radius * tier[0], foot + tier[2], _radius * tier[0] * 2.0, tier[1])
 		draw_rect(box, BRASS_DARK)
 		draw_rect(Rect2(box.position, Vector2(box.size.x, 4.0)), BRASS)
 
@@ -162,7 +162,7 @@ func _draw_face() -> void:
 	var f := _face
 	var view := get_viewport_rect().size
 	_charts.clear()
-	f.draw_string(HEAD, Vector2(0.0, _centre.y - _radius - 22.0), PAGES[_page], HORIZONTAL_ALIGNMENT_CENTER, view.x, 44, TEXT)
+	f.draw_string(HEAD, Vector2(0.0, _center.y - _radius - 22.0), PAGES[_page], HORIZONTAL_ALIGNMENT_CENTER, view.x, 44, TEXT)
 	match _page:
 		0:
 			_page_end()
@@ -181,9 +181,9 @@ func _draw_face() -> void:
 	# The turning of the pages: an arrow each side, and a mark for each page.
 	_arrow(_left_arrow, -1)
 	_arrow(_right_arrow, 1)
-	var dots_y := _centre.y + _radius * 0.84 + 82.0
+	var dots_y := _center.y + _radius * 0.84 + 82.0
 	for index in PAGES.size():
-		var at := Vector2(_centre.x + (index - (PAGES.size() - 1) * 0.5) * 22.0, dots_y)
+		var at := Vector2(_center.x + (index - (PAGES.size() - 1) * 0.5) * 22.0, dots_y)
 		f.draw_rect(Rect2(at - Vector2(5.0, 5.0), Vector2(10.0, 10.0)), BRASS if index == _page else Color(1, 1, 1, 0.2))
 	_draw_reading(view)
 
@@ -200,11 +200,11 @@ func _arrow(box: Rect2, way: int) -> void:
 func _page_end() -> void:
 	var f := _face
 	var width := _radius * 2.0
-	var left := _centre.x - _radius
+	var left := _center.x - _radius
 	var heading := "Victory" if placement == 1 else "Eliminated"
-	f.draw_string(HEAD, Vector2(left, _centre.y - 20.0), heading, HORIZONTAL_ALIGNMENT_CENTER, width, 66, KILLS if placement == 1 else TAKEN)
-	f.draw_string(BODY, Vector2(left, _centre.y + 44.0), "#%d of %d" % [placement, field], HORIZONTAL_ALIGNMENT_CENTER, width, 54, TEXT)  # (Olde Tome has no numbers)
-	f.draw_string(BODY, Vector2(left, _centre.y + 88.0), "Survived  %s" % _clock(MatchStats.seconds), HORIZONTAL_ALIGNMENT_CENTER, width, 27, DIM)
+	f.draw_string(HEAD, Vector2(left, _center.y - 20.0), heading, HORIZONTAL_ALIGNMENT_CENTER, width, 66, KILLS if placement == 1 else TAKEN)
+	f.draw_string(BODY, Vector2(left, _center.y + 44.0), "#%d of %d" % [placement, field], HORIZONTAL_ALIGNMENT_CENTER, width, 54, TEXT)  # (Olde Tome has no numbers)
+	f.draw_string(BODY, Vector2(left, _center.y + 88.0), "Survived  %s" % _clock(MatchStats.seconds), HORIZONTAL_ALIGNMENT_CENTER, width, 27, DIM)
 
 
 ## The tally: the plain numbers.
@@ -218,7 +218,7 @@ func _page_tally() -> void:
 		["Accuracy", "%d%%" % roundi(MatchStats.average_accuracy() * 100.0), LEARNED],
 		["Spells learned", "%d of %d" % [MatchStats.pages_known(), Pages.every().size()], LEARNED],
 	]
-	_list(rows, _centre.y - 4.0 - 17.0 * rows.size())
+	_list(rows, _center.y - 4.0 - 17.0 * rows.size())
 
 
 ## What was cast most, and what the damage came from.
@@ -238,16 +238,16 @@ func _page_favourites() -> void:
 	for index in mini(schools.size(), 3):
 		var school: String = schools[index]
 		rows.append([SpellData.school_name(school), str(roundi(float(MatchStats.damage_by_school[school]))), SpellData.SCHOOL_COLORS.get(school, TEXT)])
-	var top := _centre.y - 4.0 - 17.0 * (rows.size() + (1 if schools.size() > 0 else 0))
+	var top := _center.y - 4.0 - 17.0 * (rows.size() + (1 if schools.size() > 0 else 0))
 	_list(rows.slice(0, first_of_damage), top)
 	if schools.size() > 0:
-		_face.draw_string(BODY, Vector2(_centre.x - _radius * 0.52, top + 34.0 * first_of_damage + 26.0), "Damage by school", HORIZONTAL_ALIGNMENT_LEFT, -1.0, 27, DIM)
+		_face.draw_string(BODY, Vector2(_center.x - _radius * 0.52, top + 34.0 * first_of_damage + 26.0), "Damage by school", HORIZONTAL_ALIGNMENT_LEFT, -1.0, 27, DIM)
 		_list(rows.slice(first_of_damage), top + 34.0 * first_of_damage + 34.0)
 
 
-## Rows of a coloured square, a name and a number, down the middle of the ball.
+## Rows of a colored square, a name and a number, down the middle of the ball.
 func _list(rows: Array, top: float) -> void:
-	var left := _centre.x - _radius * 0.52
+	var left := _center.x - _radius * 0.52
 	var width := _radius * 1.04
 	for index in rows.size():
 		var y := top + 34.0 * index
@@ -259,7 +259,7 @@ func _list(rows: Array, top: float) -> void:
 ## A line chart in the glass: a line for each series (the running total at every sample) and a few levels to read it by.
 func _chart(title: String, lines: Array, stepped := false) -> void:
 	var f := _face
-	var plot := Rect2(_centre + Vector2(-_radius * 0.66, -_radius * 0.40), Vector2(_radius * 1.32, _radius * 0.78))
+	var plot := Rect2(_center + Vector2(-_radius * 0.66, -_radius * 0.40), Vector2(_radius * 1.32, _radius * 0.78))
 	var last: float = MatchStats.series[MatchStats.series.size() - 1]["t"]
 	var top := 1.0
 	for line: Array in lines:
@@ -273,7 +273,7 @@ func _chart(title: String, lines: Array, stepped := false) -> void:
 	f.draw_string(BODY, Vector2(plot.position.x, plot.end.y + 22.0), "0:00", HORIZONTAL_ALIGNMENT_LEFT, -1.0, 18, DIM)
 	f.draw_string(BODY, Vector2(plot.end.x - 60.0, plot.end.y + 22.0), _clock(last), HORIZONTAL_ALIGNMENT_RIGHT, 60.0, 18, DIM)
 	_charts.append({"box": plot, "plot": plot, "last": last, "top": top, "lines": lines, "title": title})
-	var key_x := _centre.x - 48.0 * lines.size()
+	var key_x := _center.x - 48.0 * lines.size()
 	for line: Array in lines:
 		var points := PackedVector2Array()
 		var previous := plot.end
@@ -310,19 +310,19 @@ func _draw_reading(view: Vector2) -> void:
 		var x := plot.position.x + plot.size.x * float(sample["t"]) / maxf(last, 1.0)
 		_face.draw_line(Vector2(x, plot.position.y), Vector2(x, plot.end.y), Color(1, 1, 1, 0.4), 1.0)
 		var rows: Array[String] = [_clock(float(sample["t"]))]
-		var colours: Array[Color] = [DIM]
+		var colors: Array[Color] = [DIM]
 		for line: Array in chart["lines"]:
 			var value := float(sample[line[2]])
 			_face.draw_circle(Vector2(x, plot.end.y - plot.size.y * value / top), 5.0, line[1])
 			rows.append("%s  %d" % [line[0], roundi(value)])
-			colours.append(line[1])
+			colors.append(line[1])
 		var tip := Rect2(Vector2(x + 12.0, plot.position.y + 8.0), Vector2(120.0, 12.0 + 24.0 * rows.size()))
 		if tip.end.x > plot.end.x:
 			tip.position.x = x - 12.0 - tip.size.x
 		_face.draw_rect(tip, Color(0.02, 0.0, 0.05, 0.95))
 		_face.draw_rect(tip, BRASS, false, 1.0)
 		for index in rows.size():
-			_face.draw_string(BODY, tip.position + Vector2(10.0, 24.0 + 24.0 * index), rows[index], HORIZONTAL_ALIGNMENT_LEFT, tip.size.x - 14.0, 22, colours[index])
+			_face.draw_string(BODY, tip.position + Vector2(10.0, 24.0 + 24.0 * index), rows[index], HORIZONTAL_ALIGNMENT_LEFT, tip.size.x - 14.0, 22, colors[index])
 		return
 
 

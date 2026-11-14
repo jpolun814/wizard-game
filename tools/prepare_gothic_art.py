@@ -19,10 +19,10 @@ The downloads dir holds the unzipped packs, each in its own folder:
     books/foxel                 Foxel Games, Pixel Art Book           (the spellbook)
     martial-hero-2/             LuizMelo, Martial Hero 2               (the ninjas)
     ninja-throw/                Ninja Throwing Items Kit (CC0)        (the star: Ninja_Star_Pixel.png)
-Some effects are recoloured here to their school's colours (a hue turn, or a ramp from dark to light).
+Some effects are recolored here to their school's colors (a hue turn, or a ramp from dark to light).
 
 Characters are cut out of their sprite sheets into single frames that all share one canvas, with the character's
-feet on the canvas's bottom edge (its middle, for a flyer) and its body centred left to right, so flipping a frame
+feet on the canvas's bottom edge (its middle, for a flyer) and its body centerd left to right, so flipping a frame
 to face the other way never shifts the character. The tiles are packed into the 16-piece atlas layout terrain.gd
 reads. Everything else is copied at its own size.
 """
@@ -95,7 +95,7 @@ TOWN = "x_town/GothicVania-town-files/PNG/environment/"
 
 # Each tileset is described by the 16 px tiles that play each role: the corners, edges and middle of a block of
 # ground, its bottom, and the plain deep earth under it. A cell is (x, y) in the tileset, or ("fill", (x, y)) for a
-# tile flooded with that cell's most common colour. Each 32 px piece of the game's atlas is built from four of them,
+# tile flooded with that cell's most common color. Each 32 px piece of the game's atlas is built from four of them,
 # so the ground has the same pixel size as the characters standing on it.
 PIECES = ["top_left", "top", "top_right", "single",
           "left", "center", "right", "ledge_left",
@@ -180,8 +180,8 @@ FX_SHEETS = {
     "fire_puff": ("pixflame/fire-a-168x62.png", 24),
     "fire_wall": ("pixflame/fire-b-294x77.png", 42),
 }
-# Effects laid out in a grid and recoloured: name -> (sheet, frame width, frame height, and a recolouring: None,
-# ("hue", degrees), or ("ramp", dark colour, light colour)). Empty cells are skipped.
+# Effects laid out in a grid and recolored: name -> (sheet, frame width, frame height, and a recoloring: None,
+# ("hue", degrees), or ("ramp", dark color, light color)). Empty cells are skipped.
 FORCE_RAMP = ("ramp", (40, 14, 70), (236, 214, 255))
 FX_RECOLOURED = {
     "vortex": ("x_freefx/13_vortex_spritesheet.png", 100, 100, FORCE_RAMP),
@@ -197,8 +197,8 @@ FX_GRIDS = {
 }
 
 
-def recolour(image, how):
-    """A hue turn (which keeps greys grey, so stone stays stone), or a ramp mapping dark to light onto two colours."""
+def recolor(image, how):
+    """A hue turn (which keeps grays gray, so stone stays stone), or a ramp mapping dark to light onto two colors."""
     if how is None:
         return image
     out = image.copy()
@@ -226,7 +226,7 @@ def grid_frames(sheet, fw, fh):
 
 
 def key_out(image):
-    """Makes a picture's flat background colour (its top-left pixel) transparent."""
+    """Makes a picture's flat background color (its top-left pixel) transparent."""
     out = image.copy()
     px = out.load()
     bg = px[0, 0]
@@ -262,12 +262,12 @@ def body_column(frames, flyer):
                 if a[x, y] > 24:
                     xs += x
                     total += 1
-    centre_x = xs / total
+    center_x = xs / total
     anchor_y = (top + bottom) / 2.0 if flyer else bottom
-    return centre_x, anchor_y
+    return center_x, anchor_y
 
 
-def body_box(frames, centre_x, anchor_y):
+def body_box(frames, center_x, anchor_y):
     """The body's box measured from the anchor: columns that are mostly solid through the idle frames, so a staff
     or a weapon held out doesn't widen the hitbox."""
     f = frames[0]
@@ -277,7 +277,7 @@ def body_box(frames, centre_x, anchor_y):
     tallest = max(counts.values())
     cols = [x for x, c in counts.items() if c >= tallest * 0.45]
     left, right = min(cols), max(cols) + 1
-    return (left - centre_x, box[1] - anchor_y, right - left, box[3] - box[1])
+    return (left - center_x, box[1] - anchor_y, right - left, box[3] - box[1])
 
 
 def cells_of(sheet, fw, fh, row, first, last):
@@ -295,14 +295,14 @@ def prepare_character(name, downloads):
             continue
         path = file if "/" in file else folder + file
         sheets[anim] = frames_of(Image.open(os.path.join(downloads, path)).convert("RGBA"), fw, fh)
-    centre_x, anchor_y = body_column(sheets["idle"], flyer)
+    center_x, anchor_y = body_column(sheets["idle"], flyer)
     # The canvas holds every frame of every animation, symmetric about the body's middle.
     reach_x, up, down = 0.0, 0.0, 0.0
     for frames in sheets.values():
         for f in frames:
             box = alpha_box(f)
             if box:
-                reach_x = max(reach_x, centre_x - box[0], box[2] - centre_x)
+                reach_x = max(reach_x, center_x - box[0], box[2] - center_x)
                 up = max(up, anchor_y - box[1])
                 down = max(down, box[3] - anchor_y)
     half_w = int(reach_x + 2)
@@ -316,9 +316,9 @@ def prepare_character(name, downloads):
     for anim, frames in sheets.items():
         for i, f in enumerate(frames):
             canvas = Image.new("RGBA", (half_w * 2, top + bottom))
-            canvas.paste(f, (int(round(half_w - centre_x)), int(round(top - anchor_y))))
+            canvas.paste(f, (int(round(half_w - center_x)), int(round(top - anchor_y))))
             canvas.save(os.path.join(out_dir, "%s_%d.png" % (anim, i)), optimize=True)
-    body = body_box(sheets["idle"], centre_x, anchor_y)
+    body = body_box(sheets["idle"], center_x, anchor_y)
     return {"size": (half_w * 2, top + bottom), "body": body, "flyer": flyer}
 
 
@@ -330,8 +330,8 @@ def build_atlas(spec, downloads, dst):
         if how[0] == "fill":
             c = how[1]
             cell = src.crop((c[0] * 16, c[1] * 16, c[0] * 16 + 16, c[1] * 16 + 16))
-            colour = max((n for n in cell.getcolors(256) if n[1][3] > 200), key=lambda n: n[0])[1]
-            return Image.new("RGBA", (16, 16), colour)
+            color = max((n for n in cell.getcolors(256) if n[1][3] > 200), key=lambda n: n[0])[1]
+            return Image.new("RGBA", (16, 16), color)
         return src.crop((how[0] * 16, how[1] * 16, how[0] * 16 + 16, how[1] * 16 + 16))
 
     cell_size = ATLAS_TILE + ATLAS_PAD * 2
@@ -342,7 +342,7 @@ def build_atlas(spec, downloads, dst):
         for q, name in enumerate(quarters):
             t.alpha_composite(role(name), ((q % 2) * 16, (q // 2) * 16))
         t = t.resize((ATLAS_TILE, ATLAS_TILE), Image.NEAREST)
-        # Extrude the edges into the padding, so neighbouring tiles never bleed in.
+        # Extrude the edges into the padding, so neighboring tiles never bleed in.
         padded = t.resize((ATLAS_TILE + ATLAS_PAD * 2, ATLAS_TILE + ATLAS_PAD * 2), Image.NEAREST)
         padded.paste(t, (ATLAS_PAD, ATLAS_PAD))
         atlas.paste(padded, ((i % 4) * cell_size, (i // 4) * cell_size))
@@ -350,29 +350,29 @@ def build_atlas(spec, downloads, dst):
 
 
 def build_extras(dl, props, tiles):
-    """Pieces cut from sheets and recoloured: rock spikes, clouds, ice and quicksand."""
-    # Rock spikes for Fissure: the rising ice spikes, recoloured to stone.
+    """Pieces cut from sheets and recolored: rock spikes, clouds, ice and quicksand."""
+    # Rock spikes for Fissure: the rising ice spikes, recolored to stone.
     rocks = Image.open(os.path.join(dl, "icicles/icerocks_pixel.png")).convert("RGBA")
     rock_ramp = ("ramp", (34, 24, 20), (196, 170, 140))
     for i, (x, y) in enumerate([(48, 48), (32, 48), (48, 32)]):
-        cell = recolour(rocks.crop((x, y, x + 16, y + 16)), rock_ramp)
+        cell = recolor(rocks.crop((x, y, x + 16, y + 16)), rock_ramp)
         cell.crop(alpha_box(cell)).save(os.path.join(props, "rock_spike_%d.png" % (i + 1)), optimize=True)
     # Clouds, keyed off their sky and turned to storm and snow clouds.
     clouds = key_out(Image.open(os.path.join(dl, "x_clouds/pix/pixel_art_clouds/clouds.png")).convert("RGBA"))
     for name, box in [("big", (0, 60, 120, 120)), ("small_1", (70, 0, 120, 30)), ("small_2", (70, 28, 120, 58))]:
         cell = clouds.crop(box)
         cell = cell.crop(alpha_box(cell))
-        recolour(cell, ("ramp", (22, 18, 34), (112, 104, 140))).save(os.path.join(props, "cloud_storm_%s.png" % name), optimize=True)
-        recolour(cell, ("ramp", (70, 86, 112), (232, 242, 255))).save(os.path.join(props, "cloud_snow_%s.png" % name), optimize=True)
-    # Ice: the church's cut stone, recoloured, for ice blocks; and one plain block of it to fill shapes with.
+        recolor(cell, ("ramp", (22, 18, 34), (112, 104, 140))).save(os.path.join(props, "cloud_storm_%s.png" % name), optimize=True)
+        recolor(cell, ("ramp", (70, 86, 112), (232, 242, 255))).save(os.path.join(props, "cloud_snow_%s.png" % name), optimize=True)
+    # Ice: the church's cut stone, recolored, for ice blocks; and one plain block of it to fill shapes with.
     ice_ramp = ("ramp", (18, 58, 96), (228, 248, 255))
     stone = Image.open(os.path.join(tiles, "stone.png")).convert("RGBA")
-    recolour(stone, ice_ramp).save(os.path.join(tiles, "ice.png"), optimize=True)
+    recolor(stone, ice_ramp).save(os.path.join(tiles, "ice.png"), optimize=True)
     church = Image.open(os.path.join(dl, CHURCH + "tileset.png")).convert("RGBA")
-    recolour(church.crop((64, 112, 96, 144)), ice_ramp).save(os.path.join(props, "ice_fill.png"), optimize=True)
+    recolor(church.crop((64, 112, 96, 144)), ice_ramp).save(os.path.join(props, "ice_fill.png"), optimize=True)
     # Quicksand: the swamp's murky water, turned to churning sand.
     swamp = Image.open(os.path.join(dl, SWAMP + "tileset.png")).convert("RGBA")
-    recolour(swamp.crop((224, 80, 288, 112)), ("ramp", (52, 34, 16), (226, 186, 120))).save(os.path.join(props, "quicksand.png"), optimize=True)
+    recolor(swamp.crop((224, 80, 288, 112)), ("ramp", (52, 34, 16), (226, 186, 120))).save(os.path.join(props, "quicksand.png"), optimize=True)
 
 
 def strip(frames, dst):
@@ -502,7 +502,7 @@ def main():
     fx["tornado"] = strip(cells, os.path.join(fx_dir, "tornado.png"))
     for name, (src, fw, fh, how) in FX_RECOLOURED.items():
         sheet = Image.open(os.path.join(dl, src)).convert("RGBA")
-        fx[name] = strip([recolour(f, how) for f in grid_frames(sheet, fw, fh)], os.path.join(fx_dir, name + ".png"))
+        fx[name] = strip([recolor(f, how) for f in grid_frames(sheet, fw, fh)], os.path.join(fx_dir, name + ".png"))
     build_extras(dl, os.path.join(ROOT, "art", "props"), os.path.join(ROOT, "art", "tiles"))
     # The spellbook: closed, opening, open and turning a page, seven frames of 190 x 160.
     os.makedirs(os.path.join(ROOT, "art", "ui"), exist_ok=True)

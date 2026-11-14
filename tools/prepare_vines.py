@@ -1,4 +1,4 @@
-"""Makes art/props/dusk_vine.png: the swamp vine recoloured to the great oak's own colours (a dark teal stem with green-teal leaf
+"""Makes art/props/dusk_vine.png: the swamp vine recolored to the great oak's own colors (a dark teal stem with green-teal leaf
 light on it), instead of the pack's acid green, which clashed with the trees it climbs. Then makes art/props/jungle_vine.png from it, as
 tools/prepare_jungle.py did from the original. Run from the project folder: python -I tools/prepare_vines.py"""
 from PIL import Image, ImageOps

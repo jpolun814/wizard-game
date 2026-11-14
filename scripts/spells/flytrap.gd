@@ -14,7 +14,7 @@ const PLANT := preload("res://art/props/flytrap.png")  # six frames of 64 px: th
 const FRAME := 64
 const SIZE := 2.0   # drawn at twice its size, like the other props
 const LURKING := 0.3  # how much of its height shows while it lies in wait: it crouches in the ground, with only a hint of it above
-const LURKING_TINT := Color(0.5, 0.58, 0.46, 0.7)  # and takes on the colour of the ground and leaves round it: a careful eye finds it
+const LURKING_TINT := Color(0.5, 0.58, 0.46, 0.7)  # and takes on the color of the ground and leaves round it: a careful eye finds it
 const SOIL := 51.0  # the row of a frame the plant's foot stands on
 
 var _state := "growing"  # growing, waiting, holding

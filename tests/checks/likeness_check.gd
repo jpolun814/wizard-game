@@ -1,5 +1,5 @@
 extends Check
-## The wizard maker: the words at the spot on the hill open it, a figure and a set of colours chosen in it are worn at once and kept, the four figures
+## The wizard maker: the words at the spot on the hill open it, a figure and a set of colors chosen in it are worn at once and kept, the four figures
 ## are one height, and a brain's wizard takes a figure nobody else has. Add `-- out=DIR` for pictures (they need a window).
 ##
 ##     godot --headless --fixed-fps 60 --path . tests/checks/likeness_check.tscn
@@ -57,7 +57,7 @@ func _ready() -> void:
 	if panels.size() == 1:
 		panels[0]._choose_look("pyre_wizard")
 		panels[0]._choose_palette(2)
-		_verdict(lab.player.look == "pyre_wizard" and lab.player.palette == 2, "a figure and colours chosen are worn at once")
+		_verdict(lab.player.look == "pyre_wizard" and lab.player.palette == 2, "a figure and colors chosen are worn at once")
 		_verdict(GameSettings.get_value("look") == "pyre_wizard" and int(GameSettings.get_value("palette")) == 2, "and kept")
 		for k in 3:
 			await get_tree().process_frame

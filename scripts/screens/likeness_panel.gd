@@ -1,7 +1,7 @@
 class_name LikenessPanel
 extends CanvasLayer
 
-## The wizard maker, opened in the waiting room by the words at the glowing spot on the hill: the four figures to be, and the sets of colours to wear.
+## The wizard maker, opened in the waiting room by the words at the glowing spot on the hill: the four figures to be, and the sets of colors to wear.
 ## What is chosen is put on the wizard at once, kept for next time (see GameSettings) and told to everyone else in the game.
 
 signal closed
@@ -91,12 +91,12 @@ func _input(event: InputEvent) -> void:
 		close()
 
 
-func _heading(text: String, size: int, colour: Color) -> Label:
+func _heading(text: String, size: int, color: Color) -> Label:
 	var label := Label.new()
 	label.text = text
 	label.add_theme_font_override("font", LETTERING)
 	label.add_theme_font_size_override("font_size", size)
-	label.add_theme_color_override("font_color", colour)
+	label.add_theme_color_override("font_color", color)
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	return label
 
@@ -153,7 +153,7 @@ func _changed() -> void:
 	_show_choice()
 
 
-## The buttons show what is chosen: a gold edge round the figure and the colours it wears.
+## The buttons show what is chosen: a gold edge round the figure and the colors it wears.
 func _show_choice() -> void:
 	var chosen := Net.look_of(Net.my_id())
 	var palette := Net.palette_of(Net.my_id())

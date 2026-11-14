@@ -1,6 +1,6 @@
 shader_type canvas_item;
 
-// The wizard's sprite. Cuts the body off at a line while it is stuck in the ground (keep), and colours the part of it
+// The wizard's sprite. Cuts the body off at a line while it is stuck in the ground (keep), and colors the part of it
 // below the surface of the water or lava it stands in, so it looks as if that part is really under it.
 
 uniform float keep = 2.0;                       // the part of the picture, from the top, that is shown: 1.0 is all of it
@@ -9,14 +9,14 @@ uniform vec4 water_tint : source_color = vec4(1.0);
 uniform float obsidian = 0.0;                   // 0 to 1: how far the body has turned to black glass
 uniform float aura = 0.0;                       // 0 to 1: how strongly a blood veil tints the body red
 
-// The wizard's colours (see WizardLook): two groups of the picture's colours, each picked out by its hue (centre and half-width, in turns of the
-// colour wheel, and the least colour a pixel must have to count), are turned to a new hue and made more or less colourful. Skin, wood and
+// The wizard's colors (see WizardLook): two groups of the picture's colors, each picked out by its hue (center and half-width, in turns of the
+// color wheel, and the least color a pixel must have to count), are turned to a new hue and made more or less colorful. Skin, wood and
 // outlines are in neither group, so they stay as they were. A hue of -1 leaves a group as it is.
-uniform vec4 robe_group = vec4(-1.0, 0.0, 0.0, 0.0);   // hue, half-width, least colour, and how much brighter and livelier a dark figure's group is made when it is recoloured (0: not at all)
+uniform vec4 robe_group = vec4(-1.0, 0.0, 0.0, 0.0);   // hue, half-width, least color, and how much brighter and livelier a dark figure's group is made when it is recolored (0: not at all)
 uniform vec4 trim_group = vec4(-1.0, 0.0, 0.0, 0.0);
-uniform vec4 shade = vec4(-1.0, 0.0, 0.0, 0.0);        // for a figure whose cloak is black: the hue, colour and brightness its black becomes (hue -1: stays black)
+uniform vec4 shade = vec4(-1.0, 0.0, 0.0, 0.0);        // for a figure whose cloak is black: the hue, color and brightness its black becomes (hue -1: stays black)
 uniform vec2 caps = vec2(1.0);                          // the brightest a pixel of the robe group and of the trim group can be and still count (skin and hair are brighter than cloth)
-uniform vec4 robe_goal = vec4(-1.0, 1.0, 0.0, 0.0);    // the hue it becomes (-1: unchanged), and how much colour it keeps
+uniform vec4 robe_goal = vec4(-1.0, 1.0, 0.0, 0.0);    // the hue it becomes (-1: unchanged), and how much color it keeps
 uniform vec4 trim_goal = vec4(-1.0, 1.0, 0.0, 0.0);
 
 varying float world_y;
@@ -44,7 +44,7 @@ float in_group(vec3 hsv, vec4 group, float cap) {
 	return hue_part * smoothstep(group.z * 0.7, group.z, hsv.y) * step(0.1, hsv.z) * (1.0 - smoothstep(cap, cap + 0.06, hsv.z));
 }
 
-vec3 recolour(vec3 rgb, vec3 hsv, vec4 group, vec4 goal, float cap) {
+vec3 recolor(vec3 rgb, vec3 hsv, vec4 group, vec4 goal, float cap) {
 	if (goal.x < 0.0 && goal.y >= 1.0) {
 		return rgb;
 	}
@@ -75,8 +75,8 @@ void fragment() {
 	vec4 c = texture(TEXTURE, UV) * COLOR;
 	if (robe_goal.x >= 0.0 || robe_goal.y < 1.0 || trim_goal.x >= 0.0 || trim_goal.y < 1.0) {
 		vec3 hsv = rgb_to_hsv(c.rgb);
-		c.rgb = recolour(c.rgb, hsv, robe_group, robe_goal, caps.x);
-		c.rgb = recolour(c.rgb, hsv, trim_group, trim_goal, caps.y);
+		c.rgb = recolor(c.rgb, hsv, robe_group, robe_goal, caps.x);
+		c.rgb = recolor(c.rgb, hsv, trim_group, trim_goal, caps.y);
 	}
 	if (shade.x >= 0.0) {
 		float top = max(c.r, max(c.g, c.b));

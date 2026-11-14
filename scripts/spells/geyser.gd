@@ -268,14 +268,14 @@ func _draw() -> void:
 		left.append(Vector2(-half, -height * t))
 		right.append(Vector2(half, -height * t))
 	var body := PackedVector2Array()
-	var colours := PackedColorArray()
+	var colors := PackedColorArray()
 	for i in left.size():
 		body.append(left[i])
-		colours.append(_shade(float(i) / steps, fade))
+		colors.append(_shade(float(i) / steps, fade))
 	for i in range(right.size() - 1, -1, -1):
 		body.append(right[i])
-		colours.append(_shade(float(i) / steps, fade))
-	draw_polygon(body, colours)
+		colors.append(_shade(float(i) / steps, fade))
+	draw_polygon(body, colors)
 	var edge := Pond.WATER_RIM
 	edge.a = fade
 	draw_polyline(left, edge, 2.0)
@@ -295,7 +295,7 @@ func _draw() -> void:
 func _draw_crest(top: Vector2, column_half: float, fade: float) -> void:
 	var half := column_half * 2.8
 	var ring := PackedVector2Array()
-	var colours := PackedColorArray()
+	var colors := PackedColorArray()
 	var steps := 28
 	for i in steps:
 		var angle := TAU * float(i) / steps  # round the whole outline, from the right edge over the top, down the left, and back under
@@ -304,10 +304,10 @@ func _draw_crest(top: Vector2, column_half: float, fade: float) -> void:
 		var wobble := sin(_age * 18.0 + reach * 6.0) * 1.0
 		var y := -up * (18.0 if up > 0.0 else 9.0)  # a high dome above, a shallower round belly below
 		ring.append(top + Vector2(reach * half, y + wobble + 4.0))
-		colours.append(Pond.WATER_TOP.lerp(Pond.WATER_RIM, clampf(0.25 + 0.5 * up, 0.0, 1.0)))
-	for c in colours.size():
-		colours[c].a = fade
-	draw_polygon(ring, colours)
+		colors.append(Pond.WATER_TOP.lerp(Pond.WATER_RIM, clampf(0.25 + 0.5 * up, 0.0, 1.0)))
+	for c in colors.size():
+		colors[c].a = fade
+	draw_polygon(ring, colors)
 	var edge := Pond.WATER_RIM
 	edge.a = fade
 	ring.append(ring[0])
@@ -321,19 +321,19 @@ func _draw_mound(width: float, height: float, fade: float) -> void:
 		var t := float(i) / 12.0
 		var x := lerpf(-width * 0.5, width * 0.5, t)
 		top.append(Vector2(x, -height * sin(t * PI) - sin(_age * 14.0 + t * 10.0) * 0.8))
-	var colours := PackedColorArray()
+	var colors := PackedColorArray()
 	for point in top:
-		colours.append(Pond.WATER_TOP.lerp(Pond.WATER_BOTTOM, clampf(1.0 + point.y / maxf(height, 1.0), 0.0, 1.0) * 0.6))
+		colors.append(Pond.WATER_TOP.lerp(Pond.WATER_BOTTOM, clampf(1.0 + point.y / maxf(height, 1.0), 0.0, 1.0) * 0.6))
 	var rim := Pond.WATER_RIM
 	rim.a = fade
-	for c in colours.size():
-		colours[c].a = fade
-	draw_polygon(top, colours)
+	for c in colors.size():
+		colors[c].a = fade
+	draw_polygon(top, colors)
 	draw_polyline(top, rim, 2.0)
 
 
 ## Water in the column: lighter the higher it is.
 func _shade(t: float, fade: float) -> Color:
-	var colour := Pond.WATER_TOP.lerp(Pond.WATER_RIM, t * 0.7)
-	colour.a = fade
-	return colour
+	var color := Pond.WATER_TOP.lerp(Pond.WATER_RIM, t * 0.7)
+	color.a = fade
+	return color

@@ -3,8 +3,8 @@ extends Node
 ## The mouse cursor is a wand (art/ui/wand_cursor.png). The tip is the point of the cursor. The wand is held by the wizard: its handle is toward
 ## the wizard and its tip points away, so it turns to follow the cursor all the way round them (cursor above their middle, the tip is up; below,
 ## the tip is down). Where there is no wizard, on the home screen or while the game is paused, it points up and to the left as an ordinary mouse cursor does. While a spell is
-## being drawn, the jewel at the tip takes the colour of the school whose buttons are held. Only the wand's own pixels are used, turned in steps.
-## Every turn of every colour is made once, ahead of time, into one sheet (TURNS, by tools/bake_wand_cursor.gd: a row for each set of buttons held, a
+## being drawn, the jewel at the tip takes the color of the school whose buttons are held. Only the wand's own pixels are used, turned in steps.
+## Every turn of every color is made once, ahead of time, into one sheet (TURNS, by tools/bake_wand_cursor.gd: a row for each set of buttons held, a
 ## column for each step), and cut from it here: made as they were wanted, each took about 70 ms and stalled the first seconds of the waiting room
 ## (owner, 2026-11-12). Without the sheet they are made as before.
 
@@ -65,7 +65,7 @@ func _process(delta: float) -> void:
 		_apply(_held, step)
 
 
-## The wand turned to a step, with its jewel in the colour of a set of buttons: what the sheet holds (see tools/bake_wand_cursor.gd).
+## The wand turned to a step, with its jewel in the color of a set of buttons: what the sheet holds (see tools/bake_wand_cursor.gd).
 func picture_of(mask: int, step: int) -> Image:
 	return _outlined(_turned(_tinted(mask), float(step) * 360.0 / float(STEPS)))
 
@@ -90,18 +90,18 @@ func _apply(mask: int, step: int) -> void:
 	Input.set_custom_mouse_cursor(_cache[key], Input.CURSOR_ARROW, TIP)
 
 
-## The wand with its jewel recoloured: the jewel's own light-to-dark steps are kept, laid over the school's colour.
+## The wand with its jewel recolored: the jewel's own light-to-dark steps are kept, laid over the school's color.
 func _tinted(mask: int) -> Image:
 	var image := _plain.duplicate() as Image
 	for school: String in SpellData.SCHOOL_BUTTONS:
 		if SpellData.SCHOOL_BUTTONS[school] != mask:
 			continue
-		var colour: Color = SpellData.SCHOOL_COLORS[school]
+		var color: Color = SpellData.SCHOOL_COLORS[school]
 		for y in TIP_ROWS:
 			for x in image.get_width():
 				var pixel := image.get_pixel(x, y)
 				if pixel.a > 0.0 and pixel.v > 0.3:
-					image.set_pixel(x, y, colour.lightened(0.6) if pixel.v > 0.95 and pixel.s < 0.2 else colour.darkened(0.25) if pixel.h < 0.08 else colour)
+					image.set_pixel(x, y, color.lightened(0.6) if pixel.v > 0.95 and pixel.s < 0.2 else color.darkened(0.25) if pixel.h < 0.08 else color)
 	return image
 
 
@@ -129,7 +129,7 @@ func _outlined(wand: Image) -> Image:
 	var height := wand.get_height()
 	for ring in 2:
 		var source := out.duplicate() as Image
-		var colour := Color(0.05, 0.03, 0.03, 0.95) if ring == 0 else Color(0.93, 0.9, 0.82, 0.7)
+		var color := Color(0.05, 0.03, 0.03, 0.95) if ring == 0 else Color(0.93, 0.9, 0.82, 0.7)
 		for y in height:
 			for x in width:
 				if source.get_pixel(x, y).a > 0.0:
@@ -138,7 +138,7 @@ func _outlined(wand: Image) -> Image:
 					var nx: int = x + step.x
 					var ny: int = y + step.y
 					if nx >= 0 and ny >= 0 and nx < width and ny < height and source.get_pixel(nx, ny).a > 0.5 and (ring == 0 or source.get_pixel(nx, ny).r < 0.2):
-						out.set_pixel(x, y, colour)
+						out.set_pixel(x, y, color)
 						break
 	return out
 

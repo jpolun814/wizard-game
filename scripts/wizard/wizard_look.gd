@@ -1,16 +1,16 @@
 class_name WizardLook
 extends RefCounted
 
-## What a wizard can look like: one of seven figures, in one of a few sets of colours. Every figure is drawn to the same height, from the feet to the top
-## of the head (their staffs and flames rise above that, and are not counted), so the choice is only for looks. A set of colours turns two groups of the
-## figure's own colours (its robe and its trim, picked out by hue) to new hues, in the sprite's shader (see wet.gdshader); skin, wood and outlines stay.
+## What a wizard can look like: one of seven figures, in one of a few sets of colors. Every figure is drawn to the same height, from the feet to the top
+## of the head (their staffs and flames rise above that, and are not counted), so the choice is only for looks. A set of colors turns two groups of the
+## figure's own colors (its robe and its trim, picked out by hue) to new hues, in the sprite's shader (see wet.gdshader); skin, wood and outlines stay.
 
 const LOOKS := ["wizard", "dark_wizard", "pyre_wizard", "bone_wizard", "fire_wizard", "wanderer", "lightning_mage"]  # in the order the seats of a match have them
 const SCALE := {"wizard": 1.0, "dark_wizard": 1.5, "pyre_wizard": 1.7, "bone_wizard": 1.5, "fire_wizard": 1.2, "wanderer": 1.2, "lightning_mage": 1.25}  # what each is drawn at, to make them one height
 const NAMES := {"wizard": "Wizard", "dark_wizard": "Hooded", "pyre_wizard": "Pyre", "bone_wizard": "Pale", "fire_wizard": "Fire", "wanderer": "Wanderer", "lightning_mage": "Lightning"}
 
-## Each figure's two groups of colours: the hue at the middle of the group and how far either side of it the group reaches (both in turns of the
-## colour wheel), and the least colour a pixel must have to be counted. A fourth number, for the figures drawn in dark colours, is how much brighter that group is made when a set of colours recolours it, and a fifth is the brightest a pixel can be and still count (to keep skin out of a group of browns). The first is the robe, the second the trim.
+## Each figure's two groups of colors: the hue at the middle of the group and how far either side of it the group reaches (both in turns of the
+## color wheel), and the least color a pixel must have to be counted. A fourth number, for the figures drawn in dark colors, is how much brighter that group is made when a set of colors recolors it, and a fifth is the brightest a pixel can be and still count (to keep skin out of a group of browns). The first is the robe, the second the trim.
 const GROUPS := {
 	"wizard": [[0.75, 0.14, 0.25], [0.125, 0.04, 0.35]],        # the purple hood and cloak, and the gold edging
 	"dark_wizard": [[0.79, 0.17, 0.15], [0.09, 0.04, 0.35]],    # the purple robe and staff, and the orange trim
@@ -21,11 +21,11 @@ const GROUPS := {
 	"lightning_mage": [[0.985, 0.03, 0.42, 1.6], [0.1, 0.012, 0.3, 1.0]],       # the brown-red robe and the red scarf, and the blond hair
 }
 
-## A figure whose cloak is drawn in plain black has no hue to turn, so in a set of colours its black becomes a very dark shade of the robe's hue:
-## how much colour, and how bright.
+## A figure whose cloak is drawn in plain black has no hue to turn, so in a set of colors its black becomes a very dark shade of the robe's hue:
+## how much color, and how bright.
 const BLACK_CLOAKS := {"wanderer": [0.75, 0.2]}
 
-## The sets of colours, the same for every figure: a name, the hue the robe turns to and how much colour it keeps, and the same for the trim. The
+## The sets of colors, the same for every figure: a name, the hue the robe turns to and how much color it keeps, and the same for the trim. The
 ## first leaves the figure as it was drawn. (A hue of -1 leaves a group alone.)
 const PALETTES := [
 	{"name": "Original", "robe": [-1.0, 1.0], "trim": [-1.0, 1.0]},
@@ -39,7 +39,7 @@ const PALETTES := [
 ]
 
 
-## The colour shown on the button for a set of colours: the robe's, as that figure would wear it.
+## The color shown on the button for a set of colors: the robe's, as that figure would wear it.
 static func swatch(look: String, palette: int) -> Color:
 	var groups: Array = GROUPS.get(look, GROUPS["wizard"])
 	var set: Dictionary = PALETTES[clampi(palette, 0, PALETTES.size() - 1)]
@@ -65,7 +65,7 @@ static func scale_of(look: String, fallback := 1.0) -> float:
 	return float(SCALE.get(look, fallback))
 
 
-## Sets a sprite's material to show a look in a set of colours. A material that is already on it keeps its other work.
+## Sets a sprite's material to show a look in a set of colors. A material that is already on it keeps its other work.
 static func paint(material: ShaderMaterial, look: String, palette: int) -> void:
 	var groups: Array = GROUPS.get(look, GROUPS["wizard"])
 	var set: Dictionary = PALETTES[clampi(palette, 0, PALETTES.size() - 1)]
@@ -82,7 +82,7 @@ static func paint(material: ShaderMaterial, look: String, palette: int) -> void:
 	material.set_shader_parameter("trim_goal", Vector4(set["trim"][0], set["trim"][1], 0.0, 0.0))
 
 
-## A material with the wizard's shader, showing a look in a set of colours: for a figure drawn outside a wizard (a cut-scene's, or a portrait's).
+## A material with the wizard's shader, showing a look in a set of colors: for a figure drawn outside a wizard (a cut-scene's, or a portrait's).
 static func material_for(look: String, palette: int) -> ShaderMaterial:
 	var material := ShaderMaterial.new()
 	material.shader = load("res://scripts/fx/wet.gdshader")

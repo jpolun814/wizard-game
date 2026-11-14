@@ -13,7 +13,7 @@ const HEALTH := 40
 
 var hp := HEALTH
 var mine := false  # true on the machine of the wizard who cast it: only they see it as a ghost, the rest see a wizard
-var look := "wizard"  # the figure of the wizard who cast it, and the colours worn: a decoy is a shadow of the caster as they look
+var look := "wizard"  # the figure of the wizard who cast it, and the colors worn: a decoy is a shadow of the caster as they look
 var palette := 0
 var caster: Wizard  # whose shadow it is (a brain fooled by it takes it for them)
 var _age := 0.0

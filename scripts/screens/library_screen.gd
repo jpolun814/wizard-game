@@ -264,7 +264,7 @@ func _stand(item: String, foot: Vector2, origin: Vector2, rng: RandomNumberGener
 		var h := float(book.texture.get_height())
 		var w := float(book.texture.get_width())
 		book.position = origin + (foot - Vector2(0.0, h)) * PIXEL
-		if item == "l":  # leaning on its neighbour: it turns about its foot
+		if item == "l":  # leaning on its neighbor: it turns about its foot
 			book.pivot_offset = Vector2(w * PIXEL, h * PIXEL)  # it rests on its lower right corner, its top against the tome beside it
 			book.rotation_degrees = LEAN
 		_shelf.add_child(book)
@@ -611,12 +611,12 @@ func _figure(page: String, table: String) -> String:
 
 
 ## A label in the small hand, or with `title` in the heading hand.
-func _ink(text: String, size: int, colour: Color, title := false, wrap := false) -> Label:
+func _ink(text: String, size: int, color: Color, title := false, wrap := false) -> Label:
 	var label := Label.new()
 	label.text = text
 	label.add_theme_font_override("font", Lettering.FACE if title else JERSEY)
 	label.add_theme_font_size_override("font_size", size)
-	label.add_theme_color_override("font_color", colour)
+	label.add_theme_color_override("font_color", color)
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART if wrap else TextServer.AUTOWRAP_OFF
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return label

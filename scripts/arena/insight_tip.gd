@@ -49,7 +49,7 @@ func update() -> void:
 	_tip.position = (arena.get_viewport().get_mouse_position() + Vector2(18, 18)).min(screen - tip_size - Vector2(8, 8)).max(Vector2(8, 8))  # kept on the screen, even with a long list
 
 
-## A rival wizard's stamina is shown nowhere else, and the spells it has pages for, each in the colour of its school.
+## A rival wizard's stamina is shown nowhere else, and the spells it has pages for, each in the color of its school.
 func _about_wizard(wizard: Wizard) -> String:
 	var title := HOODED_WIZARD  # the hooded look has no MobKind: only a person wears it, and in a network game another may
 	var desc: String = Mob.KINDS["dark_wizard"].desc
@@ -60,8 +60,8 @@ func _about_wizard(wizard: Wizard) -> String:
 	var lines := ""
 	for spell_name: String in SpellData.SPELLS:
 		if wizard.ledger.knows_spell(spell_name):
-			var colour: Color = SpellData.SCHOOL_COLORS[SpellData.SPELLS[spell_name].school]
-			lines += "\n[color=#%s]%s[/color]" % [colour.lightened(0.15).to_html(false), spell_name]
+			var color: Color = SpellData.SCHOOL_COLORS[SpellData.SPELLS[spell_name].school]
+			lines += "\n[color=#%s]%s[/color]" % [color.lightened(0.15).to_html(false), spell_name]
 	return out + "\n\nKnows:" + lines
 
 

@@ -2,7 +2,7 @@ class_name Mob
 extends CharacterBody2D
 
 ## A creature: the skeletons (the graveyard's dead, a crypt's guard, a raised skeleton, the tutorial's), the giant, the castle's knights, and the
-## practice dummy and turret. Each is a walker or a shooter, and some have a school, which sets an outline in its colour and what it is weak or
+## practice dummy and turret. Each is a walker or a shooter, and some have a school, which sets an outline in its color and what it is weak or
 ## resistant to. (The wizards are not mobs: see Wizard.) "scale" draws a creature bigger, always at a whole number of pixels so the pixel art
 ## stays sharp. Its origin is at its feet, so it stands exactly on the ground. Every attack is telegraphed: walkers wind up, shooters charge a glow.
 
@@ -103,7 +103,7 @@ var _stuck := 0.0       # how long a giant has been held up by a ledge
 var _last_x := 0.0       # where a giant was last frame, to tell whether it is moving
 var _charge := 0.0       # counting down to a shot
 var _flash := 0.0
-var _liquid := Color.WHITE  # the colour of the water or lava it stands in
+var _liquid := Color.WHITE  # the color of the water or lava it stands in
 var _liquid_time := 0.0
 var _liquid_y := INF  # the height of the surface of that liquid
 var _spawn := SPAWN_TIME
@@ -132,7 +132,7 @@ func _ready() -> void:
 	_build_creature(data)
 	_shot_timer = 0.8 + randf() * 1.2
 	# Every enemy arrives through a summoning circle.
-	Fx.pop(get_parent(), global_position + Vector2(0, -2), "magic_02", _school_colour(), 70.0, SPAWN_TIME + 0.2, 1.2, 1.5)
+	Fx.pop(get_parent(), global_position + Vector2(0, -2), "magic_02", _school_color(), 70.0, SPAWN_TIME + 0.2, 1.2, 1.5)
 	Sfx.play("summon", global_position)
 	modulate.a = 0.0
 
@@ -176,19 +176,19 @@ func _start_animating() -> void:
 	_visual.play("idle")
 
 
-## The creature's own colours, with a little of its school's colour and an outline in it. Plain enemies get no
+## The creature's own colors, with a little of its school's color and an outline in it. Plain enemies get no
 ## outline at all.
 func _apply_material() -> void:
 	var school: String = KINDS[kind].school
 	_material = ShaderMaterial.new()
 	_material.shader = load("res://scripts/creatures/mob.gdshader")
-	_material.set_shader_parameter("school_color", _school_colour())
+	_material.set_shader_parameter("school_color", _school_color())
 	_material.set_shader_parameter("tint", 0.0 if school in ["", "Shadow"] else 0.22)
 	_material.set_shader_parameter("outline", 0.0 if school == "" else 0.9)
 	_visual.material = _material
 
 
-func _school_colour() -> Color:
+func _school_color() -> Color:
 	var school: String = KINDS[kind].school
 	return SpellData.SCHOOL_COLORS.get(school, Color("#d8d0e8"))
 
@@ -462,10 +462,10 @@ func _update_shooter(delta: float, distance: float, sees: bool, shot: Dictionary
 			_charge = shot.get("charge", CHARGE)
 
 
-## Fires one of this enemy's shots at its target, in its school colour.
+## Fires one of this enemy's shots at its target, in its school color.
 func _shoot(shot: Dictionary) -> void:
 	var origin := center() + Vector2(facing * _body_size.x * 0.5, -4.0)
-	EnemyBolt.fire(get_parent(), origin, _quake_target(origin, _target().center()), _school_colour(), shot["damage"], self)
+	EnemyBolt.fire(get_parent(), origin, _quake_target(origin, _target().center()), _school_color(), shot["damage"], self)
 	Sfx.play("mob_shoot", origin)
 
 
@@ -522,8 +522,8 @@ func take_damage(amount: int, school := "", shot := false) -> void:
 	_flash = 1.0
 	var weak := dealt > amount
 	FloatText.spawn(get_parent(), text_at, "%d%s" % [dealt, "!" if weak else ""], Color("#ff9a3a") if weak else Color("#fff0a0"), 1.25 if weak else 1.0)
-	# Sparks take the spell's colour, not the enemy's.
-	var spark: Color = SpellData.SCHOOL_COLORS.get(school, _school_colour())
+	# Sparks take the spell's color, not the enemy's.
+	var spark: Color = SpellData.SCHOOL_COLORS.get(school, _school_color())
 	Fx.burst(get_parent(), center(), spark, 8, 120.0, 0.3, true)
 	if hp <= 0:
 		_die()
@@ -548,7 +548,7 @@ func _die() -> void:
 	_charge = 0.0
 	_frozen_time = 0.0
 	Sfx.play("mob_die", center())
-	Fx.burst(get_parent(), center(), _school_colour(), 18, 180.0, 0.6, true)
+	Fx.burst(get_parent(), center(), _school_color(), 18, 180.0, 0.6, true)
 	Fx.smoke(get_parent(), center(), Color(0.25, 0.2, 0.3, 0.6), 5, 30.0)
 	GameCamera.shake_near(get_tree(), global_position, 0.18, SHAKE_REACH)
 	if _visual.sprite_frames.has_animation("death"):
@@ -622,7 +622,7 @@ func is_slowed() -> bool:
 	return _slow_time > 0.0
 
 
-## Standing in water or lava: the part of it below the surface takes the liquid's colour for a moment after each call.
+## Standing in water or lava: the part of it below the surface takes the liquid's color for a moment after each call.
 func soak(tint: Color, surface_y := INF, _lava := false) -> void:
 	_liquid = tint
 	_liquid_y = surface_y
@@ -735,7 +735,7 @@ func _animate(delta: float) -> void:
 		if _windup > 0.0:
 			charging = 0.35 * (1.0 - _windup / WINDUP)
 		_material.set_shader_parameter("flash", maxf(_flash, charging))
-		_material.set_shader_parameter("flash_color", Color.WHITE if _flash > charging else _school_colour().lightened(0.5))
+		_material.set_shader_parameter("flash_color", Color.WHITE if _flash > charging else _school_color().lightened(0.5))
 		_material.set_shader_parameter("frozen", 1.0 if _frozen_time > 0.0 else 0.0)
 
 
@@ -766,7 +766,7 @@ func _draw_overlay() -> void:
 		# A pixel orb of the enemy's magic gathering in front of it.
 		var k := 1.0 - _charge / CHARGE
 		var at := _body_center + Vector2(facing * _body_size.x * 0.5, -4.0)
-		var c := _school_colour()
+		var c := _school_color()
 		Fx.draw_glow(o, at, 6.0 + 12.0 * k, Color(c.r, c.g, c.b, 0.5 + 0.5 * k))
 		var orbs := PixelFx.frames("dark_orb", 12.0, true)
 		var orb := orbs.get_frame_texture("default", int(_idle_t * 12.0) % orbs.get_frame_count("default"))
