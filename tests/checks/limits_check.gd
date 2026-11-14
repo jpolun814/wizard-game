@@ -136,6 +136,9 @@ func _ready() -> void:
 	me.fade_time = 0.0
 
 	# A page just read is looked at before its spell is drawn.
+	looker.ledger = Ledger.of([])  # (a book with nothing in it, whatever pages the match dealt: Ignite may have been one)
+	brain._read_until.clear()  # (and no memory of having read one before)
+	await _frames(2)
 	looker.ledger.learn("Ignite")
 	await _frames(2)
 	_verdict(not brain.ready_to_cast("Ignite"), "a spell whose page was just read is not drawn at once")

@@ -84,7 +84,7 @@ python tools/run_checks.py name ...  # only the checks with these names
 
 Checks live in `tests/checks/` (they pass or fail), `tests/looks/` (they take screenshots for a person to look at, and need a window) and `tests/tools/` (simulations and measurements). `docs/handoff/07_testing.md` says what each one proves.
 
-A few checks fail on a clean copy and are known about: `tutorial_ai_check`, `test_world` and, now and then, `page_count_check`. `limits_check`, `interaction_check` and `pull_check` are occasionally flaky. They are listed in `docs/handoff/16_open_work.md`.
+`tests/checks/tutorial_ai_check.tscn` lets an AI wizard walk the whole tutorial. It is too long for either set, and it is known to stop at the first pond of piranhas (see `docs/handoff/16_open_work.md`).
 
 ### Running a server
 

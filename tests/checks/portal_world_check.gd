@@ -150,6 +150,7 @@ func _run(world: World) -> void:
 	var grounded := field.open_portals().filter(func(p: FieldPortal) -> bool: return p.lift == 0.0)  # the AI walks to ones on the ground
 	grounded.sort_custom(func(a: FieldPortal, b: FieldPortal) -> bool: return a.remaining() > b.remaining())
 	var near: FieldPortal = grounded[0]  # the one with the most time left
+	player.global_position += Vector2(0.0, -3000.0)  # (and the person out of its sight: a rival with spells in its book would deal with them first)
 	rider.global_position = near.global_position + Vector2(-220.0, 0.0)
 	rider.brain.goal = ""
 	rider.brain.goal_timer = 0.0

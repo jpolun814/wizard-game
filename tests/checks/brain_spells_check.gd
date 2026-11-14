@@ -177,6 +177,8 @@ func _try(spell_name: String) -> void:
 	while time < SECONDS and not done and not tester.dead:
 		await tree.physics_frame
 		time += 1.0 / 60.0
+		if not is_instance_valid(rival) or not is_instance_valid(tester):  # (one has been taken out of the world: there is nothing left to try it on)
+			break
 		rival.stamina = 200.0
 		if scene.get("rush", false):
 			rival.global_position = tester.global_position + Vector2(70.0, 0.0)  # a rival who keeps on top of it
@@ -205,7 +207,7 @@ func _try(spell_name: String) -> void:
 		else:
 			done = tester.last_spell == spell_name
 	var how := "reached the rival's ledge" if scene.get("up", false) else "cast it"
-	_verdict(done, "%s: the brain %s (%.1f s; %s)" % [spell_name, how, time, (tester.brain as WizardBrain).status()])
+	_verdict(done, "%s: the brain %s (%.1f s; %s)" % [spell_name, how, time, (tester.brain as WizardBrain).status() if is_instance_valid(tester) else "gone"])
 	world.queue_free()
 	await tree.process_frame
 

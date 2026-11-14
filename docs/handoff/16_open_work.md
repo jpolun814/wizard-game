@@ -17,7 +17,7 @@ is in git. Any player-facing line follows section 0 of `CLAUDE.md`, and no new s
   Mirage gets the same name everywhere (the caster's name and a count).
 - **`test_world` (full set):** on seeds 7, 15 and 23 the rooms next to the start of a 1200-wide world with halls cannot be reached. It fails the same way at the start of
   2026-11-12, before that day's work; not looked into.
-- **`tutorial_ai_check` (full set):** the AI wizard is held up at the tutorial's giant.
+- **`tutorial_ai_check` (a long run by hand, in neither set):** the AI wizard now puts the giant to sleep and goes on (a gate it had already cleared was chosen again and again), but stops at the first pond of piranhas, column 22. It stands at the edge with a Frost Bridge cast and does not cross; the likely cause is `BrainDanger.in_shoal` still seeing the bridged water as bitten, so `follow_route` waits. It takes about 1100 seconds of the match to run the tutorial through, which is why it is not in a set.
 - **Intermittent:** `brain_spells_check` now and then fails one spell (Tornado reaching the rival's ledge, Mirage, Faint) and passes on the second try;
   `net_spells_check`'s "the one on the tether pays the other half" under full-set load.
 - **The death animation** still shows a staff.

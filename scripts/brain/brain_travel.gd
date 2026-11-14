@@ -478,7 +478,7 @@ func choose_gate(start: Vector2i) -> bool:
 	var best := {}
 	var best_path: Array[Vector2i] = []
 	for gate: Dictionary in world.closed_gates():
-		if brain.skip.has(brain.gates.gate_key(gate)) or brain.gates.clearing_spell(gate["kind"]) == "":
+		if brain.skip.has(brain.gates.gate_key(gate)) or brain.gates.clearing_spell(gate["kind"]) == "" or brain.gates.gate_open(gate["entry"]):  # (a creature put to sleep is cleared, though the world may still list it)
 			continue
 		var floor_tile: Vector2i = gate["outside"] + Vector2i(0, -1)
 		var stand: Vector2i = wizard.nav.nearest(floor_tile)

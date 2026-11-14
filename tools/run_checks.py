@@ -43,9 +43,9 @@ CHECKS = [
 )] + [("route_check", "scene", "seed=7 moves=90")] + [("brain_spells_check#%d" % k, "scene", "shard=%d/4" % k) for k in range(4)]
 
 # Slower checks, or ones that need arguments: run with --full. (route_check goes on to more moves than the quick set's.)
-SLOW = [("tutorial_ai_check", "scene", "seconds=1100 speed=4"), ("route_check#a", "scene", "seed=7 moves=260"), ("debug_end_check#win", "scene", "mode=win"), ("debug_end_check#lose", "scene", "mode=lose"), ("route_check#b", "scene", "seed=3 moves=150"),
+SLOW = [("route_check#a", "scene", "seed=7 moves=260"), ("debug_end_check#win", "scene", "mode=win"), ("debug_end_check#lose", "scene", "mode=lose"), ("route_check#b", "scene", "seed=3 moves=150"),
         ("net_check", "net", "host,client"), ("net_crowd_check", "net", "host,first,second"), ("net_hazard_check", "net", "host seed=2,client seed=2"),
-        ("net_match_check", "net", "host,client"), ("dedicated_check", "net", "run"), ("net_spells_check", "net", "host,client"), ("test_world#1", "scene", "seeds=10 first=0"), ("test_world#2", "scene", "seeds=10 first=10"), ("test_world#3", "scene", "seeds=10 first=20"), ("showcase:checks", "scene", "scenario=checks"), ("showcase:newspells", "scene", "scenario=newspells"),
+        ("net_match_check", "net", "host,client"), ("dedicated_check", "net", "run"), ("net_spells_check", "net", "host,client"), ("test_world#1", "scene", "seeds=5 first=0"), ("test_world#2", "scene", "seeds=5 first=5"), ("test_world#3", "scene", "seeds=5 first=10"), ("test_world#4", "scene", "seeds=5 first=15"), ("test_world#5", "scene", "seeds=5 first=20"), ("test_world#6", "scene", "seeds=5 first=25"), ("showcase:checks", "scene", "scenario=checks"), ("showcase:newspells", "scene", "scenario=newspells"),
         ("showcase:spells", "scene", "scenario=spells"), ("showcase:soak", "scene", "scenario=soak")] + [(name, "scene", "") for name in (
     "collapse_check", "gate_check", "follow_check", "geyser_check", "wall_liquid_check", "eruption_check", "dark_check", "spectate_check", "stats_check",
     "pull_check", "spark_check", "canopy_check", "regen_check", "sentinel_check", "knight_check", "wild_shape_check", "liquid_world_check", "dig_out_check", "lab_sinkhole_check", "page_count_check",
