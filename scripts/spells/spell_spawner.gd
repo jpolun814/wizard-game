@@ -55,7 +55,7 @@ func _put_out_flares(c: SpellCast) -> void:
 	var school: String = SpellData.SPELLS[c.spell].school if SpellData.SPELLS.has(c.spell) else ""
 	if (school != "Water" and school != "Air") or c.spell == "Barrier":
 		return
-	if c.targeting == "directional":
+	if c.is_directional():
 		Flare.snuff_along(_arena.get_tree(), c.origin, c.origin + Vector2.from_angle(c.aim) * maxf(c.info.get("length", 0.0), 60.0))  # only along the stroke itself
 	else:
 		Flare.snuff_near(_arena.get_tree(), c.origin, 30.0)  # only where the spell lands
@@ -67,7 +67,7 @@ func _simple_effect(c: SpellCast) -> void:
 	if c.targeting == "shape":
 		return  # a shape spell with no recipe makes nothing
 	var origin := c.origin
-	if c.targeting == "directional" and c.spell != "Stone Wall":
+	if c.is_directional() and c.targeting != "raised":
 		origin = c.caster.center() + Vector2.from_angle(c.aim) * MUZZLE_OFFSET
 	var effect := _new_effect(c.spell)
 	effect.caster = c.caster

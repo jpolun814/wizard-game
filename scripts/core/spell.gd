@@ -5,13 +5,17 @@ extends Resource
 ## script that makes its effect. Each lives in its own file in res://data/spells/, so a spell is added or tuned in the
 ## editor's inspector and SpellData finds it by scanning that folder.
 
+## The targeting kinds that leave along the stroke: `directional` along it from its start to its end, `pointed` toward the far end of it (at any angle, as
+## an arrow points), and `raised` from where it began, on the ground (a wall).
+const DIRECTIONAL := ["directional", "pointed", "raised"]
+
 ## What about the stroke makes a spell cost more: its size is measured and compared with size_unit, then clamped.
 enum Size { NONE, RADIUS, REACH, LINE_WIDTH, LINE_SPAN, LENGTH, STEP_LENGTH, AREA, PIECES }
 
 @export var spell_name := ""
 @export_enum("Fire", "Water", "Air", "Earth", "Flora", "Shadow", "Blood") var school := "Fire"
 @export var gesture := ""
-@export_enum("directional", "positional", "shape", "cone", "angled") var targeting := "positional"
+@export_enum("directional", "pointed", "raised", "positional", "shape", "cone", "angled") var targeting := "positional"  ## how the stroke aims it: the three first leave along it
 @export var cost := 10.0
 @export_multiline var effect := ""  ## what it does, for the spellbook
 @export var damage := ""            ## a short figure for the spellbook

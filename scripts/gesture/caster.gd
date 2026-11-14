@@ -169,15 +169,15 @@ func _resolve(relative: PackedVector2Array, options: Dictionary, reading: Stroke
 		misfired.emit()
 	else:
 		var aim := 0.0
-		if entry.targeting == "directional":
+		var along := Spell.DIRECTIONAL.has(entry.targeting)
+		if along:
 			aim = (relative[relative.size() - 1] - relative[0]).angle()
-		if entry.targeting == "directional":
 			info["length"] = (relative[relative.size() - 1] - relative[0]).length()
 		# A drawn circle sets how big the spell is, which sets its cost (Push and the other circles).
 		if gesture.begins_with("circle") and ring_split < 0:
 			info["radius"] = StrokeMeasure.mean_distance(relative, StrokeMeasure.centroid(relative))
 		# Directional spells leave from the stroke's start; positional ones center on the drawn shape.
-		var spawn := _origin if entry.targeting == "directional" else _stroke_center()
+		var spawn := _origin if along else _stroke_center()
 		if ring_split >= 0:
 			# A Push comes from the circle's center and points along the line drawn out of it.
 			spawn = _origin + ring_center
@@ -193,14 +193,14 @@ func _resolve(relative: PackedVector2Array, options: Dictionary, reading: Stroke
 			spawn = info["center"]
 		if info.has("aim"):
 			aim = info["aim"]
-		if entry.spell == "Thorn Whip" or entry.spell == "Eldritch Blast":  # a bolt goes the way the arrow points
+		if entry.targeting == "pointed":  # a bolt goes the way the arrow points
 			var farthest := relative[0]  # a whip goes the way the wave was drawn, at whatever angle, not only left or right
 			for p in relative:
 				if p.distance_squared_to(relative[0]) > farthest.distance_squared_to(relative[0]):
 					farthest = p
 			aim = (farthest - relative[0]).angle()
-		if entry.spell == "Ice Prison":
-			# The circle drawn round the target is the box the ice fills: its bounds, wherever it was drawn.
+		if entry.targeting == "shape":
+			# A shape fills the box it was drawn in (the circle round a target is the box its ice fills): its bounds, wherever it was drawn.
 			var box := GestureTemplates.bounds(relative)
 			info["rect"] = Rect2(_origin + box.position, box.size)
 		if entry.targeting == "shape" and info["line"].is_empty():

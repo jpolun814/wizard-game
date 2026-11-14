@@ -23,6 +23,11 @@ func _init(in_arena: Arena, spell_name: String, how_aimed: String, where: Vector
 	caster = by
 
 
+## Whether it leaves the caster along the stroke (see Spell.DIRECTIONAL).
+func is_directional() -> bool:
+	return Spell.DIRECTIONAL.has(targeting)
+
+
 ## The line that was drawn, for the spells that follow it.
 func line() -> PackedVector2Array:
 	return info.get("line", PackedVector2Array())
