@@ -35,6 +35,7 @@ CHECKS = [
     ("test_nav#3", "script", "seeds=2 first=4"),
     ("test_stages", "script", "seeds=4"),
     ("test_liquid", "script", ""),
+    ("knowledge_check", "script", ""),
 ] + [(name, "scene", "") for name in (
     "scripts_load_check", "flow_check", "tutorial_check", "tutorial_path_check", "menu_check", "settings_check", "lab_revive_check", "likeness_check", "stairs_check", "stairwell_check", "castle_spells_check", "castle_sinkhole_fall_check",
     "biome_jump_check", "page_underfoot_check", "earthquake_check", "stonefall_check", "sinkhole_check", "sinkhole_biomes_check", "ridge_check", "stalagmite_check", "parity_check", "interaction_check",

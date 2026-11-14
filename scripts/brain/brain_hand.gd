@@ -309,6 +309,9 @@ func tend_stroke(spell_name: String, to_player: Vector2) -> PackedVector2Array:
 	var here: Vector2 = wizard.center()
 	var feet: Vector2 = wizard.global_position
 	match spell_name:
+		"Ignite":
+			var side: float = wizard.facing if wizard.facing != 0.0 else 1.0
+			return BrainStrokes.line(here + Vector2(side * 12.0, -6.0), here + Vector2(side * 102.0, -6.0))
 		"Flare":
 			return BrainStrokes.offset(GestureTemplates.preview_points("flare"), here + Vector2(0.0, -40.0), 0.6)
 		"Glowcap":

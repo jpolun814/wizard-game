@@ -110,7 +110,7 @@ const CHASE_REST := 10.0        # seconds between two tries at a way up to a riv
 const OAK_CHASE_MAX := 190.0    # pixels up to a rival that an oak can still be climbed for (its low ledge, and a jump from it)
 const LIFTS := ["Geyser", "Updraft", "Rocket Jump", "Push", "Liana", "Great Oak", "Tornado"]  # what raises it up a wall or to a rival, the one it likes best first
 const TEND_REST := {"Flare": 40.0, "Glowcap": 60.0, "Moonbeam": 30.0, "Adrenaline": 25.0, "Wild Shape": 30.0, "Sneak": 25.0, "Crimson Veil": 8.0, "Obsidian Armor": 25.0,
-		"Decoy": 8.0, "Stone Wall": 6.0, "Smoke Screen": 10.0, "Eclipse": 14.0, "Hunter's Mark": 25.0}  # seconds before it looks to the same need with the same spell again
+		"Ignite": 6.0, "Decoy": 8.0, "Stone Wall": 6.0, "Smoke Screen": 10.0, "Eclipse": 14.0, "Hunter's Mark": 25.0}  # seconds before it looks to the same need with the same spell again
 ## What the brain does with every spell there is (a test holds it to this: a spell with no line here is one it would never cast, and each line is met by a check).
 const USES := {
 	"Ignite": "attack", "Frostbolt": "attack", "Spark": "attack", "Stonefall": "attack", "Fire Breath": "attack", "Firewall": "attack", "Spore Puff": "attack",
@@ -152,6 +152,8 @@ var moves: BrainMoves  # the leap, the wade and the lift it may have in hand
 var chant: BrainChant
 var danger: BrainDanger
 var sight: BrainSight
+var style := ""  # how this wizard likes to fight: "aggressive", "sniper", "trapper" or "turtle" (see BrainCombat._cleverness)
+var profile: BrainProfile  # what it has seen each rival cast
 var opponent: Wizard                 # the wizard it is dealing with: the nearest of the others it knows of
 var route := WizardRoute.new()
 var goal := ""                  # what it is travelling to: "page", "foe", or "" for nothing
@@ -179,8 +181,10 @@ func _init(body: Wizard) -> void:
 	chant = BrainChant.new(self, body)
 	danger = BrainDanger.new(self, body)
 	sight = BrainSight.new(self, body)
+	profile = BrainProfile.new(self, body)
 	rng.randomize()
 	skill = GameSettings.rival_skill()
+	style = ["aggressive", "sniper", "trapper", "turtle"][rng.randi() % 4]
 
 
 ## A Hunter's Mark was cast: for a while it can find a wizard who has faded from sight.
@@ -192,6 +196,7 @@ func catch_scent(seconds: float) -> void:
 ## want to get away.
 func on_hurt(amount: int) -> void:
 	_hurt_age = 0.0
+	cast_cooldown = maxf(cast_cooldown, 0.4)  # a blow startles: a person does not answer it in the same instant
 	if wizard.pen.active() and amount >= INTERRUPT_DAMAGE:
 		wizard.interrupt_cast()
 		cast_cooldown = maxf(cast_cooldown, 0.9)
@@ -304,6 +309,8 @@ func _count_down_lists(delta: float) -> void:
 
 ## Looking about: the shots, the others it knows of, the shadows, the rival it deals with now, and how strong it feels against them.
 func _sense(delta: float) -> void:
+	profile.watch_all()
+	profile.tick(delta)
 	sight.track_shots()
 	sight.look_about(delta)
 	sight.notice_decoys()
@@ -339,6 +346,10 @@ func _with_a_rival(delta: float) -> void:
 	var to_player: Vector2 = sight.seen_center(foe) - wizard.center()
 	var sees := in_view and danger.clear_line(wizard.center(), sight.seen_center(foe))
 	var fighting := sees and to_player.length() < ENGAGE
+	var crowd := sight.crowd(700.0)
+	var crowded: bool = not BrainProfile.off("crowd") and crowd["n"] >= 3 and not profile.after_me(foe) and _hurt_age > 2.5 and to_player.length() > TOO_CLOSE * 2.0 and not wizard.wolf.on
+	if crowded:  # three or more wizards in one place: it lets the others spend themselves, and leaves
+		fighting = false
 
 	_push_through -= delta
 	combat.escape_commit -= delta
@@ -356,6 +367,12 @@ func _with_a_rival(delta: float) -> void:
 
 	# Footwork, or the journey.
 	var run: float
+	if crowded and moves.lift.is_empty() and not moves.busy():
+		var away := combat.keep_clear(crowd["x"])
+		if away != 0.0:
+			wizard.walk(away * WALK_SPEED)
+			wizard.facing = away
+			return
 	var mend := mend.mend(delta, fighting) if not moves.busy() and react <= 0.0 and wizard.swim_time <= 0.0 else NAN  # (no one rests in deep water)
 	if not is_nan(mend):
 		wizard.walk(mend)
@@ -390,7 +407,7 @@ func _react(delta: float, fighting: bool, to_player: Vector2) -> void:
 		var shot := sight.incoming_shot()
 		if not shot.is_empty() and combat.defend_cooldown <= 0.0:
 			combat.threat_dir = shot["dir"]
-			_plan(combat.choose_defence(shot["eta"]), _reaction_time())
+			_plan(combat.choose_defence(shot["eta"], shot["speed"]), _reaction_time())
 		elif (travel.dash <= 0.0 and danger.scorched()) or danger.bitten() or (_push_through <= 0.0 and (danger.in_danger(wizard.global_position + Vector2(0, -6)) or danger.in_danger(wizard.center()))):
 			_plan("escape", _reaction_time() * 0.6)
 			settle = 0.0  # nobody stands in the fire to finish a chant
@@ -453,7 +470,9 @@ func _feel_strength(_rival: Wizard) -> float:
 	var health := clampf(wizard.max_stamina / Wizard.MAX_STAMINA, 0.0, 1.0) * 0.7 + clampf(wizard.stamina / maxf(wizard.max_stamina, 1.0), 0.0, 1.0) * 0.3
 	# A rival's strength and book are not seen (no bar hangs over them): it judges itself against what a rival is like, not against this one.
 	var edge := clampf(0.5 + (wizard.max_stamina - Wizard.MAX_STAMINA * 0.75) / 200.0, 0.0, 1.0)
-	return armed * 0.5 + health * 0.3 + edge * 0.2
+	var bold := (0.15 if style == "aggressive" else (-0.08 if style == "turtle" else 0.0))
+	bold += 0.1 if (is_instance_valid(_rival) and profile.hurt(_rival)) else 0.0  # a rival it has seen worn down is a rival to go after
+	return minf(armed * 0.5 + health * 0.3 + edge * 0.2 + bold, 1.0)
 
 
 ## Whether a wizard cannot move freely: rooted, or slowed.

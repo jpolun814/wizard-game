@@ -87,6 +87,7 @@ func attack(to_player: Vector2, sees: bool) -> bool:
 		# Behind cover: only spells that come from above or along the ground reach you.
 		for spell_name in ["Ignite", "Frostbolt", "Ice Prison", "Black Hole", "Firewall", "Fire Breath", "Barbs", "Thorn Whip", "Leech", "Eldritch Blast", "Hemorrhage", "Scythe"]:
 			scores[spell_name] = 0.0
+	_cleverness(scores, foe, gap)
 	for spell_name in scores.keys():
 		scores[spell_name] *= WORTH.get(spell_name, 1.0)
 		if not brain.ready_to_cast(spell_name):
@@ -96,11 +97,112 @@ func attack(to_player: Vector2, sees: bool) -> bool:
 	var choice := pick(scores)
 	if choice == "":
 		return false
+	brain.profile.note_try(choice)
 	recent.push_front(choice)
 	if recent.size() > 2:
 		recent.pop_back()
 	brain.hand.begin_cast(choice, brain.hand.attack_stroke(choice), BrainStrokes.usual_stroke(choice, WizardBrain.ATTACK_DRAW * 0.6), true)  # (as long as a person takes over it: a fireball is a flick)
 	return true
+
+
+## Raises or lowers what a spell is worth for what it knows of this rival and of its own state: a person does not only ask what is strongest but what suits
+## the rival (a flame is answered with water), what sets up the next blow (a slowing bolt before a heavy one) and what it can afford (blood is a wound).
+## A less skilled wizard thinks of less of this.
+func _cleverness(scores: Dictionary, foe: Wizard, gap: float) -> void:
+	if BrainProfile.off("clever"):
+		return
+	var prof := brain.profile
+	var k := clampf(brain.skill / 0.65, 0.0, 1.3)
+	match brain.style:  # each wizard has a way of fighting, so no two matches go alike
+		"trapper":
+			for spell_name in ["Bramble", "Flytrap", "Firewall", "Stalagmite", "Mudslide", "Sinkhole", "Ice Prison", "Insect Plague"]:
+				_boost(scores, spell_name, 1.6, k)
+		"sniper":
+			for spell_name in ["Ignite", "Frostbolt", "Eldritch Blast", "Spark", "Barbs", "Pebble"]:
+				_boost(scores, spell_name, 1.4, k)
+		"aggressive":
+			for spell_name in ["Scythe", "Fire Breath", "Spore Puff", "Thunderclap", "Barbs", "Hemorrhage"]:
+				_boost(scores, spell_name, 1.4, k)
+	if prof.shown_school(foe, "Fire"):  # a rival who throws flame is answered with water, which puts it out
+		for spell_name in ["Tide Surf", "Blizzard", "Hailstorm", "Frostbolt"]:
+			_boost(scores, spell_name, 1.7, k)
+	if prof.shown_school(foe, "Water"):  # and one who throws ice, with fire, which melts it
+		for spell_name in ["Ignite", "Fire Breath", "Firewall"]:
+			_boost(scores, spell_name, 1.3, k)
+	if not brain.held(foe) and gap > 150.0:  # a bolt that slows, then the blow that needs the rival still
+		for heavy in ["Stonefall", "Spark", "Stalagmite", "Sinkhole", "Flytrap"]:
+			if brain.ready_to_cast(heavy):
+				_boost(scores, "Frostbolt", 2.8, k)
+				_boost(scores, "Mudslide", 1.6, k)
+				_boost(scores, "Bramble", 1.4, k)
+				break
+	if wizard.stamina < 50.0:  # worn out: the cheap stone, not the dear spell
+		_boost(scores, "Pebble", 2.2, k)
+	for spell_name in scores.keys():  # what has landed this match is cast more, what keeps missing less
+		_boost(scores, spell_name, prof.form(spell_name), k)
+	if prof.chanting(foe):  # a rival typing a chant stands still and cannot answer: it is hit
+		for spell_name in ["Stonefall", "Spark", "Ignite", "Frostbolt", "Fire Breath", "Scythe", "Barbs", "Eldritch Blast", "Hemorrhage"]:
+			_boost(scores, spell_name, 1.8, k)
+		_boost(scores, "Vacuum", 2.5, k)  # the breath is taken from one who cannot stop to answer
+	elif prof.winded(foe):  # one that has just thrown its dear spells has little left: it presses
+		for spell_name in scores.keys():
+			_boost(scores, spell_name, 1.35, k)
+	if foe.pen.active():  # a rival drawing a stroke can be broken by a blow that lands now: a quick bolt, not a slow spell
+		for spell_name in ["Ignite", "Frostbolt", "Barbs", "Pebble", "Eldritch Blast"]:
+			_boost(scores, spell_name, 1.6, k)
+	if foe.lungs.submerged():  # a rival in the water is frozen in it
+		_boost(scores, "Ice Prison", 2.5, k)
+	if prof.known_count(foe) >= 3:  # a rival who has shown a book's worth of spells is silenced
+		_boost(scores, "Silence", 1.5, k)
+	if prof.hurt(foe):
+		_boost(scores, "Hex", 1.5, k)
+	if Hex.multiplier(wizard.get_tree(), foe) > 1.0:  # a curse is on them: the heavy blows are worth more now
+		for spell_name in ["Stonefall", "Spark", "Scythe", "Fire Breath", "Supernova", "Earthquake"]:
+			_boost(scores, spell_name, 1.4, k)
+	var share := wizard.max_stamina / Wizard.MAX_STAMINA  # a spell paid in blood leaves the wizard weaker for the rest of the match
+	for spell_name in scores.keys():
+		if SpellData.SPELLS.has(spell_name) and SpellData.SPELLS[spell_name].pays_max():
+			_boost(scores, spell_name, 0.25 if share < 0.45 else (0.6 if share < 0.7 else 1.0), k)
+
+
+func _boost(scores: Dictionary, spell_name: String, factor: float, k: float) -> void:
+	if scores.has(spell_name):
+		scores[spell_name] *= lerpf(1.0, factor, minf(k, 1.0))
+
+
+## How near it lets a rival come: farther from one it has seen cast things for close range (a scythe, a breath of fire), who is only dangerous near.
+func near_limit() -> float:
+	var close := brain.profile.closeness(brain.opponent)
+	var style_shift := -50.0 if brain.style == "aggressive" else (40.0 if brain.style == "sniper" else 0.0)
+	return WizardBrain.NEAR + style_shift + 90.0 * maxf(close, 0.0) * minf(brain.skill / 0.65, 1.0)
+
+
+## How far it lets a rival get before it closes in: a sniper keeps its distance, an aggressive wizard does not.
+func far_limit() -> float:
+	return WizardBrain.FAR + (-60.0 if brain.style == "aggressive" else (70.0 if brain.style == "sniper" else 0.0))
+
+
+## Which way to a spot within a few steps that has a roof over it (-1, 1), or 0 when there is none, or the way is a pit.
+func roof_side() -> float:
+	for dx in [40.0, 90.0, 150.0, 220.0]:
+		for side in [-1.0, 1.0]:
+			var point: Vector2 = wizard.center() + Vector2(side * dx, 0.0)
+			if covered_at(point - Vector2(0, 0)) and over_ground(side * dx).y - wizard.global_position.y < 150.0 and not brain.danger.in_danger(point):
+				return side
+	return 0.0
+
+
+## Away from a crowd of wizards, a few steps at a time, unless a pit or a flame is that way. 0 when it cannot.
+func keep_clear(crowd_x: float) -> float:
+	var dir := -signf(crowd_x - wizard.global_position.x)
+	if dir == 0.0:
+		dir = 1.0
+	var x: float = wizard.global_position.x
+	if (dir < 0.0 and x < ArenaGen.left_edge() + 80.0) or (dir > 0.0 and x > ArenaGen.right_edge() - 80.0):
+		return 0.0
+	if over_ground(dir * 50.0).y - wizard.global_position.y > 150.0 or brain.danger.in_danger(wizard.global_position + Vector2(dir * 34.0, -10.0)):
+		return 0.0
+	return dir
 
 
 func footwork(delta: float, to_player: Vector2, sees: bool) -> float:
@@ -116,7 +218,7 @@ func footwork(delta: float, to_player: Vector2, sees: bool) -> float:
 		dir = -toward  # slipping away unseen
 	elif not sees:
 		dir = toward  # get a clear line
-	elif gap < WizardBrain.NEAR or (to_player.y < -WizardBrain.CHASE_ABOVE and WizardBrain.LIFT_CLOSE.has(ready_lift()) and gap > WizardBrain.LIFT_CLOSE[ready_lift()] + 30.0):
+	elif gap < near_limit() or (to_player.y < -WizardBrain.CHASE_ABOVE and WizardBrain.LIFT_CLOSE.has(ready_lift()) and gap > WizardBrain.LIFT_CLOSE[ready_lift()] + 30.0):
 		# A rival high on a ledge is not backed away from: it stands where its way up is cast from (under them for a rising column of air, right at the foot
 		# of the ledge for a vine or an oak, which it must climb and cross within a few steps), and raises itself.
 		var lift := ready_lift()
@@ -125,17 +227,27 @@ func footwork(delta: float, to_player: Vector2, sees: bool) -> float:
 			dir = toward if gap > WizardBrain.LIFT_CLOSE[lift] + 30.0 else 0.0
 		else:
 			dir = 0.0 if high and gap > WizardBrain.LIFT_STAND.get(lift, 120.0) else -toward  # a rival high on a ledge is not backed away from: it stands under them, and raises itself up
-	elif gap > WizardBrain.FAR:
+	elif gap > far_limit():
 		dir = toward
+	elif wizard.stamina < 45.0 and not BrainProfile.off("still"):
+		dir = 0.0  # it stands to get its strength back: stamina returns only to one who is still
 	else:
 		strafe_timer -= delta
 		if strafe_timer <= 0.0:
 			strafe_timer = brain.rng.randf_range(1.3, 3.2)  # (a person holds a direction, or stands, for a while: they do not change their mind every second)
 			strafe = [-1.0, -1.0, 0.0, 0.0, 0.0, 1.0, 1.0][brain.rng.randi() % 7]  # (a recorded person stood still 47% of a fight and went each way about a quarter)
 		dir = strafe
+	# A rival who has dropped lightning or stones on it: it stands under a roof, if there is one a few steps off.
+	if not BrainProfile.off("roof") and sees and gap > WizardBrain.TOO_CLOSE and brain.profile.shown_any(brain.opponent, ["Spark", "Stonefall", "Hailstorm"]) and not covered_at(wizard.center() - Vector2(0, 50)):
+		var roof := roof_side()
+		if roof != 0.0:
+			dir = roof
 	# Never back into the edge of the map; it would rather stand its ground there.
 	var x: float = wizard.global_position.x
 	if (dir < 0.0 and x < ArenaGen.left_edge() + 60.0) or (dir > 0.0 and x > ArenaGen.right_edge() - 60.0):
+		dir = 0.0
+	# Never back or sidestep off a ledge into a pit.
+	if dir != 0.0 and over_ground(dir * 50.0).y - wizard.global_position.y > 150.0 and wizard.is_on_floor():
 		dir = 0.0
 	# Never walk into something burning.
 	if dir != 0.0 and brain.danger.in_danger(wizard.global_position + Vector2(dir * 34.0, -10.0)):
@@ -207,12 +319,12 @@ func act(reaction: String) -> void:
 			defend_cooldown = 1.8
 
 
-func choose_defence(eta: float) -> String:
-	var options := {"jump": 1.0}
+func choose_defence(eta: float, speed := 0.0) -> String:
+	var options := {"jump": 1.0 + (1.0 if speed > 0.0 and speed < 450.0 else 0.0)}  # a slow shot can be jumped; a quick one wants a shield or a turn
 	if brain.knows("Gust") and wizard.stamina >= 15.0 and eta > WizardBrain.QUICK_DRAW + 0.05:
 		options["reflect"] = 0.6 + 1.6 * brain.skill  # a skilled wizard sends your spells back at you
 	if brain.knows("Barrier") and wizard.stamina >= 35.0 and eta > WizardBrain.QUICK_DRAW + 0.05:
-		options["shield"] = 0.5
+		options["shield"] = 0.5 + (0.7 if speed >= 450.0 else 0.0)
 	if brain.knows("Shadow Step") and wizard.stamina >= 10.0:
 		options["blink_side"] = 0.7
 	if not wizard.is_on_floor():
@@ -282,9 +394,14 @@ func over_ground(dx: float) -> Vector2:
 
 ## True when something solid (a platform or the ground) is above you, so nothing from the sky can reach you.
 func sheltered() -> bool:
-	var top: Vector2 = brain.sight.seen_center(brain.opponent) + Vector2(0, -50)
+	return covered_at(brain.sight.seen_center(brain.opponent))
+
+
+## True when something solid stands over a point, so lightning and falling stones from the sky stop short of it.
+func covered_at(middle: Vector2) -> bool:
+	var top: Vector2 = middle + Vector2(0, -50)
 	# Cast from the sky down, the way lightning comes: a one-way platform only stops things from above.
-	var query := PhysicsRayQueryParameters2D.create(top + Vector2(0, -600), top)
+	var query := PhysicsRayQueryParameters2D.create(top + Vector2(0, -240), top)
 	query.collision_mask = 1 | 16
 	return not wizard.get_world_2d().direct_space_state.intersect_ray(query).is_empty()
 

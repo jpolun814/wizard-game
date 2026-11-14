@@ -69,6 +69,8 @@ func tend(to_player: Vector2, sees: bool, fighting: bool) -> bool:
 		weights["Flare"] = 1.5
 		weights["Glowcap"] = 0.6 if tired or fighting else 0.0
 		weights["Moonbeam"] = 0.8 if fighting else 0.0
+	if brain.in_dark() and not brain.knows("Flare") and not brain.knows("Glowcap"):
+		weights["Ignite"] = 0.8  # a fireball thrown ahead lights the way when nothing gentler is held
 	if (tired or (fighting and gap > WizardBrain.FAR)) and wizard.adrenaline_time <= 0.0:
 		weights["Adrenaline"] = 1.2
 	if fighting and sees and gap < 260.0 and wizard.max_stamina > 90.0 and not wizard.wolf.on:

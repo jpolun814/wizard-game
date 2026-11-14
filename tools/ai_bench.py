@@ -37,11 +37,27 @@ def jobs(kind, count):
         seed = FIRST_SEED + k
         swap = k % 2 == 1
         if kind == "duel":
-            out.append((["mode=duel", "seed=%d" % seed, "seconds=120"] + (["swap=1"] if swap else []), "duel_%d" % seed))
+            out.append((["mode=duel", "seed=%d" % seed, "seconds=120"] + os.environ.get("BENCH_ARGS", "").split() + (["swap=1"] if swap else []), "duel_%d" % seed))
         else:
             old = [1, 3, 5, 7] if not swap else [0, 2, 4, 6]
             out.append((["mode=royale", "seed=%d" % seed, "old=" + ",".join(map(str, old))], "royale_%d" % seed))
     return out
+
+
+def share(results):
+    """The new brain's share of the damage dealt in the duels, game by game: its opponent's damage taken over both's, with the standard error of the mean."""
+    xs = []
+    for r in results:
+        old = r["old"][0]
+        got = r.get("taken", {})
+        lost_new, lost_old = got.get(str(1 - old), 0), got.get(str(old), 0)
+        if lost_new + lost_old > 0:
+            xs.append(lost_old / (lost_new + lost_old))
+    if not xs:
+        return 0.5, 0.0
+    mean = sum(xs) / len(xs)
+    var = sum((x - mean) ** 2 for x in xs) / max(1, len(xs) - 1)
+    return mean, (var / len(xs)) ** 0.5
 
 
 def duel_score(results):
@@ -92,7 +108,8 @@ def main():
             results = [r for r in pool.map(lambda j: run(*j), jobs(kind, count)) if r]
         if kind == "duel":
             w, l, d = duel_score(results)
-            print("duel   (%d games): new won %d, lost %d, drew %d" % (len(results), w, l, d))
+            m, se = share(results)
+            print("duel   (%d games): new won %d, lost %d, drew %d; its share of the damage %.3f +- %.3f" % (len(results), w, l, d, m, se))
         else:
             n, o, wn, wo = royale_score(results)
             print("royale (%d games): mean place new %.2f, old %.2f; wins new %d, old %d" % (len(results), n, o, wn, wo))

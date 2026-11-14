@@ -94,6 +94,18 @@ func notice_decoys() -> void:
 		shadows.clear()
 
 
+## How many other wizards it sees now within reach of its eyes, and the middle of them (x): a crowd is a place to be out of.
+func crowd(reach: float) -> Dictionary:
+	var n := 0
+	var sum := 0.0
+	for id in known:
+		var entry: Dictionary = known[id]
+		if entry["age"] <= 0.0 and wizard.global_position.distance_to(entry["at"]) < reach:
+			n += 1
+			sum += entry["at"].x
+	return {"n": n, "x": sum / n if n > 0 else wizard.global_position.x}
+
+
 ## The nearest of the other wizards it knows of (sees, or saw a little while ago), or null when it knows of none.
 func nearest_foe() -> Wizard:
 	var best: Wizard = null
@@ -101,6 +113,8 @@ func nearest_foe() -> Wizard:
 	for id in known:
 		var entry: Dictionary = known[id]
 		var gap: float = wizard.global_position.distance_to(entry["at"])
+		if brain.profile.after_me(entry["wizard"]) and gap < 800.0:
+			gap *= 0.5  # whoever is casting at it is the one it deals with, not just whoever stands nearest
 		if gap < best_gap:
 			best = entry["wizard"]
 			best_gap = gap
@@ -123,7 +137,7 @@ func incoming_shot() -> Dictionary:
 		var eta := closing / velocity.length()
 		var miss := (rel - velocity.normalized() * closing).length()
 		if eta < 0.9 and miss < 28.0 and (best.is_empty() or eta < best["eta"]):
-			best = {"eta": eta, "dir": velocity.normalized()}
+			best = {"eta": eta, "dir": velocity.normalized(), "speed": velocity.length()}
 	return best
 
 

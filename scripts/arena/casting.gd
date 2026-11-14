@@ -5,6 +5,9 @@ extends RefCounted
 ## then it goes off. A stroke that means nothing is a misfire. Reached as `arena.casting`. What tells a person that a cast came to nothing is said at the
 ## pointer; a rival's wizard has nobody to tell.
 
+## Told to anyone who watches (an AI wizard learns what its rivals cast): a wizard has cast a spell, from where, aimed which way.
+signal cast_made(spell: String, origin: Vector2, aim: float, caster: Wizard)
+
 const PERFECT := 0.95  # accuracy a cast needs for the flourish
 const MISFIRE_COST := 10.0
 
@@ -50,6 +53,7 @@ func by(spell: String, targeting: String, origin: Vector2, aim: float, info: Dic
 			MatchStats.miss()
 		return
 	wizard.last_spell = spell
+	cast_made.emit(spell, origin, aim, wizard)
 	if person:
 		FloatText.spawn(arena, label_at, spell, color.lightened(0.25), 0.9)
 		if info.get("accuracy", 0.0) >= PERFECT:
