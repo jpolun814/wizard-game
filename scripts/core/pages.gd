@@ -16,8 +16,8 @@ const ATTACKS := ["Ignite", "Fire Breath", "Spark", "Frostbolt", "Stonefall", "S
 ## The attacks a wizard can start with (see deal): the ones that are worth a first page alone. Harsher spells (Supernova, Flaming Sphere) and weaker ones
 ## (Hailstorm, Thorn Whip) are found, not dealt.
 const RANGED := ["Ignite", "Fire Breath", "Spark", "Frostbolt", "Stonefall", "Barbs", "Pebble", "Eldritch Blast", "Spore Puff", "Scythe", "Insect Plague", "Hemorrhage"]
-const MOVES := ["Shadow Step", "Push", "Liana", "Geyser", "Updraft", "Tornado", "Great Oak", "Rocket Jump", "Featherfall"]
-const DEFENCES := ["Barrier", "Decoy", "Stone Wall", "Smoke Screen", "Gust", "Eclipse", "Sneak"]
+const MOVES := ["Shadow Step", "Push", "Liana", "Geyser", "Updraft", "Tornado", "Great Oak", "Rocket Jump", "Featherfall", "Tide Surf"]
+const DEFENCES := ["Barrier", "Decoy", "Stone Wall", "Smoke Screen", "Gust", "Eclipse", "Sneak", "Blizzard", "Ice Prison", "Mudslide", "Silence", "Crimson Veil", "Obsidian Armor"]
 const CHANTS := ["chant:bonfire", "chant:rift"]
 ## Spells that open no gate, and chants that do not: the ones that may lie in a locked area.
 const LOCKABLE := ["Frostbolt", "Icicles", "Ice Prison", "Blizzard", "Stonefall", "Mudslide", "Earthquake", "Stalagmite", "Bramble", "Spore Puff",
