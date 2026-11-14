@@ -332,7 +332,7 @@ func _process(_delta: float) -> void:
 	caster.hide_trail = player.is_blind()
 	player.shown_words = ritual.typed()  # and the words of a chant, as they are typed
 	player.casting = caster.is_drawing()  # the wizard holds the staff up while a stroke is drawn
-	player.cast_color = caster.drawing_color()  # and the crystal shows the school being drawn
+	player.cast_color = caster.drawing_color()
 	if Net.online():
 		player.shown_stroke = _thinned(caster.stroke())  # the others see the stroke being drawn, as you see theirs
 	for module: String in revealed:

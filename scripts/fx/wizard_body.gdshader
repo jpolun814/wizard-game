@@ -1,11 +1,8 @@
 shader_type canvas_item;
 
-// The wizard's sprite. Cuts the body off at a line while it is stuck in the ground (keep), and colors the part of it
-// below the surface of the water or lava it stands in, so it looks as if that part is really under it.
+// The wizard's sprite. Cuts the body off at a line while it is stuck in the ground (keep).
 
 uniform float keep = 2.0;                       // the part of the picture, from the top, that is shown: 1.0 is all of it
-uniform float water_y = 1000000.0;              // the height of the liquid's surface in the world
-uniform vec4 water_tint : source_color = vec4(1.0);
 uniform float obsidian = 0.0;                   // 0 to 1: how far the body has turned to black glass
 uniform float aura = 0.0;                       // 0 to 1: how strongly a blood veil tints the body red
 
@@ -18,8 +15,6 @@ uniform vec4 shade = vec4(-1.0, 0.0, 0.0, 0.0);        // for a figure whose clo
 uniform vec2 caps = vec2(1.0);                          // the brightest a pixel of the robe group and of the trim group can be and still count (skin and hair are brighter than cloth)
 uniform vec4 robe_goal = vec4(-1.0, 1.0, 0.0, 0.0);    // the hue it becomes (-1: unchanged), and how much color it keeps
 uniform vec4 trim_goal = vec4(-1.0, 1.0, 0.0, 0.0);
-
-varying float world_y;
 
 vec3 rgb_to_hsv(vec3 c) {
 	vec4 k = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);
@@ -64,10 +59,6 @@ vec3 recolor(vec3 rgb, vec3 hsv, vec4 group, vec4 goal, float cap) {
 	return mix(rgb, hsv_to_rgb(moved), part);
 }
 
-void vertex() {
-	world_y = (MODEL_MATRIX * vec4(VERTEX, 0.0, 1.0)).y;
-}
-
 void fragment() {
 	if (UV.y > keep) {
 		discard;
@@ -82,9 +73,6 @@ void fragment() {
 		float top = max(c.r, max(c.g, c.b));
 		float dark = 1.0 - smoothstep(0.03, 0.12, top);
 		c.rgb = mix(c.rgb, hsv_to_rgb(vec3(shade.x, shade.y, shade.z)), dark);
-	}
-	if (world_y > water_y) {
-		c.rgb *= water_tint.rgb;
 	}
 	if (obsidian > 0.0) {
 		// Obsidian: nearly black, with a hard bright sheen that runs across it and a pinprick of light where the picture was bright.

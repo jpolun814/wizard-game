@@ -292,7 +292,7 @@ func _school_row(school: String, mouse_scale := 1.0) -> HBoxContainer:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 16)
 	row.add_child(MouseIcon.new(_school_mask(school), SpellData.SCHOOL_COLORS[school], mouse_scale))
-	var name := _title_label(SpellData.school_name(school), 38, TEXT_INK)
+	var name := _title_label(SpellData.school_name(school), 22, TEXT_INK)
 	name.autowrap_mode = TextServer.AUTOWRAP_OFF  # a short name must keep its full width, or the row mis-centers
 	name.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(name)
@@ -303,10 +303,10 @@ func _page_contents(column: VBoxContainer) -> void:
 	# The cheat sheet: each school's mouse with the buttons that cast it lit, and the school's name. The rows share one
 	# column, so the mice line up, and the whole sheet sits in the middle of the page, up and down and across.
 	var sheet := VBoxContainer.new()
-	sheet.add_theme_constant_override("separation", 12)
+	sheet.add_theme_constant_override("separation", 6)
 	sheet.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	for school in SCHOOLS:
-		var row := _school_row(school, 1.5)
+		var row := _school_row(school, 1.4)
 		row.alignment = BoxContainer.ALIGNMENT_BEGIN
 		sheet.add_child(row)
 	var center := CenterContainer.new()

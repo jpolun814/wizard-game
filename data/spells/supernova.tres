@@ -6,7 +6,7 @@
 script = ExtResource("1_spell")
 spell_name = "Supernova"
 school = "Fire"
-gesture = "saturn"
+gesture = "double_ring"
 targeting = "positional"
 cost = 80.0
 effect = "Summon a dying star."

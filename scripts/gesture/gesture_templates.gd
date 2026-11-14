@@ -12,7 +12,7 @@ const ALIASES := {"line": "flick", "zig_tall": "zigzag",
 	"vine_cw": "vine", "vine_ccw": "vine", "vine_cw_r": "vine", "vine_ccw_r": "vine",
 	"star_0": "pentagram", "star_1": "pentagram", "star_2": "pentagram", "star_3": "pentagram", "star_4": "pentagram",
 	"star_0r": "pentagram", "star_1r": "pentagram", "star_2r": "pentagram", "star_3r": "pentagram", "star_4r": "pentagram",
-	"crescent_cw": "crescent", "crescent_ccw": "crescent", "saturn_a": "saturn", "saturn_b": "saturn", "saturn_c": "saturn", "saturn_d": "saturn",
+	"crescent_cw": "crescent", "crescent_ccw": "crescent", "double_ring_a": "double_ring", "double_ring_b": "double_ring",
 	"eclipse_a": "eclipse", "eclipse_b": "eclipse", "eclipse_c": "eclipse", "eclipse_d": "eclipse",
 	"lungs_a": "lungs", "lungs_b": "lungs", "lungs_c": "lungs", "lungs_d": "lungs", "lungs_e": "lungs", "lungs_f": "lungs",
 	"silence_cw": "silence", "silence_ccw": "silence", "question_r": "question", "earthquake_r": "earthquake", "arrow_r2": "arrow", "arrow_l": "arrow", "arrow_l2": "arrow"}
@@ -51,10 +51,8 @@ static func recognizer_templates() -> Dictionary:
 		"star_3r": _pentagram(3, true),
 		"star_4r": _pentagram(4, true),
 		"crescent_cw": _crescent(false),
-		"saturn_a": _saturn(false, false),
-		"saturn_b": _saturn(true, false),
-		"saturn_c": _saturn(false, true),
-		"saturn_d": _saturn(true, true),
+		"double_ring_a": _double_ring(false),
+		"double_ring_b": _double_ring(true),
 		"eclipse_a": _eclipse(false, false),
 		"eclipse_b": _eclipse(true, false),
 		"eclipse_c": _eclipse(false, true),
@@ -133,7 +131,7 @@ static func preview_points(gesture: String) -> PackedVector2Array:
 		"swell":
 			return _swell()
 		"bramble":
-			return _sawtooth(5, 40.0, 22.0)
+			return _sawtooth(3, 40.0, 22.0)
 		"jaws":
 			return PackedVector2Array([Vector2(-30, -40), Vector2(-15, 40), Vector2(0, -5), Vector2(15, 40), Vector2(30, -40)])
 		"pads":
@@ -144,8 +142,8 @@ static func preview_points(gesture: String) -> PackedVector2Array:
 			return _eight(0.0, false)
 		"crescent":
 			return _crescent(false)
-		"saturn":
-			return _saturn(false, false)
+		"double_ring":
+			return _double_ring(false)
 		"eclipse":
 			return _eclipse(false, false)
 		"flame_wall":
@@ -431,19 +429,16 @@ static func _up_and_out() -> PackedVector2Array:
 	return pts
 
 
-## A planet with its ring seen edge on, in one stroke: a round ring begun at its outer edge, then a line out to the tip of a flat oval that is drawn
-## all the way round it. flipped turns both loops the other way; mirrored begins on the right.
-static func _saturn(flipped: bool, mirrored: bool) -> PackedVector2Array:
+## A star and the shell it blows off, in one stroke: a ring, then straight on into a wider ring round it, so the line spirals outward for two turns.
+## ccw turns both loops the other way.
+static func _double_ring(ccw: bool) -> PackedVector2Array:
 	var pts := PackedVector2Array()
+	var direction := -1.0 if ccw else 1.0
 	for i in range(33):
-		pts.append(Vector2.from_angle(PI + TAU * i / 32.0) * 30.0)
-	for i in range(1, 7):
-		pts.append(Vector2(-(30.0 + 56.0 * i / 6.0), 0.0))
+		pts.append(Vector2.from_angle(direction * TAU * i / 32.0) * 26.0)
 	for i in range(1, 41):
-		var a := PI + TAU * i / 40.0
-		pts.append(Vector2(cos(a) * 86.0, sin(a) * 16.0))
-	for k in pts.size():
-		pts[k] = Vector2(-pts[k].x if mirrored else pts[k].x, -pts[k].y if flipped else pts[k].y)
+		var reach := lerpf(26.0, 58.0, minf(i / 10.0, 1.0))  # the line opens out over the first quarter of the second turn, then goes round
+		pts.append(Vector2.from_angle(direction * TAU * i / 40.0) * reach)
 	return pts
 
 

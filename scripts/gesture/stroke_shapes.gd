@@ -646,11 +646,11 @@ static func coil(points: PackedVector2Array) -> PackedVector2Array:
 ## Bramble: a low row of sharp thorns, a sawtooth line that keeps going the same way across.
 static func sawtooth(points: PackedVector2Array) -> PackedVector2Array:
 	var extent := StrokeMeasure.extent(points)
-	if extent.x < 80.0 or extent.y > 0.5 * extent.x or extent.y < 10.0:
+	if extent.x < 50.0 or extent.y > 0.5 * extent.x or extent.y < 10.0:
 		return PackedVector2Array()
 	if not turning_points(points, 0, 14.0).is_empty() or StrokeMeasure.count_crossings(points) > 0:
 		return PackedVector2Array()  # it doubles back across itself: not a row of teeth
-	if turning_points(points, 1, 8.0).size() < 3:  # two teeth are a row of them
+	if turning_points(points, 1, 8.0).size() < 2:  # a thorn and the dip after it is a row of them
 		return PackedVector2Array()
 	return points
 

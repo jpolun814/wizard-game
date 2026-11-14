@@ -21,6 +21,9 @@ const RIM_OVERLAP := 12.0 # how far liquid runs under the ground beside it, to h
 const WATER_TOP := Color(0.15, 0.34, 0.5)     # the colors of water: lighter at the surface, darker below, with a bright edge
 const WATER_BOTTOM := Color(0.05, 0.1, 0.24)
 const WATER_RIM := Color(0.6, 0.78, 0.88)
+const WATER_TINT := Color(0.55, 0.75, 1.0)    # what the liquid does to the light of whatever is in it (see _veil)
+const LAVA_TINT := Color(1.0, 0.55, 0.3)
+const VEIL_LAYER := 6  # over the creatures and what they carry, under the interface
 const SEA_CLEAR_TOP := 0.45     # how much of the deep sea's color covers what lies behind it, at the surface and at the bottom
 const SEA_CLEAR_BOTTOM := 0.8
 const READ_CELLS := 256   # the most cells of new ground read in a frame, so that a pool spreading never stalls the game
@@ -65,6 +68,8 @@ var _runs: Array = []    # the grid's liquid as columns of stretches, worked out
 var _runs_version := -1
 var _runs_made := -1.0  # when the drawn shapes were last worked out, by _t
 var _mesh: ArrayMesh      # the liquid as one mesh of colored triangles, worked out when it changes, so drawing it each frame is one command
+var _veil: Node2D         # in front of everything in the liquid, tinting it as the liquid does: whatever lies under the surface takes its color
+var _veil_mesh: ArrayMesh # the liquid's shape, for the veil
 var _edges: Array = []    # and the bright edges of its open surface: each {"line", "phase"}
 var _air: Array = []      # the open air round the liquid, cut to its space, for cutting the liquid to the ground
 var _air_area := Rect2()
@@ -75,6 +80,14 @@ func _ready() -> void:
 	material = ShaderMaterial.new()  # dithered bands, as pixel art is shaded
 	(material as ShaderMaterial).shader = preload("res://scripts/terrain/pixel_liquid.gdshader")
 	(material as ShaderMaterial).set_shader_parameter("levels", 14.0)
+	_veil = Node2D.new()
+	_veil.z_index = VEIL_LAYER
+	_veil.z_as_relative = false
+	var multiply := CanvasItemMaterial.new()
+	multiply.blend_mode = CanvasItemMaterial.BLEND_MODE_MUL
+	_veil.material = multiply
+	_veil.draw.connect(_draw_veil)
+	add_child(_veil)
 	_reach = CollisionShape2D.new()
 	_reach.shape = RectangleShape2D.new()
 	add_child(_reach)
@@ -119,7 +132,8 @@ func _physics_process(delta: float) -> void:
 			continue
 		if deep and AirPocket.holds(get_tree(), SpellTargets.center_of(body)):
 			continue  # an air pocket of a wreck: the water does not reach there
-		body.soak(Color(1.0, 0.55, 0.3) if lava else Color(0.55, 0.75, 1.0), surface_at(body.global_position.x), molten())
+		if body is Wizard:
+			body.soak(surface_at(body.global_position.x), molten())
 		if deep and body is Wizard and body.global_position.y - surface_at(body.global_position.x) > SWIM_DEPTH:
 			body.swim()  # out of its depth: it swims (see Wizard.swim)
 		if molten():
@@ -543,6 +557,10 @@ func _draw() -> void:
 	var top := Color(0.92, 0.4, 0.1) if lava else WATER_TOP
 	var bottom := Color(0.4, 0.07, 0.05) if lava else WATER_BOTTOM
 	var rim := Color(0.95, 0.68, 0.25) if lava else WATER_RIM
+	var tint := _tint()
+	top = _before_veil(top, tint)
+	bottom = _before_veil(bottom, tint)
+	rim = _before_veil(rim, tint)
 	if deep:  # the sea of the ocean is see-through, so the scenery under it shows, fading with depth
 		top.a = SEA_CLEAR_TOP
 		bottom.a = SEA_CLEAR_BOTTOM
@@ -551,6 +569,7 @@ func _draw() -> void:
 		top = top.lerp(CRUST, crust)
 		bottom = bottom.lerp(CRUST, crust)
 		rim = rim.lerp(CRUST.lightened(0.25), crust)
+	_veil.queue_redraw()
 	if grid != null:
 		_draw_liquid(top, bottom, rim)
 		_draw_ice()
@@ -568,6 +587,25 @@ func _draw() -> void:
 		for line: PackedVector2Array in Geometry2D.intersect_polyline_with_polygon(surface, part):
 			draw_polyline(line, rim, 2.0)
 	_draw_ice()
+
+
+func _tint() -> Color:
+	return LAVA_TINT if lava else WATER_TINT
+
+
+## The color to paint the pool so that it comes out as the color wanted once the veil has been over it.
+func _before_veil(color: Color, tint: Color) -> Color:
+	return Color(minf(color.r / tint.r, 1.0), minf(color.g / tint.g, 1.0), minf(color.b / tint.b, 1.0), color.a)
+
+
+## The veil: the shape of the liquid, multiplied over everything drawn before it, so a stone, a creature, a page or a spark in the liquid looks to be in it.
+func _draw_veil() -> void:
+	var tint := _tint()
+	if grid == null:
+		for part: PackedVector2Array in _pieces:
+			_veil.draw_colored_polygon(part, tint)
+	elif _veil_mesh != null:
+		_veil.draw_mesh(_veil_mesh, null)
 
 
 func _draw_ice() -> void:
@@ -607,6 +645,19 @@ func _draw_liquid(top: Color, bottom: Color, rim: Color) -> void:
 	draw_set_transform(Vector2.ZERO)
 
 
+## Adds the triangles of a piece of liquid to a mesh being built, and says whether it had any.
+func _triangulate(piece: PackedVector2Array, points: PackedVector2Array, indices: PackedInt32Array) -> bool:
+	if Geometry2D.is_polygon_clockwise(piece) or piece.size() < 3:
+		return false
+	var triangles := Geometry2D.triangulate_polygon(piece)
+	if triangles.is_empty():
+		return false
+	for index in triangles:
+		indices.append(points.size() + index)
+	points.append_array(piece)
+	return true
+
+
 ## Works out the polygons of the liquid from its columns. Runs that lie against the ground reach into it by a whole cell and are then cut
 ## to the air, so nothing of them shows but the part in the open; the rest are plain blocks. An open surface meets the surface of the column
 ## beside it halfway, so the top runs on in a slope instead of a staircase of cells.
@@ -642,14 +693,8 @@ func _build_shapes(top: Color, bottom: Color) -> void:
 				for open: PackedVector2Array in air:
 					pieces.append_array(Geometry2D.intersect_polygons(outline, open))
 			for piece: PackedVector2Array in pieces:
-				if Geometry2D.is_polygon_clockwise(piece) == false and piece.size() >= 3:
-					var triangles := Geometry2D.triangulate_polygon(piece)
-					if triangles.is_empty():
-						continue
-					for index in triangles:
-						indices.append(points.size() + index)
+				if _triangulate(piece, points, indices):
 					for point in piece:
-						points.append(point)
 						shades.append(top.lerp(bottom, clampf(point.y / depth, 0.0, 1.0)))
 			if run[2]:
 				var surface := PackedVector2Array([Vector2(left, top_left), Vector2(right, top_right)])
@@ -661,6 +706,7 @@ func _build_shapes(top: Color, bottom: Color) -> void:
 				for line: PackedVector2Array in lines:
 					_edges.append({"line": line, "phase": x0 + cell * 0.5})
 	_mesh = null
+	_veil_mesh = null
 	if not indices.is_empty():
 		var arrays := []
 		arrays.resize(Mesh.ARRAY_MAX)
@@ -669,6 +715,12 @@ func _build_shapes(top: Color, bottom: Color) -> void:
 		arrays[Mesh.ARRAY_INDEX] = indices
 		_mesh = ArrayMesh.new()
 		_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+		var tints := PackedColorArray()
+		tints.resize(points.size())
+		tints.fill(_tint())
+		_veil_mesh = ArrayMesh.new()
+		arrays[Mesh.ARRAY_COLOR] = tints
+		_veil_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
 
 
 ## The open air round the liquid, as polygons in the pool's own coordinates, or none where the ground has no smooth edge of its own (the

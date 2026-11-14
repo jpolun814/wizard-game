@@ -90,9 +90,6 @@ var _stuck := 0.0       # how long a giant has been held up by a ledge
 var _last_x := 0.0       # where a giant was last frame, to tell whether it is moving
 var _charge := 0.0       # counting down to a shot
 var _flash := 0.0
-var _liquid := Color.WHITE  # the color of the water or lava it stands in
-var _liquid_time := 0.0
-var _liquid_y := INF  # the height of the surface of that liquid
 var _spawn := SPAWN_TIME
 var _body_size := Vector2(30, 40)  # the hitbox, in world pixels
 var _body_center := Vector2(0, -20)
@@ -622,13 +619,6 @@ func is_slowed() -> bool:
 	return _slow_time > 0.0
 
 
-## Standing in water or lava: the part of it below the surface takes the liquid's color for a moment after each call.
-func soak(tint: Color, surface_y := INF, _lava := false) -> void:
-	_liquid = tint
-	_liquid_y = surface_y
-	_liquid_time = 0.15
-
-
 func apply_slow(seconds: float) -> void:
 	if KINDS[kind].school == "Water":
 		return  # water enemies cannot be slowed by ice or snow
@@ -692,10 +682,6 @@ func _attack() -> void:
 func _process(delta: float) -> void:
 	_idle_t += delta
 	_flash = maxf(_flash - delta * 6.0, 0.0)
-	_liquid_time = maxf(_liquid_time - delta, 0.0)
-	var wet := _liquid_time > 0.0
-	_material.set_shader_parameter("water_y", _liquid_y if wet else 1000000.0)
-	_material.set_shader_parameter("water_tint", _liquid)
 	_animate(delta)
 	queue_redraw()
 	_overlay.queue_redraw()

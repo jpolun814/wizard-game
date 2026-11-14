@@ -199,10 +199,9 @@ func _resolve(relative: PackedVector2Array, options: Dictionary, reading: Stroke
 				if p.distance_squared_to(relative[0]) > farthest.distance_squared_to(relative[0]):
 					farthest = p
 			aim = (farthest - relative[0]).angle()
-		if entry.targeting == "shape":
-			# A shape fills the box it was drawn in (the circle round a target is the box its ice fills): its bounds, wherever it was drawn.
-			var box := GestureTemplates.bounds(relative)
-			info["rect"] = Rect2(_origin + box.position, box.size)
+		# The box the stroke was drawn in, wherever it was drawn: a shape fills it (the circle round a target is the box its ice fills), and a boulder hangs from its top.
+		var box := GestureTemplates.bounds(relative)
+		info["rect"] = Rect2(_origin + box.position, box.size)
 		if entry.targeting == "shape" and info["line"].is_empty():
 			info["line"] = StrokeMeasure.to_world(relative, _origin)
 		info["extent"] = StrokeMeasure.extent(relative)  # how big it was drawn, for spells that grow with it

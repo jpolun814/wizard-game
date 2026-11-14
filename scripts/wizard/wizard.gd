@@ -52,8 +52,6 @@ const OLD_LOOK_ANIMATIONS := {
 	"hit": {"fps": 10.0, "loop": false}, "death": {"fps": 8.0, "loop": false},
 }
 const OLD_ART := ["wizard", "dark_wizard", "pyre_wizard", "bone_wizard"]  # the folders of the four older figures
-const STAFF_HEAD := Vector2(-55, -115)  # where the casting glow sits for an older figure: the staff's crystal, facing right
-const HAND := Vector2(30, -62)          # and for a newer one: the casting hand
 const SPAWN_TIME := 0.7       # a wizard summoned into the world arrives out of a circle this long
 const FALL_LIMIT := 800.0     # a wizard below this has fallen off the map (in a world, the bottom of it)
 
@@ -164,7 +162,7 @@ var root_time: float: # no walking or jumping while above zero
 	get: return _status.left(&"root")
 	set(seconds): _status.set_left(&"root", seconds)
 var _stuck_time := 0.0         # how long a giant's stomp has the player stuck in the ground
-var _wet_material: ShaderMaterial  # cuts the body off at the waist while stuck, and colors the part under water or lava
+var _body_material: ShaderMaterial  # cuts the body off at the waist while stuck
 var blind_time: float: # the caster's gesture trail is hidden while above zero
 	get: return _status.left(&"blind")
 	set(seconds): _status.set_left(&"blind", seconds)
@@ -192,8 +190,7 @@ var _layer_alive := 0
 var wolf := WildShape.new(self)  # the werewolf shape (Wild Shape), when the wizard has taken it
 var _releasing := 0.0     # time left of the thrust that plays when a spell goes off
 var _hurt_anim := 0.0     # time left of the flinch after a hit
-var cast_color := Color.WHITE  # the school being drawn (set by the arena); the staff's glow takes it
-var _glow: Sprite2D            # a glow at the staff's head while a stroke is drawn
+var cast_color := Color.WHITE  # the school being drawn (set by the arena); the trail and the sparks take it
 @onready var _sprite: AnimatedSprite2D = $Look
 var _barrier: BarrierBubble  # the Barrier as it is seen round the wizard
 var _drop_time := 0.0          # while above zero, wooden platforms and stairs let the wizard through
@@ -250,17 +247,10 @@ func _ready() -> void:
 	_overlay.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
 	_overlay.draw.connect(_draw_overlay)
 	add_child(_overlay)
-	_wet_material = ShaderMaterial.new()
-	_wet_material.shader = load("res://scripts/fx/wet.gdshader")
-	_sprite.material = _wet_material
+	_body_material = ShaderMaterial.new()
+	_body_material.shader = load("res://scripts/fx/wizard_body.gdshader")
+	_sprite.material = _body_material
 	_paint()
-	# The staff's head glows in the school's color while a stroke is being drawn.
-	_glow = Sprite2D.new()
-	_glow.texture = Fx.tex("circle_05")
-	_glow.material = Fx.additive()
-	_glow.scale = Vector2.ONE * 0.35
-	_glow.visible = false
-	add_child(_glow)
 	_barrier = BarrierBubble.new(center_offset())
 	add_child(_barrier)
 
@@ -297,8 +287,8 @@ func thrust(seconds: float) -> void:
 
 ## Puts its set of colors on the sprite (the material is made a little after the frames are put on).
 func _paint() -> void:
-	if _wet_material != null:
-		WizardLook.paint(_wet_material, look, 0 if wolf.on else palette)  # a werewolf keeps its own colors
+	if _body_material != null:
+		WizardLook.paint(_body_material, look, 0 if wolf.on else palette)  # a werewolf keeps its own colors
 
 
 ## Where the wizard's mouth is, for Fire Breath.
@@ -467,9 +457,9 @@ func _on_animation_finished() -> void:
 			fade.tween_callback(queue_free)
 
 
-## Standing in water or lava (a creature has the same call).
-func soak(tint: Color, surface_y := INF, lava := false) -> void:
-	lungs.soak(tint, surface_y, lava)
+## Standing in water or lava.
+func soak(surface_y: float, lava: bool) -> void:
+	lungs.soak(surface_y, lava)
 
 
 ## The breath has run out under water: the most stamina goes, until the wizard breathes again.
@@ -836,7 +826,7 @@ func stick_in_ground(seconds: float) -> void:
 		return
 	apply_debuff("root", seconds)
 	_stuck_time = maxf(_stuck_time, seconds)
-	_wet_material.set_shader_parameter("keep", 0.7)
+	_body_material.set_shader_parameter("keep", 0.7)
 	# The cut is 57 px above the frame's bottom, so this drops the cut onto the ground: the body is in the ground from there down.
 	_sprite.position = Vector2(0, 57)
 
@@ -844,7 +834,7 @@ func stick_in_ground(seconds: float) -> void:
 ## Lets the player out of the ground, as a throw does.
 func unstick() -> void:
 	_stuck_time = 0.0
-	_wet_material.set_shader_parameter("keep", 2.0)
+	_body_material.set_shader_parameter("keep", 2.0)
 	_sprite.position = Vector2.ZERO
 
 
@@ -852,7 +842,7 @@ func _process(delta: float) -> void:
 	if not is_likeness():
 		_tell_others()
 	elif (marks & STUCK != 0) != (_sprite.position.y != 0.0):
-		_wet_material.set_shader_parameter("keep", 0.7 if marks & STUCK != 0 else 2.0)  # sunk in the ground, as on the machine that drives it
+		_body_material.set_shader_parameter("keep", 0.7 if marks & STUCK != 0 else 2.0)  # sunk in the ground, as on the machine that drives it
 		_sprite.position = Vector2(0, 57) if marks & STUCK != 0 else Vector2.ZERO
 	if _stuck_time > 0.0:
 		_stuck_time -= delta
@@ -893,25 +883,18 @@ func _animate(delta: float) -> void:
 	_sprite.speed_scale = 0.0 if set_in_ice else 1.0  # nothing moves inside the ice
 	shown_anim = wanted
 	_sprite.flip_h = facing < 0.0
-	_glow.visible = casting and not dead
-	if _glow.visible:
-		var spot := STAFF_HEAD if OLD_ART.has(_art) else HAND
-		_glow.position = Vector2(spot.x * facing, spot.y)
-		_glow.modulate = Color(cast_color, 0.9)
 	_flash = maxf(_flash - delta, 0.0)
 	# After a hit the wizard blinks while it can't be hurt again.
 	var blink := _grace > 0.0 and int(_grace * 20.0) % 2 == 0
 	lungs.dry(delta)
-	_wet_material.set_shader_parameter("water_y", lungs.liquid_surface())
-	_wet_material.set_shader_parameter("water_tint", lungs.tint())
 	if is_unseen() != _hidden:  # a wizard faded from sight is not drawn at all for anyone but themselves (the wizard is left as it was when it comes back)
 		_hidden = is_unseen()
 		visible = not _hidden
 	_sprite.modulate = Color(1.0, 0.45, 0.45) if _flash > 0.0 else Color(1.0, 1.0, 1.0, 0.55 if blink else (FADE_ALPHA if is_faded() else 1.0))
 	var glassy := marks & OBSIDIAN != 0 if is_likeness() else obsidian_time > 0.0
 	var veiled := marks & VEILED != 0 if is_likeness() else veil > 0
-	_wet_material.set_shader_parameter("obsidian", 1.0 if glassy and _flash <= 0.0 else 0.0)  # black glass with a sheen running over it
-	_wet_material.set_shader_parameter("aura", 1.0 if veiled and _flash <= 0.0 else 0.0)  # a wizard under a Crimson Veil is tinted red while it holds
+	_body_material.set_shader_parameter("obsidian", 1.0 if glassy and _flash <= 0.0 else 0.0)  # black glass with a sheen running over it
+	_body_material.set_shader_parameter("aura", 1.0 if veiled and _flash <= 0.0 else 0.0)  # a wizard under a Crimson Veil is tinted red while it holds
 
 
 ## Called when a spell goes off: the wizard thrusts its staff forward once.

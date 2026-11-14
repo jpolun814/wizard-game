@@ -123,11 +123,15 @@ func _sinkhole(c: SpellCast) -> void:
 	c.add(hole)
 
 
-## A boulder falls from where the circle was drawn, onto the ground under it, and stays where it lands, as a loose rock. How hard it hits is how fast it falls.
+## A boulder falls from where the circle was drawn, its top at the top of the circle, onto the ground under it, and stays where it lands, as a loose rock. How hard it hits
+## is how fast it falls.
 func _stonefall(c: SpellCast) -> void:
 	var boulder := Boulder.new()
 	boulder.earth = _arena.earth_texture()
-	boulder.global_position = _arena.lifted_out_of_rock(c.origin)
+	var hangs_at := c.origin
+	if c.info.has("rect"):
+		hangs_at = Vector2(c.origin.x, c.info["rect"].position.y + Boulder.RADIUS)
+	boulder.global_position = _arena.lifted_out_of_rock(hangs_at)
 	c.add(boulder)
 
 

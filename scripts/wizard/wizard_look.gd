@@ -3,7 +3,7 @@ extends RefCounted
 
 ## What a wizard can look like: one of seven figures, in one of a few sets of colors. Every figure is drawn to the same height, from the feet to the top
 ## of the head (their staffs and flames rise above that, and are not counted), so the choice is only for looks. A set of colors turns two groups of the
-## figure's own colors (its robe and its trim, picked out by hue) to new hues, in the sprite's shader (see wet.gdshader); skin, wood and outlines stay.
+## figure's own colors (its robe and its trim, picked out by hue) to new hues, in the sprite's shader (see wizard_body.gdshader); skin, wood and outlines stay.
 
 const LOOKS := ["wizard", "dark_wizard", "pyre_wizard", "bone_wizard", "fire_wizard", "wanderer", "lightning_mage"]  # in the order the seats of a match have them
 const SCALE := {"wizard": 1.0, "dark_wizard": 1.5, "pyre_wizard": 1.7, "bone_wizard": 1.5, "fire_wizard": 1.2, "wanderer": 1.2, "lightning_mage": 1.25}  # what each is drawn at, to make them one height
@@ -84,6 +84,6 @@ static func paint(material: ShaderMaterial, look: String, palette: int) -> void:
 ## A material with the wizard's shader, showing a look in a set of colors: for a figure drawn outside a wizard (a cut-scene's, or a portrait's).
 static func material_for(look: String, palette: int) -> ShaderMaterial:
 	var material := ShaderMaterial.new()
-	material.shader = load("res://scripts/fx/wet.gdshader")
+	material.shader = load("res://scripts/fx/wizard_body.gdshader")
 	paint(material, look, palette)
 	return material
