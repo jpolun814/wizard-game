@@ -212,141 +212,204 @@ static func _make_gate(cells: TileGrid, tunnel: Dictionary, carved: Dictionary, 
 	var span := Vector2i.ZERO  # the columns of the passage the gate takes up, counted from its left end
 	match tunnel["gate"]:
 		"chasm":
-			# In the middle of the longest level stretch, a pit as wide as it needs and lava at the bottom of it.
-			var k0 := _level_stretch(floors, CHASM_WIDTH)
-			var level := floors[k0]
-			span = Vector2i(k0, k0 + CHASM_WIDTH)
-			_dig_pit(cells, first + k0, CHASM_WIDTH, level, out["inward"])
-			var pond := {"a": first + k0, "b": first + k0 + CHASM_WIDTH - 1, "surface": level + CHASM_LAVA_TOP, "depth": CHASM_DEPTH - CHASM_LAVA_TOP, "lava": true}
-			ponds.append(pond)
-			for c in range(pond["a"], pond["b"] + 1):
-				for r in range(pond["surface"], pond["surface"] + pond["depth"] + 1):
-					hazards[Vector2i(c, r)] = true
-			out["solve"].append({"rect": Rect2i(first + k0, level, CHASM_WIDTH, 1), "with": ArenaGen.GROUND})  # a bridge across
-			out["at"] = Vector2i(first + k0, level)
+			span = _gate_chasm(cells, out, floors, first, ponds, hazards)
 		"flood":
-			# The same pit, full of water to the brim: whoever falls in cannot climb out, and spells that cross water cross it.
-			var k0 := _level_stretch(floors, CHASM_WIDTH)
-			var level := floors[k0]
-			span = Vector2i(k0, k0 + CHASM_WIDTH)
-			_dig_pit(cells, first + k0, CHASM_WIDTH, level, out["inward"])
-			ponds.append({"a": first + k0, "b": first + k0 + CHASM_WIDTH - 1, "surface": level, "depth": CHASM_DEPTH, "lava": false})
-			out["solve"].append({"rect": Rect2i(first + k0, level, CHASM_WIDTH, 1), "with": ArenaGen.GROUND})  # a bridge across
-			out["at"] = Vector2i(first + k0, level)
+			span = _gate_flood(cells, out, floors, first, ponds)
 		"piranhas":
-			# A long pit, no deeper than a wade, full of water and of piranhas: they have to be killed or crossed above.
-			var k0 := _level_stretch(floors, PIT_WIDTH)
-			var level := floors[k0]
-			span = Vector2i(k0, k0 + PIT_WIDTH)
-			for k in range(k0, k0 + PIT_WIDTH):
-				for r in range(level, level + PIT_DEPTH):
-					cells.erase(Vector2i(first + k, r))
-					out["blocks"].append(Vector2i(first + k, r))  # for the test, to wade it is to be eaten
-			ponds.append({"a": first + k0, "b": first + k0 + PIT_WIDTH - 1, "surface": level, "depth": PIT_DEPTH, "lava": false})
-			out["solve"].append({"rect": Rect2i(first + k0, level, PIT_WIDTH, 1), "with": ArenaGen.GROUND})  # a bridge across
-			out["at"] = Vector2i(first + k0, level)
-			out["pit"] = Rect2i(first + k0, level, PIT_WIDTH, PIT_DEPTH)
+			span = _gate_piranhas(cells, out, floors, first, ponds)
 		"sentinel":
-			# A statue in the middle of the passage, on its floor. For the test the passage is barred: it shoots whoever walks it.
-			var k0 := floors.size() / 2
-			span = Vector2i(k0 - 1, k0 + 2)
-			out["at"] = Vector2i(first + k0, floors[k0])
-			out["stands"] = Vector2i(first + k0, floors[k0])
-			for c in range(WorldGraph.TRAP_MARGIN, floors.size() - WorldGraph.TRAP_MARGIN):
-				out["blocks"].append(Vector2i(first + c, floors[c] - 1))
+			span = _gate_sentinel(out, floors, first)
 		"ice":
-			# The whole of the passage, floor to roof, for a few columns: ice that melts, or breaks.
-			var k0 := _level_stretch(floors, ICE_WIDTH)
-			span = Vector2i(k0, k0 + ICE_WIDTH)
-			out["columns"] = []
-			for k in range(k0, k0 + ICE_WIDTH):
-				var top := floors[k]
-				while top > 1 and not cells.has(Vector2i(first + k, top - 1)):
-					top -= 1
-				out["columns"].append({"x": first + k, "top": top, "bottom": floors[k]})
-				for r in range(top, floors[k]):
-					out["blocks"].append(Vector2i(first + k, r))
-			out["at"] = Vector2i(first + k0, floors[k0])
+			span = _gate_ice(cells, out, floors, first)
 		"dark":
-			# Strips of spikes along a level floor, which no one sees until a light falls on them.
-			var stretch := _trap_stretch(floors, WorldGraph.DARK_BUDGET, tunnel["inward"])
-			var from := stretch.x
-			var length := stretch.y - stretch.x
-			span = stretch
-			out["first"] = first + from
-			out["at"] = Vector2i(first + from, floors[from])
-			out["strips"] = []
-			var k := 3
-			while k + SPIKE_WIDTH <= length:
-				out["strips"].append({"x": first + from + k, "width": SPIKE_WIDTH, "floors": floors.slice(from + k, from + k + SPIKE_WIDTH)})
-				k += SPIKE_APART
-			for c in range(from, stretch.y):  # for the test, the whole of the stretch bars the way: walking it unseen costs more than it can
-				out["blocks"].append(Vector2i(first + c, floors[c] - 1))
+			span = _gate_dark(out, floors, first, tunnel)
 		"gas":
-			# Banks of poison gas lying along a level floor, from the floor to the roof.
-			var stretch := _trap_stretch(floors, WorldGraph.GAS_BUDGET, tunnel["inward"])
-			var from := stretch.x
-			span = stretch
-			out["first"] = first + from
-			out["at"] = Vector2i(first + from, floors[from])
-			out["banks"] = []
-			for k in range(from, stretch.y, GAS_BANK):
-				var last := mini(k + GAS_BANK, stretch.y)
-				var tops := PackedInt32Array()
-				for c in range(k, last):
-					var top := floors[c]
-					while top > 1 and not cells.has(Vector2i(first + c, top - 1)):
-						top -= 1
-					tops.append(top)
-				out["banks"].append({"x": first + k, "floors": floors.slice(k, last), "tops": tops})
-			for k in range(from, stretch.y):
-				out["blocks"].append(Vector2i(first + k, floors[k] - 1))
+			span = _gate_gas(cells, out, floors, first, tunnel)
 		"wall":
-			# A block of rock standing up from the floor, with room cut over the top of it: a sheer face on each side to get over.
-			var run := floors.size() - 1
-			var k0 := run / 2
-			for step in range(0, run):  # the place nearest the middle where the rock over the top of it is deep enough
-				var k := run / 2 + (step + 1) / 2 * (1 if step % 2 == 0 else -1)
-				if k < 6 or k > run - 6 - WALL_WIDTH:
-					continue
-				var shallow := false
-				for c in range(k - WALL_APPROACH, k + WALL_WIDTH + WALL_APPROACH):
-					var i: int = first + c - sky["xl"]
-					shallow = shallow or floors[c] - WALL_HEIGHT - 5 < sky["floor"][clampi(i, 0, sky["floor"].size() - 1)] + 4
-				if not shallow:
-					k0 = k
-					break
-			var top := mini(floors[k0 - 1], floors[k0 + WALL_WIDTH]) - WALL_HEIGHT
-			span = Vector2i(k0, k0 + WALL_WIDTH)
-			out["at"] = Vector2i(first + k0, top)
-			out["columns"] = []
-			for c in range(k0 - WALL_APPROACH, k0 + WALL_WIDTH + WALL_APPROACH):  # the roof opened up beside the wall too, so that anyone thrown up its face has room to reach the top
-				if c >= k0 and c < k0 + WALL_WIDTH:
-					continue
-				var r := top - 5
-				while cells.has(Vector2i(first + c, r)):
-					cells.erase(Vector2i(first + c, r))
-					r += 1
-			for c in range(k0, k0 + WALL_WIDTH):
-				for r in range(top - 5, top):
-					cells.erase(Vector2i(first + c, r))
-				for r in range(top, floors[c]):
-					cells.erase(Vector2i(first + c, r))  # the wall is not part of the ground: it stands in the passage as a RockWall and can be broken down
-					out["blocks"].append(Vector2i(first + c, r))
-				out["columns"].append({"x": first + c, "top": top, "bottom": floors[c]})
-				out["solve"].append({"rect": Rect2i(first + c, top, 1, floors[c] - top), "with": -1})  # the passage without the wall
+			span = _gate_wall(cells, out, floors, first, sky)
 		"brambles":
-			var stretch := _trap_stretch(floors, WorldGraph.THORN_BUDGET, tunnel["inward"])  # longer downhill, shorter uphill
-			var from := stretch.x
-			span = stretch
-			out["first"] = first + from
-			out["at"] = Vector2i(first + from, floors[from])
-			out["floors"] = floors.slice(from, stretch.y)
-			for k in range(from, stretch.y):
-				out["thorns"].append(Vector2i(first + k, floors[k] - 1))
+			span = _gate_brambles(out, floors, first, tunnel)
 	var edge := clampi(span.x - 4 if out["inward"] > 0 else span.y + 3, 0, floors.size() - 1)
 	out["outside"] = Vector2i(first + edge, floors[edge])  # a place on the floor just short of the gate, on the way in from outside
 	return out
+
+
+## The chasm gate: returns the columns of the passage it takes up.
+static func _gate_chasm(cells: TileGrid, out: Dictionary, floors: PackedInt32Array, first: int, ponds: Array, hazards: Dictionary) -> Vector2i:
+	var span := Vector2i.ZERO
+	# In the middle of the longest level stretch, a pit as wide as it needs and lava at the bottom of it.
+	var k0 := _level_stretch(floors, CHASM_WIDTH)
+	var level := floors[k0]
+	span = Vector2i(k0, k0 + CHASM_WIDTH)
+	_dig_pit(cells, first + k0, CHASM_WIDTH, level, out["inward"])
+	var pond := {"a": first + k0, "b": first + k0 + CHASM_WIDTH - 1, "surface": level + CHASM_LAVA_TOP, "depth": CHASM_DEPTH - CHASM_LAVA_TOP, "lava": true}
+	ponds.append(pond)
+	for c in range(pond["a"], pond["b"] + 1):
+		for r in range(pond["surface"], pond["surface"] + pond["depth"] + 1):
+			hazards[Vector2i(c, r)] = true
+	out["solve"].append({"rect": Rect2i(first + k0, level, CHASM_WIDTH, 1), "with": ArenaGen.GROUND})  # a bridge across
+	out["at"] = Vector2i(first + k0, level)
+	return span
+
+
+## The flood gate: returns the columns of the passage it takes up.
+static func _gate_flood(cells: TileGrid, out: Dictionary, floors: PackedInt32Array, first: int, ponds: Array) -> Vector2i:
+	var span := Vector2i.ZERO
+	# The same pit, full of water to the brim: whoever falls in cannot climb out, and spells that cross water cross it.
+	var k0 := _level_stretch(floors, CHASM_WIDTH)
+	var level := floors[k0]
+	span = Vector2i(k0, k0 + CHASM_WIDTH)
+	_dig_pit(cells, first + k0, CHASM_WIDTH, level, out["inward"])
+	ponds.append({"a": first + k0, "b": first + k0 + CHASM_WIDTH - 1, "surface": level, "depth": CHASM_DEPTH, "lava": false})
+	out["solve"].append({"rect": Rect2i(first + k0, level, CHASM_WIDTH, 1), "with": ArenaGen.GROUND})  # a bridge across
+	out["at"] = Vector2i(first + k0, level)
+	return span
+
+
+## The piranhas gate: returns the columns of the passage it takes up.
+static func _gate_piranhas(cells: TileGrid, out: Dictionary, floors: PackedInt32Array, first: int, ponds: Array) -> Vector2i:
+	var span := Vector2i.ZERO
+	# A long pit, no deeper than a wade, full of water and of piranhas: they have to be killed or crossed above.
+	var k0 := _level_stretch(floors, PIT_WIDTH)
+	var level := floors[k0]
+	span = Vector2i(k0, k0 + PIT_WIDTH)
+	for k in range(k0, k0 + PIT_WIDTH):
+		for r in range(level, level + PIT_DEPTH):
+			cells.erase(Vector2i(first + k, r))
+			out["blocks"].append(Vector2i(first + k, r))  # for the test, to wade it is to be eaten
+	ponds.append({"a": first + k0, "b": first + k0 + PIT_WIDTH - 1, "surface": level, "depth": PIT_DEPTH, "lava": false})
+	out["solve"].append({"rect": Rect2i(first + k0, level, PIT_WIDTH, 1), "with": ArenaGen.GROUND})  # a bridge across
+	out["at"] = Vector2i(first + k0, level)
+	out["pit"] = Rect2i(first + k0, level, PIT_WIDTH, PIT_DEPTH)
+	return span
+
+
+## The sentinel gate: returns the columns of the passage it takes up.
+static func _gate_sentinel(out: Dictionary, floors: PackedInt32Array, first: int) -> Vector2i:
+	var span := Vector2i.ZERO
+	# A statue in the middle of the passage, on its floor. For the test the passage is barred: it shoots whoever walks it.
+	var k0 := floors.size() / 2
+	span = Vector2i(k0 - 1, k0 + 2)
+	out["at"] = Vector2i(first + k0, floors[k0])
+	out["stands"] = Vector2i(first + k0, floors[k0])
+	for c in range(WorldGraph.TRAP_MARGIN, floors.size() - WorldGraph.TRAP_MARGIN):
+		out["blocks"].append(Vector2i(first + c, floors[c] - 1))
+	return span
+
+
+## The ice gate: returns the columns of the passage it takes up.
+static func _gate_ice(cells: TileGrid, out: Dictionary, floors: PackedInt32Array, first: int) -> Vector2i:
+	var span := Vector2i.ZERO
+	# The whole of the passage, floor to roof, for a few columns: ice that melts, or breaks.
+	var k0 := _level_stretch(floors, ICE_WIDTH)
+	span = Vector2i(k0, k0 + ICE_WIDTH)
+	out["columns"] = []
+	for k in range(k0, k0 + ICE_WIDTH):
+		var top := floors[k]
+		while top > 1 and not cells.has(Vector2i(first + k, top - 1)):
+			top -= 1
+		out["columns"].append({"x": first + k, "top": top, "bottom": floors[k]})
+		for r in range(top, floors[k]):
+			out["blocks"].append(Vector2i(first + k, r))
+	out["at"] = Vector2i(first + k0, floors[k0])
+	return span
+
+
+## The dark gate: returns the columns of the passage it takes up.
+static func _gate_dark(out: Dictionary, floors: PackedInt32Array, first: int, tunnel: Dictionary) -> Vector2i:
+	var span := Vector2i.ZERO
+	# Strips of spikes along a level floor, which no one sees until a light falls on them.
+	var stretch := _trap_stretch(floors, WorldGraph.DARK_BUDGET, tunnel["inward"])
+	var from := stretch.x
+	var length := stretch.y - stretch.x
+	span = stretch
+	out["first"] = first + from
+	out["at"] = Vector2i(first + from, floors[from])
+	out["strips"] = []
+	var k := 3
+	while k + SPIKE_WIDTH <= length:
+		out["strips"].append({"x": first + from + k, "width": SPIKE_WIDTH, "floors": floors.slice(from + k, from + k + SPIKE_WIDTH)})
+		k += SPIKE_APART
+	for c in range(from, stretch.y):  # for the test, the whole of the stretch bars the way: walking it unseen costs more than it can
+		out["blocks"].append(Vector2i(first + c, floors[c] - 1))
+	return span
+
+
+## The gas gate: returns the columns of the passage it takes up.
+static func _gate_gas(cells: TileGrid, out: Dictionary, floors: PackedInt32Array, first: int, tunnel: Dictionary) -> Vector2i:
+	var span := Vector2i.ZERO
+	# Banks of poison gas lying along a level floor, from the floor to the roof.
+	var stretch := _trap_stretch(floors, WorldGraph.GAS_BUDGET, tunnel["inward"])
+	var from := stretch.x
+	span = stretch
+	out["first"] = first + from
+	out["at"] = Vector2i(first + from, floors[from])
+	out["banks"] = []
+	for k in range(from, stretch.y, GAS_BANK):
+		var last := mini(k + GAS_BANK, stretch.y)
+		var tops := PackedInt32Array()
+		for c in range(k, last):
+			var top := floors[c]
+			while top > 1 and not cells.has(Vector2i(first + c, top - 1)):
+				top -= 1
+			tops.append(top)
+		out["banks"].append({"x": first + k, "floors": floors.slice(k, last), "tops": tops})
+	for k in range(from, stretch.y):
+		out["blocks"].append(Vector2i(first + k, floors[k] - 1))
+	return span
+
+
+## The wall gate: returns the columns of the passage it takes up.
+static func _gate_wall(cells: TileGrid, out: Dictionary, floors: PackedInt32Array, first: int, sky: Dictionary) -> Vector2i:
+	var span := Vector2i.ZERO
+	# A block of rock standing up from the floor, with room cut over the top of it: a sheer face on each side to get over.
+	var run := floors.size() - 1
+	var k0 := run / 2
+	for step in range(0, run):  # the place nearest the middle where the rock over the top of it is deep enough
+		var k := run / 2 + (step + 1) / 2 * (1 if step % 2 == 0 else -1)
+		if k < 6 or k > run - 6 - WALL_WIDTH:
+			continue
+		var shallow := false
+		for c in range(k - WALL_APPROACH, k + WALL_WIDTH + WALL_APPROACH):
+			var i: int = first + c - sky["xl"]
+			shallow = shallow or floors[c] - WALL_HEIGHT - 5 < sky["floor"][clampi(i, 0, sky["floor"].size() - 1)] + 4
+		if not shallow:
+			k0 = k
+			break
+	var top := mini(floors[k0 - 1], floors[k0 + WALL_WIDTH]) - WALL_HEIGHT
+	span = Vector2i(k0, k0 + WALL_WIDTH)
+	out["at"] = Vector2i(first + k0, top)
+	out["columns"] = []
+	for c in range(k0 - WALL_APPROACH, k0 + WALL_WIDTH + WALL_APPROACH):  # the roof opened up beside the wall too, so that anyone thrown up its face has room to reach the top
+		if c >= k0 and c < k0 + WALL_WIDTH:
+			continue
+		var r := top - 5
+		while cells.has(Vector2i(first + c, r)):
+			cells.erase(Vector2i(first + c, r))
+			r += 1
+	for c in range(k0, k0 + WALL_WIDTH):
+		for r in range(top - 5, top):
+			cells.erase(Vector2i(first + c, r))
+		for r in range(top, floors[c]):
+			cells.erase(Vector2i(first + c, r))  # the wall is not part of the ground: it stands in the passage as a RockWall and can be broken down
+			out["blocks"].append(Vector2i(first + c, r))
+		out["columns"].append({"x": first + c, "top": top, "bottom": floors[c]})
+		out["solve"].append({"rect": Rect2i(first + c, top, 1, floors[c] - top), "with": -1})  # the passage without the wall
+	return span
+
+
+## The brambles gate: returns the columns of the passage it takes up.
+static func _gate_brambles(out: Dictionary, floors: PackedInt32Array, first: int, tunnel: Dictionary) -> Vector2i:
+	var span := Vector2i.ZERO
+	var stretch := _trap_stretch(floors, WorldGraph.THORN_BUDGET, tunnel["inward"])  # longer downhill, shorter uphill
+	var from := stretch.x
+	span = stretch
+	out["first"] = first + from
+	out["at"] = Vector2i(first + from, floors[from])
+	out["floors"] = floors.slice(from, stretch.y)
+	for k in range(from, stretch.y):
+		out["thorns"].append(Vector2i(first + k, floors[k] - 1))
+	return span
 
 
 ## Digs a pit CHASM_DEPTH deep and `width` columns wide into a level floor. The side a walker comes from, on the way in, slopes gently down
