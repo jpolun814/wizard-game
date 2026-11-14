@@ -817,14 +817,7 @@ static func shut(world: Dictionary, crossings := false) -> Dictionary:
 	var cells: TileGrid = world["cells"].duplicate()
 	var trees: Array = world["graph"].surface["trees"]
 	var floors: PackedInt32Array = world["graph"].surface["floor"]
-	for tree: Dictionary in trees:  # the high ledge of a large jungle tree is stone to stand on, as far as the map of the ways goes
-		if tree["size"] >= 2:
-			var spot := JungleTree.layout(tree["size"], tree["mirror"])
-			for k in range(spot["first"], spot["last"] + 1):
-				cells.put(Vector2i(tree["column"] + k, floors[tree["column"]] - spot["rows"]), ArenaGen.STONE)
-	for bridge: Dictionary in JungleTree.bridges(trees, floors):  # and the rope bridges between them
-		for column in range(bridge["first"], bridge["last"] + 1):
-			cells.put(Vector2i(column, bridge["row"]), ArenaGen.STONE)
+	_stone_in_the_trees(cells, trees, floors)
 	var barred: Dictionary = world["hazards"].duplicate()
 	var tolls := {}
 	var links := []  # {"key", "left", "right", "top_left", "top_right"}: where a wizard lifted over a wall goes up from, and comes down to
@@ -874,6 +867,24 @@ static func shut(world: Dictionary, crossings := false) -> Dictionary:
 					cells.put(cell, ArenaGen.GROUND)
 				else:
 					barred[cell] = true
+	var climbs := _climbs_of(world, trees, floors)
+	return {"cells": cells, "barred": barred, "tolls": tolls, "links": links, "climbs": climbs}
+
+
+## For the map of the ways: the high ledge of a large jungle tree is stone to stand on, and so are the rope bridges between the trees.
+static func _stone_in_the_trees(cells: TileGrid, trees: Array, floors: PackedInt32Array) -> void:
+	for tree: Dictionary in trees:  # the high ledge of a large jungle tree is stone to stand on, as far as the map of the ways goes
+		if tree["size"] >= 2:
+			var spot := JungleTree.layout(tree["size"], tree["mirror"])
+			for k in range(spot["first"], spot["last"] + 1):
+				cells.put(Vector2i(tree["column"] + k, floors[tree["column"]] - spot["rows"]), ArenaGen.STONE)
+	for bridge: Dictionary in JungleTree.bridges(trees, floors):  # and the rope bridges between them
+		for column in range(bridge["first"], bridge["last"] + 1):
+			cells.put(Vector2i(column, bridge["row"]), ArenaGen.STONE)
+
+
+## The moves that are not a walk or a jump: {"from", "to"}, up a vine from the ground under it to the ledge it hangs from, and between the landings of a swinging stair ("swing": true, made only when it has swung to them).
+static func _climbs_of(world: Dictionary, trees: Array, floors: PackedInt32Array) -> Array:
 	var climbs := []  # {"from", "to"}: up a vine, from the ground under it to the ledge it hangs from
 	for plank: Dictionary in world["planks"]:  # a swinging stair is a move between its landings, made only when it has swung to them
 		for way: Dictionary in plank["ways"]:
@@ -886,7 +897,7 @@ static func shut(world: Dictionary, crossings := false) -> Dictionary:
 			var vine: int = at + spot["vine"]
 			var in_along: int = vine + (2 if tree["mirror"] else -2)
 			climbs.append({"from": Vector2i(vine, floors[vine] - 1), "to": Vector2i(in_along, floors[at] - spot["rows"] - 1)})
-	return {"cells": cells, "barred": barred, "tolls": tolls, "links": links, "climbs": climbs}
+	return climbs
 
 
 ## Every tile the wizard can stand on that can be reached from a starting tile by walking, stepping up one tile, falling
