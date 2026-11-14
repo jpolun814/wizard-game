@@ -18,13 +18,13 @@ machine of a match sees the same ones.
 - Stepping into one (`FieldPortal.entered`) puts the wizard out of another open portal, picked at random; `COOLDOWN` (1 s) stops a wizard going straight back in.
   A shot that flies into one comes out of another, flying the same way.
 - The AI uses them (goal "portal") when there is no page to go for, or when one is nearer than the page. It goes only to ones on the ground.
-- Checks: `tests/portal_world_check.tscn`, `tests/portal_colours_look.tscn -- out=DIR`.
+- Checks: `tests/checks/portal_world_check.tscn`, `tests/looks/portal_colours_look.tscn -- out=DIR`.
 
 ## The ocean (`ocean`, "The Drowned Sea")
 
 A sea over the whole world, mostly under water (owner, 2026-11-12: "primarily an underwater world, with *some* very sparse islands and driftwood. and shipwrecks too").
-Breath is the only pressure: no damage from depth, and fire fizzles under water. Check: `tests/ocean_world_check.tscn`; pictures from the player's own view:
-`tests/ocean_look.tscn -- out=DIR`.
+Breath is the only pressure: no damage from depth, and fire fizzles under water. Check: `tests/checks/ocean_world_check.tscn`; pictures from the player's own view:
+`tests/looks/ocean_look.tscn -- out=DIR`.
 
 - **The ground:** a rolling floor 12 to 19 rows under the sea (`SurfaceGen._offsets`), of sand (`earth_seabed`, `lip_seabed`), and very few islands (`_sea_islands`: the
   middle one and one or two more, `ISLANDS_MOST`). `surface["sea"]` holds {row, depth, islands, wrecks, landmarks}.
@@ -47,7 +47,7 @@ Breath is the only pressure: no damage from depth, and fire fizzles under water.
 
 ## The sky (`sky`, "The Open Sky")
 
-The wizards are falling through the sky: no ground, no jumping and no platforms. Check: `tests/sky_world_check.tscn` (add `-- out=DIR` for a picture of a bolt).
+The wizards are falling through the sky: no ground, no jumping and no platforms. Check: `tests/checks/sky_world_check.tscn` (add `-- out=DIR` for a picture of a bolt).
 
 - **The world:** the air is rows `SKY_TOP_ROW` to `SKY_BOTTOM_ROW` (6 to 66), `MatchState.SKY_SHARE` (0.35) of a stage's width (owner, 2026-11-12: too large, twice).
   Far under it lies rock nobody reaches (`SKY_FLOOR_ROW`). `World.flies()` is true when `graph.surface["air"]` is not empty; `World._fly_box()` is the room.

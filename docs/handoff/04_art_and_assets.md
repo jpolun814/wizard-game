@@ -139,7 +139,7 @@ The packs come from different artists, so three things tie them together:
 - Vines use `art/props/dusk_vine.png` (made by `tools/prepare_vines.py`) so they share the Great Oak's colours; the Great Oak's trunk is walk-through, its ledges are solid.
 - Air spells (Gust, Push, Updraft) all take `SpellData.SCHOOL_COLORS["Air"]`.
 - Glowcap grows from the ground; a wizard who walks into it eats it (`GlowAura` gives the glow). The spellbook line must not say so.
-- Test: `tests/spell_fixes_check.tscn` (Sneak, veil, Geyser, Smoke Screen).
+- Test: `tests/checks/spell_fixes_check.tscn` (Sneak, veil, Geyser, Smoke Screen).
 
 ### Third cohesion pass (jungle, peaks, fire, sounds)
 

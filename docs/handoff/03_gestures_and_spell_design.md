@@ -51,11 +51,11 @@
      turning angle measured over spans of a few pixels (2 px steps are noisy).
 3. **Preview:** add `preview_points("my_shape")`, plus `preview_ground` if it must start on the ground.
 4. **Routing:** a simple effect needs nothing (its resource names the script). A spell that needs more gets a recipe in one of the four tables (`CasterSpells`, `AimedSpells`, `PlacedSpells`, `ShapeSpells`, in `scripts/spells/`) and lists itself in that table's `recipes`.
-5. **Tests:** add the gesture to the mirrored list in `tests/test_gestures.gd` if direction shouldn't matter,
+5. **Tests:** add the gesture to the mirrored list in `tests/checks/test_gestures.gd` if direction shouldn't matter,
    plus any special checks. The rotated-cone checks are an example.
 6. **Dark wizard:** a score in `BrainCombat.attack` and a stroke in `BrainHand.attack_stroke`, using preview points
    placed and scaled in the world.
-7. **Run** `tests/test_gestures.gd`. Every check must pass.
+7. **Run** `tests/checks/test_gestures.gd`. Every check must pass.
 
 ## Testing pitfalls already found
 
@@ -107,7 +107,7 @@ where it makes sense for both, and two spells on one button combination never sh
 - **Push and hazards:** pushing an enemy into Mudslide or fire makes those hazards a combo.
 - **Wind and fire:** Tornado carries fire patches, becoming a fire whirl.
 - **Force and ice:** a frozen enemy shatters with Force or Earth. This already exists; keep the pattern.
-- **Built (`tests/interaction_check.tscn`):** cold and water put fire out (`SpellTargets.douse`: a Frostbolt's shatter, a Geyser, Blizzard snow put out a Firewall, burning ground or a Bonfire; each has a `quench`); fire bakes a Mudslide dry; Spark sets plants alight and, landing in a pool, shocks whoever stands in it; a Tornado that meets a fire becomes a fire whirl (`Tornado.ablaze`). A new fire joins the `"fires"` group, gets a `quench` if water should stop it, and a branch in `SpellTargets.fire_points`.
+- **Built (`tests/checks/interaction_check.tscn`):** cold and water put fire out (`SpellTargets.douse`: a Frostbolt's shatter, a Geyser, Blizzard snow put out a Firewall, burning ground or a Bonfire; each has a `quench`); fire bakes a Mudslide dry; Spark sets plants alight and, landing in a pool, shocks whoever stands in it; a Tornado that meets a fire becomes a fire whirl (`Tornado.ablaze`). A new fire joins the `"fires"` group, gets a `quench` if water should stop it, and a branch in `SpellTargets.fire_points`.
 
 ## Spells added later (gestures chosen with the owner)
 
@@ -115,7 +115,7 @@ where it makes sense for both, and two spells on one button combination never sh
 - **Updraft** (Air, arrow up): a lasting column; any number; lifts by adding to `velocity.y`.
 - **Silence** (Shadow, slashed circle): a ring in which `Wizard.silenced()` is true, so the player's caster is disabled, a brain will not start a cast and chants are refused (`is_muted`).
 - **Fight or Flight** (Blood, question mark): by a coin flip (the cast's own seeded dice) the target either fights (`rage_time`: the game casts random known spells for them through `Wizard.ensure_caster`, and their own casts are blocked) or flees (`fear_time`, `afraid_of`: cannot walk toward the caster).
-- **Sinkhole** (Earth, a U; the pit is as wide as the U, between 50 and 130 px to a side): `RockWorld.dig` changes the outline the rock is cut from and cuts the world again. Permanent. Works on any ground: a world's rock (a castle floor is a slab, and the pit goes through it to the floor below), and the waiting room's ground, which is a line of heights every `Terrain.EDGE_STEP` (8) pixels so that a pit keeps the shape that was drawn. `tests/sinkhole_biomes_check.tscn` digs one in every biome. `Sinkhole.fit` lays the drawn line onto the world: a U drawn down into the ground is as deep at each place as the line sinks below the surface there, and one drawn in the open air is let down so its top rests on the ground (its height is the depth; never deeper than a jump clears). The AI does not know about pits: a wizard may walk into one.
+- **Sinkhole** (Earth, a U; the pit is as wide as the U, between 50 and 130 px to a side): `RockWorld.dig` changes the outline the rock is cut from and cuts the world again. Permanent. Works on any ground: a world's rock (a castle floor is a slab, and the pit goes through it to the floor below), and the waiting room's ground, which is a line of heights every `Terrain.EDGE_STEP` (8) pixels so that a pit keeps the shape that was drawn. `tests/checks/sinkhole_biomes_check.tscn` digs one in every biome. `Sinkhole.fit` lays the drawn line onto the world: a U drawn down into the ground is as deep at each place as the line sinks below the surface there, and one drawn in the open air is let down so its top rests on the ground (its height is the depth; never deeper than a jump clears). The AI does not know about pits: a wizard may walk into one.
 - **Sneak** (Shadow, wave): the wizard shows at a third of their strength for a while (`Wizard.fade_time`, mark `FADED`, so other machines see it). Nothing is coded for the dark: a faint sprite is simply hard to see there.
 - **Hunter's Mark** (Blood, arrow): `HuntersMark` keeps an edge arrow (group `"hunts"`) on the nearest other wizard for a while; only the caster's machine shows it.
 - None of these five is known to the AI wizards yet (`WizardBrain` has no score or stroke for them).
@@ -142,4 +142,4 @@ each new spell with the checklist in `CLAUDE.md` §6, and expect the owner to ve
 
 Read before the recognizer's guess, in `Caster` (each only on the buttons whose spells use that gesture): `hailstorm` (a ring, a line out, a line down), `feather` (three sweeps across, each bent down in the middle and ending lower than it began, like a falling feather's path), `sphere` (a ring drawn from the bottom, then a level line: the ring-then-line reading with a level tail), `hand` (five peaks, one after another, returning along a base) and `portrait` (a closed box
 taller than it is wide, with four corners; a leaning box is turned upright first). Near misses (four or six fingers, a box on its side, an oval, an open box, a straight zigzag, two sweeps, sweeps bent upward) are in
-`tests/test_gestures.gd`.
+`tests/checks/test_gestures.gd`.

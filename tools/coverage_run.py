@@ -43,7 +43,7 @@ def prepare(folder):
     head, tail = text.split("[coverage]", 1)
     tail = tail.replace("exclude = [\n", 'exclude = [\n    "scripts/world/world_builder.gd",\n    "tests",\n', 1)  # one script its parser cannot read
     open(config, "w", encoding="utf-8").write(head + "[coverage]" + tail)
-    _tool(project, "coverage", "run", "--scene", "res://tests/menu_check.tscn", "--timeout", "5")  # makes the plan of what to count, then stops
+    _tool(project, "coverage", "run", "--scene", "res://tests/checks/menu_check.tscn", "--timeout", "5")  # makes the plan of what to count, then stops
     os.makedirs(os.path.join(project, "cov"), exist_ok=True)
     plan = os.path.join(project, ".gd-tools", "coverage", "plan.json")
 

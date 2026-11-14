@@ -30,7 +30,7 @@ Done, each with the quick set green and the full set showing only the known fail
 - **Movement modes in `Wizard`** (walking, swimming, flying, wild) are still branches in `_fall` and `_steer`.
 - **The caster's detector table.** `StrokeReader._read_shapes` claims in an order that is the order the detectors rule each other out; each detector is now asked once, up front (`_detect`). It could become a table only if each row said what it rules out.
 
-**Watch the AI by eye before going further** (`tests/arena_sim.tscn -- seed=7 seconds=300 watch=1`, in a window). The checks prove the brain still casts, crosses and fights; only the owner can say it still looks like a person.
+**Watch the AI by eye before going further** (`tests/tools/arena_sim.tscn -- seed=7 seconds=300 watch=1`, in a window). The checks prove the brain still casts, crosses and fights; only the owner can say it still looks like a person.
 
 ## What is already done
 

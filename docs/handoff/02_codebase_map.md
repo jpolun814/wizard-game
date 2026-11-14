@@ -81,7 +81,7 @@ never block each other.
 - **`lab.gd`** (`scenes/lab.tscn`, the waiting room the first screen leads to): extends `Arena` and overrides its `_where_are_we`,
   `_build_map` and `_begin_encounter`. A long map with a lava pit, a gap, a pond, a hill, dummies and a turret; infinite
   stamina, health that comes back, night on N, reset on R. Its portal starts a match in `scenes/world.tscn`; the worlds are described below.
-  `tests/showcase.gd` with `scenario=spells` casts every spell here and photographs it.
+  `tests/looks/showcase.gd` with `scenario=spells` casts every spell here and photographs it.
 
 ### Casting
 - **`gesture/caster.gd`:** hold buttons, record points, release, then `_end()`; draws the trail.
@@ -184,6 +184,7 @@ The match (a last-wizard-standing race for pages) runs on these. `World` extends
 - **Other:** `intro.gd` (the cut-scene), `weather.gd`.
 
 ## Tests (`tests/`)
+- **Three folders:** `checks/` holds every pass-or-fail check (`tools/run_checks.py` runs them), `looks/` the scripts that take pictures (they need a window) and `tools/` the simulations, the performance runs and the measuring scripts.
 - **`test_gestures.gd`:** every spellbook picture, at three sizes, shaky and mirrored, plus rotated cones.
 - **`showcase.gd` / `showcase.tscn`:** scripted scenes that save screenshots. See `07_testing.md`.
 
@@ -200,7 +201,7 @@ The match (a last-wizard-standing race for pages) runs on these. `World` extends
 ## Added 2026-11-06
 - `scripts/core/warmup.gd` (an autoload, `Warmup`): at start-up it loads the pictures and sounds that spells use on other threads (`ResourceLoader.load_threaded_request`), then the spell scripts one a frame on the main thread (never together: a script compiled while its pictures were being read on another core once failed to preload one). Without it the first cast of each spell stalled a frame or several.
 - `Mob.shared`: a skeleton the world keeps in step across the network (a roamer or a crypt guard); only these tell the other machines when they fall.
-- Group `canopy`: the ledges of a jungle great tree; sky spells (Spark, Boulder) pass through them (`tests/canopy_check.tscn`).
+- Group `canopy`: the ledges of a jungle great tree; sky spells (Spark, Boulder) pass through them (`tests/checks/canopy_check.tscn`).
 - `GameSettings.rival_skill()`: the AI wizards' skill from the Settings page (0.4, 0.65, 0.85).
 - `Pages.RANGED`: the attacks that reach across a distance; each wizard is dealt one as the starting attack.
 

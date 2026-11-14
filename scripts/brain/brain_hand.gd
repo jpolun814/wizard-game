@@ -235,7 +235,7 @@ func begin_cast(spell_name: String, stroke: PackedVector2Array, draw_time: float
 
 
 ## Whether a stroke drawn now, over this long, keeps its shape: the view follows the wizard, so whatever way the wizard is going the stroke is dragged,
-## and each spell's shape stands only so much of it (measured with the recognizer: tests/measure_drift.gd, data/ai/stroke_drift.json). A person learns
+## and each spell's shape stands only so much of it (measured with the recognizer: tests/tools/measure_drift.gd, data/ai/stroke_drift.json). A person learns
 ## which spells they can draw on the run; this is that knowledge.
 func drag_ok(spell_name: String, draw_time: float) -> bool:
 	var row: Dictionary = BrainStrokes.drift_table().get(spell_name, {})

@@ -2,7 +2,7 @@ class_name GestureTemplates
 
 ## Reference shapes the recognizer matches against, plus the simpler shapes the spellbook draws.
 ## The AI wizards draw their spells from the same preview shapes, so every shape here must be one the caster
-## recognises (tests/test_gestures.gd checks that).
+## recognises (tests/checks/test_gestures.gd checks that).
 
 ## Recognizer template name -> gesture name. Several templates can share a gesture. A circle counts the same
 ## whichever way round it is drawn.

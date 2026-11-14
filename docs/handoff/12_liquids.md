@@ -64,22 +64,22 @@ Water from a spell is real liquid, and is not made from nothing more than once:
 ## Tests
 
 ```
-"$GODOT" --headless --fixed-fps 60 --path . tests/follow_check.tscn -- seed=0   # piranhas, ice and a geyser follow the pool (seed 0 is a jungle with piranhas)
-"$GODOT" --headless --fixed-fps 60 --path . tests/geyser_check.tscn              # a geyser's and a surf's water is real and not made over and over
-"$GODOT" --headless --fixed-fps 60 --path . tests/sinkhole_check.tscn            # also: the map of the ways has the pit, and pits beside each other leave no thin wall
+"$GODOT" --headless --fixed-fps 60 --path . tests/checks/follow_check.tscn -- seed=0   # piranhas, ice and a geyser follow the pool (seed 0 is a jungle with piranhas)
+"$GODOT" --headless --fixed-fps 60 --path . tests/checks/geyser_check.tscn              # a geyser's and a surf's water is real and not made over and over
+"$GODOT" --headless --fixed-fps 60 --path . tests/checks/sinkhole_check.tscn            # also: the map of the ways has the pit, and pits beside each other leave no thin wall
 ```
 
 ```
-"$GODOT" --headless -s tests/test_liquid.gd                                  # the grid alone: falls, levels, joins vessels, fills a pit, keeps its liquid, how fast
-"$GODOT" --headless --fixed-fps 60 --path . tests/liquid_world_check.tscn -- seed=3   # every pool of a world is made and keeps its liquid; a pit dug beside one fills (seeds 3, 5, 7, 12 have pools)
-"$GODOT" --fixed-fps 60 --path . tests/liquid_look.tscn -- out=DIR           # the waiting room's pond before and after a pit, as pictures (needs a window)
+"$GODOT" --headless -s tests/checks/test_liquid.gd                                  # the grid alone: falls, levels, joins vessels, fills a pit, keeps its liquid, how fast
+"$GODOT" --headless --fixed-fps 60 --path . tests/checks/liquid_world_check.tscn -- seed=3   # every pool of a world is made and keeps its liquid; a pit dug beside one fills (seeds 3, 5, 7, 12 have pools)
+"$GODOT" --fixed-fps 60 --path . tests/looks/liquid_look.tscn -- out=DIR           # the waiting room's pond before and after a pit, as pictures (needs a window)
 ```
 
 ## Steps on another core (`LiquidGrid.step_later`)
 
 A pool no longer steps its liquid on the main thread. `Pond._flow` calls `grid.step_later(n)`, which hands the work to a `WorkerThreadPool` task; the task reads `mass` and `solid` and writes only to arrays of its own (`_pass`). Nothing changes until `settle()` takes the answer, which `Pond._flow` does at the next physics frame, so the liquid is one frame behind and whatever reads it in the meantime sees a whole, steady picture. **Every method that changes the grid (`setup`, `grow`, `read_ground`, `read_rows`, `fill`, `add`, `take`, `wake`, `step`) settles first**; code that writes `grid.mass` or `grid.solid` directly (some checks do) must call `grid.settle()` first. A pond settles in `_exit_tree`, so a core is never left working on a grid that is going. `step()` is still there and is done at once (the liquid test uses it).
 
-What was measured (`tests/eruption_perf.tscn -- seed=5`, which now also prints the engine's process and physics time each second): the liquid's steps were the largest part of the ponds' cost (about 25-55 ms of each second), but the brains' thinking is under 1 ms a frame and path-finding is almost nothing, so neither is worth moving to a thread. Physics ticks still spike to 30-45 ms now and then for a reason not yet found (not the liquid steps, brains or paths).
+What was measured (`tests/tools/eruption_perf.tscn -- seed=5`, which now also prints the engine's process and physics time each second): the liquid's steps were the largest part of the ponds' cost (about 25-55 ms of each second), but the brains' thinking is under 1 ms a frame and path-finding is almost nothing, so neither is worth moving to a thread. Physics ticks still spike to 30-45 ms now and then for a reason not yet found (not the liquid steps, brains or paths).
 
 ## Reading ground a little at a time (2026-11-06)
 When a pool makes room (`Pond._make_room`), the strips of ground it must read are no longer read at once: they are cut into pieces of at most `READ_CELLS` cells, queued in `_to_read`, and `_read_a_little` reads one a frame, so a big dig never stalls a frame. `_make_room` waits while the queue is not empty. The flow itself runs on a worker thread (see the section above): `Pond._flow` settles the grid before anything reads it.

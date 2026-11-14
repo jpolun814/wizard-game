@@ -67,30 +67,29 @@ def run_net(check, folder, project, extra_env, instrumented):
     (a fixed frame rate would run it faster than the clock, and its waits would end before the others answered)."""
     name, kind, args = check
     started = time.time()
-    if True:
-        procs, logs = [], []
-        for role in args.split(","):
-            command = [GODOT, "--headless", "--path", ".", "tests/%s.tscn" % name, "--", "role=" + role.split(" ")[0]] + role.split(" ")[1:]
-            env = dict(os.environ, **extra_env(name + "_" + role.split(" ")[0]))
-            env["WIZARD_PORT"] = str(port_for(name))
-            log = open(os.path.join(folder, "net_%s_%s.txt" % (name, role.split(" ")[0])), "wb")  # a file, not a pipe: nobody reads a pipe until the end, and a full one stops the copy
-            procs.append(subprocess.Popen(command, stdout=log, stderr=subprocess.STDOUT, env=env, cwd=project, stdin=subprocess.DEVNULL))
-            logs.append(log.name)
-            time.sleep(4.0)  # the host must be listening before the next copy tries to join
-        texts, codes = [], []
-        for proc in procs:
-            try:
-                proc.wait(timeout=1200 if instrumented else 300)
-                codes.append(proc.returncode)
-            except subprocess.TimeoutExpired:
-                proc.kill()
-                codes.append(124)
-        for k, path in enumerate(logs):  # a copy that crashed while closing, after it had printed passes and no failure, did not fail
-            body = open(path, "rb").read().decode("utf-8", "replace")
-            if codes[k] not in (0, 1, 124) and ("PASS" in body or " ok " in body) and "FAIL" not in body and "gave up" not in body:
-                codes[k] = 0
-        for path, code in zip(logs, codes):
-            texts.append(open(path, "rb").read().decode("utf-8", "replace") + (" FAILED: timed out" if code == 124 else ""))
+    procs, logs = [], []
+    for role in args.split(","):
+        command = [GODOT, "--headless", "--path", ".", "tests/checks/%s.tscn" % name, "--", "role=" + role.split(" ")[0]] + role.split(" ")[1:]
+        env = dict(os.environ, **extra_env(name + "_" + role.split(" ")[0]))
+        env["WIZARD_PORT"] = str(port_for(name))
+        log = open(os.path.join(folder, "net_%s_%s.txt" % (name, role.split(" ")[0])), "wb")  # a file, not a pipe: nobody reads a pipe until the end, and a full one stops the copy
+        procs.append(subprocess.Popen(command, stdout=log, stderr=subprocess.STDOUT, env=env, cwd=project, stdin=subprocess.DEVNULL))
+        logs.append(log.name)
+        time.sleep(4.0)  # the host must be listening before the next copy tries to join
+    texts, codes = [], []
+    for proc in procs:
+        try:
+            proc.wait(timeout=1200 if instrumented else 300)
+            codes.append(proc.returncode)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            codes.append(124)
+    for k, path in enumerate(logs):  # a copy that crashed while closing, after it had printed passes and no failure, did not fail
+        body = open(path, "rb").read().decode("utf-8", "replace")
+        if codes[k] not in (0, 1, 124) and ("PASS" in body or " ok " in body) and "FAIL" not in body and "gave up" not in body:
+            codes[k] = 0
+    for path, code in zip(logs, codes):
+        texts.append(open(path, "rb").read().decode("utf-8", "replace") + (" FAILED: timed out" if code == 124 else ""))
     output_path = os.path.join(folder, "check_%s.txt" % name)
     text = ("=" * 20).join(texts)
     open(output_path, "w", encoding="utf-8").write(text)
@@ -104,9 +103,9 @@ def run_one(check, folder, project, extra_env, instrumented):
         return run_net(check, folder, project, extra_env, instrumented)
     command = [GODOT, "--headless"]
     if kind == "script":
-        command += ["--path", project, "-s", "tests/%s.gd" % name.split("#")[0]]
+        command += ["--path", project, "-s", "tests/checks/%s.gd" % name.split("#")[0]]
     else:
-        command += ["--fixed-fps", "60", "--path", project, "tests/%s.tscn" % name.split(":")[0].split("#")[0]]
+        command += ["--fixed-fps", "60", "--path", project, "tests/checks/%s.tscn" % name.split(":")[0].split("#")[0]]
     if args:
         command += ["--"] + args.split()
     env = dict(os.environ, **extra_env(name.replace(":", "_").replace("#", "_")))  # (a colon cannot be in a file name)

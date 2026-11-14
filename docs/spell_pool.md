@@ -152,7 +152,7 @@ These work, but their pictures are stand-ins for pixel art from a free pack, whi
 - **Sounds:** none of the new spells has a sound of its own; they borrow the nearest existing one (`push`, `quake`, `earth`,
   `snow`, `gravity`, `freeze`, `fire_hit`). Water has no sound at all.
 
-## Shape risks (all tested at three sizes, tilted, stretched and shaky: `tests/test_gestures.gd`)
+## Shape risks (all tested at three sizes, tilted, stretched and shaky: `tests/checks/test_gestures.gd`)
 
 - Water: Geyser (a closed triangle with a vent line) against Icicles (open Vs). Icicles also need a ceiling overhead, so the lab has a slab for them.
 - Flora: Liana (an almond, then a line up) against Great Oak (a trunk ending in a crown loop): separated by which comes first, the loop or the line. Also Flytrap (W) against Bramble (sawtooth): separate by count of peaks.
