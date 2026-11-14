@@ -102,7 +102,7 @@ func _ready() -> void:
 		if world["castle"] >= 0:  # the castle can be walked through, in both directions
 			var row: int = WorldGraph.SURFACE_ROW - 1
 			var west := Vector2i(world["castle"] - 2, row)
-			var east := Vector2i(world["castle"] + WorldBuilder.CASTLE_WIDTH + 2, row)
+			var east := Vector2i(world["castle"] + CastleBuilder.WIDTH + 2, row)
 			if not WorldBuilder.reachable(world["cells"], west, world["size"].y, world["hazards"]).has(east):
 				_fail("seed %d: the castle cannot be walked through from the west" % s)
 			if not WorldBuilder.reachable(world["cells"], east, world["size"].y, world["hazards"]).has(west):
