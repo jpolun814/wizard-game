@@ -106,77 +106,92 @@ func cut(shape: PackedVector2Array) -> void:
 	queue_redraw()
 
 func _draw() -> void:
+	match kind:
+		"rock":
+			_draw_rock()
+		"hall":
+			_draw_hall()
+		_:
+			_draw_brick()
+
+
+## The earth under the sky, with snow over the high rock.
+func _draw_rock() -> void:
+	# The earth under the sky: everything in the world but the sky, which is left open for the biome's backdrop to show through.
+	var whole := PackedVector2Array([Vector2.ZERO, Vector2(world.x, 0.0), world, Vector2(0.0, world.y)])
+	for part: PackedVector2Array in (Geometry2D.clip_polygons(whole, sky) if not sky.is_empty() else [whole]):
+		var uvs := PackedVector2Array()
+		for point in part:
+			uvs.append(point / earth.get_size())
+		draw_polygon(part, PackedColorArray([Color.WHITE]), uvs, earth)
+	# Snow over the high rock, thinning out to nothing at the snow line.
+	var rock_parts: Array = Geometry2D.clip_polygons(whole, sky) if not sky.is_empty() else [whole]
+	for cap: Dictionary in snow:
+		var texture: Texture2D = cap["texture"]
+		var left: float = cap["a"]
+		var right: float = cap["b"]
+		var line: float = cap["line"]
+		var top := line - SNOW_FADE
+		for edge in [[0.0, top, Color.WHITE, Color.WHITE], [top, line, Color.WHITE, Color(1, 1, 1, 0)]]:
+			var band := PackedVector2Array([Vector2(left, edge[0]), Vector2(right, edge[0]), Vector2(right, edge[1]), Vector2(left, edge[1])])
+			for rock_part: PackedVector2Array in rock_parts:
+				for piece: PackedVector2Array in Geometry2D.intersect_polygons(band, rock_part):
+					if Contour.area(piece) < 1.0 or Geometry2D.triangulate_polygon(piece).is_empty():
+						continue
+					var snow_uvs := PackedVector2Array()
+					var shades := PackedColorArray()
+					for point in piece:
+						snow_uvs.append(point / texture.get_size())
+						shades.append(edge[2].lerp(edge[3], clampf((point.y - edge[0]) / maxf(edge[1] - edge[0], 1.0), 0.0, 1.0)))
+					draw_polygon(piece, shades, snow_uvs, texture)
+
+
+## The inside of a cathedral, drawn behind the castle's rooms.
+func _draw_hall() -> void:
 	var t := float(ArenaGen.TILE)
-	if kind == "rock":
-		# The earth under the sky: everything in the world but the sky, which is left open for the biome's backdrop to show through.
-		var whole := PackedVector2Array([Vector2.ZERO, Vector2(world.x, 0.0), world, Vector2(0.0, world.y)])
-		for part: PackedVector2Array in (Geometry2D.clip_polygons(whole, sky) if not sky.is_empty() else [whole]):
-			var uvs := PackedVector2Array()
-			for point in part:
-				uvs.append(point / earth.get_size())
-			draw_polygon(part, PackedColorArray([Color.WHITE]), uvs, earth)
-		# Snow over the high rock, thinning out to nothing at the snow line.
-		var rock_parts: Array = Geometry2D.clip_polygons(whole, sky) if not sky.is_empty() else [whole]
-		for cap: Dictionary in snow:
-			var texture: Texture2D = cap["texture"]
-			var left: float = cap["a"]
-			var right: float = cap["b"]
-			var line: float = cap["line"]
-			var top := line - SNOW_FADE
-			for edge in [[0.0, top, Color.WHITE, Color.WHITE], [top, line, Color.WHITE, Color(1, 1, 1, 0)]]:
-				var band := PackedVector2Array([Vector2(left, edge[0]), Vector2(right, edge[0]), Vector2(right, edge[1]), Vector2(left, edge[1])])
-				for rock_part: PackedVector2Array in rock_parts:
-					for piece: PackedVector2Array in Geometry2D.intersect_polygons(band, rock_part):
-						if Contour.area(piece) < 1.0 or Geometry2D.triangulate_polygon(piece).is_empty():
-							continue
-						var snow_uvs := PackedVector2Array()
-						var shades := PackedColorArray()
-						for point in piece:
-							snow_uvs.append(point / texture.get_size())
-							shades.append(edge[2].lerp(edge[3], clampf((point.y - edge[0]) / maxf(edge[1] - edge[0], 1.0), 0.0, 1.0)))
-						draw_polygon(piece, shades, snow_uvs, texture)
-		return
-	if kind == "hall":
-		# The inside of a cathedral, from the church backdrop: columns, windows and candles, as tall as the hall's tallest part,
-		# standing on the floor, so a low stretch of hall shows only the bottom of the picture.
-		var picture: Texture2D = HALL_PICTURE
-		var zoom := t * float(HALL_TILES) / picture.get_height()
-		var first_column := 1 << 30
-		var last_column := -1
-		var ground_row := -1  # the row under the castle's ground floor, which keeps its edge
-		for tiles: Rect2i in ArenaGen.castle_hall:
-			first_column = mini(first_column, tiles.position.x)
-			last_column = maxi(last_column, tiles.position.x)
-			ground_row = maxi(ground_row, tiles.end.y)
-		for tiles: Rect2i in ArenaGen.castle_hall:
-			if chunk >= 0 and tiles.position.x / Terrain.HALL_CHUNK != chunk:
-				continue
-			var rect := Rect2(Vector2(tiles.position) * t, Vector2(tiles.size) * t + Vector2(0.0, 1.0))
-			# The painting runs a little under the stone round it (the brick is drawn over it), so that where the smoothed edge of a
-			# stair or a wall cuts across a tile, the sky does not show through the corner. The castle's two ends stay as they are.
-			var bleed_left := 0.0 if tiles.position.x == first_column else BLEED
-			var bleed_right := 0.0 if tiles.position.x == last_column else BLEED
-			var bleed_down := 0.0 if tiles.end.y == ground_row else BLEED
-			rect = Rect2(rect.position - Vector2(bleed_left, BLEED), rect.size + Vector2(bleed_left + bleed_right, BLEED + bleed_down))
-			draw_rect(rect, HALL)
-			var width := t / zoom
-			var height := minf(rect.size.y / zoom, float(picture.get_height()))
-			# The picture runs along the hall and back again, so that it never jumps where its ends meet.
-			var travel := picture.get_width() - width
-			var along := fposmod(rect.position.x / zoom, travel * 2.0)
-			var mirrored := along > travel
-			var across := travel * 2.0 - along if mirrored else along
-			var size := Vector2(picture.get_size())
-			var u0 := across / size.x
-			var u1 := (across + width) / size.x
-			if mirrored:
-				var swap := u0
-				u0 = u1
-				u1 = swap
-			var v0 := (size.y - height) / size.y
-			var corners := PackedVector2Array([rect.position, rect.position + Vector2(rect.size.x, 0.0), rect.end, rect.position + Vector2(0.0, rect.size.y)])
-			draw_polygon(corners, PackedColorArray([Color.WHITE]), PackedVector2Array([Vector2(u0, v0), Vector2(u1, v0), Vector2(u1, 1.0), Vector2(u0, 1.0)]), picture)
-		return
+	# The inside of a cathedral, from the church backdrop: columns, windows and candles, as tall as the hall's tallest part,
+	# standing on the floor, so a low stretch of hall shows only the bottom of the picture.
+	var picture: Texture2D = HALL_PICTURE
+	var zoom := t * float(HALL_TILES) / picture.get_height()
+	var first_column := 1 << 30
+	var last_column := -1
+	var ground_row := -1  # the row under the castle's ground floor, which keeps its edge
+	for tiles: Rect2i in ArenaGen.castle_hall:
+		first_column = mini(first_column, tiles.position.x)
+		last_column = maxi(last_column, tiles.position.x)
+		ground_row = maxi(ground_row, tiles.end.y)
+	for tiles: Rect2i in ArenaGen.castle_hall:
+		if chunk >= 0 and tiles.position.x / Terrain.HALL_CHUNK != chunk:
+			continue
+		var rect := Rect2(Vector2(tiles.position) * t, Vector2(tiles.size) * t + Vector2(0.0, 1.0))
+		# The painting runs a little under the stone round it (the brick is drawn over it), so that where the smoothed edge of a
+		# stair or a wall cuts across a tile, the sky does not show through the corner. The castle's two ends stay as they are.
+		var bleed_left := 0.0 if tiles.position.x == first_column else BLEED
+		var bleed_right := 0.0 if tiles.position.x == last_column else BLEED
+		var bleed_down := 0.0 if tiles.end.y == ground_row else BLEED
+		rect = Rect2(rect.position - Vector2(bleed_left, BLEED), rect.size + Vector2(bleed_left + bleed_right, BLEED + bleed_down))
+		draw_rect(rect, HALL)
+		var width := t / zoom
+		var height := minf(rect.size.y / zoom, float(picture.get_height()))
+		# The picture runs along the hall and back again, so that it never jumps where its ends meet.
+		var travel := picture.get_width() - width
+		var along := fposmod(rect.position.x / zoom, travel * 2.0)
+		var mirrored := along > travel
+		var across := travel * 2.0 - along if mirrored else along
+		var size := Vector2(picture.get_size())
+		var u0 := across / size.x
+		var u1 := (across + width) / size.x
+		if mirrored:
+			var swap := u0
+			u0 = u1
+			u1 = swap
+		var v0 := (size.y - height) / size.y
+		var corners := PackedVector2Array([rect.position, rect.position + Vector2(rect.size.x, 0.0), rect.end, rect.position + Vector2(0.0, rect.size.y)])
+		draw_polygon(corners, PackedColorArray([Color.WHITE]), PackedVector2Array([Vector2(u0, v0), Vector2(u1, v0), Vector2(u1, 1.0), Vector2(u0, 1.0)]), picture)
+
+
+## The castle's brick, drawn over its stone.
+func _draw_brick() -> void:
 	# Brick is drawn over every piece of stone, with the castle's rooms cut out of it so that the hall painted under it shows (a polygon cannot
 	# have a hole, so the stone is cut into strips across a room, and each strip has the room taken out of it).
 	var rooms: Array = []
@@ -217,6 +232,7 @@ func _draw() -> void:
 			draw_polyline(line, RIM, 3.0)
 	for line: PackedVector2Array in rims:
 		draw_polyline(line, RIM, 3.0)
+
 
 ## The hall's picture over a hole through a floor, as the room under it goes on up: the top of the picture, turned over, so that it joins the room's own
 ## picture at the hole's lower edge. It is laid a column at a time, as the hall is, so that each column is the part of the picture the room has there.
