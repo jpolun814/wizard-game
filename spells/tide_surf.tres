@@ -6,7 +6,7 @@
 script = ExtResource("1_rtieg")
 spell_name = "Tide Surf"
 school = "Water"
-gesture = "tsunami"
+gesture = "swell"
 targeting = "directional"
 cost = 30.0
 effect = "Ride a wave along the ground, shoving anyone aside."

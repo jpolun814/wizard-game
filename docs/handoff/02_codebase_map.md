@@ -192,7 +192,7 @@ The match (a last-wizard-standing race for pages) runs on these. `World` extends
 
 - `scripts/spells/`: `barbs.gd`, `thorn.gd`, `pebble.gd`, `hailstorm.gd`, `hail_stone.gd`, `featherfall.gd`, `thorn_whip.gd`, `insect_plague.gd`, `leech.gd`, `mirage.gd`,
   `flaming_sphere.gd`. Raise Dead has no script of its own: `arena._raise_dead` makes a `Mob` (`Mob.master`, `_foe`, `_follow_master`, `_share_raised`).
-- `scripts/ui/dowsing.gd` (was `scrying.gd`), `scripts/ui/scrying_eye.gd`, `scripts/wizard/eye_mark.gd`, `scripts/hud/circle_mask.gdshader`.
+- `scripts/ui/dowsing.gd` (was `scrying.gd`), `scripts/ui/scrying_eye.gd`, `scripts/wizard/eye_mark.gd`, `scripts/ui/circle_mask.gdshader`.
 - Groups: `"leeches"`, `"squalls"` (`Squall.rain`), `"dowsings"`, `"eye_marks"`, `"ground_watchers"` (anything that keeps the ground near it made: a Flaming Sphere, the Scrying Eye's camera;
   read by `World._process`).
 - `Wizard.feather_time`, `Pages.start_empty`/`cluster_of`, `WorldPages._lay_clusters`, `Library.title_of`/`average_accuracy`, `SpellData.school_name`.

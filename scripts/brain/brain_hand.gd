@@ -170,7 +170,7 @@ func turned(points: PackedVector2Array, angle: float) -> PackedVector2Array:
 
 ## A Tide Surf drawn toward one side: the wave runs the way the stroke runs.
 func surf_stroke(side: float) -> PackedVector2Array:
-	var wave := GestureTemplates.preview_points("tsunami")
+	var wave := GestureTemplates.preview_points("swell")
 	var out := PackedVector2Array()
 	for p in wave:
 		out.append(Vector2(p.x * (side if side != 0.0 else 1.0), p.y))

@@ -671,7 +671,7 @@ func _plan_new_spells() -> void:
 		memo["x"] = wizard.global_position.x
 		dummy.call().global_position = _feet(19)
 		memo["dx"] = dummy.call().global_position.x)
-	_at(22.7, func() -> void: _cast("Tide Surf", _stroke("tsunami", wizard.center() + Vector2(0, -20), 1.0)))
+	_at(22.7, func() -> void: _cast("Tide Surf", _stroke("swell", wizard.center() + Vector2(0, -20), 1.0)))
 	_at(23.5, func() -> void:
 		check.call("a wave carries the wizard along (moved %d px)" % (wizard.global_position.x - memo["x"]), wizard.global_position.x - memo["x"] > 150.0 and wizard.surf_time > 2.0)
 		_snap("tide_surf"))

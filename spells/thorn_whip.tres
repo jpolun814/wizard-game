@@ -6,7 +6,7 @@
 script = ExtResource("1_spell")
 spell_name = "Thorn Whip"
 school = "Flora"
-gesture = "tsunami"
+gesture = "swell"
 targeting = "directional"
 cost = 22.0
 effect = "Lash out with a thorny vine."

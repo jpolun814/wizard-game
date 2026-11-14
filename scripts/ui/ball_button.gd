@@ -4,7 +4,7 @@ extends Button
 ## The button on the screen that brings the stats back: a little crystal ball on its stand, the same ball the stats screen looks into. It stirs when the
 ## pointer is over it. It is an interface piece, so it is made here and not from a picture.
 
-const MIST: Shader = preload("res://scripts/hud/crystal_ball.gdshader")
+const MIST: Shader = preload("res://scripts/ui/crystal_ball.gdshader")
 const BALL := 80.0  # across, in pixels: a whole number of blocks of the mist
 const GLOW := 0.4  # how bright the mist is at rest
 const BRASS := Color("#c9a45a")

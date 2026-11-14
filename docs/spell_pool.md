@@ -168,7 +168,7 @@ These work, but their pictures are stand-ins for pixel art from a free pack, whi
 - Whether Growth (a cheap vine ladder) comes back, if Liana and Great Oak are not enough.
 
 ## Cut
-- **Tsunami** (2026-10-25): cut for now. Its gesture recognizer (`_big_wave`) is still in the caster, unused.
+- **Tsunami** (2026-10-25): cut. Its gesture lives on as `swell`, the shape of Tide Surf, Leech and Thorn Whip.
 
 ## Balance pass (2026-11-05)
 The owner asked for costs and damage to follow how strong a spell sounds and how hard it is to use: a spell that must be used up close can be cheap and strong; a spell that reaches anywhere must cost a lot. The real damage numbers live in the effect scripts (and `projectile.gd` for shots); the `damage` text in `spells/*.tres` is stale and not shown to players.

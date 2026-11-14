@@ -11,7 +11,7 @@ extends SceneTree
 const GROUND_Y := 0.0  # in this test the ground is the line y = 0; everything below it is solid
 ## The gestures that mean the same drawn backwards or mirrored.
 const MIRRORED := ["circle", "flick", "pit", "icicles", "spiral", "cone", "smoke", "flare", "wave", "geyser",
-	"vine", "tsunami", "tornado", "bramble", "jaws", "pads", "tree", "eight", "crescent", "saturn", "eclipse", "flame_wall", "pentagram", "lungs", "silence", "question", "arrow", "earthquake"]
+	"vine", "swell", "tornado", "bramble", "jaws", "pads", "tree", "eight", "crescent", "saturn", "eclipse", "flame_wall", "pentagram", "lungs", "silence", "question", "arrow", "earthquake"]
 
 var _caster: Caster
 var _cast := ""
@@ -115,7 +115,7 @@ func _process(_delta: float) -> bool:
 			for size in [0.8, 1.0, 1.5]:
 				_checks += 1
 				var wave := PackedVector2Array()
-				for p in GestureTemplates.preview_points("tsunami"):
+				for p in GestureTemplates.preview_points("swell"):
 					var q: Vector2 = Vector2(-p.x if mirrored else p.x, p.y) * size
 					wave.append(q.rotated(deg_to_rad(tilt)) + Vector2(0, -260))
 				_cast = ""

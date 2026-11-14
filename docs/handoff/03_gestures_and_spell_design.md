@@ -11,7 +11,7 @@
    - **Shape detectors** then run for shapes $1 handles badly (all in `StrokeShapes`, asked by `StrokeReader._detect` and claimed in `_read_shapes`): `inward_spiral`, `ring_then_line_split` (Push),
      `snowfall_line`, `cloud_line` (also Frost Bridge's wave), `pit_stroke`, `cone`,
      `icicle_triangles`, `rising_wave` (Smoke Screen), `stem_and_arc` (a stroke that sets off upward and curls: Liana,
-     Geyser, Spore Puff and Great Oak, told apart by proportions in `stem_gesture`), `big_wave` (Tsunami, cut: still wired, no spell uses it), `coil`
+     Geyser, Spore Puff and Great Oak, told apart by proportions in `stem_gesture`), `swell` (Tide Surf, Leech and Thorn Whip: a long rise to a curling crest), `coil`
      (Tornado), `sawtooth` (Bramble), `w_shape` (Flytrap) and `pad_line` (Lily Pads). Flare, Decoy, Eclipse and Hex are
      $1 templates (a flame, a figure of eight, a crescent, a pentagram, a geyser peak). A detector match claims the reading (`StrokeReading.claim`: score 1.0) and fills `info`.
    - **Straight strokes:** a flick that is near-vertical becomes `wall` (Firewall). A flick starting on solid

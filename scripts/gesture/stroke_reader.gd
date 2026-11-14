@@ -64,8 +64,8 @@ func _read_shapes(relative: PackedVector2Array, origin: Vector2, options: Dictio
 	var stem_gesture: String = StrokeShapes.stem_gesture(seen["stem"], options) if not seen["stem"].is_empty() else ""
 	if stem_gesture != "":
 		return reading.claim(stem_gesture)
-	if not seen["tsunami"].is_empty():
-		return reading.claim("tsunami", {"aim": seen["tsunami"]["aim"]})
+	if not seen["swell"].is_empty():
+		return reading.claim("swell", {"aim": seen["swell"]["aim"]})
 	for lined: Array in [["tornado", "coil"], ["bramble", "bramble"]]:
 		if seen[lined[1]].size() > 0:
 			return reading.claim(lined[0], {"line": to_world.call(seen[lined[1]])})
@@ -120,7 +120,7 @@ func _detect(relative: PackedVector2Array, options: Dictionary, reading: StrokeR
 		"smoke": StrokeShapes.rising_wave(relative) if options.has("smoke") and not (gesture == "rocket" and firm) else PackedVector2Array(),
 		"wave": StrokeShapes.cloud_line(relative) if options.has("wave") else PackedVector2Array(),
 		"stem": StrokeShapes.stem_and_arc(relative) if options.has("tree") and not vine else {},
-		"tsunami": StrokeShapes.big_wave(relative) if options.has("tsunami") else {},
+		"swell": StrokeShapes.swell(relative) if options.has("swell") else {},
 		"coil": StrokeShapes.coil(relative) if options.has("tornado") else PackedVector2Array(),
 		"bramble": StrokeShapes.sawtooth(relative) if options.has("bramble") else PackedVector2Array(),
 		"jaws": StrokeShapes.w_shape(relative) if options.has("jaws") else PackedVector2Array(),

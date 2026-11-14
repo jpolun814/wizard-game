@@ -562,9 +562,9 @@ static func stem_gesture(stem: Dictionary, options: Dictionary) -> String:
 	return ""
 
 
-## The "tsunami" shape (Tide Surf, Leech, Thorn Whip): a big wave, a long rise to a crest that curls over. Returns {"aim": the way the wave runs, which is the
+## The "swell" shape (Tide Surf, Leech, Thorn Whip): a big wave, a long rise to a crest that curls over. Returns {"aim": the way the wave runs, which is the
 ## way the crest curls}, or {} when the stroke is not a wave. A sharp corner (a V) is not a curl.
-static func big_wave(drawn: PackedVector2Array) -> Dictionary:
+static func swell(drawn: PackedVector2Array) -> Dictionary:
 	if drawn.size() < 20:
 		return {}
 	# The wave is read the way the template lies: drawn toward the left it is the mirror of one drawn toward the right, and turned until the way it
@@ -606,7 +606,7 @@ static func big_wave(drawn: PackedVector2Array) -> Dictionary:
 
 ## The way the template wave goes, from its start to the point farthest from it: the heading a drawn wave is turned to match.
 static func wave_heading() -> float:
-	var shape := GestureTemplates.preview_points("tsunami")
+	var shape := GestureTemplates.preview_points("swell")
 	var far := shape[0]
 	for p in shape:
 		if p.distance_squared_to(shape[0]) > far.distance_squared_to(shape[0]):

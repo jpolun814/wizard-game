@@ -6,7 +6,7 @@
 script = ExtResource("1_leech")
 spell_name = "Leech"
 school = "Blood"
-gesture = "tsunami"
+gesture = "swell"
 targeting = "directional"
 cost = 24.0
 effect = "Tether yourself to someone, and they pay half the cost of every spell you cast."

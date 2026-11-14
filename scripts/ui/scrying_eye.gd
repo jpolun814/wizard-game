@@ -14,7 +14,7 @@ const ZOOM := 0.5         # a whole step down, so the pixel art is never scaled 
 const PICK_EVERY := 0.5   # seconds between looking for someone to watch, when no one is
 const FOLLOW := 8.0       # how quickly the camera catches up with them
 const RING := Color("#c9a45a")
-const MASK := preload("res://scripts/hud/circle_mask.gdshader")
+const MASK := preload("res://scripts/ui/circle_mask.gdshader")
 
 var arena: Node
 var watched: Wizard       # who is in the window now

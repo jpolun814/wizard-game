@@ -130,8 +130,8 @@ static func preview_points(gesture: String) -> PackedVector2Array:
 			return _arrow_up()
 		"vine":
 			return _leaf_and_stem(false)
-		"tsunami":
-			return _big_wave()
+		"swell":
+			return _swell()
 		"bramble":
 			return _sawtooth(5, 40.0, 22.0)
 		"jaws":
@@ -512,7 +512,7 @@ static func _leaf_and_stem(ccw: bool, mirrored := false) -> PackedVector2Array:
 
 
 ## A big wave: a long, gentle rise that steepens toward a crest, then the crest curling over forward and down.
-static func _big_wave() -> PackedVector2Array:
+static func _swell() -> PackedVector2Array:
 	var pts := PackedVector2Array()
 	for i in 25:
 		var t := float(i) / 24.0

@@ -3,7 +3,7 @@
 [ext_resource type="Script" path="res://scripts/ui/hud.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/ui/hud_bar.gd" id="2"]
 [ext_resource type="Script" path="res://scripts/ui/edge_arrows.gd" id="3"]
-[ext_resource type="Script" path="res://scripts/hud/ball_button.gd" id="4"]
+[ext_resource type="Script" path="res://scripts/ui/ball_button.gd" id="4"]
 
 [node name="Hud" type="CanvasLayer"]
 process_mode = 3
