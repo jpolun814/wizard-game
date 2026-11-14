@@ -18,6 +18,7 @@ const STUCK_AFTER := 2.0    # seconds without getting closer before the route gi
 const CLIMB_ROWS := 8        # a move up this many rows is a vine, or a stair if it goes as far across
 const CROSSING_MARGIN := 0.5  # seconds more than the walk across that a swinging stair must stay put for a wizard to start across it
 const HOP_GAP := 0.6        # seconds between hops over a step that blocks the way
+const RIDE_GIVE_UP := 7.0  # seconds a crossing may take before it is given up as one that never began
 
 var _path: Array[Vector2i] = []
 var _next := 0
@@ -29,6 +30,10 @@ var _hop := 0.0
 var _ride := WorldNav.NONE  # the landing it is crossing a swinging stair to: once begun, it is carried through whatever else the wizard decides
 var _ride_from := 0           # the row it began from
 var _gravity: float = ProjectSettings.get_setting("physics/2d/default_gravity")
+var _ride_time := 0.0
+
+## True while it stands at the landing of a swinging stair, waiting for it to come.
+var waiting_for_stair := false
 
 
 ## Sets out along a path (its first tile is where the wizard stands).
@@ -80,14 +85,6 @@ func remaining() -> int:
 
 func goal() -> Vector2i:
 	return _path[_path.size() - 1] if not _path.is_empty() else WorldNav.NONE
-
-
-const RIDE_GIVE_UP := 7.0  # seconds a crossing may take before it is given up as one that never began
-var _ride_time := 0.0
-
-
-## True while it stands at the landing of a swinging stair, waiting for it to come.
-var waiting_for_stair := false
 
 
 ## What the body should do this frame: {"dir": -1, 0 or 1, "speed", "jump": leave the ground now, "replan": it is getting nowhere}.

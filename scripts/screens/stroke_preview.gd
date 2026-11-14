@@ -7,13 +7,13 @@ extends Control
 var points := PackedVector2Array()
 var ground := NAN
 
+# The stroke is drawn out again and again, as if the wizard were casting it: it traces itself, then rests with its arrow.
+var _clock := 0.0
+
 func _init(pts: PackedVector2Array, ground_y := NAN, side := 48.0) -> void:
 	points = pts
 	ground = ground_y
 	custom_minimum_size = Vector2.ONE * side
-
-# The stroke is drawn out again and again, as if the wizard were casting it: it traces itself, then rests with its arrow.
-var _clock := 0.0
 
 func _process(delta: float) -> void:
 	_clock += delta

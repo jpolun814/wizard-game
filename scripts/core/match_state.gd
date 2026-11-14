@@ -21,18 +21,17 @@ const HEIGHT := 380  # every world is this deep, in tiles
 const WARNING := 18.0 # seconds of shaking and a warning before a world collapses
 
 static var hurry := _hurry_asked()  # a test shortens the time in a world by this much (a program of its own, like a dedicated server, is told so by WIZARD_HURRY)
-
-
-static func _hurry_asked() -> float:
-	var named := OS.get_environment("WIZARD_HURRY")
-	return named.to_float() if named.is_valid_float() and named.to_float() > 0.0 else 1.0
-
 static var stage := 0
 static var seed_base := 0
 static var forced_biome := ""  # the F1 panel's choice of biome for the world being built, whatever the seed would deal (empty: the seed's own)
 static var pending := false  # the next world to load carries a match on, rather than starting one
 static var ledgers: Array[Ledger] = []  # the pages each wizard holds, the player's first
 static var vitals: Array[Dictionary] = []  # each wizard's, in the same order: {"alive", "max", "stamina"}
+
+
+static func _hurry_asked() -> float:
+	var named := OS.get_environment("WIZARD_HURRY")
+	return named.to_float() if named.is_valid_float() and named.to_float() > 0.0 else 1.0
 
 
 ## Starts a match whose first world is built from this seed.

@@ -30,6 +30,16 @@ var _since_hurt := HEAL_AFTER
 var _night: CanvasModulate
 var _player_light: PointLight2D
 
+## What the brains of this room are told about it, as a world tells them (see RoomScan): the map of the ways, and the gates and crossings in it. Kept up to date:
+## when something that bars the way has gone, the map is made again.
+var nav := WorldNav.new()
+var _scan: RoomScan
+var _scan_wait := 0.0
+var _scan_start := Vector2i.ZERO
+
+## Whether lost maximum stamina grows back by itself. The tutorial turns this off, so a Necromancy spell's cost is seen and kept.
+var heals_wounds := true
+
 
 ## The ground: flat, with a pit for lava, a gap, a pond's bed and a hill, each with gentle sides so it can be walked out of.
 func _build_map() -> Variant:
@@ -44,14 +54,6 @@ func _build_map() -> Variant:
 		for row in [-3, -2]:
 			cells[Vector2i(col, row)] = ArenaGen.STONE  # a slab overhead, for icicles to hang from
 	return cells
-
-
-## What the brains of this room are told about it, as a world tells them (see RoomScan): the map of the ways, and the gates and crossings in it. Kept up to date:
-## when something that bars the way has gone, the map is made again.
-var nav := WorldNav.new()
-var _scan: RoomScan
-var _scan_wait := 0.0
-var _scan_start := Vector2i.ZERO
 
 
 func _enter_tree() -> void:
@@ -177,10 +179,6 @@ func _add_targets() -> void:
 		var col: int = entry[1]
 		var mob := add_mob(entry[0], Vector2(ArenaGen.column_x(col), ArenaGen.surface_y(_cells, col)))
 		mob.facing = -1.0
-
-
-## Whether lost maximum stamina grows back by itself. The tutorial turns this off, so a Necromancy spell's cost is seen and kept.
-var heals_wounds := true
 
 
 func _process(delta: float) -> void:

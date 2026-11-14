@@ -7,6 +7,9 @@ extends Node2D
 ## Collision is built from long strips, one per run of solid cells in a row, so characters slide along the ground
 ## without catching on the seams between tiles. Platforms are one-way: you jump up through them and land on top, and
 ## S drops you back through. They are drawn as wooden walkways so they never look like solid ground.
+##
+## It is not a TileMapLayer on purpose: a TileMapLayer makes one collision box per tile, and a character walking across the seams between them catches on
+## them, which the long strips avoid; and a pit that is dug (see `dig`) cuts the ground in shapes that are not whole tiles.
 
 const ATLAS_TILE := 64   # a tile's size in the atlas image
 const ATLAS_PAD := 4     # the repeated border around each tile in the atlas
@@ -47,6 +50,8 @@ var biome := "cemetery"
 var _textures := {}  # material -> atlas texture
 const GRASS_BAND := 24.0  # how deep the grass along the top of the ground is, in world pixels
 const EDGE_STEP := 8.0  # pixels between two of the waiting room's ground heights: fine enough for a pit to keep the shape that was drawn
+const HALL_CHUNK := 40  # columns of a castle's inside painted as one piece
+
 var _edges := PackedFloat32Array()  # the ground's top edge height every EDGE_STEP pixels, left to right
 var earth_tiles := "cemetery"  # the tile set of the world's first biome, which names its earth and its grassy lip
 var snow_lip: Texture2D   # the snow along the ridges of the high ground
@@ -54,6 +59,10 @@ var snow_pack: Texture2D  # and the snow over its rock
 var stone_earth: Texture2D  # the rock of the waiting room's slabs and walls, made like the ground's; kept here because a texture loaded in _draw is freed before it is drawn
 var lip: Texture2D  # the grassy lip along every surface, kept here because a texture loaded in _draw is freed before it is drawn
 var earth_texture: Texture2D  # the biome's plain earth, which repeats under the surface
+var _rock_world: RockWorld
+var _tile_state := {}  # tile -> 1 if it and all its neighbors are rock, 0 if all are air, 2 if an outline runs near it (see solid_at)
+var _changed: Array[Rect2] = []  # where pits have been dug, so the tiles no longer tell what is ground there
+var _solid: StaticBody2D  # the waiting room's solid ground, made again when a pit is dug
 
 
 ## Builds everything from the generated cells. Call once, after adding the terrain to the tree. Props are the decorations scattered
@@ -285,14 +294,6 @@ func _ground_y(x: float) -> float:
 	return lerpf(_edges[i], _edges[i + 1], clampf(k - i, 0.0, 1.0))
 
 
-const HALL_CHUNK := 40  # columns of a castle's inside painted as one piece
-
-var _rock_world: RockWorld
-var _tile_state := {}  # tile -> 1 if it and all its neighbors are rock, 0 if all are air, 2 if an outline runs near it (see solid_at)
-var _changed: Array[Rect2] = []  # where pits have been dug, so the tiles no longer tell what is ground there
-var _solid: StaticBody2D  # the waiting room's solid ground, made again when a pit is dug
-
-
 ## The height of the drawn ground at an x, near a row's height: the outline is rounded off, so it is not the same as the row's own top. The
 ## height given back is the one of the outline's own that lies closest to y (within a couple of tiles), or y itself where there is none.
 func surface_near(x: float, y: float) -> float:
@@ -466,5 +467,3 @@ func _sky_polygon() -> PackedVector2Array:
 	for i in range(count - 1, -1, -1):
 		polygon.append(Vector2((ArenaGen.sky_xl + i + 0.5) * t, ArenaGen.sky_floor[i] * t + 8.0))
 	return polygon
-
-

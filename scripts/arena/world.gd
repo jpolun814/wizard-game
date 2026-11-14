@@ -27,11 +27,31 @@ const DEEP := Color(0.3, 0.27, 0.42)  # the color of everything unlit, just unde
 const BLACK := Color(0.015, 0.015, 0.03)  # and far down: nothing shows without a light
 const DARKEN_ROWS := 16.0  # how far under the surface it takes for the light of the day to fade
 const BLACKEN_ROWS := 110.0  # and for the dark to become total
+const SEA_VIEW := 30.0      # where the view rests in the ocean, against the feet (elsewhere it is 150 px over them): far enough down to see the floor
+const DROP_HEIGHT := 200.0  # how far over the ground a wizard comes out of the portal at most
 
 var _dark: CanvasModulate
 static var random_start := true  # the player starts at any one of the starting places; the showcase and tests turn this off to see the same place each time
 static var arrive_by_portal := true  # the first world is entered by falling out of a portal; tests that need the wizards standing on their places turn this off
 var castle_x := -1  # the first column of the first castle on the surface, or -1 when there is none
+var nav: WorldNav  # the ways about the world on foot, with every gate shut
+var start_tile := Vector2i.ZERO
+var spawn_tiles: Array[Vector2i] = []  # the starting places, far apart; the player takes one and a wizard each of the others
+var carried := false      # the match goes on from a world that collapsed: its ledgers and wizards come with it
+var stage_time := 0.0     # seconds in this world
+var leaving := false      # the portal has given way
+var seat_work := WorldSeats.new(self)
+var seats: Array[Wizard] = []  # every wizard of the match by seat (see my_seat), the player's own among them; null where one was beaten in an earlier world
+var rivals: Array[Wizard] = []  # the same, without the player's own
+var _backdrops := {}  # place -> Backdrop
+var creatures := WorldCreatures.new(self)
+var scenery := WorldScenery.new(self)
+var pages := WorldPages.new(self)
+var gate_work := WorldGates.new(self)
+var match_end := MatchEnd.new(self)
+var stages := WorldStages.new(self)
+var safe_spot := Vector2.ZERO  # the last place the wizard stood on firm ground
+var _buried := 0.0              # how long the wizard has been inside rock
 
 
 ## The world's tiles, built from the seed. Everything the generator decides comes from this one rng.
@@ -79,18 +99,6 @@ func _build_map() -> Variant:
 	nav = WorldNav.new()
 	nav.build(shut["cells"], built["size"].y, shut["barred"], spawn_tiles[0], shut["tolls"], shut["links"], shut["climbs"])
 	return built["cells"]
-
-
-var nav: WorldNav  # the ways about the world on foot, with every gate shut
-var start_tile := Vector2i.ZERO
-var spawn_tiles: Array[Vector2i] = []  # the starting places, far apart; the player takes one and a wizard each of the others
-var carried := false      # the match goes on from a world that collapsed: its ledgers and wizards come with it
-var stage_time := 0.0     # seconds in this world
-var leaving := false      # the portal has given way
-var seat_work := WorldSeats.new(self)
-var seats: Array[Wizard] = []  # every wizard of the match by seat (see my_seat), the player's own among them; null where one was beaten in an earlier world
-var rivals: Array[Wizard] = []  # the same, without the player's own
-var _backdrops := {}  # place -> Backdrop
 
 
 ## Each biome has a backdrop of its own, all of them in place at once and one shown at a time: walking from one biome to the next
@@ -237,15 +245,6 @@ func _hang_swing_stairs() -> void:
 		add_child(swing)
 
 
-var creatures := WorldCreatures.new(self)
-var scenery := WorldScenery.new(self)
-var pages := WorldPages.new(self)
-var gate_work := WorldGates.new(self)
-var match_end := MatchEnd.new(self)
-var stages := WorldStages.new(self)
-const SEA_VIEW := 30.0      # where the view rests in the ocean, against the feet (elsewhere it is 150 px over them): far enough down to see the floor
-
-
 @rpc("authority", "call_remote", "unreliable")
 func _dead_at(places: PackedVector2Array, faces: PackedFloat32Array, swings: PackedByteArray) -> void:
 	creatures.receive(places, faces, swings)
@@ -318,11 +317,6 @@ func stand_at(tile: Vector2i) -> Vector2:
 	if not scenery.sea_plan.is_empty():  # the ocean: a wizard starts on the driftwood floating over its place (see WorldScenery.lay_sea), not on the sea floor; or on the island, if it is one
 		return Vector2((tile.x + 0.5) * TILE, minf(float(scenery.sea_plan["row"]), tile.y + 1.0) * TILE)
 	return Vector2((tile.x + 0.5) * TILE, (tile.y + 1) * TILE)
-
-
-const DROP_HEIGHT := 200.0  # how far over the ground a wizard comes out of the portal at most
-var safe_spot := Vector2.ZERO  # the last place the wizard stood on firm ground
-var _buried := 0.0              # how long the wizard has been inside rock
 
 
 ## True when a point is inside rock or outside the world. The outlines that make the rock solid have no inside, so a body that
@@ -613,8 +607,6 @@ func rift_spot(from: Vector2) -> Vector2:
 	return spots[randi() % spots.size()] if not spots.is_empty() else from
 
 
-
-
 ## The top of the floor under a point (out of the rock first when it is in it), asked of the tiles, which are there before the ground is built.
 func floor_under(point: Vector2) -> Vector2:
 	var x := point.x
@@ -624,6 +616,3 @@ func floor_under(point: Vector2) -> Vector2:
 	while row < ArenaGen.world_size.y - 1 and not in_rock(Vector2(x, (row + 1.5) * TILE)):
 		row += 1
 	return Vector2(x, (row + 1) * TILE)
-
-
-

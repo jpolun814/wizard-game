@@ -33,12 +33,6 @@ const SKY_TOP_ROW := 6
 const SKY_BOTTOM_ROW := 66  # (126, then 86, until 2026-11-12: the owner found the sky too large, twice)
 const SKY_FLOOR_ROW := 160
 
-## True for the biome with halls under the ground (the deep's caves). The rest have no tunnels: each has its own landmarks on the
-## surface in place of them (the castle's are its floors and its cellar, in the castles themselves).
-static func has_halls(biome: String) -> bool:
-	return biome == "underground"
-
-
 ## What each biome looks like: the tiles of its grassy top, the backdrop, the color its daylight is tinted, and the
 ## things standing about on it.
 const CRYPT_SPACING := 80  # columns between one crypt and the next
@@ -55,6 +49,11 @@ const LOOKS := {
 	"sky": {"title": "The Open Sky", "tiles": "stone", "backdrop": "sky", "tint": Color(0.86, 0.9, 1.0), "weather": ["fall_wind"]},  # nothing to stand on: everyone falls through it together
 	"underground": {"title": "The Deep", "tiles": "stone", "backdrop": "cemetery", "tint": Color(0.42, 0.4, 0.55)},  # under a roof of rock: no sky shows
 }
+
+## True for the biome with halls under the ground (the deep's caves). The rest have no tunnels: each has its own landmarks on the
+## surface in place of them (the castle's are its floors and its cellar, in the castles themselves).
+static func has_halls(biome: String) -> bool:
+	return biome == "underground"
 
 
 ## The ground of one world: one biome over the whole width, with open sky, level ground to start on in the middle and the

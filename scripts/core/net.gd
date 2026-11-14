@@ -17,15 +17,6 @@ signal scenes_changed
 signal disconnected(reason: String)  # the game we joined is gone, or could not be reached
 
 const PORT := 24565
-
-
-## The port a game is opened and joined on: the usual one, unless the environment says otherwise (WIZARD_PORT), so that several
-## checks of two machines can run side by side on one computer.
-static func port() -> int:
-	var named := OS.get_environment("WIZARD_PORT")
-	return named.to_int() if named != "" else PORT
-
-
 const MENU := "res://scenes/menu.tscn"
 const GIVE_UP_MS := 8000  # a host that has not answered for this long is taken to be gone
 const VIRTUAL_CARDS := ["vethernet", "virtual", "vmware", "vbox", "hyper-v", "wsl", "loopback", "docker", "tailscale", "zerotier"]
@@ -33,19 +24,35 @@ const RIVAL_PALETTES := [0, 4, 5, 2]  # the sets of colors (see WizardLook.PALET
 const SEATS := WorldGraph.PLAYERS  # wizards in a match; the seats nobody takes are played by brains
 const LOOKS := ["wizard", "dark_wizard", "pyre_wizard", "bone_wizard", "fire_wizard", "wanderer", "lightning_mage"]  # the look of each seat, in order
 
+## Where the machine that keeps the game stores the logs sent to it. It is not the folder a person's own recording is made in (user://play_logs), so a
+## machine that hosts and plays at once never deletes what it keeps.
+const LOG_DIR := "user://received_logs"
+const LOG_MAX_BYTES := 6 * 1024 * 1024
+const LOG_MAX_FILES := 3000
+
 ## The people in the game, by peer id, in the order they came: the host first. A person's seat is their place in this list. Someone who
 ## leaves during a match leaves a 0 in their seat, so nobody else's seat changes; the waiting room closes the gaps.
 var roster: Array[int] = []
+
 ## The scene this machine is in now ("" while none is shared): the waiting room, the cut-scene or a world of the match.
 var scene := ""
 var _scenes := {}  # peer id -> the scene that peer last said it is in
 var _styles := {}  # peer id -> [look, palette]: the wizard each other person has chosen to play
 var farewell := ""  # why the last game ended, for the first screen to say
+
 ## True on a dedicated server (started with `-- --server`): a host with no person at it. It keeps the waiting room, begins each match when the people who have
 ## joined are in, plays seat 0 with a brain, and keeps nothing in the Library. Everything else is as for any host.
 var dedicated := false
 var _upnp: UPNP
 var _upnp_thread: Thread
+var _logs_sent := {}  # the name a log was sent under -> where it lies on this machine, until the one that keeps it says it has it
+
+
+## The port a game is opened and joined on: the usual one, unless the environment says otherwise (WIZARD_PORT), so that several
+## checks of two machines can run side by side on one computer.
+static func port() -> int:
+	var named := OS.get_environment("WIZARD_PORT")
+	return named.to_int() if named != "" else PORT
 
 
 func _ready() -> void:
@@ -304,14 +311,6 @@ func send(node: Node, method: StringName, args: Array = []) -> void:
 
 
 # --- Play logs (see PlayRecorder) -------------------------------------------------------------------------------------
-
-## Where the machine that keeps the game stores the logs sent to it. It is not the folder a person's own recording is made in (user://play_logs), so a
-## machine that hosts and plays at once never deletes what it keeps.
-const LOG_DIR := "user://received_logs"
-const LOG_MAX_BYTES := 6 * 1024 * 1024
-const LOG_MAX_FILES := 3000
-
-var _logs_sent := {}  # the name a log was sent under -> where it lies on this machine, until the one that keeps it says it has it
 
 
 ## Sends a finished play log (already packed) to the machine that keeps the game, and deletes the local file once that machine says it has it.

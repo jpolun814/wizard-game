@@ -18,6 +18,8 @@ const CASTS := {
 	"sky": {"shadow": Vector3(0.05, 0.07, 0.15), "light": Vector3(0.98, 1.0, 1.06), "vignette": 0.3},
 }
 
+var biome := ""  # the place it is laid over, which others ask for (see Bonfire)
+
 
 ## The wash of gray that takes the color out of the graveyard, as a layer to lay over a view of the world (the screen's own, and the Scrying Eye's window).
 static func gray_wash() -> CanvasLayer:
@@ -31,9 +33,6 @@ static func gray_wash() -> CanvasLayer:
 	wash.material = material
 	layer.add_child(wash)
 	return layer
-
-
-var biome := ""  # the place it is laid over, which others ask for (see Bonfire)
 
 
 ## The grade with the cast of a biome, or the plain grade for a place with none (the waiting room).

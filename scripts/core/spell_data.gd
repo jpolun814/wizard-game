@@ -42,12 +42,6 @@ const SCHOOL_TITLES := {
 	"Blood": "Necromancer",
 }
 
-
-## The name of a school as the player reads it.
-static func school_name(school: String) -> String:
-	return SCHOOL_NAMES.get(school, school)
-
-
 ## The schools, each cast with its own mouse buttons.
 const SCHOOL_BUTTONS := {
 	"Fire": LEFT,
@@ -62,6 +56,11 @@ const SCHOOL_BUTTONS := {
 ## Every fast spell, by name, each a Spell resource read from res://data/spells/. The caster, arena and spellbook all read from here.
 ## Each gesture is a picture of what the spell does.
 static var SPELLS: Dictionary = _load_spells()
+
+
+## The name of a school as the player reads it.
+static func school_name(school: String) -> String:
+	return SCHOOL_NAMES.get(school, school)
 
 
 static func _load_spells() -> Dictionary:

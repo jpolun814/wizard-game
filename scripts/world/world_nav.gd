@@ -7,6 +7,11 @@ extends RefCounted
 ## What is given when there is no tile (a room's tiles run negative, so (-1, -1) is a place).
 const NONE := Vector2i(-1000000, -1000000)
 
+## What a jump really costs over a walk, in tiles of walking: it spends stamina (Wizard.JUMP_COST), which comes back only while standing still (at
+## Wizard.STAMINA_REGEN a second), and a wizard in the air goes no faster than it walks, so a jump is never quicker, only dearer.
+const JUMP_COST := Wizard.JUMP_COST / Wizard.STAMINA_REGEN * WizardRoute.WALK / WizardRoute.TILE
+const SHORT_JUMP := 4  # columns: a jump this short or less might be a walk instead
+
 var _ways: Walkways
 var _astar := _Search.new()
 var _width := 0
@@ -189,13 +194,6 @@ func sketch(at: Vector2i) -> String:
 func can_stand(tile: Vector2i) -> bool:
 	tile -= origin
 	return _astar.has_point(_id(tile))
-
-
-## What a jump really costs over a walk, in tiles of walking: it spends stamina (Wizard.JUMP_COST), which comes back only while standing still (at
-## Wizard.STAMINA_REGEN a second), and a wizard in the air goes no faster than it walks, so a jump is never quicker, only dearer.
-const JUMP_COST := Wizard.JUMP_COST / Wizard.STAMINA_REGEN * WizardRoute.WALK / WizardRoute.TILE
-
-const SHORT_JUMP := 4  # columns: a jump this short or less might be a walk instead
 
 
 ## The search itself: each move costs its length, and a jump what it costs besides, so a way that can be walked is walked.

@@ -40,6 +40,10 @@ const JUMP_ROWS := 3
 const JUMP_COLS := 4
 const JUMP_FAR := 9     # how far a jump at (nearly) the same height reaches: a ramp's pit is jumped across
 
+## The gates that are crossed rather than cleared: a spell lets a wizard past, and the gate is as it was behind them.
+const CROSSINGS := ["chasm", "flood", "piranhas", "sentinel", "wall", "gas"]
+const ATTEMPTS := 8  # worlds tried before an unsound one is accepted anyway
+
 
 ## Returns {"cells": a TileGrid, "size": Vector2i in tiles, "markers": {room id: Vector2i tile to stand on},
 ## "start": Vector2i, "ponds": [{"a", "b": first and last column, "surface": row, "depth": rows, "lava": bool}],
@@ -800,10 +804,6 @@ static func standing(cells: TileGrid, c: int, r: int, hazards := {}) -> bool:
 	return clear(cells, c, r) and supported(cells, c, r) and not hazards.has(Vector2i(c, r))
 
 
-## The gates that are crossed rather than cleared: a spell lets a wizard past, and the gate is as it was behind them.
-const CROSSINGS := ["chasm", "flood", "piranhas", "sentinel", "wall", "gas"]
-
-
 ## What a crossing is called on a wizard's list of what it has given up, and in the ways about the world.
 static func toll_key(gate: Dictionary) -> String:
 	return "gate %s" % str(gate["outside"])
@@ -912,9 +912,6 @@ static func reachable(cells: TileGrid, start: Vector2i, bottom: int, hazards := 
 				seen[next] = true
 				queue.append(next)
 	return seen
-
-
-const ATTEMPTS := 8  # worlds tried before an unsound one is accepted anyway
 
 
 ## A whole world for a surface biome: the graph of its halls, built into tiles, with "graph" added to what build() returns. A world is thrown

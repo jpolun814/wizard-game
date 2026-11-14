@@ -6,22 +6,6 @@ extends CharacterBody2D
 ## resistant to. (The wizards are not mobs: see Wizard.) "scale" draws a creature bigger, always at a whole number of pixels so the pixel art
 ## stays sharp. Its origin is at its feet, so it stands exactly on the ground. Every attack is telegraphed: walkers wind up, shooters charge a glow.
 
-## Every kind of enemy, by the name it is summoned by, each a MobKind resource read from res://data/mobs/ in the order they are meant to be listed.
-static var KINDS: Dictionary = _load_kinds()
-
-
-static func _load_kinds() -> Dictionary:
-	var found: Array[MobKind] = []
-	for file in ResourceLoader.list_directory("res://data/mobs"):
-		file = file.trim_suffix(".remap")  # an exported game lists remapped resources under this name
-		if file.ends_with(".tres") or file.ends_with(".res"):
-			found.append(load("res://data/mobs/" + file))
-	found.sort_custom(func(x: MobKind, y: MobKind) -> bool: return x.sort_order < y.sort_order)
-	var out := {}
-	for kind in found:
-		out[kind.id] = kind
-	return out
-
 const SPEED := 80.0
 const SHAKE_REACH := 700.0  # a creature's fall or blast shakes only the screens of those this near (not every screen in the world)
 const TERMINAL_FALL := 900.0  # no enemy falls faster than this
@@ -48,6 +32,9 @@ const CREATURE_ANIMATIONS := {
 	"idle": {"fps": 8.0}, "walk": {"fps": 10.0}, "attack": {"fps": 14.0, "loop": false},
 	"hit": {"fps": 12.0, "loop": false}, "death": {"fps": 8.0, "loop": false},
 }
+
+## Every kind of enemy, by the name it is summoned by, each a MobKind resource read from res://data/mobs/ in the order they are meant to be listed.
+static var KINDS: Dictionary = _load_kinds()
 var kind := "basic"  # set before the mob enters the tree
 var stomp := Stomp.new(self)  # a giant's stomp
 var player: Node2D
@@ -112,6 +99,19 @@ var _body_center := Vector2(0, -20)
 var _overlay: Node2D               # draws health bar, ice, shield and charge glows on top of the sprite
 var _material: ShaderMaterial
 @onready var _visual: AnimatedSprite2D = $Visual
+
+
+static func _load_kinds() -> Dictionary:
+	var found: Array[MobKind] = []
+	for file in ResourceLoader.list_directory("res://data/mobs"):
+		file = file.trim_suffix(".remap")  # an exported game lists remapped resources under this name
+		if file.ends_with(".tres") or file.ends_with(".res"):
+			found.append(load("res://data/mobs/" + file))
+	found.sort_custom(func(x: MobKind, y: MobKind) -> bool: return x.sort_order < y.sort_order)
+	var out := {}
+	for kind in found:
+		out[kind.id] = kind
+	return out
 
 
 func _ready() -> void:

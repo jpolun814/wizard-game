@@ -29,6 +29,7 @@ var _hangers: Array[Dictionary] = []  # {"sprite", "state": "hanging" | "shaking
 var _slot := -1
 var _spot := 0.0
 var _dust := 0.0
+var _rocks_left := 0
 
 
 ## The y of the roof over a column, in pixels: where the rock's lower face is.
@@ -162,6 +163,3 @@ func _cave_in(delta: float) -> void:
 		rock.tint = _tint
 		get_parent().add_child(rock)
 		GameCamera.shake_scene(get_tree(), 0.15)
-
-
-var _rocks_left := 0

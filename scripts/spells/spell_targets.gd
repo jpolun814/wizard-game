@@ -4,6 +4,11 @@ extends RefCounted
 ## Who a spell can hurt. A spell has no side: once it is cast it hurts whoever it touches, the caster and its own
 ## allies included. The few shots that pass their caster by are handled by the shot itself (see Projectile).
 
+static var _fires: Array = []
+static var _fires_frame := -1
+static var _fires_count := -1
+static var _fires_tree: SceneTree
+
 
 ## True when a spell can hurt the body: a wizard, or an enemy, still standing.
 static func affects(body: Node) -> bool:
@@ -132,12 +137,6 @@ static func solid_below(world: World2D, point: Vector2, reach := 800.0) -> Vecto
 	query.collision_mask = 1
 	var hit := world.direct_space_state.intersect_ray(query)
 	return hit["position"] if not hit.is_empty() else Vector2(point.x, ArenaGen.GROUND_Y)
-
-
-static var _fires: Array = []
-static var _fires_frame := -1
-static var _fires_count := -1
-static var _fires_tree: SceneTree
 
 
 ## Every fire burning, as {at: where it is, heat: how fiercely it melts, size: how far it reaches past that point,

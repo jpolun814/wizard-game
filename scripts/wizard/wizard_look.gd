@@ -38,6 +38,9 @@ const PALETTES := [
 	{"name": "Ash", "robe": [-1.0, 0.0], "trim": [-1.0, 0.0]},
 ]
 
+## The sound of a jump, in the figure's own voice: the women have voices of their own, and the rest share the one that every wizard had.
+const JUMP_VOICES := {"bone_wizard": "jump_bone_wizard", "lightning_mage": "jump_lightning_mage"}
+
 
 ## The color shown on the button for a set of colors: the robe's, as that figure would wear it.
 static func swatch(look: String, palette: int) -> Color:
@@ -45,10 +48,6 @@ static func swatch(look: String, palette: int) -> Color:
 	var set: Dictionary = PALETTES[clampi(palette, 0, PALETTES.size() - 1)]
 	var hue: float = groups[0][0] if set["robe"][0] < 0.0 else set["robe"][0]
 	return Color.from_hsv(hue, 0.65 * float(set["robe"][1]), 0.78)
-
-
-## The sound of a jump, in the figure's own voice: the women have voices of their own, and the rest share the one that every wizard had.
-const JUMP_VOICES := {"bone_wizard": "jump_bone_wizard", "lightning_mage": "jump_lightning_mage"}
 
 
 static func jump_sound(look: String) -> String:

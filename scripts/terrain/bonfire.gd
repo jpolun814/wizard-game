@@ -22,6 +22,11 @@ const LOG_FILTERS := {
 	"sky": Color(0.9, 0.93, 1.0),
 }
 
+var power := 1.0             # set from the chant's accuracy: a truer chant warms more
+var _age := 0.0
+var _heal_carry := {}        # wizard -> fractional healing kept between frames
+var _flames: Node2D
+
 ## True when a bonfire lit at a spot on the ground would be under water (and not in the air of a wreck's hold), where it cannot burn.
 static func drowned(tree: SceneTree, spot: Vector2) -> bool:
 	var flames := spot + Vector2(0.0, -FLAME_BASE)
@@ -31,12 +36,6 @@ static func drowned(tree: SceneTree, spot: Vector2) -> bool:
 		if not pond.lava and pond.wet_at(flames):
 			return true
 	return false
-
-
-var power := 1.0             # set from the chant's accuracy: a truer chant warms more
-var _age := 0.0
-var _heal_carry := {}        # wizard -> fractional healing kept between frames
-var _flames: Node2D
 
 
 func _ready() -> void:
@@ -100,4 +99,3 @@ func _draw_flames() -> void:
 		var drift := sin(i * 2.3 + _age * 2.0) * 12.0 * k
 		var ember := roundf(2.0 * (1.0 - k)) + 1.0  # a pixel square, smaller as it climbs
 		_flames.draw_rect(Rect2(Vector2(roundf(drift), roundf(-34.0 - k * 50.0)), Vector2(ember, ember)), Color(1.0, 0.7, 0.3, 0.9 * (1.0 - k) * fade))
-

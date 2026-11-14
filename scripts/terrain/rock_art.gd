@@ -8,6 +8,7 @@ extends RefCounted
 const BLOCK := 2
 const RIM := Color("#0d0916")
 const BRIGHTEN := 1.2  # loose rock is only a little brighter than the ground it lies on: the same stone, with the same dark seams
+const SINK_BLOCKS := 3  # rows of a spike that lie inside the ground or ceiling it grows from
 
 
 ## The earth's color at a point, whole blocks of it.
@@ -151,9 +152,6 @@ static func ice_sheet(width: float, seed_value: int) -> ImageTexture:
 			if out.get_pixel(x, y).a > 0.5:
 				out.set_pixel(x + (y % 2), y, Color(0.06, 0.12, 0.28, 0.95))
 	return ImageTexture.create_from_image(out)
-
-
-const SINK_BLOCKS := 3  # rows of a spike that lie inside the ground or ceiling it grows from
 
 
 ## A spike that grows from the ground (up) or hangs from a ceiling, as tall as it is told to be, cut from a source picture of stone or ice. Rock
