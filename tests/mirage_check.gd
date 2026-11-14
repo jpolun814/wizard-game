@@ -44,7 +44,7 @@ func _mirages() -> Array:
 
 
 func _cast(dx: float) -> void:
-	_world.cast_by("Mirage", "positional", _spot + Vector2(dx, 0.0), 0.0, {"accuracy": 0.9}, _player)
+	_world.casting.by("Mirage", "positional", _spot + Vector2(dx, 0.0), 0.0, {"accuracy": 0.9}, _player)
 
 
 func _mirage() -> void:

@@ -46,7 +46,7 @@ func _put_rival(dx: float) -> void:
 
 
 func _cast(spell: String, targeting: String, aim: float) -> void:
-	_world.cast_by(spell, targeting, _player.center(), aim, {"length": 90.0, "accuracy": 0.9}, _player)
+	_world.casting.by(spell, targeting, _player.center(), aim, {"length": 90.0, "accuracy": 0.9}, _player)
 
 
 func _wall(dx: float) -> StaticBody2D:

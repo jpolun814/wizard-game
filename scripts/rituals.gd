@@ -34,7 +34,7 @@ func finished(id: String, acc: float, unfinished: bool) -> void:
 	var player := arena.player
 	var data: Dictionary = RitualInput.RITUALS[id]
 	if not player.ledger.knows_chant(id):
-		arena.misfire_puff()
+		arena.casting.misfire_puff()
 		return
 	if player.lungs.holding():
 		return

@@ -41,7 +41,7 @@ func _ready() -> void:
 
 
 func _cast_by(who: Wizard, at: Vector2) -> void:
-	_world.cast_by("Raise Dead", "positional", at, 0.0, {"accuracy": 0.9}, who)
+	_world.casting.by("Raise Dead", "positional", at, 0.0, {"accuracy": 0.9}, who)
 
 
 func _risen_of(who: Wizard) -> Array:

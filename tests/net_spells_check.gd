@@ -86,7 +86,7 @@ class Driver extends Node:
 
 	func _skeleton() -> void:
 		if role == "host":
-			world.cast_by("Raise Dead", "positional", world.player.global_position + Vector2(60.0, 0.0), 0.0, {"accuracy": 0.9}, world.player)
+			world.casting.by("Raise Dead", "positional", world.player.global_position + Vector2(60.0, 0.0), 0.0, {"accuracy": 0.9}, world.player)
 		await _seconds(4.0)
 		var risen := _raised()
 		_check(risen.size() == 1, "a skeleton raised by the host stands on both machines (%d)" % risen.size())
@@ -109,7 +109,7 @@ class Driver extends Node:
 
 	func _mirage() -> void:
 		if role == "client":
-			world.cast_by("Mirage", "positional", world.player.global_position + Vector2(500.0, 0.0), 0.0, {"accuracy": 0.9}, world.player)
+			world.casting.by("Mirage", "positional", world.player.global_position + Vector2(500.0, 0.0), 0.0, {"accuracy": 0.9}, world.player)
 		await _seconds(3.0)
 		var count := get_tree().get_nodes_in_group("pages").filter(func(p): return p is Mirage and not p.is_queued_for_deletion()).size()
 		_check(count == 1, "a Mirage cast on one machine is there on both (%d)" % count)
@@ -125,7 +125,7 @@ class Driver extends Node:
 		await _seconds(3.0)
 		if role == "host":
 			var toward: float = (other.center() - world.player.center()).angle()
-			world.cast_by("Leech", "directional", world.player.center(), toward, {"length": 90.0, "accuracy": 0.9}, world.player)
+			world.casting.by("Leech", "directional", world.player.center(), toward, {"length": 90.0, "accuracy": 0.9}, world.player)
 		await _seconds(2.0)
 		var tethers := get_tree().get_nodes_in_group("leeches").filter(func(l): return not l.is_queued_for_deletion())
 		_check(tethers.size() == 1, "a tether is seen on both machines (%d)" % tethers.size())
@@ -133,7 +133,7 @@ class Driver extends Node:
 		var before: float = world.player.stamina
 		await _seconds(1.0)
 		if role == "host":
-			world.cast_by("Ignite", "directional", world.player.center(), -PI / 2.0, {"length": 90.0, "accuracy": 0.9}, world.player)
+			world.casting.by("Ignite", "directional", world.player.center(), -PI / 2.0, {"length": 90.0, "accuracy": 0.9}, world.player)
 		await _seconds(0.25)  # soon after: stamina comes back on its own
 		var cost: float = SpellData.SPELLS["Ignite"].cost_for({"length": 90.0, "accuracy": 0.9})
 		var lost: float = before - world.player.stamina

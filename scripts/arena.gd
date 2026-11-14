@@ -5,11 +5,9 @@ extends Node2D
 ## Arena: the map, the player,
 ## fast spells, rituals and the spellbook.
 
-const PERFECT_CAST := 0.95  # accuracy a cast needs for the flourish
 const MOB_SCENE := preload("res://scenes/mob.tscn")
 const WIZARD_SCENE := preload("res://scenes/wizard.tscn")
 const TILE := ArenaGen.TILE
-const MISFIRE_COST := 10.0
 const INSIGHT_REACH := 40.0  # how close the pointer must be to an enemy for Insight to show it
 const STROKE_STEP := 8.0  # the points of a stroke the other machines are sent are this far apart
 const HOODED_WIZARD := "Hooded Wizard"  # what Insight calls the wizard in the player's own look
@@ -34,6 +32,7 @@ var _cells: Variant = {}  # the generated arena's tiles: a Dictionary (see Arena
 var _ground: Terrain
 var spawner := SpellSpawner.new(self)  # what each spell makes
 var rituals := Rituals.new(self)  # the chants
+var casting := Casting.new(self)  # what happens when a stroke has been read
 var tiled_ground := false  # true when the ground is tiles all the way, as in a generated world; set by _build_map
 
 func _ready() -> void:
@@ -74,8 +73,8 @@ func _ready() -> void:
 
 	caster = Caster.new()
 	add_child(caster)
-	caster.cast_resolved.connect(_on_cast_resolved)
-	caster.misfired.connect(_on_misfire)
+	caster.cast_resolved.connect(casting.by_person)
+	caster.misfired.connect(casting.misfire)
 	caster.ground_check = _is_ground_at
 
 	ritual = RitualInput.new()
@@ -404,108 +403,10 @@ func _visible_hud_rects() -> Array[Rect2]:
 	return rects
 
 
-## The player's stroke has been read.
-func _on_cast_resolved(spell: String, targeting: String, origin: Vector2, aim: float, info: Dictionary) -> void:
-	cast_by(spell, targeting, origin, aim, info, player)
-	if not player.ledger.knows_spell(spell):
-		misfire_puff()  # a spell whose page has not been found is a shape that matches nothing
-
-
-## A wizard's stroke has been read, the player's or a brain's: the same rules for both. It pays for the spell first. What tells a
-## person that a cast came to nothing is said at the pointer; a rival's wizard has nobody to tell.
-func cast_by(spell: String, targeting: String, origin: Vector2, aim: float, info: Dictionary, wizard: Wizard) -> void:
-	if not is_instance_valid(wizard) or wizard.dead:
-		return
-	var person := wizard == player
-	if person:
-		wizard.play_cast_release()
-	if not wizard.ledger.knows_spell(spell):
-		return
-	if spell == "Icicles" and spawner.icicle_spots(info).is_empty():
-		if person:
-			FloatText.spawn(self, get_global_mouse_position() + Vector2(0, -22), "Aim under a ceiling", Color("#dff6ff"), 0.9)
-			Sfx.play("misfire", wizard.center(), -6.0)
-		return
-	if wizard.fainted or wizard.is_frozen():
-		return
-	var label_at := get_global_mouse_position() + Vector2(0, -22) if person else wizard.center() + Vector2(0, -60)
-	var limit := SpellLimits.refusal(wizard, spell)  # the place forbids it (no ground to work on in the sky, no fire under the sea): nothing is paid
-	if limit != "":
-		if person:
-			FloatText.spawn(self, label_at, limit, Color("#ffb86b"), 0.9)
-			Sfx.play("misfire", wizard.center(), -6.0)
-		return
-	if spell == "Faint" and spawner.blood_target(spell, origin) == null:
-		if person:
-			FloatText.spawn(self, label_at, "Aim at someone", Color("#ff9a9a"), 0.9)  # nothing is paid for a cut that finds no one
-		return
-	if spell == "Leech" and Leech.pick(get_tree(), wizard, aim) == null:
-		if person:
-			FloatText.spawn(self, label_at, "Aim at someone", Color("#ff9a9a"), 0.9)  # nothing is paid for a tether that finds no one
-		return
-	var spell_data: Spell = SpellData.SPELLS[spell]
-	var cost := spell_data.cost_for(info)
-	if not spell_data.pays_max():
-		cost = Leech.cost_after(get_tree(), wizard, cost)  # on a tether, half of it falls on the other end
-	var colour := spell_data.glow()
-	if spell_data.pays_max():
-		if not wizard.pay_max(cost):
-			FloatText.spawn(self, label_at, "Too weak", Color("#ff9a9a"), 0.9)  # blood is never spent to the last drop
-			Sfx.play("misfire", wizard.center(), -6.0)
-			if person and is_in_group(&"world"):
-				MatchStats.miss()
-			return
-	elif not wizard.spend(cost):
-		FloatText.spawn(self, label_at, "Too tired", Color("#ffb86b"), 0.9)
-		Sfx.play("misfire", wizard.center(), -6.0)
-		if person and is_in_group(&"world"):
-			MatchStats.miss()
-		return
-	wizard.last_spell = spell
-	if person:
-		FloatText.spawn(self, label_at, spell, colour.lightened(0.25), 0.9)
-		if info.get("accuracy", 0.0) >= PERFECT_CAST:
-			_flourish(colour)
-	_spawn_everywhere(spell, targeting, origin, aim, info, wizard)
-
-
-## A cast goes off on every machine of a network game, sent by the one that drives the wizard: the same spell in the same place, with
-## the same throw of the dice for whatever it scatters. Each machine then decides what it does to the wizards that machine drives.
-func _spawn_everywhere(spell: String, targeting: String, origin: Vector2, aim: float, info: Dictionary, wizard: Wizard) -> void:
-	var luck := randi()
-	Net.send(self, &"_spawn_seen", [spell, targeting, origin, aim, info, String(wizard.name), luck])
-	seed(luck)
-	spawn_spell(spell, targeting, origin, aim, info, wizard)
-
-
+## Another machine's cast arrives (see Casting).
 @rpc("any_peer", "call_remote", "reliable")
-func _spawn_seen(spell: String, targeting: String, origin: Vector2, aim: float, info: Dictionary, wizard_name: String, luck: int) -> void:
-	var wizard := get_node_or_null(NodePath(wizard_name)) as Wizard
-	if wizard == null or wizard.get_multiplayer_authority() != multiplayer.get_remote_sender_id():
-		return  # only the machine that drives a wizard casts for it
-	seed(luck)
-	spawn_spell(spell, targeting, origin, aim, info, wizard)
-
-
-## A perfect cast: a ring of the school's light opens round the wizard, sparks fly off it and a gold "Perfect" rises.
-func _flourish(colour: Color) -> void:
-	var at: Vector2 = player.center()
-	# A ring of light in the school's colour, opening round the wizard. It is a white texture, so the tint is the school's.
-	var ring := Sprite2D.new()
-	ring.texture = Fx.tex("circle_03")
-	ring.material = Fx.additive()
-	ring.modulate = colour.lightened(0.35)
-	ring.position = at
-	ring.z_index = 8
-	ring.scale = Vector2.ONE * (30.0 / Fx.TEX_SIZE)
-	add_child(ring)
-	var open := create_tween().set_parallel(true)
-	open.tween_property(ring, "scale", Vector2.ONE * (150.0 / Fx.TEX_SIZE), 0.45).set_ease(Tween.EASE_OUT)
-	open.tween_property(ring, "modulate:a", 0.0, 0.45)
-	open.chain().tween_callback(ring.queue_free)
-	Fx.burst(self, at, colour.lightened(0.6), 14, 170.0, 0.5, true, "star_04")
-	FloatText.spawn(self, at + Vector2(0, -52), "Perfect", Color("#ffe27a"), 1.0)
-	Sfx.play("pickup", at, -6.0)
+func spawn_seen(spell: String, targeting: String, origin: Vector2, aim: float, info: Dictionary, wizard_name: String, luck: int) -> void:
+	casting.seen(spell, targeting, origin, aim, info, wizard_name, luck)
 
 
 ## The ground the wizards stand on, for the spells that dig it or cut into it.
@@ -526,28 +427,6 @@ func spawn_spell(spell: String, targeting: String, origin: Vector2, aim: float, 
 		get_child(index).set_meta("caster", caster_node)  # whatever the spell made belongs to its caster, for the count of what each wizard has done (see MatchStats)
 
 
-
-
-func _on_misfire() -> void:
-	player.drain(MISFIRE_COST)
-	misfire_puff()
-
-
-## A brain's wizard drew a stroke that means nothing: it pays what a person pays (no word is drawn: no person reads it).
-func misfire_by(wizard: Wizard) -> void:
-	if not is_instance_valid(wizard) or wizard.dead:
-		return
-	wizard.drain(MISFIRE_COST)
-	Sfx.play("misfire", wizard.center(), -6.0)
-
-
-## What a shape or a chant that means nothing does: a puff, a sound and one word, so a player with the sound off still knows.
-func misfire_puff() -> void:
-	if is_in_group(&"world"):
-		MatchStats.miss()  # a stroke that matched nothing is a try that did not go off
-	Sfx.play("misfire", player.center())
-	Fx.burst(self, get_global_mouse_position(), Color(0.6, 0.6, 0.65), 8, 80.0, 0.3)
-	FloatText.spawn(self, get_global_mouse_position() + Vector2(0, -22), "Misfire", Color(0.75, 0.75, 0.82), 0.9)  # for a player with the sound off
 
 
 ## A bonfire burns at a spot, on every machine of a network game.

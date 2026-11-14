@@ -983,8 +983,8 @@ func _make_caster() -> void:
 	add_child(caster)
 	caster.set_process(false)
 	caster.ground_check = Callable(get_parent(), "_is_ground_at")
-	caster.cast_resolved.connect(Callable(get_parent(), "cast_by").bind(self))
-	caster.misfired.connect(Callable(get_parent(), "misfire_by").bind(self))  # a stroke that means nothing costs what it costs a person
+	caster.cast_resolved.connect(get_parent().casting.by.bind(self))
+	caster.misfired.connect(get_parent().casting.misfire_by.bind(self))  # a stroke that means nothing costs what it costs a person
 
 
 ## The caster that reads a stroke into a spell: a brain's wizard has one always, and a person's is made when something other than their own hand

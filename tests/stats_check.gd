@@ -30,7 +30,7 @@ func _ready() -> void:
 	_verdict(MatchStats.series.size() >= 2, "a point is added to the charts now and then (%d)" % MatchStats.series.size())
 	_verdict(MatchStats.pages_known() > SpellData.SPELLS.size(), "spells and incantations are both counted as learned (%d)" % MatchStats.pages_known())
 	# A spell cast, a stroke that matched nothing, a blow dealt to a rival and a blow taken.
-	_world.cast_by("Ignite", "directional", player.center(), 0.0, {"length": 90.0, "accuracy": 0.9}, player)
+	_world.casting.by("Ignite", "directional", player.center(), 0.0, {"length": 90.0, "accuracy": 0.9}, player)
 	_verdict(MatchStats.casts == 1 and MatchStats.cast_by_spell.get("Ignite", 0) == 1, "a cast is counted by spell (%d)" % MatchStats.casts)
 	MatchStats.miss()
 	_verdict(MatchStats.misses == 1, "a miss is counted")
