@@ -78,3 +78,11 @@ static func total_turning(points: PackedVector2Array, span := 6.0) -> float:
 ## The width and height of a stroke's bounding box.
 static func extent(points: PackedVector2Array) -> Vector2:
 	return GestureTemplates.bounds(points).size
+
+
+## Stroke-space points moved to where they were drawn in the world, so that an effect can be placed there.
+static func to_world(points: PackedVector2Array, origin: Vector2) -> PackedVector2Array:
+	var out := PackedVector2Array()
+	for p in points:
+		out.append(origin + p)
+	return out

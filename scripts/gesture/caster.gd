@@ -20,6 +20,7 @@ var ground_check := Callable()  # set by the arena: true when a point is on soli
 var blocked_rects: Array[Rect2] = []  # screen areas (HUD modules) where a press doesn't start a cast
 
 var recognizer := UnistrokeRecognizer.new()
+var reader := StrokeReader.new(recognizer)  # what a stroke was, once it is drawn
 var _bindings: Dictionary
 var _stroke := PackedVector2Array()  # world-space points for drawing
 var _origin := Vector2.ZERO
@@ -144,187 +145,20 @@ func _end() -> void:
 		return  # too short to be a spell: silent, since the stroke itself shows it was not one (a click on a flare snuffs it)
 
 	var options: Dictionary = _bindings.get(mask, {})
-	var result := recognizer.recognize(relative, _templates_for(options))
-	var score: float = result.score
-	var gesture: String = GestureTemplates.ALIASES.get(result.name, result.name)
-	var read := _read_special(relative, options, gesture, score)
-	gesture = read["gesture"]
-	score = read["score"]
-	var info: Dictionary = read["info"]
-	var ring_split: int = read["ring_split"]
-	var latin: bool = read["latin"]
-	var settled := _settle(relative, options, gesture, score, latin)
-	_resolve(relative, options, settled["gesture"], settled["score"], info, ring_split, read["ring_centre"])
-
-
-## The shapes that are read from the stroke itself, since the recognizer cannot tell them apart reliably: each detector that finds its shape says so in
-## `gesture` and `score` (a certain read is 1.0) and fills in what the arena needs to place the effect. Returns {gesture, score, info, ring_split, ring_centre, latin}.
-func _read_special(relative: PackedVector2Array, options: Dictionary, gesture: String, score: float) -> Dictionary:
-	# Some shapes are read from the stroke itself, since the recognizer can't tell them apart reliably. The
-	# info dictionary carries what the arena needs to place each effect.
-	var info := {"radius": 0.0, "pieces": 1, "shapes": [], "line": PackedVector2Array(), "rect": Rect2()}
-	# A star drawn in one stroke winds inward like a spiral, so it must be ruled out first.
-	var star := gesture == "pentagram" and score >= tolerance
-	var slashed := options.has("silence") and StrokeShapes.is_slashed_ring(relative)
-	var spiral := StrokeShapes.inward_spiral(relative) if options.has("spiral") and not star and not slashed else {}
-	var hail := StrokeShapes.hailstorm(relative) if options.has("hailstorm") else {}
-	var feather := StrokeShapes.feather(relative) if options.has("feather") else {}
-	var latin := options.has("latin_cross") and StrokeShapes.is_cross(relative)
-	var flame_wall := StrokeShapes.up_and_out(relative) if options.has("flame_wall") else PackedVector2Array()
-	var thunder := options.has("thunderclap") and StrokeShapes.is_thunderclap(relative)
-	var portrait := options.has("portrait") and StrokeShapes.is_portrait_box(relative)
-	var ring_split := StrokeShapes.ring_then_line_split(relative) if (options.has("circle_push") or options.has("sphere")) and spiral.is_empty() and feather.is_empty() else -1
-	if ring_split >= 0 and options.has("sphere") and not options.has("circle_push") and not StrokeMeasure.runs_level(relative.slice(ring_split)):
-		ring_split = -1  # a ball of fire is pushed along the ground: the line out of the ring must run level
-	if ring_split >= 0 and options.has("saturn") and gesture == "saturn" and score >= tolerance:
-		ring_split = -1  # a ring and a flat oval round it is a sun, not a ring with a line out of it
-	var ring_centre := Vector2.ZERO
-	# Icicles are open V strokes. A closed loop (a circle, a crystal) is never an icicle.
-	var extent := StrokeMeasure.extent(relative)
-	var closed := relative[0].distance_to(relative[relative.size() - 1]) < 0.3 * maxf(extent.x, extent.y)
-	# An arrow pointing up drawn with the water button is a Geyser, not a row of icicles.
-	var peak := gesture == "geyser" and score >= tolerance
-	var icicles: Array = StrokeShapes.icicle_triangles(relative) if options.has("icicles") and not closed and not peak and spiral.is_empty() else []
-	var spikes: Array = StrokeShapes.icicle_triangles(relative, false) if options.has("stalagmite") and not closed and not (score >= tolerance - 0.12 and gesture in ["stonefall", "earthquake"]) else []  # a circle and a drop, and a double arrow, also have peaks in them
-	var snow_line := StrokeShapes.snowfall_line(relative) if options.has("snowfall") else PackedVector2Array()
-	var cloud := StrokeShapes.cloud_line(relative) if options.has("cloud") else PackedVector2Array()
-	var pit := StrokeShapes.pit_stroke(relative) if options.has("pit") else PackedVector2Array()
-	var cone := StrokeShapes.cone(relative) if options.has("cone") else {}
-	var smoke := StrokeShapes.rising_wave(relative) if options.has("smoke") and not (gesture == "rocket" and score >= tolerance) else PackedVector2Array()  # (an arrow up is a Rocket Jump, even when drawn a little wavy)
-	var wave := StrokeShapes.cloud_line(relative) if options.has("wave") else PackedVector2Array()
-	# A leaf with a vine up from it starts like a tree's trunk would end, so a stroke the recognizer reads as one is not a tree.
-	var vine := gesture == "vine" and score >= tolerance
-	var stem := StrokeShapes.stem_and_arc(relative) if options.has("tree") and not vine else {}
-	var tsunami := StrokeShapes.big_wave(relative) if options.has("tsunami") else {}
-	var coil := StrokeShapes.coil(relative) if options.has("tornado") else PackedVector2Array()
-	var bramble := StrokeShapes.sawtooth(relative) if options.has("bramble") else PackedVector2Array()
-	var jaws := StrokeShapes.w_shape(relative) if options.has("jaws") else PackedVector2Array()
-	var pads := StrokeShapes.pad_line(relative) if options.has("pads") and spiral.is_empty() else PackedVector2Array()
-	if portrait:
-		gesture = "portrait"  # a tall box with four sharp corners: a picture frame, a doorway
-		score = 1.0
-	elif thunder:
-		gesture = "thunderclap"  # a cloud, and a bolt of lightning down out of it
-		score = 1.0
-	elif not flame_wall.is_empty():
-		gesture = "flame_wall"  # a line up and a line out: a wall of flame as wide as the second line
-		score = 1.0
-		info["line"] = _to_world(flame_wall)
-	elif latin:
-		gesture = "latin_cross"  # an upright stem with a bar across it, nearer the top: read before the recognizer's guess
-		score = 1.0
-	elif not hail.is_empty():
-		# A ring, a line out of it and a line down: a Hailstorm, the cloud running from the ring to the bend.
-		gesture = "hailstorm"
-		score = 1.0
-		info["line"] = _to_world(PackedVector2Array([hail["from"], hail["to"]]))
-	elif not feather.is_empty():
-		gesture = "feather"
-		score = 1.0
-	elif not spiral.is_empty():
-		# A spiral wound inward is a Black Hole, centred where it ends up.
-		gesture = "spiral"
-		score = 1.0
-		info["radius"] = spiral["reach"]
-		info["center"] = _origin + spiral["center"]
-	elif slashed:
-		gesture = "silence"
-		score = 1.0
-	elif ring_split >= 0:
-		# A closed ring with a straight line out of it is a Push. The line can point any way.
-		gesture = "sphere" if options.has("sphere") else "circle_push"
-		score = 1.0
-		var ring := relative.slice(0, ring_split)
-		ring_centre = StrokeMeasure.centroid(ring)
-		info["radius"] = StrokeMeasure.mean_distance(ring, ring_centre)
-	elif pads.size() > 0:
-		gesture = "pads"
-		score = 1.0
-		info["line"] = _to_world(pads)
-	elif snow_line.size() >= 2:
-		gesture = "snowfall"
-		score = 1.0
-		info["line"] = _to_world(snow_line)
-	elif smoke.size() > 0:
-		gesture = "smoke"
-		score = 1.0
-		info["line"] = _to_world(smoke)
-	elif wave.size() > 0:
-		gesture = "wave"
-		score = 1.0
-		info["line"] = _to_world(wave)
-	elif not stem.is_empty() and StrokeShapes.stem_gesture(stem, options) != "":
-		gesture = StrokeShapes.stem_gesture(stem, options)
-		score = 1.0
-	elif not tsunami.is_empty():
-		gesture = "tsunami"
-		score = 1.0
-		info["aim"] = tsunami["aim"]
-	elif coil.size() > 0:
-		gesture = "tornado"
-		score = 1.0
-		info["line"] = _to_world(coil)
-	elif bramble.size() > 0:
-		gesture = "bramble"
-		score = 1.0
-		info["line"] = _to_world(bramble)
-	elif jaws.size() > 0:
-		gesture = "jaws"
-		score = 1.0
-	elif cloud.size() > 0:
-		gesture = "cloud"
-		score = 1.0
-		info["line"] = _to_world(cloud)
-	elif pit.size() > 0:
-		gesture = "pit"
-		score = 1.0
-		info["line"] = _to_world(pit)
-	elif not cone.is_empty():
-		gesture = "cone"
-		score = 1.0
-		info.merge(cone)
-	elif not spikes.is_empty():
-		gesture = "stalagmite"
-		score = 1.0
-		info["pieces"] = spikes.size()
-		for tri in spikes:
-			info["shapes"].append(_to_world(tri))
-	elif not icicles.is_empty():
-		gesture = "icicles"
-		score = 1.0
-		info["pieces"] = icicles.size()
-		for tri in icicles:
-			info["shapes"].append(_to_world(tri))
-	return {"gesture": gesture, "score": score, "info": info, "ring_split": ring_split, "ring_centre": ring_centre, "latin": latin}
-
-
-## What the read leaves to be settled: a straight stroke is a flick, a wall or a pull by the button, a cross or a flame that is not one is no spell, and a loop taken for a flame
-## is read again without the flames. Returns {gesture, score}.
-func _settle(relative: PackedVector2Array, options: Dictionary, gesture: String, score: float, latin: bool) -> Dictionary:
-	# A straight stroke can mean a wall (vertical), a pull (toward you) or a plain flick, depending on the button.
-	if gesture == "flick":
-		if options.has("wall") and _is_vertical(relative):
-			gesture = "wall"
-		elif options.has("flick_toward") and _points_toward_anchor():
-			gesture = "flick_toward"
-
-	# A straight stroke that begins on the ground raises a stone wall instead of a spike.
-	if gesture == "flick" and options.has("stone_wall") and _starts_on_ground():
-		gesture = "stone_wall"
-	if gesture == "latin_cross" and not latin:
-		score = 0.0  # a stem alone, or any stroke the recognizer likes, is not a cross
-	if gesture == "flare" and not StrokeShapes.flame_points_up(relative):
-		score = 0.0  # a plain loop, or a drop, is not a flame
-		if options.has("circle"):  # where a circle is also drawn, a loop the recognizer took for a flame is read again without the flames
-			var rest := _templates_for(options).filter(func(n: String) -> bool: return not n.begins_with("flame"))
-			var again := recognizer.recognize(relative, rest)
-			gesture = GestureTemplates.ALIASES.get(again.name, again.name)
-			score = again.score
-	return {"gesture": gesture, "score": score}
+	reader.tolerance = tolerance
+	reader.wall_tolerance_deg = wall_tolerance_deg
+	var reading := reader.read(relative, _origin, options)
+	reader.settle(reading, relative, options, _stroke, anchor, ground_check)
+	_resolve(relative, options, reading)
 
 
 ## A stroke read: a spell is cast from it, when the shape is good enough and the buttons have a spell for it, and a misfire is reported when not.
-func _resolve(relative: PackedVector2Array, options: Dictionary, gesture: String, score: float, info: Dictionary, ring_split: int, ring_centre: Vector2) -> void:
+func _resolve(relative: PackedVector2Array, options: Dictionary, reading: StrokeReading) -> void:
+	var gesture := reading.gesture
+	var score := reading.score
+	var info := reading.info
+	var ring_split := reading.ring_split
+	var ring_centre := reading.ring_centre
 	var entry = options.get(gesture)
 	# A cast that works shows its name where it was drawn (the arena does that), so only failures are reported here.
 	# Stonefall's circle and drop and the flame are hard to draw cleanly, so they are read with a looser eye than the other shapes.
@@ -370,32 +204,10 @@ func _resolve(relative: PackedVector2Array, options: Dictionary, gesture: String
 			var box := GestureTemplates.bounds(relative)
 			info["rect"] = Rect2(_origin + box.position, box.size)
 		if entry.targeting == "shape" and info["line"].is_empty():
-			info["line"] = _to_world(relative)
+			info["line"] = StrokeMeasure.to_world(relative, _origin)
 		info["extent"] = StrokeMeasure.extent(relative)  # how big it was drawn, for spells that grow with it
 		info["accuracy"] = StrokeShapes.accuracy(relative, gesture, score)
 		cast_resolved.emit(entry.spell, entry.targeting, spawn, aim, info)
-
-
-## The recognizer templates that mean something on a button. A straight line is wanted wherever any spell is drawn
-## as one (a flick, a wall, a stone wall).
-func _templates_for(options: Dictionary) -> Array:
-	var names := []
-	for template_name in recognizer.templates:
-		var gesture: String = GestureTemplates.ALIASES.get(template_name, template_name)
-		if options.has(gesture) or (gesture == "flick" and (options.has("wall") or options.has("stone_wall") or options.has("flick_toward"))):
-			names.append(template_name)
-	return names
-
-
-func _is_vertical(points: PackedVector2Array) -> bool:
-	var dir := points[points.size() - 1] - points[0]
-	return absf(cos(dir.angle())) <= sin(deg_to_rad(wall_tolerance_deg))
-
-
-## True when the stroke moves toward the character: start far, finish near.
-func _points_toward_anchor() -> bool:
-	var dir := _stroke[_stroke.size() - 1] - _stroke[0]
-	return dir.dot(anchor - _stroke[0]) > 0.0
 
 
 ## Center of the drawn shape's bounding box. For a circle this is the circle's center,
@@ -431,31 +243,12 @@ func _draw() -> void:
 		Fx.draw_orb(self, 4.0, _stroke_color, Color.WHITE)
 
 
-## True when the stroke began on solid ground (the arena says what is solid).
-func _starts_on_ground() -> bool:
-	if not ground_check.is_valid():
-		return false
-	return ground_check.call(_stroke[0])
-
-
 ## The average point of the stroke, in world space.
 func _stroke_centroid() -> Vector2:
 	var sum := Vector2.ZERO
 	for p in _stroke:
 		sum += p
 	return sum / _stroke.size()
-
-
-## Converts stroke-space points to world space, so the arena can place effects where they were drawn.
-func _to_world(points: PackedVector2Array) -> PackedVector2Array:
-	var out := PackedVector2Array()
-	for p in points:
-		out.append(_origin + p)
-	return out
-
-
-## Ice Prison: a closed box. Its four corners must be sharp (a circle never reaches the corners of its bounding
-## box) and its sides must hug the box. Returns the box in stroke space, or an empty Rect2.
 
 
 ## Casts a stroke that was not drawn with the mouse, such as an AI wizard's. It resolves exactly like a drawn one.
