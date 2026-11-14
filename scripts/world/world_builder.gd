@@ -477,6 +477,20 @@ static func _profile(plan: Dictionary, rng: RandomNumberGenerator) -> Dictionary
 	floor_row.fill(cy)
 	var ponds := []
 	# The dome over the hall: how much air there is at the middle of each column before the floor rises into it.
+	var dome := _dome_over(plan, room, n, hw)
+	_dig_basin(room, xl, n, cy, pinned, floor_row, ponds, rng)
+	_roll_ground(floor_row, pinned, cy, n, rng)
+	_raise_mesa(room, floor_row, pinned, dome, cy, hw, n, rng)
+	# Hills and mesas stay under the dome: where the dome is low the floor stays down.
+	for i in n:
+		floor_row[i] = maxi(floor_row[i], cy - maxi(0, int(dome[i]) - MIN_AIR - 1))
+	_relax(floor_row, pinned)
+	var ceiling := _ceiling_over(plan, room, dome, floor_row, cy, xl, n, hw, rng)
+	return {"xl": xl, "floor": floor_row, "ceiling": ceiling, "ponds": ponds, "cy": cy}
+
+
+## The dome over a hall: how much air there is at the middle of each column before the floor rises into it.
+static func _dome_over(plan: Dictionary, room: Dictionary, n: int, hw: int) -> PackedFloat32Array:
 	var dome := PackedFloat32Array()
 	dome.resize(n)
 	for i in n:
@@ -486,7 +500,11 @@ static func _profile(plan: Dictionary, rng: RandomNumberGenerator) -> Dictionary
 			dome[i] = room["air"]  # open sky: no dome
 		elif (plan["right"] and i > hw and t > 0.7) or (plan["left"] and i < hw and t > 0.7):
 			dome[i] = maxf(dome[i], PASSAGE_HEIGHT + 0.5)  # the dome stays open where a tunnel leaves
-	# One basin, now and then: a lake, lava, or a dry pit. It needs flat ground round it, so it is kept off the pins.
+	return dome
+
+
+## One basin, now and then: a lake, lava, or a dry pit. It is added to `ponds` when it holds liquid.
+static func _dig_basin(room: Dictionary, xl: int, n: int, cy: int, pinned: PackedByteArray, floor_row: PackedInt32Array, ponds: Array, rng: RandomNumberGenerator) -> void:
 	if room["kind"] != "start" and rng.randf() < BASIN_CHANCE:
 		var depth := rng.randi_range(3, 5)
 		var bottom := rng.randi_range(2, 7)
@@ -507,7 +525,10 @@ static func _profile(plan: Dictionary, rng: RandomNumberGenerator) -> Dictionary
 				if kind != "pit":
 					ponds.append({"a": a, "b": a + width - 1, "surface": cy, "depth": depth, "lava": kind == "lava"})
 				break
-	# Rolling ground: hills and valleys that fade to flat near anything that needs level floor.
+
+
+## Rolling ground: hills and valleys that fade to flat near anything that needs level floor.
+static func _roll_ground(floor_row: PackedInt32Array, pinned: PackedByteArray, cy: int, n: int, rng: RandomNumberGenerator) -> void:
 	var near := _distance_to_pinned(pinned)
 	var amp1 := rng.randf_range(2.0, 6.0)
 	var amp2 := rng.randf_range(0.5, 2.0)
@@ -520,7 +541,10 @@ static func _profile(plan: Dictionary, rng: RandomNumberGenerator) -> Dictionary
 			var fade := clampf(near[i] / 7.0, 0.0, 1.0)
 			var wave := amp1 * sin(TAU * i / period1 + phase1) + amp2 * sin(TAU * i / period2 + phase2)
 			floor_row[i] = cy + roundi(wave * fade)
-	# A mesa now and then: a slope up to a flat top and down again, in the middle where the dome is high.
+
+
+## A mesa now and then: a slope up to a flat top and down again, in the middle where the dome is high.
+static func _raise_mesa(room: Dictionary, floor_row: PackedInt32Array, pinned: PackedByteArray, dome: PackedFloat32Array, cy: int, hw: int, n: int, rng: RandomNumberGenerator) -> void:
 	if rng.randf() < 0.4 and not room.has("surface"):
 		var top_width := rng.randi_range(4, 10)
 		var rise := rng.randi_range(4, 8)
@@ -539,11 +563,10 @@ static func _profile(plan: Dictionary, rng: RandomNumberGenerator) -> Dictionary
 					var up := mini(rise, mini(k + 1, length - k) / 2)
 					floor_row[first + k] = mini(floor_row[first + k], cy - up)
 					pinned[first + k] = 3
-	# Hills and mesas stay under the dome: where the dome is low the floor stays down.
-	for i in n:
-		floor_row[i] = maxi(floor_row[i], cy - maxi(0, int(dome[i]) - MIN_AIR - 1))
-	_relax(floor_row, pinned)
-	# The ceiling: a dome over the floor, with bulges, closed at a side that has no tunnel.
+
+
+## The ceiling: a dome over the floor, with bulges, closed at a side that has no tunnel.
+static func _ceiling_over(plan: Dictionary, room: Dictionary, dome: PackedFloat32Array, floor_row: PackedInt32Array, cy: int, xl: int, n: int, hw: int, rng: RandomNumberGenerator) -> PackedInt32Array:
 	var ceiling := PackedInt32Array()
 	ceiling.resize(n)
 	var bulges := []
@@ -566,7 +589,7 @@ static func _profile(plan: Dictionary, rng: RandomNumberGenerator) -> Dictionary
 			ceiling[c - xl] = mini(ceiling[c - xl], cy - 8)
 	if room.has("surface"):
 		ceiling.fill(0)
-	return {"xl": xl, "floor": floor_row, "ceiling": ceiling, "ponds": ponds, "cy": cy}
+	return ceiling
 
 
 ## How far each column is from one the profile keeps flat, in columns.
