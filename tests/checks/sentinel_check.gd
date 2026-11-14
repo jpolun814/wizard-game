@@ -1,11 +1,9 @@
-extends Node
-
+extends Check
 ## A sentinel shoots any wizard it sees, not only the player: a rival standing in its range is hit, and one behind rock is not.
 ##
 ##     godot --headless --fixed-fps 60 --path . tests/checks/sentinel_check.tscn
 ## It prints PASS or FAIL for each check and exits with code 1 if any failed.
 
-var _failures := 0
 
 
 func _ready() -> void:
@@ -53,7 +51,3 @@ func _hold(rival: Wizard, at: Vector2) -> void:
 		await get_tree().physics_frame
 
 
-func _verdict(ok: bool, message: String) -> void:
-	print("%s  %s" % ["PASS" if ok else "FAIL", message])
-	if not ok:
-		_failures += 1

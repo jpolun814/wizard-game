@@ -1,12 +1,10 @@
-extends Node
-
+extends Check
 ## Attacking spells, cast in a real world: Eldritch Blast (a beam that strikes the first thing in its line and is stopped by a wall), Hemorrhage (a wound that bleeds a little at a time), Supernova (a sun that
 ## pulls and burns, then blows up and throws things back) and Scythe (a swing in front that a wall shelters from) and Firewall (a line up and a line out: a wall of flame as wide as the second line, costing more the wider it is).
 ##
 ##     godot --headless --fixed-fps 60 --path . tests/checks/group_d_check.tscn
 ## It prints PASS or FAIL for each check and exits with code 1 if any failed.
 
-var _failures := 0
 var _world: World
 var _player: Wizard
 var _spot := Vector2.ZERO
@@ -200,7 +198,6 @@ func _firewall() -> void:
 	at_end.queue_free()
 
 
-
 func _wait(seconds: float) -> void:
 	var left := seconds
 	while left > 0.0:
@@ -208,7 +205,3 @@ func _wait(seconds: float) -> void:
 		left -= get_physics_process_delta_time()
 
 
-func _verdict(ok: bool, message: String) -> void:
-	print("%s  %s" % ["PASS" if ok else "FAIL", message])
-	if not ok:
-		_failures += 1

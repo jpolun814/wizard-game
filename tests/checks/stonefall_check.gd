@@ -1,5 +1,4 @@
-extends Node
-
+extends Check
 ## A Stonefall's boulder starts where the circle was drawn (not above it), and hits as hard as it was falling: drawn high it lands hard on whoever is under it,
 ## drawn low it hardly hurts, and drawn on the ground it only lies there.
 ## (The dummy under it is 70 px tall, so a boulder drawn that far over its feet does not fall at all.)
@@ -7,7 +6,6 @@ extends Node
 ##     godot --headless --path . --fixed-fps 60 tests/checks/stonefall_check.tscn
 ## It prints PASS or FAIL for each check and exits with code 1 if any failed.
 
-var _failures := 0
 var _world: World
 var _player: Wizard
 
@@ -72,7 +70,3 @@ func _newest_boulder() -> Boulder:
 	return found
 
 
-func _verdict(ok: bool, message: String) -> void:
-	print("%s  %s" % ["PASS" if ok else "FAIL", message])
-	if not ok:
-		_failures += 1

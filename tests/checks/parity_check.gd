@@ -1,5 +1,4 @@
-extends Node
-
+extends Check
 ## A wizard is a wizard: Push, Geyser, Tornado, Tide Surf and a damaging shot do the same to the one a person plays and to one the brain plays.
 ## Each spell is cast at the same spot twice, at each of them in turn, and how far each was thrown and how much each lost are compared.
 ##
@@ -12,14 +11,12 @@ const CHANCE_TOLERANCE := 0.6  # the same, for a spell whose throw is by chance
 const REST := 1.5          # seconds a body is left to come to rest after a cast
 const SLACK := 25.0       # pixels (or stamina) of difference that no share is asked of
 
-var _failures := 0
 
 
 ## A brain that decides nothing: the body is driven the way a brain drives it, and stands where it is put. What is left to compare is the body.
 class QuietBrain extends WizardBrain:
 	func think(_delta: float) -> void:
 		wizard.walk(0.0)
-
 
 
 func _ready() -> void:
@@ -132,7 +129,3 @@ func _show(measure: Dictionary) -> String:
 	return "rose %.0f, went %.0f aside, lost %.0f" % [measure["rise"], measure["side"], measure["lost"]]
 
 
-func _verdict(ok: bool, message: String) -> void:
-	print("%s  %s" % ["PASS" if ok else "FAIL", message])
-	if not ok:
-		_failures += 1

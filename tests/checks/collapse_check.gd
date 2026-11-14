@@ -1,5 +1,4 @@
-extends Node
-
+extends Check
 ## Plays a match through its collapses: a world, then the smaller worlds the portal throws everyone into, to the last, which has no caves
 ## and does not collapse. Checks each world's size, that the pages and the wizards carry over, and that the last is open. The time in each
 ## world is shortened (hurry=), so it takes a minute or two.
@@ -8,7 +7,6 @@ extends Node
 ## It prints PASS or FAIL for each check and exits with code 1 if any failed.
 
 var _worlds_seen := 0
-var _failures := 0
 var _clock := 0.0
 var _world_clock := 0.0
 var _last: World
@@ -96,12 +94,6 @@ func _arrived(world: World) -> void:
 	for k in range(1, spread.size()):
 		least = minf(least, spread[k] - spread[k - 1])
 	_verdict(least > 32.0 * 40.0 * plan["width"] / 1200.0, "the wizards land well apart (the nearest pair %.0f px)" % least)
-
-
-func _verdict(ok: bool, message: String) -> void:
-	print("%s  %s" % ["PASS" if ok else "FAIL", message])
-	if not ok:
-		_failures += 1
 
 
 func _finish() -> void:

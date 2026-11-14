@@ -1,12 +1,10 @@
-extends Node
-
+extends Check
 ## The snowy peaks have a second range of ridges behind the ground: a wizard can walk up one from the ground and stand on its top, and S
 ## on the top drops them back down. With `-- out=DIR` (and no --headless) it also takes a picture.
 ##
 ##     godot --headless --fixed-fps 60 --path . tests/checks/ridge_check.tscn -- seed=4
 ## It prints PASS or FAIL and exits with code 1 if any failed.
 
-var _failures := 0
 
 
 func _ready() -> void:
@@ -105,7 +103,3 @@ func _ready() -> void:
 	get_tree().quit(1 if _failures > 0 else 0)
 
 
-func _verdict(ok: bool, message: String) -> void:
-	print("%s  %s" % ["PASS" if ok else "FAIL", message])
-	if not ok:
-		_failures += 1

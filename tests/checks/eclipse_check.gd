@@ -1,12 +1,10 @@
-extends Node
-
+extends Check
 ## An Eclipse darkens the screen of whoever watches from inside it, and not of anyone watching from outside; a flare cuts a lit patch out of the dark.
 ## The wizard's sight inside it is what the AI is held to (`SpellTargets.sight_blocked`), so that is checked here too.
 ##
 ##     godot --headless --path . --fixed-fps 60 tests/checks/eclipse_check.tscn
 ## Add `-- out=DIR` (and no --headless) to save pictures of the screen: outside, inside, and inside with a flare. It prints PASS or FAIL and exits with code 1 if any failed.
 
-var _failures := 0
 
 
 func _ready() -> void:
@@ -63,7 +61,3 @@ func _picture(out: String, name_: String) -> void:
 		image.save_png("%s/eclipse_%s.png" % [out, name_])
 
 
-func _verdict(ok: bool, message: String) -> void:
-	print("%s  %s" % ["PASS" if ok else "FAIL", message])
-	if not ok:
-		_failures += 1

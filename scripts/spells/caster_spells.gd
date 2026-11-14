@@ -47,7 +47,7 @@ func _barrier(c: SpellCast) -> void:
 ## The fire pours out of the caster, toward the cone's open end.
 func _fire_breath(c: SpellCast) -> void:
 	var breath := FireBreath.new()
-	breath.caster_node = c.caster
+	breath.caster = c.caster
 	breath.aim = c.aim
 	breath.spread = c.info.get("spread", 0.8)
 	breath.reach = c.info.get("reach", 160.0)
@@ -57,7 +57,7 @@ func _fire_breath(c: SpellCast) -> void:
 ## The spores pour out of the caster, toward the cone's open end, like Fire Breath.
 func _spore_puff(c: SpellCast) -> void:
 	var spores := SporePuff.new()
-	spores.caster_node = c.caster
+	spores.caster = c.caster
 	spores.aim = c.aim
 	spores.spread = c.info.get("spread", 0.8)
 	spores.reach = c.info.get("reach", 160.0)
@@ -67,26 +67,26 @@ func _spore_puff(c: SpellCast) -> void:
 ## The flare hovers by the caster and follows them wherever it was drawn.
 func _flare(c: SpellCast) -> void:
 	var flare := Flare.new()
-	flare.caster_node = c.caster
+	flare.caster = c.caster
 	c.add(flare)
 
 
 func _eldritch_blast(c: SpellCast) -> void:
 	var blast := EldritchBlast.new()
-	blast.caster_node = c.caster
+	blast.caster = c.caster
 	blast.aim = c.aim
 	c.add(blast)
 
 
 func _scythe(c: SpellCast) -> void:
 	var swing := Scythe.new()
-	swing.caster_node = c.caster
+	swing.caster = c.caster
 	c.add(swing)
 
 
 func _tide_surf(c: SpellCast) -> void:
 	var surf := TideSurf.new()
-	surf.caster_node = c.caster
+	surf.caster = c.caster
 	surf.ground = _arena.terrain()
 	surf.direction = c.side()
 	c.add(surf)

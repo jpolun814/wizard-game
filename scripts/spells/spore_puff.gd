@@ -19,7 +19,7 @@ const DRAG := 1.4           # they slow quickly, then hang in the air
 const LIFE := 4.5           # how long one puff lives
 const FADE := 0.7           # how long it takes to thin away when the wind takes it
 
-var caster_node: Wizard
+var caster: Wizard
 var aim := 0.0
 var spread := 0.8
 var reach := 160.0
@@ -45,8 +45,8 @@ func _ready() -> void:
 	spread = clampf(spread, MIN_SPREAD, MAX_SPREAD)
 	reach = clampf(reach, MIN_REACH, MAX_REACH)
 	_texture = Fx.tex("smoke_01")
-	if is_instance_valid(caster_node) and absf(cos(aim)) > 0.2:
-		caster_node.facing = signf(cos(aim))
+	if is_instance_valid(caster) and absf(cos(aim)) > 0.2:
+		caster.facing = signf(cos(aim))
 	_cast_facing = _facing()
 	_mouth = _mouth_position()
 	Sfx.play("snow", _mouth, -4.0)
@@ -73,13 +73,13 @@ func _physics_process(delta: float) -> void:
 
 
 func _facing() -> float:
-	if not is_instance_valid(caster_node) or caster_node.facing == 0.0:
+	if not is_instance_valid(caster) or caster.facing == 0.0:
 		return 1.0
-	return caster_node.facing
+	return caster.facing
 
 
 func _mouth_position() -> Vector2:
-	return caster_node.mouth() if is_instance_valid(caster_node) else _mouth
+	return caster.mouth() if is_instance_valid(caster) else _mouth
 
 
 ## The way the spores leave the mouth now, mirrored to face wherever the wizard faces, as Fire Breath does.
@@ -120,7 +120,7 @@ func _poison() -> void:
 	for body in SpellTargets.all(get_tree()):
 		var middle := SpellTargets.center_of(body)
 		for puff in _puffs:
-			if body == caster_node and puff["pos"].distance_to(puff["born"]) < 60.0:
+			if body == caster and puff["pos"].distance_to(puff["born"]) < 60.0:
 				continue
 			if middle.distance_to(puff["pos"]) <= _radius(puff) + 8.0:
 				if body is Wizard and body.lungs.holding():

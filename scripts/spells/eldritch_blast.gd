@@ -9,18 +9,18 @@ const HARM := 16
 const WIDTH := 20.0        # how near the line of the beam a body must be to be struck
 const COLOR := Color("#9a6ad0")
 
-var caster_node: Wizard
+var caster: Wizard
 var aim := 0.0
 
 
 func _ready() -> void:
-	var from: Vector2 = caster_node.center() if is_instance_valid(caster_node) else global_position
+	var from: Vector2 = caster.center() if is_instance_valid(caster) else global_position
 	var way := Vector2.from_angle(aim)
 	var stop := _first_wall(from, way)
 	var target: Node2D = null
 	var along := stop
 	for body in SpellTargets.all(get_tree()):
-		if body == caster_node:
+		if body == caster:
 			continue
 		var to: Vector2 = SpellTargets.center_of(body) - from
 		var ahead := to.dot(way)

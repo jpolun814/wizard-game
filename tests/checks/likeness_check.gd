@@ -1,11 +1,9 @@
-extends Node
-
+extends Check
 ## The wizard maker: the words at the spot on the hill open it, a figure and a set of colours chosen in it are worn at once and kept, the four figures
 ## are one height, and a brain's wizard takes a figure nobody else has. Add `-- out=DIR` for pictures (they need a window).
 ##
 ##     godot --headless --fixed-fps 60 --path . tests/checks/likeness_check.tscn
 
-var _failures := 0
 
 
 func _ready() -> void:
@@ -108,7 +106,3 @@ func _ready() -> void:
 	get_tree().quit(1 if _failures > 0 else 0)
 
 
-func _verdict(ok: bool, what: String) -> void:
-	print("%s  %s" % ["PASS" if ok else "FAIL", what])
-	if not ok:
-		_failures += 1

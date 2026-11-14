@@ -1,11 +1,9 @@
-extends Node
-
+extends Check
 ## Small pieces the bigger checks lean on: the four words that name a world, and the table of spells and the buttons that cast them.
 ##
 ##     godot --headless --fixed-fps 60 --path . tests/checks/pieces_check.tscn
 ## It prints PASS or FAIL for each check and exits with code 1 if any failed.
 
-var _failures := 0
 
 
 func _ready() -> void:
@@ -55,7 +53,3 @@ func _frames(count: int) -> void:
 		await get_tree().physics_frame
 
 
-func _verdict(ok: bool, message: String) -> void:
-	print("%s  %s" % ["PASS" if ok else "FAIL", message])
-	if not ok:
-		_failures += 1

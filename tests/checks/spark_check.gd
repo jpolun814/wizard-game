@@ -1,12 +1,10 @@
-extends Node
-
+extends Check
 ## A Spark comes down from the sky over its stroke and lands on the ground under it: on the open surface of a world with caves, in the last world
 ## (all open sky), and under a cave's roof (from the roof). The place it lands is compared with the ground the physics world has there.
 ##
 ##     godot --headless --path . --fixed-fps 60 tests/checks/spark_check.tscn
 ## It prints PASS or FAIL for each place and exits with code 1 if any failed.
 
-var _failures := 0
 
 
 func _ready() -> void:
@@ -56,7 +54,3 @@ func _strike(world: World, origin: Vector2, what: String) -> void:
 	strike.queue_free()
 
 
-func _verdict(ok: bool, message: String) -> void:
-	print("%s  %s" % ["PASS" if ok else "FAIL", message])
-	if not ok:
-		_failures += 1

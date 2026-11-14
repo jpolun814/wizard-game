@@ -38,7 +38,7 @@ func _ready() -> void:
 	for k in 20:
 		await get_tree().process_frame
 	var surf := TideSurf.new()
-	surf.caster_node = player
+	surf.caster = player
 	surf.direction = 1.0
 	lab.add_child(surf)
 	last = 0.0

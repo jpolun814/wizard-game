@@ -1,5 +1,4 @@
-extends Node
-
+extends Check
 ## Flaming Sphere, cast on a floor built for it: a long level floor, a low wall, a pit with a wall on its far side and a dummy standing past it. The ball
 ## must roll, climb the wall, drop into the pit and climb out of it, burn the dummy, go out in water, in rain and after a long roll. Add `-- out=DIR`
 ## for pictures (needs a window).
@@ -7,7 +6,6 @@ extends Node
 ##     godot --headless --fixed-fps 60 --path . tests/checks/sphere_check.tscn
 ## It prints PASS or FAIL for each check and exits with code 1 if any failed.
 
-var _failures := 0
 var _world: World
 var _player: Wizard
 var _spot := Vector2.ZERO
@@ -179,7 +177,3 @@ func _wait(seconds: float) -> void:
 		left -= get_physics_process_delta_time()
 
 
-func _verdict(ok: bool, message: String) -> void:
-	print("%s  %s" % ["PASS" if ok else "FAIL", message])
-	if not ok:
-		_failures += 1

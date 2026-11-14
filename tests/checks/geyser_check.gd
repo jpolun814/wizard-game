@@ -1,18 +1,12 @@
-extends Node
-
+extends Check
 ## A Geyser's water is real liquid: on dry ground its first burst brings a little up, which falls and runs over the ground, and every burst after
 ## lifts it and lets it fall again without making more. Over a pool it lifts the pool's own water and gives it back.
 ##
 ##     godot --headless --fixed-fps 60 --path . tests/checks/geyser_check.tscn
 ## It prints PASS or FAIL for each and exits with code 1 if any failed.
 
-var _failures := 0
 
 
-func _verdict(ok: bool, what: String) -> void:
-	print("%s  %s" % ["PASS" if ok else "FAIL", what])
-	if not ok:
-		_failures += 1
 
 
 ## All the liquid in the world's puddles made by spells.

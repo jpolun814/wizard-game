@@ -1,11 +1,9 @@
-extends Node
-
+extends Check
 ## The tutorial room is shut off place from place: the cliff cannot be climbed without the chant of the double jump (and can with it), the thorns
 ## kill whoever walks into them until they are burnt, the pit cannot be jumped, and a wizard in the pond or the pit is put back on its edge.
 ##
 ##     godot --headless --fixed-fps 60 --path . tests/checks/tutorial_path_check.tscn
 
-var _failures := 0
 var room: Tutorial
 var player: Wizard
 var _deaths := 0
@@ -426,7 +424,3 @@ func _gauntlet() -> void:
 		_verdict(zone.x > Tutorial.GAUNTLET_FROM and zone.y < ArenaGen.right_wall - 6, "the gate at columns %d to %d lies inside the room, past the thorns" % [zone.x, zone.y])
 
 
-func _verdict(ok: bool, message: String) -> void:
-	print("%s  %s" % ["PASS" if ok else "FAIL", message])
-	if not ok:
-		_failures += 1

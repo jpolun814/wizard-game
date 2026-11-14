@@ -59,7 +59,7 @@ func _ready() -> void:
 	# Geyser: puts out Fire Breath and carries a wizard up while it plays.
 	var spot: Vector2 = person.global_position
 	var breath := FireBreath.new()
-	breath.caster_node = person
+	breath.caster = person
 	breath.aim = 0.0
 	world.add_child(breath)
 	for i in 20:

@@ -1,12 +1,10 @@
-extends Node
-
+extends Check
 ## Where pages lie within reach of each other, Tab reads the one that gives the wizard something: a new page before one the book already holds, and a page that is
 ## really there before a mirage. (A page read already used to stand between the wizard and a new one lying beside it, for good.)
 ##
 ##     godot --headless --path . --fixed-fps 60 tests/checks/page_underfoot_check.tscn
 ## It prints PASS or FAIL for each check and exits with code 1 if any failed.
 
-var _failures := 0
 
 
 func _ready() -> void:
@@ -46,7 +44,3 @@ func _lay(world: Node, page: String, at: Vector2) -> PagePickup:
 	return pickup
 
 
-func _verdict(ok: bool, message: String) -> void:
-	print("%s  %s" % ["PASS" if ok else "FAIL", message])
-	if not ok:
-		_failures += 1

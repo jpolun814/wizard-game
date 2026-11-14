@@ -1,12 +1,10 @@
-extends Node
-
+extends Check
 ## An Earthquake shakes the ground as well as the screen: while it lasts a shake moves the view (and so a stroke drawn on it) farther than it does otherwise, and
 ## when it has gone the shake is as it was.
 ##
 ##     godot --headless --path . --fixed-fps 60 tests/checks/earthquake_check.tscn
 ## It prints PASS or FAIL for each check and exits with code 1 if any failed.
 
-var _failures := 0
 
 
 func _ready() -> void:
@@ -34,7 +32,3 @@ func _ready() -> void:
 	get_tree().quit(1 if _failures > 0 else 0)
 
 
-func _verdict(ok: bool, message: String) -> void:
-	print("%s  %s" % ["PASS" if ok else "FAIL", message])
-	if not ok:
-		_failures += 1

@@ -22,7 +22,7 @@ const HIT_SCALE := 2.0     # the splash where the flame lands is drawn at twice 
 const HIT_GAP := 0.25      # the least time between one splash on a wall and the next
 const DRAG := 1.2          # puffs slow as they spread out
 
-var caster_node: Wizard
+var caster: Wizard
 var aim := 0.0             # the drawn direction, for the way the caster faced when casting
 var spread := 0.8
 var reach := 160.0
@@ -46,8 +46,8 @@ func _ready() -> void:
 		reach = MIN_REACH if is_nan(reach) else reach
 	spread = clampf(spread, MIN_SPREAD, MAX_SPREAD)
 	# A breath cast the other way turns the wizard round to face it.
-	if is_instance_valid(caster_node) and absf(cos(aim)) > 0.2:
-		caster_node.facing = signf(cos(aim))
+	if is_instance_valid(caster) and absf(cos(aim)) > 0.2:
+		caster.facing = signf(cos(aim))
 	reach = clampf(reach, MIN_REACH, MAX_REACH)
 	# Drawn as solid colour, not light, so the flames stay orange against any backdrop. The puffs live in world
 	# space, so this node stays at the world's origin.
@@ -97,17 +97,17 @@ func _physics_process(delta: float) -> void:
 
 
 func _caster_alive() -> bool:
-	return is_instance_valid(caster_node) and not caster_node.dead
+	return is_instance_valid(caster) and not caster.dead
 
 
 func _facing() -> float:
-	if not is_instance_valid(caster_node) or caster_node.facing == 0.0:
+	if not is_instance_valid(caster) or caster.facing == 0.0:
 		return 1.0
-	return caster_node.facing
+	return caster.facing
 
 
 func _mouth_position() -> Vector2:
-	return caster_node.mouth()
+	return caster.mouth()
 
 
 ## The way the fire leaves the mouth now: the drawn direction, read from the way the wizard faced when casting and
@@ -157,7 +157,7 @@ func _radius(puff: Dictionary) -> float:
 ## Burns everything a puff of flame is touching. The caster is never burnt by their own breath.
 func _burn() -> void:
 	for body in SpellTargets.all(get_tree()):
-		if body == caster_node:
+		if body == caster:
 			continue
 		var middle := SpellTargets.center_of(body)
 		for puff in _puffs:

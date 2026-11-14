@@ -1,5 +1,4 @@
-extends Node
-
+extends Check
 ## The first four new spells, cast in a real world against a dummy: Barbs (thorns that hurt, are stopped by a wall and are burned by a flame),
 ## Pebble (a stone that falls as it flies, and so goes over a wall that stops a flat shot), Hailstorm (stones fall from a cloud and a roof is
 ## shelter) and Featherfall (a long fall becomes a slow one, and ends).
@@ -7,7 +6,6 @@ extends Node
 ##     godot --headless --fixed-fps 60 --path . tests/checks/group_a_check.tscn
 ## It prints PASS or FAIL for each check and exits with code 1 if any failed.
 
-var _failures := 0
 var _world: World
 var _player: Wizard
 var _spot := Vector2.ZERO
@@ -205,7 +203,3 @@ func _wait(seconds: float) -> void:
 		left -= get_physics_process_delta_time()
 
 
-func _verdict(ok: bool, message: String) -> void:
-	print("%s  %s" % ["PASS" if ok else "FAIL", message])
-	if not ok:
-		_failures += 1

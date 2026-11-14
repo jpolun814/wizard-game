@@ -1,12 +1,10 @@
-extends Node
-
+extends Check
 ## Wild Shape: the wizard becomes a werewolf that cannot cast and claws whoever is in front, until the first blow lands, which turns them back
 ## with the stamina they had before, without their dying of it.
 ##
 ##     godot --headless --fixed-fps 60 --path . tests/checks/wild_shape_check.tscn
 ## It prints PASS or FAIL for each check and exits with code 1 if any failed.
 
-var _failures := 0
 var _world: World
 var _player: Wizard
 var _spot := Vector2.ZERO
@@ -84,7 +82,3 @@ func _wait(seconds: float) -> void:
 		left -= get_physics_process_delta_time()
 
 
-func _verdict(ok: bool, message: String) -> void:
-	print("%s  %s" % ["PASS" if ok else "FAIL", message])
-	if not ok:
-		_failures += 1

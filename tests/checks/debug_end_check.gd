@@ -1,11 +1,9 @@
-extends Node
-
+extends Check
 ## The F1 panel's Win game and Lose game buttons end the match for real: every other wizard falls and the match is won, or the person falls and the stats come up.
 ##
 ##     godot --headless --fixed-fps 60 --path . tests/checks/debug_end_check.tscn -- mode=win      (or mode=lose; `out=DIR` takes a picture, needs a window)
 ## Prints PASS or FAIL and exits with code 1 if any failed.
 
-var _failures := 0
 
 
 func _ready() -> void:
@@ -80,7 +78,3 @@ func _buttons_of(node: Node) -> Dictionary:
 	return found
 
 
-func _verdict(ok: bool, message: String) -> void:
-	print("%s  %s" % ["PASS" if ok else "FAIL", message])
-	if not ok:
-		_failures += 1

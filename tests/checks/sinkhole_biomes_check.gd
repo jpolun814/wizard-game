@@ -1,12 +1,10 @@
-extends Node
-
+extends Check
 ## A Sinkhole drawn as a U digs a pit of that shape in the ground of every kind of world, not only the first one tried.
 ##
 ##     godot --headless --fixed-fps 60 --path . tests/checks/sinkhole_biomes_check.tscn -- seeds=0,1,4,5,13,2,3
 ## For each seed it finds open ground, casts a Sinkhole with a drawn U, and checks that the ground is lowest in the middle, near the
 ## walls at the sides, and in the order the U was drawn. It prints PASS or FAIL and exits with code 1 if any failed.
 
-var _failures := 0
 var _seen := {}
 
 
@@ -96,7 +94,3 @@ func _try(seed_value: int) -> void:
 	await get_tree().process_frame
 
 
-func _verdict(ok: bool, message: String) -> void:
-	print("%s  %s" % ["PASS" if ok else "FAIL", message])
-	if not ok:
-		_failures += 1

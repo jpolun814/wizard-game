@@ -1,12 +1,10 @@
-extends Node
-
+extends Check
 ## The castle's stairwells have thirteen swinging stairs in all; the first is the keep's. A person waits at a landing until one has swung to the landing across, walks over it, and
 ## is carried by it as it swings.
 ##
 ##     godot --headless --fixed-fps 60 --path . tests/checks/stairwell_check.tscn            (add `-- out=DIR` for a picture, needs a window)
 ## It prints PASS or FAIL for each check and exits with code 1 if any failed.
 
-var _failures := 0
 
 
 func _ready() -> void:
@@ -90,7 +88,3 @@ func _frames(count: int) -> void:
 		await get_tree().physics_frame
 
 
-func _verdict(ok: bool, message: String) -> void:
-	print("%s  %s" % ["PASS" if ok else "FAIL", message])
-	if not ok:
-		_failures += 1

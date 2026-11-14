@@ -1,12 +1,10 @@
-extends Node
-
+extends Check
 ## Mirage, cast in a real world. A false page appears among the real ones; every wizard wants it; it fades when anyone comes near, the caster too,
 ## and cannot be read; a brain that has watched one fade stops going for them.
 ##
 ##     godot --headless --fixed-fps 60 --path . tests/checks/mirage_check.tscn
 ## It prints PASS or FAIL for each check and exits with code 1 if any failed.
 
-var _failures := 0
 var _world: World
 var _player: Wizard
 var _rival: Wizard
@@ -121,7 +119,3 @@ func _wait(seconds: float) -> void:
 		left -= get_physics_process_delta_time()
 
 
-func _verdict(ok: bool, message: String) -> void:
-	print("%s  %s" % ["PASS" if ok else "FAIL", message])
-	if not ok:
-		_failures += 1

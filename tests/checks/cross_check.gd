@@ -1,5 +1,4 @@
-extends Node
-
+extends Check
 ## A wizard that holds a spell that gets past a gate (a chasm, a flood, a piranha pit, a sentinel) goes across it to a page lying beyond, alive; and one that
 ## holds none does not get there, for the way is shut to it. Pages are taken off the map so that nothing else draws it away.
 ##
@@ -12,7 +11,6 @@ const SECONDS := 120.0
 var seed_value := 8
 var kind := "flood"
 var spells := ["Frost Bridge"]
-var _failures := 0
 
 
 func _ready() -> void:
@@ -121,7 +119,3 @@ func _ready() -> void:
 	tree.quit(1 if _failures > 0 else 0)
 
 
-func _verdict(ok: bool, message: String) -> void:
-	print("%s  %s" % ["PASS" if ok else "FAIL", message])
-	if not ok:
-		_failures += 1

@@ -1,12 +1,10 @@
-extends Node
-
+extends Check
 ## Raise Dead, cast in a real world. A skeleton rises with fifty health for thirty-seven of the caster's maximum stamina; it never touches its master,
 ## attacks a rival wizard, fights the skeleton another wizard raised, stays near its master, and falls when its master is beaten.
 ##
 ##     godot --headless --fixed-fps 60 --path . tests/checks/raise_dead_check.tscn
 ## It prints PASS or FAIL for each check and exits with code 1 if any failed.
 
-var _failures := 0
 var _world: World
 var _player: Wizard
 var _rival: Wizard
@@ -170,7 +168,3 @@ func _wait(seconds: float) -> void:
 		left -= get_physics_process_delta_time()
 
 
-func _verdict(ok: bool, message: String) -> void:
-	print("%s  %s" % ["PASS" if ok else "FAIL", message])
-	if not ok:
-		_failures += 1

@@ -1,5 +1,4 @@
-extends Node
-
+extends Check
 ## The player is struck down while rivals live: the match goes on, the camera follows a living wizard, a click picks the next, the portal still
 ## collapses into the next world, and only when no rival is left does the game-over screen come.
 ##
@@ -7,7 +6,6 @@ extends Node
 ## With collapse it ends by waiting for the portal to give way, instead of beating the last rivals.
 ## It prints PASS or FAIL for each check and exits with code 1 if any failed.
 
-var _failures := 0
 var _world: World
 
 
@@ -79,7 +77,3 @@ func _ready() -> void:
 	get_tree().quit(1 if _failures > 0 else 0)
 
 
-func _verdict(ok: bool, message: String) -> void:
-	print("%s  %s" % ["PASS" if ok else "FAIL", message])
-	if not ok:
-		_failures += 1

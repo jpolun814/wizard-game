@@ -1,5 +1,4 @@
-extends Node
-
+extends Check
 ## The Chant of the Scrying Eye. Said once, a round window opens in the bottom right showing another wizard; a little eye floats over that wizard; when they
 ## fall, another is watched; the ground round the watched wizard is made even when they are far from the player; a brain that has lost track of everyone
 ## sends out an eye. Add `-- out=DIR` for pictures (needs a window).
@@ -7,7 +6,6 @@ extends Node
 ##     godot --headless --fixed-fps 60 --path . tests/checks/eye_check.tscn
 ## It prints PASS or FAIL for each check and exits with code 1 if any failed.
 
-var _failures := 0
 var _world: World
 var _player: Wizard
 var _out := ""
@@ -114,7 +112,3 @@ func _wait(seconds: float) -> void:
 		left -= get_physics_process_delta_time()
 
 
-func _verdict(ok: bool, message: String) -> void:
-	print("%s  %s" % ["PASS" if ok else "FAIL", message])
-	if not ok:
-		_failures += 1

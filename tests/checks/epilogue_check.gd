@@ -1,5 +1,4 @@
-extends Node
-
+extends Check
 ## Plays the cut-scene after a win and checks it: the winner walks in, the book is set on its stand, a second plaque goes up under the first, and
 ## the scene ends and hands over on time. Pass `-- look=pyre_wizard` for another wizard, or `out=DIR` for pictures (they need a window).
 ##
@@ -9,7 +8,6 @@ extends Node
 var _scene: Epilogue
 var _out := ""
 var _look := "wizard"
-var _failures := 0
 var _done_at := -1.0
 var _clock := 0.0
 var _shots := [1.5, 3.3, 3.8, 4.4, 5.1, 5.9, 7.5]
@@ -64,7 +62,3 @@ func _check_words_cut() -> void:
 	_verdict(words.visible_characters == words.text.length(), "the words are cut into it (%d of %d letters)" % [words.visible_characters, words.text.length()])
 
 
-func _verdict(ok: bool, what: String) -> void:
-	print("%s  %s" % ["PASS" if ok else "FAIL", what])
-	if not ok:
-		_failures += 1

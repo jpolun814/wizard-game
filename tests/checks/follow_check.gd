@@ -1,18 +1,10 @@
-extends Node
-
+extends Check
 ## Things that live in a pool follow its liquid as it flows: the piranhas keep to the water that is left (and are stranded when it is gone), and
 ## Frost Bridge lays ice on the surface where it is now.
 ##
 ##     godot --headless --fixed-fps 60 --path . tests/checks/follow_check.tscn -- seed=0
 ## It prints PASS or FAIL for each and exits with code 1 if any failed.
 
-var _failures := 0
-
-
-func _verdict(ok: bool, what: String) -> void:
-	print("%s  %s" % ["PASS" if ok else "FAIL", what])
-	if not ok:
-		_failures += 1
 
 
 func _ready() -> void:

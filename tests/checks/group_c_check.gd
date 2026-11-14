@@ -1,12 +1,10 @@
-extends Node
-
+extends Check
 ## Thunderclap and Rocket Jump, cast in a real world. Thunderclap throws everyone near back except the caster and leaves them dazed (slow, and unable to cast
 ## or chant) for a few seconds, and does them no harm; Rocket Jump throws the caster far higher than a jump.
 ##
 ##     godot --headless --fixed-fps 60 --path . tests/checks/group_c_check.tscn
 ## It prints PASS or FAIL for each check and exits with code 1 if any failed.
 
-var _failures := 0
 var _world: World
 var _player: Wizard
 var _spot := Vector2.ZERO
@@ -104,7 +102,3 @@ func _wait(seconds: float) -> void:
 		left -= get_physics_process_delta_time()
 
 
-func _verdict(ok: bool, message: String) -> void:
-	print("%s  %s" % ["PASS" if ok else "FAIL", message])
-	if not ok:
-		_failures += 1

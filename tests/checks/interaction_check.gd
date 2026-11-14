@@ -1,12 +1,10 @@
-extends Node
-
+extends Check
 ## Spells that meet each other: cold and water put fire out (a Frostbolt, a Geyser, Blizzard snow), fire bakes a Mudslide dry, lightning sets a
 ## plant alight, and lightning that lands in a pool shocks whoever stands in it.
 ##
 ##     godot --headless --path . --fixed-fps 60 tests/checks/interaction_check.tscn
 ## It prints PASS or FAIL for each meeting and exits with code 1 if any failed.
 
-var _failures := 0
 
 
 func _ready() -> void:
@@ -223,7 +221,3 @@ func _ready() -> void:
 	get_tree().quit(1 if _failures > 0 else 0)
 
 
-func _verdict(ok: bool, message: String) -> void:
-	print("%s  %s" % ["PASS" if ok else "FAIL", message])
-	if not ok:
-		_failures += 1

@@ -1,11 +1,9 @@
-extends Node
-
+extends Check
 ## The first screen is the open spellbook: drawing a sign with the left mouse button held chooses it, as clicking does.
 ##
 ##     godot --headless --fixed-fps 60 --path . tests/checks/menu_check.tscn            (add `-- out=DIR` for pictures, needs a window)
 ## It prints PASS or FAIL for each check and exits with code 1 if any failed.
 
-var _failures := 0
 
 
 func _ready() -> void:
@@ -90,7 +88,3 @@ func _frames(count: int) -> void:
 		await get_tree().process_frame
 
 
-func _verdict(ok: bool, message: String) -> void:
-	print("%s  %s" % ["PASS" if ok else "FAIL", message])
-	if not ok:
-		_failures += 1

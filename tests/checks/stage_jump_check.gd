@@ -1,5 +1,4 @@
-extends Node
-
+extends Check
 ## The F1 panel's way to a world of the match: from the first world, jumps to the third, then back to the first, and checks each lands in
 ## the world of that stage with its biome.
 ##
@@ -7,7 +6,6 @@ extends Node
 
 var _jumps := [2, 0]
 var _arrived := 0
-var _failures := 0
 var _last: World
 var _clock := 0.0
 
@@ -43,12 +41,6 @@ func _process(delta: float) -> void:
 	if _clock > 90.0:
 		_verdict(false, "stuck")
 		_finish()
-
-
-func _verdict(ok: bool, message: String) -> void:
-	print("%s  %s" % ["PASS" if ok else "FAIL", message])
-	if not ok:
-		_failures += 1
 
 
 func _finish() -> void:

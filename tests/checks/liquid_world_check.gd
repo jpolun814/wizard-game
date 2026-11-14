@@ -1,18 +1,10 @@
-extends Node
-
+extends Check
 ## The flowing liquid in real worlds: every pool is made and keeps its water (none drains away through the ground), the ground the liquid sees
 ## agrees with the ground a body stands on, and a pit dug beside a pool fills from it, quickly enough that no frame is lost.
 ##
 ##     godot --headless --fixed-fps 60 --path . tests/checks/liquid_world_check.tscn -- seed=8
 ## It prints PASS or FAIL for each and exits with code 1 if any failed.
 
-var _failures := 0
-
-
-func _verdict(ok: bool, what: String) -> void:
-	print("%s  %s" % ["PASS" if ok else "FAIL", what])
-	if not ok:
-		_failures += 1
 
 
 func _ready() -> void:

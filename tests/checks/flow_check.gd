@@ -1,5 +1,4 @@
-extends Node
-
+extends Check
 ## Walks the whole way into a run: the waiting room, its book, the cut-scene (skipped with a key), the loading screen and the world. Checks each
 ## scene in turn and that the world is dealt four wizards' pages.
 ##
@@ -9,7 +8,6 @@ extends Node
 var _stage := "lab"
 var _clock := 0.0
 var _stage_clock := 0.0
-var _failures := 0
 var _pressed := false
 
 
@@ -63,12 +61,6 @@ func _process(delta: float) -> void:
 func _next(stage: String) -> void:
 	_stage = stage
 	_stage_clock = 0.0
-
-
-func _verdict(ok: bool, message: String) -> void:
-	print("%s  %s" % ["PASS" if ok else "FAIL", message])
-	if not ok:
-		_failures += 1
 
 
 func _finish() -> void:

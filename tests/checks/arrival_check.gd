@@ -1,10 +1,8 @@
-extends Node
-
+extends Check
 ## The first world is entered by falling out of a portal: the wizards start in the air under a portal that is open over each, and land on their places.
 ##
 ##     godot --headless --fixed-fps 60 --path . tests/checks/arrival_check.tscn   (add `-- out=DIR` for pictures, needs a window)
 
-var _failures := 0
 
 
 func _ready() -> void:
@@ -41,9 +39,3 @@ func _count(world: Node) -> int:
 	return n
 
 
-func _verdict(ok: bool, what: String) -> void:
-	if what == "":
-		return
-	print(("PASS  " if ok else "FAIL  ") + what)
-	if not ok:
-		_failures += 1

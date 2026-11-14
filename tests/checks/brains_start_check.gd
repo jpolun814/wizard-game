@@ -1,12 +1,10 @@
-extends Node
-
+extends Check
 ## The AI wizards start a match with nothing in their books. Left alone in a world, each walks to the pages by its own spawn and reads them,
 ## and learns nothing from another wizard's cluster before it has finished its own.
 ##
 ##     godot --headless --fixed-fps 60 --path . tests/checks/brains_start_check.tscn -- seed=3 seconds=60
 ## It prints PASS or FAIL for each check and exits with code 1 if any failed.
 
-var _failures := 0
 
 
 func _ready() -> void:
@@ -45,7 +43,3 @@ func _ready() -> void:
 	get_tree().quit(1 if _failures > 0 else 0)
 
 
-func _verdict(ok: bool, message: String) -> void:
-	print("%s  %s" % ["PASS" if ok else "FAIL", message])
-	if not ok:
-		_failures += 1

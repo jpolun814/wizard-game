@@ -1,5 +1,4 @@
-extends Node
-
+extends Check
 ## The brain knows every spell. Each spell in the game is given, alone, to a wizard that the brain plays, in the place where a wizard would want it, and the
 ## wizard must cast it of its own accord (or, for the spells that raise it up to a rival over its head, get up to them). A spell with no line in
 ## `WizardBrain.USES` fails at once. The ways over water are met by `cross_check`, and are only listed here.
@@ -24,7 +23,6 @@ const SCENES := {
 	"Featherfall": {"fall": true}, "Geyser": {"up": true}, "Updraft": {"up": true}, "Push": {"up": true}, "Rocket Jump": {"up": true}, "Liana": {"up": true}, "Great Oak": {"up": true}, "Tornado": {"up": true},
 }
 
-var _failures := 0
 var _only: Array = []
 
 
@@ -212,7 +210,3 @@ func _try(spell_name: String) -> void:
 	await tree.process_frame
 
 
-func _verdict(ok: bool, message: String) -> void:
-	print("%s  %s" % ["PASS" if ok else "FAIL", message])
-	if not ok:
-		_failures += 1

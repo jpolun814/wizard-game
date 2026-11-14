@@ -1,12 +1,10 @@
-extends Node
-
+extends Check
 ## Leech, cast in a real world. The tether needs a wizard in the way the stroke ran, in sight; it costs maximum stamina; while it holds the
 ## caster pays half of every stamina spell and the other end pays the rest; a wall, distance, a second Leech, or either wizard's death ends it.
 ##
 ##     godot --headless --fixed-fps 60 --path . tests/checks/leech_check.tscn
 ## It prints PASS or FAIL for each check and exits with code 1 if any failed.
 
-var _failures := 0
 var _world: World
 var _player: Wizard
 var _rival: Wizard
@@ -150,7 +148,3 @@ func _wait(seconds: float) -> void:
 		left -= get_physics_process_delta_time()
 
 
-func _verdict(ok: bool, message: String) -> void:
-	print("%s  %s" % ["PASS" if ok else "FAIL", message])
-	if not ok:
-		_failures += 1

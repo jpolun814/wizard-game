@@ -1,12 +1,10 @@
-extends Node
-
+extends Check
 ## The chants: how closely a spoken chant must match its words, what each one gives the speaker, and what a garbled, half-said or
 ## unknown chant does. The words reach the arena as the incantation box sends them (its `finished` signal).
 ##
 ##     godot --headless --fixed-fps 60 --path . tests/checks/ritual_check.tscn
 ## It prints PASS or FAIL for each check and exits with code 1 if any failed.
 
-var _failures := 0
 var _arena: Node
 
 
@@ -84,7 +82,3 @@ func _frames(count: int) -> void:
 		await get_tree().physics_frame
 
 
-func _verdict(ok: bool, message: String) -> void:
-	print("%s  %s" % ["PASS" if ok else "FAIL", message])
-	if not ok:
-		_failures += 1

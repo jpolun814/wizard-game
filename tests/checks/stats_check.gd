@@ -1,12 +1,10 @@
-extends Node
-
+extends Check
 ## The stats screen shown when the person falls: the counts MatchStats keeps (damage dealt and taken, casts, misses, spells learned, kills), the charts built
 ## from them, and the overlay that comes up over the world while the match goes on for the others.
 ##
 ##     godot --headless --fixed-fps 60 --path . tests/checks/stats_check.tscn [-- out=DIR]      (a picture needs a window)
 ## Prints PASS or FAIL for each check and exits with code 1 if any failed.
 
-var _failures := 0
 var _world: World
 
 
@@ -111,7 +109,3 @@ func _buttons_of(node: Node) -> Dictionary:
 	return found
 
 
-func _verdict(ok: bool, message: String) -> void:
-	print("%s  %s" % ["PASS" if ok else "FAIL", message])
-	if not ok:
-		_failures += 1

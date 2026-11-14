@@ -20,10 +20,9 @@ static func striker_of(by: Node) -> Wizard:
 		return null  # (a spell whose caster has left the world)
 	if by is Wizard:
 		return by
-	for property in ["caster_node", "caster"]:
-		var owner: Variant = by.get(property)
-		if is_instance_valid(owner) and owner is Wizard:  # (a caster gone from the world is asked after first: "is" on a freed one is an error)
-			return owner
+	var owner: Variant = by.get("caster")
+	if is_instance_valid(owner) and owner is Wizard:  # (a caster gone from the world is asked after first: "is" on a freed one is an error)
+		return owner
 	return null
 
 

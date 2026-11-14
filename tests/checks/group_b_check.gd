@@ -1,5 +1,4 @@
-extends Node
-
+extends Check
 ## Thorn Whip and Insect Plague, cast in a real world. The whip drags what it hits toward the caster (an enemy, a rival wizard, a page), is stopped by a
 ## wall, burnt by a flame, and cannot move a giant. The swarm goes after the nearest wizard, takes no notice of its caster at first, stings, scatters
 ## when it is hit, gives up when it has no one to follow, and does not last for ever.
@@ -7,7 +6,6 @@ extends Node
 ##     godot --headless --fixed-fps 60 --path . tests/checks/group_b_check.tscn
 ## It prints PASS or FAIL for each check and exits with code 1 if any failed.
 
-var _failures := 0
 var _world: World
 var _player: Wizard
 var _rival: Wizard
@@ -286,7 +284,3 @@ func _wait(seconds: float) -> void:
 		left -= get_physics_process_delta_time()
 
 
-func _verdict(ok: bool, message: String) -> void:
-	print("%s  %s" % ["PASS" if ok else "FAIL", message])
-	if not ok:
-		_failures += 1

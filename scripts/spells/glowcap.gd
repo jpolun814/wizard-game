@@ -14,7 +14,7 @@ const EAT_REACH := 20.0  # how close, across, a wizard must be to eat it
 const EAT_HEIGHT := 30.0  # and how far above the ground it is eaten from: a jump over it clears it
 const FEED := 1       # how much it raises a wizard's most stamina
 
-var caster_node: Wizard  # set by the arena before it enters the tree
+var caster: Wizard  # set by the arena before it enters the tree
 var light_radius := LIGHT_RADIUS
 var _age := 0.0
 var _sprite: Sprite2D
@@ -23,7 +23,7 @@ var _light: PointLight2D
 
 func _ready() -> void:
 	for other in get_tree().get_nodes_in_group("glowcaps"):
-		if other != self and other.caster_node == caster_node:
+		if other != self and other.caster == caster:
 			other.queue_free()  # one cap each: a new one replaces the old
 	add_to_group("glowcaps")
 	add_to_group("lights")

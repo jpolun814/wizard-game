@@ -1,12 +1,10 @@
-extends Node
-
+extends Check
 ## Anyone who stays in a Blizzard long enough freezes solid, as in an Ice Prison. Frost creeps over them first, so it can be seen coming; the
 ## ice thaws, and for a moment after that the cold cannot take hold again; leaving the snow lets the chill go; and ice enemies are not held.
 ##
 ##     godot --headless --fixed-fps 60 --path . tests/checks/blizzard_freeze_check.tscn
 ## It prints PASS or FAIL for each check and exits with code 1 if any failed.
 
-var _failures := 0
 
 
 func _ready() -> void:
@@ -91,7 +89,3 @@ func _wait(seconds: float) -> void:
 		left -= get_physics_process_delta_time()
 
 
-func _verdict(ok: bool, message: String) -> void:
-	print("%s  %s" % ["PASS" if ok else "FAIL", message])
-	if not ok:
-		_failures += 1

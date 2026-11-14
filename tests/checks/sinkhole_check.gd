@@ -1,12 +1,10 @@
-extends Node
-
+extends Check
 ## A Sinkhole opens in the ground of a world: the ground under it is lower after, and the ground beside it is as it was.
 ## With `-- out=DIR` (and no --headless) it also takes a picture of the pit.
 ##
 ##     godot --headless --fixed-fps 60 --path . tests/checks/sinkhole_check.tscn
 ## It prints PASS or FAIL and exits with code 1 if any failed.
 
-var _failures := 0
 
 
 func _ready() -> void:
@@ -105,7 +103,3 @@ func _ready() -> void:
 	get_tree().quit(1 if _failures > 0 else 0)
 
 
-func _verdict(ok: bool, message: String) -> void:
-	print("%s  %s" % ["PASS" if ok else "FAIL", message])
-	if not ok:
-		_failures += 1

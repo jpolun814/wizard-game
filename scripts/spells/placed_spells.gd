@@ -82,7 +82,7 @@ func _decoy(c: SpellCast) -> void:
 
 func _glowcap(c: SpellCast) -> void:
 	var cap := Glowcap.new()
-	cap.caster_node = c.caster
+	cap.caster = c.caster
 	cap.position = _arena.ground_below(c.origin)
 	c.add(cap)
 

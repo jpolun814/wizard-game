@@ -16,7 +16,7 @@ const SHOVE_GAP := 0.8       # seconds before it shoves the same one again
 const HEIGHT := 44.0         # how tall the crest stands
 const FOAM := Color(0.92, 0.98, 1.0, 0.9)
 
-var caster_node: Wizard  # set by the arena before it enters the tree
+var caster: Wizard  # set by the arena before it enters the tree
 var ground: Terrain      # the ground the water will run over when the ride ends
 var _carried := 0.0
 var direction := 1.0
@@ -29,7 +29,7 @@ var _sound: AudioStreamPlayer2D  # the sea, heard for as long as the ride lasts
 func _ready() -> void:
 	add_to_group("lasting")
 	z_index = 6
-	caster_node.start_surf(direction, SECONDS)
+	caster.start_surf(direction, SECONDS)
 	_spray = CPUParticles2D.new()
 	_spray.amount = 40
 	_spray.lifetime = 0.5
@@ -46,17 +46,17 @@ func _ready() -> void:
 	_spray.position = Vector2(direction * FRONT * 0.5, -16.0)
 	add_child(_spray)
 	_spray.emitting = true
-	global_position = caster_node.global_position
+	global_position = caster.global_position
 	_carried = _take_up()
 	_start_sound()
 
 
 func _physics_process(delta: float) -> void:
 	_age += delta
-	if not is_instance_valid(caster_node) or caster_node.dead or caster_node.fainted or _age >= SECONDS or caster_node.surf_time <= 0.0:
+	if not is_instance_valid(caster) or caster.dead or caster.fainted or _age >= SECONDS or caster.surf_time <= 0.0:
 		_end()
 		return
-	global_position = caster_node.global_position
+	global_position = caster.global_position
 	queue_redraw()
 	for body in _shoved.keys():
 		_shoved[body] -= delta
@@ -64,7 +64,7 @@ func _physics_process(delta: float) -> void:
 			_shoved.erase(body)
 	var front := Rect2(global_position.x + (0.0 if direction > 0.0 else -FRONT), global_position.y - 90.0, FRONT, 100.0)
 	for body in SpellTargets.all(get_tree()):
-		if body == caster_node or _shoved.has(body) or not front.has_point(SpellTargets.center_of(body)):
+		if body == caster or _shoved.has(body) or not front.has_point(SpellTargets.center_of(body)):
 			continue
 		_shoved[body] = SHOVE_GAP
 		var impulse := Vector2(SHOVE.x * direction, SHOVE.y)
@@ -111,8 +111,8 @@ func _end() -> void:
 	if _carried > 0.0 and ground != null:
 		Pond.spill(get_parent(), ground, global_position + Vector2(0.0, -6.0), _carried)
 		_carried = 0.0
-	if is_instance_valid(caster_node):
-		caster_node.surf_time = 0.0
+	if is_instance_valid(caster):
+		caster.surf_time = 0.0
 	_spray.emitting = false
 	set_physics_process(false)
 	var fade := create_tween()

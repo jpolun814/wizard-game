@@ -1,12 +1,10 @@
-extends Node
-
+extends Check
 ## The portal giving way: it tears open high in the middle of the world, and in its last three seconds every wizard still standing is drawn up
 ## into it (the player's too, with nothing putting them back on the ground), and then the next world loads. The time in a world is shortened.
 ##
 ##     godot --headless --path . --fixed-fps 60 tests/checks/pull_check.tscn
 ## It prints PASS or FAIL for each check and exits with code 1 if any failed.
 
-var _failures := 0
 var _out := ""  # out=DIR saves pictures of the portal and the pull (needs a window)
 
 
@@ -84,7 +82,3 @@ func _shot(name: String) -> void:
 		get_viewport().get_texture().get_image().save_png("%s/%s.png" % [_out, name])
 
 
-func _verdict(ok: bool, message: String) -> void:
-	print("%s  %s" % ["PASS" if ok else "FAIL", message])
-	if not ok:
-		_failures += 1

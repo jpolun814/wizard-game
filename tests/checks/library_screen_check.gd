@@ -1,12 +1,10 @@
-extends Node
-
+extends Check
 ## The library screen: its ledger line says what was played and won, every page has a card that stays face down until the page has been found or
 ## its spell cast, and choosing a kind of world shows what was done there. It reads a file of its own, never the real library.
 ##
 ##     godot --headless --fixed-fps 60 --path . tests/checks/library_screen_check.tscn
 ## It prints PASS or FAIL for each check and exits with code 1 if any failed.
 
-var _failures := 0
 
 
 func _ready() -> void:
@@ -184,7 +182,3 @@ func _choose(screen: Node, words: String) -> void:
 	_verdict(false, "there is a choice named %s" % words)
 
 
-func _verdict(ok: bool, message: String) -> void:
-	print("%s  %s" % ["PASS" if ok else "FAIL", message])
-	if not ok:
-		_failures += 1

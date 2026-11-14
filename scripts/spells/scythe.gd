@@ -11,16 +11,16 @@ const BODY_RADIUS := 24.0
 const LIFE := 0.4
 const BLADE: Texture2D = preload("res://art/fx/scythe.png")  # a shaft, left, and a curved blade hooking down at its end, right; it is held by the left end, and the blade leads the swing (pixel art made for the game, tools/make_scythe.py)
 
-var caster_node: Wizard
+var caster: Wizard
 var facing := 1.0
 var _age := 0.0
 
 
 func _ready() -> void:
 	add_to_group("danger")
-	if is_instance_valid(caster_node):
-		facing = caster_node.facing
-		global_position = caster_node.center()
+	if is_instance_valid(caster):
+		facing = caster.facing
+		global_position = caster.center()
 	var blood: Color = SpellData.SCHOOL_COLORS["Blood"]
 	_show_swing()
 	Fx.burst(get_parent(), global_position + Vector2(facing * RADIUS * 0.7, 0.0), blood, 12, 180.0, 0.4, true)
@@ -31,7 +31,7 @@ func _ready() -> void:
 ## Hurts whoever stands in the half circle in front and in the open to the caster, and drives them back.
 func _swing() -> void:
 	for body in SpellTargets.all(get_tree()):
-		if body == caster_node:
+		if body == caster:
 			continue
 		var at := SpellTargets.center_of(body)
 		if not _reaches(at) or _sheltered(at):

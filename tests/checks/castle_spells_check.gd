@@ -1,12 +1,10 @@
-extends Node
-
+extends Check
 ## Spells that act on the ground work in the castle too: a dropped boulder rests on a swinging stair, and a Sinkhole and a Stalagmite work on the floor of
 ## an upper storey.
 ##
 ##     godot --headless --fixed-fps 60 --path . tests/checks/castle_spells_check.tscn
 ## It prints PASS or FAIL for each check and exits with code 1 if any failed.
 
-var _failures := 0
 
 
 func _ready() -> void:
@@ -81,7 +79,3 @@ func _frames(count: int) -> void:
 		await get_tree().physics_frame
 
 
-func _verdict(ok: bool, message: String) -> void:
-	print("%s  %s" % ["PASS" if ok else "FAIL", message])
-	if not ok:
-		_failures += 1

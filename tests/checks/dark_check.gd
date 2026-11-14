@@ -1,5 +1,4 @@
-extends Node
-
+extends Check
 ## A wizard crosses a dark stretch of spikes on foot: the ways about the world bar only the strips, and a jump clears one. For the first few
 ## worlds that have such a stretch, it finds a way from just short of the stretch to just past it, walks it in real physics, and has to arrive
 ## without being cut more than once.
@@ -12,7 +11,6 @@ const SECONDS := 40.0
 var _first := 1
 var _last := 20
 var _stretches := 2
-var _failures := 0
 
 
 func _ready() -> void:
@@ -105,7 +103,3 @@ func _cross(world: World, entry: Dictionary, seed_value: int) -> bool:
 	return true
 
 
-func _verdict(ok: bool, message: String) -> void:
-	print("%s  %s" % ["PASS" if ok else "FAIL", message])
-	if not ok:
-		_failures += 1

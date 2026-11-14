@@ -1,12 +1,10 @@
-extends Node
-
+extends Check
 ## An avalanche of the snowy peaks: the slope rumbles before the snow moves, then a wall of snow runs down it and hurts and shoves whoever it
 ## runs over, once, and not whoever stands elsewhere. The world's age is set, so the one under test comes when it is wanted.
 ##
 ##     godot --headless --fixed-fps 60 --path . tests/checks/avalanche_check.tscn
 ## It prints PASS or FAIL for each check and exits with code 1 if any failed.
 
-var _failures := 0
 
 
 func _ready() -> void:
@@ -84,7 +82,3 @@ func _frames(count: int) -> void:
 		await get_tree().physics_frame
 
 
-func _verdict(ok: bool, message: String) -> void:
-	print("%s  %s" % ["PASS" if ok else "FAIL", message])
-	if not ok:
-		_failures += 1

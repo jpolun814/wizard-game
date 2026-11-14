@@ -1,11 +1,9 @@
-extends Node
-
+extends Check
 ## Fire melts a Blizzard's snowbank: a fireball that strikes the bank takes a bite out of it at the spot, deepest where it struck.
 ##
 ##     godot --headless --fixed-fps 60 --path . tests/checks/blizzard_melt_check.tscn
 ## It prints PASS or FAIL for each check and exits with code 1 if any failed.
 
-var _failures := 0
 
 
 func _ready() -> void:
@@ -41,7 +39,3 @@ func _wait(seconds: float) -> void:
 		await get_tree().physics_frame
 
 
-func _verdict(ok: bool, message: String) -> void:
-	print("%s  %s" % ["PASS" if ok else "FAIL", message])
-	if not ok:
-		_failures += 1

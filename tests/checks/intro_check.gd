@@ -1,5 +1,4 @@
-extends Node
-
+extends Check
 ## Plays the opening cut-scene and checks it: the camera runs with the first wizard, ten wizards square up round a pile of pages and fight over it,
 ## six fall, and the four left are pulled into the tearing portal after the pages; and the hand-over when it ends or is skipped. Pass `-- mode=skip` to press a key part-way through; `out=DIR` saves pictures (they need
 ## a window, so leave off --headless).
@@ -11,7 +10,6 @@ extends Node
 var _intro: Intro
 var _out := ""
 var _mode := "full"
-var _failures := 0
 var _done_at := -1.0
 var _pressed := false  # the key that skips the scene has been pressed
 var _clock := 0.0
@@ -84,12 +82,6 @@ func _finish() -> void:
 		_verdict(absf(_done_at - Intro.END) < 0.6, "the scene ends on time and hands over (at %.1fs, expected %.1fs)" % [_done_at, Intro.END])
 	print("all intro checks passed" if _failures == 0 else "%d FAILED" % _failures)
 	get_tree().quit(1 if _failures > 0 else 0)
-
-
-func _verdict(ok: bool, message: String) -> void:
-	print("%s  %s" % ["PASS" if ok else "FAIL", message])
-	if not ok:
-		_failures += 1
 
 
 func _pages_in_view() -> Array[Sprite2D]:

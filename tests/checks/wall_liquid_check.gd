@@ -1,17 +1,11 @@
-extends Node
-
+extends Check
 ## A Stone Wall stops liquid the way any ground does: lava poured on one side of it runs up to it and no further, and runs on when the wall is gone.
 ##
 ##     godot --headless --fixed-fps 60 --path . tests/checks/wall_liquid_check.tscn
 ## It prints PASS or FAIL for each and exits with code 1 if any failed.
 
-var _failures := 0
 
 
-func _verdict(ok: bool, what: String) -> void:
-	print("%s  %s" % ["PASS" if ok else "FAIL", what])
-	if not ok:
-		_failures += 1
 
 
 ## How much liquid lies beyond a given x (to the right of it), within a few hundred pixels of a level, in all of the lava of the world (lava that has

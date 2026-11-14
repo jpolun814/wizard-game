@@ -1,11 +1,9 @@
-extends Node
-
+extends Check
 ## The settings: the choices are kept and read back, the first screen has a Settings inscription (with a sign) that opens the page, the pause
 ## screen has one too, and the shake and cut-scene choices are asked. Add `-- out=DIR` for pictures (they need a window).
 ##
 ##     godot --headless --fixed-fps 60 --path . tests/checks/settings_check.tscn
 
-var _failures := 0
 
 
 func _ready() -> void:
@@ -73,7 +71,3 @@ func _ready() -> void:
 	get_tree().quit(1 if _failures > 0 else 0)
 
 
-func _verdict(ok: bool, what: String) -> void:
-	print("%s  %s" % ["PASS" if ok else "FAIL", what])
-	if not ok:
-		_failures += 1

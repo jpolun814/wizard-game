@@ -1,5 +1,4 @@
-extends Node
-
+extends Check
 ## Nobody starts a match with a spell: the pages each wizard would have been dealt lie in a cluster of their own by their spawn in the first
 ## world. For each seed: every ledger is empty, each seat's five pages lie near its spawn (each page once in the whole world), and a body with no
 ## spell can walk to every one of them from the spawn.
@@ -7,7 +6,6 @@ extends Node
 ##     godot --headless --fixed-fps 60 --path . tests/checks/cluster_check.tscn -- seeds=0,1,4,5,13
 ## It prints PASS or FAIL for each check and exits with code 1 if any failed.
 
-var _failures := 0
 
 
 func _ready() -> void:
@@ -90,7 +88,3 @@ func _walk_to_all(world: World, spawn: Vector2, spots: Array, tag: String) -> vo
 	_verdict(reached == spots.size(), "%s: walked to %d of %d pages" % [tag, reached, spots.size()])
 
 
-func _verdict(ok: bool, message: String) -> void:
-	print("%s  %s" % ["PASS" if ok else "FAIL", message])
-	if not ok:
-		_failures += 1

@@ -1,5 +1,4 @@
-extends Node
-
+extends Check
 ## A wizard that holds the right spell goes to each gate that spells can clear (thorns, ice, gas, a wall), clears it, and the ways about the
 ## world are built again with the gate gone. Pages are taken off the map so that nothing else draws the wizard away.
 ##
@@ -12,7 +11,6 @@ const SECONDS := 420.0
 var seed_value := 8
 var spells := ["Ignite", "Fire Breath", "Stonefall"]
 var only := ""  # only=KIND: tries just the gates of one kind, from the wizard standing beside the first
-var _failures := 0
 
 
 func _ready() -> void:
@@ -85,7 +83,3 @@ func _tile_of(wizard: Wizard) -> Vector2i:
 	return Vector2i(floori(wizard.global_position.x / 32.0), floori((wizard.global_position.y - 1.0) / 32.0))
 
 
-func _verdict(ok: bool, message: String) -> void:
-	print("%s  %s" % ["PASS" if ok else "FAIL", message])
-	if not ok:
-		_failures += 1

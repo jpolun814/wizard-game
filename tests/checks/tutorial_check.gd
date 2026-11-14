@@ -1,5 +1,4 @@
-extends Node
-
+extends Check
 ## The tutorial room: the book starts empty, the keys to walk and jump show at the start, a page lies at each place and reading it puts its spell in the
 ## book, whoever falls keeps what they have read, and the library counts what a match does.
 ## With `-- out=DIR` (and no --headless) it also saves a picture of the start.
@@ -7,7 +6,6 @@ extends Node
 ##     godot --headless --fixed-fps 60 --path . tests/checks/tutorial_check.tscn
 ## It prints PASS or FAIL and exits with code 1 if any failed.
 
-var _failures := 0
 var _out := ""
 
 
@@ -125,7 +123,3 @@ func _left_click() -> InputEventMouseButton:
 	return click
 
 
-func _verdict(ok: bool, message: String) -> void:
-	print("%s  %s" % ["PASS" if ok else "FAIL", message])
-	if not ok:
-		_failures += 1

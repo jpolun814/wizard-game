@@ -1,11 +1,9 @@
-extends Node
-
+extends Check
 ## A wizard that dies leaves its whole book where it fell, and whoever reads it holds every page of it.
 ##
 ##     godot --headless --path . --fixed-fps 60 tests/checks/spoils_check.tscn
 ## It prints PASS or FAIL for each check and exits with code 1 if any failed.
 
-var _failures := 0
 
 
 func _ready() -> void:
@@ -53,7 +51,3 @@ func _ready() -> void:
 	tree.quit(1 if _failures > 0 else 0)
 
 
-func _verdict(ok: bool, message: String) -> void:
-	print("%s  %s" % ["PASS" if ok else "FAIL", message])
-	if not ok:
-		_failures += 1
