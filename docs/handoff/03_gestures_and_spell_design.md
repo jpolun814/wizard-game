@@ -38,7 +38,7 @@
 
 ## Adding a gesture, step by step
 
-1. **Spell entry:** add a `Spell` resource to `res://spells/` (right-click, New Resource, Spell; or copy a `.tres`):
+1. **Spell entry:** add a `Spell` resource to `res://data/spells/` (right-click, New Resource, Spell; or copy a `.tres`):
    school, gesture name, targeting, cost, draw, effect and a short damage line. Put the effect script's path in `effect_path`
    if it is placed as one effect (see `Arena._new_effect`).
 2. **Template or detector:**

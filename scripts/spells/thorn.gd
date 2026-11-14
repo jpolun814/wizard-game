@@ -13,15 +13,8 @@ const ART := preload("res://art/fx/thorn.png")
 
 
 func _begin(origin: Vector2, aim_angle: float) -> void:
-	aim = Vector2.from_angle(aim_angle)
-	add_to_group("projectiles")
-	add_to_group("shots")
-	rotation = aim_angle
 	_life = FLIGHT
-	var box := RectangleShape2D.new()
-	box.size = Vector2(22, 8)
-	_add_shape(box)
-	body_entered.connect(_on_hit)
+	_launch(aim_angle, Vector2(22, 8))
 	var picture := Sprite2D.new()
 	picture.texture = ART
 	picture.scale = Vector2(2.0, 2.0)

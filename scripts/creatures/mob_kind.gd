@@ -2,7 +2,7 @@ class_name MobKind
 extends Resource
 
 ## One kind of enemy, as data: how tough, fast and hard-hitting it is, its school and weakness, its art and what it shoots. Each
-## lives in its own file in res://mobs/ and Mob.KINDS finds them by scanning that folder.
+## lives in its own file in res://data/mobs/ and Mob.KINDS finds them by scanning that folder.
 
 @export var id := ""                 ## the name the game summons it by
 @export var sort_order := 0          ## where it comes in the summon menu

@@ -35,7 +35,7 @@ func _ready() -> void:
 	_verdict(not is_instance_valid(wall) or wall.is_queued_for_deletion(), "the Firewall is gone")
 	_verdict(not is_instance_valid(patch) or patch.is_queued_for_deletion(), "the burning ground is gone")
 
-	var frost := Projectile.new()
+	var frost := IceSpear.new()
 	world.add_child(frost)
 	frost.setup("Frostbolt", spot + Vector2(400.0, 0.0), 0.0)
 	var wall2 := Firewall.new()
@@ -193,7 +193,7 @@ func _ready() -> void:
 	geyser.global_position = wiz.global_position + Vector2(-900.0, 0.0)
 	for k in int((Geyser.WARNING + 0.3) * 60.0):
 		await get_tree().physics_frame
-	var fireball := Projectile.new()
+	var fireball := Fireball.new()
 	world.add_child(fireball)
 	fireball.setup("Ignite", geyser.global_position + Vector2(0.0, -60.0), 0.0)
 	fireball.global_position = geyser.global_position + Vector2(0.0, -60.0)

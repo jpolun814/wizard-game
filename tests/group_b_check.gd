@@ -165,7 +165,7 @@ func _swarm() -> void:
 	await _wait(3.0)
 	_verdict(_rival.max_stamina < 200.0 and _player.max_stamina == 200.0, "and stings the rival (%.0f lost) not the caster" % (200.0 - _rival.max_stamina))
 	# One hit and the whole swarm is gone.
-	var bolt := Projectile.new()
+	var bolt := Fireball.new()
 	_world.add_child(bolt)
 	bolt.setup("Ignite", swarm.global_position + Vector2(-30.0, 0.0), 0.0)
 	await _wait(1.2)

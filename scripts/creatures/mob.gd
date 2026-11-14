@@ -6,16 +6,16 @@ extends CharacterBody2D
 ## resistant to. (The wizards are not mobs: see Wizard.) "scale" draws a creature bigger, always at a whole number of pixels so the pixel art
 ## stays sharp. Its origin is at its feet, so it stands exactly on the ground. Every attack is telegraphed: walkers wind up, shooters charge a glow.
 
-## Every kind of enemy, by the name it is summoned by, each a MobKind resource read from res://mobs/ in the order they are meant to be listed.
+## Every kind of enemy, by the name it is summoned by, each a MobKind resource read from res://data/mobs/ in the order they are meant to be listed.
 static var KINDS: Dictionary = _load_kinds()
 
 
 static func _load_kinds() -> Dictionary:
 	var found: Array[MobKind] = []
-	for file in ResourceLoader.list_directory("res://mobs"):
+	for file in ResourceLoader.list_directory("res://data/mobs"):
 		file = file.trim_suffix(".remap")  # an exported game lists remapped resources under this name
 		if file.ends_with(".tres") or file.ends_with(".res"):
-			found.append(load("res://mobs/" + file))
+			found.append(load("res://data/mobs/" + file))
 	found.sort_custom(func(x: MobKind, y: MobKind) -> bool: return x.sort_order < y.sort_order)
 	var out := {}
 	for kind in found:

@@ -4,8 +4,8 @@ extends RefCounted
 ## What the AI wizards need to draw like a person, none of it tied to one wizard: the strokes' shapes, how much of a stroke's drift each spell stands, and
 ## the quickest a person draws each spell.
 
-const DRIFT_FILE := "res://ai/stroke_drift.json"
-const HUMAN_FILE := "res://ai/human_limits.json"  # what people's bodies were measured to do (tools/measure_human.py)
+const DRIFT_FILE := "res://data/ai/stroke_drift.json"
+const HUMAN_FILE := "res://data/ai/human_limits.json"  # what people's bodies were measured to do (tools/measure_human.py)
 
 static var _human := {}
 static var _drift := {}
@@ -21,7 +21,7 @@ static func drift_table() -> Dictionary:
 
 
 ## The quickest a person draws a spell: the quick end (the 25th percentile) of the strokes recorded for it, where there are enough of them
-## (ai/human_limits.json, from tools/measure_human.py). Spells people were not recorded drawing often have no floor.
+## (data/ai/human_limits.json, from tools/measure_human.py). Spells people were not recorded drawing often have no floor.
 static func quickest_stroke(spell_name: String) -> float:
 	if _human.is_empty():
 		var file := FileAccess.open(HUMAN_FILE, FileAccess.READ)

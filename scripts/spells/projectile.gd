@@ -1,18 +1,10 @@
 class_name Projectile
 extends SpellEffect
 
-## A shot that flies straight from the caster: Ignite's fireball or Frostbolt's ice spear. It hits the first foe or
+## A shot that flies from the caster: the base of Ignite's Fireball, Frostbolt's IceSpear, the Pebble and the Thorn. It hits the first body or
 ## wall in its way. It can't hit the one who cast it until it has flown out of their body.
 
-const STATS := {
-	"Ignite": {"speed": 700.0, "damage": 12, "life": 2.0, "color": Color("#ff7a2a")},
-	"Frostbolt": {"speed": 600.0, "damage": 7, "life": 2.0, "color": Color("#b8f0ff")},
-}
-const SLOW_SECONDS := 2.0
 const CLEAR_CHECK_AFTER := 0.05  # the overlaps of a new shot are not known until a few physics frames have passed
-const FIREBOLT_HEAD := 21.0  # how far the head of the fire bolt is from the middle of its frame
-const FIREBOLT_DROP := 6.0  # how far below the middle of its frame the ball of the fire bolt is, in art pixels
-const FIREBALL_KNOCK := 420.0  # how hard a fireball pushes what it hits
 
 var aim := Vector2.RIGHT
 var _pulled := Vector2.ZERO  # a pull (a Black Hole's) bends the flight, on top of the aim
@@ -21,35 +13,16 @@ var _clear := false  # it has flown out of its caster's body: from then on it ca
 var _trail: CPUParticles2D
 
 
-func _begin(origin: Vector2, aim_angle: float) -> void:
+## What every shot does when it is cast: it flies along the aim, joins the groups that wind and holes in the world look for, and gets hurt by what it hits.
+func _launch(aim_angle: float, box: Vector2) -> void:
 	aim = Vector2.from_angle(aim_angle)
-	if spell == "Ignite":
-		material = Fx.additive()  # fire adds light to what is behind it; ice is solid, with no glow
 	add_to_group("projectiles")
 	add_to_group("shots")
-	if spell == "Ignite":
-		add_to_group("fires")
 	rotation = aim_angle
-	_life = STATS[spell]["life"]
-	var rect := RectangleShape2D.new()
-	rect.size = Vector2(22, 12)
-	_add_shape(rect)
+	var shape := RectangleShape2D.new()
+	shape.size = box
+	_add_shape(shape)
 	body_entered.connect(_on_hit)
-	_trail = _make_trail()
-	add_child(_trail)
-	# The shot itself: a pixel-art fireball or ice spear, its head on the node and its tail streaming behind.
-	var shot: AnimatedSprite2D
-	if spell == "Frostbolt":
-		shot = PixelFx.sprite("icespear", 18.0)
-		shot.offset = Vector2(-18, 0)
-	else:
-		shot = AnimatedSprite2D.new()  # pimen's fire bolt: its head is 21 px right of the middle of its frame
-		shot.sprite_frames = PixelFx.square_frames("pimen_firebolt", 16.0, true)
-		shot.offset = Vector2(-FIREBOLT_HEAD, -FIREBOLT_DROP)  # the ball sits below the middle of its frame: lift it onto the axis the glow, trail and hit box ride on
-		shot.scale = Vector2(2.0, 2.0)
-		shot.play("default")
-	add_child(shot)
-	Sfx.play("cast_ice" if spell == "Frostbolt" else "cast_fire", origin)
 
 
 ## Whether it lands on a wizard even in the moment of safety after a hit: a volley of thorns, each of which counts.
@@ -57,12 +30,14 @@ func lands_through_grace() -> bool:
 	return false
 
 
+## How hard it hits: each kind of shot says its own.
 func damage() -> int:
-	return STATS[spell]["damage"]
+	return 0
 
 
+## How fast and which way it is moving: each kind of shot says its own.
 func velocity() -> Vector2:
-	return aim * STATS[spell]["speed"]
+	return Vector2.ZERO
 
 
 ## A steady pull, such as a Black Hole's. Call it every frame the pull lasts.
@@ -82,25 +57,6 @@ func _act(delta: float) -> void:
 	rotation = aim.angle()
 
 
-func _draw() -> void:
-	if spell == "Ignite":
-		Fx.draw_glow(self, Vector2.ZERO, 20.0 * (1.0 + 0.1 * sin(_age * 30.0)), Color(1.0, 0.45, 0.12, 0.45))
-
-
-## The trail behind the shot. Ice leaves drifting snow; fire leaves embers of the same pixel fire as the flames.
-func _make_trail() -> CPUParticles2D:
-	if spell == "Frostbolt":
-		# Drawn normally rather than as light, and a little blue, so the snow shows up against a snowy level.
-		var snow := Fx.trail(Color("#a9dcff"), 36, 0.55, 30.0, Vector2(0, 60), "star_04", 12.0)
-		snow.material = null
-		return snow
-	var embers := Fx.trail(Color("#ff9a40"), 60, 0.35, 25.0, Vector2(0, -60), "flame_05", 12.0)
-	embers.texture = PixelFx.ember()
-	embers.angle_min = -180.0
-	embers.angle_max = 180.0
-	return embers
-
-
 func _on_hit(body: Node2D) -> void:
 	if _spent or (body == caster and not _clear):
 		return  # the one who cast it is safe from it until it has flown clear of them
@@ -112,36 +68,32 @@ func _on_hit(body: Node2D) -> void:
 			return
 		_spent = true
 		MatchStats.strike(self)
-		body.take_damage(damage(), not lands_through_grace(), true)
-		if spell == "Frostbolt":
-			body.apply_debuff("slow", SLOW_SECONDS)
+		_hurt_wizard(body)
 	elif body.is_in_group("mobs"):
 		if body.is_dead():
 			return
 		_spent = true
 		MatchStats.strike(self)
-		body.take_damage(damage(), _school(), true)
-		if spell == "Ignite":
-			body.knock_back(aim * FIREBALL_KNOCK)  # a fireball shoves the enemy a little along its path
-		if spell == "Frostbolt":
-			body.apply_slow(SLOW_SECONDS)
+		_hurt_mob(body)
 	else:
 		_spent = true  # terrain, walls and stone slabs stop it
 	_impact_effect()
 	_finish()
 
 
-## Ice shatters into shards; fire bursts into sparks and a puff of smoke.
+## What a wizard is dealt: the hit, which a thorn's volley lets land through the moment of safety that follows a blow.
+func _hurt_wizard(wizard: Wizard) -> void:
+	wizard.take_damage(damage(), not lands_through_grace(), true)
+
+
+## What a creature is dealt.
+func _hurt_mob(mob: Mob) -> void:
+	mob.take_damage(damage(), _school(), true)
+
+
+## What is seen and heard where the shot lands: each kind of shot has its own.
 func _impact_effect() -> void:
-	if spell == "Frostbolt":
-		Shatter.spawn(get_parent(), global_position, STATS[spell]["color"])
-		Sfx.play("ice_shatter", global_position)
-		SpellTargets.douse(get_tree(), global_position, 50.0)
-	else:
-		PixelFx.play_square(get_parent(), global_position, "pimen_firebolt_hit", 18.0, 2.0, aim.angle())
-		Blizzard.melt_at(get_tree(), global_position)  # a fireball that hits a snowbank bites a piece out of it
-		Fx.smoke(get_parent(), global_position, Color(0.3, 0.25, 0.25, 0.4), 3, 18.0, 30.0)
-		Sfx.play("fire_hit", global_position)
+	pass
 
 
 ## A Gust, Push or Tornado turns this shot: it flies off along the new heading.

@@ -2,7 +2,7 @@ class_name Spell
 extends Resource
 
 ## One fast spell, as data: which school and gesture cast it, what it costs, what the spellbook says about it, and the
-## script that makes its effect. Each lives in its own file in res://spells/, so a spell is added or tuned in the
+## script that makes its effect. Each lives in its own file in res://data/spells/, so a spell is added or tuned in the
 ## editor's inspector and SpellData finds it by scanning that folder.
 
 ## What about the stroke makes a spell cost more: its size is measured and compared with size_unit, then clamped.

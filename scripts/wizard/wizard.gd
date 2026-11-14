@@ -74,7 +74,7 @@ var flying := false          # set by a world with no ground (the sky): the wiza
 var fly_box := Rect2()       # where a flying wizard's feet may be: it stops at the edge of it. Empty: anywhere
 var _feather_motes := 0.0
 var gravity: float = ProjectSettings.get_setting("physics/2d/default_gravity")
-var look := "wizard":  # which wizard this is: the player's own, or the id of one of the others' looks (a MobKind in res://mobs)
+var look := "wizard":  # which wizard this is: the player's own, or the id of one of the others' looks (a MobKind in res://data/mobs)
 	set(value):
 		if value == look:
 			return

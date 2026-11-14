@@ -9,7 +9,7 @@ The viewport is 1280x720, with stretch mode `canvas_items`.
 
 `core/` (autoloads, spell and page data, the match's records), `wizard/` (the body and its pieces), `brain/` (the AI wizards), `arena/` (the arena, worlds, rituals, casting, the waiting room, the tutorial, portals),
 `creatures/` (mobs and what they shoot), `scenery/` (living scenery and backdrops), `terrain/` (ground, pools, gates, bonfires, pages on the floor), `screens/` (menu, intro, library, spellbook and the other whole screens),
-`ui/` (hud, camera, cursor, tooltips), `fx/` (effects and art helpers), plus `gesture/`, `spells/`, `world/` (generation) and `hud/` as before. Shaders sit beside the script that uses them.
+`ui/` (hud, camera, cursor, tooltips), `fx/` (effects and art helpers), plus `gesture/`, `spells/` (the effects) and `world/` (generation). Shaders sit beside the script that uses them.
 
 ## How a frame of the game fits together
 
@@ -96,7 +96,7 @@ never block each other.
   picture, which is also the stroke the wizard draws), and `preview_ground`.
 - **`gesture/unistroke_recognizer.gd`:** the $1 recognizer. `recognize(points, only)` limits it to the named
   templates.
-- **`spell.gd` and `res://spells/*.tres`:** one `Spell` resource per fast spell (school, gesture, targeting, cost, draw, effect,
+- **`spell.gd` and `res://data/spells/*.tres`:** one `Spell` resource per fast spell (school, gesture, targeting, cost, draw, effect,
   damage line, the size that scales its cost, the effect script's path). Edit them in the inspector.
 - **`spell_data.gd`:** loads those resources into `SPELLS` (name -> `Spell`), plus `SCHOOL_COLORS`, `SCHOOL_BUTTONS` and `bindings()`.
 - **`status_effects.gd`:** the player's timed conditions, each a `Timer` node (`slow_time`, `haste_time`... are properties over it).
@@ -111,7 +111,7 @@ never block each other.
   branches on the spell's name.
   - `spell_effect.gd` (`SpellEffect`) is a small base for the simpler effects: it holds `spell`, `caster` and the
     life timer, and calls `_begin` (start), `_act` (each physics frame) and `_finish` (end) on its subclasses.
-  - Its subclasses: `projectile.gd` (Ignite, Frostbolt), `firewall.gd`, `icicle.gd`, `blizzard.gd`,
+  - Its subclasses: `projectile.gd` (the base of every shot), `fireball.gd` (Ignite), `ice_spear.gd` (Frostbolt), `firewall.gd`, `icicle.gd`, `blizzard.gd`,
     `push_zone.gd`, `gust.gd`, `stone_wall.gd`, `spark_strike.gd`. The arena picks one in `_new_effect`.
   - Standalone effects: `fire_breath.gd`, `tornado.gd`, `ice_prison.gd`, `abyss.gd`, `mudslide.gd`,
     `boulder.gd` (Stonefall's rock), `lava_ball.gd` (a volcano's shots; the ashlands' `Eruption` throws them), `earthquake.gd`, `smoke_screen.gd`, `flare.gd`,
@@ -133,7 +133,7 @@ never block each other.
 
 ### Creatures
 - **`mob.gd`:** (a giant's stomp is `mob.stomp`, `Stomp`)
-  - `Mob.KINDS` loads one `MobKind` resource per kind from `res://mobs/` (edit them in the inspector); each gives: role (melee, ranged, wizard), art, school, weak, resist, hp, damage, speed,
+  - `Mob.KINDS` loads one `MobKind` resource per kind from `res://data/mobs/` (edit them in the inspector); each gives: role (melee, ranged, wizard), art, school, weak, resist, hp, damage, speed,
     effect and shot. The kinds and where each lives are in `06_enemies_and_ai.md`.
   - Creature frames are built by `CharFrames`. The shader `mob.gdshader` adds a slight school tint, a 1 px
     school-coloured outline, the hit flash and the frozen look.

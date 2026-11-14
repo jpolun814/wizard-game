@@ -59,17 +59,17 @@ const SCHOOL_BUTTONS := {
 	"Blood": LEFT | RIGHT | MIDDLE,  # the school that is paid for in maximum stamina
 }
 
-## Every fast spell, by name, each a Spell resource read from res://spells/. The caster, arena and spellbook all read from here.
+## Every fast spell, by name, each a Spell resource read from res://data/spells/. The caster, arena and spellbook all read from here.
 ## Each gesture is a picture of what the spell does.
 static var SPELLS: Dictionary = _load_spells()
 
 
 static func _load_spells() -> Dictionary:
 	var out := {}
-	for file in ResourceLoader.list_directory("res://spells"):
+	for file in ResourceLoader.list_directory("res://data/spells"):
 		file = file.trim_suffix(".remap")  # an exported game lists remapped resources under this name
 		if file.ends_with(".tres") or file.ends_with(".res"):
-			var spell: Spell = load("res://spells/" + file)
+			var spell: Spell = load("res://data/spells/" + file)
 			out[spell.spell_name] = spell
 	return out
 

@@ -1,6 +1,6 @@
 # Creatures and the AI wizards
 
-## Creatures (`Mob.KINDS`, one `MobKind` resource each in `res://mobs/`)
+## Creatures (`Mob.KINDS`, one `MobKind` resource each in `res://data/mobs/`)
 
 The world's dangers are mostly the other wizards. The creatures are few, and each has a place:
 
@@ -28,7 +28,7 @@ The owner wants them indistinguishable from people (the section on playing like 
 
 - **Casting** goes through the real recognizer: `BrainHand.begin_cast(spell, stroke, draw_time)` draws the stroke in front of it over `draw_time`, then
   `caster.cast_stroke`. A blow of 6 or more while it draws interrupts the spell. Strokes come from `GestureTemplates.preview_points`, with a hand's wobble
-  (`BrainHand.handed`, measured in `ai/stroke_drift.json`) and a shaky hand while its own screen shakes (`BrainHand.shaken`).
+  (`BrainHand.handed`, measured in `data/ai/stroke_drift.json`) and a shaky hand while its own screen shakes (`BrainHand.shaken`).
 - **Sight** is a screen of its own (`Eyes`: the person's window size and camera rest, smoothed like the camera), so it sees only what a person in its place would.
 - **Reactions:** it watches shots and, after a reaction time set by `skill`, jumps, turns the shot with a Gust, raises a Barrier or steps aside. Too close,
   it pushes, steps away or breathes fire. It steps out of danger with every spell's `danger_at`.
@@ -80,7 +80,7 @@ legs. It learned the duels, but the owner called it off on 2026-11-12: whole mat
 look human. All of it (the hand, the senses, the trainers, the arenas, the checks, and chapters 17 and 18) was removed; it is all in commit
 `8b82bc3` ("Learned AI through a person's controls..."), and `git checkout 8b82bc3 -- training scripts/senses.gd ...` brings it back. What it left
 that the scripted brain uses: a wizard faces the way it moves (no moonwalking), a brain's misfire costs stamina as a person's does, and the
-people's limits measured from recordings (`ai/human_limits.json` from `tools/measure_human.py`, `ai/stroke_drift.json` from `tests/measure_drift.gd`).
+people's limits measured from recordings (`data/ai/human_limits.json` from `tools/measure_human.py`, `data/ai/stroke_drift.json` from `tests/measure_drift.gd`).
 
 The owner wants the AI wizards to be indistinguishable from people, judged by what a human would find odd, not by what the code says. The method: run
 `tests/arena_sim.tscn -- seed=N seconds=360 log=FILE` headless on many seeds (`log=` writes a line four times a second for each wizard: position, velocity,

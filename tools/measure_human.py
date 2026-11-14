@@ -11,9 +11,9 @@ user://received_logs) and prints, with the median and the middle half (25th to 7
 - reaction: from a shot thrown by someone else appearing near the person (an X Projectile line not by the person) or from being hurt
   (a D line) to the person's next key or button going down.
 
-Writes the figures as JSON (default ai/human_limits.json) for the brains to read.
+Writes the figures as JSON (default data/ai/human_limits.json) for the brains to read.
 
-    python -I tools/measure_human.py [--out ai/human_limits.json]
+    python -I tools/measure_human.py [--out data/ai/human_limits.json]
 """
 import argparse
 import glob
@@ -139,7 +139,7 @@ def measure(paths):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--out", default="ai/human_limits.json")
+    parser.add_argument("--out", default="data/ai/human_limits.json")
     args = parser.parse_args()
     root = user_dir()
     paths = sorted(glob.glob(os.path.join(root, "play_logs", "*.log")) + glob.glob(os.path.join(root, "received_logs", "*.gz")))

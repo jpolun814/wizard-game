@@ -6,7 +6,7 @@ extends RefCounted
 
 const STOPPING := 0.35  # seconds to come to a stop before the first letter of a chant (a person stops walking, then reaches for the box)
 const TYPING_FASTEST := 0.08  # seconds a letter takes to type, from the quick end of the people recorded to the slow
-const TYPING_SLOWEST := 0.15  # (1,493 letters: tools/measure_human.py, ai/human_limits.json); a skilled wizard types at the quick end
+const TYPING_SLOWEST := 0.15  # (1,493 letters: tools/measure_human.py, data/ai/human_limits.json); a skilled wizard types at the quick end
 
 var typing := ""  # the chant it is typing, and will say when the brain's settle has run out
 var age := 0.0  # seconds since the chant box was opened

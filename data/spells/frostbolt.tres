@@ -11,4 +11,4 @@ targeting = "directional"
 cost = 14.0
 effect = "Shoot a chilling bolt of ice."
 damage = "7 dmg"
-effect_path = "res://scripts/spells/projectile.gd"
+effect_path = "res://scripts/spells/ice_spear.gd"

@@ -9,7 +9,7 @@ extends SceneTree
 ## drawing speed: a walk of 300 px/s during a 0.8 s stroke is a slide of 240 px.
 ##
 ## Run from the project folder:
-##     godot --headless -s tests/measure_drift.gd [-- out=ai/stroke_drift.json]
+##     godot --headless -s tests/measure_drift.gd [-- out=data/ai/stroke_drift.json]
 ## It prints one line a spell and writes the table as JSON for the brains to read.
 
 const GROUND_Y := 0.0
@@ -31,7 +31,7 @@ func _initialize() -> void:
 
 
 func _process(_delta: float) -> bool:
-	var out_path := "res://ai/stroke_drift.json"
+	var out_path := "res://data/ai/stroke_drift.json"
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("out="):
 			out_path = arg.substr(4)

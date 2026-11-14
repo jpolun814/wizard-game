@@ -51,7 +51,7 @@ func _act(delta: float) -> void:
 func _on_shot(area: Area2D) -> void:
 	if _struck.has(area.get_instance_id()):
 		return
-	if (area is Projectile and area.spell == "Ignite") or area is LavaBall:
+	if area is Fireball or area is LavaBall:
 		_struck[area.get_instance_id()] = true
 		_melt_slice()
 

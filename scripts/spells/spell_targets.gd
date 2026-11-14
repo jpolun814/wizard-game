@@ -155,7 +155,7 @@ static func fire_points(tree: SceneTree) -> Array:
 	for node in tree.get_nodes_in_group("fires"):
 		if node is Hazard:
 			fires.append({"at": node.global_position, "heat": 1.0, "size": node.width * 0.5, "shot": false})
-		elif (node is Projectile and node.spell == "Ignite") or node is LavaBall:
+		elif node is Fireball or node is LavaBall:
 			fires.append({"at": node.global_position, "heat": 3.0, "size": 0.0, "shot": true})
 		elif node is Firewall:
 			for point in node.flame_points():

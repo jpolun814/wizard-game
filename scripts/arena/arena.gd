@@ -226,7 +226,7 @@ func add_mob(kind: String, feet: Vector2) -> Node2D:
 	return mob
 
 
-## A wizard that a brain plays, in one of the looks in res://mobs, standing at a point on the ground. One with a name of its own is a
+## A wizard that a brain plays, in one of the looks in res://data/mobs, standing at a point on the ground. One with a name of its own is a
 ## seat of a match, which a network game shows on every machine (see World).
 func add_wizard(look: String, feet: Vector2, seat_name := "") -> Wizard:
 	var wizard: Wizard = WIZARD_SCENE.instantiate()

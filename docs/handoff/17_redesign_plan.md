@@ -78,7 +78,7 @@ other files unchanged: GDScript has no partial classes, and a base class cannot 
 
 - `_attack_stroke` and `_cross` should stop being branches on a spell's name or a gate's kind: a spell (or a gate) knows how the AI casts it, in a table or on its own `Spell`
   resource, as `CLAUDE.md` section 9 already asks for the effects.
-- The constants go with the skill that uses them. The magic numbers that are really a person's limits stay in `ai/human_limits.json`.
+- The constants go with the skill that uses them. The magic numbers that are really a person's limits stay in `data/ai/human_limits.json`.
 - `SkyBrain` (the same job in the sky) should use the same skills where they apply (sight, hand, mend) and not a second copy.
 - Do the pure, state-free helpers first (the line and offset helpers, `_drift_table`, `_quickest_stroke`, `_densify`): they move as `static` functions and need no new fields.
 - The safety net is wide: `brain_spells_check`, `brains_start_check`, `route_check`, `cross_check`, `gate_check`, `tutorial_ai_check` (fails already), `arena_sim`, and the sims in

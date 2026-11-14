@@ -405,7 +405,7 @@ python tools/run_checks.py --full                              # all of them, ab
 | F1 | Debug summon panel |
 | R | New run, on the game-over screen |
 
-## 5. Spells (the `Spell` resources in `res://spells/` are the single source of truth)
+## 5. Spells (the `Spell` resources in `res://data/spells/` are the single source of truth)
 
 | School | Spell | Shape | Real thing | Counterplay |
 |---|---|---|---|---|
@@ -446,7 +446,7 @@ python tools/run_checks.py --full                              # all of them, ab
 | Shadow | Black Hole | inward spiral | a dark knot that pulls everything toward it, fiercely close in and faintly from far off (walls still stop it) | walk out |
 | Shadow | Shadow Step | flick | slipping along the stroke | |
 
-**The spellbook page** (owner decision, 2026-11-07): the drawn picture, a short description, the damage it deals ("14 dmg/sec", "30 dmg") and its cost in stamina (maximum stamina for Necromancy), see section 0. Everything else about a spell, what counters it included, is learned in play. The table above is the first 32 spells. The others (Vacuum, Updraft, Sinkhole, Stalagmite, Silence, Fight or Flight, Sneak, Hunter's Mark, the Blood spells, Tide Surf, Obsidian Armor, Glowcap and Moonbeam) are in `spells/` and `docs/spell_pool.md`.
+**The spellbook page** (owner decision, 2026-11-07): the drawn picture, a short description, the damage it deals ("14 dmg/sec", "30 dmg") and its cost in stamina (maximum stamina for Necromancy), see section 0. Everything else about a spell, what counters it included, is learned in play. The table above is the first 32 spells. The others (Vacuum, Updraft, Sinkhole, Stalagmite, Silence, Fight or Flight, Sneak, Hunter's Mark, the Blood spells, Tide Surf, Obsidian Armor, Glowcap and Moonbeam) are in `data/spells/` and `docs/spell_pool.md`.
 
 **The schools have new names** (the ids Fire, Water, Air, Earth, Flora, Shadow and Blood stay in code and double as element tags; only what a player reads changed, through `SpellData.school_name`): Pyromancy, Aquamagy, Aerokinesis, Terramancy, Druidry, Umbramancy and Necromancy. The Library gives a title from the casts (`Library.title_of`).
 
