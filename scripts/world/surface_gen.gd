@@ -105,15 +105,7 @@ static func build(width: int, biome: String, rng: RandomNumberGenerator) -> Dict
 			floor_row[c] = rim_row
 			pinned[c] = 1
 		craters.append({"x": middle_column, "row": rim_row})
-	var castles: Array[int] = []
-	if biome == "castle":  # the whole world is castle: castles stand side by side from end to end, with a solid wall of the same height at each end where there is room left over
-		var count := (width - MARGIN * 2) / CASTLE_WIDTH
-		var first := MARGIN + ((width - MARGIN * 2) - count * CASTLE_WIDTH) / 2
-		for k in count:
-			castles.append(first + k * CASTLE_WIDTH)
-		for c in range(0, width):
-			floor_row[c] = BASE_ROW
-			pinned[c] = 1
+	var castles := _castles_of(width, floor_row, pinned) if biome == "castle" else ([] as Array[int])
 	var starts := _starts(width, castles, volcanoes)
 	if castles.is_empty():  # a world that is all surface starts its wizards a quarter of the way apart, each on a level shelf cut into whatever ground is there
 		for spot in starts:
@@ -124,6 +116,40 @@ static func build(width: int, biome: String, rng: RandomNumberGenerator) -> Dict
 	_relax(floor_row, pinned, limits)
 	# Pools, after the ground is smooth: each is dug into a level stretch of its own, far enough from any other level ground
 	# that the ground between can slope from one to the other.
+	var ponds := _dig_pools(floor_row, pinned, craters, width, biome, rng)
+	_relax(floor_row, pinned, limits)
+	var mud := []
+	var thorns := []
+	var trees := []
+	if biome == "jungle":
+		_lay_jungle_hazards(width, ponds, mud, thorns, rng)
+		trees = _plant_trees(floor_row, [ponds, mud, thorns], starts, rng)
+	var crypts := _place_crypts(floor_row, [ponds], starts) if biome == "graveyard" else []
+	var sea := {}
+	var landmarks := _landmarks(biome, floor_row, craters, trees, crypts)
+	if biome == "ocean":
+		sea = _sea_of(floor_row, islands, starts, rng)
+		landmarks = sea["landmarks"]
+	return {"limits": limits, "floor": floor_row, "biomes": [{"name": biome, "a": MARGIN, "b": width - MARGIN - 1}], "ponds": ponds, "castles": castles, "castle": castles[0] if not castles.is_empty() else -1, "roofed": biome == "underground", "start": middle,
+			"craters": craters, "mud": mud, "thorns": thorns, "trees": trees, "crypts": crypts, "landmarks": landmarks, "starts": starts, "sea": sea, "air": {}}
+
+
+## The whole world is castle: castles stand side by side from end to end, with a solid wall of the same height at each end where there is room left over. Returns the first column of each.
+static func _castles_of(width: int, floor_row: PackedInt32Array, pinned: PackedByteArray) -> Array[int]:
+	var castles: Array[int] = []
+	var count := (width - MARGIN * 2) / CASTLE_WIDTH
+	var first := MARGIN + ((width - MARGIN * 2) - count * CASTLE_WIDTH) / 2
+	for k in count:
+		castles.append(first + k * CASTLE_WIDTH)
+	for c in range(0, width):
+		floor_row[c] = BASE_ROW
+		pinned[c] = 1
+	return castles
+
+
+## Pools, after the ground is smooth: each is dug into a level stretch of its own, far enough from any other level ground that the ground between can slope from one to the other.
+## The dry bowl in the top of each volcano is cut first (lava fills it only when the volcano erupts: see Eruption). Returns the pools.
+static func _dig_pools(floor_row: PackedInt32Array, pinned: PackedByteArray, craters: Array, width: int, biome: String, rng: RandomNumberGenerator) -> Array:
 	var ponds := []
 	for crater in craters:  # the dry bowl in the top of each volcano: lava fills it only when the volcano erupts (see Eruption)
 		var a: int = crater["x"] - CRATER_WIDTH / 2
@@ -148,21 +174,7 @@ static func build(width: int, biome: String, rng: RandomNumberGenerator) -> Dict
 				floor_row[c] = _lava_floor(c - a, level, depth) if lava else level + mini(mini(c - a + 1, a + pool_width - c), depth)
 			ponds.append({"a": a, "b": a + pool_width - 1, "surface": level, "depth": depth, "lava": lava, "islands": lava})
 			break
-	_relax(floor_row, pinned, limits)
-	var mud := []
-	var thorns := []
-	var trees := []
-	if biome == "jungle":
-		_lay_jungle_hazards(width, ponds, mud, thorns, rng)
-		trees = _plant_trees(floor_row, [ponds, mud, thorns], starts, rng)
-	var crypts := _place_crypts(floor_row, [ponds], starts) if biome == "graveyard" else []
-	var sea := {}
-	var landmarks := _landmarks(biome, floor_row, craters, trees, crypts)
-	if biome == "ocean":
-		sea = _sea_of(floor_row, islands, starts, rng)
-		landmarks = sea["landmarks"]
-	return {"limits": limits, "floor": floor_row, "biomes": [{"name": biome, "a": MARGIN, "b": width - MARGIN - 1}], "ponds": ponds, "castles": castles, "castle": castles[0] if not castles.is_empty() else -1, "roofed": biome == "underground", "start": middle,
-			"craters": craters, "mud": mud, "thorns": thorns, "trees": trees, "crypts": crypts, "landmarks": landmarks, "starts": starts, "sea": sea, "air": {}}
+	return ponds
 
 
 ## The columns the wizards start from in a world that is all surface: evenly along it, each time over (but not on the cone of a volcano: a start that
