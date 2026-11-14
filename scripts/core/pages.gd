@@ -13,8 +13,9 @@ extends RefCounted
 const ATTACKS := ["Ignite", "Fire Breath", "Spark", "Frostbolt", "Stonefall", "Spore Puff", "Firewall", "Stalagmite", "Bramble", "Flytrap",
 		"Barbs", "Pebble", "Hailstorm", "Thorn Whip", "Insect Plague", "Flaming Sphere", "Thunderclap", "Raise Dead",
 		"Eldritch Blast", "Hemorrhage", "Supernova", "Scythe"]
-## Attacks that reach a rival from a distance: every wizard starts with one of these (see deal), so nobody begins with only spells that need an enemy close by.
-const RANGED := ["Ignite", "Spark", "Frostbolt", "Stonefall", "Barbs", "Pebble", "Hailstorm", "Thorn Whip", "Flaming Sphere", "Eldritch Blast", "Supernova"]
+## The attacks a wizard can start with (see deal): the ones that are worth a first page alone. Harsher spells (Supernova, Flaming Sphere) and weaker ones
+## (Hailstorm, Thorn Whip) are found, not dealt.
+const RANGED := ["Ignite", "Fire Breath", "Spark", "Frostbolt", "Stonefall", "Barbs", "Pebble", "Eldritch Blast"]
 const MOVES := ["Shadow Step", "Push", "Liana", "Geyser", "Updraft", "Tornado", "Great Oak", "Rocket Jump"]
 const DEFENCES := ["Barrier", "Decoy", "Stone Wall", "Smoke Screen", "Gust", "Eclipse", "Sneak", "Featherfall", "Mirage"]
 const CHANTS := ["chant:bonfire", "chant:rift"]
