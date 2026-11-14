@@ -20,7 +20,7 @@ Friends play together over a network: one hosts, the others join by address. It 
 | `Net` autoload | `scripts/net.gd` | host / join / leave, the roster (people in seat order, the host first), which scene each machine is in, `Net.send(node, method, args)` (an rpc to every machine in the same scene) |
 | First screen | `scenes/menu.tscn`, `scripts/menu.gd` | the main scene: Play alone, Host a game, Join (address box, remembered in `user://settings.cfg`) |
 | A wizard on another machine | `scripts/wizard.gd` (`share`, `is_person`, `is_likeness`, `_follow`, `_tell_others`) | a *likeness*: the same `Wizard` scene with a `MultiplayerSynchronizer` added, driven by the machine that owns it |
-| Casting | `arena.cast_by` -> `_spawn_everywhere` / `_spawn_seen` | the driving machine pays for the spell, then every machine spawns the same spell from the same origin with the same random seed |
+| Casting | `arena.casting.by` -> `_everywhere` / `arena.spawn_seen` | the driving machine pays for the spell, then every machine spawns the same spell from the same origin with the same random seed |
 | Waiting room | `scripts/lab.gd` (`_meet_people`, `_stepped_in`, `_go`) | likenesses of everyone, the host's address in the title, the portal waits for every person |
 | A match | `scripts/world.gd` (`my_seat`, `places` (in `WorldSeats`, `world.seat_work`: `spawn`, `watch_falls`), `_begin_collapse`, `_gates_cleared`, `_back_to_room`) | seats, brains on the host, pages, books of the fallen, the collapse, gates, the end |
 
@@ -35,7 +35,7 @@ no-op.
 **What is synced** (`Wizard.share`): `net_position` (a likeness glides to it, or snaps past `SNAP` px), velocity, facing, stamina,
 max stamina, the cast colour and the casting pose every frame; death, fainting, the animation, the stroke being
 drawn (`shown_stroke`, thinned to points 8 px apart), `marks`, visibility and modulate when they change. Hurt flashes, "Interrupted!"
-and chants are one-off rpcs (`_show_hurt`, `_show_interrupt`, `_show_chant`).
+and chants are one-off rpcs (`_show_hurt`, `_show_interrupt`, `show_chant`).
 
 **Names are paths.** Godot finds a node on another machine by its path, so every shared node has a name that is the same everywhere:
 `Wizard<peer id>` for a person's, `Rival<seat>` for a brain's, `Page<k>` for a page laid from the seed, `Spoils<wizard>` for a fallen

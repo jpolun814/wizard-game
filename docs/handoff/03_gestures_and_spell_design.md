@@ -50,7 +50,7 @@
      `_max_deviation`, compare arm lengths, check whether the stroke closes (start near end), and use total
      turning angle measured over spans of a few pixels (2 px steps are noisy).
 3. **Preview:** add `preview_points("my_shape")`, plus `preview_ground` if it must start on the ground.
-4. **Routing:** route it in `SpellSpawner.spawn` or `place_shapes`.
+4. **Routing:** a simple effect needs nothing (its resource names the script). A spell that needs more gets a recipe in one of the four tables (`CasterSpells`, `AimedSpells`, `PlacedSpells`, `ShapeSpells`, in `scripts/spells/`) and lists itself in that table's `recipes`.
 5. **Tests:** add the gesture to the mirrored list in `tests/test_gestures.gd` if direction shouldn't matter,
    plus any special checks. The rotated-cone checks are an example.
 6. **Dark wizard:** a score in `BrainCombat.attack` and a stroke in `BrainHand.attack_stroke`, using preview points
@@ -111,7 +111,7 @@ where it makes sense for both, and two spells on one button combination never sh
 
 ## Spells added later (gestures chosen with the owner)
 
-- **Vacuum** (Air, lungs: an infinity sign on its side, `Wizard.smother`): the air is drawn out of one wizard's lungs. It breaks when the caster casts again or is hurt.
+- **Vacuum** (Air, lungs: an infinity sign on its side, `Lungs.smother`): the air is drawn out of one wizard's lungs. It breaks when the caster casts again or is hurt.
 - **Updraft** (Air, arrow up): a lasting column; any number; lifts by adding to `velocity.y`.
 - **Silence** (Shadow, slashed circle): a ring in which `Wizard.silenced()` is true, so the player's caster is disabled, a brain will not start a cast and chants are refused (`is_muted`).
 - **Fight or Flight** (Blood, question mark): by a coin flip (the cast's own seeded dice) the target either fights (`rage_time`: the game casts random known spells for them through `Wizard.ensure_caster`, and their own casts are blocked) or flees (`fear_time`, `afraid_of`: cannot walk toward the caster).
@@ -128,7 +128,7 @@ each new spell with the checklist in `CLAUDE.md` §6, and expect the owner to ve
 ## Rituals (typed)
 
 - **Said once, kept for the match:** Land, Insight, the Second Leap and Swift Feet (`Ledger.LASTING`, `Ledger.settle`): the gift stays through every world once the chant works. The others (Bonfire, Boundless Vigour, Rift, Deep Breath, Mark, Return) are cast again each time.
-- **Chanting needs breath:** nobody can chant while `Wizard.holding_breath()` (under water, in the Chant of the Deep Breath, or `smothered` by Vacuum). New ways to hold the breath set that, and need no check of their own. While held without the chant, the air (`breath`) runs down and then the wizard suffocates.
+- **Chanting needs breath:** nobody can chant while `Lungs.holding()` (under water, in the Chant of the Deep Breath, or `smothered` by Vacuum). New ways to hold the breath set that, and need no check of their own. While held without the chant, the air (`breath`) runs down and then the wizard suffocates.
 - **Scrying** (`Scrying`, `EdgeArrows` group `"scryings"`): the chant fixes an arrow at the screen edge on the nearest page the speaker has not read; it goes when that page is read, and chanting again looks for another.
 - **Existing:** the `RITUALS` table in `scripts/ritual_input.gd` holds them: Land (minimap), Insight (enemy info), Bonfire (a healing fire), Boundless Vigour (endless stamina), Second Leap, Rift, Swift Feet, Deep Breath, Mark and Return.
 - **Chants are Latin-ish and grammatical-sounding.** Longer chants are for stronger effects.

@@ -53,15 +53,19 @@ never block each other.
 
 ### Core flow
 - **`arena.gd`:** builds the map (the waiting room and the world override `_build_map` and `_begin_encounter`), wires
-  every signal, and hands spells to `SpellSpawner` (`scripts/spells/spell_spawner.gd`, which makes what each spell conjures and where it lands: `spawn`, `place_shapes`). It also handles the wizard's casts
-  (`cast_by`, one path for every wizard), rituals (`_on_ritual_finished`), death and restart, pause, debug summons and
-  the Insight tooltip. `_is_ground_at` decides where a Stone Wall may start: the ground, a platform, or another
-  stone wall.
+  every signal, and hands the rest to pieces it holds: `arena.casting` (`Casting`, `scripts/casting.gd`: a read stroke, one path for every wizard, what refuses a cast, what it
+  costs, the misfire and the flourish), `arena.spawner` (`SpellSpawner`, `scripts/spells/spell_spawner.gd`: what each spell conjures and where it lands, from four tables of
+  recipes, `CasterSpells`, `AimedSpells`, `PlacedSpells` and `ShapeSpells`, each recipe given a `SpellCast`; a spell with no recipe is the simple effect its resource names),
+  `arena.rituals` (`Rituals`, `scripts/rituals.gd`: the chant box, what each chant does, the bonfire, the Rift, the Scrying Eye) and `arena.insight` (`InsightTip`: the
+  hover tooltip). The arena itself keeps the rpc calls (`kindle`, `show_chant`, `show_eye`, `spawn_seen`), which must stay on the node. `_is_ground_at` decides where a
+  Stone Wall may start: the ground, a platform, or another stone wall.
 - **`arena_gen.gd`:** chunk-based map generation and the `BIOMES` table (tiles, backdrop, props per level).
 
 ### Player
 - **`wizard.gd`** (`class_name Wizard`, groups `"wizards"`, and `"player"` for the human only): movement (coyote time, jump buffer, variable jump height, S drop-through), stamina, HP,
-  debuffs (mute, root, blind, slow), Barrier (a pixel bubble) and animation.
+  debuffs (mute, root, blind, slow), Barrier (a pixel bubble) and animation. Pieces it holds, each reached by a field: `wizard.wolf` (`WildShape`: the werewolf and its claws),
+  `wizard.pen` (`Pen`: the stroke a brain's wizard is drawing), `wizard.lungs` (`Lungs`: the breath, and the water or lava the wizard stands in), `wizard.pad` (`Pad`: what a
+  brain asks of the body, or a person's keys, said the same way) and `wizard.vine` (`VineHold`: hanging on a Liana).
   - **Animations** (`ANIMATIONS`): idle, run, jump, fall, cast (staff held up while drawing), release
     (a thrust), hit, death.
   - **Frames** come from `art/chars/wizard`.
@@ -119,7 +123,7 @@ never block each other.
   - Check what a node is with its class (`node is Projectile`), not by comparing spell names.
 
 ### Creatures
-- **`mob.gd`:**
+- **`mob.gd`:** (a giant's stomp is `mob.stomp`, `Stomp`)
   - `Mob.KINDS` loads one `MobKind` resource per kind from `res://mobs/` (edit them in the inspector); each gives: role (melee, ranged, wizard), art, school, weak, resist, hp, damage, speed,
     effect and shot. The kinds and where each lives are in `06_enemies_and_ai.md`.
   - Creature frames are built by `CharFrames`. The shader `mob.gdshader` adds a slight school tint, a 1 px

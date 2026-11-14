@@ -465,7 +465,7 @@ python tools/run_checks.py --full                              # all of them, ab
 | Air | Thunderclap | a cloud (a ring begun at its bottom), then a lightning bolt: a zigzag down out of it | thunder (a recording): throws back everyone near except the caster (no harm) and dazes them (`Wizard.daze_time`: slow, and no spell or chant) | stay out of its reach |
 | Fire | Rocket Jump | an arrow pointing up (drawn with the fire button) | flame from the feet lifts the caster slowly at first and then faster, about 480 px up (`RocketJump`, `Wizard.rocket_time`) | none needed |
 | Necromancy | Raise Dead | a Latin cross: a long stem and a shorter bar across it, nearer the top | a skeleton (a `Mob` with a `master`) with 50 health for 37 maximum stamina, not refunded | kill it |
-| Flora | Wild Shape | a crescent moon (the Eclipse's shape, on the Druidry buttons), costs 40 | the wizard becomes a werewolf (CraftPix art, `Wizard.become_wild`): their own stamina is put aside, the wolf has a pool of 1 that nothing drains (owner, 2026-11-08: one blow ends it), it runs faster, jumps and claws (left click, 12 dmg) and casts nothing; the first blow turns the wizard back with the stamina they had, and does not kill them | it wears off; a rival's blows; a wall |
+| Flora | Wild Shape | a crescent moon (the Eclipse's shape, on the Druidry buttons), costs 40 | the wizard becomes a werewolf (CraftPix art, `WildShape.begin`): their own stamina is put aside, the wolf has a pool of 1 that nothing drains (owner, 2026-11-08: one blow ends it), it runs faster, jumps and claws (left click, 12 dmg) and casts nothing; the first blow turns the wizard back with the stamina they had, and does not kill them | it wears off; a rival's blows; a wall |
 | Umbramancy | Mirage | a tall box | a false page that wavers and fades when anyone comes near (`Mirage`, a `PagePickup`) | walk up to it; the AI learns after seeing one fade |
 
 The school and spell design, the gate tags and the balance pass are in `docs/spell_pool.md`. The waiting room (`scenes/lab.tscn`, `scripts/lab.gd`) is where every spell is tried; the portal there
@@ -485,7 +485,7 @@ The spellbook lines (see the book: every spell now has a plain description, a da
 **Pages per world:** each world lays only `Pages.count_for(biome, width)` pages (graveyard 16, peaks 16, jungle 18, ashlands 12, castle 18, underground 20, portal fields 10, at 1000 tiles wide, fewer in the smaller worlds, never under 6), and which ones is settled when the match begins, from its seed (`Pages.allotment`): each wizard is dealt starting pages of their own, and each world is given pages of its own from the rest, no page in two places, some in none. So a page is never in a world once a wizard holds it, and no two wizards start alike. Pages not laid do not carry over. A kind of gate the world has always keeps a page that opens it, swapped in from the spare pages if need be (`Pages.with_openers`). In a world with no halls, pages lying out in the open are at least `Pages.MIN_APART` (40) columns apart, apart from the three near the start (`tests/pages_spread_look.tscn` prints where they lie).
 
 **Targeting types:** `directional`, `positional`, `angled`, `shape` and `cone`. The caster's `cast_resolved`
-signal passes `info` (radius, line, rect, shapes, aim, spread, reach), and `arena.spawn_spell` routes it.
+signal passes `info` (radius, line, rect, shapes, aim, spread, reach), and `arena.spawn_spell` routes it (see `Casting`).
 **No sides:** once a spell is cast it has no team. It hurts whoever it touches: enemies, the player, the dark
 wizard, and the caster and its allies too (friendly fire). **The one exception is Raise Dead:** a skeleton has a master (`Mob.master`). It never attacks its master, and skeletons of different masters fight each other. It is the first thing in the game with a master; the spells themselves still have no sides, and every spell still hurts a skeleton (its master's too). It falls when its master falls. The one exception is a shot (Ignite, Frostbolt, an enemy's
 bolt): it can't hit whoever fired it while it is still inside that body. Once it has flown clear, it can hit them, so
@@ -564,7 +564,7 @@ clean. It was cleaned up once, without losing any behaviour. Keep it that way:
   became `Mudslide`; the fire walker's effect became `"burning"` when it stopped leaving a trail).
 - **One script per spell effect.** Never add a branch on the spell's name (`if spell == "..."`) to a shared
   script. Simple effects extend `SpellEffect` (`scripts/spells/spell_effect.gd`) and fill in `_begin`, `_act`
-  and `_finish`; bigger ones are their own Node. Add the new class to `SpellSpawner` (`scripts/spells/spell_spawner.gd`: `_new_effect` or `spawn`).
+  and `_finish`; bigger ones are their own Node. A simple effect needs nothing more (the spell's resource names its script); one that needs more is a recipe in one of the four tables in `scripts/spells/` (`CasterSpells`, `AimedSpells`, `PlacedSpells`, `ShapeSpells`, put together by `SpellSpawner`).
   A new `class_name` is only registered after `godot --import`.
 - **Every spell** joins the `"danger"` group, and implements `danger_at(point)` (the AI wizards avoid danger,
   their own spells included, since they hurt them too). Anything else in `"danger"` (lava) must have it too: it is called on every member.
