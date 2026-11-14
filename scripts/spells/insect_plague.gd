@@ -121,7 +121,7 @@ func _struck() -> bool:
 			if SpellTargets.affects(body) and pool.holds(body):
 				return true  # and so is one on someone who has jumped in
 	for wizard: Wizard in SpellTargets.wizards(get_tree()):
-		if wizard.has_shield() and SpellTargets.center_of(wizard).distance_to(global_position) < Wizard.SHIELD_RADIUS + RADIUS:
+		if wizard.has_shield() and SpellTargets.center_of(wizard).distance_to(global_position) < BarrierBubble.RADIUS + RADIUS:
 			return true  # a Barrier turns it away
 	for area in get_overlapping_areas():
 		if area is Gust or area is PushZone or area is Tornado or area is LavaBall:

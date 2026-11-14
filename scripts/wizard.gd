@@ -18,7 +18,6 @@ const RUN_COST := 0.12   # stamina per second of walking or running on the groun
 const MAX_STAMINA := 200.0  # what you start with, and the most you can ever have: a hit lowers the most you have, and healing raises it again, but not past this
 const STAMINA_REGEN := 20.0   # per second
 const REGEN_DELAY := 1.0      # seconds after a spell (or a faint, or a blow) before regen starts; walking and jumping do not make it wait
-const SHIELD_RADIUS := 50.0
 const ADRENALINE_TAKEN := 0.6   # how much of a blow gets through under Adrenaline
 const ADRENALINE_DEALT := 1.5   # and how much harder the wizard's own blows land
 const ICE_GRIP := 650.0         # how fast a wizard on ice can change speed, in pixels a second each second
@@ -196,10 +195,7 @@ var _hurt_anim := 0.0     # time left of the flinch after a hit
 var cast_color := Color.WHITE  # the school being drawn (set by the arena); the staff's glow takes it
 var _glow: Sprite2D            # a glow at the staff's head while a stroke is drawn
 @onready var _sprite: AnimatedSprite2D = $Look
-var _shield_emitter: CPUParticles2D
-var _shield: Node2D
-var _bubble: AnimatedSprite2D
-var _swirl: Sprite2D  # the wind turning round the Barrier
+var _barrier: BarrierBubble  # the Barrier as it is seen round the wizard
 var _drop_time := 0.0          # while above zero, wooden platforms and stairs let the wizard through
 
 # --- What the other machines of a network game see of this wizard (see share and Net) -------------------------------------
@@ -265,46 +261,8 @@ func _ready() -> void:
 	_glow.scale = Vector2.ONE * 0.35
 	_glow.visible = false
 	add_child(_glow)
-	# The Barrier is drawn on its own node in front of the wizard.
-	_shield = Node2D.new()
-	_shield.position = center_offset()
-	_shield.z_index = 2
-	_shield.draw.connect(_draw_shield)
-	add_child(_shield)
-	# The bubble itself, drawn twice its size round the wizard's middle.
-	_bubble = PixelFx.sprite("shield", 10.0)
-	_bubble.scale = Vector2.ONE * 2.0
-	_bubble.material = Fx.additive()
-	_bubble.visible = false
-	_shield.add_child(_bubble)
-	# Air, not force: wind swirls round the wizard inside a faint pale bubble.
-	_swirl = Sprite2D.new()
-	_swirl.texture = Fx.tex("twirl_01")
-	_swirl.scale = Vector2.ONE * (SHIELD_RADIUS * 2.2 / Fx.TEX_SIZE)
-	_swirl.material = Fx.additive()
-	_swirl.visible = false
-	_shield.add_child(_swirl)
-	# Sparkles along the rim of the Barrier, only while it's up.
-	_shield_emitter = CPUParticles2D.new()
-	_shield_emitter.position = center_offset()
-	_shield_emitter.emission_shape = CPUParticles2D.EMISSION_SHAPE_SPHERE
-	_shield_emitter.emission_sphere_radius = SHIELD_RADIUS
-	_shield_emitter.amount = 14
-	_shield_emitter.lifetime = 0.5
-	_shield_emitter.direction = Vector2.ZERO
-	_shield_emitter.spread = 180.0
-	_shield_emitter.initial_velocity_min = 0.0
-	_shield_emitter.initial_velocity_max = 4.0
-	_shield_emitter.orbit_velocity_min = 0.6
-	_shield_emitter.orbit_velocity_max = 1.0
-	_shield_emitter.gravity = Vector2.ZERO
-	_shield_emitter.scale_amount_min = 0.12
-	_shield_emitter.scale_amount_max = 0.22
-	_shield_emitter.texture = Fx.tex("trace_01")
-	_shield_emitter.color_ramp = Fx.fade_ramp(Color(0.9, 0.96, 1.0))
-	_shield_emitter.material = Fx.additive()
-	_shield_emitter.emitting = false
-	add_child(_shield_emitter)
+	_barrier = BarrierBubble.new(center_offset())
+	add_child(_barrier)
 
 
 ## Puts on the frames of the wizard's look. A network game gives each seat its own look, after the scene's wizard is ready.
@@ -665,17 +623,6 @@ func _draw_ellipse(at: Vector2, rx: float, ry: float, colour: Color) -> void:
 	draw_colored_polygon(points, colour)
 
 
-## The Barrier: a faint pale bubble of air round the wizard with wind turning round it. It fades out over its last moments.
-func _draw_shield() -> void:
-	var left := (1.0 if has_shield() else 0.0) if is_likeness() else _shield_time
-	var fade := clampf(left / 0.4, 0.0, 1.0)
-	_bubble.visible = left > 0.0
-	_bubble.modulate = Color(0.85, 0.93, 1.0, 0.22 * fade)
-	_swirl.visible = left > 0.0
-	_swirl.rotation = -Time.get_ticks_msec() * 0.004
-	_swirl.modulate = Color(0.9, 0.96, 1.0, 0.8 * fade)
-
-
 func _physics_process(delta: float) -> void:
 	if is_likeness():
 		_follow()
@@ -706,7 +653,6 @@ func _physics_process(delta: float) -> void:
 func _tick_timers(delta: float) -> void:
 	_grace -= delta
 	_veil_cool -= delta
-	_shield_emitter.emitting = _shield_time > 0.0
 	if fainted and stamina >= GET_UP:
 		fainted = false  # the stamina is back: up again
 	lungs.tick(delta)
@@ -723,7 +669,7 @@ func _tick_timers(delta: float) -> void:
 	elif _since_spend >= REGEN_DELAY and not _stepping:  # it comes back the moment the wizard stops moving their body
 		restore_stamina(STAMINA_REGEN * delta)
 	queue_redraw()
-	_shield.queue_redraw()
+	_barrier.show_for(_shield_time)
 
 
 ## Gravity, as the wizard is placed: flying, swimming or falling (a feather, a rocket), and the grace for a jump just after leaving the ground.
@@ -1150,9 +1096,8 @@ func _follow() -> void:
 		global_position = global_position.lerp(net_position, GLIDE)
 	if dead:
 		_pass_away()
-	_shield_emitter.emitting = has_shield()
 	queue_redraw()
-	_shield.queue_redraw()
+	_barrier.show_for(1.0 if has_shield() else 0.0)
 
 
 ## A likeness of a person beaten in an earlier world of the match: it is out, unseen, as on their own machine.
