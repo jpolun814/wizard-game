@@ -99,8 +99,8 @@ func _detect(relative: PackedVector2Array, options: Dictionary, reading: StrokeR
 	var ring_split := StrokeShapes.ring_then_line_split(relative) if (options.has("circle_push") or options.has("sphere")) and spiral.is_empty() and feather.is_empty() else -1
 	if ring_split >= 0 and options.has("sphere") and not options.has("circle_push") and not StrokeMeasure.runs_level(relative.slice(ring_split)):
 		ring_split = -1  # a ball of fire is pushed along the ground: the line out of the ring must run level
-	if ring_split >= 0 and options.has("double_ring") and gesture == "double_ring" and firm:
-		ring_split = -1  # a ring and a wider ring round it is a sun, not a ring with a line out of it
+	if ring_split >= 0 and slashed:
+		ring_split = -1  # a ring with a bar struck through it is a ring with a bar, not a ring with a line out of it
 	reading.ring_split = ring_split
 	var extent := StrokeMeasure.extent(relative)
 	var closed := relative[0].distance_to(relative[relative.size() - 1]) < 0.3 * maxf(extent.x, extent.y)  # icicles are open V strokes: a loop is never one
