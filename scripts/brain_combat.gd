@@ -48,7 +48,7 @@ func attack(to_player: Vector2, sees: bool) -> bool:
 		"Vacuum": 1.5 if not foe.smothered and gap < 400.0 else 0.0,
 		"Faint": 1.6 if not foe.fainted and gap < 400.0 else 0.0,
 		"Fight or Flight": 0.6 if foe.rage_time <= 0.0 and foe.fear_time <= 0.0 else 0.0,
-		"Silence": (1.8 if foe.is_drawing() else 0.6) if gap > Silence.RADIUS + 45.0 else 0.0,  # the ring is drawn round you, so well clear of it
+		"Silence": (1.8 if foe.pen.active() else 0.6) if gap > Silence.RADIUS + 45.0 else 0.0,  # the ring is drawn round you, so well clear of it
 		"Tide Surf": 1.0 if grounded and gap > 110.0 and gap < 320.0 else 0.0,
 		"Thunderclap": 1.7 if gap < Thunderclap.RADIUS - 40.0 and foe.daze_time <= 0.0 else 0.0,
 		"Tornado": (0.6 + brain.pressure * 0.5) if gap < 260.0 else 0.2,
@@ -96,7 +96,7 @@ func attack(to_player: Vector2, sees: bool) -> bool:
 
 
 func footwork(delta: float, to_player: Vector2, sees: bool) -> float:
-	if wizard.is_drawing():
+	if wizard.pen.active():
 		return 0.0
 	var speed := WizardBrain.WALK_SPEED
 	if escape_time > 0.0:
@@ -294,7 +294,7 @@ func drop_below() -> float:
 ## fast the screen drags the stroke out of shape, as it would a person's, and it is too late. Walking on as it drops would drag the stroke
 ## sideways too: it lets go of the keys, as a person does to draw on the way down, and draws as soon as the view keeps up.
 func catch_fall() -> void:
-	if wizard.is_on_floor() or wizard.velocity.y <= 0.0 or wizard.feather_time > 0.0 or wizard.is_drawing() or brain.chant.is_typing() or not brain.ready_to_cast("Featherfall"):
+	if wizard.is_on_floor() or wizard.velocity.y <= 0.0 or wizard.feather_time > 0.0 or wizard.pen.active() or brain.chant.is_typing() or not brain.ready_to_cast("Featherfall"):
 		return
 	if drop_below() <= WizardBrain.LONG_FALL:
 		return
@@ -362,11 +362,11 @@ func own_walkers_near(reach: float) -> int:
 
 ## A werewolf's turn: straight at the rival, and a swipe once they are in reach.
 func wolf(to_player: Vector2, sees: bool) -> void:
-	var near := absf(to_player.x) < Wizard.CLAW_REACH * 0.8
-	wizard.walk(0.0 if near else signf(to_player.x) * Wizard.SPEED * Wizard.WILD_SPEED)
+	var near := absf(to_player.x) < WildShape.CLAW_REACH * 0.8
+	wizard.walk(0.0 if near else signf(to_player.x) * Wizard.SPEED * WildShape.SPEED)
 	wizard.facing = signf(to_player.x) if to_player.x != 0.0 else wizard.facing
-	if sees and absf(to_player.x) < Wizard.CLAW_REACH and absf(to_player.y) < 60.0:
-		wizard.claw()
+	if sees and absf(to_player.x) < WildShape.CLAW_REACH and absf(to_player.y) < 60.0:
+		wizard.wolf.claw()
 
 
 ## Whether there is a ceiling over a point that an icicle could hang from.

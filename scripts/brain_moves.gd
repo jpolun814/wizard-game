@@ -66,7 +66,7 @@ func wading(delta: float) -> float:
 	var span: Rect2 = wade["span"]
 	var dir: int = wade["dir"]
 	wade["waited"] += delta
-	if wizard.is_drawing():
+	if wizard.pen.active():
 		return 0.0
 	if wade["waited"] > WADE_WAIT or (wade["stage"] == 0 and wade["waited"] > 3.0 and wizard.obsidian_time <= 0.0):
 		brain.gates.give_up_on(wade["key"])
@@ -105,7 +105,7 @@ func leaping(delta: float) -> float:
 		return dir * WizardRoute.MAX_AIR_SPEED
 	leap["air"] += delta
 	var helpers: Array = leap.get("helpers", [])
-	if not helpers.is_empty() and not wizard.is_drawing():
+	if not helpers.is_empty() and not wizard.pen.active():
 		if helpers[0] == "Rocket Jump" and wizard.velocity.y < -40.0 and leap["air"] > 0.12:
 			helpers.pop_front()
 			brain.hand.begin_cast("Rocket Jump", BrainStrokes.offset(GestureTemplates.preview_points("rocket"), wizard.center(), 0.6), LEAP_DRAW)
@@ -122,7 +122,7 @@ func leaping(delta: float) -> float:
 		leap = {}
 		return 0.0
 	var beyond: bool = (wizard.global_position.x - span.get_center().x) * dir > span.size.x * 0.5 - 40.0
-	if leap["steps"] > 0 and not wizard.is_drawing() and not beyond and (wizard.velocity.y > -40.0 or leap["steps"] < WizardBrain.LEAP_STEPS):
+	if leap["steps"] > 0 and not wizard.pen.active() and not beyond and (wizard.velocity.y > -40.0 or leap["steps"] < WizardBrain.LEAP_STEPS):
 		leap["steps"] -= 1
 		var start: Vector2 = wizard.center()
 		brain.hand.begin_cast("Shadow Step", BrainStrokes.line(start, start + Vector2(dir * SpellData.STEP_MAX, -10.0).normalized() * SpellData.STEP_MAX), LEAP_DRAW)
@@ -135,7 +135,7 @@ func lifting(delta: float) -> float:
 	var span: Rect2 = lift["span"]
 	var dir: int = lift["dir"]
 	if not lift["drawn"]:
-		if wizard.is_drawing():
+		if wizard.pen.active():
 			return 0.0
 		lift["drawn"] = true
 		var feet: Vector2 = wizard.center()

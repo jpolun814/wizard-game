@@ -59,14 +59,6 @@ const OLD_LOOK_ANIMATIONS := {
 const OLD_ART := ["wizard", "dark_wizard", "pyre_wizard", "bone_wizard"]  # the folders of the four older figures
 const STAFF_HEAD := Vector2(-55, -115)  # where the casting glow sits for an older figure: the staff's crystal, facing right
 const HAND := Vector2(30, -62)          # and for a newer one: the casting hand
-const WILD_STAMINA := 1.0    # the werewolf (Wild Shape) has a pool of strength of its own, and the wizard keeps theirs aside: a single blow ends the shape, and nothing else does
-const WILD_SPEED := 1.25     # how much faster a werewolf runs
-const WILD_SCALE := 1.4      # the werewolf is drawn this large
-const CLAW_DAMAGE := 12
-const CLAW_COOLDOWN := 0.55
-const CLAW_REACH := 80.0     # from the middle of the body, to the front
-const CLAW_DELAY := 0.15     # the swipe lands this long after it begins
-const DRAW_TIME := 0.8        # how long a brain's wizard takes to draw a spell
 const SPAWN_TIME := 0.7       # a wizard summoned into the world arrives out of a circle this long
 const FALL_LIMIT := 800.0     # a wizard below this has fallen off the map (in a world, the bottom of it)
 
@@ -95,7 +87,7 @@ var look := "wizard":  # which wizard this is: the player's own, or the id of on
 			return
 		look = value
 		if is_node_ready():
-			_dress()
+			dress()
 
 var palette := 0:  # which set of colours it wears (see WizardLook)
 	set(value):
@@ -112,12 +104,7 @@ var _walk := 0.0  # the speed a brain asks to walk at, left or right, in pixels 
 var _jump_strength := 1.0  # how much of a full jump a brain asked for
 var climb_up := false  # what a brain asks of a vine; a person's keys say the same
 var let_go := false
-var _stroke := PackedVector2Array()  # the spell a brain's wizard is drawing, and how far on it is
-var _draw_time := 0.0
-var _draw_total := DRAW_TIME
-var _on_drawn: Callable
-var _drag := PackedVector2Array()  # how far the view had moved when each point of the stroke was drawn: the screen drags the stroke (see Eyes)
-var _drag_from := Vector2.ZERO      # the middle of the view when the stroke was begun
+var pen := Pen.new(self)  # the stroke a brain's wizard is drawing
 var eyes: Eyes                      # the screen a person in this wizard's place would have
 var _overlay: Node2D  # draws the ice, and the stroke a brain's wizard is drawing, over the sprite
 var stamina := MAX_STAMINA
@@ -215,12 +202,7 @@ var casts_made := 0       # the spells this wizard has cast, for the tests that 
 var drawn := false  # the portal of a collapsing world is carrying the wizard up: they cast and fight, but cannot walk or fall
 var _art := "wizard"  # the folder of frames it wears now
 var _layer_alive := 0
-var wild := false  # the wizard has taken the shape of a werewolf (Wild Shape)
-var _kept_stamina := 0.0  # what stamina and most stamina the wizard had before, which they have again when the shape is gone
-var _kept_max := 0.0
-var _claw_cool := 0.0
-var _claw_in := -1.0  # time until a swipe that has begun lands
-var _was_left := false  # the left button was down the last frame (a swipe is a click)
+var wolf := WildShape.new(self)  # the werewolf shape (Wild Shape), when the wizard has taken it
 var _releasing := 0.0     # time left of the thrust that plays when a spell goes off
 var _hurt_anim := 0.0     # time left of the flinch after a hit
 var cast_color := Color.WHITE  # the school being drawn (set by the arena); the staff's glow takes it
@@ -270,7 +252,7 @@ func _ready() -> void:
 			Shatter.spawn(get_parent(), center(), Color("#cdeeff")))  # the ice gives way
 	floor_max_angle = deg_to_rad(50.0)  # a 45 degree slope, the steepest a tunnel climbs, still counts as floor
 	add_to_group("wizards")
-	_dress()
+	dress()
 	net_position = global_position
 	if is_person():
 		add_to_group("player")  # the one wizard the camera, the book and the bar belong to
@@ -347,12 +329,12 @@ static func animations_for(art: String) -> Dictionary:
 	return OLD_LOOK_ANIMATIONS if OLD_ART.has(art) else ANIMATIONS
 
 
-func _dress() -> void:
+func dress() -> void:
 	var art := "wizard"
 	_sprite.scale = Vector2.ONE
-	if wild:
+	if wolf.on:
 		art = "werewolf"
-		_sprite.scale = Vector2.ONE * WILD_SCALE
+		_sprite.scale = Vector2.ONE * WildShape.SCALE
 	elif look != "wizard":
 		var data: MobKind = Mob.KINDS[look]
 		art = data.art
@@ -364,10 +346,15 @@ func _dress() -> void:
 	_paint()
 
 
+## The body thrusts for this long: a spell goes off, or a claw swipes.
+func thrust(seconds: float) -> void:
+	_releasing = seconds
+
+
 ## Puts its set of colours on the sprite (the material is made a little after the frames are put on).
 func _paint() -> void:
 	if _wet_material != null:
-		WizardLook.paint(_wet_material, look, 0 if wild else palette)  # a werewolf keeps its own colours
+		WizardLook.paint(_wet_material, look, 0 if wolf.on else palette)  # a werewolf keeps its own colours
 
 
 ## Where the wizard's mouth is, for Fire Breath.
@@ -436,9 +423,8 @@ func restore_stamina(amount: float) -> void:
 func heal(amount: int) -> void:
 	if is_likeness():
 		return
-	if wild:
-		_kept_max = minf(_kept_max + amount, MAX_STAMINA)  # a wolf is not mended: the wizard under it is, and has it when the shape ends
-		_kept_stamina = minf(_kept_stamina + amount, _kept_max)
+	if wolf.on:
+		wolf.mend(amount)  # a wolf is not mended: the wizard under it is
 		return
 	max_stamina = minf(max_stamina + amount, MAX_STAMINA)
 	stamina = minf(stamina + amount, max_stamina)
@@ -499,16 +485,14 @@ func take_damage(amount: int, grace_hit := true, projectile := false) -> void:
 
 
 func _check_death() -> void:
-	if wild and max_stamina <= 0.0 and not dead:
-		end_wild()  # the wolf is beaten, and not the wizard
+	if wolf.on and max_stamina <= 0.0 and not dead:
+		wolf.end()  # the wolf is beaten, and not the wizard
 		return
 	if max_stamina <= 0.0 and not dead:
 		max_stamina = 0.0
 		dead = true
 		movement_enabled = false
-		_draw_time = 0.0
-		_stroke = PackedVector2Array()
-		casting = false
+		pen.drop()
 		died.emit()
 		if brain != null:
 			_pass_away()
@@ -604,7 +588,7 @@ func is_muted() -> bool:
 
 ## True while the wizard stands in a ring of Silence, or is dazed by thunder: they can cast nothing.
 func silenced() -> bool:
-	return daze_time > 0.0 or wild or Silence.covers(get_tree(), center())
+	return daze_time > 0.0 or wolf.on or Silence.covers(get_tree(), center())
 
 
 ## Pays for a spell in maximum stamina, which only healing brings back. Never takes the last of it: false, and nothing paid, if the
@@ -620,87 +604,15 @@ func pay_max(amount: float) -> bool:
 	return true
 
 
-## Wild Shape: the wizard becomes a werewolf. Their own stamina is put aside, the wolf has a pool of its own, and it can only run, jump and claw. When the
-## pool is gone, from time, swipes or blows, the wizard is back with what they had.
-func become_wild() -> void:
-	if wild or dead or is_likeness():
-		return
-	wild = true
-	_kept_stamina = stamina
-	_kept_max = max_stamina
-	max_stamina = WILD_STAMINA
-	stamina = WILD_STAMINA
-	casting = false
-	_draw_time = 0.0
-	_stroke = PackedVector2Array()
-	_claw_cool = 0.0
-	_claw_in = -1.0
-	_dress()
-	Fx.burst(get_parent(), center(), Color(0.55, 0.5, 0.7), 18, 160.0, 0.5, true)
-	Sfx.play("summon", center())
-
-
-## The wolf is gone: the wizard stands as they were, with the stamina they had.
-func end_wild() -> void:
-	if not wild:
-		return
-	wild = false
-	max_stamina = _kept_max
-	stamina = minf(_kept_stamina, max_stamina)
-	_claw_in = -1.0
-	_dress()
-	Fx.burst(get_parent(), center(), Color(0.55, 0.5, 0.7), 18, 160.0, 0.5, true)
-
-
-## What a werewolf's frame does: a click of the left button swipes, a swipe lands a moment after it begins.
-func _be_wild(delta: float) -> void:
-	_claw_cool -= delta
-	if _claw_in >= 0.0:
-		_claw_in -= delta
-		if _claw_in < 0.0:
-			_claw_land()
-	var left := Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) and is_person()
-	if left and not _was_left:
-		claw()
-	_was_left = left
-
-
-## A swipe of the claws, which a person asks for with a click and a brain asks for in reach of a rival.
-func claw() -> void:
-	if not wild or dead or fainted or _claw_cool > 0.0:
-		return
-	_claw_cool = CLAW_COOLDOWN
-	_claw_in = CLAW_DELAY
-	_releasing = 0.4
-
-
-## The claws reach whoever is in front of the wizard, close enough, and in the open.
-func _claw_land() -> void:
-	for body in SpellTargets.all(get_tree()):
-		if body == self:
-			continue
-		var at := SpellTargets.center_of(body)
-		var to := at - center()
-		if absf(to.x) > CLAW_REACH + 20.0 or absf(to.y) > 60.0 or to.x * facing < -10.0:
-			continue
-		if SpellTargets.sight_blocked(get_tree(), center(), at):
-			continue
-		SpellTargets.hurt(body, CLAW_DAMAGE, "", false, false, self)
-		Sfx.play("mob_hurt", at, 3.0)  # only a swipe that lands is heard
-		Fx.burst(get_parent(), at, Color(0.9, 0.25, 0.3), 6, 120.0, 0.3, true)
-
-
 ## A Faint: all the stamina goes, and the wizard drops. They stand up when the stamina has come back to GET_UP.
 func faint() -> void:
 	if dead or fainted or is_likeness():
 		return
-	end_wild()  # the wolf is knocked out of the wizard
+	wolf.end()  # the wolf is knocked out of the wizard
 	fainted = true
 	stamina = 0.0
 	_since_spend = 0.0
-	casting = false
-	_draw_time = 0.0
-	_stroke = PackedVector2Array()
+	pen.drop()
 	Sfx.play("player_hurt", center())
 
 
@@ -844,7 +756,7 @@ func _physics_process(delta: float) -> void:
 		return
 	eyes.follow(delta)
 	if brain != null and global_position.y > (ArenaGen.world_size.y * float(ArenaGen.TILE) if ArenaGen.world_size.y > 0 else FALL_LIMIT) and not dead:
-		wild = false  # (nothing turns back from this)
+		wolf.lose()
 		max_stamina = 0.0  # off the bottom of the map
 		_check_death()
 	if brain != null and not dead:
@@ -880,8 +792,8 @@ func _tick_timers(delta: float) -> void:
 	if infinite_time > 0.0:
 		stamina = max_stamina
 	_since_spend += delta
-	if wild:
-		_be_wild(delta)
+	if wolf.on:
+		wolf.tick(delta)
 	elif _since_spend >= REGEN_DELAY and not _stepping:  # it comes back the moment the wizard stops moving their body
 		restore_stamina(STAMINA_REGEN * delta)
 	queue_redraw()
@@ -921,7 +833,7 @@ func _steer(delta: float, can_move: bool) -> void:
 		if swim_time > 0.0 and _jump_buffer > 0.0:
 			velocity.y = -SWIM_STROKE  # a stroke of the arms: it costs nothing
 			_jump_buffer = 0.0
-		elif _jump_buffer > 0.0 and _coyote > 0.0 and sink_time <= 0.0 and tangle_time <= 0.0 and (wild or spend(JUMP_COST, false)):
+		elif _jump_buffer > 0.0 and _coyote > 0.0 and sink_time <= 0.0 and tangle_time <= 0.0 and (wolf.on or spend(JUMP_COST, false)):
 			velocity.y = JUMP_VELOCITY * _jump_strength
 			_jump_buffer = 0.0
 			_coyote = 0.0
@@ -939,7 +851,7 @@ func _steer(delta: float, can_move: bool) -> void:
 		var speed := _walking_speed()
 		velocity.x = Input.get_axis("move_left", "move_right") * speed if brain == null else clampf(_walk, -speed, speed)
 		_stepping = absf(velocity.x) > 10.0 and not flying  # (flying is not a body's work: the stamina comes back all the while)
-		if is_on_floor() and absf(velocity.x) > 10.0 and stamina > 0.0 and not wild:
+		if is_on_floor() and absf(velocity.x) > 10.0 and stamina > 0.0 and not wolf.on:
 			drain(RUN_COST * delta, false)
 	else:
 		velocity.x = 0.0
@@ -949,7 +861,7 @@ func _steer(delta: float, can_move: bool) -> void:
 ## How fast the wizard walks now: half of it when out of stamina, and each thing that slows, mires, tangles, hastens, armours or changes the wizard
 ## on top of that.
 func _walking_speed() -> float:
-	return (SPEED if stamina > 0.0 or wild else SPEED * 0.5) * (0.5 if slow_time > 0.0 else 1.0) * (0.4 if sink_time > 0.0 else 1.0) * (0.3 if tangle_time > 0.0 else 1.0) * (HASTE if haste_time > 0.0 else 1.0) * (OBSIDIAN_SPEED if obsidian_time > 0.0 else 1.0) * (WILD_SPEED if wild else 1.0)
+	return (SPEED if stamina > 0.0 or wolf.on else SPEED * 0.5) * (0.5 if slow_time > 0.0 else 1.0) * (0.4 if sink_time > 0.0 else 1.0) * (0.3 if tangle_time > 0.0 else 1.0) * (HASTE if haste_time > 0.0 else 1.0) * (OBSIDIAN_SPEED if obsidian_time > 0.0 else 1.0) * (WildShape.SPEED if wolf.on else 1.0)
 
 
 ## What moves the wizard that it did not choose: a wave, ice, fear, a shove and the wind.
@@ -1206,20 +1118,10 @@ func chant(id: String) -> bool:
 ## The brain's turn: a spell it is drawing goes off when the stroke is done, and then it decides what to do next.
 func _think(delta: float) -> void:
 	if fainted or is_frozen():  # down, or in a block of ice: nothing is drawn
-		_draw_time = 0.0
-		_stroke = PackedVector2Array()
-		casting = false
+		pen.drop()
 		_walk = 0.0
 		return
-	if _draw_time > 0.0:
-		_draw_time -= delta
-		_note_drag()
-		if _draw_time <= 0.0:
-			var stroke := _dragged()
-			_stroke = PackedVector2Array()
-			casting = false
-			play_cast_release()
-			_on_drawn.call(stroke)
+	pen.tick(delta)
 	caster.anchor = center()
 	brain.think(delta)
 	if brain.holds_still():
@@ -1244,54 +1146,10 @@ func request_jump(strength := 1.0) -> void:
 	_jump_strength = strength
 
 
-## Starts drawing a stroke in front of the wizard. After draw_time it calls on_done with the stroke.
-## Being hit hard while drawing breaks the spell (see WizardBrain.on_hurt).
-## The stroke is drawn as a hand draws on a screen: it must lie on the screen when it is begun, only one is drawn at a time, none while a chant is
-## being typed, and the view moving with the wizard drags it as it is drawn. Returns false when the stroke cannot be begun.
-func start_drawing(points: PackedVector2Array, colour: Color, on_done: Callable, draw_time := DRAW_TIME) -> bool:
-	if is_drawing() or (brain != null and brain.chant.is_typing()):
-		return false
-	for point in points:
-		if not eyes.on_screen(point):
-			return false  # no one draws off the edge of their screen
-	_drag_from = eyes.center()
-	_drag = PackedVector2Array()
-	_stroke = points
-	cast_color = colour
-	_on_drawn = on_done
-	_draw_time = draw_time
-	_draw_total = draw_time
-	casting = true  # (no sound here: the same sound for every spell was not liked; each spell makes its own when it is cast)
-	return true
-
-
-## The points the hand has reached this step take the view's travel so far: a person's stroke is recorded in the world, under a moving screen.
-func _note_drag() -> void:
-	var count := _stroke.size() if _draw_time <= 0.0 else clampi(int(_stroke.size() * (1.0 - _draw_time / _draw_total)), 1, _stroke.size())
-	var moved := eyes.center() - _drag_from
-	while _drag.size() < count:
-		_drag.append(moved)
-
-
-## The stroke as it lies in the world: each point where the hand drew it, moved by the view's travel up to then.
-func _dragged() -> PackedVector2Array:
-	var out := PackedVector2Array()
-	for i in _stroke.size():
-		out.append(_stroke[i] + (_drag[i] if i < _drag.size() else (_drag[_drag.size() - 1] if not _drag.is_empty() else Vector2.ZERO)))
-	return out
-
-
-func is_drawing() -> bool:
-	return _draw_time > 0.0
-
-
 ## Drops the spell being drawn, with a puff of sparks so a rival can see it was broken.
 func interrupt_cast() -> void:
-	if _draw_time <= 0.0:
+	if not pen.interrupt():
 		return
-	_draw_time = 0.0
-	_stroke = PackedVector2Array()
-	casting = false
 	_show_interrupt()
 	Net.send(self, &"_show_interrupt")
 
@@ -1392,24 +1250,14 @@ func share() -> void:
 ## On the machine that drives the wizard: what the others are sent (see share).
 func _tell_others() -> void:
 	net_position = global_position
-	marks = (FROZEN if is_frozen() else 0) | (SHIELDED if has_shield() else 0) | (OBSIDIAN if obsidian_time > 0.0 else 0) | (STUCK if _stuck_time > 0.0 else 0) 			| (GROUNDED if is_on_floor() else 0) | (ROOTED if is_rooted() else 0) | (SLOWED if is_slowed() else 0) | (FADED if fade_time > 0.0 else 0) | (VEILED if veil > 0 else 0) | (WILD if wild else 0)
+	marks = (FROZEN if is_frozen() else 0) | (SHIELDED if has_shield() else 0) | (OBSIDIAN if obsidian_time > 0.0 else 0) | (STUCK if _stuck_time > 0.0 else 0) 			| (GROUNDED if is_on_floor() else 0) | (ROOTED if is_rooted() else 0) | (SLOWED if is_slowed() else 0) | (FADED if fade_time > 0.0 else 0) | (VEILED if veil > 0 else 0) | (WILD if wolf.on else 0)
 	if brain != null:
-		shown_stroke = drawn_so_far()
-
-
-## The part of a brain's stroke drawn so far: it grows as the spell does.
-func drawn_so_far() -> PackedVector2Array:
-	if _draw_time <= 0.0 or _stroke.size() < 2:
-		return PackedVector2Array()
-	var count := clampi(int(_stroke.size() * (1.0 - _draw_time / _draw_total)), 2, _stroke.size())
-	return _dragged().slice(0, count)
+		shown_stroke = pen.so_far()
 
 
 ## A likeness glides to where its wizard is, or jumps there when it went far at once, and falls when its wizard does.
 func _follow() -> void:
-	if wild != (marks & WILD != 0):
-		wild = marks & WILD != 0  # the driving machine has changed shape
-		_dress()
+	wolf.follow(marks & WILD != 0)
 	if global_position.distance_to(net_position) > SNAP:
 		global_position = net_position
 		reset_physics_interpolation()

@@ -41,7 +41,7 @@ class ShootingBrain extends WizardBrain:
 	func think(delta: float) -> void:
 		wizard.walk(0.0)
 		_timer -= delta
-		if _timer > 0.0 or wizard.is_drawing():
+		if _timer > 0.0 or wizard.pen.active():
 			return
 		var target: Wizard = null
 		for other: Wizard in SpellTargets.wizards(wizard.get_tree()):

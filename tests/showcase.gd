@@ -524,7 +524,7 @@ func _plan() -> void:
 				_player().facing = 1.0)
 			for i in 6:
 				_at(1.2 + i * 0.35, func() -> void:
-					_player().claw()
+					_player().wolf.claw()
 					_snap("wild"))
 		"brawl":
 			# A mixed group comes for a player who stands still, to watch them chase, wind up and shoot.

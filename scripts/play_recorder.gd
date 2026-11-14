@@ -196,7 +196,7 @@ func _process(delta: float) -> void:
 		_state_in = STATE_GAP
 		_news()
 		_line("S %d %d %d %d %s %d %d %d %d %s" % [wizard.global_position.x, wizard.global_position.y, wizard.velocity.x, wizard.velocity.y,
-			"floor" if wizard.is_on_floor() else "air", wizard.stamina, wizard.max_stamina, 1 if wizard.is_drawing() or wizard.casting else 0,
+			"floor" if wizard.is_on_floor() else "air", wizard.stamina, wizard.max_stamina, 1 if wizard.pen.active() or wizard.casting else 0,
 			wizard.ledger.count(), String(wizard.shown_anim)])
 	if _state_in > STATE_GAP - 0.001:  # (the tick that has just written the state)
 		var buttons := (1 if Input.is_action_pressed("school_left") else 0) | (2 if Input.is_action_pressed("school_right") else 0) | (4 if Input.is_action_pressed("school_middle") else 0)
@@ -243,7 +243,7 @@ func _near() -> void:
 		if off.length() > SEE * 1.6 or other.dead:
 			continue
 		_line("W %s %s %d %d %d %d %s %s %s" % [other.name, "person" if other.brain == null else "brain", off.x, off.y, other.stamina, other.max_stamina,
-			"wolf" if other.wild else "-", "faint" if other.fainted else "-", str(other.last_spell).replace(" ", "_")])
+			"wolf" if other.wolf.on else "-", "faint" if other.fainted else "-", str(other.last_spell).replace(" ", "_")])
 	for group in GROUPS:
 		for node in get_tree().get_nodes_in_group(group):
 			if node is Node2D and is_instance_valid(node):
@@ -286,7 +286,7 @@ func _near_text(at: Vector2, reach: float, skip: Node) -> String:
 	var out := PackedStringArray()
 	for other: Wizard in SpellTargets.wizards(get_tree()):
 		if other != skip and is_instance_valid(other) and not other.dead and other.global_position.distance_to(at) < reach * 1.6:
-			out.append("%s%s@%d,%d" % [other.name, "(wolf)" if other.wild else "", other.global_position.x - at.x, other.global_position.y - at.y])
+			out.append("%s%s@%d,%d" % [other.name, "(wolf)" if other.wolf.on else "", other.global_position.x - at.x, other.global_position.y - at.y])
 	for group in GROUPS:
 		if group == "pages":
 			continue

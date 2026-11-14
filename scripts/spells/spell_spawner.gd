@@ -211,7 +211,7 @@ func spawn(spell: String, targeting: String, origin: Vector2, aim: float, info: 
 			Sfx.play("glass", caster_node.center())
 			return
 		"Wild Shape":
-			caster_node.become_wild()
+			caster_node.wolf.begin()
 			return
 		"Adrenaline":
 			caster_node.grant_adrenaline(10.0)

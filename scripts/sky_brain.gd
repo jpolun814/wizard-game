@@ -46,7 +46,7 @@ func think(delta: float) -> void:
 		to_player = sight.seen_center(foe) - wizard.center()
 		sees = (wizard.eyes.sees_point(sight.lure.center()) if sight.lure != null else eyes_see(foe)) and danger.clear_line(wizard.center(), sight.seen_center(foe))
 	var fighting := sees and to_player.length() < ENGAGE
-	if react <= 0.0 and not wizard.is_drawing():
+	if react <= 0.0 and not wizard.pen.active():
 		var shot := sight.incoming_shot()
 		if not shot.is_empty() and combat.defend_cooldown <= 0.0:
 			combat.threat_dir = shot["dir"]
@@ -61,14 +61,14 @@ func think(delta: float) -> void:
 			_plan("push", _reaction_time())
 	var heading := _heading(delta, to_player, sees, fighting)
 	var speed := minf(1.0, heading.length())
-	if wizard.is_drawing() or holds_still():
+	if wizard.pen.active() or holds_still():
 		heading = Vector2.ZERO  # it stops to draw: the screen would drag the stroke out of shape
 	var way := heading.normalized() * speed if heading != Vector2.ZERO else Vector2.ZERO
 	wizard.walk(way.x * Wizard.FLY_SPEED)
 	wizard.fly_y = _hold_or(way.y)
-	var running := absf(way.x) > 0.05 and not wizard.is_drawing()
-	wizard.facing = signf(way.x) if running else (signf(to_player.x) if (fighting or wizard.is_drawing()) and to_player.x != 0.0 else wizard.facing)
-	if not fighting or react > 0.0 or wizard.is_drawing():
+	var running := absf(way.x) > 0.05 and not wizard.pen.active()
+	wizard.facing = signf(way.x) if running else (signf(to_player.x) if (fighting or wizard.pen.active()) and to_player.x != 0.0 else wizard.facing)
+	if not fighting or react > 0.0 or wizard.pen.active():
 		return
 	if cast_cooldown <= 0.0:
 		if smothering() or hiding():
@@ -96,7 +96,7 @@ func _heading(delta: float, to_player: Vector2, sees: bool, fighting: bool) -> V
 		return out
 	if _dodge > 0.0:
 		return _dodge_dir
-	if fighting and not wizard.is_drawing():
+	if fighting and not wizard.pen.active():
 		return _footwork_in_the_air(to_player)
 	if opponent != null and sees and to_player.length() < ENGAGE * 1.4:
 		return _aim(here, wizard.center() + to_player - to_player.normalized() * HOLD_RANGE)

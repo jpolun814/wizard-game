@@ -95,6 +95,6 @@ func type_then_say(id: String) -> bool:
 		return done
 	if said_failed.get(id, 0.0) > 0.0 or not RitualInput.RITUALS.has(id):
 		return false
-	if typing == "" and wizard.is_on_floor() and not wizard.is_drawing():
+	if typing == "" and wizard.is_on_floor() and not wizard.pen.active():
 		open(id)
 	return false

@@ -203,7 +203,7 @@ func begin_cast(spell_name: String, stroke: PackedVector2Array, draw_time: float
 	draw_time = maxf(draw_time, BrainStrokes.quickest_stroke(spell_name))  # never quicker than people draw it
 	if mask & (mask - 1) != 0:
 		draw_time += brain.rng.randf_range(CHORD_GAP_MIN, CHORD_GAP_MAX)  # the buttons of a chord go down one after another, not in one instant
-	return wizard.start_drawing(stroke, SpellData.SCHOOL_COLORS[data.school], func(points: PackedVector2Array) -> void:
+	return wizard.pen.begin(stroke, SpellData.SCHOOL_COLORS[data.school], func(points: PackedVector2Array) -> void:
 		caster.cast_stroke(mask, shaken(handed(points) if sloppy else points)), draw_time)
 
 
@@ -225,7 +225,7 @@ func drag_ok(spell_name: String, draw_time: float) -> bool:
 func draw_when_still() -> void:
 	if pending.is_empty():
 		return
-	if hold_still <= 0.0 or wizard.is_drawing():
+	if hold_still <= 0.0 or wizard.pen.active():
 		pending = {}
 		return
 	if not drag_ok(pending["spell"], pending["time"]):

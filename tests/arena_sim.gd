@@ -157,7 +157,7 @@ func _physics_process(delta: float) -> void:
 				if w.brain.opponent != null and is_instance_valid(w.brain.opponent):
 					foe_gap = int(w.center().distance_to(w.brain.opponent.center()))
 					foe_at = _wizards.find(w.brain.opponent)
-				_log.store_line("S %.2f %s%d %d %d %d %d %d %d %d %d %d %d %s %s" % [_clock, w.look, i, w.global_position.x, w.global_position.y, w.velocity.x, w.velocity.y, 1 if w.is_on_floor() else 0, w.stamina, w.max_stamina, foe_at, foe_gap, 1 if w.is_drawing() else 0, _flags(w), w.brain.status()])
+				_log.store_line("S %.2f %s%d %d %d %d %d %d %d %d %d %d %d %s %s" % [_clock, w.look, i, w.global_position.x, w.global_position.y, w.velocity.x, w.velocity.y, 1 if w.is_on_floor() else 0, w.stamina, w.max_stamina, foe_at, foe_gap, 1 if w.pen.active() else 0, _flags(w), w.brain.status()])
 	for i in _wizards.size():
 		var wizard := _wizards[i]
 		if is_instance_valid(wizard) and not wizard.dead:

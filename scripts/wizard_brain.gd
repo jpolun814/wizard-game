@@ -189,7 +189,7 @@ func catch_scent(seconds: float) -> void:
 ## want to get away.
 func on_hurt(amount: int) -> void:
 	_hurt_age = 0.0
-	if wizard.is_drawing() and amount >= INTERRUPT_DAMAGE:
+	if wizard.pen.active() and amount >= INTERRUPT_DAMAGE:
 		wizard.interrupt_cast()
 		cast_cooldown = maxf(cast_cooldown, 0.9)
 	if knows("Shadow Step") and wizard.max_stamina < Wizard.MAX_STAMINA * 0.4 and combat.defend_cooldown <= 0.0 and react <= 0.0 and rng.randf() < 0.5:
@@ -198,7 +198,7 @@ func on_hurt(amount: int) -> void:
 
 ## A Flaming Sphere rolling at it along the ground: a person jumps over it, as over a rolling log, instead of standing in its way or running from it.
 func _hurdle() -> void:
-	if not wizard.is_on_floor() or jump_cooldown > 0.0 or wizard.wild:
+	if not wizard.is_on_floor() or jump_cooldown > 0.0 or wizard.wolf.on:
 		return
 	for node in wizard.get_tree().get_nodes_in_group("fires"):
 		if node is FlamingSphere:
@@ -212,7 +212,7 @@ func _hurdle() -> void:
 ## A person cannot type a chant on the move, in the air or under blows, and stops when any of them happens. True while the way it stands lets it type.
 ## (A wizard that has just opened the box is still coming to a stop: its steps do not break the words for the first moment.)
 func _typing_disturbed() -> bool:
-	return not wizard.is_on_floor() or _hurt_age < 0.5 or (absf(wizard.velocity.x) > 40.0 and chant.age > BrainChant.STOPPING) or wizard.is_drawing() or wizard.is_frozen() or danger.in_danger(wizard.center())
+	return not wizard.is_on_floor() or _hurt_age < 0.5 or (absf(wizard.velocity.x) > 40.0 and chant.age > BrainChant.STOPPING) or wizard.pen.active() or wizard.is_frozen() or danger.in_danger(wizard.center())
 
 
 ## Whether this is a place to stand and type: it stands on the ground and is not being hurt, no creature or rival is near enough to come at it, and
@@ -318,7 +318,7 @@ func _alone(delta: float) -> void:
 		if react <= 0.0:
 			combat.act(_reaction)
 	# It still looks after itself: a light in the dark, its strength, the scent of whoever it has lost.
-	if react <= 0.0 and mend.tend_cooldown <= 0.0 and not wizard.is_drawing() and not moves.busy() and not smothering():
+	if react <= 0.0 and mend.tend_cooldown <= 0.0 and not wizard.pen.active() and not moves.busy() and not smothering():
 		mend.tend_cooldown = 0.6 + rng.randf() * 0.6
 		if mend.tend(Vector2.ZERO, false, false):
 			mend.tend_cooldown = 1.4 + rng.randf() * 0.8
@@ -345,7 +345,7 @@ func _with_a_rival(delta: float) -> void:
 		react -= delta
 		if react <= 0.0:
 			combat.act(_reaction)
-	elif not wizard.is_drawing():
+	elif not wizard.pen.active():
 		var shot := sight.incoming_shot()
 		if not shot.is_empty() and combat.defend_cooldown <= 0.0:
 			combat.threat_dir = shot["dir"]
@@ -365,12 +365,12 @@ func _with_a_rival(delta: float) -> void:
 			_plan(combat.choose_repel(), _reaction_time())
 
 	# Looking after itself: its lights, its strength, a wall between it and you, a way up to you.
-	if react <= 0.0 and mend.tend_cooldown <= 0.0 and not wizard.is_drawing() and not moves.busy() and not smothering():
+	if react <= 0.0 and mend.tend_cooldown <= 0.0 and not wizard.pen.active() and not moves.busy() and not smothering():
 		mend.tend_cooldown = 0.6 + rng.randf() * 0.6
 		if mend.tend(to_player, sees, fighting):
 			mend.tend_cooldown = 1.4 + rng.randf() * 0.8
 
-	if wizard.wild and fighting:
+	if wizard.wolf.on and fighting:
 		combat.wolf(to_player, sees)  # a werewolf has no spells: it runs at the rival and claws
 		return
 
@@ -392,13 +392,13 @@ func _with_a_rival(delta: float) -> void:
 			run = combat.footwork(delta, to_player, sees) if standing_to_fight else travel.travel(delta)  # (both may jump: the speed is written after they have)
 	wizard.walk(run)
 	# A wizard faces the way it runs; it turns to its rival only while standing still or drawing a spell, so it never backpedals.
-	var running := run != 0.0 and not wizard.is_drawing()
-	wizard.facing = signf(run) if running else (signf(to_player.x) if fighting or wizard.is_drawing() else wizard.facing)
+	var running := run != 0.0 and not wizard.pen.active()
+	wizard.facing = signf(run) if running else (signf(to_player.x) if fighting or wizard.pen.active() else wizard.facing)
 	if not fighting or (strength < TIMID_BELOW and to_player.length() > TIMID_STAND and _daunted >= TIMID_HESITATE):
 		return
 
 	# Attacks.
-	if cast_cooldown <= 0.0 and not wizard.is_drawing() and react <= 0.0:
+	if cast_cooldown <= 0.0 and not wizard.pen.active() and react <= 0.0:
 		if smothering() or hiding():
 			cast_cooldown = 0.3  # another spell would let the breath go; and a wizard out of sight is shown by casting
 		elif foe.has_shield():

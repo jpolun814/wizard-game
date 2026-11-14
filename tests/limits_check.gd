@@ -83,13 +83,13 @@ func _ready() -> void:
 	await _frames(20)
 	var near := _dot(looker.center() + Vector2(40.0, -20.0))
 	var far := _dot(looker.center() + Vector2(Eyes.HALF.x + 200.0, 0.0))
-	_verdict(not looker.start_drawing(far, Color.WHITE, func(_p: PackedVector2Array) -> void: pass, 0.5), "a stroke off the edge of its screen cannot be begun")
-	_verdict(looker.start_drawing(near, Color.WHITE, func(_p: PackedVector2Array) -> void: pass, 0.5), "one on its screen can")
-	_verdict(not looker.start_drawing(near, Color.WHITE, func(_p: PackedVector2Array) -> void: pass, 0.5), "but not a second while the first is drawn")
+	_verdict(not looker.pen.begin(far, Color.WHITE, func(_p: PackedVector2Array) -> void: pass, 0.5), "a stroke off the edge of its screen cannot be begun")
+	_verdict(looker.pen.begin(near, Color.WHITE, func(_p: PackedVector2Array) -> void: pass, 0.5), "one on its screen can")
+	_verdict(not looker.pen.begin(near, Color.WHITE, func(_p: PackedVector2Array) -> void: pass, 0.5), "but not a second while the first is drawn")
 	looker.interrupt_cast()
 	looker.brain = brain
 	brain.chant.open("haste")
-	_verdict(brain.chant.is_typing() and not looker.start_drawing(near, Color.WHITE, func(_p: PackedVector2Array) -> void: pass, 0.5), "nor while a chant is being typed")
+	_verdict(brain.chant.is_typing() and not looker.pen.begin(near, Color.WHITE, func(_p: PackedVector2Array) -> void: pass, 0.5), "nor while a chant is being typed")
 	_verdict(not brain.hand.begin_cast("Ignite", near, 0.5) and not brain.chant.is_typing(), "a brain that wants to draw closes the chant box first, and the words are lost")
 
 	# The view drags a stroke: a click held still while the wizard walks draws a line, as it does for a person.
@@ -99,14 +99,14 @@ func _ready() -> void:
 	await _frames(40)  # it is walking, and the view has caught up with it
 	var drawn := [PackedVector2Array()]
 	var spot := looker.center() + Vector2(0.0, -40.0)
-	looker.start_drawing(_dot(spot, 40), Color.WHITE, func(p: PackedVector2Array) -> void: drawn[0] = p, 0.6)
+	looker.pen.begin(_dot(spot, 40), Color.WHITE, func(p: PackedVector2Array) -> void: drawn[0] = p, 0.6)
 	await _frames(45)
 	var span := GestureTemplates.bounds(drawn[0]).size.x if drawn[0].size() > 1 else 0.0
 	_verdict(span > 100.0, "a click held still while walking draws a line (%.0f px long)" % span)
 	walker.speed = 0.0
 	await _frames(40)
 	drawn[0] = PackedVector2Array()
-	looker.start_drawing(_dot(looker.center() + Vector2(0.0, -40.0), 40), Color.WHITE, func(p: PackedVector2Array) -> void: drawn[0] = p, 0.6)
+	looker.pen.begin(_dot(looker.center() + Vector2(0.0, -40.0), 40), Color.WHITE, func(p: PackedVector2Array) -> void: drawn[0] = p, 0.6)
 	await _frames(45)
 	span = GestureTemplates.bounds(drawn[0]).size.x if drawn[0].size() > 1 else -1.0
 	_verdict(span >= 0.0 and span < 4.0, "and standing still, a point (%.0f px)" % span)

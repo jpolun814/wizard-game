@@ -38,8 +38,8 @@ func _ready() -> void:
 	var had := _player.stamina
 	_world.spawn_spell("Wild Shape", "positional", _player.center(), 0.0, {"accuracy": 0.9}, _player)
 	await _wait(0.3)
-	_verdict(_player.wild, "the spell turns the wizard into a werewolf")
-	_verdict(is_equal_approx(_player.max_stamina, Wizard.WILD_STAMINA), "the wolf has a pool of its own (%.0f)" % _player.max_stamina)
+	_verdict(_player.wolf.on, "the spell turns the wizard into a werewolf")
+	_verdict(is_equal_approx(_player.max_stamina, WildShape.STAMINA), "the wolf has a pool of its own (%.0f)" % _player.max_stamina)
 	_verdict(_player.silenced() and _player.is_muted(), "and can cast and chant nothing")
 	_verdict(String(_player._sprite.sprite_frames.resource_path) != "" or _player._sprite.sprite_frames.has_animation("release"), "and wears the wolf's frames")
 	var dummy: Mob = _world.add_mob("basic", _spot + Vector2(50.0, 0.0))
@@ -50,28 +50,28 @@ func _ready() -> void:
 	_player.facing = 1.0
 	await _wait(0.5)
 	var pool := _player.max_stamina
-	_player.claw()
+	_player.wolf.claw()
 	await _wait(0.5)
 	_verdict(dummy.hp < 500, "a swipe of the claws hurts whoever is in front (%d of 500 left)" % dummy.hp)
-	_verdict(_player.wild and _player.max_stamina == pool, "and does not use up the pool")
+	_verdict(_player.wolf.on and _player.max_stamina == pool, "and does not use up the pool")
 	var far: Mob = _world.add_mob("basic", _spot + Vector2(-400.0, 0.0))
 	far._spawn = 0.0
 	far.set_physics_process(false)
 	far.max_hp = 500
 	far.hp = 500
 	await _wait(0.8)
-	_player.claw()
+	_player.wolf.claw()
 	await _wait(0.5)
 	_verdict(far.hp == 500, "a body far off or behind is not touched")
 	# Time and swipes do not end it; a single blow does, and does not kill the wizard.
 	await _wait(6.0)
-	_verdict(_player.wild and _player.max_stamina == Wizard.WILD_STAMINA, "the shape stays as long as no blow lands")
+	_verdict(_player.wolf.on and _player.max_stamina == WildShape.STAMINA, "the shape stays as long as no blow lands")
 	_player.heal(20)  # a bonfire by the wolf mends the wizard under it, not the wolf
-	_verdict(_player.max_stamina == Wizard.WILD_STAMINA, "a bonfire does not mend the wolf")
+	_verdict(_player.max_stamina == WildShape.STAMINA, "a bonfire does not mend the wolf")
 	had += 20.0
 	_player.take_damage(1)
 	await _wait(0.2)
-	_verdict(not _player.wild and not _player.dead, "one blow turns the wizard back, and does not kill them")
+	_verdict(not _player.wolf.on and not _player.dead, "one blow turns the wizard back, and does not kill them")
 	_verdict(absf(_player.stamina - had) < 8.0 and _player.max_stamina == 190.0, "with the stamina they had before (%.0f of %.0f, had %.0f)" % [_player.stamina, _player.max_stamina, had])
 	print("Wild Shape works" if _failures == 0 else "%d FAILED" % _failures)
 	get_tree().quit(1 if _failures > 0 else 0)

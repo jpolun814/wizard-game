@@ -79,7 +79,7 @@ func held_up(delta: float) -> float:
 		return assailed
 	if brain.settle > 0.0:
 		return 0.0
-	if wizard.is_drawing():
+	if wizard.pen.active():
 		return 0.0
 	watch_progress(delta)
 	if brain.goal != "" and brain.route.remaining() > WizardBrain.HASTE_FROM and wizard.haste_time <= 0.0 and haste_wait <= 0.0 and brain.knows("chant:haste") and brain.quiet_here():
@@ -355,12 +355,12 @@ func assailed(delta: float) -> float:
 	if away == 0.0:
 		away = -wizard.facing
 	var spell_name := brain.gates.clearing_spell("giant" if mob.max_hp >= 1000 else "creature")
-	if spell_name != "" and not wizard.is_drawing() and brain.cast_cooldown <= 0.0 and brain.react <= 0.0:
+	if spell_name != "" and not wizard.pen.active() and brain.cast_cooldown <= 0.0 and brain.react <= 0.0:
 		brain.gates.goal_gate = {"kind": "giant" if mob.max_hp >= 1000 else "creature", "entry": {"mob": mob, "nodes": [mob]}, "target": mob.center()}
 		brain.cast_cooldown = 1.4
 		brain.hand.begin_cast(spell_name, brain.hand.gate_stroke(spell_name, mob.center()), WizardBrain.ATTACK_DRAW)
 		return 0.0
-	if wizard.is_drawing():
+	if wizard.pen.active():
 		return 0.0
 	if spell_name != "" and mob.max_hp < 1000.0:
 		return away * WizardBrain.WALK_SPEED * 0.6 if absf(mob.global_position.x - wizard.global_position.x) < 70.0 else 0.0  # it gives ground while its spell is ready again

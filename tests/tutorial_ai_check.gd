@@ -71,11 +71,11 @@ func _ready() -> void:
 	for gate in room.closed_gates():
 		print("gate ", gate["kind"], " ", gate["outside"], " clearing: '", wizard.brain.gates.clearing_spell(gate["kind"]), "' skip ", wizard.brain.skip.has(wizard.brain.gates.gate_key(gate)))
 	var b = wizard.brain
-	print("INTERNALS leap ", b.moves.leap, " lift ", b.moves.lift, " wade ", b.moves.wade, " settle ", b.settle, " resting ", b.mend.resting, " drawing ", wizard.is_drawing(), " cd ", b.cast_cooldown, " react ", b.react, " goal_timer ", b.goal_timer, " floor ", wizard.is_on_floor(), " fainted ", wizard.fainted, " stam ", wizard.stamina, " vel ", wizard.velocity, " rocket ", wizard.rocket_time, " feather ", wizard.get("feather_time"), " tangle ", wizard.tangle_time, " obstacle ", wizard.is_on_wall())
+	print("INTERNALS leap ", b.moves.leap, " lift ", b.moves.lift, " wade ", b.moves.wade, " settle ", b.settle, " resting ", b.mend.resting, " drawing ", wizard.pen.active(), " cd ", b.cast_cooldown, " react ", b.react, " goal_timer ", b.goal_timer, " floor ", wizard.is_on_floor(), " fainted ", wizard.fainted, " stam ", wizard.stamina, " vel ", wizard.velocity, " rocket ", wizard.rocket_time, " feather ", wizard.get("feather_time"), " tangle ", wizard.tangle_time, " obstacle ", wizard.is_on_wall())
 	var begin: Vector2i = wizard.nav.nearest(Vector2i(floori(wizard.global_position.x / 32.0), floori((wizard.global_position.y - 1.0) / 32.0)), true)
 	print("start ", begin, " choose gate -> ", wizard.brain.travel.choose_gate(begin), " goal ", wizard.brain.goal, " tolls at start '", wizard.nav.toll_at(begin), "' pos ", wizard.global_position / 32.0)
 	print(wizard.nav.sketch(Vector2i(375, 5)))
-	print("AHEAD ", wizard.brain.gates.crossing_ahead().get("kind", "-"), " ", wizard.brain.gates.crossing_ahead().get("key", "-"), " bridged ", wizard.brain.gates.bridged, " cannot ", wizard.brain.gates.cannot, " cross_run ", wizard.brain.gates.cross_run, " drawing ", wizard.is_drawing(), " react ", wizard.brain.react)
+	print("AHEAD ", wizard.brain.gates.crossing_ahead().get("kind", "-"), " ", wizard.brain.gates.crossing_ahead().get("key", "-"), " bridged ", wizard.brain.gates.bridged, " cannot ", wizard.brain.gates.cannot, " cross_run ", wizard.brain.gates.cross_run, " drawing ", wizard.pen.active(), " react ", wizard.brain.react)
 	if wizard.brain.goal == "gate":
 		var entry: Dictionary = wizard.brain.gates.goal_gate
 		print("GATE ", entry["kind"], " target ", room.gate_target(entry["entry"]), " wizard ", wizard.center(), " spell ", wizard.brain.gates.clearing_spell(entry["kind"]))

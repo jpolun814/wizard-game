@@ -70,7 +70,7 @@ func toll_between(from: Vector2i, to: Vector2i) -> String:
 ## Makes the way over a crossing, a stroke at a time. True while it is at it and must stand; false when it may walk on (a sentinel too
 ## far off to see it yet, or nothing it can do).
 func cross(crossing: Dictionary) -> bool:
-	if wizard.is_drawing() or brain.react > 0.0:
+	if wizard.pen.active() or brain.react > 0.0:
 		return true
 	if crossing["kind"] == "sentinel":
 		return cross_sentinel(crossing)
@@ -332,7 +332,7 @@ func clearing_spell(kind: String) -> String:
 
 ## At the gate: strikes it, and again, until it is open or it has tried enough.
 func clear_gate(target: Vector2) -> void:
-	if wizard.is_drawing() or brain.cast_cooldown > 0.0 or brain.react > 0.0:
+	if wizard.pen.active() or brain.cast_cooldown > 0.0 or brain.react > 0.0:
 		return
 	var spell_name := clearing_spell(goal_gate["kind"])
 	if spell_name == "" or gate_tries >= WizardBrain.CLEAR_TRIES:
