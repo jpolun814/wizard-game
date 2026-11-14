@@ -53,6 +53,8 @@ func words_shown() -> String:
 
 ## It opens the chant box: it stops, and types the words.
 func open(id: String) -> void:
+	if wizard.lungs.holding():
+		return  # no one chants with the breath held, under water least of all
 	typing = id
 	age = 0.0
 	total = typing_time(id) + STOPPING

@@ -23,7 +23,7 @@ machine of a match sees the same ones.
 ## The ocean (`ocean`, "The Drowned Sea")
 
 A sea over the whole world, mostly under water (owner, 2026-11-12: "primarily an underwater world, with *some* very sparse islands and driftwood. and shipwrecks too").
-Breath is the only pressure: no damage from depth, and fire fizzles under water. Check: `tests/checks/ocean_world_check.tscn`; pictures from the player's own view:
+Breath is the only pressure: no damage from depth, and a fire spell cast under water is paid for and goes out in steam. Check: `tests/checks/ocean_world_check.tscn`; pictures from the player's own view:
 `tests/looks/ocean_look.tscn -- out=DIR`.
 
 - **The ground:** a rolling floor 12 to 19 rows under the sea (`SurfaceGen._offsets`), of sand (`earth_seabed`, `lip_seabed`), and very few islands (`_sea_islands`: the

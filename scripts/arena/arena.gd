@@ -409,6 +409,11 @@ func earth_texture() -> Texture2D:
 
 ## Makes a spell take effect in the world. Every wizard's spells come through here, whoever plays them.
 func spawn_spell(spell: String, targeting: String, origin: Vector2, aim: float, info: Dictionary, caster_node: Wizard) -> void:
+	if SpellLimits.fizzles(caster_node, spell, origin):  # water puts a fire spell out as it starts, as it does a fireball dropped in a pond
+		var out := caster_node.center() if Spell.DIRECTIONAL.has(targeting) or origin.distance_to(caster_node.center()) > 600.0 else origin
+		Fx.smoke(self, out, Color(0.9, 0.95, 1.0, 0.6), 6, 24.0, 50.0)
+		Sfx.play("freeze", out, -6.0)
+		return
 	var before := get_child_count()
 	spawner.spawn(spell, targeting, origin, aim, info, caster_node)
 	for index in range(before, get_child_count()):

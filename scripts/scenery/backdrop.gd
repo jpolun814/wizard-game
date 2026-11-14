@@ -25,7 +25,6 @@ const PLACES := {
 	# reads as mountains; the near one is the ground's own horizon.
 	"mountains": {"sky": "res://art/backgrounds/mountains/sky.png", "fill": Color("#101828"), "layers": [
 		["res://art/backgrounds/mountains/far.png", Vector2(0.10, 1.0), 214.0, 0.0, false, 2.6],
-		["res://art/backgrounds/mountains/far.png", Vector2(0.22, 1.0), 218.0, 0.0, false, 1.7],
 		["res://art/backgrounds/mountains/near.png", Vector2(0.4, 1.0), 222.0, 0.0, false, 1.2],
 	]},
 	"ashlands": {"sky": "res://art/backgrounds/ashlands/sky.png", "fill": Color("#1a0606"), "layers": [

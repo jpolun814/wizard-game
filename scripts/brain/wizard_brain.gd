@@ -212,7 +212,7 @@ func _hurdle() -> void:
 ## A person cannot type a chant on the move, in the air or under blows, and stops when any of them happens. True while the way it stands lets it type.
 ## (A wizard that has just opened the box is still coming to a stop: its steps do not break the words for the first moment.)
 func _typing_disturbed() -> bool:
-	return not wizard.is_on_floor() or _hurt_age < 0.5 or (absf(wizard.velocity.x) > 40.0 and chant.age > BrainChant.STOPPING) or wizard.pen.active() or wizard.is_frozen() or danger.in_danger(wizard.center())
+	return not wizard.is_on_floor() or _hurt_age < 0.5 or (absf(wizard.velocity.x) > 40.0 and chant.age > BrainChant.STOPPING) or wizard.pen.active() or wizard.is_frozen() or wizard.lungs.holding() or danger.in_danger(wizard.center())
 
 
 ## Whether this is a place to stand and type: it stands on the ground and is not being hurt, no creature or rival is near enough to come at it, and
@@ -638,7 +638,7 @@ func in_dark() -> bool:
 ## Whether it may cast a spell now: it holds the page, is not silenced, has not just cast it for itself, and has the strength (blood is paid
 ## in maximum stamina, and never to the last drop).
 func ready_to_cast(spell_name: String) -> bool:
-	if not knows(spell_name) or rest.has(spell_name) or wizard.silenced() or wizard.rage_time > 0.0 or SpellLimits.refusal(wizard, spell_name) != "":
+	if not knows(spell_name) or rest.has(spell_name) or wizard.silenced() or wizard.rage_time > 0.0 or SpellLimits.refusal(wizard, spell_name) != "" or SpellLimits.fizzles(wizard, spell_name):
 		return false
 	if _read_until.get(spell_name, 0.0) > clock:
 		return false  # a page just read: it is still looking at the picture

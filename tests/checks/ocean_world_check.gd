@@ -83,8 +83,8 @@ func _run(world: World) -> void:
 	# The same wizard in a wreck's air pocket keeps its breath.
 	var wreck: Wreck = world.get_children().filter(func(n: Node) -> bool: return n is Wreck).front()
 	_check(AirPocket.holds(get_tree(), wreck.pocket.global_position + Vector2(0.0, -40.0)), "a wreck has an air pocket")
-	# Refusals: a spell that needs ground fizzles under water for want of it.
-	_check(SpellLimits.refusal(wizard, "Fire Breath") != "", "fire fizzles under water")
+	# Fire is put out by water: it is cast, and goes out in steam (see Arena.spawn_spell).
+	_check(SpellLimits.fizzles(wizard, "Fire Breath"), "fire goes out under water")
 	_check(SpellLimits.refusal(wizard, "Stone Wall") == "" or SpellLimits.refusal(wizard, "Stone Wall") != "No ground", "a Stone Wall can still be raised on the sea floor")
 	# A wreck is a thing in the water: a wizard sinking onto its bow comes to rest on the hull, and one sinking onto the stern's deck stands on the deck.
 	var both_ways := []  # a wreck lying each way round, if there are both: the solid parts are turned point by point
