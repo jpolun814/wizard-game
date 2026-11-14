@@ -29,13 +29,6 @@ const FALL_LIMIT := 800.0     # an enemy below this has fallen off the map and i
 const CONTACT_RANGE := 40.0   # how close (middle to middle) a walker must be to hit
 const CONTACT_COOLDOWN := 1.1
 const WINDUP := 0.3           # a walker draws back this long before it hits
-const SMASH_WINDUP := 0.9   # a giant draws its leg back this long before it stomps
-const SMASH_REACH := 130.0  # how far in front of it a smash lands
-const SMASH_HEIGHT := -50.0 # and how high up: about where a giant's stomp lands
-const SMASH_WALL_DAMAGE := 200.0  # a smash breaks a stone wall or a boulder outright
-const SMASH_MOB_DAMAGE := 20  # and hurts any other enemy close to it
-const SMASH_STUCK := 3.0      # the first stomp sticks the player in the ground this long
-const SMASH_SPOTS := 8        # the ground the stomp lands on is marked at this many points, from the giant out
 const GIANT_JUMP := -640.0    # a giant leaps higher than a plain walker: onto ledges, and over walls
 const CHARGE := 0.45          # a shooter's glow builds this long before it fires
 const KNOCK_DECAY := 1500.0
@@ -56,6 +49,7 @@ const CREATURE_ANIMATIONS := {
 	"hit": {"fps": 12.0, "loop": false}, "death": {"fps": 8.0, "loop": false},
 }
 var kind := "basic"  # set before the mob enters the tree
+var stomp := Stomp.new(self)  # a giant's stomp
 var player: Node2D
 var guards := false  # a knight at its post: it stands still until a wizard comes near, then fights them, and walks back to its post afterwards
 var post_x := 0.0  # where a guard stands
@@ -151,7 +145,7 @@ func _build_creature(data: MobKind) -> void:
 	if data.effect == "smash":
 		# The lean is slowed to fill the giant's wind-up: the three frames of drawing back last as long as the wind-up does, so the swing down
 		# (the fourth frame) is on screen at the moment the blow lands, not before it.
-		_visual.sprite_frames.set_animation_speed("attack", 3.0 / SMASH_WINDUP)
+		_visual.sprite_frames.set_animation_speed("attack", 3.0 / Stomp.WINDUP)
 	_visual.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST  # scaled-up pixel art stays crisp, not blurred
 	_base_scale = data.scale
 	var body: Rect2 = info["body"]
@@ -426,14 +420,14 @@ func _hold_post(speed: float) -> void:
 ## A walker that is close enough draws back, then lunges. If the player moved away during the wind-up, it misses.
 func _update_melee(delta: float, distance: float) -> void:
 	# A giant that walks into a stone wall or boulder swings at it, even with the player out of reach.
-	if KINDS[kind].effect == "smash" and _windup <= 0.0 and _cooldown <= 0.0 and _wall_ahead():
-		_windup = SMASH_WINDUP
-		_telegraph_smash()
+	if KINDS[kind].effect == "smash" and _windup <= 0.0 and _cooldown <= 0.0 and stomp.wall_ahead():
+		_windup = Stomp.WINDUP
+		stomp.telegraph()
 	if _windup > 0.0:
 		_windup -= delta
 		if _windup <= 0.0:
 			if KINDS[kind].effect == "smash":
-				_smash()
+				stomp.land()
 			elif distance < _reach() + 10.0 and _can_reach(_target()):
 				_attack()
 			_lunge = 1.0
@@ -442,73 +436,16 @@ func _update_melee(delta: float, distance: float) -> void:
 	if _cooldown <= 0.0 and distance < _reach() and _can_reach(_target()):
 		_windup = _windup_time()
 		if KINDS[kind].effect == "smash":
-			_telegraph_smash()
-
-
-## The giant's stomp: its foot comes down in front of it, breaking any stone wall or boulder there, hurting every other
-## enemy close by, and knocking the player back if they are in reach.
-## The ground the stomp lands on: points along the ground in front of the giant, out to its reach.
-func _smash_spots() -> Array:
-	var spots := []
-	for i in range(1, SMASH_SPOTS + 1):
-		var x := global_position.x + facing * SMASH_REACH * float(i) / SMASH_SPOTS
-		spots.append(SpellTargets.solid_below(get_world_2d(), Vector2(x, global_position.y - 60.0)))
-	return spots
-
-
-## Shows where the stomp will land: dust rising off the ground at each spot, as the giant draws its leg back.
-func _telegraph_smash() -> void:
-	for spot in _smash_spots():
-		Fx.smoke(get_parent(), spot, Color(0.82, 0.74, 0.6, 0.9), 6, 26.0, 40.0)
-
-
-func _smash() -> void:
-	var point := global_position + Vector2(SMASH_REACH * facing, SMASH_HEIGHT)
-	Sfx.play("stones", point, -2.0)
-	Fx.debris(get_parent(), point, Color("#a08060"), 10, 180.0)
-	GameCamera.shake_near(get_tree(), global_position, 0.3, SHAKE_REACH)
-	for wall in get_tree().get_nodes_in_group("walls"):
-		wall.take_blow_near(point, SMASH_WALL_DAMAGE)
-	for rock in get_tree().get_nodes_in_group("rocks"):
-		rock.take_blow_near(point, SMASH_WALL_DAMAGE)
-	for other in get_tree().get_nodes_in_group("mobs"):
-		if other != self and not other.is_dead() and other.center().distance_to(point) <= 50.0:
-			other.take_damage(SMASH_MOB_DAMAGE)
-	# The impact shows on every spot the stomp landed on.
-	for spot in _smash_spots():
-		Fx.smoke(get_parent(), spot, Color(0.5, 0.43, 0.34, 0.85), 5, 26.0, 40.0)
-		Fx.debris(get_parent(), spot, Color("#8a7058"), 6, 150.0)
-	# The stomp covers the ground in front of the giant, from its feet up to the height of a standing player. The first
-	# stomp that catches the player sticks them in the ground; a stomp that catches them while they are stuck throws them
-	# far away and frees them.
-	var rel: Vector2 = player.center() - global_position if player else Vector2.ZERO
-	if player and not player.dead and signf(rel.x) == facing and absf(rel.x) < SMASH_REACH + 40.0 and absf(rel.y) < 120.0:
-		player.take_damage(KINDS[kind].damage)
-		if player.root_time > 0.0:
-			player.push(Vector2(facing * 900.0, -220.0))
-		else:
-			player.stick_in_ground(SMASH_STUCK)
-	Sfx.play("push", point, -6.0)
-
-
-## True when a stone wall or boulder stands within a smash's reach in front of the giant.
-func _wall_ahead() -> bool:
-	var query := PhysicsRayQueryParameters2D.create(global_position + Vector2(0, SMASH_HEIGHT), global_position + Vector2(SMASH_REACH * facing, SMASH_HEIGHT))
-	query.collision_mask = 1
-	var hit := get_world_2d().direct_space_state.intersect_ray(query)
-	if hit.is_empty():
-		return false
-	var blocker: Object = hit["collider"]
-	return blocker.has_meta("stone_wall") or blocker.is_in_group("rocks")
+			stomp.telegraph()
 
 
 ## How far a melee enemy's hit reaches: a giant's stomp reaches much farther than a fist.
 func _reach() -> float:
-	return SMASH_REACH if KINDS[kind].effect == "smash" else CONTACT_RANGE
+	return Stomp.REACH if KINDS[kind].effect == "smash" else CONTACT_RANGE
 
 
 func _windup_time() -> float:
-	return SMASH_WINDUP if KINDS[kind].effect == "smash" else WINDUP
+	return Stomp.WINDUP if KINDS[kind].effect == "smash" else WINDUP
 
 
 ## A shooter in range charges its shot (a glow builds in front of it), then fires.
