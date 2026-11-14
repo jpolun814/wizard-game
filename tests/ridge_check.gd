@@ -65,7 +65,7 @@ func _ready() -> void:
 	# What is cast over a ridge lands on its top, not on the ground that the ridge hides.
 	var crest := ridges.top_at(top.x)
 	var ridge_tip := Vector2(top.x, crest - 10.0)
-	var spots: Array = world.spawner.stalagmite_spots({"shapes": [[ridge_tip + Vector2(-20.0, 60.0), ridge_tip, ridge_tip + Vector2(20.0, 60.0)]]})
+	var spots: Array = world.spawner.shapes.stalagmite_spots({"shapes": [[ridge_tip + Vector2(-20.0, 60.0), ridge_tip, ridge_tip + Vector2(20.0, 60.0)]]})
 	_verdict(spots.size() == 1 and absf(spots[0]["base"].y - 6.0 - crest) < 2.0, "a Stalagmite drawn on a ridge rises from the ridge (base %.0f, ridge %.0f)" % [spots[0]["base"].y if spots.size() == 1 else 0.0, crest])
 	var landed: Vector2 = world.landing(ridge_tip)
 	_verdict(absf(landed.y - crest) < 2.0, "a Mirage or a skeleton cast over a ridge stands on it (%.0f, ridge %.0f)" % [landed.y, crest])

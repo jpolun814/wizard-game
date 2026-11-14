@@ -60,12 +60,12 @@ func by(spell: String, targeting: String, origin: Vector2, aim: float, info: Dic
 ## Why this cast does not go off, as {text, colour, sound}: the place forbids it (no ground to work on in the sky, no fire under the sea), or it finds no one to
 ## aim at. Nothing is paid then. An empty dictionary means nothing is wrong.
 func _refusal(spell: String, info: Dictionary, aim: float, origin: Vector2, wizard: Wizard) -> Dictionary:
-	if spell == "Icicles" and arena.spawner.icicle_spots(info).is_empty():
+	if spell == "Icicles" and arena.spawner.shapes.icicle_spots(info).is_empty():
 		return {"text": "Aim under a ceiling", "colour": Color("#dff6ff"), "sound": true}
 	var limit := SpellLimits.refusal(wizard, spell)
 	if limit != "":
 		return {"text": limit, "colour": Color("#ffb86b"), "sound": true}
-	if spell == "Faint" and arena.spawner.blood_target(spell, origin) == null:
+	if spell == "Faint" and AimedSpells.blood_target(arena.get_tree(), origin) == null:
 		return {"text": "Aim at someone", "colour": Color("#ff9a9a"), "sound": false}  # nothing is paid for a cut that finds no one
 	if spell == "Leech" and Leech.pick(arena.get_tree(), wizard, aim) == null:
 		return {"text": "Aim at someone", "colour": Color("#ff9a9a"), "sound": false}  # nothing is paid for a tether that finds no one

@@ -371,7 +371,7 @@ func wolf(to_player: Vector2, sees: bool) -> void:
 
 ## Whether there is a ceiling over a point that an icicle could hang from.
 func ceiling_over(point: Vector2) -> bool:
-	var query := PhysicsRayQueryParameters2D.create(point, point + Vector2(0.0, -SpellSpawner.ICICLE_REACH))
+	var query := PhysicsRayQueryParameters2D.create(point, point + Vector2(0.0, -ShapeSpells.ICICLE_REACH))
 	query.collision_mask = 1
 	var hit := wizard.get_world_2d().direct_space_state.intersect_ray(query)
 	return not hit.is_empty() and hit["normal"].y > 0.3

@@ -51,7 +51,7 @@ func _ready() -> void:
 	_verdict(absf(before - spot.y) < 8.0, "the first storey's floor is where it should be (%.0f, wanted %.0f)" % [before, spot.y])
 	var tip := spot + Vector2(0.0, -90.0)
 	var peak := PackedVector2Array([tip + Vector2(-30.0, 90.0), tip, tip + Vector2(30.0, 90.0)])
-	world.spawner.place_shapes("Stalagmite", {"shapes": [peak], "line": peak})
+	world.spawner.shapes.place("Stalagmite", {"shapes": [peak], "line": peak})
 	await _frames(40)
 	var spikes := get_tree().get_nodes_in_group("danger").filter(func(n: Node) -> bool: return n is Stalagmite)
 	_verdict(spikes.size() == 1 and absf(spikes[0].global_position.y - before) < 16.0, "a Stalagmite rises from that floor (%d, at %s)" % [spikes.size(), spikes[0].global_position if spikes.size() > 0 else Vector2.ZERO])

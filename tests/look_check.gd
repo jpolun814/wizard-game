@@ -61,7 +61,7 @@ func _ready() -> void:
 	await _snap("sinkhole")
 
 	var peak := PackedVector2Array([Vector2(ground.x - 30.0, ground.y), Vector2(ground.x, ground.y - 90.0), Vector2(ground.x + 30.0, ground.y)])
-	lab.spawner.place_shapes("Stalagmite", {"shapes": [peak], "line": peak})
+	lab.spawner.shapes.place("Stalagmite", {"shapes": [peak], "line": peak})
 	await get_tree().create_timer(0.8).timeout
 	await _snap("stalagmite")
 	Flames.lay(lab, Rect2(ground.x - 70.0, ground.y - 110.0, 60.0, 110.0), 5, 55.0)  # a burning plant
