@@ -180,6 +180,31 @@ func _begin_encounter(camera: Camera2D) -> void:
 	hud.set_title("")
 	hud.set_pause_note("World: " + Incantation.words_for(seed_value))
 	_ground.changed.connect(_on_ground_dug)
+	_fill_ponds()
+	scenery.lay_landmarks()
+	creatures.raise()
+	scenery.plant_graves()
+	scenery.grow_trees()
+	scenery.raise_the_gale()
+	scenery.raise_biome_life()
+	scenery.wash_out_the_colour()
+	grade_biome = SurfaceGen.biome_at(graph.surface, graph.surface["start"])
+	add_child(Grade.for_biome(grade_biome))
+	if MatchState.stage == 0:
+		MatchStats.begin(player)  # a new match: the story of it starts here
+	else:
+		MatchStats.carry_on(player)
+	_hang_swing_stairs()
+	gate_work.raise_pieces()
+	gate_work.name_pieces()
+	_dark = CanvasModulate.new()  # under the ground it is dark; only fire and the flare light the way
+	_dark.add_to_group("darkness")
+	add_child(_dark)
+	get_tree().node_added.connect(_on_node_added)
+
+
+## The pools of the world, water and lava, each with its shoal where the jungle's water has one.
+func _fill_ponds() -> void:
 	for entry in _ponds:
 		var pond := Pond.new()
 		pond.lava = entry["lava"]
@@ -198,19 +223,10 @@ func _begin_encounter(camera: Camera2D) -> void:
 			shoal.bed_x = entry["a"] * float(TILE)
 			shoal.name = "Shoal%d" % entry["a"]
 			add_child(shoal)
-	scenery.lay_landmarks()
-	creatures.raise()
-	scenery.plant_graves()
-	scenery.grow_trees()
-	scenery.raise_the_gale()
-	scenery.raise_biome_life()
-	scenery.wash_out_the_colour()
-	grade_biome = SurfaceGen.biome_at(graph.surface, graph.surface["start"])
-	add_child(Grade.for_biome(grade_biome))
-	if MatchState.stage == 0:
-		MatchStats.begin(player)  # a new match: the story of it starts here
-	else:
-		MatchStats.carry_on(player)
+
+
+## The stairs of the castle that swing, one for each hinge the builder left.
+func _hang_swing_stairs() -> void:
 	for index in _planks.size():
 		var swing := SwingStair.new()
 		swing.hinge = _planks[index]["hinge"]
@@ -219,44 +235,6 @@ func _begin_encounter(camera: Camera2D) -> void:
 		swing.seed_value = seed_value + 71 + index
 		swing.stone = earth_texture()  # the stairs are of the same stone as the castle
 		add_child(swing)
-	for entry in gates:
-		match entry["kind"]:
-			"brambles":
-				scenery.grow_thorns(entry)
-			"ice":
-				var plug := IcePlug.new()
-				plug.columns = entry["columns"]
-				add_child(plug)
-				entry["nodes"] = [plug]
-			"wall":
-				var wall := RockWall.new()
-				wall.columns = entry["columns"]
-				add_child(wall)
-				entry["nodes"] = [wall]
-			"dark":
-				var bed := SpikeBed.new()
-				bed.strips = entry["strips"]
-				bed.rock = earth_texture()
-				add_child(bed)
-			"gas":
-				scenery.spread_gas(entry)
-			"sentinel":
-				var statue := Sentinel.new()
-				statue.position = Vector2(Vector2i(entry["stands"]) * TILE) + Vector2(TILE * 0.5, 0)
-				add_child(statue)
-				entry["post"] = statue
-			"piranhas":
-				var shoal := Piranhas.new()
-				var pit: Rect2i = entry["pit"]
-				shoal.water = Rect2(pit.position * TILE, Vector2(pit.size * TILE))
-				shoal.count = pit.size.x / 3
-				add_child(shoal)
-				entry["nodes"] = [shoal]  # killed to a fish, the pit is open
-	gate_work.name_pieces()
-	_dark = CanvasModulate.new()  # under the ground it is dark; only fire and the flare light the way
-	_dark.add_to_group("darkness")
-	add_child(_dark)
-	get_tree().node_added.connect(_on_node_added)
 
 
 var creatures := WorldCreatures.new(self)

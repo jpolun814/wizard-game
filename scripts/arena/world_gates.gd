@@ -40,6 +40,44 @@ func watch(delta: float) -> void:
 			Net.send(world, &"_gates_cleared", [cleared_names()])
 
 
+## Makes what each gate of the list is made of and puts it in the world, then names the pieces.
+func raise_pieces() -> void:
+	for entry in world.gates:
+		match entry["kind"]:
+			"brambles":
+				world.scenery.grow_thorns(entry)
+			"ice":
+				var plug := IcePlug.new()
+				plug.columns = entry["columns"]
+				world.add_child(plug)
+				entry["nodes"] = [plug]
+			"wall":
+				var wall := RockWall.new()
+				wall.columns = entry["columns"]
+				world.add_child(wall)
+				entry["nodes"] = [wall]
+			"dark":
+				var bed := SpikeBed.new()
+				bed.strips = entry["strips"]
+				bed.rock = world.earth_texture()
+				world.add_child(bed)
+			"gas":
+				world.scenery.spread_gas(entry)
+			"sentinel":
+				var statue := Sentinel.new()
+				statue.position = Vector2(Vector2i(entry["stands"]) * World.TILE) + Vector2(World.TILE * 0.5, 0)
+				world.add_child(statue)
+				entry["post"] = statue
+			"piranhas":
+				var shoal := Piranhas.new()
+				var pit: Rect2i = entry["pit"]
+				shoal.water = Rect2(pit.position * World.TILE, Vector2(pit.size * World.TILE))
+				shoal.count = pit.size.x / 3
+				world.add_child(shoal)
+				entry["nodes"] = [shoal]  # killed to a fish, the pit is open
+	name_pieces()
+
+
 ## Every piece of a gate has the same name on every machine, so the host can say which are gone.
 func name_pieces() -> void:
 	for g in world.gates.size():
