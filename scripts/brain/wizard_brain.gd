@@ -128,6 +128,8 @@ var wizard: Wizard            # the body it plays
 var skill := 0.6              # 0 to 1: how quick its reactions are and how true its aim is
 var memory := 1.0             # how long it keeps a rival's place and spells in mind, against the usual (see BrainLevel)
 var level := BrainLevel.DEFAULT
+var slow := 1.0               # how much slower than the usual it reacts and how much longer it waits between attacks (see BrainLevel); never under 1
+var clumsy := 1.0             # how much wider than the usual its aim and its hand stray (see BrainLevel); never under 1
 var strength := 0.5          # 0 to 1: how strong it thinks it is (see _feel_strength); a strong wizard hunts, a weak one looks for pages and keeps away
 var _strength_in := 0.0
 var _daunted := 0.0           # seconds it has faced a rival it feels too weak for, at a distance: it hesitates (and may cast to hide or mend) before it turns away
@@ -194,6 +196,8 @@ func set_level(new_level: int) -> void:
 	level = clampi(new_level, 1, BrainLevel.LEVELS)
 	skill = BrainLevel.skill_of(level)
 	memory = BrainLevel.memory_of(level)
+	slow = BrainLevel.slow_of(level)
+	clumsy = BrainLevel.clumsy_of(level)
 
 
 ## A Hunter's Mark was cast: for a while it can find a wizard who has faded from sight.
@@ -440,7 +444,7 @@ func _attack(foe: Wizard, to_player: Vector2, sees: bool) -> void:
 		elif foe.has_shield():
 			cast_cooldown = 0.3  # nothing gets through a Barrier; wait it out
 		elif combat.attack(to_player, sees):
-			cast_cooldown = lerpf(ATTACK_GAP_SLOW, ATTACK_GAP_QUICK, skill) + rng.randf() * ATTACK_GAP_SPREAD
+			cast_cooldown = (lerpf(ATTACK_GAP_SLOW, ATTACK_GAP_QUICK, skill) + rng.randf() * ATTACK_GAP_SPREAD) * slow
 		else:
 			cast_cooldown = 0.4
 
@@ -448,7 +452,7 @@ func _attack(foe: Wizard, to_player: Vector2, sees: bool) -> void:
 ## How long it takes to answer something it has seen: the middle half of the reactions recorded from people runs from a quarter of a second to
 ## over three quarters (tools/measure_human.py); a skilled wizard is at the quick end of that, never quicker than the quickest people.
 func _reaction_time() -> float:
-	return lerpf(0.45, 0.25, skill) + rng.randf() * 0.2
+	return (lerpf(0.45, 0.25, skill) + rng.randf() * 0.2) * slow
 
 
 func _plan(reaction: String, delay: float) -> void:

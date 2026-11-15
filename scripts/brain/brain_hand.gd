@@ -56,19 +56,19 @@ func _aimed_stroke(spell_name: String, foe: Wizard, feet: Vector2, facing: float
 			var flight: float = start.distance_to(brain.sight.seen_center(foe)) / Pebble.SPEED
 			var target := brain.predict(flight)
 			target.y -= 0.5 * Pebble.FALL * flight * flight
-			var aim := (target - start).angle() + brain.rng.randfn(0.0, 0.1 * (1.0 - brain.skill))
+			var aim := (target - start).angle() + brain.rng.randfn(0.0, 0.1 * (1.0 - brain.skill) * brain.clumsy)
 			return BrainStrokes.line(start, start + Vector2.from_angle(aim) * 90.0)
 		"Ignite", "Frostbolt", "Barbs":
 			var start: Vector2 = wizard.center() + Vector2(facing * 12.0, -6.0)
 			var target := brain.predict(start.distance_to(brain.sight.seen_center(foe)) / SHOT_SPEED)
-			var aim := (target - start).angle() + brain.rng.randfn(0.0, 0.16 * (1.0 - brain.skill))
+			var aim := (target - start).angle() + brain.rng.randfn(0.0, 0.16 * (1.0 - brain.skill) * brain.clumsy)
 			return BrainStrokes.line(start, start + Vector2.from_angle(aim) * 90.0)
 		"Fire Breath", "Spore Puff":
 			return breath_stroke(brain.sight.seen_center(foe))
 		"Tide Surf", "Thorn Whip", "Leech":
 			return surf_stroke(facing)
 		"Eldritch Blast":  # an arrow pointing at the rival
-			var pointing: float = (brain.predict(0.4) - wizard.center()).angle() + brain.rng.randfn(0.0, 0.1 * (1.0 - brain.skill))
+			var pointing: float = (brain.predict(0.4) - wizard.center()).angle() + brain.rng.randfn(0.0, 0.1 * (1.0 - brain.skill) * brain.clumsy)
 			return BrainStrokes.offset(turned(GestureTemplates.preview_points("arrow"), pointing), wizard.center(), 0.8)
 	return PackedVector2Array()
 
@@ -190,7 +190,7 @@ func facing_flipped(points: PackedVector2Array, side: float) -> PackedVector2Arr
 func breath_stroke(target: Vector2) -> PackedVector2Array:
 	var gap: float = wizard.center().distance_to(target)
 	var size := clampf(gap / 150.0, 1.0, 1.4)
-	var aim: float = (target - wizard.center()).angle() + brain.rng.randfn(0.0, 0.2 * (1.0 - brain.skill))
+	var aim: float = (target - wizard.center()).angle() + brain.rng.randfn(0.0, 0.2 * (1.0 - brain.skill) * brain.clumsy)
 	var tip: Vector2 = wizard.center() + Vector2.from_angle(aim) * 20.0
 	var out := PackedVector2Array()
 	for p in GestureTemplates.preview_points("cone"):
@@ -273,7 +273,7 @@ func draw_when_still() -> void:
 ## from the view moving under it or the ground shaking. Only in a fight: the strokes it
 ## draws to cross a gate or to get on are drawn with care.
 func handed(points: PackedVector2Array) -> PackedVector2Array:
-	var wander := lerpf(5.0, 2.0, brain.skill)
+	var wander := lerpf(5.0, 2.0, brain.skill) * brain.clumsy
 	var phase_a := brain.rng.randf() * TAU
 	var phase_b := brain.rng.randf() * TAU
 	var squash := Vector2.ONE

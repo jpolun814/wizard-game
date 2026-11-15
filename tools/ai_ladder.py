@@ -89,7 +89,7 @@ def main():
     os.makedirs(OUT, exist_ok=True)
     games, vs_old, outfile = int(sys.argv[1]), int(sys.argv[2]), sys.argv[3]
     workers = max(1, (os.cpu_count() or 4) - 1)
-    pairs = [(a, b) for a in range(1, LEVELS + 1) for b in range(a + 1, LEVELS + 1)]
+    pairs = sorted([(a, b) for a in range(1, LEVELS + 1) for b in range(a + 1, LEVELS + 1)], key=lambda p: (-(p[1] - p[0]), p))  # (the widest gaps first: they show soonest whether the levels differ)
     cells = {}
     with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as pool:
         for a, b in pairs:
