@@ -156,3 +156,5 @@ Rows 4 and 5 are the same idea set; the spread between them (0.668 and 0.653) is
 | 12 | After the survivor-count cleanup, seed 4000 | duels 90: 0.648 +- 0.022 (58-30-2); royale 30: mean place 4.34 vs 4.66, wins 18 vs 11. No loss from the cleanup. |
 
 - Cleanup: a rival that died out of its sight is no longer forgotten at once; it learns of a death only by seeing it (BrainSight.look_about). The other scan (BrainProfile.tick) only listens for damage and counts it only for rivals in view.
+
+| 13 | After "learns of a death only by seeing it", seed 5000 | royale 30: mean place 4.43 vs 4.57, wins 20 vs 8; duels 89: 0.674 +- 0.023 (58-26-5). No loss. |
