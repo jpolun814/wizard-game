@@ -17,6 +17,7 @@ const STAGES := [
 const LATER_BIOMES := ["portals", "ocean", "sky"]  # the biomes dealt in after the others are shuffled, in the order they were added (see biome_of)
 const CASTLE_SHARE := 0.6  # the share of a stage's width that a castle world takes
 const SKY_SHARE := 0.35    # and an open sky (owner, 2026-11-12: too large, twice: it was 1.0, then 0.5): it is open every way, up and down as well as along, so the same width is far more room
+const OCEAN_SHARE := 0.5   # and the ocean (owner, 2026-11-15: too large, a wizard went the whole world without seeing anyone: swimming is slow and a screen sees little through the water)
 const HEIGHT := 380  # every world is this deep, in tiles
 const WARNING := 18.0 # seconds of shaking and a warning before a world collapses
 
@@ -58,6 +59,8 @@ static func plan_of(at: int) -> Dictionary:
 		plan["width"] = roundi(plan["width"] * CASTLE_SHARE)  # a castle world is built tall, and takes less width than the rest
 	elif biome == "sky":
 		plan["width"] = roundi(plan["width"] * SKY_SHARE)
+	elif biome == "ocean":
+		plan["width"] = roundi(plan["width"] * OCEAN_SHARE)
 	return plan
 
 

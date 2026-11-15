@@ -491,11 +491,13 @@ static func _sea_of(floor_row: PackedInt32Array, islands: Array[int], starts: Ar
 	var wrecks: Array[int] = []
 	var wanted := maxi(3, floor_row.size() / WRECK_EVERY)
 	for k in wanted:
-		for attempt in 60:
+		for attempt in 200:
 			var at := rng.randi_range(MARGIN + 24, floor_row.size() - MARGIN - 24)
 			var clear: bool = floor_row[at] >= SEA_ROW + SEA_DEPTH_LEAST - 2  # a wreck lies in deep water, not on a shoal
-			for spot in wrecks + islands + starts:
+			for spot in wrecks + islands:
 				clear = clear and absi(at - spot) > 26
+			for spot in starts:
+				clear = clear and absi(at - spot) > 12  # (the sea is narrower now, and eight starts leave little room)
 			if clear:
 				wrecks.append(at)
 				break

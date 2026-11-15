@@ -41,6 +41,7 @@ func _ready() -> void:
 		World.random_start = false
 		World.arrive_by_portal = false
 		World.next_seed = int(OS.get_environment("WORLD_SEED")) if OS.get_environment("WORLD_SEED") != "" else 11  # the same world each time
+	Lab.plain_room = true  # (the scenarios use the dummies and the pond of the old room)
 	_arena = load("res://scenes/%s.tscn" % scene).instantiate()
 	add_child(_arena)
 	_plan()

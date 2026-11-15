@@ -118,9 +118,13 @@ func _init() -> void:
 		ArenaGen.right_wall = ArenaGen.FIRST_COL + ArenaGen.CHUNK_WIDTH * ArenaGen.chunk_count
 
 
+## The old room, with the dummies and without the court (the showcase scenarios try spells on the dummies at fixed places).
+static var plain_room := false
+
+
 ## The waiting room of one person: the sparring court is there (a network game has the old room, and the match's level comes from the ratings).
 func _on_its_own() -> bool:
-	return _scene_name() == "lab" and not Net.online()
+	return _scene_name() == "lab" and not Net.online() and not plain_room
 
 
 func _exit_tree() -> void:
@@ -303,6 +307,7 @@ func _watch_the_partner(delta: float) -> void:
 		_partner.brain.dormant = false
 	elif not here and not _partner.brain.dormant:
 		_partner.brain.dormant = true
+		_partner.wolf.end()  # (a wolf turns back only when it is struck: it must not wait for a blow nobody will give)
 		_partner.global_position = Vector2(ArenaGen.column_x(SPAR_COL), _floor_y(SPAR_COL))
 		_partner.velocity = Vector2.ZERO
 		_partner.max_stamina = Wizard.MAX_STAMINA

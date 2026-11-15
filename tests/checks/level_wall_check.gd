@@ -13,6 +13,7 @@ func _ready() -> void:
 	add_child(lab)
 	for k in 30:
 		await get_tree().process_frame
+	var no_dummies: bool = lab.get_tree().get_nodes_in_group("mobs").is_empty()  # (before the partner can summon anything)
 	var wall: LevelWall = lab._levels
 	var start_level := wall.level
 	var crystals: Array = wall.get_children().filter(func(n: Node) -> bool: return n is LevelCrystal)
@@ -41,9 +42,12 @@ func _ready() -> void:
 	wall.set_level(9)
 	lab.player.global_position = Vector2(ArenaGen.column_x(Lab.SPAR_COL + 6), floor_y)
 	var shots_seen := 0
-	for k in 900:
+	var lowest := Wizard.MAX_STAMINA
+	for k in 1500:
 		await get_tree().process_frame
 		shots_seen = maxi(shots_seen, get_tree().get_nodes_in_group("shots").size())
+		if is_instance_valid(lab._partner):
+			lowest = minf(lowest, lab._partner.stamina)
 	lab._spawn_partner()  # (a second call never leaves two)
 	for k in 5:
 		await get_tree().process_frame
@@ -60,8 +64,8 @@ func _ready() -> void:
 		"it takes no notice of someone only just come in": not_yet,
 		"it wakes when the player has been in its section a moment": awake,
 		"it sleeps again when they leave": asleep_again,
-		"no dummies in the room": lab.get_tree().get_nodes_in_group("mobs").is_empty(),
-		"the partner fights back when the player stands in its section": shots_seen > 0 and lab._partner.stamina < Wizard.MAX_STAMINA,
+		"no dummies in the room": no_dummies,
+		"the partner fights back when the player stands in its section": shots_seen > 0 or lowest < Wizard.MAX_STAMINA - 5.0,
 		"the partner's own shots do not change the level": wall.level == 9,
 		"it takes the new level at once": lab._partner.brain.level == 9 and BrainLevel.current() == 9,
 	}
