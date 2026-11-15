@@ -75,6 +75,9 @@ func _on_hit(body: Node2D) -> void:
 		_spent = true
 		MatchStats.strike(self)
 		_hurt_mob(body)
+	elif body is LevelCrystal:
+		_spent = true
+		body.struck(caster)
 	else:
 		_spent = true  # terrain, walls and stone slabs stop it
 	_impact_effect()

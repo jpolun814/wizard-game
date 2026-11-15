@@ -4,6 +4,12 @@
 person, but only by better choices. It has a person's eyes, memory, hands, reaction and attention, and it knows nothing a person at that screen could not know.
 It was forgotten once, in an idea list (2026-11-14); `tests/checks/knowledge_check.gd` now fails on the commonest breaches, and this chapter is the full list.
 
+**Amended 2026-11-15 (owner): the numbers may stretch, the abilities may not.** The recorded people (`data/ai/human_limits.json`) are a sample, not a ceiling: no expert has had
+the practice yet. So the top two levels (`BrainLevel`: `slow` and `clumsy` below 1, a longer `memory`) may react, draw and type quicker, aim truer and remember longer than the best
+people recorded, as long as a person plausibly could (a reaction of about 0.18 s, typing near 200 words a minute). What never stretches is what it may *know* or *do* (everything
+numbered below that is about knowledge or action: its screen only, no counting, no two spells at once, no moving while chanting, no peeking, no made-up mistakes). Read the
+numbers below as the usual person, not the limit, for levels 8 and 9.
+
 ## What it can know (the eyes and the memory)
 1. **Its screen only**: a 1280 x 720 window at zoom 1.5, about 427 px either side and 240 px up and down of the view (`Eyes`). Nothing off the screen.
 2. **Nothing through smoke, an eclipse, the dark** (unless a light falls on it) **or a Sneak**. A faded wizard is not seen.

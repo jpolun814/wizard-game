@@ -62,7 +62,7 @@ func _ready() -> void:
 	await _frames(30)
 	var thought: Vector2 = brain.sight.seen_feet(me)
 	_verdict(thought.distance_to(last_seen) < 2.0, "it thinks them where it last saw them, not where they went (%s)" % (thought - last_seen))
-	await _frames(int((BrainSight.REMEMBER + 0.5) * 60.0))
+	await _frames(int((BrainSight.REMEMBER * brain.memory + 0.5) * 60.0))  # (a wizard of a higher level keeps them in mind longer)
 	_verdict(not brain.sight.known.has(me.get_instance_id()), "and after a while forgets them")
 	me.global_position = looker.global_position + Vector2(200.0, 0.0)  # back on its screen, still faded
 	await _frames(3)

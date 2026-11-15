@@ -227,7 +227,7 @@ func begin_cast(spell_name: String, stroke: PackedVector2Array, draw_time: float
 	var data: Spell = SpellData.SPELLS[spell_name]
 	var mask: int = data.buttons
 	var caster: Caster = wizard.caster
-	draw_time = maxf(draw_time, BrainStrokes.quickest_stroke(spell_name))  # never quicker than people draw it
+	draw_time = maxf(draw_time, BrainStrokes.quickest_stroke(spell_name) * minf(brain.slow, 1.0))  # never quicker than people draw it (only the top two levels a little quicker)
 	if mask & (mask - 1) != 0:
 		draw_time += brain.rng.randf_range(CHORD_GAP_MIN, CHORD_GAP_MAX)  # the buttons of a chord go down one after another, not in one instant
 	return wizard.pen.begin(stroke, SpellData.SCHOOL_COLORS[data.school], func(points: PackedVector2Array) -> void:

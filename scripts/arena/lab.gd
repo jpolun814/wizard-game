@@ -19,7 +19,18 @@ const NIGHT := Color(0.22, 0.2, 0.34)
 const HEAL_PER_SECOND := 40.0
 const HEAL_AFTER := 4.0  # seconds without a hit before health starts coming back, so damage can be seen
 
+const EXTRA_CHUNKS := 3   # the room is this many chunks wider than the others, for the wall that sets the level of the AI wizards
+const SPAR_COL := 31   # where the sparring partner stands
+const CRYSTAL_COL := 35   # the first of the nine crystals
+const SECTION := Vector2i(29, 47)   # first and last column of the section: the partner fights back only while the player is in it
+const SPAR_KIT := ["Ignite", "Frostbolt", "Pebble", "Barrier", "Stone Wall", "Flare", "Decoy", "Spark"]  # the pages the partner has read (no wind: a shove would carry the player into the book, which starts the match)
+const SPAR_RESPAWN := 2.5
+
 var _lectern: Lectern
+var _levels: LevelWall
+var _partner: Wizard
+var _partner_wait := 0.0
+var _ratings := {}  # on the host, in a network game: peer -> the rating of the person who has touched the book (the match's level comes from them)
 var _making: LikenessPanel  # the wizard maker, while it is open
 var _mark: LikenessMark  # its circle, in the waiting room only
 var _chant_guide: LikenessGuide  # the page with its words, while the player stands on the circle
@@ -54,6 +65,16 @@ func _build_map() -> Variant:
 		for row in [-3, -2]:
 			cells[Vector2i(col, row)] = ArenaGen.STONE  # a slab overhead, for icicles to hang from
 	return cells
+
+
+func _init() -> void:
+	ArenaGen.chunk_count = ArenaGen.CHUNK_COUNT + EXTRA_CHUNKS
+	ArenaGen.right_wall = ArenaGen.FIRST_COL + ArenaGen.CHUNK_WIDTH * ArenaGen.chunk_count
+
+
+func _exit_tree() -> void:
+	ArenaGen.chunk_count = ArenaGen.CHUNK_COUNT  # the other rooms are their usual width
+	ArenaGen.right_wall = ArenaGen.FIRST_COL + ArenaGen.CHUNK_WIDTH * ArenaGen.CHUNK_COUNT
 
 
 func _enter_tree() -> void:
@@ -136,7 +157,10 @@ func _begin_encounter(camera: Camera2D) -> void:
 	if _scene_name() == "lab":
 		_add_likeness_mark()
 	_add_ponds()
-	_add_targets()
+	if _scene_name() == "lab" and not Net.online():
+		_add_sparring_section()  # (it takes the place of the dummies: a person on their own sets the level of the wizards of the match here)
+	else:
+		_add_targets()
 	_night = CanvasModulate.new()
 	_night.color = NIGHT
 	_night.visible = false
@@ -181,8 +205,60 @@ func _add_targets() -> void:
 		mob.facing = -1.0
 
 
+## The wall of nine crystals, and a sparring partner at the level the wall shows.
+func _add_sparring_section() -> void:
+	_levels = LevelWall.new()
+	add_child(_levels)
+	var start := clampi(roundi(Library.rating()), 1, BrainLevel.LEVELS)
+	_levels.build(ArenaGen.column_x(CRYSTAL_COL), func(x: float) -> float: return ArenaGen.surface_y(_cells, int(floor(x / float(ArenaGen.TILE)))), start)
+	BrainLevel.match_level = start
+	_levels.chosen.connect(_on_level_chosen)
+	_spawn_partner()
+
+
+func _on_level_chosen(level: int) -> void:
+	BrainLevel.match_level = level
+	if _partner != null and is_instance_valid(_partner):
+		_partner.brain.set_level(level)
+
+
+func _spawn_partner() -> void:
+	var feet := Vector2(ArenaGen.column_x(SPAR_COL), ArenaGen.surface_y(_cells, SPAR_COL))
+	_partner = add_wizard("dark_wizard", feet)
+	_partner.ledger = Ledger.new()
+	for page in SPAR_KIT:
+		if SpellData.SPELLS.has(page):
+			_partner.ledger.learn(page)
+	_partner.nav = nav
+	_partner.facing = 1.0
+	_partner.brain.set_level(_levels.level)
+	_partner.brain.dormant = true
+
+
+## The partner fights back only while the player is in its section; when the player leaves, it goes back to its place, whole again.
+func _watch_the_partner(delta: float) -> void:
+	if _levels == null:
+		return
+	if _partner == null or not is_instance_valid(_partner) or _partner.dead:
+		_partner_wait += delta
+		if _partner_wait >= SPAR_RESPAWN:
+			_partner_wait = 0.0
+			_spawn_partner()
+		return
+	var here := player.global_position.x >= ArenaGen.column_x(SECTION.x) and player.global_position.x <= ArenaGen.column_x(SECTION.y)
+	if here and _partner.brain.dormant:
+		_partner.brain.dormant = false
+	elif not here and not _partner.brain.dormant:
+		_partner.brain.dormant = true
+		_partner.global_position = Vector2(ArenaGen.column_x(SPAR_COL), ArenaGen.surface_y(_cells, SPAR_COL))
+		_partner.velocity = Vector2.ZERO
+		_partner.max_stamina = Wizard.MAX_STAMINA
+		_partner.stamina = Wizard.MAX_STAMINA
+
+
 func _process(delta: float) -> void:
 	super(delta)
+	_watch_the_partner(delta)
 	_watch_the_room(delta)
 	if _mark != null and _making == null:
 		_show_guide(_mark.is_near(player.center()))
@@ -275,9 +351,9 @@ func _on_book_touched(body: Node2D) -> void:
 		return
 	player.movement_enabled = false
 	if Net.is_host():
-		_stepped_in()
+		_stepped_in(Library.rating())
 	else:
-		_stepped_in.rpc_id(1)
+		_stepped_in.rpc_id(1, Library.rating())
 	if _waiting_for().size() > 0:
 		hud.set_title("Waiting room
 Wait for the others to touch the book")
@@ -306,9 +382,10 @@ func _go(seed_value: int) -> void:
 
 ## On the host: a person has touched the book. When the last one has, the match begins for everyone, in one world, from one seed.
 @rpc("any_peer", "call_remote", "reliable")
-func _stepped_in() -> void:
+func _stepped_in(rating: float) -> void:
 	var who := multiplayer.get_remote_sender_id()
 	_touched[who if who != 0 else Net.my_id()] = true
+	_ratings[who if who != 0 else Net.my_id()] = clampf(rating, 1.0, float(BrainLevel.LEVELS))
 	_start_if_all_in()
 
 
@@ -319,6 +396,11 @@ func _start_if_all_in() -> void:
 	if Net.dedicated and Net.roster.filter(func(peer: int) -> bool: return peer != 0 and peer != Net.my_id()).is_empty():
 		return  # a server with nobody in the room does not begin a match
 	Net.set_open(false)  # nobody joins a match under way
+	if not _ratings.is_empty():  # the wizards of the match play at the level of the people in it (their ratings, as the Library keeps them)
+		var total := 0.0
+		for peer in _ratings:
+			total += float(_ratings[peer])
+		BrainLevel.match_level = clampi(roundi(total / _ratings.size()), 1, BrainLevel.LEVELS)
 	var seed_value := World.next_seed if World.next_seed >= 0 else randi() % Incantation.seed_count()
 	for peer in Net.peers_here():
 		_go.rpc_id(peer, seed_value)

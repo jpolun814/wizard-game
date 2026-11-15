@@ -128,7 +128,8 @@ var wizard: Wizard            # the body it plays
 var skill := 0.6              # 0 to 1: how quick its reactions are and how true its aim is
 var memory := 1.0             # how long it keeps a rival's place and spells in mind, against the usual (see BrainLevel)
 var level := BrainLevel.DEFAULT
-var slow := 1.0               # how much slower than the usual it reacts and how much longer it waits between attacks (see BrainLevel); never under 1
+var dormant := false         # asleep: it does nothing (the sparring partner of the waiting room, when nobody is there to spar with)
+var slow := 1.0               # how much slower than the usual it reacts and how much longer it waits between attacks (see BrainLevel); under 1 only at the top two levels
 var clumsy := 1.0             # how much wider than the usual its aim and its hand stray (see BrainLevel); never under 1
 var strength := 0.5          # 0 to 1: how strong it thinks it is (see _feel_strength); a strong wizard hunts, a weak one looks for pages and keeps away
 var _strength_in := 0.0
@@ -252,6 +253,10 @@ func quiet_here() -> bool:
 
 
 func think(delta: float) -> void:
+	if dormant:
+		wizard.pad.walk = 0.0
+		wizard.pen.drop()
+		return
 	_run_clocks(delta)
 	_sense(delta)
 	if chant.is_typing():  # the chant box is open: it can only type, or close the box to do something else (see BrainChant.while_typing)
@@ -450,7 +455,7 @@ func _attack(foe: Wizard, to_player: Vector2, sees: bool) -> void:
 
 
 ## How long it takes to answer something it has seen: the middle half of the reactions recorded from people runs from a quarter of a second to
-## over three quarters (tools/measure_human.py); a skilled wizard is at the quick end of that, never quicker than the quickest people.
+## over three quarters (tools/measure_human.py); a skilled wizard is at the quick end of that; only the top two levels are a little quicker than the quickest people recorded.
 func _reaction_time() -> float:
 	return (lerpf(0.45, 0.25, skill) + rng.randf() * 0.2) * slow
 

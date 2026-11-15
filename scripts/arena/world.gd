@@ -279,7 +279,9 @@ func fly_box() -> Rect2:
 
 
 func new_brain(body: Wizard) -> WizardBrain:
-	return SkyBrain.new(body) if flies() else WizardBrain.new(body)
+	var brain: WizardBrain = SkyBrain.new(body) if flies() else WizardBrain.new(body)
+	brain.set_level(BrainLevel.current())
+	return brain
 
 
 @rpc("authority", "call_remote", "reliable")

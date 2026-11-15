@@ -34,7 +34,7 @@ func tick(delta: float) -> void:
 
 ## How long a person takes to type a chant: it stands where it is while it does.
 func typing_time(id: String) -> float:
-	return float(RitualInput.RITUALS[id]["text"].length()) * lerpf(TYPING_SLOWEST, TYPING_FASTEST, brain.skill)
+	return float(RitualInput.RITUALS[id]["text"].length()) * lerpf(TYPING_SLOWEST, TYPING_FASTEST, brain.skill) * minf(brain.slow, 1.0)
 
 
 ## True while the chant box is open and it is typing.

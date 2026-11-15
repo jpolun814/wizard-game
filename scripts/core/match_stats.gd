@@ -176,7 +176,7 @@ static func summary(place: int, of_total: int) -> Dictionary:
 		"seconds": int(seconds), "worlds": worlds, "seed": MatchState.seed_base,
 		"kills": kills, "dealt": int(dealt), "taken": int(taken), "stages": world_starts.duplicate(), "casts": casts, "misses": misses, "accuracy": snappedf(average_accuracy(), 0.01), "pages": pages_known(),
 		"favourites": spells.slice(0, 3), "school": strongest,
-		"online": Net.online(),
+		"online": Net.online(), "level": BrainLevel.current(),
 		"dealt_line": _line("dealt"), "taken_line": _line("taken"),
 	}
 
