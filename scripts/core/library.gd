@@ -15,7 +15,7 @@ const RATING_START := 1.0
 const RATING_STEP_FIRST := 1.0   # how far a first match can move the rating; later ones move it less (see `_rating_step`)
 const RATING_STEP_LEAST := 0.25
 const RATING_SETTLE := 0.85      # each match leaves this share of the step before it
-const AI_LEVEL_NOW := 6          # the level of the wizards in a match until the levels are built (see docs/ai_progress.md)
+const AI_LEVEL_NOW := 7          # the level of the wizards in a match until the levels are built (see docs/ai_progress.md)
 const MAX_HISTORY := 5000      # matches kept in the Chronicle; each takes about half a kilobyte, so the file never grows past about 2.5 MB
 const SAVE_EVERY := 4000  # milliseconds: casts come thick and fast, so they are written out in batches
 
