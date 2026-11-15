@@ -37,7 +37,7 @@ func look_about(delta: float) -> void:
 			known[id]["age"] += delta
 	for id in known.keys():
 		var entry: Dictionary = known[id]
-		if entry["age"] > REMEMBER or not is_instance_valid(entry["wizard"]) or entry["wizard"].dead:
+		if entry["age"] > REMEMBER or not is_instance_valid(entry["wizard"]) or (entry["wizard"].dead and brain.eyes_see(entry["wizard"])):  # (it learns of a death only by seeing it)
 			known.erase(id)
 
 
