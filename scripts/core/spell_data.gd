@@ -31,17 +31,6 @@ const SCHOOL_NAMES := {
 	"Blood": "Necromancy",
 }
 
-## The title a wizard earns by casting mostly from a school.
-const SCHOOL_TITLES := {
-	"Fire": "Pyromancer",
-	"Water": "Aquamage",
-	"Air": "Aerokinetic",
-	"Earth": "Terramancer",
-	"Flora": "Druid",
-	"Shadow": "Umbramancer",
-	"Blood": "Necromancer",
-}
-
 ## The schools, each cast with its own mouse buttons.
 const SCHOOL_BUTTONS := {
 	"Fire": LEFT,

@@ -9,9 +9,13 @@ extends RefCounted
 
 const PATH := "user://compendium.json"  # (the file kept the name it began with, so what was recorded before is not lost)
 static var path := PATH  # a test points this at a file of its own, so it never touches the real one
-const TITLE_AFTER := 100       # casts before a wizard earns a school's title; fewer and they are a Novice
-const TITLE_SHARE := 0.30      # the share of casts a school needs to give its title
-const TITLE_LEAD := 0.05       # a school must lead the next by more than this share, or the spread is even
+## The ranks, lowest first: a rating from 1 to 9 is the number of the rank (a wizard of rating 6.4 is a Master).
+const RANKS := ["Novice", "Apprentice", "Initiate", "Adept", "Magus", "Master", "Grandmaster", "Archmage", "Champion"]
+const RATING_START := 1.0
+const RATING_STEP_FIRST := 1.0   # how far a first match can move the rating; later ones move it less (see `_rating_step`)
+const RATING_STEP_LEAST := 0.25
+const RATING_SETTLE := 0.85      # each match leaves this share of the step before it
+const AI_LEVEL_NOW := 6          # the level of the wizards in a match until the levels are built (see docs/ai_progress.md)
 const MAX_HISTORY := 5000      # matches kept in the Chronicle; each takes about half a kilobyte, so the file never grows past about 2.5 MB
 const SAVE_EVERY := 4000  # milliseconds: casts come thick and fast, so they are written out in batches
 
@@ -87,6 +91,8 @@ static func record_match_end(summary: Dictionary) -> void:
 	history.append(summary)
 	while history.size() > MAX_HISTORY:
 		history.pop_front()
+	_data["rating"] = rating_after(float(_data["rating"]), int(_data["rated"]), int(summary.get("place", 0)), int(summary.get("field", 0)), int(summary.get("level", AI_LEVEL_NOW)))
+	_data["rated"] = int(_data["rated"]) + 1
 	_save()
 
 
@@ -136,39 +142,39 @@ static func average_accuracy(spell: String) -> float:
 	return float(_data["accuracy_sum"].get(spell, 0.0)) / n
 
 
-## The title earned by these casts ({spell: count}): Novice before enough casts, then the school with the biggest share if it has enough of
-## them and leads clearly, and Sorcerer for an even spread. Rituals are not spells and are not counted.
-static func title_of(casts: Dictionary) -> String:
-	var per_school := {}
-	var total := 0
-	for spell: String in casts:
-		if not SpellData.SPELLS.has(spell):
-			continue
-		var school: String = SpellData.SPELLS[spell].school
-		per_school[school] = int(per_school.get(school, 0)) + int(casts[spell])
-		total += int(casts[spell])
-	if total < TITLE_AFTER:
-		return "Novice"
-	var best := ""
-	var best_share := 0.0
-	var second_share := 0.0
-	for school: String in per_school:
-		var share: float = float(per_school[school]) / total
-		if share > best_share:
-			second_share = best_share
-			best_share = share
-			best = school
-		elif share > second_share:
-			second_share = share
-	if best_share < TITLE_SHARE or best_share - second_share <= TITLE_LEAD + 0.0001:  # (a tiny allowance, so an exact lead of 5 points is not lost to rounding)
-		return "Sorcerer"
-	return SpellData.SCHOOL_TITLES[best]
+## A rank is the whole number of a rating (1 to 9), as a name.
+static func rank_of(rating: float) -> String:
+	return RANKS[clampi(roundi(rating), 1, RANKS.size()) - 1]
 
 
-## This machine's title, from every cast it has recorded.
+## How far one match can move the rating: a new wizard is moved a long way by their first matches and a little by their later ones.
+static func _rating_step(matches_rated: int) -> float:
+	return maxf(RATING_STEP_FIRST * pow(RATING_SETTLE, matches_rated), RATING_STEP_LEAST)
+
+
+## The rating after a match: a finish above the middle of the field raises it and one below lowers it, by a step that grows smaller with every match
+## rated. A good finish never carries it more than a level past the level of the wizards it beat.
+static func rating_after(rating: float, matches_rated: int, place: int, field: int, level: int) -> float:
+	if field < 2:
+		return rating
+	var middle := (field + 1) / 2.0
+	var score := clampf((middle - place) / ((field - 1) / 2.0), -1.0, 1.0)
+	var moved := rating + _rating_step(matches_rated) * score
+	if score > 0.0:
+		moved = minf(moved, maxf(rating, float(level + 1)))
+	return clampf(moved, 1.0, float(RANKS.size()))
+
+
+## This machine's rank, from how its matches have gone.
 static func title() -> String:
 	_load()
-	return title_of(_data["casts"])
+	return rank_of(float(_data["rating"]))
+
+
+## This machine's rating, 1 to 9.
+static func rating() -> float:
+	_load()
+	return float(_data["rating"])
 
 
 ## Writes out anything not written yet. Called when a match ends or the player leaves a world.
@@ -223,7 +229,7 @@ static func _bump(table: String, key: String) -> void:
 
 
 static func _blank() -> Dictionary:
-	return {"matches": 0, "wins": 0, "pages": {}, "casts": {}, "won_with": {}, "accuracy_sum": {}, "accuracy_n": {}, "in": {}, "history": []}
+	return {"matches": 0, "wins": 0, "pages": {}, "casts": {}, "won_with": {}, "accuracy_sum": {}, "accuracy_n": {}, "in": {}, "history": [], "rating": RATING_START, "rated": 0}
 
 
 static func _load() -> void:

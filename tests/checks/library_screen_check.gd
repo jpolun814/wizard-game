@@ -125,18 +125,16 @@ func _picture(label: String) -> void:
 			get_viewport().get_texture().get_image().save_png("%s/%s.png" % [arg.substr(4), label])
 
 
-## The title rules, from counts alone. Ignite and Firewall are Fire; Frostbolt and Icicles Water; Push Air; Stonefall Earth; Adrenaline Blood.
+## The rank rules: a rating from 1 to 9 is a rank, and a match moves the rating by place.
 func _check_titles() -> void:
-	_verdict(Library.title_of({"Ignite": 99}) == "Novice", "99 casts is still a Novice")
-	_verdict(Library.title_of({"Ignite": 100}) == "Pyromancer", "100 casts, all fire, is a Pyromancer")
-	_verdict(Library.title_of({"Frostbolt": 60, "Icicles": 40}) == "Aquamage", "water casts give a Aquamage")
-	_verdict(Library.title_of({"Adrenaline": 100}) == "Necromancer", "blood casts give a Necromancer")
-	_verdict(Library.title_of({"Ignite": 50, "Frostbolt": 47, "Push": 3}) == "Sorcerer", "two schools within 5 points are a Sorcerer")
-	_verdict(Library.title_of({"Ignite": 52, "Frostbolt": 47, "Push": 1}) == "Sorcerer", "a lead of 5 points is not enough")
-	_verdict(Library.title_of({"Ignite": 54, "Frostbolt": 46}) == "Pyromancer", "a lead of 8 points is")
-	_verdict(Library.title_of({"Ignite": 20, "Frostbolt": 19, "Push": 19, "Stonefall": 19, "Adrenaline": 19, "Liana": 4}) == "Sorcerer", "no school at 30% is a Sorcerer")
-	_verdict(Library.title_of({"Ignite": 100, "chant:haste": 500}) == "Pyromancer", "rituals do not count")
-	_verdict(Library.title_of({"Ignite": 30, "chant:haste": 500}) == "Novice", "and are not counted towards the first 100 either")
+	_verdict(Library.rank_of(1.0) == "Novice", "rating 1 is a Novice")
+	_verdict(Library.rank_of(6.4) == "Master", "rating 6.4 is a Master")
+	_verdict(Library.rank_of(9.0) == "Champion" and Library.rank_of(12.0) == "Champion", "the top is a Champion")
+	_verdict(Library.rating_after(1.0, 0, 1, 8, 6) > 1.5, "a win moves a new wizard a long way")
+	_verdict(Library.rating_after(1.0, 0, 8, 8, 6) == 1.0, "the rating never falls below 1")
+	_verdict(Library.rating_after(1.0, 0, 1, 8, 1) <= 2.0 and Library.rating_after(4.0, 0, 1, 8, 2) == 4.0, "a win does not carry it past one level above the level beaten")
+	_verdict(Library.rating_after(5.0, 0, 4, 7, 5) == 5.0, "the middle of the field leaves it where it was")
+	_verdict(Library._rating_step(30) < Library._rating_step(0), "later matches move it less")
 
 
 func _open() -> Node:

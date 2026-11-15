@@ -449,7 +449,7 @@ python tools/run_checks.py --full                              # all of them, ab
 
 **The spellbook page** (owner decision, 2026-11-07): the drawn picture, a short description, the damage it deals ("14 dmg/sec", "30 dmg") and its cost in stamina (maximum stamina for Necromancy), see section 0. Everything else about a spell, what counters it included, is learned in play. The table above is the first 32 spells. The others (Vacuum, Updraft, Sinkhole, Stalagmite, Silence, Fight or Flight, Sneak, Hunter's Mark, the Blood spells, Tide Surf, Obsidian Armor, Glowcap and Moonbeam) are in `data/spells/` and `docs/spell_pool.md`.
 
-**The schools have new names** (the ids Fire, Water, Air, Earth, Flora, Shadow and Blood stay in code and double as element tags; only what a player reads changed, through `SpellData.school_name`): Pyromancy, Aquamagy, Aerokinesis, Terramancy, Druidry, Umbramancy and Necromancy. The Library gives a title from the casts (`Library.title_of`).
+**The schools have new names** (the ids Fire, Water, Air, Earth, Flora, Shadow and Blood stay in code and double as element tags; only what a player reads changed, through `SpellData.school_name`): Pyromancy, Aquamagy, Aerokinesis, Terramancy, Druidry, Umbramancy and Necromancy. The Library gives a rank from how matches have gone (`Library.title`, `Library.rank_of`): a rating from 1 to 9 that each match moves by the finishing place, shown as Novice, Apprentice, Initiate, Adept, Magus, Master, Grandmaster, Archmage, Champion (owner, 2026-11-15; it replaced the old titles from casts: Novice, Pyromancer, Sorcerer). The rating will also set the level of the AI wizards in network matches.
 
 **Spells added later:**
 
