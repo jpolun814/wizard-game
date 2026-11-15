@@ -244,7 +244,7 @@ func think(delta: float) -> void:
 	if chant.is_typing():  # the chant box is open: it can only type, or close the box to do something else (see BrainChant.while_typing)
 		_chant_said(chant.while_typing())
 		return
-	if opponent == null and _eye_time <= 0.0 and not wizard.ledger.is_settled("scrying_eye") and SpellTargets.wizards(wizard.get_tree()).size() > 1 and wizard.ledger.knows_chant("scrying_eye"):
+	if opponent == null and _eye_time <= 0.0 and not wizard.ledger.is_settled("scrying_eye") and wizard.ledger.knows_chant("scrying_eye"):
 		chant.type_then_say("scrying_eye")  # it has lost track of everyone: it sends out an eye once, as a person would (see BrainChant.while_typing); the window stays
 	if opponent == null:
 		_alone(delta)
@@ -336,7 +336,7 @@ func _alone(delta: float) -> void:
 	if not is_nan(mending):
 		wizard.walk(mending)
 		return
-	wizard.walk(travel.travel(delta) if SpellTargets.wizards(wizard.get_tree()).size() > 1 or wizard.get_tree().get_first_node_in_group(&"gate_source") != null else 0.0)  # (alone in a match it has won; alone in a room it goes on)
+	wizard.walk(travel.travel(delta))  # (it cannot tell whether anyone is left: a won match simply ends)
 
 
 ## A rival in mind: it reacts to what comes at it, looks after itself, and keeps its footing, its journey or its fight.

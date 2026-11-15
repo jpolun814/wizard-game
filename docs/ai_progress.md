@@ -150,3 +150,5 @@ Rows 4 and 5 are the same idea set; the spread between them (0.668 and 0.653) is
 | 11 | Rest A/B, order swapped (on first) | rest on: 0.659 +- 0.021 (74-40-6); rest off: 0.635 +- 0.022 (69-42-9). The second run of a pair is lower both ways, so run order (not the rule) caused the earlier gap. Both orders pooled: on 0.655, off 0.661: no effect either way. Rule kept; the wall result is likely the same artifact. Lesson: swap the order in every A/B. |
 
 - Idea 27 (Earthquake on a rival at a ledge or pit) struck: the quake only shoves grounded wizards left and right in turn and does no damage, so there is nothing to aim it at; an edge-push would be a coin flip. Sinkhole at a pit lip and Black Hole by lava still open.
+
+- Cleanup: three places where the brain counted the wizards left in the world (Hunter's Mark, the Scrying Eye, and stopping to walk when alone) no longer do. A person cannot know that; the Mark and the Eye now go by "it has lost track of everyone", and a won match simply ends. Two entries came off the knowledge_check list; the two left are scans that are then filtered by what the wizard sees.

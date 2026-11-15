@@ -19,10 +19,8 @@ const FORBIDDEN := {
 }
 ## Old lines that break a rule and are known: each is listed so that no new one is added; fixing one means taking it off this list.
 const KNOWN := [
-	"brain_mend.gd:SpellTargets.wizards",
 	"brain_profile.gd:SpellTargets.wizards",
 	"brain_sight.gd:SpellTargets.wizards",
-	"wizard_brain.gd:SpellTargets.wizards",
 ]
 
 

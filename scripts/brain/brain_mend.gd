@@ -75,7 +75,7 @@ func tend(to_player: Vector2, sees: bool, fighting: bool) -> bool:
 		weights["Adrenaline"] = 1.2
 	if fighting and sees and gap < 260.0 and wizard.max_stamina > 90.0 and not wizard.wolf.on:
 		weights["Wild Shape"] = 1.1  # a rival close at hand: it comes at them with claws
-	if brain.goal != "page" and brain.scent <= 0.0 and SpellTargets.wizards(wizard.get_tree()).size() > 1:
+	if brain.goal != "page" and brain.scent <= 0.0 and brain.opponent == null:  # (it has lost track of everyone, so it marks one; it cannot know whether anyone is left)
 		weights["Hunter's Mark"] = 1.0
 	if fighting:
 		if low and gap > 140.0 and wizard.fade_time <= 0.0:
