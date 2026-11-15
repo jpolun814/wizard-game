@@ -135,7 +135,7 @@ func _cast_by(spell_name: String, origin: Vector2, aim: float, other: Wizard) ->
 
 func _fresh(other: Wizard, spell_name: String) -> bool:
 	var entry: Dictionary = seen.get(other.get_instance_id(), {}).get(spell_name, {})
-	return not entry.is_empty() and brain.clock - float(entry["at"]) < FORGET
+	return not entry.is_empty() and brain.clock - float(entry["at"]) < FORGET * brain.memory
 
 
 ## Whether it has seen this rival cast this spell lately.

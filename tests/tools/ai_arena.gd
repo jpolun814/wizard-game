@@ -17,6 +17,7 @@ var old_seats: Array[int] = []
 var swap := false
 var need: Array[String] = []  # need=A,B: these are in both books of a duel, whatever else the seed picks
 var weak := -1  # weak=K: seat K begins worn down to a maximum of 60, for studying how a wounded wizard behaves
+var levels: Array[int] = []  # lv=A,B,...: seat k plays the new brain at level lv[k] (see BrainLevel); in a duel, none plays the old brain
 var result_file := ""
 var log_file := ""  # log=FILE: every cast and wound, and where each wizard is every half second, for studying how they fight
 var _log: FileAccess
@@ -51,6 +52,9 @@ func _ready() -> void:
 			weak = int(arg.substr(5))
 		elif arg.begins_with("need="):
 			need.assign(arg.substr(5).split(","))
+		elif arg.begins_with("lv="):
+			for part in arg.substr(3).split(","):
+				levels.append(int(part))
 		elif arg == "swap=1":
 			swap = true
 		elif arg.begins_with("log="):
@@ -78,8 +82,16 @@ func _attach() -> void:
 	for seat in _world.seats:
 		_seats.append(seat)
 	if mode == "duel":
-		old_seats = [0 if swap else 1]
+		old_seats.clear()
+		if levels.size() < 2:
+			old_seats.append(0 if swap else 1)
 		_set_up_duel()
+	for k in _seats.size():
+		if mode == "duel" and levels.size() == 1:  # (one level named in a duel: it is the new brain's, against the old)
+			if k == 1 - old_seats[0] and _seats[k] != null and _seats[k].brain is WizardBrain:
+				_seats[k].brain.set_level(levels[0])
+		elif k < levels.size() and _seats[k] != null and _seats[k].brain is WizardBrain:
+			_seats[k].brain.set_level(levels[k])
 	for k in _seats.size():
 		if old_seats.has(k) and _seats[k] != null:
 			_seats[k].brain = OldSkyBrain.new(_seats[k]) if _world.flies() else OldWizardBrain.new(_seats[k])
@@ -180,7 +192,7 @@ func _physics_process(delta: float) -> void:
 
 func _finish() -> void:
 	_done = true
-	var line := {"mode": mode, "seed": seed_value, "old": old_seats, "seconds": snappedf(_clock, 0.1), "worlds": _worlds, "taken": _taken, "fell": {}, "stamina": {}, "book": _duel_book}
+	var line := {"mode": mode, "seed": seed_value, "old": old_seats, "levels": levels, "seconds": snappedf(_clock, 0.1), "worlds": _worlds, "taken": _taken, "fell": {}, "stamina": {}, "book": _duel_book}
 	for k in 8:
 		if mode == "duel" and k > 1:
 			continue

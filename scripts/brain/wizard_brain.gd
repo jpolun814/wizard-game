@@ -126,6 +126,8 @@ const USES := {
 
 var wizard: Wizard            # the body it plays
 var skill := 0.6              # 0 to 1: how quick its reactions are and how true its aim is
+var memory := 1.0             # how long it keeps a rival's place and spells in mind, against the usual (see BrainLevel)
+var level := BrainLevel.DEFAULT
 var strength := 0.5          # 0 to 1: how strong it thinks it is (see _feel_strength); a strong wizard hunts, a weak one looks for pages and keeps away
 var _strength_in := 0.0
 var _daunted := 0.0           # seconds it has faced a rival it feels too weak for, at a distance: it hesitates (and may cast to hide or mend) before it turns away
@@ -185,6 +187,13 @@ func _init(body: Wizard) -> void:
 	rng.randomize()
 	skill = GameSettings.rival_skill()
 	style = ["aggressive", "sniper", "trapper", "turtle"][rng.randi() % 4]
+
+
+## Plays at one of the nine levels (see BrainLevel).
+func set_level(new_level: int) -> void:
+	level = clampi(new_level, 1, BrainLevel.LEVELS)
+	skill = BrainLevel.skill_of(level)
+	memory = BrainLevel.memory_of(level)
 
 
 ## A Hunter's Mark was cast: for a while it can find a wizard who has faded from sight.
