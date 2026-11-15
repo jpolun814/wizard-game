@@ -152,3 +152,5 @@ Rows 4 and 5 are the same idea set; the spread between them (0.668 and 0.653) is
 - Idea 27 (Earthquake on a rival at a ledge or pit) struck: the quake only shoves grounded wizards left and right in turn and does no damage, so there is nothing to aim it at; an edge-push would be a coin flip. Sinkhole at a pit lip and Black Hole by lava still open.
 
 - Cleanup: three places where the brain counted the wizards left in the world (Hunter's Mark, the Scrying Eye, and stopping to walk when alone) no longer do. A person cannot know that; the Mark and the Eye now go by "it has lost track of everyone", and a won match simply ends. Two entries came off the knowledge_check list; the two left are scans that are then filtered by what the wizard sees.
+
+| 12 | After the survivor-count cleanup, seed 4000 | duels 90: 0.648 +- 0.022 (58-30-2); royale 30: mean place 4.34 vs 4.66, wins 18 vs 11. No loss from the cleanup. |
