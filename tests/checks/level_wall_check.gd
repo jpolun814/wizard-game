@@ -27,10 +27,13 @@ func _ready() -> void:
 	var asleep: bool = partner.brain.dormant
 	var floor_y := partner.global_position.y
 	lab.player.global_position = Vector2(ArenaGen.column_x(Lab.SPAR_COL + 6), floor_y)
-	for k in 10:
+	for k in 20:
+		await get_tree().process_frame
+	var not_yet: bool = partner.brain.dormant  # (it takes no notice of someone only just come in)
+	for k in 70:
 		await get_tree().process_frame
 	var awake: bool = not partner.brain.dormant
-	lab.player.global_position = Vector2(ArenaGen.column_x(0), floor_y)
+	lab.player.global_position = Vector2(ArenaGen.column_x(-9), floor_y)
 	for k in 10:
 		await get_tree().process_frame
 	var asleep_again: bool = partner.brain.dormant
@@ -41,17 +44,24 @@ func _ready() -> void:
 	for k in 900:
 		await get_tree().process_frame
 		shots_seen = maxi(shots_seen, get_tree().get_nodes_in_group("shots").size())
+	lab._spawn_partner()  # (a second call never leaves two)
+	for k in 5:
+		await get_tree().process_frame
+	var rivals := get_tree().get_nodes_in_group("wizards").filter(func(w: Wizard) -> bool: return w != lab.player and not w.is_queued_for_deletion())
 	var checks := {
+		"only one partner in the room": rivals.size() == 1,
+		"the book is at the right end of the room": lab._lectern.global_position.x > ArenaGen.column_x(40),
 		"nine crystals": crystals.size() == 9,
 		"it starts at the player's rating (a new one is level 1)": start_level == 1,
 		"a shot at the fifth crystal sets level 5": after == 5 and lit == 5,
 		"the match is played at it": match_level == 5,
 		"the partner plays at it": partner_level == 5,
 		"the partner sleeps while the player is away": asleep,
-		"it wakes when the player comes into its section": awake,
+		"it takes no notice of someone only just come in": not_yet,
+		"it wakes when the player has been in its section a moment": awake,
 		"it sleeps again when they leave": asleep_again,
 		"no dummies in the room": lab.get_tree().get_nodes_in_group("mobs").is_empty(),
-		"the partner fights back when the player stands in its section": shots_seen > 0 and partner.stamina < Wizard.MAX_STAMINA,
+		"the partner fights back when the player stands in its section": shots_seen > 0 and lab._partner.stamina < Wizard.MAX_STAMINA,
 		"the partner's own shots do not change the level": wall.level == 9,
 		"it takes the new level at once": lab._partner.brain.level == 9 and BrainLevel.current() == 9,
 	}

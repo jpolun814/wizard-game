@@ -14,8 +14,12 @@ func _ready() -> void:
 	for k in 40:
 		await get_tree().process_frame
 	lab._levels.set_level(4)
-	lab.player.global_position = Vector2(ArenaGen.column_x(33), lab.player.global_position.y)
-	for k in 90:
+	lab.player.global_position = Vector2(ArenaGen.column_x(-20), lab.player.global_position.y - 60.0)
+	for k in 120:
 		await get_tree().process_frame
 	get_viewport().get_texture().get_image().save_png(out.path_join("level_wall.png"))
+	lab.player.global_position = Vector2(ArenaGen.column_x(45), lab.player.global_position.y)
+	for k in 60:
+		await get_tree().process_frame
+	get_viewport().get_texture().get_image().save_png(out.path_join("level_book.png"))
 	get_tree().quit()

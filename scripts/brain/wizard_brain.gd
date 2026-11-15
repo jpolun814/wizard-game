@@ -16,6 +16,7 @@ extends RefCounted
 ##     picked by weight. Projectiles are aimed where you are going, not where you are.
 
 const WALK_SPEED := 300.0
+const BLIND_FIGHT := 4.0       # seconds it goes on fighting a rival it has just lost sight of (behind a wall)
 const ENGAGE := 620.0         # a wizard this close, and in sight, is a fight; farther off, it is a journey
 const PAGE_REACH := 4          # tiles: a page further than this from any place to stand is not one it can get
 const GOAL_EVERY := 4.0       # seconds between looking for a nearer page
@@ -108,6 +109,7 @@ const LIFT_CLOSE := {"Liana": 40.0, "Great Oak": 40.0, "Updraft": 0.0}  # the li
 const LIFT_STAND := {"Updraft": 0.0}  # how close to a rival on a ledge it stands to raise itself to them, for the lifts that differ from the usual
 const CHASE_REST := 10.0        # seconds between two tries at a way up to a rival
 const OAK_CHASE_MAX := 190.0    # pixels up to a rival that an oak can still be climbed for (its low ledge, and a jump from it)
+const LIFT_REACH := {"Geyser": 220.0, "Push": 150.0, "Tornado": 200.0, "Updraft": 440.0, "Rocket Jump": 440.0, "Liana": 800.0, "Great Oak": 500.0}  # about how high each lifts it (a wall taller than that is not tried with it)
 const LIFTS := ["Geyser", "Updraft", "Rocket Jump", "Push", "Liana", "Great Oak", "Tornado"]  # what raises it up a wall or to a rival, the one it likes best first
 const TEND_REST := {"Flare": 40.0, "Glowcap": 60.0, "Moonbeam": 30.0, "Adrenaline": 25.0, "Wild Shape": 30.0, "Sneak": 25.0, "Crimson Veil": 8.0, "Obsidian Armor": 25.0,
 		"Ignite": 6.0, "Decoy": 8.0, "Stone Wall": 6.0, "Smoke Screen": 10.0, "Eclipse": 14.0, "Hunter's Mark": 25.0}  # seconds before it looks to the same need with the same spell again
@@ -363,7 +365,11 @@ func _with_a_rival(delta: float) -> void:
 	var in_view := wizard.eyes.sees_point(sight.lure.center()) if sight.lure != null else eyes_see(foe)
 	var to_player: Vector2 = sight.seen_center(foe) - wizard.center()
 	var sees := in_view and danger.clear_line(wizard.center(), sight.seen_center(foe))
-	var fighting := sees and to_player.length() < ENGAGE
+	# A rival who steps behind a wall is not forgotten at once: it remembers where they stood, and goes on fighting there (the spells that come from above or are
+	# lobbed over reach them) for a few seconds, as a person would, before it gives them up for a journey.
+	var entry: Dictionary = sight.known.get(foe.get_instance_id(), {})
+	var lost_just_now: bool = not sees and not entry.is_empty() and float(entry["age"]) < BLIND_FIGHT
+	var fighting := (sees or lost_just_now) and to_player.length() < ENGAGE
 	var crowd := sight.crowd(700.0)
 	var crowded: bool = not BrainProfile.off("crowd") and crowd["n"] >= 3 and not profile.after_me(foe) and _hurt_age > 2.5 and to_player.length() > TOO_CLOSE * 2.0 and not wizard.wolf.on
 	if crowded:  # three or more wizards in one place: it lets the others spend themselves, and leaves

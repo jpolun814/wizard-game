@@ -158,3 +158,9 @@ Rows 4 and 5 are the same idea set; the spread between them (0.668 and 0.653) is
 - Cleanup: a rival that died out of its sight is no longer forgotten at once; it learns of a death only by seeing it (BrainSight.look_about). The other scan (BrainProfile.tick) only listens for damage and counts it only for rivals in view.
 
 | 13 | After "learns of a death only by seeing it", seed 5000 | royale 30: mean place 4.43 vs 4.57, wins 20 vs 8; duels 89: 0.674 +- 0.023 (58-26-5). No loss. |
+
+## 2026-11-15, after the level wall
+
+- **Turning on the spot:** while winded, the wish to keep its range and the wish to get under a roof pulled it opposite ways and it turned left and right every frame (500 to 950 turns in 20 seconds, owner saw it standing and running both ways). A turn is now kept for 0.6 s (`BrainCombat.REVERSE_HOLD`); `dither_check`.
+- **A wall between:** it used to stop fighting the moment a wall hid the rival. It now fights on for 4 s from where it last saw them (`WizardBrain.BLIND_FIGHT`), and if the wall is too tall to jump it stops hopping and raises itself over with a spell it holds, skipping spells too weak for the height (`LIFT_REACH`, `BrainCombat.chase`/`wall_top`); `behind_wall_check`.
+- **Strength after both:** 120 duels 0.623 +- 0.019 of the damage against the old brain (earlier runs of the same kind 0.65 to 0.69, order bias about 0.03), 30 matches mean place 4.47 against 4.53, 18 wins against 9. Within noise; kept.

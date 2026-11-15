@@ -19,17 +19,29 @@ const NIGHT := Color(0.22, 0.2, 0.34)
 const HEAL_PER_SECOND := 40.0
 const HEAL_AFTER := 4.0  # seconds without a hit before health starts coming back, so damage can be seen
 
-const EXTRA_CHUNKS := 3   # the room is this many chunks wider than the others, for the wall that sets the level of the AI wizards
-const SPAR_COL := 31   # where the sparring partner stands
-const CRYSTAL_COL := 35   # the first of the nine crystals
-const SECTION := Vector2i(29, 47)   # first and last column of the section: the partner fights back only while the player is in it
-const SPAR_KIT := ["Ignite", "Frostbolt", "Pebble", "Barrier", "Stone Wall", "Flare", "Decoy", "Spark"]  # the pages the partner has read (no wind: a shove would carry the player into the book, which starts the match)
+## The room on its own (not a network game) has two more places (owner, 2026-11-15). On the left, where the person starts, is a sparring court: a stone floor
+## between a stone post and a tall wall with the nine crystals that set the level of the AI wizards (LevelWall), where a partner fights whoever stands on it. The
+## rest of the room is moved right to make room for it. The book is at the far right end as ever.
+const SHIFT := 18          # how far right the rest of the room moves (three chunks wider, for the court)
+const EXTRA_CHUNKS := 3
+const COURT := Vector2i(-36, -12)   # the raised stone floor, with its slopes
+const COURT_ROWS := 1.0           # how high the floor is raised
+const COURT_GATE := -14            # the stone post at the way out of the court
+const GATE_ROWS := 5
+const TOWER := Vector2i(-36, -34)   # the wall the crystals are set in
+const TOWER_ROWS := 12
+const SECTION := Vector2i(-34, -16)   # first and last column of the court (the right one is a little inside the post): the partner fights back only once the player is well in it
+const SPAR_COL := -24   # where the sparring partner stands
+const SOLO_START_COL := -10   # where a person on their own starts: just outside the court
+
 const SPAR_RESPAWN := 2.5
+const WAKE_AFTER := 1.0   # seconds the player is in the court before the partner takes notice
 
 var _lectern: Lectern
 var _levels: LevelWall
 var _partner: Wizard
 var _partner_wait := 0.0
+var _in_court := 0.0   # seconds the player has been in the court
 var _ratings := {}  # on the host, in a network game: peer -> the rating of the person who has touched the book (the match's level comes from them)
 var _making: LikenessPanel  # the wizard maker, while it is open
 var _mark: LikenessMark  # its circle, in the waiting room only
@@ -56,20 +68,59 @@ var heals_wounds := true
 func _build_map() -> Variant:
 	var heights := PackedFloat32Array()
 	heights.resize(ArenaGen.right_wall - ArenaGen.FIRST_COL)
-	_dig(heights, LAVA, PIT_ROWS)
-	_dig(heights, GAP, GAP_ROWS)
-	_dig(heights, POND, PIT_ROWS)
-	_dig(heights, HILL, -HILL_ROWS)
+	_dig(heights, _at(LAVA), PIT_ROWS)
+	_dig(heights, _at(GAP), GAP_ROWS)
+	_dig(heights, _at(POND), PIT_ROWS)
+	_dig(heights, _at(HILL), -HILL_ROWS)
+	if _on_its_own():
+		_dig(heights, COURT, -COURT_ROWS)
 	var cells := ArenaGen.build(_rng, heights)
-	for col in range(CEILING.x, CEILING.y + 1):
+	if _on_its_own():
+		_build_court(cells, heights)
+	for col in range(_at(CEILING).x, _at(CEILING).y + 1):
 		for row in [-3, -2]:
 			cells[Vector2i(col, row)] = ArenaGen.STONE  # a slab overhead, for icicles to hang from
 	return cells
 
 
+## Stone for the court's floor, a post at the way out, and the tall wall of the crystals.
+func _build_court(cells: Dictionary, heights: PackedFloat32Array) -> void:
+	for col in range(COURT.x, COURT.y + 1):
+		cells[Vector2i(col, _top_row(heights, col))] = ArenaGen.STONE
+	for row in GATE_ROWS:
+		cells[Vector2i(COURT_GATE, _top_row(heights, COURT_GATE) - 1 - row)] = ArenaGen.STONE
+	for col in range(TOWER.x, TOWER.y + 1):
+		for row in TOWER_ROWS:
+			cells[Vector2i(col, _top_row(heights, col) - 1 - row)] = ArenaGen.STONE
+
+
+## A stretch of the old room, moved to where it is in this one.
+func _at(span: Vector2i) -> Vector2i:
+	return span + Vector2i(SHIFT, SHIFT) if _on_its_own() else span
+
+
+## The height of the floor you stand on in a column of the court (its top may be stone laid over the ground).
+func _floor_y(col: int) -> float:
+	for row in range(ArenaGen.GROUND_ROW - 8, ArenaGen.GROUND_ROW + ArenaGen.DEPTH):
+		if _cells.has(Vector2i(col, row)):
+			return float(row * ArenaGen.TILE)
+	return float(ArenaGen.GROUND_ROW * ArenaGen.TILE)
+
+
+## The row of the ground's top cell in a column, as ArenaGen will lay it.
+func _top_row(heights: PackedFloat32Array, col: int) -> int:
+	return roundi(ArenaGen.GROUND_ROW + heights[col - ArenaGen.FIRST_COL])
+
+
 func _init() -> void:
-	ArenaGen.chunk_count = ArenaGen.CHUNK_COUNT + EXTRA_CHUNKS
-	ArenaGen.right_wall = ArenaGen.FIRST_COL + ArenaGen.CHUNK_WIDTH * ArenaGen.chunk_count
+	if _on_its_own():
+		ArenaGen.chunk_count = ArenaGen.CHUNK_COUNT + EXTRA_CHUNKS
+		ArenaGen.right_wall = ArenaGen.FIRST_COL + ArenaGen.CHUNK_WIDTH * ArenaGen.chunk_count
+
+
+## The waiting room of one person: the sparring court is there (a network game has the old room, and the match's level comes from the ratings).
+func _on_its_own() -> bool:
+	return _scene_name() == "lab" and not Net.online()
 
 
 func _exit_tree() -> void:
@@ -157,7 +208,7 @@ func _begin_encounter(camera: Camera2D) -> void:
 	if _scene_name() == "lab":
 		_add_likeness_mark()
 	_add_ponds()
-	if _scene_name() == "lab" and not Net.online():
+	if _on_its_own():
 		_add_sparring_section()  # (it takes the place of the dummies: a person on their own sets the level of the wizards of the match here)
 	else:
 		_add_targets()
@@ -186,7 +237,7 @@ func _begin_encounter(camera: Camera2D) -> void:
 
 ## The pond and the pit of lava, each filling the hollow dug for it.
 func _add_ponds() -> void:
-	for entry in [[POND, false], [LAVA, true]]:
+	for entry in [[_at(POND), false], [_at(LAVA), true]]:
 		var span: Vector2i = entry[0]
 		var pond := Pond.new()
 		pond.lava = entry[1]
@@ -210,7 +261,8 @@ func _add_sparring_section() -> void:
 	_levels = LevelWall.new()
 	add_child(_levels)
 	var start := clampi(roundi(Library.rating()), 1, BrainLevel.LEVELS)
-	_levels.build(ArenaGen.column_x(CRYSTAL_COL), func(x: float) -> float: return ArenaGen.surface_y(_cells, int(floor(x / float(ArenaGen.TILE)))), start)
+	var face_x := float((TOWER.y + 1) * ArenaGen.TILE)  # the face of the tall wall that looks onto the court
+	_levels.build(face_x, _floor_y(TOWER.y + 3), start, 1.0)
 	BrainLevel.match_level = start
 	_levels.chosen.connect(_on_level_chosen)
 	_spawn_partner()
@@ -223,12 +275,12 @@ func _on_level_chosen(level: int) -> void:
 
 
 func _spawn_partner() -> void:
-	var feet := Vector2(ArenaGen.column_x(SPAR_COL), ArenaGen.surface_y(_cells, SPAR_COL))
+	if _partner != null and is_instance_valid(_partner):
+		_partner.queue_free()  # (never two)
+	var feet := Vector2(ArenaGen.column_x(SPAR_COL), _floor_y(SPAR_COL))
 	_partner = add_wizard("dark_wizard", feet)
 	_partner.ledger = Ledger.new()
-	for page in SPAR_KIT:
-		if SpellData.SPELLS.has(page):
-			_partner.ledger.learn(page)
+	_partner.ledger.learn_all()  # (the book is at the far end of the room, so nothing it casts can carry the player into it)
 	_partner.nav = nav
 	_partner.facing = 1.0
 	_partner.brain.set_level(_levels.level)
@@ -246,11 +298,12 @@ func _watch_the_partner(delta: float) -> void:
 			_spawn_partner()
 		return
 	var here := player.global_position.x >= ArenaGen.column_x(SECTION.x) and player.global_position.x <= ArenaGen.column_x(SECTION.y)
-	if here and _partner.brain.dormant:
+	_in_court = _in_court + delta if here else 0.0
+	if _in_court >= WAKE_AFTER and _partner.brain.dormant:
 		_partner.brain.dormant = false
 	elif not here and not _partner.brain.dormant:
 		_partner.brain.dormant = true
-		_partner.global_position = Vector2(ArenaGen.column_x(SPAR_COL), ArenaGen.surface_y(_cells, SPAR_COL))
+		_partner.global_position = Vector2(ArenaGen.column_x(SPAR_COL), _floor_y(SPAR_COL))
 		_partner.velocity = Vector2.ZERO
 		_partner.max_stamina = Wizard.MAX_STAMINA
 		_partner.stamina = Wizard.MAX_STAMINA
@@ -290,7 +343,7 @@ func _input(event: InputEvent) -> void:
 ## A glowing circle on top of the floating slab stands for the wizard maker: on it, the page with the words comes up.
 func _add_likeness_mark() -> void:
 	_mark = LikenessMark.new()
-	var col := (CEILING.x + CEILING.y) / 2
+	var col := (_at(CEILING).x + _at(CEILING).y) / 2
 	_mark.position = Vector2(ArenaGen.column_x(col), -3.0 * ArenaGen.TILE)  # the top of the slab
 	add_child(_mark)
 	ritual.likeness_listens = true
@@ -437,7 +490,7 @@ func _scene_name() -> String:
 
 ## Where a person starts in the room: side by side, by seat.
 func _start_for(peer_id: int) -> Vector2:
-	var col := START_COL + 2 * maxi(Net.seat_of(peer_id), 0)
+	var col := (SOLO_START_COL if _on_its_own() else START_COL) + 2 * maxi(Net.seat_of(peer_id), 0)
 	return Vector2(ArenaGen.column_x(col), ArenaGen.surface_y(_cells, col))
 
 

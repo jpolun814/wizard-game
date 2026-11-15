@@ -10,6 +10,7 @@ const WORTH := {
 	"Stalagmite": 1.0, "Pebble": 0.55, "Frostbolt": 0.4, "Insect Plague": 0.45, "Ice Prison": 0.25, "Blizzard": 0.3, "Tornado": 0.3, "Firewall": 0.3,
 }
 
+const REVERSE_HOLD := 0.6  # seconds before it turns the other way after it has turned
 var defend_cooldown := 0.0
 var escape_commit := 0.0     # seconds it keeps the way it chose out of danger
 var escape_dir := 0.0
@@ -18,6 +19,10 @@ var strafe := 0.0
 var strafe_timer := 0.0
 var threat_dir := Vector2.ZERO
 var recent: Array[String] = []  # its last two attacks, which it avoids repeating
+var roof_dir := 0.0   # the way it chose to a roof, which it keeps for a moment (see roof_walk)
+var roof_timer := 0.0
+var step_last := 0.0   # the way it last walked, and when it took it (see footwork): a person does not turn on the spot every frame
+var step_since := -10.0
 var hop_timer := 1.5  # counting down to its next hop while it walks
 
 var brain: WizardBrain
@@ -192,6 +197,17 @@ func roof_side() -> float:
 	return 0.0
 
 
+## The way to a roof, held for a moment once chosen: asked afresh every frame, two roofs the same distance off made it step left, then right, on the same
+## spot (a person picks a way and goes).
+func roof_walk(delta: float) -> float:
+	roof_timer -= delta
+	if roof_timer > 0.0 and roof_dir != 0.0:
+		return roof_dir
+	roof_dir = roof_side()
+	roof_timer = 1.2 if roof_dir != 0.0 else 0.0
+	return roof_dir
+
+
 ## Away from a crowd of wizards, a few steps at a time, unless a pit or a flame is that way. 0 when it cannot.
 func keep_clear(crowd_x: float) -> float:
 	var dir := -signf(crowd_x - wizard.global_position.x)
@@ -232,7 +248,7 @@ func footwork(delta: float, to_player: Vector2, sees: bool) -> float:
 	elif wizard.stamina < 45.0 and not BrainProfile.off("still"):
 		dir = 0.0  # it stands to get its strength back: stamina returns only to one who is still
 		if not BrainProfile.off("rest") and gap > WizardBrain.TOO_CLOSE and not covered_at(wizard.center() - Vector2(0, 50)):
-			dir = roof_side()  # (it rests under a roof if one is a few steps off: nothing falls on a wizard getting their breath back)
+			dir = roof_walk(delta)  # (it rests under a roof if one is a few steps off: nothing falls on a wizard getting their breath back)
 	else:
 		strafe_timer -= delta
 		if strafe_timer <= 0.0:
@@ -241,9 +257,16 @@ func footwork(delta: float, to_player: Vector2, sees: bool) -> float:
 		dir = strafe
 	# A rival who has dropped lightning or stones on it: it stands under a roof, if there is one a few steps off.
 	if not BrainProfile.off("roof") and sees and gap > WizardBrain.TOO_CLOSE and brain.profile.shown_any(brain.opponent, ["Spark", "Stonefall", "Hailstorm"]) and not covered_at(wizard.center() - Vector2(0, 50)):
-		var roof := roof_side()
+		var roof := roof_walk(delta)
 		if roof != 0.0:
 			dir = roof
+	# Two wishes at once (to keep its range, and to get under a roof) once made it step left, right, left, on the same spot: a person who turns round
+	# keeps to the new way for a moment.
+	if dir != 0.0 and step_last != 0.0 and dir == -step_last and brain.clock - step_since < REVERSE_HOLD:
+		dir = step_last
+	if dir != step_last:
+		step_last = dir
+		step_since = brain.clock
 	# Never back into the edge of the map; it would rather stand its ground there.
 	var x: float = wizard.global_position.x
 	if (dir < 0.0 and x < ArenaGen.left_edge() + 60.0) or (dir > 0.0 and x > ArenaGen.right_edge() - 60.0):
@@ -254,6 +277,13 @@ func footwork(delta: float, to_player: Vector2, sees: bool) -> float:
 	# Never walk into something burning.
 	if dir != 0.0 and brain.danger.in_danger(wizard.global_position + Vector2(dir * 34.0, -10.0)):
 		dir = 0.0
+	# Stopped by a wall too tall to jump, with the rival out of sight behind it: it does not go on hopping at it; it raises itself over with a spell, if it holds one.
+	if dir != 0.0 and not sees and wizard.is_on_wall() and wizard.is_on_floor():
+		var top := wall_top(int(signf(dir)))
+		if top != INF and wizard.global_position.y - top >= WizardBrain.CHASE_ABOVE + 50.0:
+			if chase(to_player, sees):
+				return 0.0
+			dir = 0.0
 	if wizard.is_on_floor() and brain.jump_cooldown <= 0.0:
 		var blocked: bool = dir != 0.0 and wizard.is_on_wall()
 		# Up onto a ledge you are standing on, whether or not it can see you, or when it is blocked.
@@ -431,17 +461,27 @@ func catch_fall() -> void:
 	brain.hand.begin_cast("Featherfall", brain.hand.tend_stroke("Featherfall", Vector2.ZERO), WizardBrain.QUICK_DRAW)
 
 
-## A rival standing over its head, on a ledge: it raises itself up to them with the first spell it holds that does it. True when it has begun.
-func chase(to_player: Vector2) -> bool:
+## A rival standing over its head, on a ledge, or on the far side of a wall too tall to jump (it has run at it and is stopped, and cannot see them): it raises
+## itself up to them, or over, with the first spell it holds that does it. True when it has begun.
+func chase(to_player: Vector2, sees := true) -> bool:
 	if not wizard.is_on_floor() or brain.rest.has("chase") or not brain.moves.lift.is_empty():
 		return false
-	var rise := wizard.global_position.y - brain.sight.seen_feet(brain.opponent).y
-	if rise < WizardBrain.CHASE_ABOVE or absf(to_player.x) > 320.0:
+	if absf(to_player.x) > 320.0:
 		return false
 	var dir := 1 if to_player.x >= 0.0 else -1
-	var span := Rect2(brain.sight.seen_feet(brain.opponent).x - 24.0, brain.sight.seen_feet(brain.opponent).y - 6.0, 48.0, 12.0)
+	var their_feet: Vector2 = brain.sight.seen_feet(brain.opponent)
+	var rise := wizard.global_position.y - their_feet.y
+	var span := Rect2(their_feet.x - 24.0, their_feet.y - 6.0, 48.0, 12.0)
+	if rise < WizardBrain.CHASE_ABOVE:
+		if sees or not wizard.is_on_wall():
+			return false
+		var top := wall_top(dir)  # (what a person sees: how high the wall in front of them goes)
+		if top == INF or wizard.global_position.y - top < WizardBrain.CHASE_ABOVE:
+			return false  # no wall, or one it can jump
+		rise = wizard.global_position.y - top
+		span = Rect2(wizard.global_position.x + dir * 40.0 - 24.0, top - 6.0, 48.0, 12.0)
 	for spell_name: String in WizardBrain.LIFTS:
-		if not brain.ready_to_cast(spell_name) or (spell_name == "Great Oak" and rise > WizardBrain.OAK_CHASE_MAX):
+		if not brain.ready_to_cast(spell_name) or (spell_name == "Great Oak" and rise > WizardBrain.OAK_CHASE_MAX) or rise + 40.0 > WizardBrain.LIFT_REACH.get(spell_name, 0.0):
 			continue
 		if WizardBrain.LIFT_CLOSE.has(spell_name) and absf(to_player.x) > WizardBrain.LIFT_CLOSE[spell_name] + 60.0:
 			continue  # a vine, an oak or a column of air is raised only once it has walked up to the foot of the ledge
@@ -449,6 +489,14 @@ func chase(to_player: Vector2) -> bool:
 		if brain.moves.begin_lift(spell_name, "chase", dir, span):
 			return true
 	return false
+
+
+## The height (y) of the top of the wall right in front of it, looking down from well above it, or INF when it is not a wall it can see the top of.
+func wall_top(dir: int) -> float:
+	var x := wizard.global_position.x + dir * 40.0
+	var query := PhysicsRayQueryParameters2D.create(Vector2(x, wizard.global_position.y - 420.0), Vector2(x, wizard.global_position.y - 10.0), 1)
+	var hit := wizard.get_world_2d().direct_space_state.intersect_ray(query)
+	return INF if hit.is_empty() else hit["position"].y
 
 
 ## Picks a key at random, weighted by its value. Returns "" when every weight is zero.
