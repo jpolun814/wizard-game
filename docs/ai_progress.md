@@ -146,3 +146,5 @@ Rows 4 and 5 are the same idea set; the spread between them (0.668 and 0.653) is
 | 9 | Wall A/B, 150 duels, seed 2000 | wall off: 0.682 +- 0.020 (97-45-8); wall on: 0.653 +- 0.017 (91-51-6). Difference 0.03, about 1 SE: noise, not clear harm. Kept (owner rule); AI_OFF=wall remains for re-testing. |
 
 | 10 | Rest under a roof A/B, 120 duels, seed 3000 | rest off: 0.687 +- 0.020 (79-36-4); rest on: 0.651 +- 0.019 (71-41-8). Gap 0.036, about 1.3 SE. Same direction as the wall A/B, where "on" also ran second: next, order swapped to see if run order biases it. Kept for now. AI_OFF=rest. |
+
+| 11 | Rest A/B, order swapped (on first) | rest on: 0.659 +- 0.021 (74-40-6); rest off: 0.635 +- 0.022 (69-42-9). The second run of a pair is lower both ways, so run order (not the rule) caused the earlier gap. Both orders pooled: on 0.655, off 0.661: no effect either way. Rule kept; the wall result is likely the same artifact. Lesson: swap the order in every A/B. |
