@@ -2,7 +2,7 @@
 
 You are one of eight wizards dropped into a world, each with an empty spellbook. Learn spells by picking up the pages scattered around the map. The last wizard standing wins.
 
-![Two wizards in a jungle: an ice bolt, a bubble of air and fire breath](docs/media/jungle_duel.gif)
+![A walk through each of the nine places](docs/media/nine_places.gif)
 
 ## You cast by drawing
 
@@ -43,15 +43,6 @@ A match has eight wizards: you, and seven others who are AI or friends over a ne
 - portals
 - ocean
 - sky
-
-![A walk through each of the nine places](docs/media/nine_places.gif)
-
-## Also in the game
-
-- **Waiting room.** Where you start. Try any spell here.
-- **Tutorial.** A row of obstacles that teaches you the game.
-- **Library.** Keeps track of your matches on this machine.
-- **Network play.** Play with friends on a local network or by typing in an address. One player hosts, and AI wizards fill any empty seats. You can also run a dedicated server.
 
 ## Playing
 

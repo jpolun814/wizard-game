@@ -4,11 +4,13 @@ extends SpellEffect
 ## A shot that flies from the caster: the base of Ignite's Fireball, Frostbolt's IceSpear, the Pebble and the Thorn. It hits the first body or
 ## wall in its way. It can't hit the one who cast it until it has flown out of their body.
 
+const SKY_LIFT := 1000.0  # in the open sky the air stands still while the wizards fall through it, so a shot rises, ever faster, against the fall (px/s each second)
 const CLEAR_CHECK_AFTER := 0.05  # the overlaps of a new shot are not known until a few physics frames have passed
 
 var aim := Vector2.RIGHT
 var _pulled := Vector2.ZERO  # a pull (a Black Hole's) bends the flight, on top of the aim
 var _spent := false
+var _lift := 0.0  # how fast the fall has left it behind, upward
 var _clear := false  # it has flown out of its caster's body: from then on it can hit the caster too
 var _trail: CPUParticles2D
 
@@ -53,7 +55,9 @@ func heading() -> Vector2:
 func _act(delta: float) -> void:
 	if _age >= CLEAR_CHECK_AFTER and not _clear and not get_overlapping_bodies().has(caster):
 		_clear = true
-	position += (velocity() + _pulled) * delta
+	if caster is Wizard and caster.flying:
+		_lift += SKY_LIFT * delta
+	position += (velocity() + _pulled + Vector2(0.0, -_lift)) * delta
 	rotation = aim.angle()
 
 

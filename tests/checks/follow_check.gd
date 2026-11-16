@@ -78,6 +78,17 @@ func _ready() -> void:
 		floating = floating and absf(pad.position.y - (pond.grid.surface_at(pad.position.x) - 2.0)) < 1.0
 	_verdict(floating, "lily pads drawn above the water settle on its surface (%d pads)" % pads._pads.size())
 	pads.queue_free()
+	# Lily Pads drawn with no water under them (or only above them) lay no leaves.
+	var dry := LilyPads.new()
+	dry.line = PackedVector2Array([Vector2(middle - 60.0, level_before - 700.0), Vector2(middle + 60.0, level_before - 700.0)])
+	world.add_child(dry)
+	await get_tree().physics_frame
+	_verdict(not is_instance_valid(dry) or dry.is_queued_for_deletion(), "lily pads drawn far over the water, out of reach of it, lay no leaves and are gone")
+	var under := LilyPads.new()
+	under.line = PackedVector2Array([Vector2(middle - 60.0, level_before + 40.0), Vector2(middle + 60.0, level_before + 40.0)])
+	world.add_child(under)
+	await get_tree().physics_frame
+	_verdict(not is_instance_valid(under) or under.is_queued_for_deletion(), "and none are laid under the water, where the line was drawn below its surface")
 
 	# Drain the pool: the fish are stranded.
 	pond.grid.settle()

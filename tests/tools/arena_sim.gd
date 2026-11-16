@@ -33,7 +33,7 @@ var _duel := false  # duel=1: only the first two wizards fight, near each other,
 var _duel_spells: Array = [[], []]
 var _frames_dir := ""  # frames=DIR: a picture of the screen, 640 wide, every `every` frames, for making a GIF of the match (needs a window)
 var _every := 5
-var _plain := false  # plain=1: the world's color grade and gray wash are put away, so a picture shows the art as it is drawn
+var _plain := false  # plain=1: the world's color grade is put away, so a picture shows the art as it is drawn
 var _frame_count := 0
 var _shot_at := 2.0  # shotat=SECONDS: when shot= takes its picture
 var _follow := -1  # follow=N: the camera stays on the Nth wizard
@@ -118,8 +118,10 @@ func _ready() -> void:
 	if _duel:
 		_set_up_duel()
 	if _plain:
-		for layer: Node in get_tree().get_nodes_in_group("grade") + get_tree().get_nodes_in_group("gray_wash"):
-			layer.visible = false
+		for layer: Node in get_tree().get_nodes_in_group("grade"):
+			layer.visible = false  # (the gray wash of the graveyard stays: it is how that place looks in play)
+		for page: Node in get_tree().get_nodes_in_group("pages"):
+			page.queue_free()  # (the fan of pages at the start would hide the duel)
 	if _log != null:
 		for w in _wizards:
 			var who: String = w.look + str(_wizards.find(w))

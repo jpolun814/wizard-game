@@ -439,7 +439,7 @@ python tools/run_checks.py --full                              # all of them, ab
 | Flora | Liana | leaf and line: an almond lying on its side, then a line up from its left point (a vine) | a vine to climb | fire |
 | Flora | Great Oak | trunk drawn up into a round crown | a tree: ledges and a wall, and when it falls it crushes | fire, Earthquake, Stonefall; it creaks first |
 | Flora | Flytrap | tall narrow W | a trap that snaps shut on whoever steps in | jump, fire |
-| Flora | Lily Pads | a ring (the pad), then a level line across the water where they grow | floating leaves to cross water or a pit | fire; they sink after 8 s |
+| Flora | Lily Pads | a ring (the pad), then a level line across the water where they grow | floating leaves that lie only on the water below where it was cast (none where there is no water: "No water"), to cross a pond | fire; they sink after 8 s |
 | Shadow | Decoy | figure of eight | a shadow that draws enemies' attacks | it wears out |
 | Shadow | Eclipse | the outline of a crescent moon, drawn in one stroke | the whole world goes dark for as long as an Earthquake lasts (6 s); everyone sees only what is close; costs 60, as an Earthquake does | Flare |
 | Shadow | Hex | pentagram (five-point star, one stroke) | a curse: 50% more damage | short time |

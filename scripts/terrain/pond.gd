@@ -409,6 +409,19 @@ static func surface_near(tree: SceneTree, x: float, near: float, reach: float) -
 	return INF
 
 
+## The surface of water at this x that lies at the height `y` or below it, no further below than `reach` (INF when there is none): what a thing drawn over
+## a pool settles on. Water above `y` does not count, so nothing floats on a pool that lies over its head.
+static func surface_below(tree: SceneTree, x: float, y: float, reach: float) -> float:
+	var best := INF
+	for pond: Pond in tree.get_nodes_in_group("ponds"):
+		if pond.lava or pond.grid == null:
+			continue
+		var level := pond.grid.surface_at(x)
+		if level < INF and level >= y - 6.0 and level - y <= reach and level < best:
+			best = level
+	return best
+
+
 ## The puddle of lava that has room at a point of the world, or null if there is none. A pool the world was dug with is not one
 ## to join: lava poured beside it makes a puddle of its own, which flows into the pool if the ground slopes that way.
 static func lava_near(tree: SceneTree, point: Vector2) -> Pond:

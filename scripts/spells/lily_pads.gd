@@ -1,17 +1,18 @@
 class_name LilyPads
 extends FloraSpell
 
-## Lily Pads: a pad drawn as a ring, then a level line across: a row of floating leaves appears along that line. Each one holds your weight, so you can walk
-## across water or a pit on them. After 8 seconds they sink. Fire burns them, so they will not cross lava, and a flood
-## washes them away.
+## Lily Pads: a pad drawn as a ring, then a level line across: a row of floating leaves appears along that line, but only on water: each leaf settles on the
+## surface of the pool below the line (owner, 2026-11-16: they should never hang in the air or lie over a dry pit). Each one holds your weight, so you can walk
+## across water on them. After 8 seconds they sink. Fire burns them, and a flood washes them away.
 
 const SECONDS := 8.0
 const SINK_SECONDS := 1.0
 const PAD_WIDTH := 52.0
-const PAD_FLOAT_REACH := 100.0  # how far from the drawn line a pool's surface can be for the leaf to settle on it
+const PAD_FLOAT_REACH := 320.0  # how far below the drawn line a pool's surface can be for the leaf to settle on it
 const LEAF := preload("res://art/props/lily_pad.png")  # made by tools/prepare_vines.py
 
 var line := PackedVector2Array()  # the drawn line, in world points; set before the pads enter the tree
+var on_dry_ground := false  # for checks only: leaves are laid where the line is drawn, with no pool under it (a check has no pond to float them on)
 var _age := 0.0
 var _sinking := -1.0  # counts up once the pads have begun to sink
 var _pads: Array[Node2D] = []
@@ -23,14 +24,15 @@ func _ready() -> void:
 	add_to_group("lily_pads")
 	var span := GestureTemplates.bounds(line)
 	var count := clampi(roundi(span.size.x / (PAD_WIDTH + 8.0)), 2, 8)
-	var low := span.end.y
-	var high := span.position.y
+	var low := -INF
+	var high := INF
 	for i in count:
 		var x := span.position.x + (i + 0.5) * span.size.x / count
 		var y := _line_height_at(x)
-		var water := Pond.surface_near(get_tree(), x, y, PAD_FLOAT_REACH)
-		if water < INF:
-			y = water - 2.0  # a leaf floats on the water as it is now, not at the height it was drawn
+		var water := Pond.surface_below(get_tree(), x, y, PAD_FLOAT_REACH)
+		if water == INF and not on_dry_ground:
+			continue  # there is no water under this part of the line: no leaf grows there
+		y = (water if water < INF else y) - 2.0  # a leaf floats on the water as it is now, not at the height it was drawn
 		low = maxf(low, y)
 		high = minf(high, y)
 		var pad := Node2D.new()
@@ -59,6 +61,10 @@ func _ready() -> void:
 		grow.tween_property(pad, "scale", Vector2.ONE, 0.25).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
 		_pads.append(pad)
 		_statics.append(platform)
+	if _pads.is_empty():
+		FloatText.spawn(get_parent(), Vector2(span.get_center().x, span.position.y - 30.0), "No water", Color("#cfe8ff"), 1.0)
+		queue_free()
+		return
 	_box = Rect2(span.position.x - 10.0, high - 10.0, span.size.x + 20.0, low - high + 34.0)
 	Sfx.play("snow", Vector2(span.get_center().x, high), -6.0)
 

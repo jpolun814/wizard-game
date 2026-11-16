@@ -361,6 +361,7 @@ func _trial_bridge() -> float:
 	var partner: Wizard = _lab._partner
 	_face(partner, 260.0)
 	var pads := LilyPads.new()
+	pads.on_dry_ground = true  # (the lab has no pond)
 	pads.line = BrainStrokes.line(_lab.player.global_position + Vector2(-90.0, -4.0), _lab.player.global_position + Vector2(90.0, -4.0))
 	_lab.add_child(pads)
 	await _wait(0.6)
