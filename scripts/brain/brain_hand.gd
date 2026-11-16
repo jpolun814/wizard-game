@@ -67,6 +67,8 @@ func _aimed_stroke(spell_name: String, foe: Wizard, feet: Vector2, facing: float
 			return breath_stroke(brain.sight.seen_center(foe))
 		"Tide Surf", "Thorn Whip", "Leech":
 			return surf_stroke(facing)
+		"Push":  # a circle round the rival and a line out of it, away from here
+			return push_stroke(brain.sight.seen_center(foe), Vector2(facing, 0.0))
 		"Eldritch Blast":  # an arrow pointing at the rival
 			var pointing: float = (brain.predict(0.4) - wizard.center()).angle() + brain.rng.randfn(0.0, 0.1 * (1.0 - brain.skill) * brain.clumsy)
 			return BrainStrokes.offset(turned(GestureTemplates.preview_points("arrow"), pointing), wizard.center(), 0.8)

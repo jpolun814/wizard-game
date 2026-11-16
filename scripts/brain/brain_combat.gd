@@ -10,6 +10,10 @@ const WORTH := {
 	"Stalagmite": 1.0, "Pebble": 0.55, "Frostbolt": 0.4, "Insect Plague": 0.45, "Ice Prison": 0.25, "Blizzard": 0.3, "Tornado": 0.3, "Firewall": 0.3,
 }
 
+## What a rival's drawn spell does, by where it lands: on the place that was drawn. (A bolt is not here: a flick is drawn too quickly to answer, and a spell at arm's length leaves no time.)
+const PLACED := ["Stonefall", "Stalagmite", "Sinkhole", "Firewall", "Bramble", "Flytrap", "Ice Prison", "Black Hole", "Supernova", "Hailstorm", "Blizzard", "Tornado", "Spark", "Silence", "Thunderclap", "Hemorrhage", "Insect Plague", "Icicles"]
+## The spells a Barrier turns away (it takes only what is thrown): against a rival behind one, or who is known to raise one, the rest are used.
+const SHOTS := ["Ignite", "Frostbolt", "Barbs", "Pebble"]
 const REVERSE_HOLD := 0.6  # seconds before it turns the other way after it has turned
 var defend_cooldown := 0.0
 var escape_commit := 0.0     # seconds it keeps the way it chose out of danger
@@ -45,6 +49,7 @@ func attack(to_player: Vector2, sees: bool) -> bool:
 	var grounded: bool = foe.stands()
 	var closing: bool = signf(foe.velocity.x) == signf(-to_player.x) and absf(foe.velocity.x) > 60.0
 	var aim_ok := absf(to_player.normalized().x) > 0.4  # a near-vertical stroke is a poor flick
+	var brink: bool = sees and gap < 300.0 and not BrainProfile.off("terrain") and (edge_beyond(foe) or lava_beyond(foe))  # a rival at the edge of a drop or of lava
 	var scores := {
 		"Ignite": (2.0 if gap > 140.0 else 0.8) if sees and aim_ok else 0.0,
 		"Frostbolt": (0.4 if foe.is_slowed() else 1.6) if sees else 0.0,
@@ -92,6 +97,9 @@ func attack(to_player: Vector2, sees: bool) -> bool:
 		# Behind cover: only spells that come from above or along the ground reach you.
 		for spell_name in ["Ignite", "Frostbolt", "Ice Prison", "Black Hole", "Firewall", "Fire Breath", "Barbs", "Thorn Whip", "Leech", "Eldritch Blast", "Hemorrhage", "Scythe"]:
 			scores[spell_name] = 0.0
+	if foe.has_shield() and not BrainProfile.off("shield"):
+		for spell_name in SHOTS:  # nothing thrown gets through a Barrier: it uses what does not have to be thrown
+			scores[spell_name] = 0.0
 	_cleverness(scores, foe, gap)
 	for spell_name in scores.keys():
 		scores[spell_name] *= WORTH.get(spell_name, 1.0)
@@ -100,9 +108,11 @@ func attack(to_player: Vector2, sees: bool) -> bool:
 		elif spell_name in recent:
 			scores[spell_name] *= 0.25  # it does not keep repeating itself
 	var choice := pick(scores)
+	if brink and brain.ready_to_cast("Push") and brain.rng.randf() < minf(brain.skill * 1.3, 1.0):
+		choice = "Push"  # it sees the kill: a shove sends the rival over, and nothing else it holds is worth as much just then
 	if choice == "":
 		return false
-	brain.profile.note_try(choice)
+	brain.profile.note_try(choice, gap)
 	recent.push_front(choice)
 	if recent.size() > 2:
 		recent.pop_back()
@@ -128,6 +138,11 @@ func _cleverness(scores: Dictionary, foe: Wizard, gap: float) -> void:
 		"aggressive":
 			for spell_name in ["Scythe", "Fire Breath", "Spore Puff", "Thunderclap", "Barbs", "Hemorrhage"]:
 				_boost(scores, spell_name, 1.4, k)
+	if prof.shown(foe, "Barrier") and not BrainProfile.off("shield"):  # a rival who has been seen to raise a Barrier is not hit by what is thrown, but by what comes from above or by the ground
+		for spell_name in SHOTS:
+			_boost(scores, spell_name, 0.4, k)
+		for spell_name in ["Stonefall", "Spark", "Stalagmite", "Earthquake", "Sinkhole", "Hailstorm"]:
+			_boost(scores, spell_name, 2.2, k)
 	if prof.shown_school(foe, "Fire"):  # a rival who throws flame is answered with water, which puts it out
 		for spell_name in ["Tide Surf", "Blizzard", "Hailstorm", "Frostbolt"]:
 			_boost(scores, spell_name, 1.7, k)
@@ -141,10 +156,37 @@ func _cleverness(scores: Dictionary, foe: Wizard, gap: float) -> void:
 				_boost(scores, "Mudslide", 1.6, k)
 				_boost(scores, "Bramble", 1.4, k)
 				break
+	if foe.is_frozen() and not BrainProfile.off("shatter"):  # a rival in a block of ice cannot move, and a hard blow breaks the block and them
+		for heavy in ["Stonefall", "Earthquake", "Scythe", "Supernova", "Spark"]:
+			_boost(scores, heavy, 3.5, k)
+	if not BrainProfile.off("window"):  # the dear spells wait for a rival who cannot answer them: frozen, dazed, down, rooted, typing a chant, or just spent on a spell of its own
+		var window: bool = foe.is_frozen() or foe.daze_time > 0.0 or foe.fainted or foe.is_rooted() or prof.chanting(foe) or prof.cast_age(foe) < 1.0
+		for spell_name in scores.keys():
+			if SpellData.SPELLS.has(spell_name) and SpellData.SPELLS[spell_name].cost >= 50.0 and not SpellData.SPELLS[spell_name].pays_max():
+				_boost(scores, spell_name, 1.8 if window else 0.75, k)
+	if on_a_bridge(foe) and not BrainProfile.off("burn"):  # a rival crossing on ice or on leaves is dropped by fire: it melts the ice and burns the leaves
+		for spell_name in ["Ignite", "Fire Breath", "Firewall", "Flaming Sphere"]:
+			_boost(scores, spell_name, 4.0, k)
+	if not BrainProfile.off("caution"):  # a wizard worn down to a small maximum keeps its distance, and one who is whole while the rival is hurt closes in for the blow
+		var worn: bool = wizard.max_stamina < Wizard.MAX_STAMINA * 0.5
+		var whole: bool = wizard.max_stamina > Wizard.MAX_STAMINA * 0.8 and prof.hurt(foe)
+		if worn or whole:
+			for spell_name in BrainProfile.CLOSE:
+				_boost(scores, spell_name, 0.55 if worn else 1.4, k)
+	if wizard.stamina < 75.0 and not prof.chanting(foe) and not foe.is_frozen() and not BrainProfile.off("reserve"):  # a person running low keeps something back to get away with: the dear spells wait
+		for spell_name in scores.keys():
+			if SpellData.SPELLS.has(spell_name) and not SpellData.SPELLS[spell_name].pays_max() and SpellData.SPELLS[spell_name].cost > wizard.stamina - 25.0:
+				_boost(scores, spell_name, 0.5, k)
+	if prof.recovering(foe) and not BrainProfile.off("recover"):  # a rival who has just spent a dear spell is slow to answer: a quick shot gets in
+		for spell_name in SHOTS:
+			_boost(scores, spell_name, 1.5, k)
+	if _thicket_under(foe) and not BrainProfile.off("thicket"):  # a rival standing in a thicket of thorns: it is set alight
+		for spell_name in ["Ignite", "Fire Breath", "Firewall", "Flaming Sphere"]:
+			_boost(scores, spell_name, 2.5, k)
 	if wizard.stamina < 50.0:  # worn out: the cheap stone, not the dear spell
 		_boost(scores, "Pebble", 2.2, k)
 	for spell_name in scores.keys():  # what has landed this match is cast more, what keeps missing less
-		_boost(scores, spell_name, prof.form(spell_name), k)
+		_boost(scores, spell_name, prof.form(spell_name, gap), k)
 	if prof.chanting(foe):  # a rival typing a chant stands still and cannot answer: it is hit
 		for spell_name in ["Stonefall", "Spark", "Ignite", "Frostbolt", "Fire Breath", "Scythe", "Barbs", "Eldritch Blast", "Hemorrhage"]:
 			_boost(scores, spell_name, 1.8, k)
@@ -155,8 +197,10 @@ func _cleverness(scores: Dictionary, foe: Wizard, gap: float) -> void:
 	if foe.pen.active():  # a rival drawing a stroke can be broken by a blow that lands now: a quick bolt, not a slow spell
 		for spell_name in ["Ignite", "Frostbolt", "Barbs", "Pebble", "Eldritch Blast"]:
 			_boost(scores, spell_name, 1.6, k)
-	if foe.lungs.submerged():  # a rival in the water is frozen in it
+	if foe.lungs.submerged():  # a rival in the water is frozen in it, and a bolt of lightning runs through the whole pool
 		_boost(scores, "Ice Prison", 2.5, k)
+		if not BrainProfile.off("water"):
+			_boost(scores, "Spark", 2.5, k)
 	if prof.cast_age(foe) < 15.0:  # a rival who has been casting at it lately is shut up
 		_boost(scores, "Silence", 1.5, k)
 	if prof.hurt(foe):
@@ -173,6 +217,51 @@ func _cleverness(scores: Dictionary, foe: Wizard, gap: float) -> void:
 func _boost(scores: Dictionary, spell_name: String, factor: float, k: float) -> void:
 	if scores.has(spell_name):
 		scores[spell_name] *= lerpf(1.0, factor, minf(k, 1.0))
+
+
+## True when the rival stands on ice laid over water or on lily pads: what a flame takes from under them.
+## A thicket of thorns grown along the ground the rival stands on.
+func _thicket_under(foe: Wizard) -> bool:
+	var at := brain.sight.seen_center(foe)
+	for node in wizard.get_tree().get_nodes_in_group("danger"):
+		if node is Bramble and not node.line.is_empty() and GestureTemplates.bounds(node.line).grow(40.0).has_point(at):
+			return true
+	return false
+
+
+func on_a_bridge(foe: Wizard) -> bool:
+	for pond: Pond in wizard.get_tree().get_nodes_in_group("ponds"):
+		if pond.carries(foe):
+			return true
+	for pads: LilyPads in wizard.get_tree().get_nodes_in_group("lily_pads"):
+		if pads.carries(foe):
+			return true
+	return false
+
+
+## True when the ground gives way past the rival on the side away from here: a drop of several body heights a step or two beyond it. A person sees the ledge a rival stands at.
+func edge_beyond(foe: Wizard) -> bool:
+	var feet: Vector2 = brain.sight.seen_feet(foe)
+	var away := signf(feet.x - wizard.global_position.x)
+	if away == 0.0:
+		return false
+	for dx in [70.0, 130.0, 190.0]:
+		var ground := SpellTargets.ground_below(wizard.get_world_2d(), Vector2(feet.x + away * dx, feet.y - 40.0), 700.0)
+		if ground.y - feet.y > 300.0:
+			return true
+	return false
+
+
+## True when lava or burning ground lies on the side of the rival away from here, within a shove.
+func lava_beyond(foe: Wizard) -> bool:
+	var feet: Vector2 = brain.sight.seen_feet(foe)
+	var away := signf(feet.x - wizard.global_position.x)
+	if away == 0.0:
+		return false
+	for dx in [70.0, 130.0, 190.0]:
+		if brain.danger.lethal_at(Vector2(feet.x + away * dx, feet.y - 6.0)):
+			return true
+	return false
 
 
 ## How near it lets a rival come: farther from one it has seen cast things for close range (a scythe, a breath of fire), who is only dangerous near.
@@ -301,7 +390,7 @@ func footwork(delta: float, to_player: Vector2, sees: bool) -> float:
 
 func act(reaction: String) -> void:
 	var foe: Wizard = brain.opponent
-	if (not is_instance_valid(foe)) and reaction in ["push", "breath", "spores", "geyser", "surf", "blink_side", "blink_away"]:
+	if (not is_instance_valid(foe)) and reaction in ["push", "breath", "spores", "geyser", "surf", "rocket", "blink_side", "blink_away"]:
 		return  # (a reaction planned against a rival who is gone from its mind by the time it comes)
 	match reaction:
 		"jump":
@@ -346,9 +435,29 @@ func act(reaction: String) -> void:
 		"geyser":  # the ground bubbles under its feet and throws it off
 			brain.hand.begin_cast("Geyser", BrainStrokes.offset(GestureTemplates.preview_points("geyser"), brain.sight.seen_feet(foe) + Vector2(0.0, -24.0), 0.6), WizardBrain.QUICK_DRAW)
 			defend_cooldown = 1.8
+		"rocket":
+			brain.hand.begin_cast("Rocket Jump", BrainStrokes.offset(GestureTemplates.preview_points("rocket"), wizard.center() + Vector2(0.0, 10.0), 0.6), WizardBrain.QUICK_DRAW)
+			defend_cooldown = 2.5
 		"surf":
 			brain.hand.begin_cast("Tide Surf", brain.hand.surf_stroke(signf(brain.sight.seen_feet(foe).x - wizard.global_position.x)), WizardBrain.QUICK_DRAW)
 			defend_cooldown = 1.8
+
+
+## What it does about a spell it has read from a rival's trail before the spell goes off, or "" when it is no threat to where it stands. A spell that lands on the place
+## drawn is stepped out of.
+func answer_stroke(drawn: Dictionary) -> String:
+	var spell_name: String = drawn["spell"]
+	var rect: Rect2 = drawn["rect"]
+	var me := wizard.center()
+	if spell_name in PLACED:
+		if me.x < rect.position.x - 70.0 or me.x > rect.end.x + 70.0:
+			return ""  # (it falls, rises or burns where it was drawn, whatever the height: only how far across it lies matters)
+		escape_dir = signf(me.x - rect.get_center().x)
+		if escape_dir == 0.0:
+			escape_dir = 1.0
+		escape_commit = 1.2
+		return "escape"
+	return ""
 
 
 func choose_defence(eta: float, speed := 0.0) -> String:
@@ -372,6 +481,8 @@ func choose_repel() -> String:
 		options["surf"] = 0.9
 	if brain.ready_to_cast("Spore Puff") and brain.danger.clear_line(wizard.center(), brain.sight.seen_center(brain.opponent)):
 		options["spores"] = 1.1
+	if brain.ready_to_cast("Rocket Jump") and not ceiling_over(wizard.center()) and not BrainProfile.off("rocket"):
+		options["rocket"] = 1.2  # a flame from the feet lifts it clear of whoever is on it
 	if brain.knows("Push") and wizard.stamina >= 10.0:
 		options["push"] = 1.5
 	if brain.knows("Shadow Step") and wizard.stamina >= 10.0:

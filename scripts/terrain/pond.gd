@@ -466,6 +466,11 @@ func _douse_shots() -> void:
 				shot.queue_free()
 
 
+## Whether a body stands on ice that was frozen over this water (fire would melt what it stands on).
+func carries(body: Node2D) -> bool:
+	return _on_ice(body)
+
+
 ## True when the body stands on frozen water rather than in it.
 func _on_ice(body: Node2D) -> bool:
 	for slab in _slabs:

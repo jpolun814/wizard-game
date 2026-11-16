@@ -20,9 +20,13 @@ var seen := {}     # rival instance id -> {spell name -> {"n": times, "at": time
 var aimed := {}    # rival instance id -> time on the brain's clock it last cast toward it
 var spent := {}    # rival instance id -> a guess at the strength it has used up lately (what its casts cost, less what it has got back)
 var wounds := {}   # rival instance id -> damage seen to land on it lately
+var dodge := {}    # rival instance id -> which way it tends to step when a shot of its own comes at it, from -1 (left) to 1 (right), as a running average
 var worked := {}   # the spell of its own -> times a rival was hurt soon after it was cast
 var tried := {}    # the spell of its own -> times it was cast at a rival
-var _last_try := ["", -99.0]
+var tried_at := {}   # "spell|range band" -> times it was cast at a rival that far off
+var worked_at := {}  # the same, times a rival was hurt soon after
+var dear_at := {}    # rival instance id -> time on the clock of the brain that it was seen to cast a dear spell
+var _last_try := ["", -99.0, 0]
 var _hearing := {}  # rival instance id -> true, once its blows are listened for
 var _wired := {}   # rival instance id -> true, once its caster is listened to
 
@@ -52,16 +56,41 @@ func tick(delta: float) -> void:
 		spent[id] = maxf(spent[id] - 14.0 * delta, 0.0)
 	for id in wounds.keys():
 		wounds[id] = maxf(wounds[id] - 1.0 * delta, 0.0)
+	_watch_dodging()
 	for other: Wizard in SpellTargets.wizards(wizard.get_tree()):
 		if other != wizard and not _hearing.has(other.get_instance_id()):
 			_hearing[other.get_instance_id()] = true
 			other.damaged.connect(_hurt_seen.bind(other))
 
 
+## What a person who has thrown a few shots at someone sees: which way they step as it comes. A rival it can see, with a shot of its own coming at them, is
+## noted a stride at a time, and the habit is kept as a running average.
+func _watch_dodging() -> void:
+	var foe := brain.foe()
+	if not is_instance_valid(foe) or not wizard.eyes.sees_wizard(foe) or absf(foe.velocity.x) < 80.0:
+		return
+	for shot in wizard.get_tree().get_nodes_in_group("projectiles"):
+		if shot.caster == wizard and shot.global_position.distance_to(foe.center()) < 240.0 and absf(shot.velocity().y) < absf(shot.velocity().x):
+			var id := foe.get_instance_id()
+			dodge[id] = lerpf(dodge.get(id, 0.0), signf(foe.velocity.x), 0.08)
+			return
+
+
+## How far, from -1 to 1, a rival has been seen to step to one side as shots come at it.
+func dodge_lean(other: Wizard) -> float:
+	return dodge.get(other.get_instance_id(), 0.0) if is_instance_valid(other) else 0.0
+
+
 ## It has thrown its own attack: noted, to see whether it lands.
-func note_try(spell_name: String) -> void:
+func note_try(spell_name: String, gap := 0.0) -> void:
 	tried[spell_name] = tried.get(spell_name, 0) + 1
-	_last_try = [spell_name, brain.clock]
+	var key := _band(spell_name, gap)
+	tried_at[key] = tried_at.get(key, 0) + 1
+	_last_try = [spell_name, brain.clock, gap]
+
+
+func _band(spell_name: String, gap: float) -> String:
+	return "%s|%d" % [spell_name, int(gap / 180.0)]
 
 
 func _hurt_seen(amount: int, other: Wizard) -> void:
@@ -71,16 +100,29 @@ func _hurt_seen(amount: int, other: Wizard) -> void:
 	wounds[id] = wounds.get(id, 0.0) + amount
 	if brain.clock - float(_last_try[1]) < 1.5 and _last_try[0] != "":
 		worked[_last_try[0]] = worked.get(_last_try[0], 0) + 1
+		var key := _band(_last_try[0], float(_last_try[2]))
+		worked_at[key] = worked_at.get(key, 0) + 1
 		_last_try[1] = -99.0
 
 
 ## How well one of its attacks has gone this match, as a weight: a spell that keeps landing is cast more, one that keeps missing less. (1 until it has tried it a few times.)
-func form(spell_name: String) -> float:
+func form(spell_name: String, gap := -1.0) -> float:
 	var n: int = tried.get(spell_name, 0)
-	if n < 3:
-		return 1.0
-	var rate := (float(worked.get(spell_name, 0)) + 1.0) / (float(n) + 2.5)
-	return clampf(rate / 0.4, 0.5, 1.8)
+	var weight := 1.0
+	if n >= 3:
+		var rate := (float(worked.get(spell_name, 0)) + 1.0) / (float(n) + 2.5)
+		weight = clampf(rate / 0.4, 0.5, 1.8)
+	if gap >= 0.0 and not BrainProfile.off("range_memory"):  # a spell that missed twice from about this far off is not tried again from there: it has been seen not to work at that range
+		var key := _band(spell_name, gap)
+		var m: int = tried_at.get(key, 0)
+		if m >= 2:
+			weight *= clampf(((float(worked_at.get(key, 0)) + 1.0) / (float(m) + 2.5)) / 0.4, 0.4, 1.4)
+	return weight
+
+
+## The rival has just been seen to cast a dear spell: it is busy getting its breath back, and a quick shot is not answered.
+func recovering(other: Wizard) -> bool:
+	return is_instance_valid(other) and brain.clock - float(dear_at.get(other.get_instance_id(), -99.0)) < 3.0
 
 
 ## The rival has used a good deal of its strength just now (a person sees it throw the dear spells one after another): it is the time to press it.
@@ -128,6 +170,8 @@ func _cast_by(spell_name: String, origin: Vector2, aim: float, other: Wizard) ->
 	if SpellData.SPELLS.has(spell_name):
 		var spell: Spell = SpellData.SPELLS[spell_name]
 		spent[id] = spent.get(id, 0.0) + (spell.cost * 0.5 if spell.pays_max() else spell.cost)
+		if spell.cost >= 50.0:
+			dear_at[id] = brain.clock
 	var to_me := wizard.center() - origin
 	if absf(angle_difference(aim, to_me.angle())) < 0.7 and to_me.length() < 700.0:
 		aimed[id] = brain.clock

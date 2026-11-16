@@ -164,3 +164,39 @@ Rows 4 and 5 are the same idea set; the spread between them (0.668 and 0.653) is
 - **Turning on the spot:** while winded, the wish to keep its range and the wish to get under a roof pulled it opposite ways and it turned left and right every frame (500 to 950 turns in 20 seconds, owner saw it standing and running both ways). A turn is now kept for 0.6 s (`BrainCombat.REVERSE_HOLD`); `dither_check`.
 - **A wall between:** it used to stop fighting the moment a wall hid the rival. It now fights on for 4 s from where it last saw them (`WizardBrain.BLIND_FIGHT`), and if the wall is too tall to jump it stops hopping and raises itself over with a spell it holds, skipping spells too weak for the height (`LIFT_REACH`, `BrainCombat.chase`/`wall_top`); `behind_wall_check`.
 - **Strength after both:** 120 duels 0.623 +- 0.019 of the damage against the old brain (earlier runs of the same kind 0.65 to 0.69, order bias about 0.03), 30 matches mean place 4.47 against 4.53, 18 wins against 9. Within noise; kept.
+
+## 2026-11-15, situations and sense (owner: "make the AI more clever, act like a human that understands the spells and when to use them")
+
+Each of these is switched off in a drill with `AI_OFF=<name>`, and `tests/checks/ai_drills_check.gd` asks the partner what it would do with and without it (decision drills: the brain's choice is read, not its legs).
+
+- **Reading a rival's stroke as it is drawn (`read`):** the trail on the screen is read once 70% of it is drawn (`BrainSight.rival_drawing`, `Caster.glimpse`, `Pen.drawn_share`): the color gives the school, the shape the spell. A spell it holds, or has seen this rival cast, is known by its shape. A spell that lands where it was drawn (`BrainCombat.PLACED`: Stonefall, Spark, Firewall, Stalagmite...) is stepped out of, a reaction time after it is known. Bolts are left out: a flick is gone before anyone can answer it, and a drill showed no gain.
+- **Terrain kills (`terrain`):** a rival at the edge of a drop (ground 300 px or more below, a step or two beyond them) or beside lava is shoved over with a Push (`BrainCombat.edge_beyond`, `lava_beyond`; the Push is drawn round the rival, the line out away from here).
+- **Break the frozen (`shatter`):** a rival in a block of ice cannot move, so the slow heavy spells (Stonefall, Earthquake, Scythe, Supernova, Spark) are cast far more.
+- **Behind a Barrier (`shield`):** it no longer waits out a Barrier. The thrown spells (`BrainCombat.SHOTS`) are left out while one is up and the rest are cast; a rival it has seen raise a Barrier is hit from above and from the ground even when none is up.
+- **Pages for a kit (`kit`):** a page is outlined in its school's color, which anyone sees; the spell inside is not shown. A page of a school it holds little of counts up to 1.6 times nearer (`BrainTravel.kit_want`, `PagePickup.schools`), scaled by skill.
+- **The chant before a fight (`brace`):** once a rival has shot at it lately (`pressure`) and it is quiet all round, it types the chant that fills its strength (`BrainMend.tend`, 50 s before it thinks of it again).
+- **A rocket to get clear (`rocket`):** among the ways it gets a rival off it (`choose_repel`), a flame from the feet lifts it out of reach.
+- **Lightning in the water (`water`):** a rival swimming is struck with a Spark more often (the bolt runs through the pool).
+- **Left out on purpose:** the Rift to flee (a blow breaks the typing, so it is only any use out of sight, and where it lands is chance), and the Rite of the Land (a map the brain has no way to use: it explores by sight). High ground and cover are only what it already did (roofs, Stone Wall).
+
+Second round (owner: "do all of them, keep coming up with more, always follow the human limits"):
+
+- **Dear spells wait for a window (`window`):** spells costing 50 or more are cast 1.8 times as readily at a rival who cannot answer (frozen, dazed, down, rooted, typing a chant, or just spent a spell of its own) and 0.75 times otherwise (`BrainCombat._cleverness`).
+- **Burn what they stand on (`burn`):** a rival on ice laid over water or on lily pads is met with fire (`BrainCombat.on_a_bridge`, `Pond.carries`, `LilyPads.carries`).
+- **Where a jumper comes down (`landing`):** `WizardBrain.predict` follows the arc of a rival in the air to the ground under it, not half its speed.
+- **Which way they step (`habit`):** `BrainProfile.dodge_lean`: a running average of the side a rival steps to while a shot of its own is coming; shots lean that way.
+- **A stone falling on it (`stone`):** a boulder seen over its head is stepped out from under (`BrainSight.falling_stone`).
+- **An ambush (`ambush`):** a rival it knows of, a way off, and not yet a fight: it casts Sneak to close the gap unseen (`BrainMend.tend`).
+- **Bait (`decoy`):** a rival it has seen throw heavy blows is given a Decoy.
+- **Not done, and why:** luring mobs onto a rival (it would need the brain to steer creatures it cannot command); sky and ocean tricks beyond the Spark in water (their brains are their own); breaking off a bad fight (it already goes about its journey and keeps away when it feels weak: `TIMID_BELOW`).
+
+Third round (owner: "keep it going overnight, remember the human limits"):
+
+- **A reserve (`reserve`):** under 75 stamina, a spell that would leave under 25 is cast half as readily: a person keeps something back to get away with (`BrainCombat._cleverness`). It reads only its own stamina.
+- **Pressing a rival who just spent (`recover`):** a rival seen to cast a spell costing 50 or more is, for 3 seconds, hit with quick shots more (`BrainProfile.recovering`, `dear_at`; only a cast it saw).
+- **Setting thorns alight (`thicket`):** a rival standing in a Bramble is met with fire (`BrainCombat._thicket_under`).
+- **Range memory (`range_memory`):** a spell that has missed twice or more from about this far off (a 180 px band) is cast less from there for the rest of the match (`BrainProfile.form(spell, gap)`, `tried_at`, `worked_at`).
+- **Caution when worn (`caution`):** under half its maximum it casts close-range spells 0.55 times as readily; whole (over 80%) against a rival it has watched get hurt, 1.4 times.
+- **Left out on purpose:** tilt after a big hit (a made-up mistake, forbidden by limit 18); counting who else is in a fight (limit 8); feints, which need a stroke taken back mid-draw; page denial and patience in a royale, because both need the brain to track several rivals at once (limit 16).
+- **Strength, rounds one to three** (120 duels and 30 matches each, different seeds): before 0.623 / place 4.47 against 4.53; after round one 0.660 / 4.36 against 4.64; with the kit, chant, rocket and water 0.697 / 4.31 against 4.69; round two 0.678 / 4.46 against 4.54; round three 0.676 / 4.55 against 4.45 (15 wins each way: within the noise of 30 matches). Duels stay about 0.05 above where they began.
+- **`brain_spells_check` is flaky** (a different spell fails each time: Hunter's Mark at 5 s, Push, Spore Puff, Wild Shape at 60 s). The same happens on a clean copy of the last commit, so it is not from these changes.

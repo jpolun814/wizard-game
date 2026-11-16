@@ -7,6 +7,7 @@ var camped := false             # it rests by a bonfire to mend
 var camped_for := 0.0
 var mend_wait := 0.0
 var resting := false            # it has stopped to get its breath back
+var brace_wait := 0.0              # seconds before it thinks again of saying the chant that fills its strength
 var tend_cooldown := 3.0        # counting down to the next time it looks to its own needs
 
 var brain: WizardBrain
@@ -22,6 +23,7 @@ func _init(owner: WizardBrain, body: Wizard) -> void:
 ## mended, as a person does. Returns the speed to walk at, or NAN when it is not mending.
 func mend(delta: float, fighting: bool) -> float:
 	mend_wait -= delta
+	brace_wait -= delta
 	if (brain.chant.is_typing() or camped or brain.settle > 0.0) and (brain.assailant() != null or brain.danger.scorched() or brain.danger.bitten()):  # it does not sit and chant with a blade or a flame on it
 		brain.chant.typing = ""
 		brain.settle = 0.0
@@ -61,8 +63,13 @@ func mend(delta: float, fighting: bool) -> float:
 func tend(to_player: Vector2, sees: bool, fighting: bool) -> bool:
 	if fighting and brain.combat.chase(to_player, sees):
 		return true
+	if not fighting and brace_wait <= 0.0 and brain.knows("chant:boundless") and wizard.infinite_time <= 0.0 and brain.quiet_here() and not BrainProfile.off("brace") and brain.pressure > 0.3:
+		brace_wait = 50.0  # a rival it has seen shoot at it is somewhere near, and not yet on it: it says the words that fill the strength, as a person would before a fight
+		brain.chant.open("boundless")
+		return true
 	var gap := absf(to_player.x)
 	var low := wizard.max_stamina < Wizard.MAX_STAMINA * 0.45
+	var ambush: bool = not fighting and gap > 360.0 and gap < 900.0 and brain.skill >= 0.4 and wizard.fade_time <= 0.0 and not BrainProfile.off("ambush")  # a rival it knows of, off a way: it goes unseen to close the gap and strikes first
 	var tired := resting or wizard.stamina < 35.0
 	var weights := {}
 	if brain.in_dark():
@@ -71,6 +78,10 @@ func tend(to_player: Vector2, sees: bool, fighting: bool) -> bool:
 		weights["Moonbeam"] = 0.8 if fighting else 0.0
 	if brain.in_dark() and not brain.knows("Flare") and not brain.knows("Glowcap"):
 		weights["Ignite"] = 0.8  # a fireball thrown ahead lights the way when nothing gentler is held
+	if ambush:
+		weights["Sneak"] = 1.4
+	if fighting and not BrainProfile.off("decoy") and brain.pressure > 0.3 and brain.profile.shown_any(brain.opponent, ["Stonefall", "Spark", "Supernova", "Scythe", "Eldritch Blast"]):
+		weights["Decoy"] = 1.0  # a rival with heavy blows to throw is given something to throw them at
 	if (tired or (fighting and gap > WizardBrain.FAR)) and wizard.adrenaline_time <= 0.0:
 		weights["Adrenaline"] = 1.2
 	if fighting and sees and gap < 260.0 and wizard.max_stamina > 90.0 and not wizard.wolf.on:

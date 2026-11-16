@@ -11,6 +11,7 @@ var _stroke := PackedVector2Array()  # the spell being drawn
 var _time := 0.0  # what is left of the drawing
 var _total := DRAW_TIME
 var _on_drawn: Callable
+var number := 0  # how many strokes it has begun: a stroke of the same place and shape drawn again is another stroke
 var _drag := PackedVector2Array()  # how far the view had moved when each point of the stroke was drawn: the screen drags the stroke (see Eyes)
 var _drag_from := Vector2.ZERO  # the middle of the view when the stroke was begun
 
@@ -27,6 +28,7 @@ func begin(points: PackedVector2Array, color: Color, on_done: Callable, draw_tim
 	for point in points:
 		if not wizard.eyes.on_screen(point):
 			return false  # no one draws off the edge of their screen
+	number += 1
 	_drag_from = wizard.eyes.center()
 	_drag = PackedVector2Array()
 	_stroke = points
@@ -69,6 +71,16 @@ func interrupt() -> bool:
 		return false
 	drop()
 	return true
+
+
+## How much of the stroke is drawn, from 0 to 1 (nothing when no stroke is being drawn): a trail on the screen shows as much.
+func drawn_share() -> float:
+	return clampf(1.0 - _time / _total, 0.0, 1.0) if _time > 0.0 else 0.0
+
+
+## Seconds the stroke still has to run.
+func time_left() -> float:
+	return maxf(_time, 0.0)
 
 
 ## The part of the stroke drawn so far: it grows as the spell does.

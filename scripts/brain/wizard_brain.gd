@@ -137,6 +137,7 @@ var strength := 0.5          # 0 to 1: how strong it thinks it is (see _feel_str
 var _strength_in := 0.0
 var _daunted := 0.0           # seconds it has faced a rival it feels too weak for, at a distance: it hesitates (and may cast to hide or mend) before it turns away
 var cast_cooldown := 1.8
+var _answered_stroke := -1  # the rival's stroke it last answered, by its number (see _react)
 var react := 0.0             # counting down to a planned reaction
 var _reaction := ""
 var jump_cooldown := 0.0
@@ -429,7 +430,19 @@ func _react(delta: float, fighting: bool, to_player: Vector2) -> void:
 			combat.act(_reaction)
 	elif not wizard.pen.active():
 		var shot := sight.incoming_shot()
-		if not shot.is_empty() and combat.defend_cooldown <= 0.0:
+		var drawn := sight.rival_drawing() if combat.defend_cooldown <= 0.0 else {}
+		if not drawn.is_empty() and drawn["id"] != _answered_stroke:  # a rival's stroke, known by its trail for the spell it will be: answered before it goes off
+			var answer := combat.answer_stroke(drawn)
+			if answer != "":  # (a stroke not yet read as a threat is looked at again as more of it is drawn)
+				_answered_stroke = drawn["id"]
+				_plan(answer, _reaction_time())
+		elif combat.defend_cooldown <= 0.0 and not BrainProfile.off("stone") and not sight.falling_stone().is_empty():  # a stone coming down on it: out from under
+			combat.escape_dir = signf(wizard.center().x - float(sight.falling_stone()["x"]))
+			if combat.escape_dir == 0.0:
+				combat.escape_dir = 1.0
+			combat.escape_commit = 1.0
+			_plan("escape", _reaction_time())
+		elif not shot.is_empty() and combat.defend_cooldown <= 0.0:
 			combat.threat_dir = shot["dir"]
 			_plan(combat.choose_defence(shot["eta"], shot["speed"]), _reaction_time())
 		elif (travel.dash <= 0.0 and danger.scorched()) or danger.bitten() or (_push_through <= 0.0 and (danger.in_danger(wizard.global_position + Vector2(0, -6)) or danger.in_danger(wizard.center()))):
@@ -452,8 +465,8 @@ func _attack(foe: Wizard, to_player: Vector2, sees: bool) -> void:
 	if cast_cooldown <= 0.0 and not wizard.pen.active() and react <= 0.0:
 		if smothering() or hiding():
 			cast_cooldown = 0.3  # another spell would let the breath go; and a wizard out of sight is shown by casting
-		elif foe.has_shield():
-			cast_cooldown = 0.3  # nothing gets through a Barrier; wait it out
+		elif foe.has_shield() and BrainProfile.off("shield"):
+			cast_cooldown = 0.3  # nothing gets through a Barrier; wait it out (it does not now: see BrainCombat.attack, which leaves the thrown spells out and casts the rest)
 		elif combat.attack(to_player, sees):
 			cast_cooldown = (lerpf(ATTACK_GAP_SLOW, ATTACK_GAP_QUICK, skill) + rng.randf() * ATTACK_GAP_SPREAD) * slow
 		else:
@@ -600,8 +613,18 @@ func drag_gravity() -> float:
 func predict(seconds: float) -> Vector2:
 	var foe: Wizard = opponent
 	var lead: Vector2 = foe.velocity * seconds * skill
-	lead.y = 0.0 if foe.stands() else lead.y * 0.5
-	return sight.seen_center(foe) + lead
+	var here: Vector2 = sight.seen_center(foe)
+	if foe.stands():
+		lead.y = 0.0
+	elif BrainProfile.off("landing"):
+		lead.y *= 0.5
+	else:  # a rival in the air comes down: where it will be is on the arc of its jump, and no lower than the ground under it
+		var rise: float = foe.velocity.y * seconds + 0.5 * foe.gravity * seconds * seconds
+		var ground := SpellTargets.ground_below(wizard.get_world_2d(), here + Vector2(lead.x, 0.0), 900.0)
+		lead.y = minf(rise, ground.y - 22.0 - here.y)
+	if not BrainProfile.off("habit"):
+		lead.x += profile.dodge_lean(foe) * 30.0 * skill  # one that has stepped the same way every time is shot where it is going to step
+	return here + lead
 
 
 ## A brain that has watched a mirage fade learns to see the waver of the next, and does not go for it.

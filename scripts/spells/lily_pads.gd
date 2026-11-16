@@ -63,6 +63,11 @@ func _ready() -> void:
 	Sfx.play("snow", Vector2(span.get_center().x, high), -6.0)
 
 
+## Whether a body stands on these leaves (fire would burn what it stands on).
+func carries(body: Node2D) -> bool:
+	return not _pads.is_empty() and _sinking < 0.0 and _box.grow(6.0).has_point(body.global_position)
+
+
 ## The height of the drawn line at an x position, averaged over the points near it.
 func _line_height_at(x: float) -> float:
 	var sum := 0.0

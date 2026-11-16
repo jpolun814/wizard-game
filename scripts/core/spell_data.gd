@@ -63,6 +63,14 @@ static func _load_spells() -> Dictionary:
 
 
 ## mouse button -> gesture -> {spell, targeting}, built from SPELLS for quick lookup.
+## The buttons of the school whose color a trail has: a person reads the school of a stroke from the color it is drawn in.
+static func buttons_of_color(color: Color) -> int:
+	for spell: Spell in SPELLS.values():
+		if SCHOOL_COLORS[spell.school].is_equal_approx(color):
+			return spell.buttons
+	return 0
+
+
 static func bindings() -> Dictionary:
 	var out := {}
 	for spell_name in SPELLS:

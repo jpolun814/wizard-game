@@ -137,6 +137,15 @@ func is_under(wizard: Node2D) -> bool:
 	return absf(at.x - global_position.x) < REACH_X and at.y > global_position.y - REACH_Y and at.y < global_position.y + 30.0
 
 
+## The schools its pages are outlined in, which anyone who looks at it sees (a chant is outlined in no school's color, and is left out).
+func schools() -> Array[String]:
+	var out: Array[String] = []
+	for each: String in (spoils if not spoils.is_empty() else [page]):
+		if SpellData.SPELLS.has(each) and not out.has(SpellData.SPELLS[each].school):
+			out.append(SpellData.SPELLS[each].school)
+	return out
+
+
 ## The pages here that a ledger does not hold yet.
 func new_pages(ledger: Ledger) -> Array[String]:
 	var out: Array[String] = []

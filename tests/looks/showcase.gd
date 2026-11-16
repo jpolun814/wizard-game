@@ -19,6 +19,11 @@ var _steps: Array = []  # [time, Callable]
 var _next := 0
 var _start_x := 0.0
 var _shot := 0
+var reel := ""  # reel=NAME: the film scenario "reel" makes this feature film
+var film := false  # film=1: the spells are drawn on the wizard's pen, so the stroke shows, and a picture is saved every `every` frames (see tools/make_gif.py)
+var _every := 4
+var _film_color := Color.WHITE
+var _frame := 0
 var _exit_code := 0  # what the run exits with: the checks scenario sets it to 1 when one fails
 
 
@@ -31,13 +36,19 @@ func _ready() -> void:
 					scenario = parts[1]
 				"out":
 					out_dir = parts[1]
+				"film":
+					film = parts[1] == "1"
+				"every":
+					_every = int(parts[1])
+				"reel":
+					reel = parts[1]
 				"only":
 					only = parts[1].replace("_", " ")
 	process_mode = Node.PROCESS_MODE_ALWAYS  # keeps running while the game is paused
 	DirAccess.make_dir_recursive_absolute(out_dir)
 	# The spells are tried in the waiting room, where there is a pond, a gap and dummies for each of them.
-	var scene := "world" if scenario in ["cave", "gates", "castle", "pages", "tornado", "extras", "biome", "life"] else "lab"
-	if scenario in ["cave", "gates", "castle", "pages", "tornado", "extras", "biome", "life"]:
+	var scene := "world" if scenario in ["cave", "gates", "castle", "pages", "tornado", "extras", "biome", "life", "reel"] else "lab"
+	if scenario in ["cave", "gates", "castle", "pages", "tornado", "extras", "biome", "life", "reel"]:
 		World.random_start = false
 		World.arrive_by_portal = false
 		World.next_seed = int(OS.get_environment("WORLD_SEED")) if OS.get_environment("WORLD_SEED") != "" else 11  # the same world each time
@@ -51,6 +62,12 @@ func _process(delta: float) -> void:
 	if _next == 0 and _t == 0.0:
 		_steps.sort_custom(func(a: Array, b: Array) -> bool: return a[0] < b[0])
 	_t += delta
+	if film and _player().pen.active():  # (a person's wizard has no brain to draw its stroke, so it is drawn here)
+		_player().cast_color = _film_color
+		_player().pen.tick(delta)
+	if film and DisplayServer.get_name() != "headless" and Engine.get_physics_frames() % _every == 0:
+		get_viewport().get_texture().get_image().save_png("%s/f%05d.png" % [out_dir, _frame])
+		_frame += 1
 	while _next < _steps.size() and _t >= _steps[_next][0]:
 		_steps[_next][1].call()
 		_next += 1
@@ -102,6 +119,12 @@ func _densify(points: PackedVector2Array) -> PackedVector2Array:
 
 func _cast(spell_name: String, stroke: PackedVector2Array) -> void:
 	_player().stamina = _player().MAX_STAMINA
+	if film:  # drawn as a person draws it, with the trail showing
+		var data: Spell = SpellData.SPELLS[spell_name]
+		var caster: Caster = _arena.caster
+		_film_color = SpellData.SCHOOL_COLORS[data.school]
+		_player().pen.begin(stroke, SpellData.SCHOOL_COLORS[data.school], func(points: PackedVector2Array) -> void: caster.cast_stroke(data.buttons, points), 0.9)
+		return
 	_arena.caster.cast_stroke(SpellData.SPELLS[spell_name].buttons, stroke)
 
 
@@ -123,13 +146,17 @@ func _plan() -> void:
 				if _player().max_stamina < 100.0 and not _player().dead:
 					_player().max_stamina = 9999.0
 					_player().stamina = 9999.0)
-	if scenario != "pages" and _arena.has_method("learn_every_page"):
+	if scenario == "reel":
+		_player().ledger.learn_all()
+	elif scenario != "pages" and _arena.has_method("learn_every_page"):
 		_arena.learn_every_page()  # the checks cast whatever they need
 	match scenario:
 		"gates":
 			_plan_gates()
 		"life":
 			_plan_life()
+		"reel":
+			_plan_reel()
 		"biome":  # a look at the landmarks of an open biome: the start, each volcano, pit of mud and thicket, then the whole world from far off
 			var tile := float(ArenaGen.TILE)
 			var surface: Dictionary = _arena.graph.surface
@@ -760,6 +787,8 @@ func _plan_spells() -> void:
 		_at(t, func() -> void: _reset_room(col, spell_name))
 		_at(t + 0.4, func() -> void:
 			_cast(spell_name, stroke_for.call(_feet(col))))
+		if film:
+			_at(t + 6.0, func() -> void: pass)  # the clip runs on a while after the cast
 		if spell_name == "Great Oak":
 			# A fireball into the tree sets it alight; it burns, creaks, leans and falls.
 			_at(t + 1.6, func() -> void: _cast("Ignite", _stroke("flick", _feet(col) + Vector2(60, -45))))
@@ -995,6 +1024,11 @@ func _reset_room(col: int, spell_name: String) -> void:
 			mob._spawn = 0.0
 		mob.modulate.a = 1.0
 	var player: Node2D = _player()
+	if film:  # close in on the action, as the real game's picture, with no color grade over it
+		player.get_node("Camera2D").zoom = Vector2(3.0, 3.0)
+		player.get_node("Camera2D").offset = Vector2(60.0, -18.0)
+		for layer: Node in get_tree().get_nodes_in_group("grade"):
+			layer.visible = false
 	player.global_position = _feet(col)
 	player.velocity = Vector2.ZERO
 	player.facing = 1.0
@@ -1650,3 +1684,46 @@ func _plan_life() -> void:
 			if not crypts.is_empty():
 				_at(1.0, func() -> void: go.call(Vector2((crypts[0] + 0.5) * tile - 60.0, (floors[crypts[0]] - 3) * tile)))
 				_at(2.5, func() -> void: _snap("crypt"))
+
+
+## A short film of one feature, in a real world with the camera close in (film=1, `reel=NAME`, WORLD_SEED picks the place).
+func _plan_reel() -> void:
+	var tile := float(ArenaGen.TILE)
+	var surface: Dictionary = _arena.graph.surface
+	var column: int = surface["start"]
+	var feet := _player().global_position  # (where the wizard starts: the world is there)
+	var camera: Camera2D = _arena.get_node("Player/Camera2D")
+	var ground_at := func(x: float) -> Vector2:
+		return SpellTargets.solid_below(_arena.get_world_2d(), Vector2(x, feet.y - 200.0))
+	_at(0.2, func() -> void:
+		_player().facing = 1.0
+		camera.zoom = Vector2(2.2, 2.2)
+		camera.offset = Vector2(90.0, 60.0)
+		camera.limit_bottom = int(feet.y + 150.0)
+		camera.reset_smoothing()
+		_arena._dark.hide()
+		for page in get_tree().get_nodes_in_group("pages"):
+			page.queue_free())
+	_at(0.4, func() -> void:
+		for layer: Node in get_tree().get_nodes_in_group("grade"):
+			layer.visible = false)
+	match reel:
+		"draw":
+			var first := [0.0]
+			for i in 2:
+				var x := feet.x + 150.0 + i * 50.0
+				_at(0.6, func() -> void:
+					var mob: Node2D = _arena.add_mob("basic", ground_at.call(x))
+					mob._spawn = 0.0
+					mob._root_time = 99.0
+					mob.modulate.a = 1.0)
+			_at(1.0, func() -> void: _cast("Stonefall", _stroke("stonefall", Vector2(feet.x + 175.0, feet.y - 150.0), 0.7)))
+			for i in 2:
+				var x := feet.x + 130.0 + i * 50.0
+				_at(3.3, func() -> void:
+					var mob: Node2D = _arena.add_mob("basic", ground_at.call(x))
+					mob._spawn = 0.0
+					mob._root_time = 99.0
+					mob.modulate.a = 1.0)
+			_at(4.4, func() -> void: _cast("Fire Breath", _stroke("cone", feet + Vector2(60.0, -26.0), 1.2)))
+			_at(9.0, func() -> void: pass)

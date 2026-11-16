@@ -152,6 +152,27 @@ func _end() -> void:
 	_resolve(relative, options, reading)
 
 
+## What a stroke seen on the screen would be taken for, without casting anything: {"spell", "targeting", "rect" (the box it fills, in the world), "from", "to"}, or nothing
+## when it is not a shape the buttons have a spell for. This is how a person watching a rival draw reads the trail, from as much of it as is drawn.
+func glimpse(mask: int, world_points: PackedVector2Array) -> Dictionary:
+	if world_points.size() < 6:
+		return {}
+	var relative := PackedVector2Array()
+	for p in world_points:
+		relative.append(p - world_points[0])
+	if UnistrokeRecognizer.path_length(relative) < MIN_STROKE_LENGTH:
+		return {}
+	var options: Dictionary = _bindings.get(mask, {})
+	reader.tolerance = tolerance
+	reader.wall_tolerance_deg = wall_tolerance_deg
+	var reading := reader.read(relative, world_points[0], options)
+	var entry = options.get(reading.gesture)
+	if entry == null or reading.score < tolerance - 0.1:
+		return {}
+	var box := GestureTemplates.bounds(relative)
+	return {"spell": entry.spell, "targeting": entry.targeting, "rect": Rect2(world_points[0] + box.position, box.size), "from": world_points[0], "to": world_points[world_points.size() - 1]}
+
+
 ## A stroke read: a spell is cast from it, when the shape is good enough and the buttons have a spell for it, and a misfire is reported when not.
 func _resolve(relative: PackedVector2Array, options: Dictionary, reading: StrokeReading) -> void:
 	var gesture := reading.gesture

@@ -25,6 +25,7 @@ var biome := ""  # the place it is laid over, which others ask for (see Bonfire)
 static func gray_wash() -> CanvasLayer:
 	var layer := CanvasLayer.new()
 	layer.layer = 2
+	layer.add_to_group("gray_wash")
 	var wash := ColorRect.new()
 	wash.set_anchors_preset(Control.PRESET_FULL_RECT)
 	wash.mouse_filter = Control.MOUSE_FILTER_IGNORE

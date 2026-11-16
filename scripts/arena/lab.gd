@@ -119,6 +119,7 @@ func _init() -> void:
 
 
 ## The old room, with the dummies and without the court (the showcase scenarios try spells on the dummies at fixed places).
+var hold_partner := false  # the checks of the AI put the partner where a drill needs it, and the room leaves it there
 static var plain_room := false
 
 
@@ -293,7 +294,7 @@ func _spawn_partner() -> void:
 
 ## The partner fights back only while the player is in its section; when the player leaves, it goes back to its place, whole again.
 func _watch_the_partner(delta: float) -> void:
-	if _levels == null:
+	if _levels == null or hold_partner:
 		return
 	if _partner == null or not is_instance_valid(_partner) or _partner.dead:
 		_partner_wait += delta

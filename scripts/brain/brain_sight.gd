@@ -6,6 +6,7 @@ extends RefCounted
 
 const REMEMBER := 8.0         # seconds a rival gone out of sight is still thought to be where it was last seen
 const ATTENTION_CONE := 0.8  # radians either side of the way to its rival that it watches closely
+const READ_SHARE := 0.7      # how much of a rival's stroke must show on the screen before it is known for the spell it is
 const ATTENTION_LAG := 0.25  # seconds before it takes in a shot from elsewhere (on top of the time it takes to answer it)
 
 var first_seen := {}             # shot instance id -> the time on clock it first came on its screen (see noticed)
@@ -119,6 +120,33 @@ func nearest_foe() -> Wizard:
 			best = entry["wizard"]
 			best_gap = gap
 	return best
+
+
+## The spell a rival in view is drawing, read from the trail on the screen once most of it is drawn (a person who knows the shape knows the spell): {"spell",
+## "rect", "from", "to", "left" (seconds before it goes off)}, or nothing. Only a spell it knows (it has it in its own book, or has seen this rival cast it) is known by its shape.
+func rival_drawing() -> Dictionary:
+	var foe := brain.foe()
+	if BrainProfile.off("read") or not is_instance_valid(foe) or foe.dead or not foe.pen.active() or foe.pen.drawn_share() < READ_SHARE or not wizard.eyes.sees_node(foe):
+		return {}
+	var mask := SpellData.buttons_of_color(foe.cast_color)
+	if mask == 0:
+		return {}
+	var glimpse := wizard.caster.glimpse(mask, foe.pen.so_far())
+	if glimpse.is_empty() or not (brain.knows(glimpse["spell"]) or brain.profile.shown(foe, glimpse["spell"])):
+		return {}
+	glimpse["left"] = foe.pen.time_left()
+	glimpse["id"] = foe.pen.number
+	return glimpse
+
+
+## A stone falling on it from above, seen coming: {"x"} (where it falls), or nothing. A person who sees a boulder over their head steps aside.
+func falling_stone() -> Dictionary:
+	for rock in wizard.get_tree().get_nodes_in_group("rocks"):
+		if rock is Boulder and rock.linear_velocity.y > 150.0 and wizard.eyes.sees_node(rock):
+			var above: float = wizard.center().y - rock.global_position.y
+			if above > 20.0 and above < 700.0 and absf(rock.global_position.x - wizard.center().x) < 54.0:
+				return {"x": rock.global_position.x}
+	return {}
 
 
 ## The nearest of your shots that will hit it soon: {"eta": seconds, "dir": its direction}, or nothing.

@@ -431,6 +431,21 @@ func goal_lost() -> bool:
 	return brain.goal == "page" and (not is_instance_valid(goal_page) or not goal_page.gives(wizard.ledger))
 
 
+## How much a page is wanted for the kit it would add to, from its color alone (a page is outlined in its school's color, and the spell inside is not shown): a school it
+## holds little of counts for more, so a wizard of all fire goes a little farther for water or air. 1 for a page of a school it holds plenty of, up to 1.6.
+func kit_want(pickup: PagePickup) -> float:
+	if BrainProfile.off("kit"):
+		return 1.0
+	var best := 1.0
+	for school: String in pickup.schools():
+		var held := 0
+		for spell: Spell in SpellData.SPELLS.values():
+			if spell.school == school and wizard.ledger.knows_spell(spell.spell_name):
+				held += 1
+		best = maxf(best, 1.0 + 0.6 / (1.0 + held))
+	return lerpf(1.0, best, minf(brain.skill / 0.65, 1.0))
+
+
 ## The page it will go for from where it stands: the one that seems nearest of those it knows of and can reach, and the way to it ({"page", "path"}). The
 ## page is null when it knows of none worth the walk. Pages it cannot reach are given up for a while on the way.
 func pick_page(start: Vector2i) -> Dictionary:
@@ -457,7 +472,7 @@ func pick_page(start: Vector2i) -> Dictionary:
 		# How far it seems: the way, when it knows the ground the way goes over; else as the crow flies, all a person can guess of ground unseen.
 		var known := not brain.explore.sight_is_limited() or brain.explore.through_known(path, start, stand)
 		var length := float(path.size()) if known else Vector2(stand - start).length()
-		var worth := length / sqrt(maxf(1.0, float(pickup.new_pages(wizard.ledger).size())))  # a dropped book is worth the walk: the more pages it would give, the nearer it counts
+		var worth := length / sqrt(maxf(1.0, float(pickup.new_pages(wizard.ledger).size()))) / kit_want(pickup)  # a dropped book is worth the walk: the more pages it would give, the nearer it counts
 		if best_page == null or worth < best_worth:
 			best_page = pickup
 			best_path = path if known else no_path()
