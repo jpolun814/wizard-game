@@ -47,8 +47,9 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS  # keeps running while the game is paused
 	DirAccess.make_dir_recursive_absolute(out_dir)
 	# The spells are tried in the waiting room, where there is a pond, a gap and dummies for each of them.
-	var scene := "world" if scenario in ["cave", "gates", "castle", "pages", "tornado", "extras", "biome", "life", "reel"] else "lab"
-	if scenario in ["cave", "gates", "castle", "pages", "tornado", "extras", "biome", "life", "reel"]:
+	var in_world := scenario in ["cave", "gates", "castle", "pages", "tornado", "extras", "biome", "life", "reel"] and not (scenario == "reel" and reel in ["bridge", "shield"])
+	var scene := "world" if in_world else "lab"
+	if in_world:
 		World.random_start = false
 		World.arrive_by_portal = false
 		World.next_seed = int(OS.get_environment("WORLD_SEED")) if OS.get_environment("WORLD_SEED") != "" else 11  # the same world each time
@@ -156,7 +157,10 @@ func _plan() -> void:
 		"life":
 			_plan_life()
 		"reel":
-			_plan_reel()
+			if reel in ["bridge", "shield"]:
+				_plan_lab_reel()
+			else:
+				_plan_reel()
 		"biome":  # a look at the landmarks of an open biome: the start, each volcano, pit of mud and thicket, then the whole world from far off
 			var tile := float(ArenaGen.TILE)
 			var surface: Dictionary = _arena.graph.surface
@@ -1698,7 +1702,7 @@ func _plan_reel() -> void:
 	_at(0.2, func() -> void:
 		_player().facing = 1.0
 		camera.zoom = Vector2(2.2, 2.2)
-		camera.offset = Vector2(90.0, 60.0)
+		(camera as GameCamera).set_rest_offset(Vector2(90.0, 60.0))
 		camera.limit_bottom = int(feet.y + 150.0)
 		camera.reset_smoothing()
 		_arena._dark.hide()
@@ -1737,3 +1741,40 @@ func _plan_reel() -> void:
 					mob.modulate.a = 1.0)
 			_at(4.4, func() -> void: _cast("Fire Breath", _stroke("cone", feet + Vector2(60.0, -26.0), 1.2)))
 			_at(9.0, func() -> void: pass)
+
+
+## A short film made in the waiting room, where the ground is flat and the pond is: the camera is close in, and the wizard stands at the left.
+func _plan_lab_reel() -> void:
+	var camera: Camera2D = _player().get_node("Camera2D")
+	var feet := _feet(1)
+	_at(0.2, func() -> void:
+		for mob in get_tree().get_nodes_in_group("mobs"):
+			mob.queue_free()  # (the turret would shoot as well)
+		_player().global_position = feet + Vector2(0.0, -4.0)
+		_player().velocity = Vector2.ZERO
+		_player().facing = 1.0
+		camera.zoom = Vector2(2.2, 2.2)
+		(camera as GameCamera).set_rest_offset(Vector2(110.0, 20.0))
+		camera.limit_bottom = int(feet.y + 200.0)  # (the room's camera stops at the foot of the ground, so the pond would sit at the bottom edge)
+		camera.limit_right = 100000
+		camera.reset_smoothing()
+		for layer: Node in get_tree().get_nodes_in_group("grade"):
+			layer.visible = false)
+	match reel:
+		"bridge":  # a Frost Bridge over the pond, a skeleton stood on the ice, and a flame that melts it
+			_at(1.0, func() -> void: _cast("Frost Bridge", _stroke("wave", Vector2(ArenaGen.column_x(8), feet.y - 20.0), 1.5)))
+			_at(4.2, func() -> void:
+				var mob: Node2D = _summon_at("basic", ArenaGen.column_x(6))
+				mob._spawn = 0.0
+				mob._root_time = 99.0
+				mob.modulate.a = 1.0)
+			_at(5.0, func() -> void: _cast("Fire Breath", _stroke("cone", feet + Vector2(60.0, -26.0), 1.2)))
+			_at(10.0, func() -> void: pass)
+		"shield":  # a Barrier blows a bolt away, and a Gust turns another back
+			var fire_bolt := func() -> void:
+				EnemyBolt.fire(_arena, feet + Vector2(280.0, -50.0), feet + Vector2(0.0, -40.0), Color("#ff7a3a"), 5)
+			_at(0.8, func() -> void: _cast("Barrier", _stroke("circle", feet + Vector2(0.0, -30.0), 0.8)))
+			_at(2.0, fire_bolt)
+			_at(4.4, func() -> void: _cast("Gust", _densify(PackedVector2Array([feet + Vector2(0.0, -45.0), feet + Vector2(140.0, -45.0)]))))
+			_at(5.4, fire_bolt)
+			_at(8.0, func() -> void: pass)

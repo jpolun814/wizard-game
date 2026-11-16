@@ -22,6 +22,14 @@ The other wizards draw their spells the same way, in plain view.
 
 Spells have no sides: they hurt whoever they touch, the wizard who cast them included.
 
+Freeze a pond to cross it. Fire melts the ice again.
+
+![Frost Bridge freezes a pond, a skeleton walks onto the ice, and fire breath melts it](docs/media/frost_bridge.gif)
+
+A Barrier blows a fireball away.
+
+![A wizard draws a Barrier and a fireball is blown away](docs/media/barrier_gust.gif)
+
 ## A match
 
 A match has eight wizards: you, and seven others who are AI or friends over a network. You play through four worlds, chosen from these:
@@ -36,7 +44,7 @@ A match has eight wizards: you, and seven others who are AI or friends over a ne
 - ocean
 - sky
 
-![Fire breath and lightning on the snowy peaks](docs/media/peaks_fire.gif)
+![A walk through each of the nine places](docs/media/nine_places.gif)
 
 ## Also in the game
 
