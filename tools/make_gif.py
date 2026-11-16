@@ -17,7 +17,9 @@ parser.add_argument("--fps", type=float, default=12.0)
 parser.add_argument("--width", type=int, default=512)
 parser.add_argument("--from", dest="first", type=int, default=0)
 parser.add_argument("--to", dest="last", type=int, default=10**9)
-parser.add_argument("--colors", type=int, default=160)
+parser.add_argument("--colors", type=int, default=256)
+parser.add_argument("--method", default="FASTOCTREE", help="FASTOCTREE, MEDIANCUT or MAXCOVERAGE: how the palette is made; FASTOCTREE keeps small bright things (a flame) their colors")
+parser.add_argument("--local", action="store_true", help="give each picture its own palette: a small bright thing (a flame) keeps its colors, and the file is larger")
 parser.add_argument("--crop", default="", help="x0,y0,x1,y1 of the part of each picture to keep, before it is scaled")
 args = parser.parse_args()
 
@@ -38,7 +40,10 @@ sample = frames[::step]
 sheet = Image.new("RGB", (frames[0].width, frames[0].height * len(sample)))
 for i, f in enumerate(sample):
     sheet.paste(f, (0, i * f.height))
-palette = sheet.quantize(colors=args.colors, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE)
-out = [f.quantize(palette=palette, dither=Image.Dither.NONE) for f in frames]
+palette = sheet.quantize(colors=args.colors, method=getattr(Image.Quantize, args.method), dither=Image.Dither.NONE)
+if args.local:
+    out = [f.quantize(colors=args.colors, method=getattr(Image.Quantize, args.method), dither=Image.Dither.NONE) for f in frames]
+else:
+    out = [f.quantize(palette=palette, dither=Image.Dither.NONE) for f in frames]
 out[0].save(args.out, save_all=True, append_images=out[1:], duration=round(1000 / args.fps), loop=0, optimize=False, disposal=1)
 print("%s: %d frames, %.1f s, %d KB" % (args.out, len(out), len(out) / args.fps, os.path.getsize(args.out) // 1024))

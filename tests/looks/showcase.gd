@@ -1708,6 +1708,16 @@ func _plan_reel() -> void:
 		for layer: Node in get_tree().get_nodes_in_group("grade"):
 			layer.visible = false)
 	match reel:
+		"chant":  # the Hearthfire: the box opens, the words are typed, and a bonfire is lit beside the wizard
+			var words := "ignis ardeat in tenebris et calorem det mihi dum noctem semper expello"
+			_at(0.8, func() -> void: _arena.ritual.open())
+			for i in words.length():
+				var upto := i + 1
+				_at(1.4 + i * 0.04, func() -> void:
+					_arena.ritual._line.text = words.substr(0, upto)
+					_arena.ritual._line.caret_column = upto)
+			_at(1.4 + words.length() * 0.04 + 0.5, func() -> void: _arena.ritual._on_submit(words))
+			_at(8.5, func() -> void: pass)
 		"draw":
 			var first := [0.0]
 			for i in 2:

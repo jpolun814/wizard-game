@@ -8,11 +8,13 @@ You are one of eight wizards dropped into a world, each with an empty spellbook.
 
 Hold down a mouse button and draw the spell's shape on the screen.
 
-- Each school of magic has its own combination of mouse buttons: left is fire, right is water, middle is air, and combinations of them are the other four.
 - Each spell has its own shape. Fire breath is a `<`, a geyser is an arrow pointing up, and a black hole is a spiral.
-- Some spells are chants: press Enter and type them.
 
 ![A circle with a line down drops a boulder on two skeletons, then a cone breathes fire on two more](docs/media/draw_to_cast.gif)
+
+- Some spells are chants: press Enter and type them.
+
+![A wizard types a chant and a bonfire is lit](docs/media/chant_bonfire.gif)
 
 The other wizards draw their spells the same way, in plain view.
 
@@ -22,7 +24,7 @@ Spells have no sides: they hurt whoever they touch, the wizard who cast them inc
 
 ## A match
 
-A match is you and seven other wizards (friends over a network, with AI wizards in any empty seat). You play through four worlds, chosen from these:
+A match has eight wizards: you, and seven others who are AI or friends over a network. You play through four worlds, chosen from these:
 
 - graveyard
 - jungle
@@ -43,6 +45,10 @@ A match is you and seven other wizards (friends over a network, with AI wizards 
 - **Library.** Keeps track of your matches on this machine.
 - **Network play.** Play with friends on a local network or by typing in an address. One player hosts, and AI wizards fill any empty seats. You can also run a dedicated server.
 
+## Playing
+
+Download the latest `.exe` from [Releases](https://github.com/jpolun814/wizard-game/releases/latest) and run it. Windows may say it protected your PC: click More info, then Run anyway.
+
 ## Controls
 
 | Key | What it does |
@@ -50,7 +56,7 @@ A match is you and seven other wizards (friends over a network, with AI wizards 
 | A / D | Walk |
 | W or Space | Jump |
 | S | Drop through a wooden platform |
-| Left, Right, Middle mouse | Cast: left is fire, right is water, middle is air (hold two or three together for the other schools) |
+| Mouse buttons | Left casts fire, right casts water, middle casts air. Hold two or three together for the other schools |
 | Tab | Open the spellbook (arrow keys turn pages) |
 | Enter | Type a chant |
 | Esc | Pause and see the controls |
@@ -97,7 +103,7 @@ This opens a host with nobody at it, on UDP port 24565 (set `WIZARD_PORT` to cha
 |---|---|
 | `scripts/` | The game, sorted by what it is: `core`, `wizard`, `brain` (the AI), `arena` (a match), `spells`, `creatures`, `terrain`, `world`, `scenery`, `screens`, `ui`, `gesture`, `fx` |
 | `data/spells/` | One `Spell` resource per spell. These are the source of truth for names, costs and gestures |
-| `scenes/` | The few scenes there are |
+| `scenes/` | The game's scenes |
 | `art/`, `audio/` | Pictures and sounds, with their sources in `art/CREDITS.md` |
 | `tools/` | Python scripts that cut and recolor the art, and the check runner |
 | `docs/` | Design notes, and `docs/handoff/` with one chapter per area of the code |
@@ -122,7 +128,7 @@ A match, played by the AI:
 godot --fixed-fps 60 --path . tests/tools/arena_sim.tscn -- seed=3 seconds=45 duel=1 plain=1 zoom=2.2 "a=Ignite,Fire Breath" "b=Frostbolt,Barrier" frames=OUT_DIR every=5
 ```
 
-`duel=1` puts two wizards face to face with the spells named in `a=` and `b=`, and the rest of the match is put away. `plain=1` leaves off the color grade so the colors are the game's own. Different `seed` values give different first worlds.
+`duel=1` puts two wizards face to face with the spells named in `a=` and `b=`, and the rest of the match is put away. `plain=1` leaves off the color grade, which tints the picture. Different `seed` values give different first worlds.
 
 A scripted feature, with the wizard drawing the strokes on screen (`WORLD_SEED` picks the place):
 
@@ -133,7 +139,7 @@ WORLD_SEED=0 godot --fixed-fps 60 --path . tests/looks/showcase.tscn -- scenario
 Then:
 
 ```
-python tools/make_gif.py OUT_DIR clip.gif --fps 14 --width 440 --colors 200 --crop 120,150,1160,720
+python tools/make_gif.py OUT_DIR clip.gif --fps 14 --width 440 --crop 120,150,1160,720
 ```
 
 All the pictures share one palette and nothing is dithered, so the pixel art stays clean. `--crop` keeps the part of each picture that shows the action, which makes the file smaller.
