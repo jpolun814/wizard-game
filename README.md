@@ -1,8 +1,6 @@
 # Wizard Game
 
-You are one of eight wizards dropped into the same world, each with an empty spellbook. Pages lie around: on ledges, in crypts, at the top of great trees, at the bottom of ponds. Read one and you learn a spell. Use it on the other seven, because the last wizard standing wins.
-
-A 2D side-view duel in dark pixel art, made in Godot.
+You are one of eight wizards dropped into a world, each with an empty spellbook. Pages are scattered around it. Read one to learn a spell, then use it on the other seven. The last wizard standing wins.
 
 ![Two wizards in a jungle: an ice bolt, a bubble of air and fire breath](docs/media/jungle_duel.gif)
 
@@ -10,10 +8,10 @@ A 2D side-view duel in dark pixel art, made in Godot.
 
 Hold down a mouse button and draw the spell's shape on the screen.
 
-- Each school of magic has its own button, or its own pair of buttons. Left is fire, right is water, middle is air, and the combinations are earth, plants, shadow and blood.
-- The shape is a picture of what you want. A fire cone is drawn as a `<`. A geyser is an arrow pointing up. A black hole is a spiral winding in. Stonefall is a circle with a line dropping out of it, and the boulder falls from the circle.
-- The dearer a spell is, the more involved its shape. A quick flick throws a fireball; a star about to die takes two loops drawn in one go.
-- A few spells are rituals. Press Enter and type a chant in pseudo-Latin: the cleaner your typing, the stronger the result.
+- Each school of magic has its own combination of mouse buttons: left is fire, right is water, middle is air, and combinations of them are the other four.
+- The shape is a picture of what you want. A fire cone is drawn as a `<`. A geyser is an arrow pointing up. A black hole is a spiral winding in.
+- The dearer a spell is, the more involved its shape.
+- Some spells are rituals: press Enter and type a chant. The cleaner your typing, the stronger the result.
 
 ![A circle with a line down drops a boulder on two skeletons, then a cone breathes fire on two more](docs/media/draw_to_cast.gif)
 
@@ -21,29 +19,29 @@ The other wizards draw their spells the same way, in plain view.
 
 ![A wall of flame between two wizards in a graveyard](docs/media/graveyard_fire.gif)
 
-Spells have no sides. Fire burns whoever is standing in it, including the wizard who lit it, and a boulder lands on whoever is under it.
+Spells have no sides: they hurt whoever they touch, the wizard who cast them included.
 
 ## A match
 
 A match is you and seven other wizards (friends over a network, with AI wizards in any empty seat). You pass through four worlds, picked from nine places:
 
-- a blood-moon graveyard
-- a jungle with rope bridges between giant trees
-- snowy peaks, with avalanches and sheets of ice
-- ashlands, where volcanoes erupt
-- a row of castles, six floors deep
+- a graveyard
+- a jungle
+- snowy peaks
+- ashlands
+- a row of castles
 - an underground cavern
-- the portal fields, where portals open every few seconds and carry you somewhere else
-- a drowned sea, mostly under water
-- an open sky with nothing to stand on
+- the portal fields
+- a drowned sea
+- an open sky
 
-Pages are dealt out when the match starts, so no two wizards begin with the same ones. Some ways on only open to the right spell.
+No two wizards begin with the same pages. Some paths only open to the right spell.
 
 ![Fire breath and lightning on the snowy peaks](docs/media/peaks_fire.gif)
 
 ## Other things in the box
 
-- **Waiting room.** Where you start. Every spell is here to try before you touch the book that starts a game.
+- **Waiting room.** Where you start. Try any spell here before starting a match.
 - **Tutorial.** A long row of obstacles, with the pages that beat them lying at their feet.
 - **Library.** Remembers how your matches went on this machine: how often you found each page, cast each spell, and won with it in your book.
 - **Network play.** Play on a local network or by typing in an address. One player hosts, the AI fills the empty seats. A dedicated server is possible too.
@@ -69,7 +67,7 @@ The pictures and sounds come from free packs by other people. Every source and l
 
 ## For developers
 
-The game is written in GDScript for **Godot 4.7.2**. There is nothing to install beyond the engine.
+The game is written in GDScript for **Godot 4.7.2**, and the engine is all you need.
 
 ```
 godot --path .                       # run the game (the main scene is the menu)
