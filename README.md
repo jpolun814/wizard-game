@@ -1,6 +1,6 @@
 # Wizard Game
 
-You are one of eight wizards dropped into a world, each with an empty spellbook. Pages are scattered around it. Read one to learn a spell, then use it on the other seven. The last wizard standing wins.
+You are one of eight wizards dropped into a world, each with an empty spellbook. Learn spells by picking up the pages scattered around the map. The last wizard standing wins.
 
 ![Two wizards in a jungle: an ice bolt, a bubble of air and fire breath](docs/media/jungle_duel.gif)
 
