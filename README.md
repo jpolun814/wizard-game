@@ -9,9 +9,8 @@ You are one of eight wizards dropped into a world, each with an empty spellbook.
 Hold down a mouse button and draw the spell's shape on the screen.
 
 - Each school of magic has its own combination of mouse buttons: left is fire, right is water, middle is air, and combinations of them are the other four.
-- The shape is a picture of what you want. A fire cone is drawn as a `<`. A geyser is an arrow pointing up. A black hole is a spiral winding in.
-- The dearer a spell is, the more involved its shape.
-- Some spells are rituals: press Enter and type a chant. The cleaner your typing, the stronger the result.
+- Each spell has its own shape. Fire breath is a `<`, a geyser is an arrow pointing up, and a black hole is a spiral.
+- Some spells are chants: press Enter and type them.
 
 ![A circle with a line down drops a boulder on two skeletons, then a cone breathes fire on two more](docs/media/draw_to_cast.gif)
 
@@ -23,28 +22,26 @@ Spells have no sides: they hurt whoever they touch, the wizard who cast them inc
 
 ## A match
 
-A match is you and seven other wizards (friends over a network, with AI wizards in any empty seat). You pass through four worlds, picked from nine places:
+A match is you and seven other wizards (friends over a network, with AI wizards in any empty seat). You play through four worlds, chosen from these:
 
-- a graveyard
-- a jungle
-- snowy peaks
-- ashlands
-- a row of castles
-- an underground cavern
-- the portal fields
-- a drowned sea
-- an open sky
-
-No two wizards begin with the same pages. Some paths only open to the right spell.
+- graveyard
+- jungle
+- snowy mountains
+- volcanoes
+- castles
+- underground caves
+- portals
+- ocean
+- sky
 
 ![Fire breath and lightning on the snowy peaks](docs/media/peaks_fire.gif)
 
-## Other things in the box
+## Also in the game
 
-- **Waiting room.** Where you start. Try any spell here before starting a match.
-- **Tutorial.** A long row of obstacles, with the pages that beat them lying at their feet.
-- **Library.** Remembers how your matches went on this machine: how often you found each page, cast each spell, and won with it in your book.
-- **Network play.** Play on a local network or by typing in an address. One player hosts, the AI fills the empty seats. A dedicated server is possible too.
+- **Waiting room.** Where you start. Try any spell here.
+- **Tutorial.** A row of obstacles that teaches you the game.
+- **Library.** Keeps track of your matches on this machine.
+- **Network play.** Play with friends on a local network or by typing in an address. One player hosts, and AI wizards fill any empty seats. You can also run a dedicated server.
 
 ## Controls
 
@@ -53,7 +50,7 @@ No two wizards begin with the same pages. Some paths only open to the right spel
 | A / D | Walk |
 | W or Space | Jump |
 | S | Drop through a wooden platform |
-| Left, Right, Middle mouse | Draw with fire, water, air (hold two or three together for the other schools) |
+| Left, Right, Middle mouse | Cast: left is fire, right is water, middle is air (hold two or three together for the other schools) |
 | Tab | Open the spellbook (arrow keys turn pages) |
 | Enter | Type a chant |
 | Esc | Pause and see the controls |
