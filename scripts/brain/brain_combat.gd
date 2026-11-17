@@ -83,6 +83,7 @@ func attack(to_player: Vector2, sees: bool) -> bool:
 		"Insect Plague": 1.2 if gap < 480.0 else 0.0,
 		"Flaming Sphere": 1.3 if grounded and aim_ok and gap > 120.0 and gap < 620.0 else 0.0,  # it rolls along the ground toward you
 		"Mirage": 0.9 if gap > 250.0 and grounded and brain.real_page_near(500.0) and brain.mirages_set() < 2 else 0.0,  # a bait set among real pages, with the rival still some way off; nonsense at arm's length, or where no page lies
+		"Golem": 1.3 if gap < 600.0 and grounded and wizard.max_stamina > 150.0 and brain.own_raised() < 1 else 0.0,
 		"Raise Dead": 1.2 if gap < 560.0 and grounded and wizard.max_stamina > 120.0 and brain.own_raised() < 2 else 0.0,
 		"Leech": 1.0 if sees and aim_ok and gap < Leech.REACH - 40.0 and Leech.held_by(wizard.get_tree(), wizard) == null else 0.0,
 		"Eldritch Blast": 1.4 if sees and gap > 120.0 and gap < 560.0 else 0.0,  # slow, and it bends toward you

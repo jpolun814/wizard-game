@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="Spell" format=3]
+
+[ext_resource type="Script" path="res://scripts/core/spell.gd" id="1_golem"]
+
+[resource]
+script = ExtResource("1_golem")
+spell_name = "Golem"
+school = "Earth"
+gesture = "stick"
+targeting = "positional"
+cost = 90.0
+effect = "Summon a golem of stone."

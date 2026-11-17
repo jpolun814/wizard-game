@@ -14,7 +14,7 @@ const ALIASES := {"line": "flick", "zig_tall": "zigzag",
 	"star_0r": "pentagram", "star_1r": "pentagram", "star_2r": "pentagram", "star_3r": "pentagram", "star_4r": "pentagram",
 	"crescent_cw": "crescent", "crescent_ccw": "crescent",
 	"eclipse_a": "eclipse", "eclipse_b": "eclipse", "eclipse_c": "eclipse", "eclipse_d": "eclipse",
-	"burrow_r": "burrow", "lungs_a": "lungs", "lungs_b": "lungs", "lungs_c": "lungs", "lungs_d": "lungs", "lungs_e": "lungs", "lungs_f": "lungs",
+	"burrow_r": "burrow", "stick_b": "stick", "stick_c": "stick", "stick_d": "stick", "lungs_a": "lungs", "lungs_b": "lungs", "lungs_c": "lungs", "lungs_d": "lungs", "lungs_e": "lungs", "lungs_f": "lungs",
 	"silence_cw": "silence", "silence_ccw": "silence", "question_r": "question", "earthquake_r": "earthquake", "arrow_r2": "arrow", "arrow_l": "arrow", "arrow_l2": "arrow"}
 
 
@@ -37,6 +37,10 @@ static func recognizer_templates() -> Dictionary:
 		"eight_mid_ccw": _eight(PI * 0.5, true),
 		"geyser": _arrow_up(),  # the jet going up, drawn with the water button
 		"burrow": _burrow(false),
+		"stick": _stick(false, false),
+		"stick_b": _stick(true, false),
+		"stick_c": _stick(false, true),
+		"stick_d": _stick(true, true),
 		"burrow_r": _burrow(true),
 		"vine_cw": _leaf_and_stem(false),
 		"vine_ccw": _leaf_and_stem(true),
@@ -118,6 +122,8 @@ static func preview_points(gesture: String) -> PackedVector2Array:
 			return _pit(90.0, 60.0)
 		"burrow":
 			return _burrow(false)
+		"stick":
+			return _stick(false, false)
 		"cone":
 			return _cone(80.0, 0.5)
 		"smoke":
@@ -320,6 +326,19 @@ static func _cone(length: float, half_angle: float) -> PackedVector2Array:
 
 
 ## A U: down one side, round the bottom and up the other. The pit the ground falls into.
+## A stick figure in one stroke: the head (a ring begun at its lowest point), the body straight down from it, out to one foot, back up to the hip and out to the other.
+## ccw draws the head the other way round; legs_right_first starts with the right foot.
+static func _stick(ccw: bool, legs_right_first: bool) -> PackedVector2Array:
+	var pts := PackedVector2Array()
+	for i in 17:
+		var a := PI * 0.5 + TAU * i / 16.0 * (-1.0 if ccw else 1.0)
+		pts.append(Vector2(cos(a) * 16.0, -48.0 + sin(a) * 16.0))
+	var first := 1.0 if legs_right_first else -1.0
+	for p in [Vector2(0, 0), Vector2(0, 36), Vector2(first * 26.0, 78), Vector2(0, 36), Vector2(-first * 26.0, 78)]:
+		pts.append(p)
+	return pts
+
+
 ## A U, and then an arrow at its far end pointing up and out of the ground: the pit, and the way out of it. mirror is drawn from the right-hand side.
 static func _burrow(mirror: bool) -> PackedVector2Array:
 	var side := -1.0 if mirror else 1.0

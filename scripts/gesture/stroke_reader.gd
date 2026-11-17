@@ -105,7 +105,7 @@ func _detect(relative: PackedVector2Array, options: Dictionary, reading: StrokeR
 	var extent := StrokeMeasure.extent(relative)
 	var closed := relative[0].distance_to(relative[relative.size() - 1]) < 0.3 * maxf(extent.x, extent.y)  # icicles are open V strokes: a loop is never one
 	var peak := gesture == "geyser" and firm  # an arrow pointing up drawn with the water button is a Geyser, not a row of icicles
-	var round_peaks := score >= tolerance - 0.12 and gesture in ["stonefall", "earthquake"]  # a circle and a drop, and a double arrow, also have peaks in them
+	var round_peaks := score >= tolerance - 0.12 and gesture in ["stonefall", "earthquake"] or (gesture == "stick" and firm)  # a circle and a drop, a double arrow and a stick figure also have peaks in them
 	var arrowed := gesture == "burrow" and score >= tolerance - 0.12 and StrokeShapes.turning_points(relative, 1, maxf(4.0, 0.12 * StrokeMeasure.extent(relative).y)).size() >= 2  # a U with an arrow at its end is a Burrow; a plain U is a Sinkhole
 	var vine := gesture == "vine" and firm  # a leaf with a vine up from it starts like a tree's trunk would end, so it is not a tree
 	return {

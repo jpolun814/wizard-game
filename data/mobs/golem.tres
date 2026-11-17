@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="MobKind" format=3]
+
+[ext_resource type="Script" path="res://scripts/creatures/mob_kind.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "golem"
+sort_order = 23
+display_name = "Golem"
+desc = "A man of stone that follows the one who raised it."
+role = "melee"
+art = "golem"
+scale = 1.0
+hp = 140
+school = "Earth"
+damage = 24
+speed = 0.6

@@ -7,6 +7,7 @@ class_name PixelArt
 const CHARACTERS := {
 	"skeleton": {"size": Vector2(114, 79), "body": Rect2(-12.0, -58.0, 31.0, 58.0)},
 	"goblin": {"size": Vector2(72, 41), "body": Rect2(-10.4, -36.0, 21.0, 36.0)},
+	"golem": {"size": Vector2(96, 88), "body": Rect2(-24.0, -76.0, 50.0, 76.0)},
 	"giant": {"size": Vector2(146, 96), "body": Rect2(-23.1, -92.0, 50.0, 92.0)},
 	"wizard": {"size": Vector2(254, 138), "body": Rect2(-20.9, -86.0, 37.0, 86.0)},
 	"dark_wizard": {"size": Vector2(238, 143), "body": Rect2(-13.7, -95.0, 42.0, 95.0)},
