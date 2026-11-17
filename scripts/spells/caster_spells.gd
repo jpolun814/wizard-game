@@ -98,7 +98,8 @@ func _sneak(c: SpellCast) -> void:
 
 
 func _burrow(c: SpellCast) -> void:
-	c.caster.begin_burrow()
+	var extent: Vector2 = c.info.get("extent", Vector2(100.0, 0.0))
+	c.caster.begin_burrow(c.side(), clampf(extent.x * 4.0, 240.0, 720.0))  # as far as a wizard would go in a few strides: the wider the U, the farther
 
 
 func _obsidian_armor(c: SpellCast) -> void:

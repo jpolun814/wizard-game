@@ -7,5 +7,6 @@ script = ExtResource("1_burrow")
 spell_name = "Burrow"
 school = "Earth"
 gesture = "burrow"
+targeting = "directional"
 cost = 30.0
-effect = "Sink into the ground and travel beneath it."
+effect = "Vanish into the ground and reappear ahead of you."

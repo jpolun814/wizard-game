@@ -869,7 +869,7 @@ def draw_golem(cv, dx=0.0, bob=0.0, legs=(0.0, 0.0), far_fist=None, near_fist=No
     """One pose of the Golem, 96 x 88, facing right, standing on the bottom row: a hulking man of dark stone, moss in the cracks, small ember eyes
     and one ember rune on the chest. dx leans the whole body, bob lifts it, legs are the two feet's sideways steps, the fists are where the hands are
     (relative to the shoulders), and drop sinks the body into its legs."""
-    stone = dim(ROCK, 0.72)
+    stone = ramp("#6a5a94", "#46386a", "#2a2042", "#100a1c")  # the violet cobble of the world's own stone (art/tiles/earth_stone.png), lifted a little to read against it
     gy, cx = 87, 44.0
     hip = 56.0 + bob + drop
     ty = hip - 21.0 + tilt * 0.2

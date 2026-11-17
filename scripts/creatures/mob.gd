@@ -690,11 +690,11 @@ func _process(delta: float) -> void:
 ## Picks the animation for what the enemy is doing: attacking (the wind-up of a hit, the charge of a shot), flinching, walking or idling, and faces
 ## where it is going.
 func _animate(delta: float) -> void:
-	if player and not _dead and _frozen_time <= 0.0:
-		if _windup > 0.0 or _charge > 0.0 or absf(velocity.x) < 5.0:
+	if not _dead and _frozen_time <= 0.0:
+		if player and (_windup > 0.0 or _charge > 0.0 or absf(velocity.x) < 5.0):
 			facing = signf(player.global_position.x - global_position.x) if player.global_position.x != global_position.x else facing
-		else:
-			facing = signf(velocity.x)
+		elif absf(velocity.x) >= 5.0:
+			facing = signf(velocity.x)  # (a servant with no one to fight turns the way it walks, after its master)
 	var lunge := 0.0
 	if _lunge > 0.0:
 		lunge = roundf(sin(_lunge * PI) * 8.0) * facing

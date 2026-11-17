@@ -218,8 +218,8 @@ const VEILED := 256
 const WILD := 512
 var _burrowing := false  # under the ground (see begin_burrow)
 var _burrow_dust := 0.0
-const BURROW_SECONDS := 3.0
-const BURROW_SPEED := 220.0  # pixels a second along the ground, under it
+const BURROW_SPEED := 560.0  # pixels a second along the ground, under it
+var _burrow_dir := 1.0
 const BURROW_DEPTH := 26.0   # how far under the surface the wizard's feet are
 var _hidden := false  # not drawn: faded from sight, and not the wizard at this machine
 const UNSEEN_BUMP := 50.0  # how near a wizard faded from sight must be to be felt rather than seen
@@ -632,13 +632,14 @@ func is_seen_from(point: Vector2) -> bool:
 	return not is_faded() or center().distance_to(point) < UNSEEN_BUMP or (is_inside_tree() and Hex.multiplier(get_tree(), self) > 1.0)
 
 
-## Burrow: the wizard sinks into the ground and travels beneath it, out of sight, until the time is up or something hits them.
-func begin_burrow() -> void:
+## Burrow: the wizard sinks into the ground and runs beneath it, out of sight, `distance` pixels to one side, and comes up there (or where a blow brings them up).
+func begin_burrow(direction: float, distance: float) -> void:
 	if is_likeness() or _burrowing or dead:
 		return
 	_burrowing = true
-	burrow_time = BURROW_SECONDS
-	fade_time = BURROW_SECONDS + 1.0
+	_burrow_dir = signf(direction) if direction != 0.0 else facing
+	burrow_time = distance / BURROW_SPEED
+	fade_time = burrow_time + 1.0
 	velocity = Vector2.ZERO
 	set_collision_mask_value(1, false)
 	set_collision_mask_value(16, false)
@@ -680,7 +681,7 @@ func _burrow_step(delta: float) -> void:
 	if dead or burrow_time <= 0.0:
 		end_burrow()
 		return
-	var run := pad.walking(BURROW_SPEED) if movement_enabled and not fainted else 0.0
+	var run := _burrow_dir * BURROW_SPEED
 	global_position.x = clampf(global_position.x + run * delta, ArenaGen.left_edge() + 12.0, ArenaGen.right_edge() - 12.0)
 	var top := _surface_here()
 	if top > -INF:
