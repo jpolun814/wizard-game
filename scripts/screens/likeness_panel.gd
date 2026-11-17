@@ -28,9 +28,9 @@ const NAMES := {
 }
 ## The color shown beside a value that is a color (the middle shade of the parts' own).
 const SWATCHES := {
-	"pale": "#e2bca6", "light": "#cf9877", "tan": "#b87e52", "brown": "#8a5632", "deep": "#784a32", "sage": "#78a45e", "pink": "#ee86b0", "violet": "#9a68d0", "silver": "#c4cad6", "ashen": "#aeaeb8", "frost": "#94bedc", "undead": "#8a9a74",
+	"pale": "#e2bca6", "light": "#cf9877", "tan": "#b87e52", "brown": "#8a5632", "deep": "#784a32", "sage": "#78a45e", "pink": "#ee86b0", "violet": "#9a68d0", "silver": "#c4cad6", "ashen": "#aeaeb8", "frost": "#94bedc", "undead": "#8a9a74", "fair": "#ecc8b4", "olive": "#bc9262", "bronze": "#9a6a3e", "ebony": "#563424", "plum": "#8a6890",
 	"blue": "#3f60c8", "purple": "#7e58b6", "crimson": "#b83a46", "emerald": "#2e9a64", "charcoal": "#4a4a60", "ivory": "#d6cdb4", "rose": "#d0607e", "lavender": "#a688d6", "gold": "#d6a83a", "teal": "#2a9ca0", "rust": "#b85a2c",
-	"white": "#d4cecd", "gray": "#96949e", "black": "#34343f", "auburn": "#ac4a2c", "blonde": "#e8c870",
+	"white": "#d4cecd", "gray": "#96949e", "black": "#34343f", "auburn": "#ac4a2c", "blonde": "#e8c870", "platinum": "#e8e4cc", "ginger": "#d27a38", "chestnut": "#8a523a", "espresso": "#46302c", "midnight": "#38406a",
 }
 const PREVIEW_SIZE := Vector2(300.0, 230.0)
 const PREVIEW_SCALE := 2.0  # whole numbers only: it is pixel art

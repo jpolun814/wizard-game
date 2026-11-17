@@ -22,6 +22,11 @@ SKINS = {
     "ashen": ramp("#d8d8dc", "#aeaeb8", "#7e7e8e", "#40404e"),
     "frost": ramp("#c8e4f4", "#94bedc", "#6088b0", "#2e4468"),
     "undead": ramp("#b8c4a0", "#8a9a74", "#5c6c50", "#2c3828"),
+    "fair": ramp("#fce8dc", "#ecc8b4", "#c29a88", "#80584e"),
+    "olive": ramp("#e0b888", "#bc9262", "#8e6a42", "#563c24"),
+    "bronze": ramp("#c08a5a", "#9a6a3e", "#6e4628", "#3a2212"),
+    "ebony": ramp("#7a4e3a", "#563424", "#3a2016", "#180a06"),
+    "plum": ramp("#b898b4", "#8a6890", "#5e426a", "#2e1e3c"),
 }
 HAIRS = {
     "white": ramp("#f6f4f4", "#d4cecd", "#a79d9b", "#5e5460"),
@@ -33,6 +38,13 @@ HAIRS = {
     "pink": ramp("#ffc4dc", "#ee86b0", "#b84e82", "#6a2048"),
     "violet": ramp("#d0a8f0", "#9a68d0", "#6a3aa0", "#341862"),
     "silver": ramp("#f4f6fa", "#c4cad6", "#8c93a6", "#4a5064"),
+    "platinum": ramp("#fafaf0", "#e8e4cc", "#bcb69a", "#6a6450"),
+    "ginger": ramp("#f0a060", "#d27a38", "#9a5020", "#52280e"),
+    "chestnut": ramp("#b4785a", "#8a523a", "#5e3424", "#2c1610"),
+    "espresso": ramp("#6a4a40", "#46302c", "#2c1c1c", "#120a0c"),
+    "midnight": ramp("#5a6490", "#38406a", "#222848", "#0e1226"),
+    "crimson": ramp("#f06068", "#c02c3c", "#841828", "#3e0a14"),
+    "teal": ramp("#74d4c8", "#38a0a0", "#226c78", "#0e3844"),
 }
 SILVER = ramp("#f0f0f8", "#b8b8c8", "#7a7a90", "#3a3a4a")
 COLORS = {  # main cloth, second cloth, trousers, trim
@@ -95,13 +107,13 @@ SPELLS = {name: school_ramp(col) for name, col in SCHOOL_COLORS.items()}
 
 # The order here is the order the character creator shows: plainest first, the fantastical last; colors run round the wheel and then the neutrals.
 OPTIONS = {
-    "skin": ["pale", "light", "tan", "brown", "deep", "sage", "ashen", "frost", "undead"],
+    "skin": ["pale", "fair", "light", "olive", "tan", "bronze", "brown", "deep", "ebony", "sage", "plum", "ashen", "frost", "undead"],
     "outfit": ["rags", "tunic", "coat", "robe", "cloak", "gown", "bodice", "ceremonial", "gothic", "armored"],
     "color": ["crimson", "rust", "gold", "emerald", "teal", "blue", "purple", "lavender", "rose", "ivory", "charcoal", "black"],
     "hair": ["none", "balding", "tonsure", "short", "bob", "straight", "long", "wavy", "ponytail", "pigtails", "braids", "bun", "updo", "mohawk", "wild"],
-    "hair_color": ["white", "silver", "gray", "blonde", "auburn", "brown", "black", "pink", "violet"],
+    "hair_color": ["white", "platinum", "silver", "gray", "blonde", "ginger", "auburn", "chestnut", "brown", "espresso", "black", "midnight", "crimson", "teal", "pink", "violet"],
     "beard": ["none", "stubble", "short", "goatee", "handlebar", "long", "braided", "wispy"],
-    "beard_color": ["white", "silver", "gray", "blonde", "auburn", "brown", "black", "pink", "violet"],
+    "beard_color": ["white", "platinum", "silver", "gray", "blonde", "ginger", "auburn", "chestnut", "brown", "espresso", "black", "midnight", "crimson", "teal", "pink", "violet"],
     "hat": ["none", "hood", "headscarf", "turban", "pointy", "wide", "mushroom", "circlet", "tiara", "crown", "laurel", "flower_crown", "horned", "skull"],
     "hat_color": ["crimson", "rust", "gold", "emerald", "teal", "blue", "purple", "lavender", "rose", "ivory", "charcoal", "black"],
     "weapon": ["wand", "rose_wand", "bone_wand", "scepter", "crook", "book", "orb_hand", "staff_branch", "staff_root", "staff_flower", "staff_orb",

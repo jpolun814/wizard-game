@@ -128,7 +128,7 @@ The order matters (for example the near hand must cover the weapon). Never reord
 
 | option | values (internal ids) |
 |---|---|
-| `skin` | pale, light, tan, brown, deep, sage (green, fantasy) |
+| `skin` | pale, fair, light, olive, tan, bronze, brown, deep, ebony, sage (green), plum, ashen, frost, undead |
 | `outfit` | coat (split coat tails), robe (ankle length), tunic (short, sash) |
 | `color` | blue, purple, crimson, emerald, charcoal (silver trim), ivory |
 | `hair` | none, short, long, ponytail, bun |

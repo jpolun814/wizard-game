@@ -6,9 +6,9 @@ extends CharacterBody2D
 ## It goes with its quarry from world to world (see `carry_on` and `arrive`), appearing in the exact middle of the new one.
 
 const SPEED := 75.0  # a quarter of a wizard's walking pace
-const KILL_REACH := Vector2(18.0, 48.0)  # how near, across and up, the middle of a wizard must be to the snail's middle to be touched
+const KILL_REACH := Vector2(14.0, 48.0)  # how near, across and up, the middle of a wizard must be to the snail's middle to be touched
 const REACH := 70.0  # how close to the ring's middle someone must be to be the one hunted
-const DANGER := 60.0
+const DANGER := 48.0
 const FRAMES := [preload("res://art/mobs/snail/frame_0.png"), preload("res://art/mobs/snail/frame_1.png"), preload("res://art/mobs/snail/frame_2.png"), preload("res://art/mobs/snail/frame_3.png")]
 const SLIME := Color("#9ab4a6")
 
@@ -75,8 +75,8 @@ func _ready() -> void:
 	collision_mask = 1 | 16
 	var shape := CollisionShape2D.new()
 	var capsule := CapsuleShape2D.new()
-	capsule.radius = 7.0
-	capsule.height = 19.0
+	capsule.radius = 5.0
+	capsule.height = 14.0
 	shape.shape = capsule
 	add_child(shape)
 	var frames := SpriteFrames.new()
