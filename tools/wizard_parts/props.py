@@ -823,7 +823,7 @@ def make_clouds():
 
 
 def make_snail():
-    """The Invincible Snail: four frames of a crawl, 64 x 44, facing right, standing on the bottom row. A dark violet shell with a pale spiral groove, a long grey body
+    """The Invincible Snail: four frames of a crawl, 32 x 22, facing right, standing on the bottom row. A dark violet shell with a pale spiral groove, a long grey body
     that stretches and gathers as it goes, two stalks with small red eyes, a wet shine along the foot, and a trail of slime behind."""
     body = ramp("#aeae98", "#7e7e6c", "#52524a", "#26261f")
     shell = ramp("#7a6a90", "#54486a", "#362c48", "#1a1228")
@@ -831,37 +831,37 @@ def make_snail():
     eye = ramp("#ff9a8a", "#e02c34", "#901c28", "#400c14")
     slime = ramp("#cfe0d0", "#9ab4a6", "#62806e", "#2c4036")
     for k in range(4):
-        cv = canvas(64, 44)
+        cv = canvas(32, 22)
         t = 2 * math.pi * k / 4
-        reach = 3.0 * math.sin(t)  # the head reaches out and the tail is drawn up behind it
-        floor = 41
-        tail_x, head_x = 8 + 2.0 * math.cos(t), 56 + reach
-        path = [(tail_x, floor - 1.0), (tail_x + 10, floor - 2.5), (24, floor - 3.5), (38, floor - 4.5), (head_x - 6, floor - 6.0 - 0.8 * math.sin(t)), (head_x, floor - 9.5 - 1.2 * math.sin(t))]
-        radii = [1.0, 2.6, 3.8, 4.4, 4.6, 3.8]
+        reach = 1.5 * math.sin(t)  # the head reaches out and the tail is drawn up behind it
+        floor = 20
+        tail_x, head_x = 4 + 1.0 * math.cos(t), 28 + reach
+        path = [(tail_x, floor - 0.5), (tail_x + 5, floor - 1.2), (12, floor - 1.8), (19, floor - 2.2), (head_x - 3, floor - 3.0 - 0.4 * math.sin(t)), (head_x, floor - 4.8 - 0.6 * math.sin(t))]
+        radii = [0.6, 1.3, 1.9, 2.2, 2.3, 1.9]
         m, s = limb(path, radii)
         m &= rig.yy <= floor  # a flat foot
         cv.paint((m, s), body, hi=0.35, lo=-0.2)
-        cv.px[floor, 4:int(head_x - 3), :3] = slime[0]  # the wet shine along the foot
-        cv.px[floor, 4:int(head_x - 3), 3] = 255
-        for x in range(2, 5):
+        cv.px[floor, 2:int(head_x - 2), :3] = slime[0]  # the wet shine along the foot
+        cv.px[floor, 2:int(head_x - 2), 3] = 255
+        for x in range(1, 3):
             cv.px[floor + 1, x, :3] = slime[2]
             cv.px[floor + 1, x, 3] = 150
         # the shell: a round dome with a spiral groove from its middle out
-        cx, cy, r = 26.0, floor - 15.5, 15.0
+        cx, cy, r = 13.0, floor - 7.8, 7.6
         sm, ss = cv.ellipse((cx, cy), r, r * 0.95)
         cv.paint((sm, ss), shell, hi=0.4, lo=-0.25)
         for a in np.arange(0.0, 4.2 * math.pi, 0.05):
-            rr = 1.2 + a * 1.05
+            rr = 0.8 + a * 0.52
             x, y = cx + math.cos(a + 0.6) * rr, cy + math.sin(a + 0.6) * rr * 0.95
-            if 0 <= int(x) < 64 and 0 <= int(y) < 44 and sm[int(y), int(x)] and rr < r - 1.0:
+            if 0 <= int(x) < 32 and 0 <= int(y) < 22 and sm[int(y), int(x)] and rr < r - 0.6:
                 lit = (x - cx) * rig.LIGHT[0] + (y - cy) * rig.LIGHT[1] < 0
                 cv.px[int(y), int(x), :3] = groove[1] if lit else groove[2]
         # two eye stalks with a small red eye each, swaying
         for j, (dx, lean) in enumerate(((0, 0.0), (4, 0.6))):
-            bx, by = head_x - 3 + dx * 0.5, floor - 11 - 0.5 * math.sin(t)
-            tipx, tipy = bx + 3 + lean * 2 + math.sin(t + j) * 1.2, by - 10 + j * 1.5
-            cv.paint(limb([(bx, by), ((bx + tipx) / 2, (by + tipy) / 2 - 1), (tipx, tipy)], [1.3, 1.0, 0.9]), body, hi=0.35, lo=-0.2)
-            cv.paint(cv.ellipse((tipx, tipy - 0.5), 1.8, 1.8), eye, hi=0.4, lo=-0.1)
+            bx, by = head_x - 1.5 + dx * 0.25, floor - 5.5 - 0.3 * math.sin(t)
+            tipx, tipy = bx + 1.5 + lean + math.sin(t + j) * 0.6, by - 5 + j * 0.8
+            cv.paint(limb([(bx, by), ((bx + tipx) / 2, (by + tipy) / 2 - 1), (tipx, tipy)], [0.7, 0.55, 0.5]), body, hi=0.35, lo=-0.2)
+            cv.paint(cv.ellipse((tipx, tipy - 0.3), 1.0, 1.0), eye, hi=0.4, lo=-0.1)
         cv.save(os.path.join(ART, "mobs", "snail", "frame_%d.png" % k))
 
 
