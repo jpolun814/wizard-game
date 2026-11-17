@@ -13,7 +13,7 @@ const STYLES := {
 	# the staff raised at the sky
 	"Spark": "cast_sky", "Stonefall": "cast_sky", "Moonbeam": "cast_sky", "Hailstorm": "cast_sky", "Icicles": "cast_sky", "Blizzard": "cast_sky", "Eclipse": "cast_sky", "Supernova": "cast_sky",
 	# the staff driven into the ground
-	"Earthquake": "cast_ground", "Stalagmite": "cast_ground", "Stone Wall": "cast_ground", "Sinkhole": "cast_ground", "Geyser": "cast_ground",
+	"Earthquake": "cast_ground", "Stalagmite": "cast_ground", "Stone Wall": "cast_ground", "Sinkhole": "cast_ground", "Burrow": "cast_ground", "Geyser": "cast_ground",
 	"Bramble": "cast_ground", "Great Oak": "cast_ground", "Glowcap": "cast_ground", "Flytrap": "cast_ground", "Liana": "cast_ground",
 	"Mudslide": "cast_ground", "Lily Pads": "cast_ground", "Frost Bridge": "cast_ground", "Firewall": "cast_ground",
 	# drawing power into oneself

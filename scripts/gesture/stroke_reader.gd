@@ -106,6 +106,7 @@ func _detect(relative: PackedVector2Array, options: Dictionary, reading: StrokeR
 	var closed := relative[0].distance_to(relative[relative.size() - 1]) < 0.3 * maxf(extent.x, extent.y)  # icicles are open V strokes: a loop is never one
 	var peak := gesture == "geyser" and firm  # an arrow pointing up drawn with the water button is a Geyser, not a row of icicles
 	var round_peaks := score >= tolerance - 0.12 and gesture in ["stonefall", "earthquake"]  # a circle and a drop, and a double arrow, also have peaks in them
+	var arrowed := gesture == "burrow" and score >= tolerance - 0.12 and StrokeShapes.turning_points(relative, 1, maxf(4.0, 0.12 * StrokeMeasure.extent(relative).y)).size() >= 2  # a U with an arrow at its end is a Burrow; a plain U is a Sinkhole
 	var vine := gesture == "vine" and firm  # a leaf with a vine up from it starts like a tree's trunk would end, so it is not a tree
 	return {
 		"portrait": options.has("portrait") and StrokeShapes.is_portrait_box(relative),
@@ -125,7 +126,7 @@ func _detect(relative: PackedVector2Array, options: Dictionary, reading: StrokeR
 		"bramble": StrokeShapes.sawtooth(relative) if options.has("bramble") else PackedVector2Array(),
 		"jaws": StrokeShapes.w_shape(relative) if options.has("jaws") else PackedVector2Array(),
 		"cloud": StrokeShapes.cloud_line(relative) if options.has("cloud") else PackedVector2Array(),
-		"pit": StrokeShapes.pit_stroke(relative) if options.has("pit") else PackedVector2Array(),
+		"pit": StrokeShapes.pit_stroke(relative) if options.has("pit") and not arrowed else PackedVector2Array(),
 		"cone": StrokeShapes.cone(relative) if options.has("cone") else {},
 		"spikes": StrokeShapes.icicle_triangles(relative, false) if options.has("stalagmite") and not closed and not round_peaks else [],
 		"icicles": StrokeShapes.icicle_triangles(relative) if options.has("icicles") and not closed and not peak and spiral.is_empty() else [],

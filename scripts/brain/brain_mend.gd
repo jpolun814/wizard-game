@@ -99,6 +99,8 @@ func tend(to_player: Vector2, sees: bool, fighting: bool) -> bool:
 			weights["Stone Wall"] = maxf(weights.get("Stone Wall", 0.0), 1.8)  # a rival who keeps shooting at it along the ground: it puts a wall up
 		if brain.pressure > 1.2:
 			weights["Decoy"] = 1.0
+		if brain.pressure > 1.1 and wizard.is_on_floor() and gap > 90.0:
+			weights["Burrow"] = 1.2  # shot at and in the open: it goes under the ground, out of reach
 		if brain.pressure > 0.8 and wizard.veil == 0:
 			weights["Crimson Veil"] = 1.3
 		if brain.pressure > 1.6 and wizard.obsidian_time <= 0.0:
