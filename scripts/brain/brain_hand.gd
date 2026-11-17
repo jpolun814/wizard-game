@@ -131,8 +131,8 @@ func _at_its_feet_stroke(spell_name: String, foe: Wizard, feet: Vector2, facing:
 			return BrainStrokes.offset(GestureTemplates.preview_points("wave"), Vector2(x, feet.y - 60.0), 1.0)
 		"Firewall":
 			var x: float = lerpf(wizard.global_position.x, brain.sight.seen_feet(foe).x, 0.5)
-			var toward := signf(brain.sight.seen_feet(foe).x - wizard.global_position.x)  # a wall between them: up from the ground, then out across the way
-			return BrainStrokes.offset(facing_flipped(GestureTemplates.preview_points("flame_wall"), toward), Vector2(x - toward * 50.0, feet.y - 50.0), 0.8)
+			var toward := signf(brain.sight.seen_feet(foe).x - wizard.global_position.x)  # a wall between them: along the ground, then up
+			return BrainStrokes.offset(facing_flipped(GestureTemplates.preview_points("flame_wall"), toward), Vector2(x - toward * 50.0, feet.y - 40.0), 0.8)
 		"Stalagmite":
 			return BrainStrokes.offset(GestureTemplates.preview_points("stalagmite"), Vector2(brain.predict(WizardBrain.ATTACK_DRAW * 0.6).x, feet.y - 40.0), 0.9)
 		"Bramble":
@@ -383,9 +383,9 @@ func gate_stroke(spell_name: String, point: Vector2) -> PackedVector2Array:
 			return BrainStrokes.offset(GestureTemplates.preview_points("stonefall"), Vector2(point.x, point.y - 130.0), 0.8)
 		"Earthquake":
 			return BrainStrokes.offset(GestureTemplates.preview_points("earthquake"), Vector2(point.x, point.y - 120.0), 1.0)
-		"Firewall":  # a line up and then a line out over the place: a short wall
+		"Firewall":  # a line along the ground over the place and then up: a short wall
 			var ground := brain.ground_under(point)
-			return BrainStrokes.offset(GestureTemplates.preview_points("flame_wall"), Vector2(point.x - 40.0, ground - 50.0), 0.8)
+			return BrainStrokes.offset(GestureTemplates.preview_points("flame_wall"), Vector2(point.x - 40.0, ground - 40.0), 0.8)
 		"Tornado":
 			return BrainStrokes.offset(GestureTemplates.preview_points("tornado"), Vector2(point.x, brain.ground_under(point) - 90.0), 0.9)
 		"Spark":

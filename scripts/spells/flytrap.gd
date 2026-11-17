@@ -2,7 +2,8 @@ class_name Flytrap
 extends FloraSpell
 
 ## Flytrap: a plant grows on the ground where the jaws were drawn and waits, up to a minute. Whoever steps on it is
-## snapped up and held, you included. Anyone who jumps passes over. Fire burns it.
+## swallowed whole, you included: they vanish into its mouth, cannot move or cast, and are chewed for a few seconds, then spat back out. Anyone who
+## jumps passes over. Fire burns it (and whoever is inside falls out).
 
 const WAIT_SECONDS := 60.0
 const REACH := 28.0       # how close to its middle a foot has to come
@@ -10,7 +11,7 @@ const HOLD_SECONDS := 3.0
 const BITES := 3
 const BITE_DAMAGE := 8
 const BITE_GAP := 0.9
-const PLANT := preload("res://art/props/flytrap.png")  # six frames of 64 px: three of the open mouth swaying, three of the lunge that shuts it
+const PLANT := preload("res://art/props/flytrap.png")  # eight frames of 64 px: three of the open mouth swaying, three of the lunge that shuts it, two of it spitting
 const FRAME := 64
 const SIZE := 2.0   # drawn at twice its size, like the other props
 const LURKING := 0.3  # how much of its height shows while it lies in wait: it crouches in the ground, with only a hint of it above
@@ -25,6 +26,7 @@ var _bite_clock := 0.0
 var _hold := 0.0
 var _picture: AnimatedSprite2D
 var _sunk := 0.0
+var _facing := -1.0  # which way the mouth points: the art faces left
 
 
 func _ready() -> void:
@@ -34,6 +36,7 @@ func _ready() -> void:
 	_picture.sprite_frames = _frames()
 	_picture.offset = Vector2(0, FRAME * 0.5 - SOIL)
 	_picture.flip_h = int(global_position.x / 32.0) % 2 == 0  # the art faces left; which way each plant faces comes from where it stands, so it is the same on every machine
+	_facing = 1.0 if _picture.flip_h else -1.0
 	_picture.z_index = 1
 	_picture.scale = Vector2(SIZE, SIZE)
 	_picture.material = ShaderMaterial.new()
@@ -71,12 +74,14 @@ func _physics_process(delta: float) -> void:
 		"holding":
 			_hold += delta
 			_bite_clock -= delta
-			if not is_instance_valid(_victim) or _victim.global_position.distance_to(global_position) > 70.0:
-				_release()  # whoever it held was flung away, or is gone
+			if not is_instance_valid(_victim):
+				_release()  # whoever it held is gone
 			elif _bite_clock <= 0.0 and _bites < BITES:
 				_bite()
 			if _hold >= HOLD_SECONDS:
 				_release()
+		"spitting":
+			pass
 
 
 ## Who is standing on the plant: anyone on the ground within reach, not in the air over it.
@@ -92,7 +97,7 @@ func _prey() -> Node2D:
 func _frames() -> SpriteFrames:
 	var out := SpriteFrames.new()
 	out.remove_animation("default")
-	for part: Array in [["waiting", 0, 3, true, 5.0], ["snap", 3, 3, false, 14.0]]:
+	for part: Array in [["waiting", 0, 3, true, 5.0], ["snap", 3, 3, false, 14.0], ["spit", 6, 2, false, 7.0]]:
 		out.add_animation(part[0])
 		out.set_animation_loop(part[0], part[3])
 		out.set_animation_speed(part[0], part[4])
@@ -114,6 +119,8 @@ func _snap(prey: Node2D) -> void:
 		prey.apply_root(HOLD_SECONDS)
 	else:
 		prey.apply_debuff("root", HOLD_SECONDS)
+		prey.daze_time = maxf(prey.daze_time, HOLD_SECONDS)  # inside, no spell and no chant (set directly: no "Dazed" word over a wizard who is not there)
+	prey.visible = false  # swallowed: it is inside the mouth
 	_picture.speed_scale = 1.0
 	_picture.play("snap")  # the jaws shut
 	_bite_clock = 0.2
@@ -129,18 +136,37 @@ func _bite() -> void:
 	SpellTargets.hurt(_victim, BITE_DAMAGE, "Flora", false, false, self)
 	Fx.burst(get_parent(), global_position + Vector2(0, -20), Color("#c04050"), 8, 90.0, 0.4)
 	Sfx.play("chomp", global_position, -4.0)
-	var chomp := create_tween()
-	chomp.tween_property(_picture, "scale", Vector2(SIZE * 1.1, SIZE * 0.9), 0.08)
-	chomp.tween_property(_picture, "scale", Vector2(SIZE, SIZE), 0.15)
+	var chomp := create_tween()  # it chews: the head bulges and sinks back
+	chomp.tween_property(_picture, "scale", Vector2(SIZE * 1.18, SIZE * 0.88), 0.1)
+	chomp.tween_property(_picture, "scale", Vector2(SIZE, SIZE), 0.25)
 
 
-## It has had its fill: it lets go and withers.
+## It has had its fill: the mouth bursts open and spits whoever is inside out in front of it, and then it withers.
 func _release() -> void:
-	_victim = null
-	_state = "withered"
+	_spit_out()
+	_state = "spitting"
+	_picture.play("spit")
+	Sfx.play("chomp", global_position, -2.0)
 	var wither := create_tween()
+	wither.tween_interval(0.9)
 	wither.tween_property(_picture, "modulate:a", 0.0, 0.8)
 	wither.tween_callback(queue_free)
+
+
+## Brings whoever is inside back into the world, flung out in the way the mouth faces.
+func _spit_out() -> void:
+	if is_instance_valid(_victim):
+		_victim.visible = true
+		_victim.global_position = global_position + Vector2(_facing * 36.0, -14.0)
+		_victim.velocity = Vector2(_facing * 280.0, -240.0)
+		Fx.burst(get_parent(), global_position + Vector2(_facing * 24.0, -26.0), Color("#7aa860"), 10, 120.0, 0.5)  # slime
+	_victim = null
+
+
+## Whoever is inside must never be left hidden: if the plant is burned or the match ends, they are put back.
+func _exit_tree() -> void:
+	if is_instance_valid(_victim):
+		_victim.visible = true
 
 
 func danger_at(point: Vector2) -> bool:

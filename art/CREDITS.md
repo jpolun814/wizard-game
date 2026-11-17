@@ -110,6 +110,10 @@ and are no longer drawn by the game.
 
 
 
+## Podium stone (art/tiles/podium.png)
+
+- The church tiles of the Gothicvania Church by ansimuz, CC0 with their colors turned to the grays of the pedestal by tools/prepare_podium.py. The stairs the pedestal stands on (scripts/arena/podium.gd).
+
 ## Castle doors (art/props/door.png)
 
 - The front-on wooden door of "LPC Animated Doors" by Lanea Zimmerman (Sharm) (opengameart.org/content/lpc-animated-doors), CC-BY 3.0, cut by tools/prepare_doors.py.
@@ -178,3 +182,9 @@ Drawn pixel by pixel by `tools/make_shot_art.py`. No outside source and nothing 
 - `art/tiles/earth_seabed.png`, `lip_seabed.png`: made by `tools/prepare_earth.py`, as every biome's ground is.
 
 `art/fx/scythe.png` (the Scythe spell's blade) is pixel art drawn for the game (`tools/make_scythe.py`; the owner approved it, but agents should not draw art).
+
+`art/parts/` (the character creator's wizards: skin, outfit, hair, beard, hat, weapon and the magic layer, 46 animations) was generated procedurally for the game by an agent under the owner's close watch (the generator is in `wizard-azure/creator`, outside this repo); the sheets are in `art_source/parts_sheets/` and packed by `tools/pack_parts.gd`. Only the style was matched to `art/chars/wizard`. No outside art. The owner approved it.
+
+`art/props/great_oak.png`, `jungle_vine.png`, `dusk_vine.png`, `flytrap.png`, `bramble_1..3.png` and `art/mobs/piranha_small/frame_0..3.png` are pixel art drawn for the game by an agent, at the owner's request (2026-11-17), with the same rig as the wizard parts (`python tools/wizard_parts/props.py`): shaded shapes, no outlines. The originals are in `art_source/props/`.
+
+The lectern stand and plaque, the spellbook, the lily pad, the plank, the quicksand, the rock spikes, the door, the shipwreck and the marble stairs (`art/tiles/podium_marble.png`) were redrawn for the game by an agent at the owner's request (2026-11-17) with `python tools/wizard_parts/props.py`; the previous pictures are in `art_source/props/before/`.

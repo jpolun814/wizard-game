@@ -1,6 +1,6 @@
 extends Check
 ## Attacking spells, cast in a real world: Eldritch Blast (a beam that strikes the first thing in its line and is stopped by a wall), Hemorrhage (a wound that bleeds a little at a time), Supernova (a sun that
-## pulls and burns, then blows up and throws things back) and Scythe (a swing in front that a wall shelters from) and Firewall (a line up and a line out: a wall of flame as wide as the second line, costing more the wider it is).
+## pulls and burns, then blows up and throws things back) and Scythe (a swing in front that a wall shelters from) and Firewall (a line across and a line up from its end: a wall of flame as wide as the first line, costing more the wider it is).
 ##
 ##     godot --headless --fixed-fps 60 --path . tests/checks/group_d_check.tscn
 ## It prints PASS or FAIL for each check and exits with code 1 if any failed.
@@ -174,9 +174,9 @@ func _scythe() -> void:
 	far.queue_free()
 
 
-## The strokes of a Firewall, as the caster measures them: from the foot, up to the corner, then out to the end.
+## The strokes of a Firewall, as the caster measures them: along the ground to the corner, then up to the end.
 func _flame_line(from_x: float, width: float) -> PackedVector2Array:
-	return PackedVector2Array([Vector2(from_x, _spot.y), Vector2(from_x, _spot.y - 80.0), Vector2(from_x + width, _spot.y - 80.0)])
+	return PackedVector2Array([Vector2(from_x, _spot.y), Vector2(from_x + width, _spot.y), Vector2(from_x + width, _spot.y - 80.0)])
 
 
 func _firewall() -> void:

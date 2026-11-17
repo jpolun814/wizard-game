@@ -1,0 +1,80 @@
+[
+ {
+  "skin": "tan",
+  "outfit": "coat",
+  "color": "blue",
+  "hair": "short",
+  "hair_color": "auburn",
+  "beard": "short",
+  "beard_color": "auburn",
+  "hat": "wide",
+  "hat_color": "blue",
+  "weapon": "staff_orb",
+  "spell_shown": "Fire"
+ },
+ {
+  "skin": "pale",
+  "outfit": "robe",
+  "color": "crimson",
+  "hair": "long",
+  "hair_color": "black",
+  "beard": "none",
+  "beard_color": "black",
+  "hat": "pointy",
+  "hat_color": "charcoal",
+  "weapon": "wand",
+  "spell_shown": "Shadow"
+ },
+ {
+  "skin": "brown",
+  "outfit": "tunic",
+  "color": "emerald",
+  "hair": "short",
+  "hair_color": "black",
+  "beard": "short",
+  "beard_color": "black",
+  "hat": "none",
+  "hat_color": "emerald",
+  "weapon": "staff_branch",
+  "spell_shown": "Flora"
+ },
+ {
+  "skin": "deep",
+  "outfit": "coat",
+  "color": "purple",
+  "hair": "ponytail",
+  "hair_color": "blonde",
+  "beard": "none",
+  "beard_color": "blonde",
+  "hat": "circlet",
+  "hat_color": "purple",
+  "weapon": "scepter",
+  "spell_shown": "Water"
+ },
+ {
+  "skin": "light",
+  "outfit": "tunic",
+  "color": "charcoal",
+  "hair": "none",
+  "hair_color": "gray",
+  "beard": "long",
+  "beard_color": "gray",
+  "hat": "hood",
+  "hat_color": "charcoal",
+  "weapon": "staff_crystal",
+  "spell_shown": "Blood"
+ },
+ {
+  "skin": "sage",
+  "outfit": "robe",
+  "color": "ivory",
+  "hair": "bun",
+  "hair_color": "gray",
+  "beard": "goatee",
+  "beard_color": "gray",
+  "hat": "none",
+  "hat_color": "ivory",
+  "weapon": "staff_branch",
+  "spell_shown": "Earth"
+ }
+]

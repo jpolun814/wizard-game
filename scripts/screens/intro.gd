@@ -2,20 +2,21 @@ class_name Intro
 extends CutScene
 
 ## The cut-scene between the waiting room and a world. It opens on one wizard, whoever is watching, running through a cathedral hall at night to
-## the spellbook, bound and glowing, hanging over the floor of the hall. Other wizards arrive, ten in all, each in a color of its own, and every one
+## the spellbook, bound and glowing, hanging over the floor of the hall. Other wizards arrive, sixteen in all, each in a color of its own, and every one
 ## of them reaches for it. The pull of so many tears it apart: its pages burst loose and, with the book unbound, a portal opens in the ceiling and
 ## begins to come apart. They fight for the pages: bolts meet in the air and burst, and the blasts of those that land knock the pages about, and
-## the portal takes the ones that are thrown high. Wizards fall one after another until four are left. Then the portal tears wide and pulls those four
+## the portal takes the ones that are thrown high. Wizards fall one after another until the eight of the match are left. Then the portal tears wide and pulls those eight
 ## up into it, still firing at one another as they are lifted, in a bloom of light.
 ## The camera runs beside the first wizard, pulls back to show the ring, cuts in close on the duel, and looks up at the tear.
-## The same scene plays whether the other three wizards are AI or real players: on each machine the first wizard is the person at it. Any key skips it.
+## The same scene plays whether the other seven wizards are AI or real players: on each machine the first wizard is the person at it. Any key skips it.
 
 const LOADING := "res://scenes/loading.tscn"
 const PAGE := preload("res://art/props/page.png")
 const FLOOR_Y := float(ArenaGen.GROUND_Y)
-const PILE_X := -20.0
-const PORTAL_X := -20.0  # the portal is in the ceiling, right over the pile
-const PORTAL_HEIGHT := 285.0  # how far over the floor
+const PILE_X := -16.0
+const PORTAL_X := -16.0  # the portal is in the ceiling, right over the pile
+const PILE_Y := FLOOR_Y - Podium.TOP_ROWS * float(Podium.TILE)  # the top of the stairs: where the book, the pages and the pedestal are
+const PORTAL_HEIGHT := 260.0  # how far over the top of the stairs
 const PORTAL_SCALE := 1.5  # the ring is drawn at two times its size, so this makes it three: whole pixels
 const TORN_SCALE := 2.5    # and torn wide, five
 const PAGES_IN_PILE := 26
@@ -31,57 +32,64 @@ const PULL_HEIGHT := 150.0  # how high over the floor a page must be before it f
 const TORN_PULL := 2600.0  # and once it tears, it draws at everything
 const GOLD := Color("#ffe9a0")
 const SKIP_HINT_AFTER := 1.0
-## The ten wizards: no two alike. Each is one of the four looks (the player's own and the dark, bone and pyre wizards), in its own colors: the
-## folders `art/chars/<look>_<color>` are copies with the colors turned (see tools/make_wizard_colors.py). "color" is the glow of its magic.
-## "to" is where it stands in the ring round the pile, "mode" how it comes (run, blink in with a puff of light, or walk), "at" when it does.
-## The first is whoever is watching: it runs in from far off, and is the one of the four who are left that the camera follows. The first four are
-## the ones who live to see the portal tear; the rest fall.
+## The sixteen wizards, in two lists. WIZARDS are the eight of the match, in the looks and colors they will wear in the world (`Net.style_of_seat`), and they are
+## the ones who live to see the portal tear. EXTRAS are eight more, each a look in a set of colors no one of the match wears, and they fall in the fight.
+## "to" is where it stands in the ring round the pile, "mode" how it comes (run in from the side, or blink in with a puff of light), "at" when it does, "row" how far forward it stands in the crowd, which is three deep and stands in front of the stairs (and some, "up", on the outer steps of them), so that it overlaps its neighbors, and "color" the glow
+## of its magic. The first of WIZARDS is whoever is watching: it runs in from far off, and is the one the camera follows.
 const WIZARDS := [
-	{"art": "wizard", "look": "wizard", "color": Color("#b080ff"), "to": -300.0, "from": -1050.0, "mode": "run", "at": 0.0},
-	{"art": "dark_wizard", "look": "dark_wizard", "color": Color("#d070ff"), "to": -95.0, "mode": "blink", "at": 2.3},
-	{"art": "bone_wizard", "look": "bone_wizard", "color": Color("#ff4a4a"), "to": 55.0, "from": 560.0, "mode": "walk", "at": 1.2},
-	{"art": "pyre_wizard", "look": "pyre_wizard", "color": Color("#ffb040"), "to": 375.0, "from": 560.0, "mode": "walk", "at": 2.5},
+	{"color": Color("#b080ff"), "to": -196.0, "from": -1050.0, "row": 2, "mode": "run", "at": 0.00},
+	{"color": Color("#d070ff"), "to": -148.0, "from": -520.0, "row": 0, "up": true, "mode": "run", "at": 1.00},
+	{"color": Color("#ff4a4a"), "to": -100.0, "from": -520.0, "row": 1, "mode": "run", "at": 1.40},
+	{"color": Color("#ffb040"), "to": -52.0, "from": -520.0, "row": 2, "mode": "run", "at": 1.80},
+	{"color": Color("#58a8ff"), "to": 44.0, "row": 0, "mode": "blink", "at": 0.70},
+	{"color": Color("#f0c040"), "to": 92.0, "row": 1, "mode": "blink", "at": 1.10},
+	{"color": Color("#ff58d8"), "to": 140.0, "row": 2, "mode": "blink", "at": 1.50},
+	{"color": Color("#b8ff50"), "to": 188.0, "row": 0, "up": true, "mode": "blink", "at": 1.90},
 ]
 const EXTRAS := [
-	{"art": "wizard", "look": "wizard_emerald", "color": Color("#5ae05a"), "to": -230.0, "mode": "blink", "at": 1.9},
-	{"art": "dark_wizard", "look": "dark_wizard_teal", "color": Color("#38d8c8"), "to": -160.0, "mode": "blink", "at": 2.1},
-	{"art": "bone_wizard", "look": "bone_wizard_ice", "color": Color("#58a8ff"), "to": 120.0, "from": 560.0, "mode": "walk", "at": 1.6},
-	{"art": "pyre_wizard", "look": "pyre_wizard_green", "color": Color("#b8ff50"), "to": 185.0, "from": 560.0, "mode": "walk", "at": 1.9},
-	{"art": "wizard", "look": "wizard_amber", "color": Color("#f0c040"), "to": 250.0, "from": 560.0, "mode": "walk", "at": 2.1},
-	{"art": "pyre_wizard", "look": "pyre_wizard_magenta", "color": Color("#ff58d8"), "to": 310.0, "from": 560.0, "mode": "walk", "at": 2.3},
+	{"color": Color("#5ae05a"), "to": -76.0, "from": -520.0, "row": 0, "mode": "run", "at": 1.60},
+	{"color": Color("#38d8c8"), "to": -52.0, "from": -520.0, "row": 2, "mode": "run", "at": 1.80},
+	{"color": Color("#58a8ff"), "to": 20.0, "row": 1, "mode": "blink", "at": 0.50},
+	{"color": Color("#ff80b0"), "to": 44.0, "row": 0, "mode": "blink", "at": 0.70},
+	{"color": Color("#ffa050"), "to": -220.0, "from": -520.0, "row": 0, "up": true, "mode": "run", "at": 0.60},
+	{"color": Color("#7080ff"), "to": -148.0, "from": -520.0, "row": 0, "up": true, "mode": "run", "at": 1.00},
+	{"color": Color("#40e0ff"), "to": 116.0, "row": 0, "up": true, "mode": "blink", "at": 1.30},
+	{"color": Color("#c0c0d0"), "to": 188.0, "row": 0, "up": true, "mode": "blink", "at": 1.90},
 ]
-## How much each look is drawn at, so that all ten bodies are as tall as the wizard's (head to feet; a staff, a flame or a hood's point above the head does not count): the other three's art is smaller.
-const LOOK_SCALE := {"wizard": 1.0, "dark_wizard": 1.6, "bone_wizard": 1.6, "pyre_wizard": 1.8}  # (the four of a match are drawn at WizardLook's sizes instead)
 const RUN := 330.0   # pixels a second, running in
-const WALK := 200.0  # and walking in
+const ROW_DEPTH := 7.0  # how much lower each row of the crowd stands than the one behind it
 const WIDE := 1.4    # how far the camera is zoomed when it shows the whole ring
-## The fight: when, who fires, at whom, and what comes of it. Numbers are places in `_all`: the four, then the six. A kill drops the wizard
-## it hits for good; a hit throws one of the four back; in a clash two bolts meet over the pile; a stray one misses and lands on the floor at x.
+## The fight: when, who fires, at whom, and what comes of it. Numbers are places in `_all`: the eight of the match, then the eight more. A kill drops the wizard
+## it hits for good; a hit throws one of the eight back; in a clash two bolts meet over the pile; a stray one misses and lands on the floor at x.
 const FIGHT := [
-	{"at": 5.4, "kind": "kill", "a": 0, "b": 4},
+	{"at": 5.4, "kind": "kill", "a": 0, "b": 8},
 	{"at": 5.5, "kind": "stray", "a": 2, "x": -35.0},
-	{"at": 5.6, "kind": "kill", "a": 6, "b": 7},
-	{"at": 5.9, "kind": "kill", "a": 2, "b": 6},
+	{"at": 5.6, "kind": "kill", "a": 12, "b": 13},
+	{"at": 5.8, "kind": "kill", "a": 3, "b": 11},
+	{"at": 5.9, "kind": "kill", "a": 14, "b": 9},
 	{"at": 6.0, "kind": "stray", "a": 1, "x": 5.0},
-	{"at": 6.2, "kind": "kill", "a": 8, "b": 9},
-	{"at": 6.5, "kind": "kill", "a": 1, "b": 5},
+	{"at": 6.2, "kind": "kill", "a": 4, "b": 10},
+	{"at": 6.4, "kind": "kill", "a": 5, "b": 14},
 	{"at": 6.6, "kind": "stray", "a": 3, "x": -25.0},
-	{"at": 6.8, "kind": "kill", "a": 3, "b": 8},
-	{"at": 7.0, "kind": "stray", "a": 0, "x": 10.0},
+	{"at": 6.8, "kind": "kill", "a": 6, "b": 12},
+	{"at": 7.0, "kind": "kill", "a": 7, "b": 15},
 	{"at": 7.5, "kind": "clash", "a": 1, "b": 2},
+	{"at": 7.6, "kind": "clash", "a": 5, "b": 6},
 	{"at": 8.1, "kind": "hit", "a": 0, "b": 2},
-	{"at": 8.2, "kind": "hit", "a": 3, "b": 1},
+	{"at": 8.2, "kind": "hit", "a": 3, "b": 4},
+	{"at": 8.3, "kind": "hit", "a": 7, "b": 5},
 	{"at": 8.5, "kind": "stray", "a": 2, "x": -15.0},
-	{"at": 8.8, "kind": "clash", "a": 0, "b": 3},
+	{"at": 8.8, "kind": "clash", "a": 0, "b": 4},
+	{"at": 8.9, "kind": "hit", "a": 6, "b": 3},
 ]
 const END := 14.1  # seconds, from the first frame to the world
 
 var _unrest := 0.6  # how unstable the portal is: 0 to 1, and it grows as the fight goes on
 var _crackle := 0.0
 var _portal_home := Vector2.ZERO
-var _wizards: Array[IntroWizard] = []  # the four
-var _extras: Array[IntroWizard] = []   # the six
-var _all: Array[IntroWizard] = []      # the four, then the six
+var _wizards: Array[IntroWizard] = []  # the eight of the match
+var _extras: Array[IntroWizard] = []   # the eight more
+var _all: Array[IntroWizard] = []      # the eight of the match, then the eight more
 var _pile: Array[IntroPage] = []
 var _portal: Portal
 var _shake := 0.0
@@ -119,8 +127,8 @@ func _ready() -> void:
 	for at in [3.0, 4.6]:  # the portal is never still: it surges now and then, and everyone in the hall flinches
 		_cue(at, _pulse.bind(0.4))
 	for k in _all.size():  # each draws on the others, one after another
-		_cue(4.0 + k * 0.1, _draw_on_the_others.bind(k))
-	_cue(4.9, _the_hall_cracks)
+		_cue(4.9 + k * 0.035, _draw_on_the_others.bind(k))
+	_cue(5.7, _the_hall_cracks)  # the book gives way only once the first shots have been fired
 	for event: Dictionary in FIGHT:
 		match event["kind"]:
 			"clash":
@@ -131,10 +139,10 @@ func _ready() -> void:
 				_cue(event["at"], _stray.bind(event["a"], event["x"]))
 			_:
 				_cue(event["at"], _shoot.bind(event["a"], event["b"], false))
-	_cue(6.6, _shot.bind(Vector2(PILE_X, FLOOR_Y - 14.0), 6.0, 0.5))  # in close on the plaque the book stood over, and it stays long enough to read
-	_cue(9.1, _shot.bind(Vector2(PILE_X, FLOOR_Y - 130.0), WIDE, 0.6))
+	_cue(3.7, _shot.bind(Vector2(PILE_X, PILE_Y - 30.0), 6.0, 0.5))  # in close on the plaque the book stands over, while the others are still gathering and standing quiet; it stays long enough to read
+	_cue(5.2, _shot.bind(Vector2(PILE_X, PILE_Y - 94.0), WIDE, 0.6))  # and out again for the fight
 	_cue(10.2, _the_portal_tears)  # a beat after the camera is back out, so the whole ring is seen before it is pulled in
-	for volley in [[11.0, 0, 3], [11.3, 3, 0], [11.6, 1, 2]]:  # lifted off their feet, they are still firing at each other
+	for volley in [[11.0, 0, 3], [11.3, 5, 1], [11.6, 2, 6], [11.1, 4, 7], [11.4, 6, 0], [11.7, 7, 2]]:  # lifted off their feet, they are still firing at each other
 		_cue(volley[0], _shoot.bind(volley[1], volley[2], false))
 	_cue(12.6, func() -> void: _fade(1.0, 0.9))
 	_cue(END, _leave)
@@ -176,64 +184,53 @@ func _build_pile(rng: RandomNumberGenerator) -> void:
 	_halo.draw.connect(func() -> void:
 		var breathe := 1.0 + 0.06 * sin(_t * 3.0)
 		if not _pile.is_empty():
-			Fx.draw_glow(_halo, Vector2(PILE_X, FLOOR_Y - 22.0), 90.0 * breathe, Color(GOLD.r, GOLD.g, GOLD.b, 0.22))
-			Fx.draw_glow(_halo, Vector2(PILE_X, FLOOR_Y - 14.0), 44.0 * breathe, Color(GOLD.r, GOLD.g, GOLD.b, 0.35)))
+			Fx.draw_glow(_halo, Vector2(PILE_X, PILE_Y - 22.0), 90.0 * breathe, Color(GOLD.r, GOLD.g, GOLD.b, 0.22))
+			Fx.draw_glow(_halo, Vector2(PILE_X, PILE_Y - 14.0), 44.0 * breathe, Color(GOLD.r, GOLD.g, GOLD.b, 0.35)))
 	add_child(_halo)
 	for i in PAGES_IN_PILE:
 		var page := IntroPage.new()
 		page.texture = PAGE
 		page.offset = Vector2(0.0, -PAGE.get_height() * 0.5)
 		page.scale = Vector2.ONE * PAGE_SCALE
-		page.position = Vector2(PILE_X + rng.randf_range(-16.0, 16.0), FLOOR_Y - 1.0 - float(i) * 0.4)
+		page.position = Vector2(PILE_X + rng.randf_range(-16.0, 16.0), PILE_Y - 1.0 - float(i) * 0.4)
 		page.rotation = rng.randf_range(-1.35, 1.35)
 		page.modulate = Color(0.9 + rng.randf() * 0.1, 0.85 + rng.randf() * 0.1, 0.8)
 		page.z_index = 1
 		page.visible = false  # it is still in the book
 		add_child(page)
 		_pile.append(page)
+	add_child(Podium.new(PILE_X, FLOOR_Y))  # the marble stairs the pedestal stands on, as in the waiting room
 	_lectern = Lectern.new()  # the book the person touched in the waiting room, on the stand it stood on
-	_lectern.position = Vector2(PILE_X, FLOOR_Y)
+	_lectern.position = Vector2(PILE_X, PILE_Y)
 	_lectern.monitoring = false
 	add_child(_lectern)
 	_book = _lectern.book
 
 
-## The ten wizards, each from its own frames, standing where they will arrive and facing the pile.
+## The sixteen wizards, each from its own frames, standing where they will arrive and facing the pile.
 func _build_wizards() -> void:
 	var styles := _seat_styles()
+	var worn := {}  # the looks of the match, so that none of the eight more repeats one
 	for k in WIZARDS.size():
 		var entry: Dictionary = WIZARDS[k].duplicate()
-		entry["art"] = styles[k]["look"]
 		entry["look"] = styles[k]["look"]
 		entry["palette"] = styles[k]["palette"]
+		worn[entry["look"]] = true
 		_wizards.append(_make_wizard(entry))
-	var entries: Array[Dictionary] = []
-	var used := {}  # the looks on the floor: every one of the seven is to be there
-	for k in WIZARDS.size():
-		used[styles[k]["look"]] = true
 	for k in EXTRAS.size():
 		var entry: Dictionary = EXTRAS[k].duplicate()
-		if k < styles.size() - WIZARDS.size():  # the next seats of the match, in the looks and colors they will wear
-			var style: Dictionary = styles[WIZARDS.size() + k]
-			entry["art"] = style["look"]
-			entry["look"] = style["look"]
-			entry["palette"] = style["palette"]
-		used[entry["art"]] = true
-		entries.append(entry)
-	for k in range(EXTRAS.size() - 1, -1, -1):  # a look nobody wears yet takes the place of one of the old recolored copies
-		for look: String in WizardLook.LOOKS:
-			if not used.has(look) and not entries[k].has("palette"):
-				entries[k]["art"] = look
-				entries[k]["look"] = look
-				entries[k]["palette"] = 3 + k % 4
-				used[look] = true
-	for entry: Dictionary in entries:
+		var look := PartsLook.seeded_look(MatchState.seed_base * 977 + 4001 + k)
+		while worn.has(look):
+			look = PartsLook.seeded_look(look.hash() + k)
+		worn[look] = true
+		entry["look"] = look
+		entry["palette"] = 0
 		_extras.append(_make_wizard(entry))
 	_all.append_array(_wizards)
 	_all.append_array(_extras)
 
 
-## The look and colors of the four wizards of the match, the person at this machine first: the same ones that will stand in the world.
+## The look and colors of the eight wizards of the match, the person at this machine first: the same ones that will stand in the world.
 func _seat_styles() -> Array:
 	var mine := maxi(Net.seat_of(Net.my_id()), 0) if Net.online() else 0
 	var out := [Net.style_of_seat(mine)]
@@ -246,19 +243,20 @@ func _seat_styles() -> Array:
 func _make_wizard(entry: Dictionary) -> IntroWizard:
 	var to: float = entry["to"]
 	var body := IntroWizard.new()
-	body.position = Vector2(float(entry.get("from", to)), FLOOR_Y)
-	body.z_index = 2
+	body.lane = FLOOR_Y + ROW_DEPTH * int(entry["row"])
+	body.climbs = entry.get("up", false)
+	_stand_at(float(entry.get("from", to)), body)
+	body.z_index = 2 + int(entry["row"])
 	var sprite := AnimatedSprite2D.new()
-	var art: String = entry["art"]
-	sprite.sprite_frames = CharFrames.build("res://art/chars/" + String(entry["look"]), Wizard.animations_for(art))
-	sprite.offset = Vector2(0.0, -PixelArt.CHARACTERS[art]["size"].y * 0.5)
-	sprite.scale = Vector2.ONE * (WizardLook.scale_of(art) if entry.has("palette") else float(LOOK_SCALE[art]))
-	if entry.has("palette"):
-		sprite.material = WizardLook.material_for(art, int(entry["palette"]))
+	var magic := WizardLook.dress_sprite(sprite, entry["look"], int(entry["palette"]), true)
 	var face := 1.0 if to < PILE_X else -1.0
 	sprite.flip_h = face < 0.0
 	sprite.play("idle")
 	body.add_child(sprite)
+	if magic != null:
+		magic.paint(entry["color"])  # the glow of its staff is the color its wizard has in this scene
+		body.add_child(magic)
+		body.magic = magic
 	body.sprite = sprite
 	body.face = face
 	body.color = entry["color"]
@@ -270,7 +268,7 @@ func _make_wizard(entry: Dictionary) -> IntroWizard:
 
 func _build_portal() -> void:
 	_portal = Portal.new()
-	_portal.position = Vector2(PORTAL_X, FLOOR_Y - PORTAL_HEIGHT)
+	_portal.position = Vector2(PORTAL_X, PILE_Y - PORTAL_HEIGHT)
 	_portal.scale = Vector2.ONE * PORTAL_SCALE
 	_portal.rotation = PI * 0.5  # lying flat in the ceiling, so nobody can walk past it
 	_portal_home = _portal.position
@@ -321,7 +319,7 @@ func _follow_the_first() -> void:
 
 ## The first wizard has come in: the camera lets go of it and opens out on the whole ring.
 func _pull_back() -> void:
-	_shot(Vector2(PILE_X, FLOOR_Y - 130.0), WIDE, 1.5)
+	_shot(Vector2(PILE_X, PILE_Y - 94.0), WIDE, 1.5)
 
 
 # --- The story ----------------------------------------------------------------------------------------------------
@@ -330,6 +328,8 @@ func _pull_back() -> void:
 func _play(wizard: IntroWizard, what: String, facing: float) -> void:
 	wizard.face = facing
 	wizard.sprite.flip_h = facing < 0.0
+	if wizard.magic != null:
+		wizard.magic.flip_h = wizard.sprite.flip_h
 	wizard.sprite.play("release" if what == "grab" else what)  # (grabbing is the thrust of the staff)
 
 
@@ -337,7 +337,7 @@ func _play(wizard: IntroWizard, what: String, facing: float) -> void:
 func _run_to(wizard: IntroWizard, x: float, face: float, speed: float, then := "idle") -> Tween:
 	_play(wizard, "run", signf(x - wizard.position.x))
 	var tween := create_tween()
-	tween.tween_property(wizard, "position:x", x, absf(x - wizard.position.x) / speed)
+	tween.tween_method(_stand_at.bind(wizard), wizard.position.x, x, absf(x - wizard.position.x) / speed)
 	tween.tween_callback(_play.bind(wizard, then, face))
 	tween.tween_callback(func() -> void: wizard.here = true)
 	return tween
@@ -350,8 +350,6 @@ func _arrive(wizard: IntroWizard, entry: Dictionary) -> void:
 	match entry["mode"]:
 		"run":
 			_run_to(wizard, to, face, RUN)
-		"walk":
-			_run_to(wizard, to, face, WALK)
 		_:
 			wizard.modulate.a = 0.0
 			var spot: Vector2 = wizard.position + Vector2(0.0, -50.0)
@@ -359,6 +357,16 @@ func _arrive(wizard: IntroWizard, entry: Dictionary) -> void:
 			Fx.burst(self, spot, CRACKLE_COLOUR, 12, 140.0, 0.5, true)
 			create_tween().tween_property(wizard, "modulate:a", 1.0, 0.25)
 			wizard.here = true
+
+
+## The height of the ground at an x position: the floor, or the stairs the pedestal stands on.
+func _ground_at(x: float) -> float:
+	return Podium.top_at(x, PILE_X, FLOOR_Y)
+
+
+## Puts a wizard at an x position: on the floor of its row of the crowd, or, for one that stands on the stairs, on the stairs where they are under it.
+func _stand_at(x: float, wizard: IntroWizard) -> void:
+	wizard.position = Vector2(x, _ground_at(x) if wizard.climbs else wizard.lane)
 
 
 ## Where a wizard's staff is, for a spark or a bolt.
@@ -401,7 +409,7 @@ func _flinch(wizard: IntroWizard) -> void:
 ## A wizard raises their staff at the others: their own color gathers on it, and they hold the pose.
 func _draw_on_the_others(index: int) -> void:
 	var wizard := _all[index]
-	var face := wizard.face
+	var face := 1.0 if (index * 7) % 5 < 2 else -1.0  # each turns on whoever is nearest on a side of its own: this is a free-for-all, not two sides of the pile
 	var color := wizard.color
 	_play(wizard, "grab", face)
 	Sfx.play("push", wizard.position, -14.0)
@@ -535,7 +543,7 @@ func _clash(a: int, b: int) -> void:
 		_blast(middle, 1.3))
 
 
-## A bolt lands. One of the four is thrown back and a page flies out of their hands, into the portal; one of the six falls and does not get up.
+## A bolt lands. One of the eight is thrown back and a page flies out of their hands, into the portal; one of the eight more falls and does not get up.
 func _struck(bolt: Node2D, index: int, color: Color, kills: bool) -> void:
 	bolt.queue_free()
 	var wizard := _all[index]
@@ -550,14 +558,16 @@ func _struck(bolt: Node2D, index: int, color: Color, kills: bool) -> void:
 			if child is GPUParticles2D or child is CPUParticles2D:
 				child.emitting = false  # the glow on its staff goes out
 		_play(wizard, "death", face)
-		create_tween().tween_property(wizard, "position:x", wizard.position.x - face * 30.0, 0.35).set_ease(Tween.EASE_OUT)
+		create_tween().tween_method(_stand_at.bind(wizard), wizard.position.x, wizard.position.x - face * 30.0, 0.35).set_ease(Tween.EASE_OUT)
 		create_tween().tween_property(wizard, "modulate", Color(0.55, 0.55, 0.62), 1.2)  # and the light goes out of it
 		_blast(wizard.position + Vector2(0.0, -30.0), 0.3)
 		return
+	if _torn:
+		return  # lifted into the portal: a bolt that finds them does not push them off their way up
 	_play(wizard, "hit", face)
 	_blast(wizard.position + Vector2(0.0, -30.0), 0.9)
 	var tween := create_tween()
-	tween.tween_property(wizard, "position:x", wizard.position.x - face * 22.0, 0.2).set_ease(Tween.EASE_OUT)
+	tween.tween_method(_stand_at.bind(wizard), wizard.position.x, wizard.position.x - face * 22.0, 0.2).set_ease(Tween.EASE_OUT)
 	tween.tween_interval(0.25)
 	tween.tween_callback(_play.bind(wizard, "grab", face))
 
@@ -580,7 +590,7 @@ func _blast(at: Vector2, power: float) -> void:
 ## A bolt that misses and lands on the floor at x, and throws the pages about where it lands.
 func _stray(index: int, x: float) -> void:
 	var from_at := _staff(index)
-	var to_at := Vector2(x, FLOOR_Y - 6.0)
+	var to_at := Vector2(x, _ground_at(x) - 6.0)
 	var color: Color = _all[index].color
 	_play(_all[index], "grab", signf(to_at.x - from_at.x))
 	Sfx.play("push", from_at, -6.0)
@@ -600,7 +610,8 @@ func _stray(index: int, x: float) -> void:
 func _move_pages(delta: float) -> void:
 	for page: IntroPage in _pile.duplicate():
 		var vel: Vector2 = page.vel
-		var height := FLOOR_Y - 1.0 - page.position.y
+		var height := PILE_Y - 1.0 - page.position.y
+		var floor_y := _ground_at(page.position.x)
 		var drawn := _torn or (height > PULL_HEIGHT and _unrest > 0.8)
 		if vel == Vector2.ZERO and not drawn:
 			continue  # still lying where it was
@@ -621,8 +632,8 @@ func _move_pages(delta: float) -> void:
 		page.position += vel * delta
 		if drawn:
 			page.rotation += page.spin * delta
-		if page.position.y >= FLOOR_Y - 1.0 and vel.y > 0.0 and not _torn:
-			page.position.y = FLOOR_Y - 1.0  # it lands flat, with no bounce, slides a little, and lies still
+		if page.position.y >= floor_y - 1.0 and vel.y > 0.0 and not _torn:
+			page.position.y = floor_y - 1.0  # it lands flat, with no bounce, slides a little, and lies still
 			vel = Vector2(vel.x * 0.5 if not page.landed else move_toward(vel.x, 0.0, 420.0 * delta), 0.0)
 			if not page.landed:
 				page.landed = true
@@ -637,7 +648,7 @@ func _move_pages(delta: float) -> void:
 ## How a loose sheet of paper moves through the air: the air takes its speed away, it drops slowly and slips from side to side as it comes down, it
 ## tips over one way and then the other, and it turns over, so it is sometimes seen edge on.
 func _flutter(page: IntroPage, vel: Vector2, delta: float) -> Vector2:
-	if page.position.y >= FLOOR_Y - 1.5:
+	if page.position.y >= _ground_at(page.position.x) - 1.5:
 		return vel  # it is on the floor: sliding, not drifting
 	var phase: float = page.flutter + delta * 4.5
 	page.flutter = phase
@@ -659,7 +670,7 @@ func _swallowed(page: IntroPage) -> void:
 	page.queue_free()
 
 
-## The portal tears wide open. The pile that is left is dragged up into it, and the four who are left, fighting it, are lifted off their feet and
+## The portal tears wide open. The pile that is left is dragged up into it, and the eight who are left, fighting it, are lifted off their feet and
 ## pulled in after it, in a flood of its light. The camera looks up to watch.
 func _the_portal_tears() -> void:
 	if _plume != null:
@@ -674,15 +685,15 @@ func _the_portal_tears() -> void:
 	Sfx.play("volcano", _portal.global_position, -2.0, 0.05, 0.5)
 	create_tween().tween_property(_portal, "scale", Vector2.ONE * TORN_SCALE, 0.6).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	create_tween().tween_method(func(k: float) -> void: _bloom_k = k, 0.0, 1.0, 1.8).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	_shot(Vector2(PILE_X, FLOOR_Y - 190.0), 2.0, 1.8)
+	_shot(Vector2(PILE_X, PILE_Y - 190.0), 2.0, 1.8)
 	_torn = true  # whatever is still on the floor is dragged up into it
-	_blast(Vector2(PILE_X, FLOOR_Y), 1.5)
+	_blast(Vector2(PILE_X, PILE_Y), 1.5)
 	for i in _wizards.size():
 		var wizard := _wizards[i]
 		var tween := create_tween()
-		tween.tween_interval(0.5 + i * 0.12)
+		tween.tween_interval(0.5 + i * 0.09)
 		tween.tween_callback(_play.bind(wizard, "hit", wizard.face))  # off their feet
-		tween.tween_property(wizard, "position", _portal.position + Vector2(0.0, 40.0), 1.4 - i * 0.1).set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_IN)
+		tween.tween_property(wizard, "position", _portal.position + Vector2(0.0, 40.0), 1.4 - i * 0.08).set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_IN)
 		tween.tween_callback(Sfx.play.bind("gravity", _portal.global_position, -6.0, 0.05, 0.8))
 		tween.tween_property(wizard, "scale", Vector2.ONE * 0.2, 0.25)
 		tween.parallel().tween_property(wizard, "modulate:a", 0.0, 0.25)

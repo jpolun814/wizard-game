@@ -13,12 +13,13 @@ const HEALTH := 40
 
 var hp := HEALTH
 var mine := false  # true on the machine of the wizard who cast it: only they see it as a ghost, the rest see a wizard
-var look := "wizard"  # the figure of the wizard who cast it, and the colors worn: a decoy is a shadow of the caster as they look
+var look := PartsLook.DEFAULT_LOOK  # the figure of the wizard who cast it, and the colors worn: a decoy is a shadow of the caster as they look
 var palette := 0
 var caster: Wizard  # whose shadow it is (a brain fooled by it takes it for them)
 var _age := 0.0
 var _dead := false
 var _body: AnimatedSprite2D
+var _magic: MagicLayer  # a decoy of a wizard made of parts shows the glow of their staff too
 var _flash := 0.0
 var _facing := 1.0
 
@@ -33,17 +34,14 @@ func _ready() -> void:
 	add_to_group("decoys")
 	add_to_group("lasting")
 	_body = AnimatedSprite2D.new()
-	var art := "wizard"
-	if look != "wizard" and Mob.KINDS.has(look):
-		var data: MobKind = Mob.KINDS[look]
-		art = data.art
-		_body.scale = Vector2.ONE * WizardLook.scale_of(look, data.scale)
-	_body.sprite_frames = CharFrames.build("res://art/chars/" + art, Wizard.animations_for(art))
-	_body.offset = Vector2(0, -PixelArt.CHARACTERS[art]["size"].y * 0.5)
-	_body.material = WizardLook.material_for(look, palette)
+	var magic := WizardLook.dress_sprite(_body, look, palette)
 	_body.modulate = Color(0.5, 0.35, 0.75, 0.0)
 	_body.play("idle")
 	add_child(_body)
+	if magic != null:
+		_magic = magic
+		magic.paint(SpellData.SCHOOL_COLORS["Shadow"])  # a decoy is a shadow: its staff shows the school it was made with
+		add_child(magic)
 	Fx.burst(get_parent(), center(), Color("#9a70d0"), 14, 110.0, 0.5, true)
 	Sfx.play("gravity", global_position, -4.0)
 
@@ -81,6 +79,8 @@ func _physics_process(delta: float) -> void:
 		_body.modulate = Color.WHITE  # to everyone else it is a wizard like any other
 	else:
 		_body.modulate = Color(1.0, 1.0, 1.0, 0.9) if _flash > 0.0 else Color(0.5, 0.35, 0.75, 0.75 * alpha)
+	if _magic != null:
+		_magic.mirror(_body)
 	if _age >= SECONDS:
 		_vanish()
 

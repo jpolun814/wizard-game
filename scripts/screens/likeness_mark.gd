@@ -14,6 +14,10 @@ const REACH := Vector2(44.0, 48.0)  # how near, across and up, the middle of a w
 
 var _t := 0.0
 var _mirror: AnimatedSprite2D
+var _glass: Polygon2D  # the oval of the glass: what is drawn inside it is cut to it
+var _view: SubViewport  # looks at the world in front of the glass from where the glass hangs
+var _camera: Camera2D
+var _reflection: Sprite2D
 
 
 ## True when a wizard whose middle is at a point is before the mirror, near enough to be given the words.
@@ -38,11 +42,39 @@ func _ready() -> void:
 	_mirror.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	add_child(_mirror)
 	_mirror.play("shine")
+	_glass = Polygon2D.new()
+	var oval := PackedVector2Array()
+	for k in 28:
+		var a := TAU * k / 28.0
+		oval.append(Vector2(cos(a) * 19.0, sin(a) * 37.0))
+	_glass.polygon = oval
+	_glass.clip_children = CanvasItem.CLIP_CHILDREN_ONLY
+	add_child(_glass)
+	_view = SubViewport.new()  # the glass shows what is before it: the world seen from its place, so that whatever steps in front appears in it
+	_view.size = Vector2i(40, 76)
+	_view.world_2d = get_viewport().world_2d
+	_view.canvas_cull_mask = 0xFFFFFFFD  # (the mirror is on the second layer, so that it does not see itself)
+	_view.transparent_bg = true  # (only what stands before the glass is in it: the violet of the glass shows behind)
+	_view.disable_3d = true
+	_view.snap_2d_transforms_to_pixel = true
+	_camera = Camera2D.new()
+	_view.add_child(_camera)
+	add_child(_view)
+	_reflection = Sprite2D.new()
+	_reflection.texture = _view.get_texture()
+	_reflection.position = Vector2(0.0, -16.0)  # seen a little higher up in the glass, and facing the way the wizard does
+	_reflection.modulate = Color(0.72, 0.62, 1.0, 0.9)  # seen through the violet glass
+	_reflection.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_glass.add_child(_reflection)
+	for each: CanvasItem in [self, _mirror, _glass]:
+		each.visibility_layer = 2
 
 
 func _process(delta: float) -> void:
 	_t += delta
 	_mirror.position = Vector2(0.0, -HOVER + roundf(3.0 * sin(_t * 1.6)))  # it floats, and drifts a little
+	_glass.position = _mirror.position
+	_camera.global_position = _glass.global_position
 	queue_redraw()
 
 

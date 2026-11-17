@@ -4,7 +4,7 @@ extends CharacterBody2D
 ## A wizard: the body every wizard in the game has, the player's and every other wizard's in a match. It is driven either by a person (the keyboard
 ## and the mouse) or by a WizardBrain, and from there it is the same body: the same walk, jump, stamina, wounds, shoves and status
 ## effects, so a spell does the same to any of them. Its origin is at its feet, so it stands exactly on whatever is under it.
-## Each wears one of the looks in WizardLook (and the colors of Net.rival_palette once the looks run out).
+## Each is made of parts (see PartsLook): the look is the whole choice, written as one String.
 
 signal damaged(amount: int)
 signal debuff_applied(kind: String)
@@ -72,7 +72,7 @@ var flying := false          # set by a world with no ground (the sky): the wiza
 var fly_box := Rect2()       # where a flying wizard's feet may be: it stops at the edge of it. Empty: anywhere
 var _feather_motes := 0.0
 var gravity: float = ProjectSettings.get_setting("physics/2d/default_gravity")
-var look := "wizard":  # which wizard this is: the player's own, or the id of one of the others' looks (a MobKind in res://data/mobs)
+var look := PartsLook.DEFAULT_LOOK:  # which wizard this is: what it is made of (see PartsLook). (The seven older figures, and a MobKind in res://data/mobs, are still dressed if one is asked for.)
 	set(value):
 		if value == look:
 			return
@@ -177,6 +177,7 @@ var _frozen_time: float: # frozen in ice: rooted, and shattered out of it by Air
 var _since_spend := 0.0
 var _stepping := false  # the wizard is moving their body along the ground (the last frame): the stamina does not come back meanwhile
 var facing := 1.0
+var look_dir := 0.0  # which way a wizard made of parts is drawn facing, when that is not the way it goes (a pull, a shove: the animation has them come from the front); 0 is the way it faces
 var _flash := 0.0        # red flash after being hit
 var _grace := 0.0        # time left of the safety after a hit
 var _coyote := 0.0
@@ -186,6 +187,10 @@ var casting := false      # true while the caster has a stroke in progress (set 
 var casts_made := 0       # the spells this wizard has cast, for the tests that watch a match
 var drawn := false  # the portal of a collapsing world is carrying the wizard up: they cast and fight, but cannot walk or fall
 var _art := "wizard"  # the folder of frames it wears now
+var pose := WizardPose.new(self)  # which of a wizard made of parts' many animations to play
+var _magic: MagicLayer  # a wizard made of parts has its gem, its glow and its spell effects on a layer of their own, in the color of the spell (see magic_ramp.gdshader)
+var _gem := Color.WHITE  # the color of the last spell it drew, which the gem shows; a wizard that has cast none shows a school of its own
+
 var _layer_alive := 0
 var wolf := WildShape.new(self)  # the werewolf shape (Wild Shape), when the wizard has taken it
 var _releasing := 0.0     # time left of the thrust that plays when a spell goes off
@@ -231,6 +236,7 @@ func _ready() -> void:
 			Shatter.spawn(get_parent(), center(), Color("#cdeeff")))  # the ice gives way
 	floor_max_angle = deg_to_rad(50.0)  # a 45 degree slope, the steepest a tunnel climbs, still counts as floor
 	add_to_group("wizards")
+	_make_magic()
 	dress()
 	net_position = global_position
 	if is_person():
@@ -240,6 +246,8 @@ func _ready() -> void:
 		_sprite.animation_finished.connect(_on_animation_finished)
 		Fx.pop(get_parent(), global_position + Vector2(0, -2), "magic_02", Color("#d8d0e8"), 70.0, SPAWN_TIME + 0.2, 1.2, 1.5)  # it arrives through a summoning circle
 		Sfx.play("summon", global_position)
+		if _uses_parts():
+			pose.arrive()
 	if brain != null:
 		_make_caster()
 	_overlay = Node2D.new()
@@ -266,9 +274,23 @@ static func animations_for(art: String) -> Dictionary:
 func dress() -> void:
 	var art := "wizard"
 	_sprite.scale = Vector2.ONE
+	_magic.detach()
 	if wolf.on:
 		art = "werewolf"
 		_sprite.scale = Vector2.ONE * WildShape.SCALE
+	elif PartsLook.is_parts(look):
+		var config := PartsLook.decode(look)
+		var made := look if not config.is_empty() else PartsLook.DEFAULT_LOOK  # (a look that is not one of parts is never worn: this is for safety)
+		if config.is_empty():
+			config = PartsLook.default_config()
+		_art = "wizard"  # the frames are the first wizard's size, and stand where its did
+		_sprite.sprite_frames = PartFrames.body(made)
+		_sprite.offset = PartFrames.OFFSET
+		_gem = _gem_of(made)
+		_sprite.play("idle")
+		_magic.attach(_sprite, config["weapon"])
+		_paint()
+		return
 	elif look != "wizard":
 		var data: MobKind = Mob.KINDS[look]
 		art = data.art
@@ -278,6 +300,52 @@ func dress() -> void:
 	_sprite.offset = Vector2(0, -PixelArt.CHARACTERS[art]["size"].y * 0.5)  # the frames' bottom edge is the feet
 	_sprite.play("idle")
 	_paint()
+
+
+## True for a wizard made of parts that is not a werewolf: it has all of the animations, and a magic layer.
+func _uses_parts() -> bool:
+	return PartsLook.is_parts(look) and not wolf.on
+
+
+## The layer over a wizard made of parts that holds its gem and spell effects, which a shader colors (see MagicLayer).
+func _make_magic() -> void:
+	_magic = MagicLayer.new()
+	add_child(_magic)
+	move_child(_magic, _sprite.get_index() + 1)
+
+
+## The school a wizard's gem shows before it has drawn a spell: its own, chosen by its look (every wizard is a different color, and the player does not choose).
+func _gem_of(of_look: String) -> Color:
+	var schools := SpellData.SCHOOL_COLORS.keys()
+	return SpellData.SCHOOL_COLORS[schools[absi(of_look.hash()) % schools.size()]]
+
+
+## What the magic layer is colored for the animation: the school of the last spell drawn, but a dazed wizard's stars are yellow and a thaw's shards are ice.
+func _magic_color(anim: StringName) -> Color:
+	match anim:
+		&"dazed":
+			return Color("#ffe066")
+		&"frozen", &"thaw":
+			return Color("#bfe6ff")
+	return _gem
+
+
+## The part of the body from the top that shows (see the shader's keep): all of it, or cut off at the waist while the wizard is stuck in the ground.
+func _set_keep(amount: float) -> void:
+	_body_material.set_shader_parameter("keep", amount)
+	_magic.set_keep(amount)
+
+
+## The wizard has won the match.
+func celebrate() -> void:
+	if _uses_parts() and not dead:
+		pose.play_once("victory")
+
+
+## A spell goes off (see CastStyles): a wizard made of parts moves its body as that spell asks.
+func show_cast(spell: String, toward := 0.0) -> void:
+	if _uses_parts():
+		pose.cast(spell, toward)
 
 
 ## The body thrusts for this long: a spell goes off, or a claw swipes.
@@ -802,6 +870,8 @@ func pull(force: Vector2, delta: float) -> void:
 		return
 	free_from_ground()
 	_shove += force * delta
+	if _uses_parts():
+		pose.pulled(force)
 
 
 func push(impulse: Vector2) -> void:
@@ -809,6 +879,8 @@ func push(impulse: Vector2) -> void:
 		return
 	free_from_ground()
 	_shove = impulse
+	if _uses_parts():
+		pose.shoved(impulse)
 
 
 ## Anything that moves the body out of the ground (a push, a pull, a blink, a knock) frees it. It can be stuck again only
@@ -826,7 +898,7 @@ func stick_in_ground(seconds: float) -> void:
 		return
 	apply_debuff("root", seconds)
 	_stuck_time = maxf(_stuck_time, seconds)
-	_body_material.set_shader_parameter("keep", 0.7)
+	_set_keep(0.7)
 	# The cut is 57 px above the frame's bottom, so this drops the cut onto the ground: the body is in the ground from there down.
 	_sprite.position = Vector2(0, 57)
 
@@ -834,7 +906,7 @@ func stick_in_ground(seconds: float) -> void:
 ## Lets the player out of the ground, as a throw does.
 func unstick() -> void:
 	_stuck_time = 0.0
-	_body_material.set_shader_parameter("keep", 2.0)
+	_set_keep(2.0)
 	_sprite.position = Vector2.ZERO
 
 
@@ -842,18 +914,22 @@ func _process(delta: float) -> void:
 	if not is_likeness():
 		_tell_others()
 	elif (marks & STUCK != 0) != (_sprite.position.y != 0.0):
-		_body_material.set_shader_parameter("keep", 0.7 if marks & STUCK != 0 else 2.0)  # sunk in the ground, as on the machine that drives it
+		_set_keep(0.7 if marks & STUCK != 0 else 2.0)  # sunk in the ground, as on the machine that drives it
 		_sprite.position = Vector2(0, 57) if marks & STUCK != 0 else Vector2.ZERO
 	if _stuck_time > 0.0:
 		_stuck_time -= delta
 		if _stuck_time <= 0.0:
 			unstick()
 	_animate(delta)
+	if is_person() and _uses_parts() and Engine.get_process_frames() % 4 == 0 and not casting:
+		PartFrames.warm_next(_sprite.sprite_frames)  # (all of the wizard's animations are made in the first seconds, a few at a time)
+		PartFrames.warm_next(_magic.sprite_frames)
 	_overlay.queue_redraw()
 
 
 ## Picks the animation for what the wizard is doing, faces the way it is moving, and flashes when hit.
 func _animate(delta: float) -> void:
+	var parts := _uses_parts()
 	if absf(velocity.x) > 10.0 and not dead and not is_likeness():
 		facing = signf(velocity.x)  # a person's wizard and a brain's face the way they move, whatever turned them: nobody runs backwards (a brain turns to its rival only standing)
 	_releasing = maxf(_releasing - delta, 0.0)
@@ -861,6 +937,9 @@ func _animate(delta: float) -> void:
 	var wanted := "idle"
 	if is_likeness():
 		wanted = shown_anim
+	elif parts:
+		pose.tick(delta)
+		wanted = pose.pick(delta)
 	elif dead or fainted:
 		wanted = "death"
 	elif _hurt_anim > 0.0:
@@ -875,14 +954,22 @@ func _animate(delta: float) -> void:
 		wanted = "jump" if velocity.y < 0.0 else "fall"
 	elif absf(velocity.x - wind) > 10.0:  # the wind can push a wizard along without a step
 		wanted = "run"
-	var set_in_ice := is_frozen() and not dead
+	var set_in_ice := is_frozen() and not dead  # held on the very frame it was caught on
+	if parts and not set_in_ice and not PartFrames.ensure(_sprite.sprite_frames, wanted):
+		wanted = "idle"  # (an animation there is no such thing as: another machine's)
 	if set_in_ice:
 		wanted = String(_sprite.animation)  # held in the pose it was caught in
 	elif _sprite.animation != wanted:
 		_sprite.play(wanted)
+	elif parts and pose.restart:
+		_sprite.play(wanted)
+		_sprite.set_frame_and_progress(0, 0.0)  # the same animation again from its first frame
+	pose.restart = false
 	_sprite.speed_scale = 0.0 if set_in_ice else 1.0  # nothing moves inside the ice
 	shown_anim = wanted
-	_sprite.flip_h = facing < 0.0
+	_sprite.flip_h = (look_dir if look_dir != 0.0 and parts else facing) < 0.0
+	if parts and wanted == "turn" and _sprite.frame < 1:
+		_sprite.flip_h = not _sprite.flip_h  # a turn begins facing the old way and swings round at its second frame
 	_flash = maxf(_flash - delta, 0.0)
 	# After a hit the wizard blinks while it can't be hurt again.
 	var blink := _grace > 0.0 and int(_grace * 20.0) % 2 == 0
@@ -895,6 +982,11 @@ func _animate(delta: float) -> void:
 	var veiled := marks & VEILED != 0 if is_likeness() else veil > 0
 	_body_material.set_shader_parameter("obsidian", 1.0 if glassy and _flash <= 0.0 else 0.0)  # black glass with a sheen running over it
 	_body_material.set_shader_parameter("aura", 1.0 if veiled and _flash <= 0.0 else 0.0)  # a wizard under a Crimson Veil is tinted red while it holds
+	if _magic.visible:
+		if cast_color != Color.WHITE and casting:
+			_gem = cast_color  # the gem takes the school of the spell being drawn, and keeps it
+		_magic.paint(_magic_color(_sprite.animation))
+		_magic.mirror(_sprite)  # (it fades and blinks with the body, but does not flash red)
 
 
 ## Called when a spell goes off: the wizard thrusts its staff forward once.
@@ -1049,7 +1141,7 @@ func share() -> void:
 	for property in ["net_position", "velocity", "facing", "stamina", "max_stamina", "cast_color", "casting"]:
 		config.add_property(NodePath(".:" + property))
 		config.property_set_replication_mode(NodePath(".:" + property), SceneReplicationConfig.REPLICATION_MODE_ALWAYS)
-	for property in ["dead", "fainted", "shown_anim", "shown_stroke", "marks", "visible", "modulate", "look", "palette", "shown_words"]:
+	for property in ["dead", "fainted", "shown_anim", "shown_stroke", "marks", "visible", "modulate", "look", "palette", "shown_words", "look_dir"]:
 		config.add_property(NodePath(".:" + property))
 		config.property_set_replication_mode(NodePath(".:" + property), SceneReplicationConfig.REPLICATION_MODE_ON_CHANGE)
 	var sync := MultiplayerSynchronizer.new()

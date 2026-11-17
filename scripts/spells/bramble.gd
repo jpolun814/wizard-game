@@ -9,7 +9,7 @@ const STEP := 0.3     # seconds between one footfall and the next while walking
 const DAMAGE := 8     # what each footfall costs
 const HEIGHT := 34.0  # how high the thorns stand, which is how high you have to jump
 const SPACING := 26.0
-const SPRITES := ["swamp_fern", "bush_small", "swamp_grass"]
+const SPRITES := ["bramble_1", "bramble_2", "bramble_3"]
 
 var line := PackedVector2Array()  # the drawn line, in world points; set before the thicket enters the tree
 var planted_ground := PackedVector2Array()  # for a thicket the world grows: the ground it stands on, a point every SPACING, so nothing is looked up
@@ -31,13 +31,17 @@ func _ready() -> void:
 			x += SPACING
 	var rng := RandomNumberGenerator.new()
 	rng.randomize()
-	for foot in _surface:
+	for i in _surface.size():
+		var foot := _surface[i]
 		var sprite := Sprite2D.new()
 		sprite.texture = load("res://art/props/%s.png" % SPRITES[rng.randi() % SPRITES.size()])
 		sprite.offset = Vector2(0, -sprite.texture.get_height() * 0.5 + 2.0)  # its feet stand on the ground
 		sprite.flip_h = rng.randf() < 0.5
-		sprite.modulate = Color(0.75, 0.95, 0.55)
 		sprite.position = foot
+		var behind := _surface[maxi(i - 1, 0)]
+		var ahead := _surface[mini(i + 1, _surface.size() - 1)]
+		if absf(ahead.x - behind.x) > 1.0:
+			sprite.rotation = clampf(atan2(ahead.y - behind.y, ahead.x - behind.x), -0.8, 0.8)  # it leans with the slope it grows on, about its feet
 		sprite.z_index = 1
 		add_child(sprite)
 		if not planted:

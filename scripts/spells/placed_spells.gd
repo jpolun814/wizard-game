@@ -37,18 +37,18 @@ func _black_hole(c: SpellCast) -> void:
 	c.add(hole)
 
 
-## A wall of flame along the second line of the stroke, a column every little way, each standing on the ground beneath it.
+## A wall of flame along the first line of the stroke (the ground), a column every little way, each standing on the ground beneath it.
 func _firewall(c: SpellCast) -> void:
 	var line := c.line()
 	if line.size() < 3:
 		return
-	var x_from := line[1].x
-	var x_to := line[2].x
+	var x_from := line[0].x
+	var x_to := line[1].x
 	var columns := maxi(1, ceili(absf(x_to - x_from) / Firewall.SPACING))
 	for i in columns:
 		var column := Firewall.new()
 		c.add(column)
-		column.setup(c.spell, Vector2(lerpf(x_from, x_to, (i + 0.5) / columns), line[0].y), 0.0)
+		column.setup(c.spell, Vector2(lerpf(x_from, x_to, (i + 0.5) / columns), (line[0].y + line[1].y) * 0.5), 0.0)  # looking for the ground from a little over the line, so that a stroke drawn in the ground still stands the wall on it
 
 
 func _supernova(c: SpellCast) -> void:

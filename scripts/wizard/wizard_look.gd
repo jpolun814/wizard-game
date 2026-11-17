@@ -5,6 +5,8 @@ extends RefCounted
 ## of the head (their staffs and flames rise above that, and are not counted), so the choice is only for looks. A set of colors turns two groups of the
 ## figure's own colors (its robe and its trim, picked out by hue) to new hues, in the sprite's shader (see wizard_body.gdshader); skin, wood and outlines stay.
 
+## The seven figures found online are no longer offered to anyone: a wizard is made of parts now (see PartsLook), and these stay only for their art and the tests
+## of old code. Nothing in a match, the creator or a save asks for one.
 const LOOKS := ["wizard", "dark_wizard", "pyre_wizard", "bone_wizard", "fire_wizard", "wanderer", "lightning_mage"]  # in the order the seats of a match have them
 const SCALE := {"wizard": 1.0, "dark_wizard": 1.5, "pyre_wizard": 1.7, "bone_wizard": 1.5, "fire_wizard": 1.2, "wanderer": 1.2, "lightning_mage": 1.25}  # what each is drawn at, to make them one height
 const NAMES := {"wizard": "Wizard", "dark_wizard": "Hooded", "pyre_wizard": "Pyre", "bone_wizard": "Pale", "fire_wizard": "Fire", "wanderer": "Wanderer", "lightning_mage": "Lightning"}
@@ -51,21 +53,30 @@ static func swatch(look: String, palette: int) -> Color:
 
 
 static func jump_sound(look: String) -> String:
+	match PartsLook.option_of(look, "voice"):
+		"voice_2":
+			return "jump_bone_wizard"
+		"voice_3":
+			return "jump_lightning_mage"
 	return JUMP_VOICES.get(look, "jump")
 
 
-## True for the id of one of the four figures.
+## True for a look the game accepts: a wizard made of parts, every value of it a part there is. (A look comes over the network, so it is checked here.)
 static func is_look(look: String) -> bool:
-	return LOOKS.has(look)
+	return PartsLook.is_valid(look)
 
 
 ## The size a look is drawn at (a look that is not one of the four, such as a creature, keeps the size its kind says).
 static func scale_of(look: String, fallback := 1.0) -> float:
+	if PartsLook.is_parts(look):
+		return 1.0  # drawn to the same height as the first wizard was, so it is not scaled
 	return float(SCALE.get(look, fallback))
 
 
 ## Sets a sprite's material to show a look in a set of colors. A material that is already on it keeps its other work.
 static func paint(material: ShaderMaterial, look: String, palette: int) -> void:
+	if PartsLook.is_parts(look):
+		palette = 0  # the colors of a wizard made of parts are its parts': nothing is turned
 	var groups: Array = GROUPS.get(look, GROUPS["wizard"])
 	var set: Dictionary = PALETTES[clampi(palette, 0, PALETTES.size() - 1)]
 	var robe: Array = groups[0]
@@ -79,6 +90,31 @@ static func paint(material: ShaderMaterial, look: String, palette: int) -> void:
 	material.set_shader_parameter("caps", Vector2(robe[4] if robe.size() > 4 else 1.0, trim[4] if trim.size() > 4 else 1.0))
 	material.set_shader_parameter("robe_goal", Vector4(set["robe"][0], set["robe"][1], 0.0, 0.0))
 	material.set_shader_parameter("trim_goal", Vector4(set["trim"][0], set["trim"][1], 0.0, 0.0))
+
+
+## Dresses a sprite that is not a wizard's own (a cut-scene's, a decoy's) in a look, to the same height as a wizard. A look made of parts also has a layer of magic to lay
+## over it, which this returns for the caller to add beside the sprite, in the color of the spell it is to show; for any other look it returns null.
+static func dress_sprite(sprite: AnimatedSprite2D, look: String, palette: int, lite := false) -> MagicLayer:
+	var shown := look if PartsLook.is_valid(look) else ""
+	if shown != "":
+		sprite.sprite_frames = PartFrames.body(shown, lite)
+		sprite.offset = PartFrames.OFFSET
+		sprite.scale = Vector2.ONE
+		sprite.material = material_for(shown, 0)
+		var layer := MagicLayer.new()
+		layer.attach(sprite, PartsLook.option_of(shown, "weapon"))
+		return layer
+	var art := "wizard"
+	var size := 1.0
+	if look != "wizard" and Mob.KINDS.has(look):
+		var data: MobKind = Mob.KINDS[look]
+		art = data.art
+		size = scale_of(look, data.scale)
+	sprite.sprite_frames = CharFrames.build("res://art/chars/" + art, Wizard.animations_for(art))
+	sprite.offset = Vector2(0.0, -PixelArt.CHARACTERS[art]["size"].y * 0.5)
+	sprite.scale = Vector2.ONE * size
+	sprite.material = material_for(look, palette)
+	return null
 
 
 ## A material with the wizard's shader, showing a look in a set of colors: for a figure drawn outside a wizard (a cut-scene's, or a portrait's).

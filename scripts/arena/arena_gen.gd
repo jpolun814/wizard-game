@@ -44,6 +44,15 @@ static var sky_floor := PackedInt32Array()
 static var air_rows := Vector2i.ZERO  # the sky world (chapter 19): the first and last row of the air a wizard flies in, or zero where the world has ground
 static var biome_spans: Array = []  # a world's biomes, left to right: {"a", "b": first and last column, "tiles": the tile set of its ground}
 
+## The name of the biome a world position is in ("portals" before a world has been built: the waiting room, whose trees take the portal fields' colors).
+static func biome_name_at(x: float) -> String:
+	var column := floori(x / 32.0)
+	for span: Dictionary in biome_spans:
+		if column >= span["a"] and column <= span["b"] and span.has("name"):
+			return span["name"]
+	return "portals"
+
+
 ## Each level has its own look: the biome's ground tiles, the backdrop behind it and the things standing about on
 ## the ground (art/props, drawn at their own pixel size).
 const WAITING_ROOM_BIOME := "cemetery"  # the waiting room, and the cut-scene that follows it

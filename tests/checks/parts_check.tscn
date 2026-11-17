@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://tests/checks/parts_check.gd" id="1"]
+
+[node name="PartsCheck" type="Node"]
+script = ExtResource("1")

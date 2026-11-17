@@ -1,6 +1,5 @@
 extends Check
-## The wizard maker: the words at the spot on the hill open it, a figure and a set of colors chosen in it are worn at once and kept, the four figures
-## are one height, and a brain's wizard takes a figure nobody else has. Add `-- out=DIR` for pictures (they need a window).
+## The wizard maker: the words at the spot on the hill open it, the parts chosen in it are worn at once and kept, and a brain's wizard is made of parts nobody wears. Add `-- out=DIR` for pictures (they need a window).
 ##
 ##     godot --headless --fixed-fps 60 --path . tests/checks/likeness_check.tscn
 
@@ -15,27 +14,23 @@ func _ready() -> void:
 	DirAccess.remove_absolute(GameSettings.path)
 	GameSettings.values = GameSettings.DEFAULTS.duplicate()
 
-	for look: String in WizardLook.LOOKS:  # head to toe, the same for all: the top of the head over the middle of the frame
-		var image: Image = (load("res://art/chars/%s/idle_0.png" % look) as Texture2D).get_image()
-		var top := 0
-		for y in image.get_height():
-			var found := false
-			for x in range(image.get_width() / 2 - 4, image.get_width() / 2 + 5):
-				if image.get_pixel(x, y).a > 0.5:
-					found = true
-					break
-			if found:
-				top = image.get_height() - y
-				break
-		var high := float(top) * WizardLook.scale_of(look)
-		_verdict(absf(high - 79.0) <= 4.0, "%s stands %.0f from feet to head (79 is the mark)" % [look, high])
-
-	for look: String in WizardLook.LOOKS:
-		_verdict(Sfx.has_sound(WizardLook.jump_sound(look)), "%s has a jump sound (%s)" % [look, WizardLook.jump_sound(look)])
-	_verdict(Net.rival_look(1) != Net.look_of(Net.my_id()) and Net.rival_look(2) != Net.look_of(Net.my_id()) and Net.rival_look(3) != Net.look_of(Net.my_id()), "no brain wears the figure the person plays")
+	var mine := Net.look_of(Net.my_id())
+	_verdict(mine == PartsLook.default_look(), "a person who has not made a wizard yet wears the starting one")
+	var image: Image = PartFrames.body(mine).get_frame_texture("idle", 0).get_image()
+	var lowest := 0
+	for y in image.get_height():
+		for x in range(image.get_width() / 2 - 20, image.get_width() / 2 + 20):  # the boots, in the middle of the frame
+			if image.get_pixel(x, y).a > 0.5:
+				lowest = y
+	var boots := PartFrames.OFFSET.y - float(image.get_height()) * 0.5 + float(lowest + 1)  # where the soles are, from the feet of the wizard (they must be at 0)
+	_verdict(is_zero_approx(boots), "and its boots stand on the ground, not over it or in it (%.0f px off)" % boots)
+	_verdict(Sfx.has_sound(WizardLook.jump_sound(mine)), "and it has a jump sound (%s)" % WizardLook.jump_sound(mine))
+	var rivals := [Net.rival_look(1), Net.rival_look(2), Net.rival_look(3), Net.rival_look(4)]
+	_verdict(rivals.all(func(look: String) -> bool: return PartsLook.is_valid(look) and look != mine) and rivals.size() == 4 and rivals[0] != rivals[1] and rivals[1] != rivals[2] and rivals[2] != rivals[3], "each brain's wizard is made of parts, and none wears the person's (%s)" % str(rivals))
+	GameSettings.set_value("look", rivals[0])
+	_verdict(Net.rival_look(1) != rivals[0], "and with another look chosen, a brain made the same is made again")
 	GameSettings.set_value("look", "pyre_wizard")
-	var rivals := [Net.rival_look(1), Net.rival_look(2), Net.rival_look(3)]
-	_verdict(not rivals.has("pyre_wizard") and rivals.size() == 3 and rivals[0] != rivals[1] and rivals[1] != rivals[2], "and with another chosen they still share none (%s)" % str(rivals))
+	_verdict(Net.look_of(Net.my_id()) == PartsLook.default_look(), "a look saved by an older game (a found figure) is not worn")
 	GameSettings.set_value("look", "")
 
 	var lab: Lab = load("res://scenes/lab.tscn").instantiate()
@@ -55,10 +50,24 @@ func _ready() -> void:
 	var plate: Rect2 = lab._visible_hud_rects().back()
 	_verdict(plate.size.x > 100.0 and plate.size.y > 100.0, "though a stroke that starts on its plate is not a spell (%s)" % str(plate))
 	if panels.size() == 1:
-		panels[0]._choose_look("pyre_wizard")
-		panels[0]._choose_palette(2)
-		_verdict(lab.player.look == "pyre_wizard" and lab.player.palette == 2, "a figure and colors chosen are worn at once")
-		_verdict(GameSettings.get_value("look") == "pyre_wizard" and int(GameSettings.get_value("palette")) == 2, "and kept")
+		var panel: LikenessPanel = panels[0]
+		panel._choose("hat", "hood")
+		panel._choose("weapon", "wand")
+		_verdict(lab.player.look == "parts:2:tan.coat.blue.short.auburn.short.auburn.hood.blue.wand.voice_1", "parts chosen are worn at once (%s)" % lab.player.look)
+		_verdict(GameSettings.get_value("look") == lab.player.look, "and kept")
+		panel._choose("color", "crimson")
+		panel._choose("hair_color", "black")
+		_verdict(PartsLook.option_of(lab.player.look, "hat_color") == "crimson" and PartsLook.option_of(lab.player.look, "beard_color") == "black", "the hat takes the robe's color and the beard the hair's")
+		_verdict(PartsLook.option_of(PartsLook.seeded_look(5), "hat_color") == PartsLook.option_of(PartsLook.seeded_look(5), "color"), "and so does a wizard made at random")
+		panel._step("skin", 1)
+		_verdict(PartsLook.option_of(lab.player.look, "skin") == "brown", "an arrow goes to the next (tan, then brown)")
+		panel._choose("skin", "pale")
+		panel._step("skin", -1)
+		_verdict(PartsLook.option_of(lab.player.look, "skin") == "undead", "and the one before the first is the last (round the list)")
+		panel._randomize()
+		_verdict(PartsLook.is_valid(lab.player.look) and Net.look_of(Net.my_id()) == lab.player.look, "Random makes a wizard of parts, worn at once")
+		panel._choose("hat", "hood")
+		panel._choose("weapon", "wand")
 		for k in 3:
 			await get_tree().process_frame
 		if out != "":
@@ -100,7 +109,7 @@ func _ready() -> void:
 	add_child(next)
 	for k in 5:
 		await get_tree().process_frame
-	_verdict(next.player.look == "pyre_wizard" and next.player.palette == 2, "the next visit has them as they chose")
+	_verdict(next.player.look == Net.look_of(Net.my_id()) and next.player.look == GameSettings.get_value("look") and PartsLook.option_of(next.player.look, "hat") == "hood", "the next visit has them as they chose")
 	DirAccess.remove_absolute(GameSettings.path)
 	print("ALL PASSED" if _failures == 0 else "%d FAILED" % _failures)
 	get_tree().quit(1 if _failures > 0 else 0)

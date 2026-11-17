@@ -52,7 +52,7 @@ func _cross(world: World, entry: Dictionary, seed_value: int) -> bool:
 	world.player.take_damage(100000)  # the player stands down
 	var body: Wizard = null
 	for found: Wizard in tree.get_nodes_in_group("wizards"):
-		if found.look == "dark_wizard":
+		if found == world.seats[1]:  # (the second seat: the one that was the dark wizard, when the seats had figures of their own)
 			body = found
 		elif found != world.player:
 			found.queue_free()

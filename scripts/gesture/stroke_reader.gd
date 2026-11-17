@@ -43,7 +43,7 @@ func _read_shapes(relative: PackedVector2Array, origin: Vector2, options: Dictio
 	if seen["thunder"]:
 		return reading.claim("thunderclap")  # a cloud, and a bolt of lightning down out of it
 	if not seen["flame_wall"].is_empty():
-		return reading.claim("flame_wall", {"line": to_world.call(seen["flame_wall"])})  # a line up and a line out: a wall of flame as wide as the second line
+		return reading.claim("flame_wall", {"line": to_world.call(seen["flame_wall"])})  # a line across and a line up from its end: a wall of flame as wide as the first line
 	if reading.latin:
 		return reading.claim("latin_cross")  # an upright stem with a bar across it, nearer the top: read before the recognizer's guess
 	if not seen["hail"].is_empty():  # a ring, a line out of it and a line down: a Hailstorm, the cloud running from the ring to the bend
@@ -110,7 +110,7 @@ func _detect(relative: PackedVector2Array, options: Dictionary, reading: StrokeR
 	return {
 		"portrait": options.has("portrait") and StrokeShapes.is_portrait_box(relative),
 		"thunder": options.has("thunderclap") and StrokeShapes.is_thunderclap(relative),
-		"flame_wall": StrokeShapes.up_and_out(relative) if options.has("flame_wall") else PackedVector2Array(),
+		"flame_wall": StrokeShapes.across_and_up(relative) if options.has("flame_wall") else PackedVector2Array(),
 		"hail": StrokeShapes.hailstorm(relative) if options.has("hailstorm") else {},
 		"feather": feather,
 		"spiral": spiral,

@@ -4,7 +4,7 @@ extends Node
 ## wizard's body at the start, sends it along the move, and sees whether it gets to the end within a few seconds. Reports how often each kind
 ## of move works, and the first few that do not (with a picture of the map round them). It needs the game's own scenes, so it runs as a scene:
 ##
-##     godot --headless --path . --fixed-fps 60 tests/checks/route_check.tscn -- seed=7 moves=400 look=dark_wizard
+##     godot --headless --path . --fixed-fps 60 tests/checks/route_check.tscn -- seed=7 moves=400 look=parts:1:...
 ## It exits with code 1 when any kind of move works less than MIN_RATE of the time.
 
 const MIN_RATE := 0.9
@@ -13,7 +13,7 @@ const SHOW := 3  # failures to draw for each kind
 
 var seed_value := 7
 var count := 400
-var look := "dark_wizard"
+var look := ""  # the wizard to try: by default the second seat's
 var _trace := []  # trace=X,Y,TX,TY follows one move and prints where the body is on the way
 var _world: World
 var _on_ledges := 0  # moves that ended on a tree's ledge, over where they were to land
@@ -40,10 +40,10 @@ func _ready() -> void:
 	_world.player.hide()
 	var body: Wizard = null
 	for found: Wizard in get_tree().get_nodes_in_group("wizards"):
-		if found.look == look:
+		if (look == "" and found == _world.seats[1]) or (look != "" and found.look == look):
 			body = found
 	if body == null:
-		print("FAIL  no %s in the world" % look)
+		print("FAIL  no wizard to try (%s) in the world" % look)
 		get_tree().quit(1)
 		return
 	for other: Wizard in get_tree().get_nodes_in_group("wizards"):  # the others are put away: a rival that casts at the one being tried (a push, a geyser) spoils the move

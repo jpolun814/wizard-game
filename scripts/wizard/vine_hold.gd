@@ -9,6 +9,7 @@ const RETRY := 0.3  # after letting go, a vine cannot be grabbed again for this 
 var wizard: Wizard
 var _vine: Node2D  # the vine the wizard is hanging on, if any
 var _cooldown := 0.0
+var _moved := 0.0  # above zero for a moment after the wizard last climbed up or down
 
 
 func _init(owner_wizard: Wizard) -> void:
@@ -17,6 +18,17 @@ func _init(owner_wizard: Wizard) -> void:
 
 func tick(delta: float) -> void:
 	_cooldown -= delta
+	_moved = maxf(_moved - delta, 0.0)
+
+
+## True while the wizard hangs on a vine.
+func hanging() -> bool:
+	return _vine != null and is_instance_valid(_vine)
+
+
+## True while the wizard goes up or down the vine they hang on (and not while they hang still).
+func moving() -> bool:
+	return _moved > 0.0
 
 
 ## Takes the whole frame's movement while the wizard is on a vine, and says so.
@@ -48,7 +60,9 @@ func climb() -> bool:
 		_vine = null
 		_cooldown = RETRY
 		return false
-	wizard.global_position.x = lerpf(wizard.global_position.x, _vine.vine_x(), 0.4)
+	wizard.global_position.x = _vine.vine_x() if absf(wizard.global_position.x - _vine.vine_x()) < 8.0 else lerpf(wizard.global_position.x, _vine.vine_x(), 0.7)  # at once, not a slide onto the vine
 	wizard.velocity = Vector2(0.0, (1.0 if down else 0.0) * CLIMB_SPEED - (1.0 if up else 0.0) * CLIMB_SPEED)
+	if up != down:
+		_moved = 0.15
 	wizard.move_and_slide()
 	return true

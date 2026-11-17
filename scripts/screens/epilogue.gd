@@ -8,6 +8,7 @@ extends CutScene
 const ROOM := "res://scenes/lab.tscn"
 const FLOOR_Y := float(ArenaGen.GROUND_Y)
 const STAND_X := 0.0
+const STAND_Y := FLOOR_Y - Podium.TOP_ROWS * float(Podium.TILE)  # the stand is on the top of the stairs, as in the waiting room
 const WINNER_FROM := -520.0
 const WINNER_AT := -78.0  # where the winner stands to work at the stand: just in reach of its face
 const RUN := 330.0
@@ -49,8 +50,9 @@ func _ready() -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 17
 	Hall.build(self, rng)
+	add_child(Podium.new(STAND_X, FLOOR_Y))
 	_lectern = Lectern.new()
-	_lectern.position = Vector2(STAND_X, FLOOR_Y)
+	_lectern.position = Vector2(STAND_X, STAND_Y)
 	_lectern.monitoring = false
 	add_child(_lectern)
 	_lectern.book.visible = false  # the book is not on its stand: it is in the winner's keeping
@@ -75,9 +77,9 @@ func _ready() -> void:
 	_build_overlay()
 	_cue(0.0, func() -> void: _fade(0.0, 0.7))
 	_cue(0.2, _walk_in)
-	_cue(1.0, _shot.bind(Vector2(STAND_X - 40.0, FLOOR_Y - 75.0), 2.5, 1.2))
+	_cue(1.0, _shot.bind(Vector2(STAND_X - 40.0, STAND_Y - 75.0), 2.5, 1.2))
 	_cue(2.2, _set_the_book_down)
-	_cue(2.9, _shot.bind(Vector2(STAND_X + 6.0, FLOOR_Y - 32.0), 5.0, 0.9))  # in close on the face of the stand, where the work is done
+	_cue(2.9, _shot.bind(Vector2(STAND_X + 6.0, STAND_Y - 32.0), 5.0, 0.9))  # in close on the face of the stand, where the work is done
 	_cue(3.0, _bring_the_hammer)
 	for k in BLOWS.size():
 		_cue(BLOWS[k], _strike.bind(k))
@@ -104,23 +106,22 @@ func _carried_rest() -> Vector2:
 
 ## The winner, in whatever look they had in the match.
 func _build_winner() -> void:
-	var art := "wizard"
-	var size := 1.0
-	if look != "wizard":
-		var data: MobKind = Mob.KINDS[look]
-		art = data.art
-		size = WizardLook.scale_of(look, data.scale)
 	_winner = Node2D.new()
 	_winner.position = Vector2(WINNER_FROM, FLOOR_Y)
 	_winner.z_index = 2
 	_sprite = AnimatedSprite2D.new()
-	_sprite.sprite_frames = CharFrames.build("res://art/chars/" + art, Wizard.animations_for(art))
-	_sprite.offset = Vector2(0.0, -PixelArt.CHARACTERS[art]["size"].y * 0.5)
-	_sprite.scale = Vector2.ONE * size
-	_sprite.material = WizardLook.material_for(look, palette)
+	var magic := WizardLook.dress_sprite(_sprite, look, palette)
 	_sprite.play("idle")
 	_winner.add_child(_sprite)
+	if magic != null:
+		magic.paint(SpellData.SCHOOL_COLORS["Fire"])  # (a gem that has cast no spell shows a school of its own; the winner's shows the fire that the book has)
+		_winner.add_child(magic)
 	add_child(_winner)
+
+
+## Puts the winner at an x position, on the ground or on whichever step is under them.
+func _stand_at(x: float) -> void:
+	_winner.position = Vector2(x, Podium.top_at(x, STAND_X, FLOOR_Y))
 
 
 func _walk_in() -> void:
@@ -128,8 +129,18 @@ func _walk_in() -> void:
 	_sprite.flip_h = false
 	_sprite.play("run")
 	var tween := create_tween()
-	tween.tween_property(_winner, "position:x", WINNER_AT, (WINNER_AT - WINNER_FROM) / RUN)
+	tween.tween_method(_stand_at, WINNER_FROM, WINNER_AT, (WINNER_AT - WINNER_FROM) / RUN)  # up the stairs, as far as the step they work from
 	tween.tween_callback(func() -> void: _sprite.play("idle"))
+
+
+## A winner made of parts has an animation for winning: they play it once the book is on its stand, and then stand as they were.
+func _celebrate() -> void:
+	if not PartFrames.ensure(_sprite.sprite_frames, "victory"):
+		return
+	_sprite.play("victory")
+	await _sprite.animation_finished
+	if is_instance_valid(_sprite):
+		_sprite.play("idle")
 
 
 ## The book floats from the winner's side to its place on the stand, and settles there with its glow.
@@ -143,6 +154,7 @@ func _set_the_book_down() -> void:
 		_carried_aura.queue_free()
 		_lectern.book.visible = true
 		_lectern.wake()
+		_celebrate()
 		Sfx.play("book_close", top)
 		Fx.burst(self, top + Vector2(0.0, -30.0), Color("#b070ff"), 24, 110.0, 0.8, true)
 		Fx.smoke(self, top, Color(0.5, 0.2, 0.75, 0.7), 10, 30.0, 50.0))

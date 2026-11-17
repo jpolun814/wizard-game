@@ -23,7 +23,7 @@ const HEAL_AFTER := 4.0  # seconds without a hit before health starts coming bac
 ## between a stone post and a tall wall with the nine crystals that set the level of the AI wizards (LevelWall), where a partner fights whoever stands on it. The
 ## rest of the room is moved right to make room for it. The book is at the far right end as ever.
 const SHIFT := 18          # how far right the rest of the room moves (three chunks wider, for the court)
-const EXTRA_CHUNKS := 3
+const EXTRA_CHUNKS := 4    # three for the court, and one more at the right end, for the stairs the book stands on
 const COURT := Vector2i(-36, -12)   # the raised stone floor, with its slopes
 const COURT_ROWS := 1.0           # how high the floor is raised
 const COURT_GATE := -14            # the stone post at the way out of the court
@@ -72,6 +72,8 @@ func _build_map() -> Variant:
 	_dig(heights, _at(GAP), GAP_ROWS)
 	_dig(heights, _at(POND), PIT_ROWS)
 	_dig(heights, _at(HILL), -HILL_ROWS)
+	for col in range(_podium_col() - 5, _podium_col() + 6):
+		heights[col - ArenaGen.FIRST_COL] = 0.0  # level ground for the stairs the pedestal stands on
 	if _on_its_own():
 		_dig(heights, COURT, -COURT_ROWS)
 	var cells := ArenaGen.build(_rng, heights)
@@ -283,7 +285,7 @@ func _spawn_partner() -> void:
 	if _partner != null and is_instance_valid(_partner):
 		_partner.queue_free()  # (never two)
 	var feet := Vector2(ArenaGen.column_x(SPAR_COL), _floor_y(SPAR_COL))
-	_partner = add_wizard("dark_wizard", feet)
+	_partner = add_wizard(PartsLook.seeded_look(2024), feet)  # (its own look: not the player's)
 	_partner.ledger = Ledger.new()
 	_partner.ledger.learn_all()  # (the book is at the far end of the room, so nothing it casts can carry the player into it)
 	_partner.nav = nav
@@ -386,12 +388,21 @@ func _open_likeness() -> void:
 	add_child(_making)
 
 
+## The middle column of the stairs, in from the wall at the far end of the room.
+func _podium_col() -> int:
+	return ArenaGen.right_wall - 7
+
+
 ## The book stands on its stand at the far end of the room.
 func _place_lectern() -> void:
 	_lectern = Lectern.new()
 	var far_right: bool = player.global_position.x < 0.0
-	var col := ArenaGen.right_wall - 3 if far_right else ArenaGen.LEFT_WALL + 3
-	_lectern.position = Vector2(ArenaGen.column_x(col), ArenaGen.surface_y(_cells, col))
+	var col := _podium_col() if far_right else ArenaGen.LEFT_WALL + 3
+	var floor_y := ArenaGen.surface_y(_cells, col)
+	if far_right:
+		add_child(Podium.new(ArenaGen.column_x(col), floor_y, true))  # the pedestal stands on stairs, as in the cut-scene that follows
+		floor_y -= Podium.TOP_ROWS * float(Podium.TILE)
+	_lectern.position = Vector2(ArenaGen.column_x(col), floor_y)
 	_lectern.add_to_group(&"exit_points")  # where a brain goes when there is nothing left to take
 	_lectern.body_entered.connect(_on_book_touched)
 	add_child(_lectern)

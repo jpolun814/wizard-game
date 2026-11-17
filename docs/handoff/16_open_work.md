@@ -5,40 +5,34 @@ is in git. Any player-facing line follows section 0 of `CLAUDE.md`, and no new s
 
 ## Waiting on the owner
 
-- **Stand-in art:** the small shots of Barbs, Pebble, Hailstorm and Insect Plague (`art/fx/thorn.png`, `pebble.png`, `hailstone.png`, `insect.png`, drawn by
-  `tools/make_shot_art.py`) and the Leech tether (soft round beads) are not a final look.
-- **Push's line** ("Blast out a rush of air that shoves everything in its path.") waits for the owner's words.
 - **More attacking spells** (about 60% of spells able to do damage was the aim): on hold. Propose ideas as `CLAUDE.md` section 6 says; build only what the owner picks.
 
 ## Bugs and known failures
 
-- **A page out of sync in a network game.** One cause was found and fixed (2026-11-13): Tab read the first page under the wizard, so a page the book already held stood between the wizard and a new one lying within reach, for good (`PagePickup.underfoot`, `page_underfoot_check`). `net_match_check` now also has the person who joined read a fan of starting pages and a page in the second world: both work. Not reproduced for ordinary pages otherwise. The lead is the Mirage: each machine spawns its own, with a node name of its own, so a
-  read found by name (`_page_read`) cannot find it on the other machine. Fix idea: the host decides when it shimmers out and in and sends it by name, and a spawned
-  Mirage gets the same name everywhere (the caster's name and a count).
 - **`test_world` (full set):** on seeds 7, 15 and 23 the rooms next to the start of a 1200-wide world with halls cannot be reached. It fails the same way at the start of
   2026-11-12, before that day's work; not looked into.
 - **`tutorial_ai_check` (a long run by hand, in neither set):** the AI wizard now puts the giant to sleep and goes on (a gate it had already cleared was chosen again and again), but stops at the first pond of piranhas, column 22. It stands at the edge with a Frost Bridge cast and does not cross; the likely cause is `BrainDanger.in_shoal` still seeing the bridged water as bitten, so `follow_route` waits. It takes about 1100 seconds of the match to run the tutorial through, which is why it is not in a set.
-- **Intermittent:** `brain_spells_check` now and then fails one spell (Tornado reaching the rival's ledge, Mirage, Faint) and passes on the second try;
-  `net_spells_check`'s "the one on the tether pays the other half" under full-set load.
-- **The death animation** still shows a staff.
-- **The opening cut-scene** shows ten wizards (`scripts/screens/intro.gd`, `WIZARDS` and `EXTRAS`); a match has eight.
+- **`brain_spells_check`, by the dice** (2026-11-16): a brain's dice are now drawn from the global ones (`WizardBrain`: `rng.seed = randi()`), so `-- dice=N` brings a failure back
+  exactly. Hunter's Mark (the rival was put over a gap and fell out of the world) and Mirage (the real page it needs was out of its sight) failed because of the scenes, and are fixed.
+  Not fixed: Push (about half the dice), Tornado and Spore Puff (now and then) never get up to the rival's ledge, or never cast, in the 60 seconds. The wizard is in fight
+  mode (`BrainCombat.footwork`) and runs at the rival under the ledge without leaping or lifting; the "page" in its status is only its last journey, not the cause. The run
+  that `python tools/run_checks.py` makes is `dice=0`, which fails all three: try `-- only=Push dice=0`.
+- **Intermittent:** `net_spells_check`'s "the one on the tether pays the other half" under full-set load.
 
 ## Easing in new players (settings, not modes)
 
-The owner prefers settings to easy and hard modes. Built: Rival skill (Easy, Normal, Hard) on the Settings page. Not built: the number of wizards (2 to 8; the host's
-choice in a network game; `WorldGraph.PLAYERS` is a constant used widely), a small list of the spells held with their shapes (a non-diegetic aid), faster regeneration
-for the person, fewer worlds or a slower collapse, one extra starting page. A "which spell now?" drill in the tutorial could come later.
+The owner prefers settings to easy and hard modes. Built: Rival skill (Easy, Normal, Hard) on the Settings page. The owner (2026-11-16) turned down the ideas
+proposed so far (a smaller wizard count, a list of the spells held with their shapes, and the like): ask before building any aid.
 
 ## Competitive play and ranks (owner, 2026-11-06)
 
 - **Custom and competitive matches,** as in Rocket League: a custom match lets every setting be changed; a competitive one uses one fixed set (eight wizards, standard
   rival skill, no aids, standard regeneration and collapse), the same for everyone, and only it counts toward rank. It needs a choice on the first screen and in the
   host's lobby, the settings sent to every machine, and `Library` recording the match type.
-- **Ranks:** a title of two parts, a tier (the Wizard101 levels, such as Novice, Master and Grandmaster; confirm the list with the owner) and the school favoured, as
-  in "Grandmaster Pyromancer". The owner's answers: the favoured school counts **casts that hit** only; the rating rises on a good result and falls on a bad one
-  (an Elo summed over every pair of wizards by finishing place, or a Glicko or TrueSkill style rating, so new players move fast at first); the tier, not the number, is
-  shown; AI wizards wear made-up titles for show and never touch the rating. Clients are trusted, so a rating is only fair among friends: say so, build no anti-cheat.
-  Order: the custom and competitive split first, then the rating and tier, then the school.
+- **Ranks:** a tier only, from the Wizard101 levels (Novice, Master, Grandmaster and so on; confirm the list with the owner). There is no favored school (owner, 2026-11-16: "just
+  grandmaster, not grandmaster pyromancer"). The rating rises on a good result and falls on a bad one (an Elo summed over every pair of wizards by finishing place, or a Glicko or
+  TrueSkill style rating, so new players move fast at first); the tier, not the number, is shown; AI wizards wear made-up titles for show and never touch the rating. Clients are
+  trusted, so a rating is only fair among friends: say so, build no anti-cheat. Order: the custom and competitive split first, then the rating and tier.
 
 ## The server (owner, 2026-11-06)
 

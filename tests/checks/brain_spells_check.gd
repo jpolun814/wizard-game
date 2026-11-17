@@ -14,8 +14,8 @@ const SCENES := {
 	"Icicles": {"ceiling": true},
 	"Flare": {"dark": true}, "Glowcap": {"dark": true}, "Moonbeam": {"dark": true},
 	"Adrenaline": {"tired": true}, "Sneak": {"low": true},
-	"Hunter's Mark": {"gap": 720.0},
-	"Mirage": {"gap": 330.0, "page": true, "page_at": -300.0, "page_spell": "Mirage", "hold": true, "strong": true, "seed": 3},  # a rival some way off (in sight), and a real page for the false one to pass for (one it holds already: a page it wanted, it would go and take first, and then none would be left to pass for)
+	"Hunter's Mark": {"gap": 720.0, "seed": 4},
+	"Mirage": {"gap": 330.0, "page": true, "page_at": 150.0, "page_spell": "Mirage", "hold": true, "strong": true, "seed": 3},  # a rival some way off (in sight), and a real page for the false one to pass for (one it holds already: a page it wanted, it would go and take first, and then none would be left to pass for)
 	"Scythe": {"gap": 80.0, "rush": true}, "Thunderclap": {"gap": 120.0, "rush": true}, "Silence": {"gap": 270.0}, "Tide Surf": {"gap": 220.0},
 	"Stone Wall": {"shot_at": true}, "Smoke Screen": {"shot_at": true}, "Decoy": {"shot_at": true}, "Crimson Veil": {"shot_at": true},
 	"Obsidian Armor": {"shot_at": true}, "Eclipse": {"shot_at": true, "gap": 300.0, "seed": 3, "hold": true},
@@ -89,6 +89,18 @@ func _ready() -> void:
 	get_tree().quit(1 if _failures > 0 else 0)
 
 
+## How far from the wizard the rival can stand: the wanted gap, or the nearest less than it where the ground is as high as the wizard stands (a world has gaps
+## and hollows, and a rival put over one falls out of the world, or stands where it cannot be seen).
+func _level_gap(world: World2D, spot: Vector2, wanted: float) -> float:
+	var reach := wanted
+	while reach > 60.0:
+		var ground := SpellTargets.ground_below(world, spot + Vector2(reach, -200.0), 600.0)
+		if absf(ground.y - spot.y) < 6.0:
+			return reach
+		reach -= 10.0
+	return wanted
+
+
 ## One spell, in a fresh world: the wizard that holds it and a rival, on level ground.
 func _try(spell_name: String) -> void:
 	var scene: Dictionary = SCENES.get(spell_name, {})
@@ -129,6 +141,8 @@ func _try(spell_name: String) -> void:
 	var gap: float = scene.get("gap", 220.0)
 	tester.global_position = spot
 	tester.velocity = Vector2.ZERO
+	if gap >= 600.0:
+		gap = _level_gap(rival.get_world_2d(), spot, gap)
 	rival.global_position = spot + Vector2(gap, 0.0)
 	rival.velocity = Vector2.ZERO
 	rival.brain = ShootingBrain.new(rival) if scene.get("shot_at", false) else QuietBrain.new(rival)
@@ -207,7 +221,9 @@ func _try(spell_name: String) -> void:
 		else:
 			done = tester.last_spell == spell_name
 	var how := "reached the rival's ledge" if scene.get("up", false) else "cast it"
-	_verdict(done, "%s: the brain %s (%.1f s; %s)" % [spell_name, how, time, (tester.brain as WizardBrain).status() if is_instance_valid(tester) else "gone"])
+	var ended := "" if done or time >= SECONDS else (" ended early: the wizard under test is gone" if not is_instance_valid(tester) else (" ended early: the wizard under test is dead (stamina %.0f of %.0f)" % [tester.stamina, tester.max_stamina] if tester.dead else " ended early: the rival is gone"))
+	var style: String = (tester.brain as WizardBrain).style if is_instance_valid(tester) and tester.brain is WizardBrain else "?"
+	_verdict(done, "%s: the brain %s (%.1f s; %s; style %s)%s" % [spell_name, how, time, (tester.brain as WizardBrain).status() if is_instance_valid(tester) else "gone", style, ended])
 	world.queue_free()
 	await tree.process_frame
 

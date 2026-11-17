@@ -51,6 +51,7 @@
 | Spellbook | Foxel Games, Pixel Art Book | foxeldev.itch.io/pixelbooks |
 | Fonts | Jersey 15 and Jacquard 24 (OFL) | fonts.google.com, via github.com/google/fonts raw files |
 | Soft glows, sparks, smoke under the pixel FX | Kenney, Particle Pack | kenney.nl/assets/particle-pack |
+| The character creator's wizard parts (`art/parts`, `art_source/parts_sheets`) | Generated in this repo by `tools/wizard_parts/` (an IK rig painting shaded shapes, 2026-11-17); original, the owner's. Only the style of the LuizMelo player wizard was matched, nothing traced or recolored | chapter 20 |
 
 **Also worth checking for more:**
 - More LuizMelo packs ("Hero Knight", "Fantasy Warrior", "Medieval King", "Martial Hero", "Huntress").

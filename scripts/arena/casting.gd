@@ -53,6 +53,7 @@ func by(spell: String, targeting: String, origin: Vector2, aim: float, info: Dic
 			MatchStats.miss()
 		return
 	wizard.last_spell = spell
+	wizard.show_cast(spell, _toward(targeting, origin, aim, wizard))
 	cast_made.emit(spell, origin, aim, wizard)
 	if person:
 		FloatText.spawn(arena, label_at, spell, color.lightened(0.25), 0.9)
@@ -143,3 +144,11 @@ func _flourish(color: Color) -> void:
 	Fx.burst(arena, at, color.lightened(0.6), 14, 170.0, 0.5, true, "star_04")
 	FloatText.spawn(arena, at + Vector2(0, -52), "Perfect", Color("#ffe27a"), 1.0)
 	Sfx.play("pickup", at, -6.0)
+
+
+## Which way a spell goes from the wizard, as a sign (0 when it goes nowhere in particular): where it was aimed, or where it was put.
+func _toward(targeting: String, origin: Vector2, aim: float, wizard: Wizard) -> float:
+	var gap := origin.x - wizard.global_position.x
+	if targeting in ["directional", "pointed", "angled", "cone"]:
+		return signf(cos(aim))
+	return signf(gap) if absf(gap) > 24.0 else 0.0

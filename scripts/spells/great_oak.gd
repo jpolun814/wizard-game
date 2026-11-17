@@ -37,7 +37,8 @@ func _ready() -> void:
 	_picture.z_index = -1
 	add_child(_picture)
 	var trunk := Sprite2D.new()
-	trunk.texture = TREE
+	var themed := "res://art/props/great_oak_%s.png" % ArenaGen.biome_name_at(global_position.x)  # it grows in the colors of the world it is cast in
+	trunk.texture = load(themed) if ResourceLoader.exists(themed) else TREE
 	trunk.scale = Vector2.ONE * SIZE
 	trunk.position = Vector2(12.0 * SIZE, -HEIGHT * 0.5)
 	_picture.add_child(trunk)

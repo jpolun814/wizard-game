@@ -190,7 +190,7 @@ func _init(body: Wizard) -> void:
 	danger = BrainDanger.new(self, body)
 	sight = BrainSight.new(self, body)
 	profile = BrainProfile.new(self, body)
-	rng.randomize()
+	rng.seed = randi()  # from the global dice, which a game starts at random and a test can set, so that a run it sees fail comes again
 	skill = GameSettings.rival_skill()
 	style = ["aggressive", "sniper", "trapper", "turtle"][rng.randi() % 4]
 

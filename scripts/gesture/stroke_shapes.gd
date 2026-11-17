@@ -311,8 +311,9 @@ static func cone(points: PackedVector2Array) -> Dictionary:
 	return {"aim": ((a + b) * 0.5 - tip).angle(), "spread": spread, "reach": first + second}
 
 
-## A line up and then a line out to either side, each straight: returns where it began, where it turned and where it ended, or nothing.
-static func up_and_out(points: PackedVector2Array) -> PackedVector2Array:
+## A line across and then a line up from its end, each straight: the ground the flames stand on, and the flames rising from it. Returns where it began, where it
+## turned and where it ended, or nothing. (It may go either way across.)
+static func across_and_up(points: PackedVector2Array) -> PackedVector2Array:
 	if points.size() < 6:
 		return PackedVector2Array()
 	var a := points[0]
@@ -327,21 +328,34 @@ static func up_and_out(points: PackedVector2Array) -> PackedVector2Array:
 		if away > far:
 			far = away
 			corner = i
-	var up := points.slice(0, corner + 1)
-	var out := points.slice(corner)
-	if up.size() < 2 or out.size() < 2:
+	var across := points.slice(0, corner + 1)
+	var rising := points.slice(corner)
+	if across.size() < 2 or rising.size() < 2:
 		return PackedVector2Array()
-	var rise := points[corner] - a
-	var run := b - points[corner]
-	if rise.length() < 30.0 or run.length() < 30.0:
+	var run := points[corner] - a
+	var rise := b - points[corner]
+	if run.length() < 30.0 or rise.length() < 30.0:
 		return PackedVector2Array()
-	if rise.y >= 0.0 or absf(rise.x) > absf(rise.y) * 0.55:
-		return PackedVector2Array()  # the first line goes up
 	if absf(run.y) > absf(run.x) * 0.55:
-		return PackedVector2Array()  # and the second goes out, level
-	if StrokeMeasure.max_deviation(up) > rise.length() * 0.2 or StrokeMeasure.max_deviation(out) > run.length() * 0.2:
-		return PackedVector2Array()  # and each is straight
+		return PackedVector2Array()  # the first line goes across, level
+	if rise.y >= 0.0 or absf(rise.x) > absf(rise.y) * 0.55:
+		return PackedVector2Array()  # and the second goes up
+	# and each is straight, judged away from the bend itself: a hand rounds the corner, and that is not a crooked line
+	var across_line := _without_the_end(across, true, run.length() * 0.35)
+	var rising_line := _without_the_end(rising, false, rise.length() * 0.35)
+	if StrokeMeasure.max_deviation(across_line) > run.length() * 0.2 or StrokeMeasure.max_deviation(rising_line) > rise.length() * 0.2:
+		return PackedVector2Array()
 	return PackedVector2Array([a, points[corner], b])
+
+
+## The points of a line without the stretch of up to `reach` along it at one end (the end where a corner was turned).
+static func _without_the_end(points: PackedVector2Array, at_last: bool, reach: float) -> PackedVector2Array:
+	var corner := points[points.size() - 1] if at_last else points[0]
+	var out := PackedVector2Array()
+	for point in points:
+		if point.distance_to(corner) > reach:
+			out.append(point)
+	return out if out.size() >= 2 else points
 
 
 ## How close a stroke is to the spell's own picture, from 0 to 1. Shapes the recognizer matched report its score; shapes

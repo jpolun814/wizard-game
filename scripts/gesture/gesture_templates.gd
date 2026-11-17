@@ -143,7 +143,7 @@ static func preview_points(gesture: String) -> PackedVector2Array:
 		"eclipse":
 			return _eclipse(false, false)
 		"flame_wall":
-			return _up_and_out()
+			return _across_and_up()
 		"pentagram":
 			return _pentagram(0, false)
 		"lungs":
@@ -415,13 +415,13 @@ static func _pentagram(start: int, ccw: bool) -> PackedVector2Array:
 	return pts
 
 
-## A line up and then a line out along the top, in one stroke: the height of the flames, then the width of the wall.
-static func _up_and_out() -> PackedVector2Array:
+## A line along the ground and then a line up from its end, in one stroke: the width of the wall, then the height of the flames.
+static func _across_and_up() -> PackedVector2Array:
 	var pts := PackedVector2Array()
-	for i in range(9):
-		pts.append(Vector2(0.0, 40.0 - 80.0 * i / 8.0))
-	for i in range(1, 13):
-		pts.append(Vector2(120.0 * i / 12.0, -40.0))
+	for i in range(13):
+		pts.append(Vector2(120.0 * i / 12.0, 40.0))
+	for i in range(1, 9):
+		pts.append(Vector2(120.0, 40.0 - 80.0 * i / 8.0))
 	return pts
 
 

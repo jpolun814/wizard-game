@@ -194,3 +194,9 @@ GODOT="/c/Users/Jordan Polun/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.
 - **Other scenarios:** `world`, `kinds`, `ui` (portal, spellbook pages, pause, game over), `wizard` (a duel), `brawl`, and the other scenarios named at the top of `tests/looks/showcase.gd`.
 
 - `tests/checks/ai_drills_check.gd` (quick set): situation drills for the AI. Each builds one small scene in the waiting room (a rival drawing a boulder over the partner, standing at a ledge, frozen, behind a Barrier) and asks the partner's brain what it would do, with the idea on and with it off (`AI_OFF=read,terrain,shatter,shield,kit,brace,rocket,water,window,burn,landing,habit,stone,ambush,decoy,reserve,recover,thicket,range_memory,caution`, `BrainProfile.off`). It reads the brain's choice, not its legs, so it is quick and steady. Add a drill here for every new sensible thing the AI is taught: `-- name` runs one. The room's `hold_partner` keeps the partner where a drill puts it.
+
+
+## The character creator (2026-11-17)
+`parts_check` (every packed layer, every option, pixel match with the art's reference sheet, look strings, all 46 animations, timings) and `pose_check` (the state of the body -> the animation, the magic layer
+keeping to the body, the gem's color) are in the quick set. Pictures: `tests/looks/parts_look.tscn -- out=DIR scenario=lineup|anims|magic|memory`. `brain_spells_check` shards 1 and 3 failed in the same
+spells (Push, Tornado, Spore Puff) with the creator switched off too, while the working tree held another session's unfinished brain edits: not caused by it, but not shown to pass either.

@@ -1,6 +1,6 @@
 extends Check
-## Plays the opening cut-scene and checks it: the camera runs with the first wizard, ten wizards square up round a pile of pages and fight over it,
-## six fall, and the four left are pulled into the tearing portal after the pages; and the hand-over when it ends or is skipped. Pass `-- mode=skip` to press a key part-way through; `out=DIR` saves pictures (they need
+## Plays the opening cut-scene and checks it: the camera runs with the first wizard, sixteen wizards square up round a pile of pages and fight over it,
+## eight fall, and the eight of the match are pulled into the tearing portal after the pages; and the hand-over when it ends or is skipped. Pass `-- mode=skip` to press a key part-way through; `out=DIR` saves pictures (they need
 ## a window, so leave off --headless).
 ##
 ##     godot --path . tests/checks/intro_check.tscn -- out=C:/some/dir
@@ -13,7 +13,7 @@ var _mode := "full"
 var _done_at := -1.0
 var _pressed := false  # the key that skips the scene has been pressed
 var _clock := 0.0
-var _shots := [0.5, 1.4, 2.2, 3.0, 4.2, 5.5, 6.3, 7.8, 8.6, 9.6, 10.4, 11.2]
+var _shots := [0.5, 1.4, 2.2, 3.4, 4.2, 5.0, 5.6, 6.0, 7.8, 9.6, 11.2]
 var _checks := {}  # seconds -> Callable
 
 
@@ -40,9 +40,9 @@ func _ready() -> void:
 		1.0: _check_camera_runs_with_the_first,
 		1.5: _check_set,
 		4.8: _check_ring,
-		5.3: _check_camera_shows_the_ring,
+		5.9: _check_camera_shows_the_ring,
 		5.3001: _check_pile_still_there,
-		7.4: _check_the_six_have_fallen,
+		7.4: _check_the_eight_have_fallen,
 		12.5: _check_pile_gone,
 		12.7: _check_all_in,
 	}
@@ -93,24 +93,18 @@ func _pages_in_view() -> Array[Sprite2D]:
 
 
 func _check_set() -> void:
-	_verdict(_intro._wizards.size() == 4 and _intro._extras.size() == 6, "ten wizards are in the hall: four, and six more (%d, %d)" % [_intro._wizards.size(), _intro._extras.size()])
-	var frames := {}
-	for wizard in _intro._wizards:
-		var sprite: AnimatedSprite2D = wizard.get_child(0)
-		frames[sprite.sprite_frames] = true
-		_verdict(sprite.sprite_frames.has_animation(sprite.animation), "wizard animation '%s' exists" % sprite.animation)
-	_verdict(frames.size() == 4, "the four wizards each have a look of their own (%d)" % frames.size())
-	var figures := {}
+	_verdict(_intro._wizards.size() == WorldGraph.PLAYERS and _intro._extras.size() == 8, "sixteen wizards are in the hall: the eight of the match, and eight more (%d, %d)" % [_intro._wizards.size(), _intro._extras.size()])
+	var seats := _intro._seat_styles()
+	var worn := {}  # what each of the sixteen wears: the parts it is made of
 	for wizard in _intro._wizards + _intro._extras:
-		var texture: Texture2D = (wizard.get_child(0) as AnimatedSprite2D).sprite_frames.get_frame_texture("idle", 0)
-		figures[texture.resource_path] = true
-	var seen := 0
-	for look: String in WizardLook.LOOKS:
-		for path: String in figures:
-			if path.begins_with("res://art/chars/" + look + "/") or path.begins_with("res://art/chars/" + look + "_"):
-				seen += 1
-				break
-	_verdict(seen == WizardLook.LOOKS.size(), "all %d figures are among the ten (%d)" % [WizardLook.LOOKS.size(), seen])
+		var sprite: AnimatedSprite2D = wizard.get_child(0)
+		worn[sprite.sprite_frames.get_meta("look", "")] = true
+	_verdict(worn.size() == 16 and not worn.has(""), "no two of the sixteen are made alike, and every one is made of parts (%d different)" % worn.size())
+	var glows := 0
+	for wizard in _intro._wizards + _intro._extras:
+		if wizard.magic != null and wizard.magic.visible:
+			glows += 1
+	_verdict(glows == 16, "and each has the glow of its staff over it (%d)" % glows)
 	_verdict(_pages_in_view().size() == Intro.PAGES_IN_PILE, "a pile of %d pages lies on the floor (%d)" % [Intro.PAGES_IN_PILE, _pages_in_view().size()])
 
 
@@ -126,18 +120,18 @@ func _check_camera_shows_the_ring() -> void:
 	_verdict(_intro._camera.zoom.x < 2.0 and absf(_intro._camera.position.x - Intro.PILE_X) < 60.0, "the camera has pulled back to show the whole ring (zoom %.1f, at %.0f)" % [_intro._camera.zoom.x, _intro._camera.position.x])
 
 
-func _check_the_six_have_fallen() -> void:
+func _check_the_eight_have_fallen() -> void:
 	var down := 0
 	for wizard in _intro._extras:
 		var sprite: AnimatedSprite2D = wizard.get_child(0)
 		if sprite.animation == "death":
 			down += 1
-	_verdict(down == 6, "all six of the others have fallen (%d)" % down)
+	_verdict(down == 8, "all eight of the others have fallen (%d)" % down)
 	var up := 0
 	for wizard in _intro._wizards:
 		if wizard.alive:
 			up += 1
-	_verdict(up == 4, "and the four are still standing (%d)" % up)
+	_verdict(up == _intro._wizards.size(), "and the eight of the match are still standing (%d)" % up)
 
 
 ## In the ring: each wizard at their own place, and the pile still on the floor.
@@ -157,7 +151,7 @@ func _check_pile_gone() -> void:
 
 func _check_all_in() -> void:
 	for wizard in _intro._wizards:
-		_verdict(absf(wizard.position.x - Intro.PORTAL_X) < 60.0 and wizard.position.y < Intro.FLOOR_Y - Intro.PORTAL_HEIGHT + 100.0, "a wizard has been pulled up into the portal (%.0f, %.0f)" % [wizard.position.x, wizard.position.y])
+		_verdict(absf(wizard.position.x - Intro.PORTAL_X) < 60.0 and wizard.position.y < Intro.PILE_Y - Intro.PORTAL_HEIGHT + 100.0, "a wizard has been pulled up into the portal (%.0f, %.0f)" % [wizard.position.x, wizard.position.y])
 
 
 func _snap(t: float) -> void:

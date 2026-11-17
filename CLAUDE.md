@@ -25,7 +25,10 @@ trust the code and this file where they disagree.
 | `13_special_worlds.md` | touch the portal fields, the ocean (swimming, breath, wrecks) or the sky (flying, rising pages, thunderclouds) |
 | `16_open_work.md` | pick the next job: what the owner asked for that is not built, their standing decisions on it, and the known failures |
 | `18_human_limits.md` | touch the AI wizards (`scripts/brain/`): every limit of a person's eyes, memory and hands the AI must keep, and the check that guards them |
+| `19_character_creator.md` | touch how a wizard looks or moves: wizards are made of parts now (skin, outfit, hair, beard, hat, weapon), with 48 animations and a recolored magic layer. Built and in the game; section "As built" at its top says where everything is |
 | `17_redesign_plan.md` | restructure the brain, the world, the wizard or the caster: what is wrong with each, the shape to aim for, the order, the checks that guard each |
+| `19_character_creator.md` | touch the character creator in the game: wizards made of parts (`PartsLook`, `PartFrames`, `art/parts`), the magic layer's spell colors, which animation to play when |
+| `20_making_wizard_parts.md` | make or change a custom wizard's art: a hat, hair, beard, outfit, color, weapon, an animation or an effect on the wizard (`tools/wizard_parts/`, `python tools/wizard_parts/rebuild_all.py`) |
 
 ---
 
@@ -411,7 +414,7 @@ python tools/run_checks.py --full                              # all of them, ab
 | School | Spell | Shape | Real thing | Counterplay |
 |---|---|---|---|---|
 | Fire | Ignite | straight flick | thrown fireball | dodge, Gust, walls |
-| Fire | Firewall | a line up, then a line out to either side: the second line is how wide the wall is, and the wider it is the more it costs (`StrokeShapes.up_and_out`, one `Firewall` column every 26 px along it) | burning brush line | it's passable and only burns; walk out of it |
+| Fire | Firewall | a line along the ground, then a line up from its end (the flames rising): the first line is how wide the wall is, and the wider it is the more it costs (`StrokeShapes.across_and_up`, one `Firewall` column every 26 px along it) | burning brush line | it's passable and only burns; walk out of it |
 | Fire | Fire Breath | cone `<` | flamethrower from the mouth (follows facing, rises on a jump) | cover, Barrier, distance |
 | Fire | Smoke Screen | wavy line going up | a bank of smoke enemies cannot see through | wind (Tornado, Gust), Tsunami |
 | Fire | Flare | flame: a loop with its point up | a small harmless flame that follows you and lights the dark | it burns out |

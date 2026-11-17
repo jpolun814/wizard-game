@@ -12,7 +12,8 @@ const BLAST := 0.5            # seconds the explosion shows
 const BURN_RADIUS := 170.0    # who is close enough to be burned while it hangs
 const BURN := 3
 const BURN_GAP := 0.5
-const PULL := 2000.0          # the pull at the sun itself; less the farther off
+const HOLD := 1500.0          # a wizard sheds this much pull each second, so a pull under it is not felt at all
+const PULL := 1500.0          # the pull at the sun itself; less the farther off
 const REACH := 560.0          # how far the pull reaches
 const EXPLODE_RADIUS := 320.0
 const EXPLODE_DAMAGE := 45
@@ -81,7 +82,12 @@ func _pull(delta: float) -> void:
 		var gap: float = to_sun.length()
 		if gap > REACH or gap < 8.0:
 			continue
-		body.pull(to_sun.normalized() * PULL * (1.0 - gap / REACH), delta)
+		var strength := HOLD + PULL * (1.0 - gap / REACH)  # more than a body sheds each second, so the closer, the faster it is carried in
+		if body is Wizard:
+			if absf(to_sun.x) > 6.0:
+				body.pull(Vector2(signf(to_sun.x) * strength, 0.0), delta)  # across, not up: a wizard held in the air would hang there
+		else:
+			body.pull(to_sun.normalized() * strength, delta)
 	for shot in get_tree().get_nodes_in_group("shots"):
 		var to_sun: Vector2 = global_position - shot.global_position
 		var gap: float = to_sun.length()

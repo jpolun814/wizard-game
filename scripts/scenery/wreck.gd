@@ -7,7 +7,7 @@ extends Node2D
 ## under that deck is an air pocket (AirPocket): a hollow the water has not filled, lit faintly, with bubbles rising from it, where a wizard can breathe.
 ## A page lies on the floor between the two halves. Its origin is the floor under the middle of it.
 
-const SHIP := preload("res://art/props/shipwreck.png")
+const SHIPS := [preload("res://art/props/shipwreck.png"), preload("res://art/props/shipwreck_b.png")]  # the same size and outline: one keeps its mast, the other has lost it
 const BURIED := 60.0  # how far the bank of sand under the ship sinks into the floor, so it meets any floor
 const ORIGIN := Vector2(288.0, 193.0)  # the point of the picture that is the wreck's origin: the middle, on the floor
 const HOLD := Vector2(100.0, 0.0)  # the middle of the floor of the hold under the stern deck, from the origin: the air pocket is there
@@ -22,6 +22,7 @@ const STERN := [Vector2(452, 98), Vector2(515, 80), Vector2(545, 72), Vector2(55
 const DECK := [Vector2(336, 128), Vector2(452, 102)]  # the stern's deck, from its broken end to the back: a one-way platform
 
 var seed_value := 0
+var _ship: Texture2D  # which of the two pictures this wreck wears, from its seed
 var clip: Array = []  # outlines of the open air, in world pixels: when given, the ship is cut to them, so the floor hides what is buried
 var pocket: AirPocket
 
@@ -41,6 +42,7 @@ func _ready() -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed_value
 	var side := -1.0 if rng.randf() < 0.5 else 1.0  # the stern lies to the right, or the wreck is turned and it lies to the left
+	_ship = SHIPS[(absi(seed_value) >> 1) % SHIPS.size()]
 	var look := Node2D.new()  # only the picture is turned by a scale: the solid parts are turned point by point, as physics wants
 	look.scale.x = side
 	add_child(look)
@@ -68,17 +70,17 @@ func _ready() -> void:
 ## The ship and its bank of sand, cut to the open water when there are outlines to cut it to, so that wherever the floor under it rises or falls the
 ## rock covers the part that is buried and nothing shows below the floor.
 func _lay_ship(look: Node2D) -> void:
-	var corner := Vector2(-SHIP.get_width() * 0.5, BURIED - SHIP.get_height())
+	var corner := Vector2(-_ship.get_width() * 0.5, BURIED - _ship.get_height())
 	if clip.is_empty():
 		var whole := Sprite2D.new()
-		whole.texture = SHIP
+		whole.texture = _ship
 		whole.centered = false
 		whole.position = corner
 		look.add_child(whole)
 		return
 	var box := PackedVector2Array()
 	var window := Rect2()
-	for point in [corner, corner + Vector2(SHIP.get_width(), 0.0), corner + Vector2(SHIP.get_size()), corner + Vector2(0.0, SHIP.get_height())]:
+	for point in [corner, corner + Vector2(_ship.get_width(), 0.0), corner + Vector2(_ship.get_size()), corner + Vector2(0.0, _ship.get_height())]:
 		var at := look.to_global(point)
 		box.append(at)
 		window = Rect2(at, Vector2.ZERO) if box.size() == 1 else window.expand(at)
@@ -94,27 +96,28 @@ func _lay_ship(look: Node2D) -> void:
 			for point in part:
 				local.append(look.to_local(point))
 			piece.polygon = local
-			piece.texture = SHIP
+			piece.texture = _ship
 			piece.texture_offset = -corner
 			look.add_child(piece)
 
 
-## The solid parts of the wreck: the bow's hull and the stern's back, which stop everything as ground does, and the stern's deck, which is stood on
+## The standing parts of the wreck: the tops of the bow's hull and the stern's back, one-way like the peaks' ridges, and the stern's deck, which is stood on
 ## from above and passed up through from below. The points are the picture's, turned to the side the wreck lies.
 func _build_hull(side: float) -> void:
-	var hull := StaticBody2D.new()
-	hull.collision_layer = 1
+	var hull := StaticBody2D.new()  # layered with the sea as the peaks' ridges are with the ground: a wizard swims up through the hull and stands on its top, and S drops off it
+	hull.collision_layer = 16
 	hull.collision_mask = 0
 	add_child(hull)
-	for outline: Array in [BOW, STERN]:
-		var shape := CollisionPolygon2D.new()
-		var points := PackedVector2Array()
-		for point: Vector2 in outline:
-			points.append(_placed(point, side))
-		if side < 0.0:
-			points.reverse()  # (turned over, the outline would run the other way round)
-		shape.polygon = points
-		hull.add_child(shape)
+	for top: Array in [BOW.slice(0, 9), [STERN[0], STERN[1], STERN[2], STERN[3]]]:
+		for k in top.size() - 1:
+			var shape := CollisionShape2D.new()
+			var line := SegmentShape2D.new()
+			line.a = _placed(top[k], side)
+			line.b = _placed(top[k + 1], side)
+			shape.shape = line
+			shape.one_way_collision = true
+			shape.one_way_collision_margin = 6.0
+			hull.add_child(shape)
 	var deck := StaticBody2D.new()
 	deck.collision_layer = 16  # the platforms: a one-way layer
 	deck.collision_mask = 0

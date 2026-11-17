@@ -20,9 +20,7 @@ const PORT := 24565
 const MENU := "res://scenes/menu.tscn"
 const GIVE_UP_MS := 8000  # a host that has not answered for this long is taken to be gone
 const VIRTUAL_CARDS := ["vethernet", "virtual", "vmware", "vbox", "hyper-v", "wsl", "loopback", "docker", "tailscale", "zerotier"]
-const RIVAL_PALETTES := [0, 4, 5, 2]  # the sets of colors (see WizardLook.PALETTES) brains wear in turn once the figures are used up
 const SEATS := WorldGraph.PLAYERS  # wizards in a match; the seats nobody takes are played by brains
-const LOOKS := ["wizard", "dark_wizard", "pyre_wizard", "bone_wizard", "fire_wizard", "wanderer", "lightning_mage"]  # the look of each seat, in order
 
 ## Where the machine that keeps the game stores the logs sent to it. It is not the folder a person's own recording is made in (user://play_logs), so a
 ## machine that hosts and plays at once never deletes what it keeps.
@@ -188,21 +186,28 @@ func seat_of(peer: int) -> int:
 	return roster.find(peer)
 
 
-## The look a person's wizard wears: the one they chose, or their seat's until they have.
+## The look a person's wizard wears: the one they made, or until they have, the first seat's (the host's, or the one person's playing alone) starting look and
+## the others' made up from their seat, so that two people who have not chosen yet do not look alike. (A look saved by an older game, of the found figures, is not one.)
 func look_of(peer: int) -> String:
 	var chosen := ""
 	if peer == my_id():
 		chosen = str(GameSettings.get_value("look"))
 	elif _styles.has(peer):
 		chosen = _styles[peer][0]
-	return chosen if WizardLook.is_look(chosen) else LOOKS[clampi(seat_of(peer), 0, LOOKS.size() - 1)]
+	if WizardLook.is_look(chosen):
+		return chosen
+	var seat := seat_of(peer)
+	return PartsLook.default_look() if seat <= 0 else _seat_look(seat, 0)
 
 
-## The set of colors a person's wizard wears.
-func palette_of(peer: int) -> int:
-	if peer == my_id():
-		return int(GameSettings.get_value("palette"))
-	return int(_styles[peer][1]) if _styles.has(peer) else 0
+## A look made up for a seat, the same on every machine for the same match: attempt is how many times it has been made again to get away from another look.
+func _seat_look(seat: int, attempt: int) -> String:
+	return PartsLook.seeded_look(MatchState.seed_base * 131 + seat * 7919 + attempt * 104729 + 17)
+
+
+## The set of colors a person's wizard wears: none, a wizard made of parts is colored by its parts.
+func palette_of(_peer: int) -> int:
+	return 0
 
 
 ## The person in a seat (their peer id), or 0 when a brain has it.
@@ -220,35 +225,24 @@ func style_of_seat(seat: int) -> Dictionary:
 	return {"look": rival_look(seat), "palette": rival_palette(seat)}
 
 
-## The look a brain's wizard in a seat wears: the first of the four that no person has chosen, so that a brain does not share a figure with a person
-## when it can be helped.
+## The look a brain's wizard in a seat wears: made up from the match and the seat, so every machine makes the same, and made again if a person already wears it.
 func rival_look(seat: int) -> String:
 	var taken: Array[String] = []
-	var brains_before := 0
 	for s in SEATS:
 		var person := person_in_seat(s)
 		if person > 0:
 			taken.append(look_of(person))
-		elif s < seat:
-			brains_before += 1
-	var free := LOOKS.filter(func(look: String) -> bool: return not taken.has(look))
-	var pool: Array = free if not free.is_empty() else LOOKS
-	return pool[brains_before % pool.size()]
+	var look := _seat_look(seat, 0)
+	var attempt := 1
+	while taken.has(look) and attempt < 10:
+		look = _seat_look(seat, attempt)
+		attempt += 1
+	return look
 
 
-## The set of colors a brain's wizard in a seat wears: the original while there are figures left that no one has taken, and then, for the brains that
-## must share a figure, other sets in turn, so that no two wizards of a match look the same.
-func rival_palette(seat: int) -> int:
-	var taken := 0
-	var brains_before := 0
-	for s in SEATS:
-		var person := person_in_seat(s)
-		if person > 0:
-			taken += 1
-		elif s < seat:
-			brains_before += 1
-	var figures := maxi(LOOKS.size() - taken, 1)
-	return RIVAL_PALETTES[(brains_before / figures) % RIVAL_PALETTES.size()]
+## The set of colors a brain's wizard in a seat wears: none (see palette_of).
+func rival_palette(_seat: int) -> int:
+	return 0
 
 
 ## This person has chosen a wizard (or this machine has just joined): everyone else is told which.

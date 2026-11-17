@@ -145,16 +145,16 @@ func _dress() -> void:
 		add_child(range_rect)
 		_ranges.append(range_rect)
 	_wizard = AnimatedSprite2D.new()
-	var frames := SpriteFrames.new()
-	frames.add_animation("idle")
-	frames.set_animation_speed("idle", 8.0)
-	for k in 6:
-		frames.add_frame("idle", load("res://art/chars/wizard/idle_%d.png" % k))
-	_wizard.sprite_frames = frames
+	var look := Net.look_of(Net.my_id())  # the wizard the person has made stands by the title
+	_wizard.sprite_frames = PartFrames.body(look, true)
 	_wizard.scale = Vector2(PIXEL + 1, PIXEL + 1)
 	_wizard.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST  # whole pixels, sharp, not smoothed up
 	add_child(_wizard)
 	_wizard.play("idle")
+	var glow := MagicLayer.new()  # (its staff, in the color of fire)
+	_wizard.add_child(glow)
+	glow.attach(_wizard, PartsLook.option_of(look, "weapon"))
+	glow.paint(SpellData.SCHOOL_COLORS["Fire"])
 	_embers = CPUParticles2D.new()
 	_embers.amount = 60
 	_embers.lifetime = 7.0

@@ -37,7 +37,9 @@ const PLACES := {
 	# is the surface of the sea (FLOOR + a row, SurfaceGen.SEA_ROW), so above the water there is only sky; the deep sea is drawn over them, see-through.
 	"ocean": {"sky": "res://art/backgrounds/mountains/sky.png", "fill": Color("#101828"), "layers": [
 		["res://art/backgrounds/ocean/far.png", Vector2(0.08, 1.0), 638.0, 0.0, false, 2.0],
+		["res://art/backgrounds/ocean/wrecks_far.png", Vector2(0.12, 1.0), 638.0, 0.0, false, 2.0],
 		["res://art/backgrounds/ocean/sand.png", Vector2(0.18, 1.0), 638.0, 0.0, false, 2.0],
+		["res://art/backgrounds/ocean/wrecks_mid.png", Vector2(0.24, 1.0), 638.0, 0.0, false, 2.0],
 		["res://art/backgrounds/ocean/rocks.png", Vector2(0.3, 1.0), 638.0, 0.0, false, 2.0],
 		["res://art/backgrounds/ocean/weeds.png", Vector2(0.45, 1.0), 638.0, 0.0, false, 2.0],
 	]},

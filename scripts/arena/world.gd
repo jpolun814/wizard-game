@@ -84,7 +84,7 @@ func _build_map() -> Variant:
 	ArenaGen.sky_floor = built["sky"]["roof_top"] if built["roofed"] else built["sky"]["floor"]  # over the great cavern lies the sky, past its roof
 	ArenaGen.biome_spans = []
 	for biome in graph.surface["biomes"]:
-		var span := {"a": biome["a"], "b": biome["b"], "tiles": SurfaceGen.LOOKS[biome["name"]]["tiles"]}
+		var span := {"a": biome["a"], "b": biome["b"], "name": biome["name"], "tiles": SurfaceGen.LOOKS[biome["name"]]["tiles"]}
 		if SurfaceGen.LOOKS[biome["name"]].has("snow"):
 			span["snow"] = SurfaceGen.LOOKS[biome["name"]]["snow"]  # above this many rows over the plains, the ground is snow
 		ArenaGen.biome_spans.append(span)

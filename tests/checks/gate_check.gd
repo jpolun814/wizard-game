@@ -35,7 +35,7 @@ func _ready() -> void:
 		page.queue_free()
 	var wizard: Wizard = null
 	for found: Wizard in tree.get_nodes_in_group("wizards"):
-		if found.look == "dark_wizard":
+		if found == world.seats[1]:  # (the second seat: the one that was the dark wizard, when the seats had figures of their own)
 			wizard = found
 	wizard.ledger = Ledger.of(spells)
 	for mob in tree.get_nodes_in_group("mobs") + tree.get_nodes_in_group("wizards"):

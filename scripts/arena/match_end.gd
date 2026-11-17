@@ -131,6 +131,7 @@ func count_wizards(delta: float) -> void:
 	if standing.size() == 1 and Library.real_match() and (Net.is_host() or not Net.online()):
 		won = true
 		var champion: Wizard = standing[0]
+		champion.celebrate()  # (a wizard made of parts has a way of winning)
 		world.get_tree().create_timer(EPILOGUE_AFTER).timeout.connect(epilogue_when_stats_are_away.bind(champion.look, champion.palette))  # the winner is shown putting the book back, on every machine
 	elif standing.size() <= 1 and Net.online() and Net.is_host():
 		won = true
