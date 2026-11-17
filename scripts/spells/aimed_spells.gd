@@ -12,7 +12,7 @@ func _init(arena: Arena) -> void:
 
 
 func recipes() -> Dictionary:
-	return {"Leech": _leech, "Hemorrhage": _hemorrhage, "Faint": _faint, "Fight or Flight": _fight_or_flight, "Vacuum": _vacuum, "Hex": _hex}
+	return {"Leech": _leech, "Hemorrhage": _hemorrhage, "Faint": _faint, "Fight or Flight": _fight_or_flight, "Vacuum": _vacuum, "Hex": _hex, "Invincible Snail": _invincible_snail}
 
 
 ## Whoever a blood spell is aimed at: the one nearest the stroke.
@@ -42,6 +42,15 @@ func _hemorrhage(c: SpellCast) -> void:
 	wound.target = cut
 	wound.position = SpellTargets.center_of(cut)
 	c.add(wound)
+
+
+func _invincible_snail(c: SpellCast) -> void:
+	var hunted := InvincibleSnail.nearest_under(_arena.get_tree(), c.origin, c.info.get("radius", 0.0))
+	if hunted == null:
+		_say_no_one(c, Color("#a8c4b0"))
+		return
+	var side := signf(SpellTargets.center_of(hunted).x - c.caster.center().x)
+	InvincibleSnail.conjure(_arena, _arena.landing(c.caster.global_position + Vector2(36.0 * (side if side != 0.0 else 1.0), -8.0)), hunted, c.caster)
 
 
 func _faint(c: SpellCast) -> void:

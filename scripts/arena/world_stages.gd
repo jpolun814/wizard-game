@@ -78,6 +78,7 @@ func collapse() -> void:
 			state.append({"alive": true, "max": wizard.max_stamina, "stamina": wizard.stamina})
 		else:
 			state.append({"alive": false})
+	MatchState.snails = InvincibleSnail.carry_on(world)
 	World.next_seed = MatchState.advance(world.ledgers, state, Incantation.seed_count())
 	world.leave_network_scene()
 	Sfx.play("portal_enter", world.player.center(), -2.0)

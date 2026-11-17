@@ -115,6 +115,8 @@ func _over_the_foe_stroke(spell_name: String, foe: Wizard, feet: Vector2, facing
 			return BrainStrokes.offset(GestureTemplates.preview_points("silence"), brain.sight.seen_center(foe), 0.6)
 		"Hemorrhage":  # a drop of blood drawn over the rival
 			return BrainStrokes.offset(GestureTemplates.preview_points("flare"), brain.sight.seen_center(foe), 0.6)
+		"Invincible Snail":  # a shell and its foot drawn over the rival
+			return BrainStrokes.offset(GestureTemplates.preview_points("sphere"), brain.sight.seen_center(foe), 0.6)
 		"Supernova":  # a planet and its ring, drawn where the sun should hang: over the rival
 			return BrainStrokes.offset(GestureTemplates.preview_points("silence"), brain.predict(WizardBrain.ATTACK_DRAW), 0.8)
 	return PackedVector2Array()

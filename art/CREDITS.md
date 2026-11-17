@@ -188,3 +188,5 @@ Drawn pixel by pixel by `tools/make_shot_art.py`. No outside source and nothing 
 `art/props/great_oak.png`, `jungle_vine.png`, `dusk_vine.png`, `flytrap.png`, `bramble_1..3.png` and `art/mobs/piranha_small/frame_0..3.png` are pixel art drawn for the game by an agent, at the owner's request (2026-11-17), with the same rig as the wizard parts (`python tools/wizard_parts/props.py`): shaded shapes, no outlines. The originals are in `art_source/props/`.
 
 The lectern stand and plaque, the spellbook, the lily pad, the plank, the quicksand, the rock spikes, the door, the shipwreck and the marble stairs (`art/tiles/podium_marble.png`) were redrawn for the game by an agent at the owner's request (2026-11-17) with `python tools/wizard_parts/props.py`; the previous pictures are in `art_source/props/before/`.
+
+The Invincible Snail (`art/mobs/snail/`) was drawn for the game by an agent at the owner's request (2026-11-17) with `python tools/wizard_parts/props.py snail`.

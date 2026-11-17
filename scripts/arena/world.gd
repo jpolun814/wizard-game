@@ -182,6 +182,7 @@ func _begin_encounter(camera: Camera2D) -> void:
 			if wizard != null:
 				_drop_from_portal(wizard)
 	_stay_out()
+	InvincibleSnail.arrive(self)  # snails that were crawling after someone arrive in the middle of this world
 	_ground.watch([player.position], true)  # the rock round the start is drawn before the first frame
 	camera.reset_smoothing()
 	_set_up_backdrops()

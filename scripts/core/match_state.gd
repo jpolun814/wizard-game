@@ -27,6 +27,7 @@ static var seed_base := 0
 static var forced_biome := ""  # the F1 panel's choice of biome for the world being built, whatever the seed would deal (empty: the seed's own)
 static var pending := false  # the next world to load carries a match on, rather than starting one
 static var ledgers: Array[Ledger] = []  # the pages each wizard holds, the player's first
+static var snails: Array[Dictionary] = []  # the snails crawling after someone, to arrive in the middle of the next world (see InvincibleSnail)
 static var vitals: Array[Dictionary] = []  # each wizard's, in the same order: {"alive", "max", "stamina"}
 
 
@@ -43,6 +44,7 @@ static func begin(seed_value: int) -> void:
 	forced_biome = ""
 	ledgers = []
 	vitals = []
+	snails = []
 
 
 ## What the world being built is like: its size and time from STAGES, its biome, and whether it has halls ("caves").

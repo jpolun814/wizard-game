@@ -822,7 +822,50 @@ def make_clouds():
             cv.save(os.path.join(ART, "props", "cloud_%s_%s.png" % (kind, tag)))
 
 
-JOBS = {"tree": make_tree, "vine": make_vines, "piranha": make_piranha, "flytrap": make_flytrap, "bramble": make_bramble, "podium": make_podium, "lectern": make_lectern, "plaque": make_plaque, "book": make_book, "lily": make_lily, "plank": make_plank, "quicksand": make_quicksand, "spikes": make_spikes, "door": make_door, "ship": make_shipwrecks, "shipbg": make_wreck_backdrops, "clouds": make_clouds}
+def make_snail():
+    """The Invincible Snail: four frames of a crawl, 64 x 44, facing right, standing on the bottom row. A dark violet shell with a pale spiral groove, a long grey body
+    that stretches and gathers as it goes, two stalks with small red eyes, a wet shine along the foot, and a trail of slime behind."""
+    body = ramp("#aeae98", "#7e7e6c", "#52524a", "#26261f")
+    shell = ramp("#7a6a90", "#54486a", "#362c48", "#1a1228")
+    groove = ramp("#e6dcc8", "#c4b8a8", "#8a7e72", "#463e3a")
+    eye = ramp("#ff9a8a", "#e02c34", "#901c28", "#400c14")
+    slime = ramp("#cfe0d0", "#9ab4a6", "#62806e", "#2c4036")
+    for k in range(4):
+        cv = canvas(64, 44)
+        t = 2 * math.pi * k / 4
+        reach = 3.0 * math.sin(t)  # the head reaches out and the tail is drawn up behind it
+        floor = 41
+        tail_x, head_x = 8 + 2.0 * math.cos(t), 56 + reach
+        path = [(tail_x, floor - 1.0), (tail_x + 10, floor - 2.5), (24, floor - 3.5), (38, floor - 4.5), (head_x - 6, floor - 6.0 - 0.8 * math.sin(t)), (head_x, floor - 9.5 - 1.2 * math.sin(t))]
+        radii = [1.0, 2.6, 3.8, 4.4, 4.6, 3.8]
+        m, s = limb(path, radii)
+        m &= rig.yy <= floor  # a flat foot
+        cv.paint((m, s), body, hi=0.35, lo=-0.2)
+        cv.px[floor, 4:int(head_x - 3), :3] = slime[0]  # the wet shine along the foot
+        cv.px[floor, 4:int(head_x - 3), 3] = 255
+        for x in range(2, 5):
+            cv.px[floor + 1, x, :3] = slime[2]
+            cv.px[floor + 1, x, 3] = 150
+        # the shell: a round dome with a spiral groove from its middle out
+        cx, cy, r = 26.0, floor - 15.5, 15.0
+        sm, ss = cv.ellipse((cx, cy), r, r * 0.95)
+        cv.paint((sm, ss), shell, hi=0.4, lo=-0.25)
+        for a in np.arange(0.0, 4.2 * math.pi, 0.05):
+            rr = 1.2 + a * 1.05
+            x, y = cx + math.cos(a + 0.6) * rr, cy + math.sin(a + 0.6) * rr * 0.95
+            if 0 <= int(x) < 64 and 0 <= int(y) < 44 and sm[int(y), int(x)] and rr < r - 1.0:
+                lit = (x - cx) * rig.LIGHT[0] + (y - cy) * rig.LIGHT[1] < 0
+                cv.px[int(y), int(x), :3] = groove[1] if lit else groove[2]
+        # two eye stalks with a small red eye each, swaying
+        for j, (dx, lean) in enumerate(((0, 0.0), (4, 0.6))):
+            bx, by = head_x - 3 + dx * 0.5, floor - 11 - 0.5 * math.sin(t)
+            tipx, tipy = bx + 3 + lean * 2 + math.sin(t + j) * 1.2, by - 10 + j * 1.5
+            cv.paint(limb([(bx, by), ((bx + tipx) / 2, (by + tipy) / 2 - 1), (tipx, tipy)], [1.3, 1.0, 0.9]), body, hi=0.35, lo=-0.2)
+            cv.paint(cv.ellipse((tipx, tipy - 0.5), 1.8, 1.8), eye, hi=0.4, lo=-0.1)
+        cv.save(os.path.join(ART, "mobs", "snail", "frame_%d.png" % k))
+
+
+JOBS = {"tree": make_tree, "vine": make_vines, "piranha": make_piranha, "flytrap": make_flytrap, "bramble": make_bramble, "podium": make_podium, "lectern": make_lectern, "plaque": make_plaque, "book": make_book, "lily": make_lily, "plank": make_plank, "quicksand": make_quicksand, "spikes": make_spikes, "door": make_door, "ship": make_shipwrecks, "shipbg": make_wreck_backdrops, "clouds": make_clouds, "snail": make_snail}
 
 if __name__ == "__main__":
     for name in (sys.argv[1:] or list(JOBS)):

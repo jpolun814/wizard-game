@@ -16,7 +16,7 @@ static func ring_then_line_split(points: PackedVector2Array) -> int:
 	var closed_at := -1
 	for i in range(1, points.size()):
 		walked += points[i].distance_to(points[i - 1])
-		if walked > 150.0 and points[i].distance_to(points[0]) < 20.0:
+		if walked > 115.0 and points[i].distance_to(points[0]) < 20.0:
 			closed_at = i
 			break
 	if closed_at < 0:
