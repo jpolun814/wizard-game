@@ -2,7 +2,7 @@ class_name Lab
 extends Arena
 
 ## The waiting room: the place before a run, where every spell can be tried. It is one long map with something to
-## try each spell on: dummies that never fall, a turret that shoots, a pond, a pit of lava, a gap, and a hill. You
+## try each spell on: dummies that never fall, a turret that shoots, a pond, a pit of lava and a gap. You
 ## never run out of stamina or health, and the spellbook on its stand at the far right starts a real run when it is touched.
 ## N turns night on and off (for flares and eclipses), and R puts the room back as it was.
 
@@ -10,11 +10,9 @@ const START_COL := -31
 const LAVA := Vector2i(-24, -16)   # first and last column of the lava pit
 const GAP := Vector2i(-11, -2)     # a dry pit to cross
 const POND := Vector2i(3, 13)      # the pond
-const HILL := Vector2i(21, 28)     # a hill above the water's reach
 const CEILING := Vector2i(14, 20)   # an overhang for icicles
 const PIT_ROWS := 3.0
 const GAP_ROWS := 4.0
-const HILL_ROWS := 3.0
 const NIGHT := Color(0.22, 0.2, 0.34)
 const HEAL_PER_SECOND := 40.0
 const HEAL_AFTER := 4.0  # seconds without a hit before health starts coming back, so damage can be seen
@@ -64,14 +62,13 @@ var _scan_start := Vector2i.ZERO
 var heals_wounds := true
 
 
-## The ground: flat, with a pit for lava, a gap, a pond's bed and a hill, each with gentle sides so it can be walked out of.
+## The ground: flat, with a pit for lava, a gap and a pond's bed, each with gentle sides so it can be walked out of.
 func _build_map() -> Variant:
 	var heights := PackedFloat32Array()
 	heights.resize(ArenaGen.right_wall - ArenaGen.FIRST_COL)
 	_dig(heights, _at(LAVA), PIT_ROWS)
 	_dig(heights, _at(GAP), GAP_ROWS)
 	_dig(heights, _at(POND), PIT_ROWS)
-	_dig(heights, _at(HILL), -HILL_ROWS)
 	for col in range(_podium_col() - 5, _podium_col() + 6):
 		heights[col - ArenaGen.FIRST_COL] = 0.0  # level ground for the stairs the pedestal stands on
 	if _on_its_own():
@@ -255,7 +252,7 @@ func _add_ponds() -> void:
 		add_child(pond)
 
 
-## Dummies to hit, a turret to shoot at you, and something standing on the hill.
+## Dummies to hit, and a turret to shoot at you.
 func _add_targets() -> void:
 	for entry in [["dummy", 16], ["dummy", 18], ["turret", 20], ["dummy", 25], ["dummy", 31], ["dummy", 33]]:
 		var col: int = entry[1]

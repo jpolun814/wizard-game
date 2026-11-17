@@ -28,9 +28,12 @@ const NAMES := {
 }
 ## The color shown beside a value that is a color (the middle shade of the parts' own).
 const SWATCHES := {
-	"pale": "#e2bca6", "light": "#cf9877", "tan": "#b87e52", "brown": "#8a5632", "deep": "#784a32", "sage": "#78a45e", "pink": "#ee86b0", "violet": "#9a68d0", "silver": "#c4cad6", "ashen": "#aeaeb8", "frost": "#94bedc", "undead": "#8a9a74", "fair": "#ecc8b4", "olive": "#bc9262", "bronze": "#9a6a3e", "ebony": "#563424", "plum": "#8a6890",
-	"blue": "#3f60c8", "purple": "#7e58b6", "crimson": "#b83a46", "emerald": "#2e9a64", "charcoal": "#4a4a60", "ivory": "#d6cdb4", "rose": "#d0607e", "lavender": "#a688d6", "gold": "#d6a83a", "teal": "#2a9ca0", "rust": "#b85a2c",
-	"white": "#d4cecd", "gray": "#96949e", "black": "#34343f", "auburn": "#ac4a2c", "blonde": "#e8c870", "platinum": "#e8e4cc", "ginger": "#d27a38", "chestnut": "#8a523a", "espresso": "#46302c", "midnight": "#38406a",
+	"pale": "#d9b5a2", "light": "#c99870", "tan": "#9c6438", "brown": "#624430", "deep": "#4c2c1c", "violet": "#9a68e0", "silver": "#b8c0d0", "frost": "#c4e8f8",
+	"fair": "#d8aa8a", "olive": "#a88050", "bronze": "#80502a", "ebony": "#36201a", "blue": "#3f60c8", "purple": "#7e58b6", "crimson": "#b02a3a", "emerald": "#34b070",
+	"charcoal": "#4a4a60", "ivory": "#d6cdb4", "rose": "#d0607e", "lavender": "#a688d6", "gold": "#f0c040", "teal": "#2a9ca0", "rust": "#b85a2c", "white": "#d4cecd",
+	"gray": "#86848f", "black": "#30303c", "auburn": "#9a3e26", "blonde": "#d8b868", "ginger": "#cc6a2e", "chestnut": "#7a4630", "midnight": "#38447c", "orc": "#667e3e",
+	"zombie": "#7c8a6c", "duergar": "#78748c", "vampire": "#bcc6da", "frostborn": "#86b2d6", "infernal": "#a03a38", "spectral": "#6ee0d0", "bone": "#c8b890",
+	"ember": "#ff8a30", "aqua": "#60e8d8",
 }
 const PREVIEW_SIZE := Vector2(300.0, 230.0)
 const PREVIEW_SCALE := 2.0  # whole numbers only: it is pixel art

@@ -79,7 +79,7 @@ never block each other.
 
 ### The waiting room
 - **`lab.gd`** (`scenes/lab.tscn`, the waiting room the first screen leads to): extends `Arena` and overrides its `_where_are_we`,
-  `_build_map` and `_begin_encounter`. A long map with a lava pit, a gap, a pond, a hill, dummies and a turret; infinite
+  `_build_map` and `_begin_encounter`. A long map with a lava pit, a gap, a pond, dummies and a turret; infinite
   stamina, health that comes back, night on N, reset on R. Its portal starts a match in `scenes/world.tscn`; the worlds are described below.
   `tests/looks/showcase.gd` with `scenario=spells` casts every spell here and photographs it.
 

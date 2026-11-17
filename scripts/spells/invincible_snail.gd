@@ -5,7 +5,7 @@ extends CharacterBody2D
 ## nothing harms it. It is stopped only by the world: a wall in its way, a pit it falls into, a gap it cannot cross, or the one it hunts falling, which makes it fade away.
 ## It goes with its quarry from world to world (see `carry_on` and `arrive`), appearing in the exact middle of the new one.
 
-const SPEED := 75.0  # a quarter of a wizard's walking pace
+const SPEED := 12.5  # a sixth of what it was (75), which was a quarter of a wizard's walking pace
 const KILL_REACH := Vector2(14.0, 48.0)  # how near, across and up, the middle of a wizard must be to the snail's middle to be touched
 const REACH := 70.0  # how close to the ring's middle someone must be to be the one hunted
 const DANGER := 48.0

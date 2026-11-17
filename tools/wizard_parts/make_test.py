@@ -23,7 +23,7 @@ LINEUP = [
           beard_color="blonde", hat="circlet", hat_color="purple", weapon="scepter"), "Water"),
     (dict(skin="light", outfit="tunic", color="charcoal", hair="none", hair_color="gray", beard="long",
           beard_color="gray", hat="hood", hat_color="charcoal", weapon="staff_crystal"), "Blood"),
-    (dict(skin="sage", outfit="robe", color="ivory", hair="bun", hair_color="gray", beard="goatee", beard_color="gray",
+    (dict(skin="zombie", outfit="robe", color="ivory", hair="bun", hair_color="gray", beard="goatee", beard_color="gray",
           hat="none", hat_color="ivory", weapon="staff_branch"), "Earth"),
 ]
 BG = (38, 40, 52)
