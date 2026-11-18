@@ -487,7 +487,7 @@ func take_damage(amount: int, grace_hit := true, projectile := false) -> void:
 	_hurt_anim = 0.25
 	if grace_hit:
 		_grace = HURT_GRACE
-	Sfx.play(WizardLook.hurt_sound(look), center())
+	Sfx.speak(self, WizardLook.hurt_sound(look), center())
 	_shake_own_screen(0.35 + amount * 0.02)
 	FloatText.spawn(get_parent(), center() + Vector2(0, -24), "-%d" % amount, Color("#ff5a5a"), 1.1)
 	Net.send(self, &"_show_hurt", [amount])
@@ -603,7 +603,7 @@ func faint() -> void:
 	stamina = 0.0
 	_since_spend = 0.0
 	pen.drop()
-	Sfx.play(WizardLook.hurt_sound(look), center())
+	Sfx.speak(self, WizardLook.hurt_sound(look), center())
 
 
 func grant_adrenaline(seconds: float) -> void:
@@ -845,13 +845,13 @@ func _steer(delta: float, can_move: bool) -> void:
 			velocity.y = JUMP_VELOCITY * _jump_strength
 			_jump_buffer = 0.0
 			_coyote = 0.0
-			Sfx.play(WizardLook.jump_sound(look), global_position)
+			Sfx.speak(self, WizardLook.jump_sound(look), global_position)
 		elif _jump_buffer > 0.0 and air_jump_time > 0.0 and air_jump_ready and sink_time <= 0.0 and tangle_time <= 0.0 and not is_on_floor():
 			# The second leap: a jump in the air, free of stamina, once per landing.
 			velocity.y = JUMP_VELOCITY * 0.9
 			_jump_buffer = 0.0
 			air_jump_ready = false
-			Sfx.play(WizardLook.jump_sound(look), global_position)
+			Sfx.speak(self, WizardLook.jump_sound(look), global_position)
 		# Letting go of jump early cuts the jump short, so small hops are easy.
 		if pad.jump_released() and velocity.y < JUMP_VELOCITY * 0.4 and swim_time <= 0.0 and not flying:
 			velocity.y = JUMP_VELOCITY * 0.4
@@ -1310,5 +1310,5 @@ func _struck_by_a_mob(amount: int, impulse: Vector2) -> void:
 func _show_hurt(amount: int) -> void:
 	damaged.emit(amount)  # (a Vacuum let go of when its caster is hurt listens to this, on every machine)
 	_flash = 0.3
-	Sfx.play(WizardLook.hurt_sound(look), center())
+	Sfx.speak(self, WizardLook.hurt_sound(look), center())
 	FloatText.spawn(get_parent(), center() + Vector2(0, -24), "-%d" % amount, Color("#ff5a5a"), 1.1)

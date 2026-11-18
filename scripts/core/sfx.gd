@@ -28,6 +28,7 @@ var muted := false
 var _files := {}      # name -> Array of file paths, one per variant
 var _sounds := {}     # name -> AudioStreamRandomizer, built the first time the sound plays
 var _live := 0
+var _voices := {}     # instance id of a speaker -> the voice sound it is making now
 
 
 func _ready() -> void:
@@ -55,9 +56,9 @@ func has_sound(sound: String) -> bool:
 
 ## Plays a sound. at is a world position, or leave it out for a sound that is not in the world.
 ## pitch_spread varies the pitch a little each time, so repeats sound alive; pitch plays it lower (under 1) or higher (over 1) than it was recorded.
-func play(sound: String, at: Variant = null, volume_db := 0.0, pitch_spread := 0.08, pitch := 1.0) -> void:
+func play(sound: String, at: Variant = null, volume_db := 0.0, pitch_spread := 0.08, pitch := 1.0) -> Node:
 	if muted or not _files.has(sound) or _live >= POLYPHONY:
-		return
+		return null
 	var stream := _stream(sound, pitch_spread)
 	var player: Node
 	if at == null:
@@ -75,10 +76,26 @@ func play(sound: String, at: Variant = null, volume_db := 0.0, pitch_spread := 0
 	_live += 1
 	add_child(player)
 	player.play()
+	return player
+
+
+## A voice: the cry or grunt of a wizard. One voice never speaks over itself: a new sound from the same speaker cuts the one still sounding.
+func speak(speaker: Node, sound: String, at: Vector2) -> void:
+	var id := speaker.get_instance_id()
+	var old: Node = _voices.get(id)
+	if is_instance_valid(old) and old.playing:
+		old.stop()  # (a stopped player does not announce that it finished)
+		_done(old)
+	var player := play(sound, at)
+	if player != null:
+		player.set_meta("speaker", id)
+		_voices[id] = player
 
 
 func _done(player: Node) -> void:
 	_live -= 1
+	if player.has_meta("speaker") and _voices.get(player.get_meta("speaker")) == player:
+		_voices.erase(player.get_meta("speaker"))
 	player.queue_free()
 
 
