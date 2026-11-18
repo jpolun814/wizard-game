@@ -51,3 +51,10 @@ proposed so far (a smaller wizard count, a list of the spells held with their sh
 - **Book lines for Water Jet and Oil Slick are drafts** and need the owner's confirmation. Spell costs (20, 24), Water Jet push (`WaterJet.PUSH`), the shock multiplier (`Coating.SHOCK` 1.6) and the burn numbers are first guesses to tune.
 - **Mute and Blind** are dead states (nothing sets them): remove if the owner agrees.
 - **`Eyes.lights_near`** raises a freed-instance error (`scripts/brain/eyes.gd:133`).
+
+## Where spells come from, and what was drawn in code (2026-11-18)
+
+- **Spells leave the gem of the weapon** (`Wizard.tip()`, `launch_tip()`, found in each weapon's magic-layer art, so every weapon is handled alike; `tests/looks/gems_look.tscn` marks the gem on all 15). Shots are clipped behind the gem as they leave (`Projectile.emerge_from`, `emerge.gdshader`); placed spells are traced from it (`StaffTracer`). A shot ignores its caster for its first 0.3 s (`Projectile.CLEAR_CHECK_AFTER`).
+- **Pixel art made by rig scripts** in `tools/wizard_parts/`: `water.py` (`WaterPixels`: the Water Jet, Geyser and Tide Surf), `feathers.py` (Featherfall), `cracks.py` (Stone Wall), `status_icons.py`. Still drawn in code: the Stone Wall's outline box, the pond's surface (a liquid grid), textured terrain polygons, interface.
+- **Decoy's gesture is the stick figure** (the Golem's, on the Umbramancy buttons); the figure of eight is unused. The Hex star, Fight or Flight mark and so on show only on creatures: a wizard has status bubbles.
+
