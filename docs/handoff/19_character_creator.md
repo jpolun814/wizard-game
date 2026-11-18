@@ -1,4 +1,5 @@
 # TRIM, BOOTS, BARE OUTFITS AND THE MAGIC MIRROR (2026-11-18)
+**Later the same day (owner): an outfit has two colors only, its cloth and its trim, and the trim is chosen from the same 12 colors.** What used to be a second cloth color (a coat's flaps, a robe's front panel, a tunic's neck and belt, a toga's folds) and the trousers are now in the trim's color (`col["second"] = col["trim"]` in `draw_slot`; `far_leg` and `near_leg` depend on `trim`). There is no table of second or trouser colors any more. The default wizard's trim is charcoal.
 The owner asked for trim color, boot color, outfits that show skin, fewer look-alike beards and no invented color names. Done:
 - **Looks are "parts:3:"** now (`PartsLook.ORDER` gained `trim` after `color` and `boots` after `hat_color`). "parts:1:" and "parts:2:" looks are still read (`ORDER_1`, `ORDER_2`): they get the trim they were drawn with
   (silver for charcoal, black, lavender and gold robes, gold for the rest) and brown boots; the beards `long`, `braided` and `wispy` (removed: under the arm they looked like `short`) are read as `short`, `short`, `goatee`.

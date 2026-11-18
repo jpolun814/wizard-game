@@ -51,31 +51,19 @@ HAIRS = {
     "violet": ramp("#d4a8ff", "#9a68e0", "#683ab0", "#341864"),
 }
 SILVER = ramp("#f0f0f8", "#b8b8c8", "#7a7a90", "#3a3a4a")
-COLORS = {  # main cloth, second cloth, trousers, trim
-    "blue": dict(main=ramp("#6c9bf0", "#3f60c8", "#28368c", "#141a52"), second=ramp("#47c8b6", "#23918a", "#155a66", "#0a303c"),
-                 legs=ramp("#4a5cb8", "#2f3c8a", "#202860", "#0d1030"), trim=GOLD),
-    "purple": dict(main=ramp("#b48ce0", "#7e58b6", "#533884", "#2b1c4a"), second=ramp("#d884a8", "#a8507e", "#702e56", "#3a142c"),
-                   legs=ramp("#5c5a8c", "#3f3e68", "#2a2948", "#141428"), trim=GOLD),
-    "crimson": dict(main=ramp("#e8706a", "#b83a46", "#7a2232", "#40101c"), second=ramp("#8a6a5a", "#5e4436", "#3e2a20", "#1e120c"),
-                    legs=ramp("#5a4a52", "#3e323a", "#2a2026", "#140e12"), trim=GOLD),
-    "emerald": dict(main=ramp("#62cc8a", "#2e9a64", "#1c6448", "#0c3228"), second=ramp("#d0bc64", "#a08a3a", "#6a5c24", "#36300e"),
-                    legs=ramp("#4a5a44", "#34402e", "#222a1e", "#10140e"), trim=GOLD),
-    "charcoal": dict(main=ramp("#72728a", "#4a4a60", "#2e2e40", "#16161f"), second=ramp("#c04a4a", "#8a2a36", "#5a1824", "#2c0a10"),
-                     legs=ramp("#3a3a48", "#26262f", "#18181f", "#0a0a10"), trim=SILVER),
-    "ivory": dict(main=ramp("#f6f2e6", "#d6cdb4", "#a69a80", "#5a5040"), second=ramp("#7ab0e0", "#4a80c0", "#2e5690", "#162a50"),
-                  legs=ramp("#8a7458", "#64523c", "#443626", "#221a10"), trim=GOLD),
-    "black": dict(main=ramp("#5a5a6a", "#34343f", "#1e1e28", "#0a0a10"), second=ramp("#8e6ab8", "#5a3c88", "#3a2260", "#1c0c34"),
-                  legs=ramp("#2e2e38", "#1e1e26", "#12121a", "#08080c"), trim=SILVER),
-    "gold": dict(main=ramp("#f6dc7a", "#d6a83a", "#9a6e22", "#583a0c"), second=ramp("#c25a4a", "#8e3030", "#5c1c20", "#2e0c10"),
-                 legs=ramp("#8a6a48", "#64482c", "#443020", "#22160e"), trim=ramp("#f0f0f8", "#c8c8d6", "#8a8aa0", "#46465a")),
-    "teal": dict(main=ramp("#6ad8d0", "#2a9ca0", "#1a6470", "#0a3040"), second=ramp("#e6cc84", "#b8964a", "#7a6228", "#3c3010"),
-                 legs=ramp("#406a70", "#2c4c56", "#1c3138", "#0c1a1e"), trim=GOLD),
-    "rose": dict(main=ramp("#f4a0b8", "#d0607e", "#9a3c58", "#561c34"), second=ramp("#f6e6c8", "#d6c098", "#a08c62", "#544630"),
-                 legs=ramp("#6a4a56", "#4c3440", "#32222c", "#181016"), trim=GOLD),
-    "lavender": dict(main=ramp("#d6c4f4", "#a688d6", "#7058a6", "#3a2a62"), second=ramp("#f4d0e4", "#d890b8", "#a05484", "#52243e"),
-                     legs=ramp("#5a5282", "#403a64", "#2a2646", "#14122a"), trim=SILVER),
-    "rust": dict(main=ramp("#e8905a", "#b85a2c", "#7e3818", "#401a08"), second=ramp("#e2d8c0", "#b8aa8c", "#867a60", "#463e2c"),
-                 legs=ramp("#5e4a3a", "#44342a", "#2c2018", "#150e0a"), trim=GOLD),
+COLORS = {  # the cloth, and the trim it comes with by default (the maker chooses another: see TRIMS)
+    "blue": dict(main=ramp("#6c9bf0", "#3f60c8", "#28368c", "#141a52"), trim=GOLD),
+    "purple": dict(main=ramp("#b48ce0", "#7e58b6", "#533884", "#2b1c4a"), trim=GOLD),
+    "crimson": dict(main=ramp("#e8706a", "#b83a46", "#7a2232", "#40101c"), trim=GOLD),
+    "emerald": dict(main=ramp("#62cc8a", "#2e9a64", "#1c6448", "#0c3228"), trim=GOLD),
+    "charcoal": dict(main=ramp("#72728a", "#4a4a60", "#2e2e40", "#16161f"), trim=SILVER),
+    "ivory": dict(main=ramp("#f6f2e6", "#d6cdb4", "#a69a80", "#5a5040"), trim=GOLD),
+    "black": dict(main=ramp("#5a5a6a", "#34343f", "#1e1e28", "#0a0a10"), trim=SILVER),
+    "gold": dict(main=ramp("#f6dc7a", "#d6a83a", "#9a6e22", "#583a0c"), trim=ramp("#f0f0f8", "#c8c8d6", "#8a8aa0", "#46465a")),
+    "teal": dict(main=ramp("#6ad8d0", "#2a9ca0", "#1a6470", "#0a3040"), trim=GOLD),
+    "rose": dict(main=ramp("#f4a0b8", "#d0607e", "#9a3c58", "#561c34"), trim=GOLD),
+    "lavender": dict(main=ramp("#d6c4f4", "#a688d6", "#7058a6", "#3a2a62"), trim=SILVER),
+    "rust": dict(main=ramp("#e8905a", "#b85a2c", "#7e3818", "#401a08"), trim=GOLD),
 }
 BOOTS = {  # "bare" is the foot itself, in the skin
     "brown": BOOT,
@@ -133,9 +121,6 @@ OPTIONS = {
     "weapon": ["wand", "rose_wand", "bone_wand", "scepter", "crook", "book", "orb_hand", "staff_branch", "staff_root", "staff_flower", "staff_orb",
                "staff_crystal", "staff_moon", "staff_lantern", "staff_skull"],
 }
-for _col in COLORS.values():  # the cloth's second color is the first one a shade darker: the only other color on an outfit is the trim, which is chosen
-    _m = _col["main"]
-    _col["second"] = [_m[1], _m[2], _m[3], tuple(int(v * 0.55) for v in _m[3])]
 TRIMS = {name: COLORS[name]["main"] for name in COLORS}  # an outfit can be edged in any of the colors it can be made in
 assert all(set(OPTIONS[k]) == set(v) for k, v in {"skin": SKINS, "color": COLORS, "trim": TRIMS, "hair_color": HAIRS, "hat_color": COLORS}.items())
 HAT_NO_COLOR = ("none", "circlet", "horned", "skull", "laurel", "crown", "tiara", "flower_crown")  # hats that have no color of their own to choose
@@ -154,14 +139,14 @@ SLOTS = [
     ("far_arm", ["outfit", "skin"]),
     ("far_cuff", ["outfit", "trim"]),
     ("far_hand", ["skin"]),
-    ("far_leg", ["outfit", "color"]),
+    ("far_leg", ["outfit", "trim"]),
     ("far_bare_leg", ["outfit", "skin"]),
     ("far_boot", ["boots", "skin"]),
     ("back_coat", ["outfit", "color"]),
     ("back_trim", ["outfit", "trim"]),
     ("torso_skin", ["outfit", "skin"]),
     ("torso", ["outfit", "color"]),
-    ("near_leg", ["outfit", "color"]),
+    ("near_leg", ["outfit", "trim"]),
     ("near_bare_leg", ["outfit", "skin"]),
     ("near_boot", ["boots", "skin"]),
     ("front_coat", ["outfit", "color"]),
@@ -193,7 +178,7 @@ def variant_key(slot, cfg):
     if slot in ("far_cuff", "near_cuff"):
         return None if o in SLEEVELESS else cfg["trim"]
     if slot in ("far_leg", "near_leg"):
-        return None if o in BARE_LEGS else cfg["color"]
+        return None if o in BARE_LEGS else cfg["trim"]
     if slot in ("far_bare_leg", "near_bare_leg"):
         return cfg["skin"] if o in BARE_LEGS else None
     if slot in ("far_boot", "near_boot"):
@@ -380,7 +365,7 @@ def arm(cv, sh, el, hd, skin):
 
 
 def trousers(cv, g, kn, an, col):
-    cv.paint(limb([g["hip"], kn, an], [3.6, 3.3, 3.0]), col["legs"])
+    cv.paint(limb([g["hip"], kn, an], [3.6, 3.3, 3.0]), col["trim"])  # trousers are in the trim's color
 
 
 def bare_leg(cv, g, kn, an, skin):
@@ -1434,8 +1419,9 @@ def back_cloth(cv, g, p, o, col):
 
 def draw_slot(cv, slot, g, p, extra, cfg, frame):
     col = dict(COLORS[cfg["color"]])
-    if slot in TRIM_SLOTS:
+    if slot in TRIM_SLOTS or slot in ("far_leg", "near_leg"):
         col["trim"] = TRIMS[cfg["trim"]]
+    col["second"] = col["trim"]  # the cloth has no other color of its own: what is not the main color is the trim's, which is chosen
     skin = SKINS[cfg["skin"]]
     o = cfg["outfit"]
     if slot in ("far_sleeve", "far_cuff"):

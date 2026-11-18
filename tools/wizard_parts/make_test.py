@@ -11,7 +11,7 @@ from compose import compose_sheet, frames_of, load_manifest, variant_key, recolo
 
 # an original combination - deliberately NOT the sample wizard's look (no purple hood / white beard / cyan crystal)
 TEST = dict(skin="tan", outfit="coat", color="blue", hair="short", hair_color="auburn", beard="short",
-            beard_color="auburn", hat="wide", hat_color="blue", weapon="staff_orb", trim="gold", boots="brown")
+            beard_color="auburn", hat="wide", hat_color="blue", weapon="staff_orb", trim="charcoal", boots="brown")
 TEST_SPELL = "Fire"
 LINEUP = [
     (TEST, "Fire"),

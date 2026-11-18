@@ -141,10 +141,14 @@ func _gap_is_meant(slot: String, config: Dictionary) -> bool:
 			return bare_legs
 		"far_bare_leg", "near_bare_leg":
 			return not bare_legs
-		"back_coat", "back_trim":
+		"back_coat":
+			return not ["cloak", "gothic"].has(config["outfit"])  # (a coat's flaps are all in the trim's color)
+		"back_trim":
 			return not ["coat", "cloak", "gothic"].has(config["outfit"])
 		"front_coat":
-			return ["vest", "sash"].has(config["outfit"])
+			return ["coat", "cloak", "gothic", "vest", "sash"].has(config["outfit"])
+		"belt":
+			return ["rags", "tunic", "bodice", "sash", "toga"].has(config["outfit"])  # (their belts are cloth in the trim's color)
 		"hat":
 			return config["hat"] == "none"
 		"hat_trim":

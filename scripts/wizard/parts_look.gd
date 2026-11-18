@@ -17,13 +17,13 @@ const SILVER_TRIMMED := ["charcoal", "black", "lavender", "gold"]
 ## The voices (not art, so not in the manifest): the sound a wizard makes when it jumps. See WizardLook.jump_sound.
 const VOICES := ["voice_1", "voice_2", "voice_3"]
 const DEFAULT := {
-	"skin": "tan", "outfit": "coat", "color": "blue", "trim": "gold", "hair": "short", "hair_color": "auburn", "beard": "short",
+	"skin": "tan", "outfit": "coat", "color": "blue", "trim": "charcoal", "hair": "short", "hair_color": "auburn", "beard": "short",
 	"beard_color": "auburn", "hat": "wide", "hat_color": "blue", "boots": "brown", "weapon": "staff_orb", "voice": "voice_1",
 }
 
 
 const HAT_NO_COLOR := ["none", "circlet", "horned", "skull", "laurel", "crown", "tiara", "flower_crown"]  # hats with no color of their own (keep in step with tools/wizard_parts/parts.py)
-const DEFAULT_LOOK := "parts:3:tan.coat.blue.gold.short.auburn.short.auburn.wide.blue.brown.staff_orb.voice_1"  # DEFAULT, written down
+const DEFAULT_LOOK := "parts:3:tan.coat.blue.charcoal.short.auburn.short.auburn.wide.blue.brown.staff_orb.voice_1"  # DEFAULT, written down
 
 
 ## Every option and the values it can have: the parts' (from the manifest) and the voices.
