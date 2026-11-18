@@ -239,7 +239,7 @@ func _land(strength: float) -> void:
 ## and hurt a little, and a wall or a plug of ice there is knocked about. `strength` is 1 for an ordinary landing.
 func _quake(at: Vector2, strength: float) -> void:
 	var tree := wizard.get_tree()
-	GameCamera.shake_near(tree, at, 0.5 * strength, 700.0)
+	GameCamera.shake_near(tree, at, clampf(0.5 + 0.5 * strength, 0.0, 1.0), 900.0)  # the shake is squared on the way to the screen, so it has to start high to be seen
 	Sfx.play("quake", at, -6.0 + 4.0 * strength)
 	Fx.burst(wizard.get_parent(), at, _dust(), int(14 * strength), 190.0, 0.6, false)
 	Fx.debris(wizard.get_parent(), at, _dust(), int(8 * strength), 240.0)
