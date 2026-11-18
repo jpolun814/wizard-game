@@ -16,7 +16,7 @@ const NAMES := {
 	"handlebar": "Handlebar", "stubble": "Stubble",
 	"pointy": "Pointed hat", "wide": "Witch hat", "hood": "Hood", "circlet": "Circlet", "horned": "Horned helm", "skull": "Skull crown", "laurel": "Laurel", "turban": "Turban", "mushroom": "Mushroom cap", "crown": "Crown",
 	"staff_orb": "Orb staff", "staff_crystal": "Crystal staff", "staff_branch": "Branch staff", "wand": "Wand", "scepter": "Scepter",
-	"voice_1": "Voice 1", "voice_2": "Voice 2", "voice_3": "Voice 3",
+	"voice_1": "Voice 1", "voice_2": "Voice 2", "voice_3": "Voice 3", "voice_4": "Voice 4", "voice_5": "Voice 5",
 	"gown": "Gown", "bodice": "Bodice", "bob": "Bob", "pigtails": "Pigtails", "wavy": "Wavy", "updo": "Updo", "tonsure": "Tonsure", "tiara": "Tiara", "flower_crown": "Flower crown", "headscarf": "Headscarf", "rose_wand": "Rose wand", "staff_flower": "Flower staff",
 	"staff_skull": "Skull staff", "staff_moon": "Moon staff", "staff_root": "Root staff", "staff_lantern": "Lantern staff", "crook": "Crook", "book": "Spellbook", "orb_hand": "Orb", "bone_wand": "Bone wand",
 }

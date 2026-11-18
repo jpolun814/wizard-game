@@ -14,8 +14,8 @@ const ORDER_1 := ["skin", "outfit", "color", "hair", "hair_color", "beard", "bea
 const BEARD_NOW := {"braided": "short", "wispy": "goatee"}
 ## What an outfit of the older games was edged in: gold, but silver (here the nearest, ivory) for these colors.
 const SILVER_TRIMMED := ["charcoal", "black", "lavender", "gold"]
-## The voices (not art, so not in the manifest): the sound a wizard makes when it jumps. See WizardLook.jump_sound.
-const VOICES := ["voice_1", "voice_2", "voice_3"]
+## The voices (not art, so not in the manifest): the sounds a wizard makes when it jumps and when it is hurt. See WizardLook.jump_sound and hurt_sound.
+const VOICES := ["voice_1", "voice_2", "voice_3", "voice_4", "voice_5"]
 const DEFAULT := {
 	"skin": "tan", "outfit": "coat", "color": "blue", "trim": "charcoal", "hair": "short", "hair_color": "auburn", "beard": "short",
 	"beard_color": "auburn", "hat": "wide", "hat_color": "blue", "boots": "brown", "weapon": "staff_orb", "voice": "voice_1",
