@@ -18,7 +18,7 @@ func recipes() -> Dictionary:
 	return {
 		"Featherfall": _featherfall, "Rocket Jump": _rocket_jump, "Flaming Sphere": _flaming_sphere, "Barrier": _barrier, "Shadow Step": _shadow_step,
 		"Fire Breath": _fire_breath, "Spore Puff": _spore_puff, "Flare": _flare, "Eldritch Blast": _eldritch_blast, "Scythe": _scythe, "Tide Surf": _tide_surf,
-		"Sneak": _sneak, "Burrow": _burrow, "Obsidian Armor": _obsidian_armor, "Wild Shape": _wild_shape, "Adrenaline": _adrenaline, "Crimson Veil": _crimson_veil,
+		"Sneak": _sneak, "Obsidian Armor": _obsidian_armor, "Wild Shape": _wild_shape, "Adrenaline": _adrenaline, "Crimson Veil": _crimson_veil,
 		"Hunter's Mark": _hunters_mark,
 	}
 
@@ -95,11 +95,6 @@ func _tide_surf(c: SpellCast) -> void:
 func _sneak(c: SpellCast) -> void:
 	c.caster.fade_from_sight(20.0)
 	Fx.burst(_arena, c.caster.center(), SpellData.SCHOOL_COLORS["Shadow"], 14, 90.0, 0.5, true)
-
-
-func _burrow(c: SpellCast) -> void:
-	var extent: Vector2 = c.info.get("extent", Vector2(100.0, 0.0))
-	c.caster.begin_burrow(c.side(), clampf(extent.x * 4.0, 240.0, 720.0))  # as far as a wizard would go in a few strides: the wider the U, the farther
 
 
 func _obsidian_armor(c: SpellCast) -> void:

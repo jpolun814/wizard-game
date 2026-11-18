@@ -331,8 +331,6 @@ func tend_stroke(spell_name: String, to_player: Vector2) -> PackedVector2Array:
 			return BrainStrokes.offset(GestureTemplates.preview_points("eclipse"), here, 0.9)
 		"Hunter's Mark":
 			return BrainStrokes.offset(GestureTemplates.preview_points("arrow"), here, 0.6)
-		"Burrow":
-			return BrainStrokes.offset(GestureTemplates.preview_points("burrow"), here + Vector2(0.0, 40.0), 0.8)
 		"Sneak":  # a wave deep enough not to be read as a flick, which is a Shadow Step on the same buttons
 			var wave := PackedVector2Array()
 			for i in 61:

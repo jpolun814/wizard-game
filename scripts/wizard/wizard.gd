@@ -137,9 +137,6 @@ var surf_time: float: # Tide Surf: a wave carries the wizard along surf_dir whil
 var fade_time: float: # Sneak: the wizard shows only faintly while this lasts
 	get: return _status.left(&"fade")
 	set(seconds): _status.set_left(&"fade", seconds)
-var burrow_time: float: # Burrow: the wizard travels beneath the ground, unseen and casting nothing, while this lasts
-	get: return _status.left(&"burrow")
-	set(seconds): _status.set_left(&"burrow", seconds)
 var rocket_time: float: # Rocket Jump: the flame lifts the wizard, slowly at first and then faster, while this lasts
 	get: return _status.left(&"rocket")
 	set(seconds): _status.set_left(&"rocket", seconds)
@@ -220,11 +217,6 @@ const SLOWED := 64
 const FADED := 128
 const VEILED := 256
 const WILD := 512
-var _burrowing := false  # under the ground (see begin_burrow)
-var _burrow_dust := 0.0
-const BURROW_SPEED := 560.0  # pixels a second along the ground, under it
-var _burrow_dir := 1.0
-const BURROW_DEPTH := 26.0   # how far under the surface the wizard's feet are
 var _hidden := false  # not drawn: faded from sight, and not the wizard at this machine
 const UNSEEN_BUMP := 50.0  # how near a wizard faded from sight must be to be felt rather than seen
 const FADE_ALPHA := 0.35  # how much of a veiled wizard shows
@@ -475,8 +467,6 @@ func take_damage(amount: int, grace_hit := true, projectile := false) -> void:
 		if grace_hit:
 			_grace = HURT_GRACE
 		return
-	if _burrowing:
-		end_burrow()  # a blow brings them out of the ground
 	if projectile and obsidian_time > 0.0:
 		amount = maxi(1, roundi(amount * OBSIDIAN_SHOTS))  # black glass takes half of what a shot would
 	if adrenaline_time > 0.0:
@@ -580,7 +570,7 @@ func is_muted() -> bool:
 
 ## True while the wizard stands in a ring of Silence, or is dazed by thunder: they can cast nothing.
 func silenced() -> bool:
-	return daze_time > 0.0 or wolf.on or _burrowing or Silence.covers(get_tree(), center())
+	return daze_time > 0.0 or wolf.on or Silence.covers(get_tree(), center())
 
 
 ## Pays for a spell in maximum stamina, which only healing brings back. Never takes the last of it: false, and nothing paid, if the
@@ -634,69 +624,6 @@ func is_unseen() -> bool:
 ## own screen shows them faintly (see is_unseen).
 func is_seen_from(point: Vector2) -> bool:
 	return not is_faded() or center().distance_to(point) < UNSEEN_BUMP or (is_inside_tree() and Hex.multiplier(get_tree(), self) > 1.0)
-
-
-## Burrow: the wizard sinks into the ground and runs beneath it, out of sight, `distance` pixels to one side, and comes up there (or where a blow brings them up).
-func begin_burrow(direction: float, distance: float) -> void:
-	if is_likeness() or _burrowing or dead:
-		return
-	_burrowing = true
-	_burrow_dir = signf(direction) if direction != 0.0 else facing
-	burrow_time = distance / BURROW_SPEED
-	fade_time = burrow_time + 1.0
-	velocity = Vector2.ZERO
-	set_collision_mask_value(1, false)
-	set_collision_mask_value(16, false)
-	Fx.burst(get_parent(), global_position, Color("#7a5a3a"), 16, 120.0, 0.5, true)
-	_faint_left = FAINT_TIME
-	Sfx.play("stones", global_position, -4.0)
-	global_position.y += BURROW_DEPTH
-
-
-func is_burrowing() -> bool:
-	return _burrowing
-
-
-## Out of the ground again, on the surface where the wizard is, with a small hop.
-func end_burrow() -> void:
-	if not _burrowing:
-		return
-	_burrowing = false
-	burrow_time = 0.0
-	fade_time = 0.0
-	set_collision_mask_value(1, true)
-	set_collision_mask_value(16, true)
-	var top := _surface_here()
-	global_position.y = top if top > -INF else global_position.y - BURROW_DEPTH
-	velocity = Vector2(0.0, -260.0)
-	Fx.burst(get_parent(), global_position, Color("#7a5a3a"), 18, 140.0, 0.5, true)
-	Sfx.play("stones", global_position, -4.0)
-
-
-## Where the top of the ground is above or below the wizard, or -INF if there is none near.
-func _surface_here() -> float:
-	var query := PhysicsRayQueryParameters2D.create(global_position + Vector2(0, -90), global_position + Vector2(0, 160))
-	query.collision_mask = 1
-	var hit := get_world_2d().direct_space_state.intersect_ray(query)
-	return hit["position"].y if not hit.is_empty() else -INF
-
-
-## One frame under the ground: steered along it by the keys, kept a little way below the surface.
-func _burrow_step(delta: float) -> void:
-	if dead or burrow_time <= 0.0:
-		end_burrow()
-		return
-	var run := _burrow_dir * BURROW_SPEED
-	global_position.x = clampf(global_position.x + run * delta, ArenaGen.left_edge() + 12.0, ArenaGen.right_edge() - 12.0)
-	var top := _surface_here()
-	if top > -INF:
-		global_position.y = lerpf(global_position.y, top + BURROW_DEPTH, 0.35)
-	velocity = Vector2.ZERO
-	_burrow_dust -= delta
-	if absf(run) > 10.0 and _burrow_dust <= 0.0:
-		_burrow_dust = 0.12
-		Fx.burst(get_parent(), global_position + Vector2(0, -BURROW_DEPTH), Color("#7a5a3a"), 3, 50.0, 0.4, false)
-	queue_redraw()
 
 
 ## A spell or a chant ends Sneak: a wizard out of sight can do one thing, and doing it shows them.
@@ -770,9 +697,6 @@ func _physics_process(delta: float) -> void:
 	if brain != null and not dead:
 		_think(delta)
 	_tick_timers(delta)
-	if _burrowing:
-		_burrow_step(delta)
-		return
 	_fall(delta)
 	var can_move := movement_enabled and root_time <= 0.0 and not dead and not fainted
 	vine.tick(delta)

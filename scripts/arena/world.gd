@@ -398,9 +398,7 @@ func _process(delta: float) -> void:
 		return
 	if stages.pulling:
 		return  # drawn up into the portal: the ground has no say
-	if player.is_burrowing():
-		_buried = 0.0  # under the ground on purpose: the rock has no say
-	elif _body_in_rock(player.global_position) or player.global_position.y > ArenaGen.world_size.y * TILE:
+	if _body_in_rock(player.global_position) or player.global_position.y > ArenaGen.world_size.y * TILE:
 		_buried += delta
 		if _buried > 0.2:
 			player.global_position = safe_spot

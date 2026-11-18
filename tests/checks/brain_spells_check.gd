@@ -18,7 +18,7 @@ const SCENES := {
 	"Mirage": {"gap": 330.0, "page": true, "page_at": 150.0, "page_spell": "Mirage", "hold": true, "strong": true, "seed": 3},  # a rival some way off (in sight), and a real page for the false one to pass for (one it holds already: a page it wanted, it would go and take first, and then none would be left to pass for)
 	"Scythe": {"gap": 80.0, "rush": true}, "Thunderclap": {"gap": 120.0, "rush": true}, "Silence": {"gap": 270.0}, "Tide Surf": {"gap": 220.0},
 	"Stone Wall": {"shot_at": true}, "Smoke Screen": {"shot_at": true}, "Decoy": {"shot_at": true}, "Crimson Veil": {"shot_at": true},
-	"Obsidian Armor": {"shot_at": true}, "Burrow": {"shot_at": true}, "Eclipse": {"shot_at": true, "gap": 300.0, "seed": 3, "hold": true},
+	"Obsidian Armor": {"shot_at": true}, "Eclipse": {"shot_at": true, "gap": 300.0, "seed": 3, "hold": true},
 	"Barrier": {"shot_at": true, "gap": 340.0, "hold": true}, "Gust": {"shot_at": true, "gap": 340.0, "hold": true}, "Shadow Step": {"shot_at": true},
 	"Featherfall": {"fall": true}, "Geyser": {"up": true}, "Updraft": {"up": true}, "Push": {"up": true}, "Rocket Jump": {"up": true}, "Liana": {"up": true}, "Great Oak": {"up": true}, "Tornado": {"up": true},
 }

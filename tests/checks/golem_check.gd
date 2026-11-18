@@ -58,7 +58,7 @@ func _run() -> void:
 	if mine.is_empty():
 		return
 	var golem: Mob = mine[0]
-	_verdict(golem.hp == 140, "with a hundred and forty health (%d)" % golem.hp)
+	_verdict(golem.hp == 80, "with eighty health (%d)" % golem.hp)
 	_player.global_position = golem.global_position + Vector2(-30.0, 0.0)
 	var held := _player.max_stamina
 	await _wait(4.0)
