@@ -4,7 +4,7 @@ extends Projectile
 ## Frostbolt: a spear of ice thrown along the drawn line. It slows whoever it strikes, shatters on what stops it, and puts out a flame it meets.
 
 const SPEED := 600.0
-const HARM := 7
+const HARM := 10
 const FLIGHT := 2.0
 const SLOW_SECONDS := 2.0
 const SHARDS := Color("#b8f0ff")

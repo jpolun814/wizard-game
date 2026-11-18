@@ -10,5 +10,5 @@ gesture = "flick"
 targeting = "directional"
 cost = 14.0
 effect = "Shoot a chilling bolt of ice."
-damage = "7 dmg"
+damage = "10 dmg"
 effect_path = "res://scripts/spells/ice_spear.gd"

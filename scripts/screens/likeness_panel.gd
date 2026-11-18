@@ -35,14 +35,21 @@ const SWATCHES := {
 	"zombie": "#7c8a6c", "duergar": "#78748c", "vampire": "#bcc6da", "frostborn": "#86b2d6", "infernal": "#a03a38", "spectral": "#6ee0d0", "bone": "#c8b890",
 	"ember": "#ff8a30", "aqua": "#60e8d8",
 }
-const PREVIEW_SIZE := Vector2(300.0, 230.0)
-const PREVIEW_SCALE := 2.0  # whole numbers only: it is pixel art
+const PREVIEW_SIZE := Vector2(250.0, 440.0)
+const PREVIEW_SCALE := 4.0  # whole numbers only: it is pixel art
+const SWATCH := 24.0
+const INK := Color("#f0e6d0")   # the cream of a plate's writing
+const DIM := Color("#a89cc0")   # what a row is called
+const EDGE := Color(0.36, 0.26, 0.5)  # the violet edge of the interface's buttons and fields
+## The rows set apart in groups, with a rule between each.
+const GROUPS := [["skin"], ["outfit", "color"], ["hair", "hair_color", "beard", "hat"], ["weapon", "voice"]]
+## What each row is called.
+const TITLES := {"skin": "Skin", "outfit": "Outfit", "color": "Outfit color", "hair": "Hair", "hair_color": "Hair color", "beard": "Beard", "hat": "Hat", "weapon": "Weapon", "voice": "Voice"}
 
 var wizard: Wizard  # the one the person plays, which wears what is chosen
 var _plate: PanelContainer
-var _rows: Dictionary = {}     # option -> its row
 var _values: Dictionary = {}   # option -> the label with the value's name
-var _dots: Dictionary = {}     # option -> the swatch beside it
+var _squares: Dictionary = {}  # option -> {value -> its square}, for the rows of colors
 var _sprite: AnimatedSprite2D  # the picture of the wizard being made
 var _magic: MagicLayer
 var _shown := ""               # the look the picture shows
@@ -51,15 +58,6 @@ var _shown := ""               # the look the picture shows
 func _ready() -> void:
 	layer = 6
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	var plate := PanelContainer.new()
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.09, 0.05, 0.14, 0.94)
-	style.border_color = Lettering.GOLD
-	style.set_border_width_all(3)
-	style.set_corner_radius_all(4)
-	style.set_content_margin_all(18)
-	plate.add_theme_stylebox_override("panel", style)
-	_plate = plate
 	var margin := MarginContainer.new()  # the plate stands at the left, halfway down
 	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	margin.add_theme_constant_override("margin_left", 24)
@@ -69,22 +67,94 @@ func _ready() -> void:
 	side.alignment = BoxContainer.ALIGNMENT_CENTER
 	side.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	margin.add_child(side)
-	plate.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	side.add_child(plate)
-	var column := VBoxContainer.new()
-	column.add_theme_constant_override("separation", 8)
-	plate.add_child(column)
-	column.add_child(Lettering.heading("Your wizard", 30, Color(0.9, 0.8, 1.0)))
-	column.add_child(_make_preview())
-	for row: Array in ROWS:
-		column.add_child(_make_squares(row[0]) if COLOR_ROWS.has(row[0]) else _make_row(row[0], row[1]))
+	_plate = PanelContainer.new()  # a gold frame, and inside it a second, finer one, as a ruled page has
+	_plate.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	_plate.add_theme_stylebox_override("panel", _box(Color(0.09, 0.05, 0.14, 0.96), Lettering.GOLD, 3, 8))
+	side.add_child(_plate)
+	var inner := PanelContainer.new()
+	inner.add_theme_stylebox_override("panel", _box(Color(0, 0, 0, 0), Color(Lettering.GOLD, 0.35), 1, 16))
+	_plate.add_child(inner)
+	var page := VBoxContainer.new()
+	page.add_theme_constant_override("separation", 10)
+	inner.add_child(page)
+	page.add_child(_title())
+	var body := HBoxContainer.new()
+	body.add_theme_constant_override("separation", 22)
+	page.add_child(body)
+	var left := VBoxContainer.new()
+	left.add_theme_constant_override("separation", 12)
+	left.add_child(_make_preview())
 	var buttons := HBoxContainer.new()
-	buttons.add_theme_constant_override("separation", 12)
-	buttons.alignment = BoxContainer.ALIGNMENT_CENTER
-	column.add_child(buttons)
+	buttons.add_theme_constant_override("separation", 10)
+	left.add_child(buttons)
 	buttons.add_child(_button("Random", _randomize))
 	buttons.add_child(_button("Done", close))
+	body.add_child(left)
+	var right := VBoxContainer.new()
+	right.custom_minimum_size.x = 330.0
+	right.add_theme_constant_override("separation", 9)
+	for group: Array in GROUPS:
+		if group != GROUPS[0]:
+			right.add_child(_rule())
+		for option: String in group:
+			var title: String = TITLES[option]
+			right.add_child(_make_squares(option, title) if COLOR_ROWS.has(option) else _make_row(option, title))
+	body.add_child(right)
 	_show_choice()
+
+
+## A flat box of the interface's: its color, edge and how far the writing stands from it.
+func _box(fill: Color, edge: Color, width: int, margin: int) -> StyleBoxFlat:
+	var box := StyleBoxFlat.new()
+	box.bg_color = fill
+	box.border_color = edge
+	box.set_border_width_all(width)
+	box.set_content_margin_all(margin)
+	return box
+
+
+## The name of the plate, in the book's own lettering, with a rule and a small diamond under it.
+func _title() -> Control:
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override("separation", 2)
+	var label := Label.new()
+	label.text = "Your Wizard"
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.add_theme_font_override("font", Lettering.FACE)
+	label.add_theme_font_size_override("font_size", Lettering.size_near(44))
+	label.add_theme_color_override("font_color", Color(0.9, 0.8, 1.0))
+	label.add_theme_color_override("font_shadow_color", Color(0.8, 0.1, 0.35, 0.55))
+	label.add_theme_constant_override("shadow_offset_x", 2)
+	label.add_theme_constant_override("shadow_offset_y", 2)
+	column.add_child(label)
+	var flourish := Control.new()
+	flourish.custom_minimum_size = Vector2(0.0, 12.0)
+	flourish.draw.connect(func() -> void:
+		var middle := flourish.size.x * 0.5
+		var y := flourish.size.y * 0.5
+		flourish.draw_line(Vector2(0.0, y), Vector2(middle - 12.0, y), Color(Lettering.GOLD, 0.6), 2.0)
+		flourish.draw_line(Vector2(middle + 12.0, y), Vector2(flourish.size.x, y), Color(Lettering.GOLD, 0.6), 2.0)
+		flourish.draw_colored_polygon(PackedVector2Array([Vector2(middle - 6.0, y), Vector2(middle, y - 5.0), Vector2(middle + 6.0, y), Vector2(middle, y + 5.0)]), Lettering.GOLD))
+	column.add_child(flourish)
+	return column
+
+
+## A fine line between groups of rows.
+func _rule() -> Control:
+	var line := ColorRect.new()
+	line.color = Color(EDGE, 0.55)
+	line.custom_minimum_size = Vector2(0.0, 1.0)
+	return line
+
+
+## What a row is called, in the interface's pixel font.
+func _caption(text: String, color := DIM) -> Label:
+	var label := Label.new()
+	label.text = text
+	label.add_theme_font_override("font", Lettering.PIXEL)
+	label.add_theme_font_size_override("font_size", 20)
+	label.add_theme_color_override("font_color", color)
+	return label
 
 
 ## Where the plate is on the screen.
@@ -109,91 +179,118 @@ func _button(text: String, action: Callable) -> Button:
 	button.text = text
 	button.theme_type_variation = &"Choice"
 	button.focus_mode = Control.FOCUS_NONE  # the keys are the wizard's: Space must jump, not press a button
+	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	button.pressed.connect(action)
 	return button
 
 
-## The wizard as they are made, standing in a frame, at twice their size.
+## The wizard as they are made, standing in a small dim room of their own, at four times their size.
 func _make_preview() -> Control:
-	var frame := Control.new()
-	frame.custom_minimum_size = PREVIEW_SIZE
-	frame.clip_contents = true
-	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var feet := Node2D.new()
-	feet.position = Vector2(PREVIEW_SIZE.x * 0.5, PREVIEW_SIZE.y - 14.0)
-	feet.scale = Vector2.ONE * PREVIEW_SCALE
-	feet.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	frame.add_child(feet)
+	var frame := PanelContainer.new()
+	frame.add_theme_stylebox_override("panel", _box(Color(0.04, 0.02, 0.07), EDGE, 2, 0))
+	var stage := Control.new()
+	stage.custom_minimum_size = PREVIEW_SIZE
+	stage.clip_contents = true
+	stage.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	frame.add_child(stage)
+	var feet := Vector2(PREVIEW_SIZE.x * 0.5, PREVIEW_SIZE.y - 70.0)
+	stage.draw.connect(func() -> void:  # a faint glow behind them, and the slab they stand on
+		for ring in 6:
+			var grow := 1.0 - float(ring) / 6.0
+			stage.draw_circle(feet - Vector2(0.0, 130.0), 50.0 + 150.0 * grow, Color(0.45, 0.2, 0.6, 0.018))
+		stage.draw_rect(Rect2(0.0, feet.y, PREVIEW_SIZE.x, PREVIEW_SIZE.y - feet.y), Color(0.11, 0.07, 0.16))
+		stage.draw_rect(Rect2(0.0, feet.y, PREVIEW_SIZE.x, 2.0), Color(EDGE, 0.9))
+		for k in 5:
+			stage.draw_line(Vector2(k * 60.0 + 14.0, feet.y + 2.0), Vector2(k * 60.0 - 6.0, PREVIEW_SIZE.y), Color(0, 0, 0, 0.35), 2.0))
+	var stand := Node2D.new()
+	stand.position = feet
+	stand.scale = Vector2.ONE * PREVIEW_SCALE
+	stand.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	stage.add_child(stand)
 	_sprite = AnimatedSprite2D.new()
 	_sprite.offset = PartFrames.OFFSET
-	feet.add_child(_sprite)
+	stand.add_child(_sprite)
 	_magic = MagicLayer.new()
-	feet.add_child(_magic)
+	stand.add_child(_magic)
 	return frame
 
 
-## A row of squares of color, one to a choice, the chosen one ringed.
-func _make_squares(option: String) -> Control:
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 6)
-	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	if option == "skin":
-		var name_label := Label.new()  # (the others are plain to see on the wizard; skin is the one that is not)
-		name_label.text = "Skin"
-		name_label.custom_minimum_size = Vector2(50.0, 0.0)
-		row.add_child(name_label)
+## A row of colors: what it is called and, to the right, the one chosen; and under them a square for each, the chosen one ringed.
+func _make_squares(option: String, title: String) -> Control:
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override("separation", 4)
+	var head := HBoxContainer.new()
+	head.add_child(_caption(title))
+	var chosen := _caption("", INK)
+	chosen.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	chosen.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	head.add_child(chosen)
+	column.add_child(head)
+	var values: Array = PartFrames.manifest()["options"][option]
+	var flow := GridContainer.new()
+	flow.columns = ceili(values.size() / 2.0)  # two even rows, none with a lone square
+	flow.add_theme_constant_override("h_separation", 4)
+	flow.add_theme_constant_override("v_separation", 4)
+	column.add_child(flow)
 	var squares := {}
-	for value: String in PartFrames.manifest()["options"][option]:
+	for value: String in values:
 		var square := Button.new()
 		square.focus_mode = Control.FOCUS_NONE
-		square.custom_minimum_size = Vector2(30.0, 30.0)
+		square.custom_minimum_size = Vector2(SWATCH, SWATCH)
+		square.tooltip_text = NAMES.get(value, value.capitalize())
 		square.pressed.connect(_choose.bind(option, value))
-		row.add_child(square)
+		flow.add_child(square)
 		squares[value] = square
-	_rows[option] = row
-	_dots[option] = squares
-	return row
+	_values[option] = chosen
+	_squares[option] = squares
+	return column
 
 
-## Paints a square: its color, with a gold ring when it is the one chosen.
+## Paints a square: its color, with a gold ring when it is the one chosen and a pale one under the pointer.
 func _paint_square(square: Button, value: String, chosen: bool) -> void:
 	for state in ["normal", "hover", "pressed", "focus"]:
-		var box := StyleBoxFlat.new()
-		box.bg_color = Color(SWATCHES[value]).lightened(0.12 if state == "hover" else 0.0)
-		box.set_border_width_all(3 if chosen else 1)
-		box.border_color = Lettering.GOLD if chosen else Color(0.0, 0.0, 0.0, 0.7)
+		var box := _box(Color(SWATCHES[value]).lightened(0.12 if state == "hover" else 0.0), Color(0, 0, 0, 0.75), 1, 0)
+		if chosen:
+			box.set_border_width_all(2)
+			box.border_color = Lettering.GOLD
+		elif state == "hover":
+			box.set_border_width_all(2)
+			box.border_color = Color(0.784, 0.659, 1.0)
 		square.add_theme_stylebox_override(state, box)
 
 
-## A row: what it is called, an arrow to the one before, what it is now (with its color), and an arrow to the next.
+## A row: what it is called, and at the right an arrow to the one before, what it is now and an arrow to the next.
 func _make_row(option: String, title: String) -> Control:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 6)
-	var label := Label.new()
-	label.text = title
-	label.custom_minimum_size = Vector2(120.0, 0.0)
+	var label := _caption(title)
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(label)
 	row.add_child(_arrow("<", _step.bind(option, -1)))
-	var dot := ColorRect.new()
-	dot.custom_minimum_size = Vector2(14.0, 14.0)
-	dot.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	row.add_child(dot)
-	var value := Label.new()
-	value.custom_minimum_size = Vector2(108.0, 0.0)
+	var value := _caption("", INK)
+	value.custom_minimum_size = Vector2(140.0, 0.0)
 	value.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	row.add_child(value)
 	row.add_child(_arrow(">", _step.bind(option, 1)))
-	_rows[option] = row
 	_values[option] = value
-	_dots[option] = dot
 	return row
 
 
 func _arrow(text: String, action: Callable) -> Button:
 	var button := Button.new()
 	button.text = text
+	button.theme_type_variation = &"Choice"
+	button.add_theme_font_override("font", Lettering.PIXEL)  # (the book's lettering has no arrows)
+	button.add_theme_font_size_override("font_size", 20)
 	button.focus_mode = Control.FOCUS_NONE
-	button.custom_minimum_size = Vector2(30.0, 0.0)
+	button.custom_minimum_size = Vector2(30.0, 28.0)
+	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
+		var box: StyleBoxFlat = button.get_theme_stylebox(state).duplicate()
+		box.content_margin_left = 0.0
+		box.content_margin_right = 0.0
+		box.content_margin_top = 0.0
+		box.content_margin_bottom = 0.0
+		button.add_theme_stylebox_override(state, box)
 	button.pressed.connect(action)
 	return button
 
@@ -237,18 +334,13 @@ func _changed() -> void:
 func _show_choice() -> void:
 	var look := _current()
 	var config := PartsLook.decode(look)
-	for option: String in _rows:
+	for option: String in _values:
 		var value: String = config[option]
-		if COLOR_ROWS.has(option):
-			var squares: Dictionary = _dots[option]
+		(_values[option] as Label).text = NAMES.get(value, value.capitalize())
+		if _squares.has(option):
+			var squares: Dictionary = _squares[option]
 			for each: String in squares:
 				_paint_square(squares[each], each, each == value)
-			continue
-		(_values[option] as Label).text = NAMES.get(value, value.capitalize())
-		var dot: ColorRect = _dots[option]
-		dot.visible = SWATCHES.has(value)
-		if dot.visible:
-			dot.color = Color(SWATCHES[value])
 	if look != _shown:
 		_shown = look
 		_sprite.sprite_frames = PartFrames.body(look, true)
