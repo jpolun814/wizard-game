@@ -77,16 +77,6 @@ COLORS = {  # main cloth, second cloth, trousers, trim
     "rust": dict(main=ramp("#e8905a", "#b85a2c", "#7e3818", "#401a08"), second=ramp("#e2d8c0", "#b8aa8c", "#867a60", "#463e2c"),
                  legs=ramp("#5e4a3a", "#44342a", "#2c2018", "#150e0a"), trim=GOLD),
 }
-TRIMS = {  # the metal and thread an outfit is edged in
-    "gold": GOLD,
-    "silver": SILVER,
-    "copper": ramp("#f4b08a", "#cf7a4a", "#955030", "#4e2616"),
-    "iron": ramp("#8a8a9c", "#5e5e72", "#3e3e50", "#1e1e2a"),
-    "ivory": ramp("#fffaf0", "#e8dec8", "#b8ab8c", "#665c46"),
-    "crimson": ramp("#f07880", "#c03848", "#82202e", "#400e18"),
-    "sapphire": ramp("#8ab8ff", "#4a78d8", "#2c4a9c", "#162456"),
-    "emerald": ramp("#7ee8a8", "#38b878", "#1e7450", "#0c3a2a"),
-}
 BOOTS = {  # "bare" is the foot itself, in the skin
     "brown": BOOT,
     "black": ramp("#4a4a56", "#2c2c36", "#1a1a22", "#0a0a10"),
@@ -132,10 +122,10 @@ OPTIONS = {
     "skin": ["pale", "fair", "light", "olive", "tan", "bronze", "brown", "deep", "ebony", "orc", "zombie", "duergar", "vampire", "frostborn", "infernal", "spectral", "bone"],
     "outfit": ["rags", "tunic", "coat", "robe", "cloak", "gown", "bodice", "ceremonial", "gothic", "armored", "vest", "pelt", "sash", "toga"],
     "color": ["crimson", "rust", "gold", "emerald", "teal", "blue", "purple", "lavender", "rose", "ivory", "charcoal", "black"],
-    "trim": ["gold", "silver", "copper", "iron", "ivory", "crimson", "sapphire", "emerald"],
+    "trim": ["crimson", "rust", "gold", "emerald", "teal", "blue", "purple", "lavender", "rose", "ivory", "charcoal", "black"],
     "hair": ["none", "balding", "tonsure", "short", "bob", "straight", "long", "wavy", "ponytail", "pigtails", "braids", "bun", "updo", "mohawk", "wild"],
     "hair_color": ["white", "silver", "gray", "blonde", "ginger", "auburn", "chestnut", "brown", "black", "midnight", "crimson", "ember", "gold", "emerald", "aqua", "frost", "violet"],
-    "beard": ["none", "stubble", "goatee", "handlebar", "short"],
+    "beard": ["none", "stubble", "goatee", "handlebar", "short", "long"],
     "beard_color": ["white", "silver", "gray", "blonde", "ginger", "auburn", "chestnut", "brown", "black", "midnight", "crimson", "ember", "gold", "emerald", "aqua", "frost", "violet"],
     "hat": ["none", "hood", "headscarf", "turban", "pointy", "wide", "mushroom", "circlet", "tiara", "crown", "laurel", "flower_crown", "horned", "skull"],
     "hat_color": ["crimson", "rust", "gold", "emerald", "teal", "blue", "purple", "lavender", "rose", "ivory", "charcoal", "black"],
@@ -143,7 +133,8 @@ OPTIONS = {
     "weapon": ["wand", "rose_wand", "bone_wand", "scepter", "crook", "book", "orb_hand", "staff_branch", "staff_root", "staff_flower", "staff_orb",
                "staff_crystal", "staff_moon", "staff_lantern", "staff_skull"],
 }
-assert all(set(OPTIONS[k]) == set(v) for k, v in {"skin": SKINS, "color": COLORS, "hair_color": HAIRS, "hat_color": COLORS}.items())
+TRIMS = {name: COLORS[name]["main"] for name in COLORS}  # an outfit can be edged in any of the colors it can be made in
+assert all(set(OPTIONS[k]) == set(v) for k, v in {"skin": SKINS, "color": COLORS, "trim": TRIMS, "hair_color": HAIRS, "hat_color": COLORS}.items())
 HAT_NO_COLOR = ("none", "circlet", "horned", "skull", "laurel", "crown", "tiara", "flower_crown")  # hats that have no color of their own to choose
 HAT_TRIMMED = ("circlet", "tiara", "crown", "horned", "headscarf", "pointy", "wide")  # hats with metal or a band that takes the trim's color
 CAP_HAIR = ("short", "long", "ponytail", "bun", "braids", "straight", "wild", "bob", "pigtails", "wavy", "updo")  # styles that draw the cap of hair over the head
@@ -734,7 +725,13 @@ def beard(cv, g, p, style, hair):
         return
     R = head_R(g)
     bs = p["beard"]
-    if style == "short":
+    if style == "long":  # so long that it hangs past the arm and the belt, to the thigh
+        chest, up, fwd = g["chest"], g["up"], g["fwd"]
+        def low(down, out):  # a point on the body, down from the chest
+            return add(add(chest, up, -down), fwd, out)
+        cv.paint(cv.poly([R(-3.2, 1), R(2.4, 2.0), R(5.8, 3.3), R(6.2, 6.0), low(2.0, 6.4), low(10.0, 6.6), low(19.0, 5.8 + bs * 0.5),
+                          low(25.0, 4.4 + bs * 0.9), low(19.0, 2.2 + bs * 0.4), low(8.0, 1.4), R(-3.6, 7.0)]), hair, hi=0.35, lo=-0.1)
+    elif style == "short":
         cv.paint(cv.poly([R(-3.1, 1), R(2.4, 2.0), R(5.6, 3.3), R(5.4, 5.6), R(2.9 + bs * 0.2, 7.8), R(-0.7, 7.3),
                           R(-3.4, 4.2)]), hair, hi=0.35, lo=-0.1)
     elif style == "goatee":

@@ -11,8 +11,8 @@ const ORDER := ["skin", "outfit", "color", "trim", "hair", "hair_color", "beard"
 const ORDER_2 := ["skin", "outfit", "color", "hair", "hair_color", "beard", "beard_color", "hat", "hat_color", "weapon", "voice"]
 const ORDER_1 := ["skin", "outfit", "color", "hair", "hair_color", "beard", "beard_color", "hat", "hat_color", "weapon"]
 ## Beards that were taken out because they looked like another, and the one each is read as.
-const BEARD_NOW := {"long": "short", "braided": "short", "wispy": "goatee"}
-## What an outfit of the older games was edged in: gold, but silver for these colors.
+const BEARD_NOW := {"braided": "short", "wispy": "goatee"}
+## What an outfit of the older games was edged in: gold, but silver (here the nearest, ivory) for these colors.
 const SILVER_TRIMMED := ["charcoal", "black", "lavender", "gold"]
 ## The voices (not art, so not in the manifest): the sound a wizard makes when it jumps. See WizardLook.jump_sound.
 const VOICES := ["voice_1", "voice_2", "voice_3"]
@@ -81,7 +81,7 @@ static func decode(look: String) -> Dictionary:
 	for k in order.size():
 		config[order[k]] = values[k]
 	if order != ORDER:  # a look from an older game: what it had not yet chosen is what it was drawn with
-		config["trim"] = "silver" if SILVER_TRIMMED.has(config["color"]) else "gold"
+		config["trim"] = "ivory" if SILVER_TRIMMED.has(config["color"]) else "gold"
 		config["boots"] = "brown"
 		config["beard"] = BEARD_NOW.get(config["beard"], config["beard"])
 		config["beard_color"] = config["beard_color"] if (options["beard_color"] as Array).has(config["beard_color"]) else config["hair_color"]

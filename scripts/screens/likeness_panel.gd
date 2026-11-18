@@ -29,8 +29,7 @@ const SWATCHES := {
 	"zombie": "#7c8a6c", "duergar": "#78748c", "vampire": "#bcc6da", "frostborn": "#86b2d6", "infernal": "#a03a38", "spectral": "#6ee0d0", "bone": "#f1ecde",
 	"ember": "#ff8a30", "aqua": "#60e8d8",
 }
-## Trims and boots are colored apart from the cloth and the hair, and share some of their names ("brown", "gold"), so they have squares of their own.
-const TRIM_SWATCHES := {"gold": "#f0c35a", "silver": "#b8b8c8", "copper": "#cf7a4a", "iron": "#5e5e72", "ivory": "#e8dec8", "crimson": "#c03848", "sapphire": "#4a78d8", "emerald": "#38b878"}
+## Boots are colored apart from the cloth and the hair, and share some of their names ("brown", "black"), so they have squares of their own. (Trim is colored like the cloth.)
 const BOOT_SWATCHES := {"brown": "#4b2c18", "black": "#2c2c36", "tan": "#a06e3c", "gray": "#6e6e7c", "red": "#8a2e3a", "green": "#466a3c"}
 const PREVIEW_SIZE := Vector2(250.0, 440.0)
 const PREVIEW_SCALE := 4.0  # whole numbers only: it is pixel art
@@ -238,8 +237,6 @@ func _make_squares(option: String, title: String) -> Control:
 
 ## The color a square shows: the paint of the cloth, the hair or the skin, or the trim's or the boots', or, for bare feet, the skin of the wizard.
 func _swatch_of(option: String, value: String) -> Color:
-	if option == "trim":
-		return Color(TRIM_SWATCHES[value])
 	if option == "boots":
 		return Color(BOOT_SWATCHES[value]) if BOOT_SWATCHES.has(value) else Color(SWATCHES[PartsLook.option_of(_current(), "skin")])
 	return Color(SWATCHES[value])

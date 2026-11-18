@@ -75,7 +75,7 @@ func _ready() -> void:
 	_verdict(same == 200, "200 random looks are read back as they were written (%d)" % same)
 	_verdict(PartsLook.decode("").is_empty() and PartsLook.decode("wizard").is_empty() and PartsLook.decode("parts:1:tan.coat").is_empty() and PartsLook.decode("parts:1:tan.coat.blue.short.auburn.short.auburn.wide.blue.cannon").is_empty() and PartsLook.decode("parts:3:tan.coat.blue.short.auburn.short.auburn.wide.blue.staff_orb.voice_1").is_empty() and not PartsLook.decode("parts:1:tan.coat.blue.short.auburn.short.auburn.wide.blue.staff_orb").is_empty(), "garbage is read as no look")
 	var old := PartsLook.decode("parts:2:tan.coat.charcoal.long.auburn.long.gray.wide.blue.staff_orb.voice_2")
-	_verdict(old.get("trim") == "silver" and old.get("boots") == "brown" and old.get("beard") == "short" and old.get("voice") == "voice_2" and PartsLook.decode("parts:1:tan.coat.blue.short.auburn.short.auburn.wide.blue.staff_orb")["trim"] == "gold", "a look from an older game is read with the trim and boots it was drawn with, and a beard that is gone as the one like it")
+	_verdict(old.get("trim") == "ivory" and old.get("boots") == "brown" and old.get("beard") == "long" and old.get("voice") == "voice_2" and PartsLook.decode("parts:1:tan.coat.blue.short.auburn.short.auburn.wide.blue.staff_orb")["trim"] == "gold", "a look from an older game is read with the trim and boots it was drawn with, and a beard that is gone as the one like it")
 	_verdict(PartsLook.is_valid(look) and not PartsLook.is_valid("parts:2:x.x.x.x.x.x.x.x.x.x.x"), "a look is valid only if every value is a part")
 	_verdict(WizardLook.is_look(look) and not WizardLook.is_look("pyre_wizard") and not WizardLook.is_look("garbage"), "the game takes a look made of parts, and not the old figures")
 
