@@ -33,6 +33,7 @@ func _init(owner_wizard: Wizard) -> void:
 ## Looks at what the wizard is in, notes what began and what ended, and asks for a redraw while there is anything to show.
 func tick() -> void:
 	var now := _states()
+	var had := not _active.is_empty()
 	for name: String in _active.duplicate():
 		if not now.has(name):
 			_active.erase(name)
@@ -47,7 +48,7 @@ func tick() -> void:
 			_left[name] = seconds
 			if seconds > 0.0:
 				_most[name] = maxf(_most.get(name, 0.0), seconds)
-	if not _active.is_empty():
+	if had or not _active.is_empty():  # (once more after the last one ends, so the layer is cleared)
 		_layer.queue_redraw()
 
 
