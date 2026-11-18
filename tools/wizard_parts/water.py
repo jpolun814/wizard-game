@@ -123,6 +123,18 @@ def make_wave():
                 x, y = x0 + run + t, 50 - (x0 + run + t) * 0.28 - (k % 3) * 5
                 if (int(x), int(y)) in depth and depth[(int(x), int(y))] >= 3:
                     sheet.putpixel((int(x), f * h + int(y)), STREAK + (255,))
+    # the foot of the wave is not a straight line: its last rows break up into spray, a dither that thins toward the ground, with foam where it breaks
+    bayer = [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]]
+    for f in range(frames):
+        for y in range(h - 16, h):
+            fade = ((y - (h - 16)) / 15.0) ** 1.4  # 0 at the top of the break, 1 at the ground
+            for x in range(w):
+                if sheet.getpixel((x, f * h + y))[3] == 0:
+                    continue
+                if bayer[(y + f) % 4][(x + f * 2) % 4] / 16.0 < fade * 1.05:
+                    sheet.putpixel((x, f * h + y), (0, 0, 0, 0))
+                elif fade > 0.2 and y > 0 and sheet.getpixel((x, f * h + y + 1))[3] == 0 if y + 1 < h else False:
+                    sheet.putpixel((x, f * h + y), foam + (255,))
     sheet.save(os.path.join(ROOT, "art", "fx", "water_wave.png"))
 
 
