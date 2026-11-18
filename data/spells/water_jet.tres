@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="Spell" format=3]
+
+[ext_resource type="Script" path="res://scripts/core/spell.gd" id="1_waterjet"]
+
+[resource]
+script = ExtResource("1_waterjet")
+spell_name = "Water Jet"
+school = "Water"
+gesture = "cone"
+targeting = "cone"
+cost = 20.0
+effect = "Spray a torrent of water."
+size_from = 2
+size_unit = 160.0
+size_min = 0.7
+size_max = 1.4

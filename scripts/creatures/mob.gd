@@ -27,6 +27,7 @@ const SPIT_RANGE := 480.0       # a ranged enemy fires from this far away
 const SPIT_STAND_RANGE := 300.0 # and stops walking once it is this close
 const GET_UP := 10.0           # a fainted enemy stands up with this much stamina, after Wizard.FAINT_TIME
 const STAMINA_CAP := 100.0     # the most stamina an enemy has
+const RISE_TIME := 1.3         # a creature raised from a grave climbs out of the ground this long
 const SPAWN_TIME := 0.7         # enemies fade in over a summoning circle and cannot act until it is done
 const CREATURE_ANIMATIONS := {
 	"idle": {"fps": 8.0}, "walk": {"fps": 10.0}, "attack": {"fps": 14.0, "loop": false},
@@ -90,6 +91,7 @@ var _stuck := 0.0       # how long a giant has been held up by a ledge
 var _last_x := 0.0       # where a giant was last frame, to tell whether it is moving
 var _charge := 0.0       # counting down to a shot
 var _flash := 0.0
+var rises := false  # raised from a grave: it climbs out of the ground instead of arriving through a summoning circle (set before it is added)
 var _spawn := SPAWN_TIME
 var _body_size := Vector2(30, 40)  # the hitbox, in world pixels
 var _body_center := Vector2(0, -20)
@@ -128,10 +130,27 @@ func _ready() -> void:
 	add_child(_overlay)
 	_build_creature(data)
 	_shot_timer = 0.8 + randf() * 1.2
+	if rises:
+		_spawn = RISE_TIME  # (see _climb_out)
+		Fx.debris(get_parent(), global_position, Color("#6a5240"), 12, 150.0)
+		Sfx.play("stones", global_position, -2.0)
+		return
 	# Every enemy arrives through a summoning circle.
 	Fx.pop(get_parent(), global_position + Vector2(0, -2), "magic_02", _school_color(), 70.0, SPAWN_TIME + 0.2, 1.2, 1.5)
 	Sfx.play("summon", global_position)
 	modulate.a = 0.0
+
+
+## Rising from the grave: the picture starts sunk in the ground, cut off at the ground line so only what is above it shows, and comes up out of it, with now and
+## then a fall of earth.
+func _climb_out() -> void:
+	var t := clampf(1.0 - _spawn / RISE_TIME, 0.0, 1.0)
+	var height: float = PixelArt.CHARACTERS[KINDS[kind].art]["size"].y * _base_scale
+	_visual.position.y = height * pow(1.0 - t, 2.0)
+	_material.set_shader_parameter("cut_y", global_position.y)
+	modulate.a = 1.0
+	if randf() < 0.12:
+		Fx.debris(get_parent(), global_position, Color("#6a5240"), 2, 60.0)
 
 
 ## A creature drawn from art/mobs: its frames, its size, and a hitbox that matches the body in the drawing.
@@ -210,12 +229,19 @@ func _physics_process(delta: float) -> void:
 		return
 	if _spawn > 0.0:
 		_spawn -= delta
-		modulate.a = clampf(1.0 - _spawn / SPAWN_TIME, 0.0, 1.0)
+		if rises:
+			_climb_out()
+		else:
+			modulate.a = clampf(1.0 - _spawn / SPAWN_TIME, 0.0, 1.0)
 		_fall(delta)
 		velocity.x = 0.0
 		move_and_slide()
 		return
 	modulate.a = 1.0
+	if rises:
+		rises = false
+		_visual.position.y = 0.0
+		_material.set_shader_parameter("cut_y", 1.0e9)
 	_cooldown -= delta
 	_since_hit += delta
 	if KINDS[kind].effect == "dummy" and _since_hit > 3.0 and not felled_stays:

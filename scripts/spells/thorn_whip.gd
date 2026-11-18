@@ -31,7 +31,7 @@ var _bitten := false
 
 func _begin(origin: Vector2, aim_angle: float) -> void:
 	_dir = Vector2.from_angle(aim_angle)
-	_from = SpellTargets.center_of(caster) if caster is Node2D else origin
+	_from = caster.launch_tip() if caster is Wizard else (SpellTargets.center_of(caster) if caster is Node2D else origin)  # the lash leaves the gem of the staff
 	global_position = _from
 	_life = HOLD
 	Sfx.play("push", _from, -6.0)

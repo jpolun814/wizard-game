@@ -61,6 +61,8 @@ func _wall(dx: float, height: float) -> StaticBody2D:
 
 func _cast(spell: String, targeting: String, aim: float, at := Vector2.ZERO) -> void:
 	var origin := _player.center() if at == Vector2.ZERO else at
+	if targeting == "directional":
+		aim = _from_gem(aim)
 	_world.spawn_spell(spell, targeting, origin, aim, {"length": 90.0, "accuracy": 0.9}, _player)
 
 
@@ -283,4 +285,7 @@ func _wait(seconds: float) -> void:
 		await get_tree().physics_frame
 		left -= get_physics_process_delta_time()
 
+## A shot leaves the gem of the staff, which stands higher than the middle of the body: a level aim here means the line that would have passed 250 px out at the height of the body's middle.
+func _from_gem(aim: float) -> float:
+	return (_player.center() + Vector2.from_angle(aim) * 250.0 - _player.launch_tip()).angle()
 

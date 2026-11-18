@@ -17,7 +17,7 @@ func _init(arena: Arena) -> void:
 func recipes() -> Dictionary:
 	return {
 		"Featherfall": _featherfall, "Rocket Jump": _rocket_jump, "Flaming Sphere": _flaming_sphere, "Barrier": _barrier, "Shadow Step": _shadow_step,
-		"Fire Breath": _fire_breath, "Spore Puff": _spore_puff, "Flare": _flare, "Eldritch Blast": _eldritch_blast, "Scythe": _scythe, "Tide Surf": _tide_surf,
+		"Fire Breath": _fire_breath, "Spore Puff": _spore_puff, "Water Jet": _water_jet, "Flare": _flare, "Eldritch Blast": _eldritch_blast, "Scythe": _scythe, "Tide Surf": _tide_surf,
 		"Sneak": _sneak, "Obsidian Armor": _obsidian_armor, "Wild Shape": _wild_shape, "Golem": _golem, "Adrenaline": _adrenaline, "Crimson Veil": _crimson_veil,
 		"Hunter's Mark": _hunters_mark,
 	}
@@ -35,7 +35,7 @@ func _flaming_sphere(c: SpellCast) -> void:
 	var ball := FlamingSphere.new()
 	ball.caster = c.caster
 	ball.direction = c.side()
-	ball.global_position = c.caster.center() + Vector2(ball.direction * 34.0, 8.0)
+	ball.global_position = c.caster.launch_tip() + Vector2(ball.direction * 14.0, 6.0)  # conjured at the gem, and it drops to the ground and rolls
 	c.add(ball)
 
 
@@ -62,6 +62,16 @@ func _spore_puff(c: SpellCast) -> void:
 	spores.spread = c.info.get("spread", 0.8)
 	spores.reach = c.info.get("reach", 160.0)
 	c.add(spores)
+
+
+## The water pours out of the caster, toward the cone's open end.
+func _water_jet(c: SpellCast) -> void:
+	var jet := WaterJet.new()
+	jet.caster = c.caster
+	jet.aim = c.aim
+	jet.spread = c.info.get("spread", 0.5)
+	jet.reach = c.info.get("reach", 190.0)
+	c.add(jet)
 
 
 ## The flare hovers by the caster and follows them wherever it was drawn.

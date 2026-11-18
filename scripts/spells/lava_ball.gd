@@ -7,7 +7,7 @@ extends Area2D
 ## blow. Lava burns whoever it lands on, the caster included.
 
 const GRAVITY := 900.0
-const DAMAGE := 12
+const DAMAGE := 6
 const REACH := 30.0  # how far from where it lands it burns
 const FIRE_WIDTH := 40.0
 const FIRE_SECONDS := 5.0

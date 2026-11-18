@@ -85,7 +85,7 @@ func _take_the_cold(inside: Dictionary, delta: float) -> void:
 	for body in inside:
 		if _frozen_here.has(body) or body.is_frozen() or _is_immune(body):
 			continue
-		_chill[body] = float(_chill.get(body, 0.0)) + delta
+		_chill[body] = float(_chill.get(body, 0.0)) + delta * (Coating.CHILL_WET if body is Wizard and body.is_wet() else 1.0)  # the cold bites a wet body sooner
 		if float(_chill[body]) >= CHILL_TO_FREEZE:
 			_freeze(body)
 	for body in _chill.keys():
@@ -269,14 +269,15 @@ func _draw() -> void:
 	# A haze of snow under the clouds that is thickest up under them and thins toward the ground and at both sides, so the storm has no
 	# edges to it, as a box would.
 	var across := maxf(float(_floors.size() - 1) * STEP, 1.0)
-	for c in _floors.size() - 1:
-		var x0 := c * STEP
-		var x1 := (c + 1) * STEP
-		var side0 := smoothstep(0.0, 70.0, x0) * smoothstep(0.0, 70.0, across - x0)
-		var side1 := smoothstep(0.0, 70.0, x1) * smoothstep(0.0, 70.0, across - x1)
-		var strip := PackedVector2Array([Vector2(x0, SNOW_TOP), Vector2(x1, SNOW_TOP), Vector2(x1, _floors[c + 1]), Vector2(x0, _floors[c])])
-		var haze := PackedColorArray([Color(0.78, 0.86, 1.0, 0.2 * side0 * fade * grow), Color(0.78, 0.86, 1.0, 0.2 * side1 * fade * grow), Color(0.85, 0.92, 1.0, 0.03 * side1 * fade * grow), Color(0.85, 0.92, 1.0, 0.03 * side0 * fade * grow)])
-		draw_polygon(strip, haze)
+	var smoke := Fx.tex("smoke_02")  # puffs from the particle pack, side by side along the storm, each fading toward the ends
+	var puff := 150.0
+	var px := 0.0
+	while px < across:
+		var edge := smoothstep(0.0, 70.0, px) * smoothstep(0.0, 70.0, across - px)
+		var ground: float = _floors[clampi(int(px / STEP), 0, _floors.size() - 1)]
+		var middle := lerpf(SNOW_TOP, ground, 0.35)
+		draw_texture_rect(smoke, Rect2(Vector2(px - puff * 0.5, middle - puff * 0.5), Vector2(puff, puff)), false, Color(0.8, 0.88, 1.0, 0.16 * edge * fade * grow))
+		px += puff * 0.6
 	# Flakes fall slanting with the wind, which gusts, each at a speed of its own by how far off it is, and settle on the top of the pile.
 	var span := maxf((_floors.size() - 1) * STEP, 1.0)
 	var fall := 0.0

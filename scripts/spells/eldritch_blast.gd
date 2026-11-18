@@ -14,7 +14,7 @@ var aim := 0.0
 
 
 func _ready() -> void:
-	var from: Vector2 = caster.center() if is_instance_valid(caster) else global_position
+	var from: Vector2 = caster.launch_tip() if is_instance_valid(caster) else global_position  # the beam leaves the gem of the staff
 	var way := Vector2.from_angle(aim)
 	var stop := _first_wall(from, way)
 	var target: Node2D = null

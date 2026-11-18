@@ -20,7 +20,6 @@ const DROP := WARNING + 1.0  # when the column starts to sink
 const LIFT := 1.6     # how much liquid a burst lifts (a cell holds 1)
 const SPRING := 1.6   # and how much comes up from below the first time, where there was none
 const SCALD := 1      # damage a second to whoever is in the column
-const DROPLET := preload("res://art/fx/water_drop.png")  # DevWizard's water orb, one frame
 
 var ground: Terrain  # the ground the geyser stands in; the water it spills runs over it
 var _age := 0.0
@@ -52,9 +51,10 @@ func _ready() -> void:
 	_hiss.gravity = Vector2(0, 520)
 	_hiss.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
 	_hiss.emission_rect_extents = Vector2(WIDTH * 0.4, 2)
-	_hiss.texture = DROPLET
-	_hiss.scale_amount_min = 0.3
-	_hiss.scale_amount_max = 0.6
+	_hiss.texture = Fx.pixel_drop()
+	_hiss.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_hiss.scale_amount_min = 1.0
+	_hiss.scale_amount_max = 1.6
 	_hiss.color_ramp = Fx.fade_ramp(Color(0.8, 0.95, 1.0, 0.9))
 	add_child(_hiss)
 	# Steam pours off the water while the column stands.
@@ -163,6 +163,7 @@ func _carry_riders() -> void:
 		_riders[body] = now
 		if body is Wizard:
 			body.push(Vector2(0.0, -WIZARD_LAUNCH))
+			body.coat.soak()  # the jet leaves them wet
 		else:
 			body.knock_back(Vector2(0.0, -MOB_LAUNCH))  # (a creature, a risen skeleton among them)
 
@@ -201,9 +202,10 @@ func _erupt() -> void:
 	spray.gravity = Vector2(0, 900)
 	spray.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
 	spray.emission_rect_extents = Vector2(WIDTH * 0.3, 2)
-	spray.texture = DROPLET
-	spray.scale_amount_min = 0.3
-	spray.scale_amount_max = 0.7
+	spray.texture = Fx.pixel_drop()
+	spray.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	spray.scale_amount_min = 1.0
+	spray.scale_amount_max = 1.8
 	spray.color_ramp = Fx.fade_ramp(Color(0.85, 0.96, 1.0, 0.95))
 	spray.one_shot = true
 	spray.explosiveness = 0.25
@@ -248,92 +250,25 @@ func danger_at(point: Vector2) -> bool:
 	return absf(point.x - global_position.x) < WIDTH * 0.5 + 6.0 and point.y > global_position.y - COLUMN_HEIGHT and point.y < global_position.y + 10.0
 
 
-## The water, drawn the way the ponds draw theirs (see Pond): shaded from light at the top to dark below, with a bright edge. First the
+## The water, drawn from pixel art in the colors of the ponds (WaterPixels). First the
 ## ground wells up in a swelling mound, then the column stands on it, wide at the foot and narrower above, its edges rippling.
 func _draw() -> void:
 	if _age >= LIFE:
 		return
 	var fade := clampf((LIFE - _age) / 0.5, 0.0, 1.0)
 	var swell := clampf(_age / WARNING, 0.0, 1.0)
-	_draw_mound(WIDTH * (0.6 + 0.5 * swell), 3.0 + 9.0 * swell, fade)
+	WaterPixels.mound(self, Vector2.ZERO, WIDTH * (0.6 + 0.5 * swell) * 1.4, fade)
 	var height := _height()
 	if height < 4.0:
 		return
-	var left := PackedVector2Array()
-	var right := PackedVector2Array()
+	var points := PackedVector2Array()
+	var widths := PackedFloat32Array()
+	var alphas := PackedFloat32Array()
 	var steps := 14
 	for i in steps + 1:
 		var t := float(i) / steps
-		var half := WIDTH * 0.5 * lerpf(1.0, 0.55, t) + sin(_age * 22.0 + t * 9.0) * 2.5
-		left.append(Vector2(-half, -height * t))
-		right.append(Vector2(half, -height * t))
-	var body := PackedVector2Array()
-	var colors := PackedColorArray()
-	for i in left.size():
-		body.append(left[i])
-		colors.append(_shade(float(i) / steps, fade))
-	for i in range(right.size() - 1, -1, -1):
-		body.append(right[i])
-		colors.append(_shade(float(i) / steps, fade))
-	draw_polygon(body, colors)
-	var edge := Pond.WATER_RIM
-	edge.a = fade
-	draw_polyline(left, edge, 2.0)
-	draw_polyline(right, edge, 2.0)
-	_draw_crest(Vector2(0.0, -height), left[steps].x * -1.0, fade)
-	# Streaks of bright water racing up the column.
-	for k in 3:
-		var x := (k - 1) * WIDTH * 0.2
-		var y := -fmod(_age * 520.0 + k * 31.0, 38.0)
-		while y > -height + 6.0:
-			draw_line(Vector2(x, y), Vector2(x, maxf(y - 16.0, -height + 4.0)), Color(edge.r, edge.g, edge.b, 0.5 * fade), 3.0)
-			y -= 38.0
-
-
-## The top of the column: the water spreads and curls over like the head of a fountain, so the column does not just stop. It is much wider
-## than the column and rounded above and below, lighter, with a bright edge.
-func _draw_crest(top: Vector2, column_half: float, fade: float) -> void:
-	var half := column_half * 2.8
-	var ring := PackedVector2Array()
-	var colors := PackedColorArray()
-	var steps := 28
-	for i in steps:
-		var angle := TAU * float(i) / steps  # round the whole outline, from the right edge over the top, down the left, and back under
-		var up := sin(angle)
-		var reach := cos(angle)
-		var wobble := sin(_age * 18.0 + reach * 6.0) * 1.0
-		var y := -up * (18.0 if up > 0.0 else 9.0)  # a high dome above, a shallower round belly below
-		ring.append(top + Vector2(reach * half, y + wobble + 4.0))
-		colors.append(Pond.WATER_TOP.lerp(Pond.WATER_RIM, clampf(0.25 + 0.5 * up, 0.0, 1.0)))
-	for c in colors.size():
-		colors[c].a = fade
-	draw_polygon(ring, colors)
-	var edge := Pond.WATER_RIM
-	edge.a = fade
-	ring.append(ring[0])
-	draw_polyline(ring, edge, 2.0)
-
-
-## Water welling up on the ground: a low mound, shaded like the pond, with a rippling bright edge.
-func _draw_mound(width: float, height: float, fade: float) -> void:
-	var top := PackedVector2Array()
-	for i in 13:
-		var t := float(i) / 12.0
-		var x := lerpf(-width * 0.5, width * 0.5, t)
-		top.append(Vector2(x, -height * sin(t * PI) - sin(_age * 14.0 + t * 10.0) * 0.8))
-	var colors := PackedColorArray()
-	for point in top:
-		colors.append(Pond.WATER_TOP.lerp(Pond.WATER_BOTTOM, clampf(1.0 + point.y / maxf(height, 1.0), 0.0, 1.0) * 0.6))
-	var rim := Pond.WATER_RIM
-	rim.a = fade
-	for c in colors.size():
-		colors[c].a = fade
-	draw_polygon(top, colors)
-	draw_polyline(top, rim, 2.0)
-
-
-## Water in the column: lighter the higher it is.
-func _shade(t: float, fade: float) -> Color:
-	var color := Pond.WATER_TOP.lerp(Pond.WATER_RIM, t * 0.7)
-	color.a = fade
-	return color
+		points.append(Vector2(0.0, -height * t))
+		widths.append(WIDTH * lerpf(1.0, 0.55, t) + sin(_age * 22.0 + t * 9.0) * 2.5)
+		alphas.append(fade)
+	WaterPixels.stream(self, points, widths, alphas, _age, true)
+	WaterPixels.crest(self, Vector2(0.0, -height + 2.0), _age, fade)

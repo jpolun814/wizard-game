@@ -54,7 +54,13 @@ func _arrive() -> void:
 func _cast(spell: String, targeting: String, aim: float, info := {}) -> void:
 	var data := {"length": 90.0, "accuracy": 0.9}
 	data.merge(info)
+	if targeting == "directional":
+		aim = _from_gem(aim)
 	_world.spawn_spell(spell, targeting, _player.center() + Vector2.from_angle(aim) * 12.0, aim, data, _player)
+
+## A shot leaves the gem of the staff, which stands higher than the middle of the body: a level aim here means the line that would have passed 250 px out at the height of the body's middle.
+func _from_gem(aim: float) -> float:
+	return (_player.center() + Vector2.from_angle(aim) * 250.0 - _player.launch_tip()).angle()
 
 
 func _hurt(mob: Mob) -> int:

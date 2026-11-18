@@ -9,5 +9,5 @@ gesture = "flick"
 targeting = "directional"
 cost = 16.0
 effect = "Hurl a bolt of fire."
-damage = "12 dmg"
+damage = "5 dmg + 6 dmg/sec"
 effect_path = "res://scripts/spells/fireball.gd"

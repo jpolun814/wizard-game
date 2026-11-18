@@ -27,6 +27,7 @@ var _origin := Vector2.ZERO
 var _active_mask := 0  # every button held at any point during this stroke, as SpellData bits
 var _stroke_color := Color.WHITE
 var _emitter: CPUParticles2D
+var tremor := 0.0  # how far a shaking hand wanders from the line it means to draw, in pixels (a drained wizard's: see Hemorrhage)
 var _ended_ms := 0  # when the last stroke was released, so it can fade
 
 
@@ -127,7 +128,7 @@ func _begin() -> void:
 
 
 func _extend() -> void:
-	var p := get_global_mouse_position()
+	var p := get_global_mouse_position() + Vector2(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)) * tremor
 	if p.distance_to(_stroke[_stroke.size() - 1]) >= MIN_POINT_SPACING:
 		_stroke.append(p)
 

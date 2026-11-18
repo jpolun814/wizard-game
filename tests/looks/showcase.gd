@@ -773,7 +773,7 @@ func _plan_spells() -> void:
 		["Great Oak", 14, func(f: Vector2) -> PackedVector2Array: return _stroke_from("tree", f + Vector2(90, -2)), [1.2]],
 		["Flytrap", 14, func(f: Vector2) -> PackedVector2Array: return _stroke("jaws", Vector2(ArenaGen.column_x(16), f.y - 40.0)), [1.0, 1.9]],
 		["Lily Pads", -13, func(f: Vector2) -> PackedVector2Array: return _stroke("pads", Vector2(ArenaGen.column_x(-7), ArenaGen.GROUND_Y - 30.0), 1.6), [0.6]],
-		["Decoy", 14, func(f: Vector2) -> PackedVector2Array: return _stroke("eight", f + Vector2(90, -50), 0.8), [0.6]],
+		["Decoy", 14, func(f: Vector2) -> PackedVector2Array: return _stroke("stick", f + Vector2(90, -50), 0.8), [0.6]],
 		["Eclipse", 14, func(f: Vector2) -> PackedVector2Array: return _stroke("eclipse", f + Vector2(110, -60), 1.2), [1.0]],
 		["Hex", 14, func(f: Vector2) -> PackedVector2Array: return _stroke("pentagram", Vector2(ArenaGen.column_x(16), f.y - 40.0), 0.8), [0.7]],
 		["Vacuum", 14, func(f: Vector2) -> PackedVector2Array: return _stroke("lungs", Vector2(ArenaGen.column_x(16), f.y - 40.0), 0.8), [0.7, 2.0]],
@@ -832,7 +832,7 @@ func _plan_checks() -> void:
 	_at(3.1, func() -> void:
 		var walker: Node2D = _arena.add_mob("basic", _feet(16))
 		walker._spawn = 0.0)
-	_at(3.2, func() -> void: _cast("Decoy", _stroke("eight", _feet(10) + Vector2(150, -50), 0.8)))
+	_at(3.2, func() -> void: _cast("Decoy", _stroke("stick", _feet(10) + Vector2(150, -50), 0.8)))
 	_at(3.8, func() -> void:
 		var walker: Node2D = null
 		for mob in tree.get_nodes_in_group("mobs"):

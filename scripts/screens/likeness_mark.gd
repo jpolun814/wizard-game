@@ -53,7 +53,7 @@ func _ready() -> void:
 	_view = SubViewport.new()  # the glass shows what is before it: the world seen from its place, so that whatever steps in front appears in it
 	_view.size = Vector2i(40, 76)
 	_view.world_2d = get_viewport().world_2d
-	_view.canvas_cull_mask = 0xFFFFFFFD  # (the mirror is on the second layer, so that it does not see itself)
+	_view.canvas_cull_mask = 0xFFFFFFF9  # (the mirror is on the second layer, so that it does not see itself; the status bubbles are on the third: it shows the wizard, not what ails them)
 	_view.transparent_bg = true  # (only what stands before the glass is in it: the violet of the glass shows behind)
 	_view.disable_3d = true
 	_view.snap_2d_transforms_to_pixel = true

@@ -192,3 +192,8 @@ The lectern stand and plaque, the spellbook, the lily pad, the plank, the quicks
 | `jump_voice_4`, `hurt_voice_3`, `hurt_voice_4` | The same [Female RPG Voice Starter Pack](https://opengameart.org/content/female-rpg-voice-starter-pack) by Cici Fyre: the jump clips of voice type 3 and the damaged clips of types 2 and 3 (converted to 16 bit mono, loudness matched to `player_hurt`) | CC0 |
 | `jump_voice_5`, `hurt_voice_5`, `hurt_voice_1` | VoiceBosch's [effort sounds male](https://opengameart.org/content/effort-sounds-male-audio-pack) and [damage sounds male](https://opengameart.org/content/damage-sounds-male-audio-pack) audio packs (clips 36, 39 and 38 of the first, 1, 3 and 22 of the second for voice 5, and 5, 10 and 20 of the second for voice 1's hurt cry; cut short, faded and brought to the loudness of the other voices). **CC-BY-SA 4.0: credit VoiceBosch, and the changed clips stay under the same licence** | CC-BY-SA 4.0 |
 The Invincible Snail (`art/mobs/snail/`) was drawn for the game by an agent at the owner's request (2026-11-17) with `python tools/wizard_parts/props.py snail`.
+
+## Status bubble icons
+art/fx/status_icons.png is drawn for the game (pixel art made by tools/wizard_parts/status_icons.py), with the owner's leave. No outside source.
+art/fx/feathers.png is pixel art drawn for the game by tools/wizard_parts/feathers.py (the feathers of Featherfall). No outside source.
+art/fx/cracks.png is pixel art drawn for the game by tools/wizard_parts/cracks.py (the cracks of a Stone Wall). No outside source.

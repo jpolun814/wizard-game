@@ -144,6 +144,7 @@ func _raise_dead(c: SpellCast) -> void:
 	risen.kind = "basic"
 	risen.master = master
 	risen.roams = true
+	risen.rises = true  # raised from its grave: it climbs out of the ground
 	risen.puppet = master.is_likeness()
 	risen.name = "Raised_%s_%d" % [master.name, master.casts_made]
 	risen.position = feet

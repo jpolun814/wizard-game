@@ -7,7 +7,6 @@ extends RefCounted
 ## A spell has a recipe if its making is more than "a new effect of the kind its resource names": the recipes are in four tables, by what the spell does
 ## (at the caster, at someone, in a place, from a shape). The rest are simple effects (see SpellEffect), made the same way for each.
 
-const MUZZLE_OFFSET := 26.0  # spawn directional spells just outside the caster's body
 
 var shapes: ShapeSpells  # the spells whose shape says where they go (also asked where a V or a peak can stand)
 var _arena: Arena
@@ -27,6 +26,7 @@ func spawn(spell: String, targeting: String, origin: Vector2, aim: float, info: 
 	var cast := SpellCast.new(_arena, spell, targeting, origin, aim, info, caster_node)
 	_record(cast)
 	_put_out_flares(cast)
+	_trace_from_staff(cast)
 	if _recipes.has(spell):
 		_recipes[spell].call(cast)
 	else:
@@ -50,6 +50,15 @@ func _record(c: SpellCast) -> void:
 		Leech.charge_target(_arena.get_tree(), caster, SpellData.SPELLS[c.spell].cost_for(c.info))  # the other end of a tether pays its half, on every machine
 
 
+## A spell that appears somewhere else (a stone that rises, a storm that gathers) is sent there from the gem of the staff, in a streak of its school's color.
+func _trace_from_staff(c: SpellCast) -> void:
+	if c.targeting != "positional" and c.targeting != "shape" and c.targeting != "raised":
+		return
+	var to := c.center() if c.targeting == "shape" and not c.line().is_empty() else c.origin
+	var school: String = SpellData.SPELLS[c.spell].school if SpellData.SPELLS.has(c.spell) else ""
+	StaffTracer.launch(_arena, c.caster.launch_tip(), to, SpellData.SCHOOL_COLORS.get(school, Color(0.8, 0.8, 1.0)))
+
+
 ## Water and wind put a flare out, but only one the spell actually reaches.
 func _put_out_flares(c: SpellCast) -> void:
 	var school: String = SpellData.SPELLS[c.spell].school if SpellData.SPELLS.has(c.spell) else ""
@@ -68,7 +77,7 @@ func _simple_effect(c: SpellCast) -> void:
 		return  # a shape spell with no recipe makes nothing
 	var origin := c.origin
 	if c.is_directional() and c.targeting != "raised":
-		origin = c.caster.center() + Vector2.from_angle(c.aim) * MUZZLE_OFFSET
+		origin = _muzzle(c)
 	var effect := _new_effect(c.spell)
 	effect.caster = c.caster
 	if effect is PushZone:
@@ -76,8 +85,26 @@ func _simple_effect(c: SpellCast) -> void:
 	elif effect is StoneWall:
 		effect.wall_length = c.info.get("length", 0.0)
 		effect.wall_texture = _arena.earth_texture()
+	if effect is Projectile and c.caster is Wizard:
+		effect.emerge_from = c.caster.launch_tip()  # it comes out of the gem of the staff (see Projectile._emerge)
 	c.add(effect)
 	effect.setup(c.spell, origin, c.aim)
+
+
+## Where a shot starts: the gem of the staff, as it is thrust out. But with someone, or a wall, between the gem and the middle of the body (a rival at arm's
+## length) the shot would start beyond them and fly on past, so it starts at the body's edge instead.
+func _muzzle(c: SpellCast) -> Vector2:
+	var body := c.caster.center()
+	var gem := c.caster.launch_tip() + Vector2.from_angle(c.aim) * 8.0
+	var edge := body + Vector2.from_angle(c.aim) * 26.0
+	var query := PhysicsRayQueryParameters2D.create(body, gem)
+	query.collision_mask = 1
+	if not c.caster.get_world_2d().direct_space_state.intersect_ray(query).is_empty():
+		return edge
+	for other in SpellTargets.all(_arena.get_tree()):
+		if other != c.caster and Geometry2D.get_closest_point_to_segment(SpellTargets.center_of(other), body, gem).distance_to(SpellTargets.center_of(other)) < 28.0:
+			return edge
+	return gem
 
 
 ## A new effect of the kind a spell needs: the script its resource names.

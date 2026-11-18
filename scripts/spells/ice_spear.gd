@@ -33,7 +33,7 @@ func velocity() -> Vector2:
 
 func _hurt_wizard(wizard: Wizard) -> void:
 	super._hurt_wizard(wizard)
-	wizard.apply_debuff("slow", SLOW_SECONDS)
+	wizard.apply_debuff("slow", wizard.coat.frozen_for(SLOW_SECONDS))  # cold bites a wet wizard harder
 
 
 func _hurt_mob(mob: Mob) -> void:

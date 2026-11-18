@@ -30,7 +30,7 @@ const RITUALS := {
 	"haste": {"kind": "ritual", "name": "Chant of Swift Feet",
 		"text": "celeriter curre"},
 	"deep_breath": {"kind": "ritual", "name": "Blessing of the Deep Breath",
-		"text": "sub aqua spiro"},
+		"text": "teneo"},
 	"dowsing": {"kind": "ritual", "name": "Chant of Dowsing",
 		"text": "paginam quaero"},
 	"scrying_eye": {"kind": "toggle", "module": "scrying_eye", "name": "Chant of the Scrying Eye",

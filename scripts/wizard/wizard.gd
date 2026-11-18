@@ -11,6 +11,7 @@ signal debuff_applied(kind: String)
 signal died
 
 const SPEED := 300.0
+const DRAINED_SPEED := 0.7  # how much of its pace a wizard keeps while a wound drains it (Hemorrhage)
 const HASTE := 1.6  # how much faster the Chant of Swift Feet makes the wizard
 const JUMP_VELOCITY := -520.0
 const JUMP_COST := 5.0  # stamina a jump takes; with less than this, you can't jump
@@ -20,7 +21,12 @@ const STAMINA_REGEN := 20.0   # per second
 const REGEN_DELAY := 1.0      # seconds after a spell (or a faint, or a blow) before regen starts; walking and jumping do not make it wait
 const ADRENALINE_TAKEN := 0.6   # how much of a blow gets through under Adrenaline
 const ADRENALINE_DEALT := 1.5   # and how much harder the wizard's own blows land
-const AIR_ACCEL := 700.0        # how fast the keys can add to or turn a wizard's sideways speed in the air, in pixels a second each second
+const SHOVE_SHED := 1500.0      # how fast a shove dies away on the ground, in pixels a second each second
+const AIR_DRAG := 100.0         # how slowly a blow's sideways speed dies away in the air, in pixels a second each second
+const AIR_STEER := 0.5          # how much of a walking pace the keys can give or take away in the air once a wizard has been thrown or pulled
+const AIR_ACCEL := 300.0       # how fast the keys can add to or turn a wizard's sideways speed then, in pixels a second each second
+const AIR_OWN_ACCEL := 2400.0  # and how fast they can when the wizard jumped or walked off a ledge themselves: they steer as freely as on the ground
+const OIL_GRIP := 380.0        # and on oil, which is more slippery still
 const ICE_GRIP := 650.0        # how fast a wizard on ice can change speed, in pixels a second each second
 const OBSIDIAN_SPEED := 0.75    # how fast the wizard walks in black glass
 const OBSIDIAN_SHOTS := 0.5     # and how much of a shot's damage gets through
@@ -109,6 +115,18 @@ var infinite_time: float: # Blessing of the Wellspring: stamina does not run out
 var slow_time: float: # frost slows the caster while this lasts
 	get: return _status.left(&"slow")
 	set(seconds): _status.set_left(&"slow", seconds)
+var wet_time: float: # water on the body: lightning strikes harder, and no fire takes hold (see Coating)
+	get: return _status.left(&"wet")
+	set(seconds): _status.set_left(&"wet", seconds)
+var burning_time: float: # alight: a burn bites each half second while this lasts
+	get: return _status.left(&"burning")
+	set(seconds): _status.set_left(&"burning", seconds)
+var oiled_time: float: # oil on the body: a fire that takes hold burns twice as long
+	get: return _status.left(&"oiled")
+	set(seconds): _status.set_left(&"oiled", seconds)
+var _feathers: CPUParticles2D  # the pale feathers that drift about a wizard under Featherfall
+var bubbles := StatusBubbles.new(self)  # the ring of little pictures that shows what state it is in
+var coat := Coating.new(self)  # what clings to the body: water, flame, oil
 var sink_time: float: # quicksand: slowed, and unable to jump while this lasts
 	get: return _status.left(&"sink")
 	set(seconds): _status.set_left(&"sink", seconds)
@@ -152,7 +170,10 @@ var air_jump_ready := false  # the air jump is spent by one use, and comes back 
 var wind := 0.0  # the push of the air along the ground, set every frame by the world that has wind (the snowy peaks)
 var _slide := 0.0  # the sideways speed carried over on ice
 var _shove := Vector2.ZERO  # a Push on the caster: slides them for a moment, then fades
-var _air_vx := 0.0          # the sideways speed carried through the air: a jump, a blow or a pull sets it, and the keys only nudge it
+var drained_time := 0.0     # a wound is bleeding the strength out of them: they are slower and their hand shakes (Hemorrhage keeps this up while it bleeds)
+var _launched := false      # thrown or pulled through the air by something else: the keys can only nudge that, where in a jump of their own choosing they steer freely
+var _placed_at := Vector2.ZERO  # where the last step left the wizard: if it is anywhere else, something moved it
+var _air_vx := 0.0          # the sideways speed carried through the air from a jump: the keys only nudge it
 var mute_time: float: # no rituals while above zero
 	get: return _status.left(&"mute")
 	set(seconds): _status.set_left(&"mute", seconds)
@@ -192,6 +213,7 @@ var casts_made := 0       # the spells this wizard has cast, for the tests that 
 var drawn := false  # the portal of a collapsing world is carrying the wizard up: they cast and fight, but cannot walk or fall
 var _art := "wizard"  # the folder of frames it wears now
 var pose := WizardPose.new(self)  # which of a wizard made of parts' many animations to play
+var _tips := {}  # where the gem is in each frame of the magic layer, found once (see tip)
 var _magic: MagicLayer  # a wizard made of parts has its gem, its glow and its spell effects on a layer of their own, in the color of the spell (see magic_ramp.gdshader)
 var _gem := Color.WHITE  # the color of the last spell it drew, which the gem shows; a wizard that has cast none shows a school of its own
 
@@ -220,6 +242,9 @@ const VEILED := 256
 const WILD := 512
 const GOLEM_EARTH := preload("res://art/tiles/earth_cemetery.png")  # the stone when the world has none to show (a test, a lab)
 const GOLEM := 8192
+const WET := 1024
+const BURNING := 2048
+const OILED := 4096
 var _hidden := false  # not drawn: faded from sight, and not the wizard at this machine
 const UNSEEN_BUMP := 50.0  # how near a wizard faded from sight must be to be felt rather than seen
 const FADE_ALPHA := 0.35  # how much of a veiled wizard shows
@@ -238,6 +263,9 @@ const SNAP := 160.0  # farther than this, and it is put there at once (a step, a
 func _ready() -> void:
 	eyes = Eyes.new(self)
 	add_child(_status)
+	add_child(bubbles.layer())
+	_feathers = Featherfall.drift()
+	add_child(_feathers)
 	_status.ended.connect(func(status: StringName) -> void:
 		if status == &"frozen":
 			Shatter.spawn(get_parent(), center(), Color("#cdeeff")))  # the ice gives way
@@ -378,6 +406,66 @@ func mouth() -> Vector2:
 	return global_position + Vector2(26.0 * facing, -56.0)  # at the front of the wizard, around the face
 
 
+## Where the gem of the staff, wand or scepter is right now, in the world: the end a stream of water or a beam leaves from. It is found in the picture of the
+## magic layer (its brightest, most solid dots are the gem). A wizard without parts, a wolf or a golem has none and gives the mouth.
+func tip() -> Vector2:
+	if _magic == null or not _magic.visible or _magic.sprite_frames == null or golem.shown or wolf.on:
+		return mouth()
+	return _gem_at(String(_magic.animation), _magic.frame, _magic.flip_h)
+
+
+## Where the gem will be a moment from now, when the staff is thrust out as the spell goes off. A spell is made the instant the stroke ends, before the
+## body has changed to that pose, so what leaves the staff leaves from here and not from wherever the staff was held while drawing.
+func launch_tip() -> Vector2:
+	if _magic == null or not _magic.visible or _magic.sprite_frames == null or golem.shown or wolf.on:
+		return mouth()
+	if not PartFrames.ensure(_magic.sprite_frames, "release"):
+		return tip()
+	return _gem_at("release", 1, facing < 0.0)
+
+
+## The gem in one frame of the magic layer, in the world, as the body is placed now (turned the way `flipped` says).
+func _gem_at(anim: String, frame: int, flipped: bool) -> Vector2:
+	var frames := _magic.sprite_frames
+	var key := "%d:%s:%d" % [frames.get_instance_id(), anim, frame]
+	if not _tips.has(key):
+		_tips[key] = _gem_in(frames.get_frame_texture(anim, mini(frame, frames.get_frame_count(anim) - 1)))
+	var spot: Variant = _tips[key]
+	if spot == null:
+		return mouth()
+	var local: Vector2 = spot
+	if flipped:
+		local.x = -local.x
+	return _magic.to_global(local + _magic.offset)
+
+
+const GEM_SPREAD := 0.2  # how much dimmer than the brightest dot a dot may be and still belong to the gem (the whole bulb counts, not only its highlight)
+
+
+## The middle of the brightest solid dots of a picture of the magic layer, from the middle of the picture, or null where there are none.
+func _gem_in(texture: Texture2D) -> Variant:
+	var image := texture.get_image() if texture != null else null
+	if image == null:
+		return null
+	var best := 0.0
+	for y in image.get_height():
+		for x in image.get_width():
+			var color := image.get_pixel(x, y)
+			if color.a >= 0.9:
+				best = maxf(best, (color.r + color.g + color.b) / 3.0)
+	var sum := Vector2.ZERO
+	var count := 0
+	for y in image.get_height():
+		for x in image.get_width():
+			var color := image.get_pixel(x, y)
+			if color.a >= 0.9 and (color.r + color.g + color.b) / 3.0 > best - GEM_SPREAD:
+				sum += Vector2(x, y)
+				count += 1
+	if count == 0 or best < 0.5:
+		return null
+	return sum / count + Vector2(0.5, 0.5) - image.get_size() * 0.5
+
+
 ## The middle of the wizard's body, relative to its feet.
 func center_offset() -> Vector2:
 	return Vector2(0, -BODY_HEIGHT * 0.5)
@@ -404,8 +492,25 @@ func freeze(seconds: float) -> bool:
 	return true
 
 
+func is_wet() -> bool:
+	return marks & WET != 0 if is_likeness() else wet_time > 0.0
+
+
+func is_burning() -> bool:
+	return marks & BURNING != 0 if is_likeness() else burning_time > 0.0
+
+
+func is_oiled() -> bool:
+	return marks & OILED != 0 if is_likeness() else oiled_time > 0.0
+
+
 func is_frozen() -> bool:
 	return marks & FROZEN != 0 if is_likeness() else _frozen_time > 0.0
+
+
+## Seconds left in the ice.
+func frozen_left() -> float:
+	return _frozen_time
 
 
 func thaw() -> void:
@@ -544,6 +649,8 @@ func _on_animation_finished() -> void:
 ## Standing in water or lava.
 func soak(surface_y: float, lava: bool) -> void:
 	lungs.soak(surface_y, lava)
+	if not lava:
+		coat.soak()  # a body that has been in water is wet
 
 
 ## The breath has run out under water: the most stamina goes, until the wizard breathes again.
@@ -610,6 +717,7 @@ func faint() -> void:
 	wolf.end()  # the wolf is knocked out of the wizard
 	golem.end()
 	fainted = true
+	_faint_left = FAINT_TIME
 	stamina = 0.0
 	_since_spend = 0.0
 	pen.drop()
@@ -679,7 +787,6 @@ func status_text() -> String:
 
 ## A soft shadow on the ground under the wizard. It shrinks and fades the higher the wizard is above the ground.
 func _draw() -> void:
-	lungs.draw_bubbles()
 	var below := _ground_distance()
 	if below < 0.0:
 		return
@@ -706,6 +813,8 @@ func _draw_ellipse(at: Vector2, rx: float, ry: float, color: Color) -> void:
 func _physics_process(delta: float) -> void:
 	if is_likeness():
 		_follow()
+		coat.tick(delta)
+		bubbles.tick()
 		return
 	eyes.follow(delta)
 	if brain != null and global_position.y > (ArenaGen.world_size.y * float(ArenaGen.TILE) if ArenaGen.world_size.y > 0 else FALL_LIMIT) and not dead:
@@ -724,7 +833,8 @@ func _physics_process(delta: float) -> void:
 	_drop_time -= delta
 	set_collision_mask_value(5, _drop_time <= 0.0)
 	if can_move and vine.climb():
-		_air_vx = 0.0  # let go of a vine and the wizard drops straight, until a key or a blow says otherwise
+		_air_vx = 0.0  # hanging on a vine there is no sideways speed to carry
+		_placed_at = global_position  # (the vine moved the wizard itself)
 		return
 	_steer(delta, can_move)
 	_shoved(delta, can_move)
@@ -734,6 +844,7 @@ func _physics_process(delta: float) -> void:
 ## The timers and the stamina of a frame: what runs out, what comes back, the breath.
 func _tick_timers(delta: float) -> void:
 	_grace -= delta
+	drained_time = maxf(drained_time - delta, 0.0)
 	_veil_cool -= delta
 	if fainted:
 		_faint_left -= delta
@@ -742,6 +853,9 @@ func _tick_timers(delta: float) -> void:
 			fainted = false
 			stamina = maxf(stamina, GET_UP)  # up again
 	lungs.tick(delta)
+	coat.tick(delta)
+	bubbles.tick()
+	_feathers.emitting = feather_time > 0.0
 	rage_time = maxf(rage_time - delta, 0.0)
 	fear_time = maxf(fear_time - delta, 0.0)
 	swim_time = maxf(swim_time - delta, 0.0)
@@ -785,6 +899,8 @@ func _fall(delta: float) -> void:
 
 ## What the wizard does with its legs: jumps, and runs or walks (or stands, when it cannot move).
 func _steer(delta: float, can_move: bool) -> void:
+	if global_position.distance_squared_to(_placed_at) > 4.0:
+		_air_vx = 0.0  # put somewhere else by a step, a teleport or a portal: the speed it had does not come along
 	if can_move:
 		if pad.jump_pressed():
 			request_jump()
@@ -810,11 +926,17 @@ func _steer(delta: float, can_move: bool) -> void:
 		# Walking is free; running drains stamina. With none left you still walk, at half speed.
 		var speed := _walking_speed()
 		var wanted := pad.walking(speed)
+		if is_on_floor() and absf(_shove.x) < 20.0 and _shove.y > -20.0:
+			_launched = false  # back on the ground and the throw spent: the next jump is their own
 		if _in_free_air():
-			# Nothing to push against: the keys only add to the speed the wizard already has, up to a walking pace, and can turn it slowly.
+			# Nothing to push against: the keys only add to the speed the wizard already has, up to half a walking pace, and can turn it slowly.
 			# They never brake a speed already beyond it (a blow's), and letting go of them changes nothing.
-			if wanted != 0.0 and _air_vx * signf(wanted) < absf(wanted):
-				_air_vx = move_toward(_air_vx, wanted, AIR_ACCEL * delta)
+			if not _launched or golem.on:
+				_air_vx = move_toward(_air_vx, wanted, AIR_OWN_ACCEL * delta)  # a jump they chose: they steer, brake and turn as freely as on the ground
+			else:
+				var reach := wanted * AIR_STEER
+				if wanted != 0.0 and _air_vx * signf(wanted) < absf(reach):
+					_air_vx = move_toward(_air_vx, reach, AIR_ACCEL * delta)
 			velocity.x = _air_vx
 		else:
 			velocity.x = wanted
@@ -828,6 +950,11 @@ func _steer(delta: float, can_move: bool) -> void:
 		_stepping = false
 
 
+## Gives the wizard a sideways speed to carry through the air: a push off a vine, say.
+func carry(speed: float) -> void:
+	_air_vx = speed
+
+
 ## In the air with nothing under the wizard to push off, and nothing carrying them (not flying, not swimming, not riding a wave):
 ## the sideways speed is then the wizard's own momentum.
 func _in_free_air() -> bool:
@@ -837,15 +964,16 @@ func _in_free_air() -> bool:
 ## How fast the wizard walks now: half of it when out of stamina, and each thing that slows, mires, tangles, hastens, armours or changes the wizard
 ## on top of that.
 func _walking_speed() -> float:
-	return (SPEED if stamina > 0.0 or wolf.on else SPEED * 0.5) * (0.5 if slow_time > 0.0 else 1.0) * (0.4 if sink_time > 0.0 else 1.0) * (0.3 if tangle_time > 0.0 else 1.0) * (HASTE if haste_time > 0.0 else 1.0) * (OBSIDIAN_SPEED if obsidian_time > 0.0 else 1.0) * (WildShape.SPEED if wolf.on else 1.0) * (GolemForm.SPEED if golem.on else 1.0)
+	return (SPEED if stamina > 0.0 or wolf.on else SPEED * 0.5) * (0.5 if slow_time > 0.0 else 1.0) * (0.4 if sink_time > 0.0 else 1.0) * (0.3 if tangle_time > 0.0 else 1.0) * (HASTE if haste_time > 0.0 else 1.0) * (OBSIDIAN_SPEED if obsidian_time > 0.0 else 1.0) * (WildShape.SPEED if wolf.on else 1.0) * (GolemForm.SPEED if golem.on else 1.0) * (DRAINED_SPEED if drained_time > 0.0 else 1.0)
 
 
 ## What moves the wizard that it did not choose: a wave, ice, fear, a shove and the wind.
 func _shoved(delta: float, can_move: bool) -> void:
 	if surf_time > 0.0 and not dead and not fainted:
 		velocity.x = surf_dir * SURF_SPEED  # a wave does not wait for the wizard
-	if is_on_floor() and can_move and IceSheet.under(get_tree(), global_position):
-		_slide = move_toward(_slide, velocity.x, ICE_GRIP * delta)  # on ice a wizard cannot stop or turn quickly
+	var grip := OIL_GRIP if OilSlick.under(get_tree(), global_position) else (ICE_GRIP if IceSheet.under(get_tree(), global_position) else 0.0)
+	if is_on_floor() and can_move and grip > 0.0:
+		_slide = move_toward(_slide, velocity.x, grip * delta)  # on ice a wizard cannot stop or turn quickly
 		velocity.x = _slide
 	else:
 		_slide = velocity.x
@@ -853,14 +981,12 @@ func _shoved(delta: float, can_move: bool) -> void:
 		velocity.x = 0.0  # they will not go toward the one they flee
 		_slide = 0.0
 		_air_vx = 0.0
-	if can_move and _in_free_air():
-		_air_vx += _shove.x  # a blow or a pull carries the wizard on through the air: only another force, or the keys slowly, turn it
-		_shove.x = 0.0
-		velocity.x = _air_vx
 	velocity.x += _shove.x + wind
 	if _shove.y < 0.0:
 		velocity.y = minf(velocity.y, _shove.y)
-	_shove = _shove.move_toward(Vector2.ZERO, 1500.0 * delta)
+	# On the ground a shove dies away at once; in the air there is nothing to stop it, so a blow carries the wizard on and the keys cannot cancel it.
+	_shove.x = move_toward(_shove.x, 0.0, (AIR_DRAG if _in_free_air() else SHOVE_SHED) * delta)
+	_shove.y = move_toward(_shove.y, 0.0, SHOVE_SHED * delta)
 
 
 ## The step itself: the AI's hop up a ledge, the move, the map's edges and the sound of the steps.
@@ -873,6 +999,7 @@ func _move_on(delta: float) -> void:
 	move_and_slide()
 	if is_on_wall():
 		_air_vx = 0.0  # a wall stops the sideways speed it was carrying
+		_shove.x = 0.0
 	# A character pushed out of the map's sides is put back inside.
 	global_position.x = clampf(global_position.x, ArenaGen.left_edge() + 12.0, ArenaGen.right_edge() - 12.0)
 	if flying and fly_box.size != Vector2.ZERO:  # the sky has no walls, but a wizard that reaches the end of it simply stops
@@ -880,6 +1007,7 @@ func _move_on(delta: float) -> void:
 		if not is_equal_approx(held.y, global_position.y):
 			velocity.y = 0.0
 		global_position = held
+	_placed_at = global_position
 	if is_on_floor() and absf(velocity.x) > 10.0:
 		_step -= delta
 		if _step <= 0.0:
@@ -922,6 +1050,11 @@ func pull(force: Vector2, delta: float) -> void:
 	if is_likeness():
 		return
 	free_from_ground()
+	if _in_free_air():
+		# Every pull was tuned against a shove shedding SHOVE_SHED each second. In the air it sheds only AIR_DRAG, so the rest is taken off the pull itself
+		# and a pull is no stronger in the air than it ever was; what is new is that the keys cannot walk out of it.
+		force.x = move_toward(force.x, 0.0, SHOVE_SHED - AIR_DRAG)
+	_launched = true
 	_shove += force * delta
 	if _uses_parts():
 		pose.pulled(force)
@@ -931,6 +1064,7 @@ func push(impulse: Vector2) -> void:
 	if is_likeness():
 		return
 	free_from_ground()
+	_launched = true
 	_shove = impulse
 	if _uses_parts():
 		pose.shoved(impulse)
@@ -985,6 +1119,8 @@ func _animate(delta: float) -> void:
 	var parts := _uses_parts()
 	if absf(velocity.x) > 10.0 and not dead and not is_likeness():
 		facing = signf(velocity.x)  # a person's wizard and a brain's face the way they move, whatever turned them: nobody runs backwards (a brain turns to its rival only standing)
+	if _in_free_air() and not dead and not is_likeness() and not casting and absf(pad.sideways()) > 0.3:
+		facing = signf(pad.sideways())  # trying to go the other way in the air: the wizard turns to face it, though the carried speed has not turned yet
 	_releasing = maxf(_releasing - delta, 0.0)
 	_hurt_anim = maxf(_hurt_anim - delta, 0.0)
 	var wanted := "idle"
@@ -1211,7 +1347,7 @@ func share() -> void:
 ## On the machine that drives the wizard: what the others are sent (see share).
 func _tell_others() -> void:
 	net_position = global_position
-	marks = (FROZEN if is_frozen() else 0) | (SHIELDED if has_shield() else 0) | (OBSIDIAN if obsidian_time > 0.0 else 0) | (STUCK if _stuck_time > 0.0 else 0) 			| (GROUNDED if is_on_floor() else 0) | (ROOTED if is_rooted() else 0) | (SLOWED if is_slowed() else 0) | (FADED if fade_time > 0.0 else 0) | (VEILED if veil > 0 else 0) | (WILD if wolf.on else 0) | (GOLEM if golem.shown else 0)
+	marks = (FROZEN if is_frozen() else 0) | (SHIELDED if has_shield() else 0) | (OBSIDIAN if obsidian_time > 0.0 else 0) | (STUCK if _stuck_time > 0.0 else 0) 			| (GROUNDED if is_on_floor() else 0) | (ROOTED if is_rooted() else 0) | (SLOWED if is_slowed() else 0) | (FADED if fade_time > 0.0 else 0) | (VEILED if veil > 0 else 0) | (WILD if wolf.on else 0) | (GOLEM if golem.shown else 0) | (WET if wet_time > 0.0 else 0) | (BURNING if burning_time > 0.0 else 0) | (OILED if oiled_time > 0.0 else 0)
 	if brain != null:
 		shown_stroke = pen.so_far()
 

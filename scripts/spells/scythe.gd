@@ -59,7 +59,7 @@ func _sheltered(point: Vector2) -> bool:
 ## streak of the blade's path behind it.
 func _show_swing() -> void:
 	var holder := Node2D.new()
-	holder.position = Vector2(facing * 10.0, -6.0)
+	holder.position = (caster.launch_tip() - global_position) if is_instance_valid(caster) else Vector2(facing * 10.0, -6.0)  # the staff's gem is where the scythe's handle is taken up
 	holder.scale.x = facing
 	holder.rotation = -2.3 * facing  # raised behind the caster: a mirror does not turn the swing round by itself, so the angles are mirrored too
 	holder.z_index = 6

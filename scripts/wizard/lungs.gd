@@ -46,7 +46,7 @@ func submerged() -> bool:
 ## True while the wizard holds their breath, for any reason: under water, in the Blessing of the Deep Breath, in a block of ice, or with the air drawn out of
 ## them. Gas does no harm to anyone holding their breath, and nobody can chant.
 func holding() -> bool:
-	return submerged() or smothered or wizard.deep_breath_time > 0.0 or wizard.is_frozen()
+	return submerged() or smothered or wizard.deep_breath_time > 0.0 or wizard.is_frozen() or wizard.golem.on  # (stone does not breathe)
 
 
 ## The air is drawn out of the wizard's lungs, or let back in. They hold their breath as they do under water, with what air they have.
@@ -65,7 +65,7 @@ func grant_deep(seconds: float) -> void:
 func tick(delta: float) -> void:
 	if wizard.dead:
 		return
-	if wizard.deep_breath_time > 0.0:
+	if wizard.deep_breath_time > 0.0 or wizard.golem.on:
 		air = BREATH
 	elif submerged() or smothered or wizard.is_frozen():  # (in a block of ice there is no breathing either)
 		if air > 0.0:
@@ -74,21 +74,3 @@ func tick(delta: float) -> void:
 			wizard.drown(DROWN_RATE * delta)
 	else:
 		air = minf(air + delta * BREATH * 2.0, BREATH)
-
-
-## Air under water: a row of bubbles over the head, one for each second left, drawn on the wizard's own canvas.
-func draw_bubbles() -> void:
-	if wizard.dead or wizard.is_likeness():
-		return
-	if not holding() and air >= BREATH:
-		return  # the bar shows while the breath is held, under water, and while the lungs fill again
-	var bubble := Fx.tex("circle_05")
-	var left := wizard.deep_breath_time if wizard.deep_breath_time > 0.0 else air  # the chant's held breath, when there is one, in place of the air
-	var count := ceili(maxf(left, 0.0))
-	var width := minf(14.0, 160.0 / maxf(count, 1.0))
-	var size := minf(10.0, width - 1.0)
-	for i in count:
-		var at := Vector2((i - (count - 1) * 0.5) * width, -Wizard.BODY_HEIGHT - 20.0)
-		wizard.draw_texture_rect(bubble, Rect2(at - Vector2(size, size) * 0.5, Vector2(size, size)), false, Color(0.75, 0.92, 1.0, 0.9))
-	if left <= 0.0:
-		wizard.draw_texture_rect(bubble, Rect2(Vector2(-6, -Wizard.BODY_HEIGHT - 14.0), Vector2(12, 12)), false, Color(1.0, 0.4, 0.4, 0.9))

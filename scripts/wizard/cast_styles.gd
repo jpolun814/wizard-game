@@ -24,7 +24,7 @@ const STYLES := {
 	"Sneak": "vanish", "Shadow Step": "appear",  # (a Shadow Step is over at the other end, so the wizard arrives)
 	"Rocket Jump": "rocket",
 	# kept up for as long as the spell lasts
-	"Fire Breath": "exhale", "Spore Puff": "exhale",
+	"Fire Breath": "exhale", "Spore Puff": "exhale", "Water Jet": "exhale",
 	"Eldritch Blast": "beam", "Leech": "beam",
 }
 

@@ -140,6 +140,8 @@ static func preview_points(gesture: String) -> PackedVector2Array:
 			return PackedVector2Array([Vector2(-30, -40), Vector2(-15, 40), Vector2(0, -5), Vector2(15, 40), Vector2(30, -40)])
 		"pads":
 			return _circle_and_level_line()
+		"oil":
+			return _drop_and_level_line()
 		"tree":
 			return _lollipop()
 		"eight":
@@ -543,6 +545,17 @@ static func _sawtooth(teeth: int, tooth_width: float, height: float) -> PackedVe
 
 
 ## A pad drawn as a ring, then a level line out of its top across where the pads are to grow.
+## A drop of oil, a loop that comes to a point at the top, and then a level line along from the point: the slick spreading.
+static func _drop_and_level_line() -> PackedVector2Array:
+	var pts := PackedVector2Array()
+	for i in range(33):
+		var t := TAU * i / 32.0
+		pts.append(Vector2(30.0 * sin(t) * sin(t * 0.5), -36.0 * cos(t)))
+	for i in range(1, 11):
+		pts.append(Vector2(14.0 * i, -36.0))
+	return pts
+
+
 static func _circle_and_level_line() -> PackedVector2Array:
 	var pts := PackedVector2Array()
 	for i in range(33):

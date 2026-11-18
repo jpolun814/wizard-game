@@ -7,7 +7,7 @@ extends SpellEffect
 const WARN := 1.0   # seconds the foot of the wall flickers before the whole wall takes light
 const LIFE := 4.0   # seconds it burns once lit
 const TICK := 0.5
-const DAMAGE := 4
+const DAMAGE := 2
 const HEIGHT := 120.0
 const SPACING := 26.0  # a wall drawn wide is a row of these, this far apart
 

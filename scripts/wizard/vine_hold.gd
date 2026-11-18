@@ -35,12 +35,13 @@ func moving() -> bool:
 func climb() -> bool:
 	var pad := wizard.pad
 	var hands := wizard.global_position + Vector2(0, -20)
+	var sideways := pad.sideways()
 	if _vine != null and (not is_instance_valid(_vine) or not _vine.can_grab(hands)):
-		_vine = null
+		_vine = null  # the top of the vine: the wizard steps off it, at a walking pace the way a key leans
+		wizard.carry(sideways * Wizard.SPEED)
 	var up := pad.wants_up()
 	var down := pad.wants_down()
 	var letting_go := pad.lets_go()
-	var sideways := pad.sideways()
 	if _vine == null:
 		if _cooldown > 0.0 or not up:
 			return false
@@ -53,6 +54,7 @@ func climb() -> bool:
 	if letting_go or absf(sideways) > 0.5:
 		# Let go: a hop off the vine in the way the wizard was leaning.
 		wizard.velocity = Vector2(sideways * Wizard.SPEED, Wizard.JUMP_VELOCITY * 0.6 if letting_go else 0.0)
+		wizard.carry(sideways * Wizard.SPEED)  # the push off the vine is the speed it goes on with through the air
 		_vine = null
 		_cooldown = RETRY
 		return false

@@ -241,9 +241,18 @@ func _dark() -> void:
 	_put(first - 4)
 	for f in 30:
 		await get_tree().physics_frame
+	for f in 180:  # a wizard in the air cannot be steered: wait for it to come down before it runs
+		if player.is_on_floor():
+			break
+		await get_tree().physics_frame
 	_verdict(room._night.visible, "it is dark along the dark stretch")
 	_verdict(not room._spikes.shown(), "and the spikes are not seen without a light")
-	await _run_until(first + 8.0, 6.0)
+	Input.action_press("move_right")  # walks, and does not jump: a run that hops would clear the first strip, which is not what is being asked
+	for f in 6 * 60:
+		await get_tree().physics_frame
+		if _column() >= first + 8.0 or _deaths > deaths:
+			break
+	Input.action_release("move_right")
 	_verdict(_deaths > deaths, "walking into the spikes unseen kills (deaths %d)" % (_deaths - deaths))
 	room.spawn_spell("Flare", "positional", Vector2(ArenaGen.column_x(first - 3), ArenaGen.surface_y(room._cells, first) - 60.0), 0.0, {}, player)
 	_put(first - 3)
@@ -274,7 +283,7 @@ func _thorns() -> void:
 	_put(span.x - 6)
 	for f in 20:
 		await get_tree().physics_frame
-	room.spawn_spell("Ignite", "directional", player.center() + Vector2(10.0, 0.0), 0.0, {}, player)
+	room.spawn_spell("Ignite", "directional", player.center() + Vector2(10.0, 0.0), (player.center() + Vector2(250.0, 0.0) - player.launch_tip()).angle(), {}, player)  # (a shot leaves the gem of the staff)
 	for f in 60 * 12:
 		await get_tree().physics_frame
 		if room.thorns_left() <= (Tutorial.THICKETS.size() - 1) * Tutorial.THICKET_LAYERS:

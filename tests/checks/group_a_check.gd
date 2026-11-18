@@ -64,10 +64,16 @@ func _wall(dx: float, height: float) -> StaticBody2D:
 	return wall
 
 
-func _cast(spell: String, targeting: String, aim: float, info := {}) -> void:
+func _cast(spell: String, targeting: String, aim: float, info := {}, raw := false) -> void:
 	var data := {"length": 90.0, "accuracy": 0.9}
 	data.merge(info)
+	if targeting == "directional" and not raw:
+		aim = _from_gem(aim)
 	_world.spawn_spell(spell, targeting, _player.center() + Vector2.from_angle(aim) * 12.0, aim, data, _player)
+
+## A shot leaves the gem of the staff, which stands higher than the middle of the body: a level aim here means the line that would have passed 250 px out at the height of the body's middle.
+func _from_gem(aim: float) -> float:
+	return (_player.center() + Vector2.from_angle(aim) * 250.0 - _player.launch_tip()).angle()
 
 
 func _barbs() -> void:
@@ -111,10 +117,10 @@ func _pebble() -> void:
 	var dummy := _dummy(260.0)
 	await _arrive()
 	# Aimed as the brain aims it: above the dummy by as far as the stone falls on the way.
-	var start: Vector2 = _player.center() + Vector2(12.0, 0.0)
+	var start: Vector2 = _player.launch_tip() + Vector2(8.0, 0.0)
 	var flight: float = start.distance_to(dummy.center()) / Pebble.SPEED
 	var aim: float = (dummy.center() - Vector2(0.0, 0.5 * Pebble.FALL * flight * flight) - start).angle()
-	_cast("Pebble", "directional", aim)
+	_cast("Pebble", "directional", aim, {}, true)  # (already aimed from the gem)
 	await _wait(1.2)
 	_verdict(dummy.max_hp - dummy.hp == Pebble.HARM, "a lobbed pebble hits and hurts (%d hurt)" % (dummy.max_hp - dummy.hp))
 	dummy.queue_free()
@@ -123,7 +129,7 @@ func _pebble() -> void:
 	var lob_aim := -0.3
 	var velocity := Vector2.from_angle(lob_aim) * Pebble.SPEED
 	var time := -2.0 * velocity.y / Pebble.FALL  # in the air until it is back at the height it left from
-	var lands := velocity.x * time
+	var lands := velocity.x * time + (_player.launch_tip().x + 8.0 - _spot.x - 12.0)  # (from the gem, which is out in front of the body)
 	var floor_slab := StaticBody2D.new()  # level ground to land on, whatever the land is like out there
 	var floor_shape := CollisionShape2D.new()
 	var floor_box := RectangleShape2D.new()
@@ -138,7 +144,7 @@ func _pebble() -> void:
 	_cast("Pebble", "directional", 0.0)
 	await _wait(1.5)
 	_verdict(beyond.hp == beyond.max_hp, "a flat throw is stopped by a low wall (%d hurt)" % (beyond.max_hp - beyond.hp))
-	_cast("Pebble", "directional", lob_aim)
+	_cast("Pebble", "directional", lob_aim, {}, true)
 	await _wait(2.5)
 	_verdict(beyond.max_hp - beyond.hp == Pebble.HARM, "a lob goes over it and lands beyond (%d hurt, landing %.0f px off)" % [beyond.max_hp - beyond.hp, lands])
 	wall.queue_free()

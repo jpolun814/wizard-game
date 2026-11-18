@@ -58,7 +58,7 @@ func _read_shapes(relative: PackedVector2Array, origin: Vector2, options: Dictio
 		var ring := relative.slice(0, reading.ring_split)
 		reading.ring_center = StrokeMeasure.centroid(ring)
 		return reading.claim("sphere" if options.has("sphere") else "circle_push", {"radius": StrokeMeasure.mean_distance(ring, reading.ring_center)})
-	for lined: Array in [["pads", "pads"], ["snowfall", "snow_line"], ["smoke", "smoke"], ["wave", "wave"]]:
+	for lined: Array in [["pads", "pads"], ["oil", "oil"], ["snowfall", "snow_line"], ["smoke", "smoke"], ["wave", "wave"]]:
 		if seen[lined[1]].size() >= (2 if lined[0] == "snowfall" else 1):
 			return reading.claim(lined[0], {"line": to_world.call(seen[lined[1]])})
 	var stem_gesture: String = StrokeShapes.stem_gesture(seen["stem"], options) if not seen["stem"].is_empty() else ""
@@ -74,7 +74,7 @@ func _read_shapes(relative: PackedVector2Array, origin: Vector2, options: Dictio
 	for lined: Array in [["cloud", "cloud"], ["pit", "pit"]]:
 		if seen[lined[1]].size() > 0:
 			return reading.claim(lined[0], {"line": to_world.call(seen[lined[1]])})
-	if not seen["cone"].is_empty():
+	if not seen["cone"].is_empty() and not (options.has("icicles") and absf(sin(seen["cone"]["aim"])) > 0.8):  # a cone opening steeply up or down is an icicle's V, where there are icicles
 		return reading.claim("cone", seen["cone"])
 	for rows: Array in [["stalagmite", "spikes"], ["icicles", "icicles"]]:
 		if not seen[rows[1]].is_empty():
@@ -116,6 +116,7 @@ func _detect(relative: PackedVector2Array, options: Dictionary, reading: StrokeR
 		"spiral": spiral,
 		"slashed": slashed,
 		"pads": StrokeShapes.pad_line(relative) if options.has("pads") and spiral.is_empty() else PackedVector2Array(),
+		"oil": StrokeShapes.pad_line(relative) if options.has("oil") and spiral.is_empty() else PackedVector2Array(),
 		"snow_line": StrokeShapes.snowfall_line(relative) if options.has("snowfall") else PackedVector2Array(),
 		"smoke": StrokeShapes.rising_wave(relative) if options.has("smoke") and not (gesture == "rocket" and firm) else PackedVector2Array(),
 		"wave": StrokeShapes.cloud_line(relative) if options.has("wave") else PackedVector2Array(),

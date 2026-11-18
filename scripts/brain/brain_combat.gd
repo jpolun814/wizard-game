@@ -91,6 +91,8 @@ func attack(to_player: Vector2, sees: bool) -> bool:
 		"Invincible Snail": 1.1 if gap > 260.0 and wizard.max_stamina > 150.0 and not wizard.get_tree().get_nodes_in_group("snails").any(func(n: Node) -> bool: return n.caster == wizard) else 0.0,  # slow: it wants a rival who is not about to be on top of you
 		"Supernova": 1.4 if gap < 560.0 and wizard.max_stamina > 140.0 and not sheltered() else 0.0,  # a sun that hangs about: it likes a rival who stays near
 		"Scythe": 2.0 if sees and gap < 110.0 else 0.0,  # only at arm's length
+		"Water Jet": 0.9 if sees and gap < 240.0 and not foe.is_wet() else 0.0,  # it does no harm: it soaks, and a soaked wizard takes lightning hard
+		"Oil Slick": 1.0 if grounded and gap > 110.0 and gap < 380.0 and not foe.is_oiled() else 0.0,  # and oil waits for a flame
 	}
 	if sheltered():
 		# Under a platform: lightning from above cannot reach you.
@@ -130,6 +132,14 @@ func _cleverness(scores: Dictionary, foe: Wizard, gap: float) -> void:
 		return
 	var prof := brain.profile
 	var k := clampf(brain.skill / 0.65, 0.0, 1.3)
+	if foe.is_wet():  # the bubble shows it: lightning strikes hard, and frost holds long, but flame will not take
+		_boost(scores, "Spark", 1.8, k)
+		_boost(scores, "Ice Prison", 1.5, k)
+		for spell_name in ["Ignite", "Fire Breath", "Flaming Sphere"]:
+			_boost(scores, spell_name, 0.35, k)
+	if foe.is_oiled() or foe.is_burning():
+		for spell_name in ["Ignite", "Fire Breath", "Firewall", "Flaming Sphere"]:
+			_boost(scores, spell_name, 2.0 if foe.is_oiled() else 1.0, k)
 	match brain.style:  # each wizard has a way of fighting, so no two matches go alike
 		"trapper":
 			for spell_name in ["Bramble", "Flytrap", "Firewall", "Stalagmite", "Mudslide", "Sinkhole", "Ice Prison", "Insect Plague"]:

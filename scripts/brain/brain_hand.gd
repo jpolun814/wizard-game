@@ -63,7 +63,7 @@ func _aimed_stroke(spell_name: String, foe: Wizard, feet: Vector2, facing: float
 			var target := brain.predict(start.distance_to(brain.sight.seen_center(foe)) / SHOT_SPEED)
 			var aim := (target - start).angle() + brain.rng.randfn(0.0, 0.16 * (1.0 - brain.skill) * brain.clumsy)
 			return BrainStrokes.line(start, start + Vector2.from_angle(aim) * 90.0)
-		"Fire Breath", "Spore Puff":
+		"Fire Breath", "Spore Puff", "Water Jet":
 			return breath_stroke(brain.sight.seen_center(foe))
 		"Tide Surf", "Thorn Whip", "Leech":
 			return surf_stroke(facing)
@@ -128,6 +128,9 @@ func _at_its_feet_stroke(spell_name: String, foe: Wizard, feet: Vector2, facing:
 		"Tornado":
 			var x: float = lerpf(wizard.global_position.x, brain.sight.seen_feet(foe).x, 0.45)
 			return BrainStrokes.offset(GestureTemplates.preview_points("tornado"), Vector2(x, feet.y - 90.0), 0.9)
+		"Oil Slick":  # a drop and a line along the ground under the rival
+			var x := brain.predict(WizardBrain.ATTACK_DRAW * 0.6).x
+			return BrainStrokes.offset(GestureTemplates.preview_points("oil"), Vector2(x - 40.0, feet.y - 40.0), 1.0)
 		"Mudslide":
 			var x := brain.predict(WizardBrain.ATTACK_DRAW * 0.6).x
 			return BrainStrokes.offset(GestureTemplates.preview_points("wave"), Vector2(x, feet.y - 60.0), 1.0)
@@ -299,6 +302,8 @@ func handed(points: PackedVector2Array) -> PackedVector2Array:
 ## screen, see Eyes.shake), each point of the wizard's stroke is nudged by the shake, as a person's stroke is nudged by the shaking view.
 func shaken(points: PackedVector2Array) -> PackedVector2Array:
 	var px := wizard.eyes.shake_px() if wizard.eyes != null else 0.0
+	if wizard.drained_time > 0.0:
+		px = maxf(px, Hemorrhage.TREMOR)  # a drained hand shakes too
 	if px < 0.5:
 		return points
 	var shaken := PackedVector2Array()
@@ -343,7 +348,7 @@ func tend_stroke(spell_name: String, to_player: Vector2) -> PackedVector2Array:
 			var middle := lerpf(feet.x, feet.x + to_player.x, 0.5)
 			return BrainStrokes.offset(GestureTemplates.preview_points("smoke"), Vector2(middle, feet.y - 50.0), 0.9)
 		"Decoy":
-			return BrainStrokes.offset(GestureTemplates.preview_points("eight"), here + Vector2(-dir * 50.0, 0.0), 0.7)
+			return BrainStrokes.offset(GestureTemplates.preview_points("stick"), here + Vector2(-dir * 50.0, 0.0), 0.7)
 		"Eclipse":
 			return BrainStrokes.offset(GestureTemplates.preview_points("eclipse"), brain.sight.seen_center(brain.foe()), 1.0)
 		"Crimson Veil":

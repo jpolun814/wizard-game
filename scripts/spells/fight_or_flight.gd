@@ -36,6 +36,7 @@ func _ready() -> void:
 	_mark.modulate = color  # red for the one who fights, pale for the one who flees
 	_mark.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	_mark.scale = Vector2(2.0, 2.0)
+	_mark.visible = not target is Wizard  # (a wizard's status bubble says it: raging or fleeing)
 	add_child(_mark)
 	Fx.burst(get_parent(), target.center(), color, 18, 160.0, 0.5, true)
 	Fx.impact(get_parent(), target.center(), color, 50.0)
@@ -95,6 +96,8 @@ func _cast_at_random() -> void:
 
 ## The glow behind the question mark over the head, red for the one who fights and pale for the one who flees. The mark bobs.
 func _draw() -> void:
+	if target is Wizard:
+		return
 	var color := FIGHT if fights else FLIGHT
 	Fx.draw_glow(self, Vector2.ZERO, 16.0, Color(color.r, color.g, color.b, 0.45))
 	if _mark != null:

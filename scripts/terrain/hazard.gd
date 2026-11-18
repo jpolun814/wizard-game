@@ -5,7 +5,7 @@ extends Area2D
 ## Whoever stands in it burns, whoever lit it.
 
 const FIRE_TICK := 0.5
-const FIRE_DAMAGE := 5
+const FIRE_DAMAGE := 2
 
 var width := 24.0
 var _age := 0.0
@@ -68,7 +68,7 @@ func danger_at(point: Vector2) -> bool:
 ## Scorched ground with a glow of embers under the flames.
 func _draw() -> void:
 	var fade := clampf((_life - _age) / 0.8, 0.0, 1.0)
-	draw_set_transform(Vector2(0, -1), 0.0, Vector2(1.0, 0.18))
-	draw_circle(Vector2.ZERO, width * 0.55, Color(0.1, 0.05, 0.03, 0.55 * fade))
-	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	var scorch := Fx.tex("scorch_02")  # a charred patch from the particle pack, flattened onto the ground
+	var across := width * 1.1
+	draw_texture_rect(scorch, Rect2(Vector2(-across * 0.5, -1.0 - across * 0.09), Vector2(across, across * 0.18)), false, Color(0.1, 0.05, 0.03, 0.7 * fade))
 	Fx.draw_glow(self, Vector2(0, -3), width * 0.45, Color(1.0, 0.4, 0.1, 0.45 * fade))

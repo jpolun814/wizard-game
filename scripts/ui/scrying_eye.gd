@@ -44,6 +44,7 @@ func _ready() -> void:
 	_view.world_2d = get_viewport().world_2d  # the same world, seen by another camera
 	_view.transparent_bg = false
 	_view.handle_input_locally = false
+	_view.canvas_cull_mask = 0xFFFFFFF7  # (without the scrolling backdrop, which would follow the camera of the person's own screen)
 	_view.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	_window.add_child(_view)
 	_camera = Camera2D.new()

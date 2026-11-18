@@ -38,9 +38,10 @@ func _ready() -> void:
 	_spray.initial_velocity_min = 80.0
 	_spray.initial_velocity_max = 220.0
 	_spray.gravity = Vector2(0, 600)
-	_spray.texture = Geyser.DROPLET
-	_spray.scale_amount_min = 0.25
-	_spray.scale_amount_max = 0.5
+	_spray.texture = Fx.pixel_drop()
+	_spray.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_spray.scale_amount_min = 0.8
+	_spray.scale_amount_max = 1.4
 	_spray.color_ramp = Fx.fade_ramp(Color(0.85, 0.96, 1.0, 0.95))
 	_spray.local_coords = false
 	_spray.position = Vector2(direction * FRONT * 0.5, -16.0)
@@ -57,6 +58,7 @@ func _physics_process(delta: float) -> void:
 		_end()
 		return
 	global_position = caster.global_position
+	caster.coat.soak()  # whoever rides the wave is wet
 	queue_redraw()
 	for body in _shoved.keys():
 		_shoved[body] -= delta
@@ -72,6 +74,7 @@ func _physics_process(delta: float) -> void:
 			body.knock_back(impulse)
 		else:
 			body.push(impulse)
+			body.coat.soak()  # the wave leaves them wet
 		Fx.burst(get_parent(), SpellTargets.center_of(body), FOAM, 8, 140.0, 0.4, true)
 	Flare.snuff_near(get_tree(), global_position + Vector2(direction * 40.0, -30.0), 60.0)
 	for fire in get_tree().get_nodes_in_group("fires"):
@@ -135,23 +138,13 @@ func _draw() -> void:
 			swell = lerpf(HEIGHT, HEIGHT * 0.55, smoothstep(tip - 20.0, tip, u))  # the crest curls over and drops away
 		swell += sin(_age * 9.0 + u * 0.12) * 2.5
 		top.append(Vector2(u * direction, 6.0 - swell * rise))
-	var points := PackedVector2Array()
-	var colors := PackedColorArray()
+	var middles := PackedVector2Array()
+	var widths := PackedFloat32Array()
+	var alphas := PackedFloat32Array()
 	for point in top:
-		points.append(point)
-		colors.append(Pond.WATER_TOP.lerp(Pond.WATER_RIM, clampf((6.0 - point.y) / HEIGHT, 0.0, 1.0) * 0.25))
-	var foot := Vector2(top[top.size() - 1].x, 6.0)
-	points.append(foot)
-	colors.append(Pond.WATER_BOTTOM)
-	points.append(Vector2(top[0].x, 6.0))
-	colors.append(Pond.WATER_BOTTOM)
-	for c in colors.size():
-		colors[c].a = fade
-	draw_polygon(points, colors)
-	var edge := Pond.WATER_RIM
-	edge.a = fade
-	draw_polyline(top, edge, 2.0)
-	# Foam on the crest.
-	var foam := FOAM
-	foam.a = fade
-	draw_polyline(top.slice(top.size() - 7), foam, 3.0)
+		middles.append(Vector2(point.x, (point.y + 6.0) * 0.5))
+		widths.append(clampf(6.0 - point.y, 4.0, 48.0))
+		alphas.append(fade)
+	WaterPixels.stream(self, middles, widths, alphas, _age)  # the body of the wave, from pixel art in the pond's colors
+	var head := top[top.size() - 1]  # foam where the crest curls over
+	draw_texture_rect(Fx.tex("smoke_02"), Rect2(head - Vector2(22.0, 22.0), Vector2(44.0, 44.0)), false, Color(FOAM.r, FOAM.g, FOAM.b, 0.6 * fade))

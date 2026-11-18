@@ -32,15 +32,16 @@ func _ready() -> void:
 		return
 	Sfx.play("freeze", global_position)
 	for body in caught:
+		var seconds: float = FREEZE_SECONDS if body.is_in_group("mobs") else body.coat.frozen_for(FREEZE_SECONDS)  # ice holds a wet wizard longer
 		if body.is_in_group("mobs"):
-			if not body.freeze(FREEZE_SECONDS):
+			if not body.freeze(seconds):
 				FloatText.spawn(get_parent(), body.center() + Vector2(0, -30), "Immune", Color("#bfe9ff"), 0.8)
 				continue
-		elif not body.freeze(FREEZE_SECONDS):
+		elif not body.freeze(seconds):
 			continue
 		var block_size: Vector2 = body.body_extent() + ROOM if body.is_in_group("mobs") else WIZARD_BLOCK
 		_encased.append({"body": body, "block": RockArt.ice_block(block_size.x, block_size.y, int(global_position.x) + _encased.size())})
-		_life = FREEZE_SECONDS
+		_life = maxf(_life, seconds)
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	var burst := PixelFx.play(get_parent(), global_position, "ice_burst", 70.0, maxf(1.0, roundf(rect.size.x / 70.0)))
 	burst.z_index = 5

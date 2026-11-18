@@ -6,6 +6,6 @@
 script = ExtResource("1_8lujr")
 spell_name = "Decoy"
 school = "Shadow"
-gesture = "eight"
+gesture = "stick"
 cost = 20.0
 effect = "Conjure a shadow of yourself."

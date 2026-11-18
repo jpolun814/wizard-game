@@ -78,6 +78,7 @@ func build(backdrop: String, ground_y := -1.0) -> void:
 		var sprite := Sprite2D.new()
 		sprite.texture = texture
 		sprite.centered = false
+		sprite.visibility_layer = 8  # its own layer: the spy window's camera leaves it out, for the layers scroll with the screen of the one who looks, not with its camera
 		sprite.position = Vector2(0.0, top)
 		sprite.scale = Vector2(zoom, zoom)
 		parallax.add_child(sprite)
@@ -109,6 +110,7 @@ func _band(parent: Node, rect: Rect2, color: Color) -> void:
 	band.position = rect.position
 	band.size = rect.size
 	band.color = color
+	band.visibility_layer = 8
 	parent.add_child(band)
 
 

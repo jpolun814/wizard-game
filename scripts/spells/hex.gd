@@ -15,6 +15,19 @@ var _age := 0.0
 
 
 ## The extra damage a body takes from being hexed: 1 if it is not.
+## The hex a body is under, if any.
+static func on(tree: SceneTree, body: Node) -> Hex:
+	for hex: Hex in tree.get_nodes_in_group("hexes"):
+		if hex.target == body:
+			return hex
+	return null
+
+
+## Seconds the curse has left.
+func left() -> float:
+	return maxf(SECONDS - _age, 0.0)
+
+
 static func multiplier(tree: SceneTree, body: Node) -> float:
 	for hex in tree.get_nodes_in_group("hexes"):
 		if hex.target == body:
@@ -35,6 +48,7 @@ func _ready() -> void:
 	mark.texture = MARK
 	mark.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	mark.scale = Vector2(2.0, 2.0)
+	mark.visible = not target is Wizard  # a wizard's status bubble already says they are hexed; a creature has none, so it keeps the star
 	add_child(mark)
 	Sfx.play("gravity", global_position, -6.0)
 	Fx.burst(get_parent(), global_position, Color("#a070e0"), 12, 100.0, 0.5, true)
@@ -53,5 +67,7 @@ func _physics_process(delta: float) -> void:
 
 ## The violet glow behind the star.
 func _draw() -> void:
+	if target is Wizard:
+		return
 	var glow := Color(0.65, 0.4, 1.0)
 	Fx.draw_glow(self, Vector2.ZERO, 24.0, Color(glow.r, glow.g, glow.b, 0.5))

@@ -14,12 +14,18 @@ uniform float frozen = 0.0;        // 0 to 1: how icy it looks
 // The sprite's modulate. In fragment(), COLOR already has the texture multiplied in, so the plain modulate is
 // carried over from the vertex stage instead.
 varying vec4 modulate_color;
+varying float spot_y;
+uniform float cut_y = 1.0e9;       // nothing below this height in the world is drawn: a creature climbing out of the ground is cut off at the ground
 
 void vertex() {
 	modulate_color = COLOR;
+	spot_y = (MODEL_MATRIX * vec4(VERTEX, 0.0, 1.0)).y;
 }
 
 void fragment() {
+	if (spot_y > cut_y) {
+		discard;
+	}
 	vec4 c = texture(TEXTURE, UV);
 	if (c.a < 0.1 && outline > 0.0) {
 		// An empty pixel next to a solid one is part of the outline.

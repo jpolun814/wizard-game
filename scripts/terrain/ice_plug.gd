@@ -54,4 +54,3 @@ func _draw() -> void:
 	for column: Dictionary in columns:
 		var rect := _rect_of(column)
 		draw_texture_rect(TEXTURE, rect, true, Color(0.85, 0.95, 1.0, 0.55 + 0.4 * wear))
-		draw_line(rect.position + Vector2(5, 0), rect.position + Vector2(5, rect.size.y), Color(1, 1, 1, 0.25 * wear), 2.0)

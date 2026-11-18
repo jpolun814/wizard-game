@@ -98,7 +98,7 @@ func _cast_at(world: World, spell: String, target: Wizard, caster: Wizard) -> Di
 		"Tide Surf":
 			world.spawn_spell(spell, "directional", middle, 0.0, {}, target)
 		_:  # a shot from the caster, straight at it
-			world.spawn_spell(spell, "directional", caster.center(), (middle - caster.center()).angle(), {"length": 200.0}, caster)
+			world.spawn_spell(spell, "directional", caster.center(), (middle - caster.launch_tip()).angle(), {"length": 200.0}, caster)
 	var rise := 0.0
 	var side := 0.0
 	for i in int(WATCH * 60.0):

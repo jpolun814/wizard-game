@@ -4,7 +4,7 @@ extends Projectile
 ## Ignite: a ball of fire thrown along the drawn line. It shoves what it hits, bites a piece out of a snowbank, and sets alight what it passes.
 
 const SPEED := 700.0
-const HARM := 12
+const HARM := 5
 const FLIGHT := 2.0
 const HEAD := 21.0  # how far the head of the fire bolt is from the middle of its frame
 const DROP := 6.0  # how far below the middle of its frame the ball of the fire bolt is, in art pixels
@@ -42,6 +42,11 @@ func velocity() -> Vector2:
 
 func _draw() -> void:
 	Fx.draw_glow(self, Vector2.ZERO, 20.0 * (1.0 + 0.1 * sin(_age * 30.0)), Color(1.0, 0.45, 0.12, 0.45))
+
+
+func _hurt_wizard(wizard: Wizard) -> void:
+	super._hurt_wizard(wizard)
+	wizard.coat.ignite(Coating.BURN_SECONDS, self)  # it sets whoever it hits alight
 
 
 func _hurt_mob(mob: Mob) -> void:

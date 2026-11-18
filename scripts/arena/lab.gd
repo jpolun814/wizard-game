@@ -272,10 +272,34 @@ func _add_sparring_section() -> void:
 	_spawn_partner()
 
 
+func _in_section() -> bool:
+	return player.global_position.x >= ArenaGen.column_x(SECTION.x) and player.global_position.x <= ArenaGen.column_x(SECTION.y)
+
+
+## Sets the sparring court right: the partner is whole and back at its place, whatever was cast in the court is gone, and the player has all their stamina.
+func _reset_court() -> void:
+	var left := ArenaGen.column_x(SECTION.x)
+	var right := ArenaGen.column_x(SECTION.y)
+	for group in ["lasting", "fires", "mobs", "shots", "rocks"]:
+		for node: Node in get_tree().get_nodes_in_group(group):
+			if node is Node2D and node != _partner and not (node is Wizard) and node.global_position.x >= left and node.global_position.x <= right:
+				node.queue_free()
+	_partner_wait = 0.0
+	_spawn_partner()
+	player.max_stamina = Wizard.MAX_STAMINA
+	player.stamina = Wizard.MAX_STAMINA
+	for status in [&"slow", &"wet", &"burning", &"oiled", &"root", &"daze"]:
+		player._status.set_left(status, 0.0)
+	hud.show_message("Court reset", Color(0.9, 0.9, 1.0))
+
+
 func _on_level_chosen(level: int) -> void:
 	BrainLevel.match_level = level
 	if _partner != null and is_instance_valid(_partner):
 		_partner.brain.set_level(level)
+
+
+var _told_reset := false  # the prompt for the court's reset key is shown once
 
 
 func _spawn_partner() -> void:
@@ -302,6 +326,9 @@ func _watch_the_partner(delta: float) -> void:
 			_spawn_partner()
 		return
 	var here := player.global_position.x >= ArenaGen.column_x(SECTION.x) and player.global_position.x <= ArenaGen.column_x(SECTION.y)
+	if here and _in_court <= 0.0 and not _told_reset:
+		_told_reset = true
+		hud.show_message("Press R to reset the court", Color(0.9, 0.9, 1.0))
 	_in_court = _in_court + delta if here else 0.0
 	if _in_court >= WAKE_AFTER and _partner.brain.dormant:
 		_partner.brain.dormant = false
@@ -341,6 +368,8 @@ func _input(event: InputEvent) -> void:
 		if event.is_action_pressed("night_toggle"):
 			_night.visible = not _night.visible
 			_player_light.enabled = _night.visible
+		elif event.is_action_pressed("restart") and _levels != null and _in_section() and not hud.is_game_over():
+			_reset_court()  # in the sparring court the restart key sets the court right again and does not leave the room
 		elif event.is_action_pressed("restart") and not hud.is_game_over() and not Net.online():  # the room is shared in a network game
 			get_tree().reload_current_scene()
 	super(event)

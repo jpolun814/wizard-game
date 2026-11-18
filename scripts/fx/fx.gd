@@ -11,6 +11,25 @@ static var _textures := {}
 
 
 ## A particle texture from art/particles, by name (for example "flame_05" or "smoke_01").
+static var _pixel_drop: ImageTexture
+
+
+## A drop of water in pixel art: a few square pixels, pale with a bright speck at the top left and a darker foot, the way the rest of the game's water is
+## drawn. It is the spray of the Geyser and the Water Jet.
+static func pixel_drop() -> ImageTexture:
+	if _pixel_drop == null:
+		var image := Image.create(4, 5, false, Image.FORMAT_RGBA8)
+		var pale := Color(0.78, 0.92, 1.0)
+		var deep := Color(0.5, 0.74, 0.9)
+		for cell in [Vector2i(1, 0), Vector2i(2, 0), Vector2i(0, 1), Vector2i(1, 1), Vector2i(2, 1), Vector2i(3, 1), Vector2i(0, 2), Vector2i(1, 2), Vector2i(2, 2), Vector2i(3, 2)]:
+			image.set_pixelv(cell, pale)
+		for cell in [Vector2i(0, 3), Vector2i(1, 3), Vector2i(2, 3), Vector2i(3, 3), Vector2i(1, 4), Vector2i(2, 4)]:
+			image.set_pixelv(cell, deep)
+		image.set_pixel(1, 1, Color(1.0, 1.0, 1.0))
+		_pixel_drop = ImageTexture.create_from_image(image)
+	return _pixel_drop
+
+
 static func tex(texture_name: String) -> Texture2D:
 	if not _textures.has(texture_name):
 		_textures[texture_name] = load("res://art/particles/%s.png" % texture_name)

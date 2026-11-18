@@ -222,7 +222,7 @@ func cover(post: Node2D, many := false) -> String:
 			"Barrier":
 				brain.hand.begin_cast(spell_name, BrainStrokes.offset(GestureTemplates.preview_points("circle"), around, 0.8), WizardBrain.QUICK_DRAW)
 			"Decoy":
-				brain.hand.begin_cast(spell_name, BrainStrokes.offset(GestureTemplates.preview_points("eight"), around + Vector2(-40.0 * signf(post.center().x - around.x), 0.0), 0.7), WizardBrain.QUICK_DRAW)
+				brain.hand.begin_cast(spell_name, BrainStrokes.offset(GestureTemplates.preview_points("stick"), around + Vector2(-40.0 * signf(post.center().x - around.x), 0.0), 0.7), WizardBrain.QUICK_DRAW)
 		return spell_name
 	return ""
 

@@ -19,7 +19,7 @@ func _init(arena: Arena) -> void:
 func recipes() -> Dictionary:
 	return {
 		"Icicles": _icicles, "Stalagmite": _stalagmites, "Tornado": _tornado, "Blizzard": _blizzard, "Smoke Screen": _smoke_screen, "Frost Bridge": _frost_bridge,
-		"Geyser": _geyser, "Bramble": _bramble, "Liana": _liana, "Great Oak": _great_oak, "Lily Pads": _lily_pads, "Mudslide": _mudslide, "Hailstorm": _hailstorm,
+		"Geyser": _geyser, "Bramble": _bramble, "Liana": _liana, "Great Oak": _great_oak, "Lily Pads": _lily_pads, "Oil Slick": _oil_slick, "Mudslide": _mudslide, "Hailstorm": _hailstorm,
 		"Ice Prison": _ice_prison,
 	}
 
@@ -109,6 +109,14 @@ func _lily_pads(c: SpellCast) -> void:
 	var pads := LilyPads.new()
 	pads.line = c.line()
 	c.add(pads)
+
+
+func _oil_slick(c: SpellCast) -> void:
+	var slick := OilSlick.new()
+	slick.caster = c.caster
+	slick.width = SpellData.width_of(c.line())
+	slick.position = c.center()
+	c.add(slick)
 
 
 func _mudslide(c: SpellCast) -> void:

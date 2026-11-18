@@ -6,6 +6,7 @@ extends BreakableBlock
 ## it has taken enough.
 
 const TEXTURE := preload("res://art/tiles/castle_brick.png")
+const CRACKS := preload("res://art/fx/cracks.png")  # pixel art made for the game (tools/wizard_parts/cracks.py): four cracks side by side, 12 by 24
 const HEALTH := 150.0
 
 
@@ -44,7 +45,7 @@ func _draw() -> void:
 		var rng := RandomNumberGenerator.new()
 		rng.seed = 5
 		for k in int((1.0 - wear) * 14.0):
-			var at := _box.position + Vector2(rng.randf() * _box.size.x, rng.randf() * _box.size.y)
-			var bend := Vector2(rng.randf_range(-10, 10), rng.randf_range(8, 22))
-			draw_polyline(PackedVector2Array([at, at + bend * 0.5 + Vector2(4, 0), at + bend]), Color(0.05, 0.03, 0.06, 0.8), 2.0)
+			var at := (_box.position + Vector2(rng.randf() * maxf(_box.size.x - 12.0, 1.0), rng.randf() * maxf(_box.size.y - 24.0, 1.0))).round()
+			var which := rng.randi() % 4
+			draw_texture_rect_region(CRACKS, Rect2(at, Vector2(12.0, 24.0)), Rect2(which * 12.0, 0.0, 12.0, 24.0))
 	draw_rect(_box, Color(0.05, 0.03, 0.08), false, 2.0)

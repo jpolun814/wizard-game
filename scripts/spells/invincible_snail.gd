@@ -19,9 +19,11 @@ var _sprite: AnimatedSprite2D
 var _fading := false
 
 
-## Whoever is under the ring: the wizard nearest its middle, if near enough (a snail hunts wizards, not creatures).
-static func nearest_under(tree: SceneTree, point: Vector2, radius := 0.0) -> Wizard:
-	return SpellTargets.nearest_to(SpellTargets.wizards(tree), point, maxf(REACH, radius * 1.2)) as Wizard
+## Whoever is under the ring: the wizard nearest its middle, if near enough (a snail hunts wizards, not creatures, and never the one who conjures it: it is
+## drawn over someone else).
+static func nearest_under(tree: SceneTree, point: Vector2, radius := 0.0, caster: Wizard = null) -> Wizard:
+	var others := SpellTargets.wizards(tree).filter(func(w: Node) -> bool: return w != caster)
+	return SpellTargets.nearest_to(others, point, maxf(REACH, radius * 1.2)) as Wizard
 
 
 ## Puts a snail on the ground at a place, hunting a wizard. A caster has one at a time: a new one replaces the old.
@@ -112,9 +114,10 @@ func _physics_process(delta: float) -> void:
 		velocity.x = toward * SPEED if absf(goal.x - global_position.x) > 4.0 else 0.0
 		velocity.y += float(ProjectSettings.get_setting("physics/2d/default_gravity")) * delta
 	move_and_slide()
-	var gap := goal - global_position
-	if absf(gap.x) < KILL_REACH.x and absf(gap.y) < KILL_REACH.y:
-		target.take_damage(99999, true)  # a touch is the end of anyone; only a veil that is still up negates it, for a moment
+	for wizard: Wizard in SpellTargets.wizards(get_tree()):  # a touch is the end of anyone, whoever conjured it too; only a veil that is still up negates it, for a moment
+		var gap := SpellTargets.center_of(wizard) - global_position
+		if absf(gap.x) < KILL_REACH.x and absf(gap.y) < KILL_REACH.y:
+			wizard.take_damage(99999, true)
 
 
 func _vanish() -> void:

@@ -5,7 +5,7 @@ extends SpellEffect
 ## wall in its way. It can't hit the one who cast it until it has flown out of their body.
 
 const SKY_LIFT := 1000.0  # in the open sky the air stands still while the wizards fall through it, so a shot rises, ever faster, against the fall (px/s each second)
-const CLEAR_CHECK_AFTER := 0.05  # the overlaps of a new shot are not known until a few physics frames have passed
+const CLEAR_CHECK_AFTER := 0.3  # (it leaves the staff's gem, not the body's middle, so a runner would otherwise catch up with their own shot at once)  # the overlaps of a new shot are not known until a few physics frames have passed
 
 var aim := Vector2.RIGHT
 var _pulled := Vector2.ZERO  # a pull (a Black Hole's) bends the flight, on top of the aim
@@ -13,6 +13,8 @@ var _spent := false
 var _lift := 0.0  # how fast the fall has left it behind, upward
 var _clear := false  # it has flown out of its caster's body: from then on it can hit the caster too
 var _trail: CPUParticles2D
+var emerge_from := Vector2.INF  # the gem of the staff it leaves, in the world; until it has flown clear of it, the part of the picture behind it is not drawn
+var _emerging: Array = []  # [sprite, the material it had]
 
 
 ## What every shot does when it is cast: it flies along the aim, joins the groups that wind and holes in the world look for, and gets hurt by what it hits.
@@ -53,12 +55,38 @@ func heading() -> Vector2:
 
 
 func _act(delta: float) -> void:
+	_emerge()
 	if _age >= CLEAR_CHECK_AFTER and not _clear and not get_overlapping_bodies().has(caster):
 		_clear = true
 	if caster is Wizard and caster.flying:
 		_lift += SKY_LIFT * delta
 	position += (velocity() + _pulled + Vector2(0.0, -_lift)) * delta
 	rotation = aim.angle()
+
+
+## While a shot is still leaving the staff, its pictures are cut off at the gem, so it comes out of the staff and is not seen lying over the wizard.
+func _emerge() -> void:
+	if emerge_from == Vector2.INF:
+		return
+	if _emerging.is_empty() and _age < 0.1:
+		var first := _age < 0.03 and not has_meta(&"emerge_set")
+		if first:
+			set_meta(&"emerge_set", true)
+			for child in get_children():
+				if child is Sprite2D or child is AnimatedSprite2D:
+					var shaded := ShaderMaterial.new()
+					var additive := child.material is CanvasItemMaterial and (child.material as CanvasItemMaterial).blend_mode == CanvasItemMaterial.BLEND_MODE_ADD
+					shaded.shader = load("res://scripts/fx/emerge_add.gdshader" if additive else "res://scripts/fx/emerge.gdshader")
+					shaded.set_shader_parameter("gem", emerge_from)
+					shaded.set_shader_parameter("way", aim)
+					_emerging.append([child, child.material])
+					child.material = shaded
+	if not _emerging.is_empty() and _age >= 0.12:
+		for pair in _emerging:
+			if is_instance_valid(pair[0]):
+				pair[0].material = pair[1]
+		_emerging.clear()
+		emerge_from = Vector2.INF
 
 
 func _on_hit(body: Node2D) -> void:

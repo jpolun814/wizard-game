@@ -42,6 +42,10 @@ static func hurt(body: Node, amount: int, school: String, shot := false, lava :=
 	if lava and body.has_method("lava_proof") and body.lava_proof():
 		return  # black glass: the lava runs off it
 	if body.is_in_group("wizards"):
+		if by is SparkStrike:
+			amount = body.coat.shocked(amount)  # lightning strikes a wet body harder
+		elif school == "Fire":
+			body.coat.ignite(Coating.BURN_SECONDS, by)  # flame sets a wizard alight (a wet one it cannot)
 		if school in ["Air", "Earth"] and body.is_frozen():
 			amount = roundi(amount * 1.5)  # a frozen wizard is shattered out of the ice, as a frozen enemy is
 			body.thaw()
@@ -173,6 +177,8 @@ static func fire_points(tree: SceneTree) -> Array:
 			fires.append({"at": node.global_position + Vector2(0, -20), "heat": 1.0, "size": 24.0, "shot": false})
 		elif node is FlamingSphere:
 			fires.append({"at": node.global_position, "heat": 2.0, "size": 16.0, "shot": false})
+		elif node is BodyFlames:
+			fires.append({"at": node.global_position, "heat": 1.0, "size": 14.0, "shot": false})
 	_fires = fires
 	_fires_frame = frame
 	_fires_count = count
