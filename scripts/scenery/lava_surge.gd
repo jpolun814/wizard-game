@@ -24,7 +24,7 @@ var _bubble := 0.0
 func _ready() -> void:
 	add_to_group("danger")
 	add_to_group("fires")
-	_fire = Flames.lay(self, Rect2(0.0, -8.0, width, 12.0), int(global_position.x), 40.0, 0.8)
+	_fire = Flames.lay(self, Rect2(global_position + Vector2(0.0, -8.0), Vector2(width, 12.0)), int(global_position.x), 40.0, 0.8)
 	_fire.visible = false
 
 

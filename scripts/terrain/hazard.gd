@@ -40,7 +40,7 @@ static func place(parent: Node, at: Vector2, patch_width: float, life: float) ->
 func _ready() -> void:
 	add_to_group("danger")
 	add_to_group("fires")
-	_flames = Flames.lay(self, Rect2(-width * 0.5, -6.0, width, 12.0), int(global_position.x), 18.0, 1.3)  # a ragged fire over the patch
+	_flames = Flames.lay(self, Rect2(global_position + Vector2(-width * 0.5, -6.0), Vector2(width, 12.0)), int(global_position.x), 18.0, 1.3)  # a ragged fire over the patch (the box is in world space)
 
 
 func _physics_process(delta: float) -> void:
