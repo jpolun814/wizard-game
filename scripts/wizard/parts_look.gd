@@ -15,7 +15,8 @@ const BEARD_NOW := {"braided": "short", "wispy": "goatee"}
 ## What an outfit of the older games was edged in: gold, but silver (here the nearest, ivory) for these colors.
 const SILVER_TRIMMED := ["charcoal", "black", "lavender", "gold"]
 ## The voices (not art, so not in the manifest): the sounds a wizard makes when it jumps and when it is hurt. See WizardLook.jump_sound and hurt_sound.
-const VOICES := ["voice_1", "voice_2", "voice_3", "voice_4", "voice_5"]
+## (There is no voice_2: it was taken out, and a look that had it speaks with voice_1. The numbers a player sees are counted without the gap.)
+const VOICES := ["voice_1", "voice_3", "voice_4", "voice_5"]
 const DEFAULT := {
 	"skin": "tan", "outfit": "coat", "color": "blue", "trim": "charcoal", "hair": "short", "hair_color": "auburn", "beard": "short",
 	"beard_color": "auburn", "hat": "wide", "hat_color": "blue", "boots": "brown", "weapon": "staff_orb", "voice": "voice_1",
@@ -80,6 +81,8 @@ static func decode(look: String) -> Dictionary:
 	var config := {}
 	for k in order.size():
 		config[order[k]] = values[k]
+	if config.get("voice") == "voice_2":
+		config["voice"] = "voice_1"
 	if order != ORDER:  # a look from an older game: what it had not yet chosen is what it was drawn with
 		config["trim"] = "ivory" if SILVER_TRIMMED.has(config["color"]) else "gold"
 		config["boots"] = "brown"

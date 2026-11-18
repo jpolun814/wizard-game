@@ -40,8 +40,8 @@ const PALETTES := [
 	{"name": "Ash", "robe": [-1.0, 0.0], "trim": [-1.0, 0.0]},
 ]
 
-## The sound of a jump, in the figure's own voice: the women have voices of their own, and the rest share the one that every wizard had.
-const JUMP_VOICES := {"bone_wizard": "jump_bone_wizard", "lightning_mage": "jump_lightning_mage"}
+## The sound of a jump, in the figure's own voice: the Lightning Mage has a voice of her own, and the rest share the one that every wizard had.
+const JUMP_VOICES := {"lightning_mage": "jump_lightning_mage"}
 
 
 ## The color shown on the button for a set of colors: the robe's, as that figure would wear it.
@@ -54,8 +54,6 @@ static func swatch(look: String, palette: int) -> Color:
 
 static func jump_sound(look: String) -> String:
 	match PartsLook.option_of(look, "voice"):
-		"voice_2":
-			return "jump_bone_wizard"
 		"voice_3":
 			return "jump_lightning_mage"
 		"voice_4":
