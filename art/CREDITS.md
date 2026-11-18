@@ -33,7 +33,7 @@ packed into atlases, effects into strips).
 | `art/props/cloud_storm_*`, `cloud_snow_*` (recoloured) | [Pixel Art Clouds](https://opengameart.org/node/159981) by DustDFG | CC0 |
 | `art/ui/book.png` (the spellbook) | [Pixel Art Book](https://foxeldev.itch.io/pixelbooks) by Foxel Games | CC0 1.0 |
 | `art/tiles/ice`, `art/props/ice_fill` (church stone, recoloured), `art/props/quicksand` (swamp water, recoloured) | GothicVania Church and Swamp by ansimuz | CC0 1.0 |
-| `art/particles/` (soft glows, smoke and sparks behind the pixel effects) | [Kenney – Particle Pack](https://kenney.nl/assets/particle-pack) | CC0 1.0 |
+| `art/particles/` (soft glows, smoke and sparks behind the pixel effects; the game loads `art/particles_px/`, the same cut down to chunky pixels by `tools/pixelate_particles.py`) | [Kenney – Particle Pack](https://kenney.nl/assets/particle-pack) | CC0 1.0 |
 
 The original enemy art (`art_source/enemies/`) and wizard parts (`art/wizard_parts/`) were in the project before
 and are no longer drawn by the game.

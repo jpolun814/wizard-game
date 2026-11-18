@@ -32,7 +32,7 @@ static func pixel_drop() -> ImageTexture:
 
 static func tex(texture_name: String) -> Texture2D:
 	if not _textures.has(texture_name):
-		_textures[texture_name] = load("res://art/particles/%s.png" % texture_name)
+		_textures[texture_name] = load("res://art/particles_px/%s.png" % texture_name)
 	return _textures[texture_name]
 
 

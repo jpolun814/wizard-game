@@ -4,7 +4,7 @@ extends Node
 ## them. Without this the first cast of a spell in a match stalls the game for a frame or several (a measured 10-30 ms for Raise Dead, Burst, Barbs
 ## and Thorn Whip): the stall was the loading, not the spell. Loaded things are kept here, so they stay in memory and `load()` finds them at once.
 
-const FOLDERS := ["res://scripts/spells", "res://art/fx", "res://art/particles", "res://art/props", "res://art/mobs", "res://audio"]
+const FOLDERS := ["res://scripts/spells", "res://art/fx", "res://art/particles_px", "res://art/props", "res://art/mobs", "res://audio"]
 const KINDS := ["png", "ogg", "wav"]  # (spell scripts are read on this thread, one a frame, after the others: a script read on another core while it was being compiled here lost a picture it preloads)
 
 var _waiting: Array[String] = []

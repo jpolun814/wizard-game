@@ -11,7 +11,7 @@ const FIRST_HEIGHT := 40.0   # how high above the floor the first crystal is
 const STEP := 30.0           # and the rest, each this much above the last
 const UNLIT := Color(0.28, 0.28, 0.36)
 const LIT := Color(1.0, 1.0, 1.0)
-const GLOW := preload("res://art/particles/light_01.png")
+const GLOW := preload("res://art/particles_px/light_01.png")
 
 var level := 1
 var _crystals: Array[LevelCrystal] = []

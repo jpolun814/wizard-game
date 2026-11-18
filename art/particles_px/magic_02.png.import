@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://btmlganleigwq"
-path="res://.godot/imported/water_crest.png-e73bb9f2e8106133f53f0fe0bd276145.ctex"
+uid="uid://b21hqsdyjudy7"
+path="res://.godot/imported/magic_02.png-f3415a81fa2bdb5f4537f96888dc4571.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/fx/water_crest.png"
-dest_files=["res://.godot/imported/water_crest.png-e73bb9f2e8106133f53f0fe0bd276145.ctex"]
+source_file="res://art/particles_px/magic_02.png"
+dest_files=["res://.godot/imported/magic_02.png-f3415a81fa2bdb5f4537f96888dc4571.ctex"]
 
 [params]
 

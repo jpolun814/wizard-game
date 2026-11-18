@@ -268,7 +268,6 @@ func _draw() -> void:
 	for i in steps + 1:
 		var t := float(i) / steps
 		points.append(Vector2(0.0, -height * t))
-		widths.append(WIDTH * lerpf(1.0, 0.55, t) + sin(_age * 22.0 + t * 9.0) * 2.5)
+		widths.append(WIDTH * lerpf(1.0, 0.3, t * t) + sin(_age * 22.0 + t * 9.0) * 2.5)
 		alphas.append(fade)
 	WaterPixels.stream(self, points, widths, alphas, _age, true)
-	WaterPixels.crest(self, Vector2(0.0, -height + 2.0), _age, fade)

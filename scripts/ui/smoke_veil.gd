@@ -11,7 +11,7 @@ const ROWS := 36
 const EVERY := 3   # and only on every this many frames: it changes slowly, and working it out is the costly part
 const FEATHER := 70.0  # how much more smoke than DEPTH it takes for the haze to be complete
 const NEAR := 1800.0  # a plume farther than this from the wizard is nowhere near the screen
-const HAZE := preload("res://art/particles/smoke_07.png")
+const HAZE := preload("res://art/particles_px/smoke_07.png")
 const SHADER := """
 shader_type canvas_item;
 uniform sampler2D mask : filter_linear, repeat_disable;

@@ -1,10 +1,10 @@
 """The water of the Water Jet and the Geyser (scripts/fx/water_pixels.gd), in the colors of the ponds (Pond.WATER_*): short tiles of a stream, cut across it, in widths
-from 4 to 48 pixels in steps of 4, four frames each (the bright streaks run along it), and the dome that tops the Geyser and the mound it wells up from.
+from 4 to 48 pixels in steps of 4, four frames each (the bright streaks run along it), the mound the Geyser wells up from, and the curling wave of Tide Surf.
 Run it from anywhere:
 
     python tools/wizard_parts/water.py
 
-It writes art/fx/water_stream.png, water_crest.png and water_mound.png. Never edit the PNGs by hand: change this file and run it.
+It writes art/fx/water_stream.png, water_mound.png and water_wave.png. Never edit the PNGs by hand: change this file and run it.
 
 water_stream.png: tiles 8 along by 48 across, frame k at x = k*8. Rows 0-11 are the widths, lit on one side (the jet: light above, dark below); rows 12-23 are lit on both
 sides (the Geyser's column).
@@ -61,29 +61,6 @@ def make_stream():
     sheet.save(os.path.join(ROOT, "art", "fx", "water_stream.png"))
 
 
-def make_crest():
-    """The head of the Geyser's column: a dome, 80 wide and 32 tall, two frames side by side (the rim ripples)."""
-    w, h = 80, 32
-    sheet = Image.new("RGBA", (w * 2, h), (0, 0, 0, 0))
-    for frame in range(2):
-        for x in range(w):
-            u = (x - (w - 1) / 2) / (w / 2)
-            top = h * 0.5 - h * 0.5 * (1 - u * u) ** 0.6 * 0.95
-            top += 1 if (x + frame) % 6 < 2 else 0
-            bottom = h * 0.5 + h * 0.22 * (1 - u * u) ** 0.5
-            for y in range(h):
-                if top <= y <= bottom:
-                    t = (y - top) / max(bottom - top, 1)
-                    if y < top + 1.5 or y > bottom - 1:
-                        c = RIM
-                    else:
-                        c = mix(LIGHT, BOTTOM, t * 0.8)
-                    if y > top + 3 and y % 5 == 2 and (x + frame * 3 + y * 7) % 23 < 4:
-                        c = STREAK
-                    sheet.putpixel((frame * w + x, y), c + (255,))
-    sheet.save(os.path.join(ROOT, "art", "fx", "water_crest.png"))
-
-
 def make_mound():
     """Water welling up on the ground: three sizes of a low mound, 24, 48 and 72 wide, side by side."""
     sizes = [(24, 5), (48, 9), (72, 12)]
@@ -101,6 +78,54 @@ def make_mound():
     sheet.save(os.path.join(ROOT, "art", "fx", "water_mound.png"))
 
 
+def make_wave():
+    """The wave of Tide Surf: 176 wide and 56 tall, four frames one under another (flecks of bright water run up it). The tail is on the left, low, and it swells to a crest
+    on the right that leans over and curls, with a hollow under the lip. The outline is laid out as points and filled; the shading is by how deep each pixel is in it."""
+    from PIL import ImageDraw
+    w, h, frames = 176, 56, 4
+    foam = (236, 247, 255)
+    outline = [(0, 55), (0, 51), (18, 47), (44, 40), (70, 30), (96, 18), (116, 10), (134, 6), (150, 7), (160, 12), (165, 20), (163, 28), (157, 32), (156, 27), (151, 22),
+               (144, 21), (138, 26), (136, 36), (140, 46), (147, 55)]
+    mask = Image.new("L", (w, h), 0)
+    ImageDraw.Draw(mask).polygon(outline, fill=255)
+    m = mask.load()
+
+    def inside(x, y):
+        return 0 <= x < w and 0 <= y < h and m[x, y] > 0
+
+    depth = {}
+    for y in range(h):
+        for x in range(w):
+            if not inside(x, y):
+                continue
+            d = 0
+            while d < 6 and all(inside(x + dx * (d + 1), y + dy * (d + 1)) for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))):
+                d += 1
+            depth[(x, y)] = d
+    sheet = Image.new("RGBA", (w, h * frames), (0, 0, 0, 0))
+    for f in range(frames):
+        for (x, y), d in depth.items():
+            top_edge = not inside(x, y - 1)
+            if d == 0:
+                c = foam if top_edge and x > 60 else RIM
+            elif d == 1:
+                c = RIM if y < 40 else mix(RIM, LIGHT, 0.6)
+            elif d == 2:
+                c = mix(RIM, LIGHT, 0.7)
+            else:
+                c = mix(LIGHT, BOTTOM, min(max(y - 6, 0) / 50.0, 1.0))
+            sheet.putpixel((x, f * h + y), c + (255,))
+        # flecks of bright water running up the face, a few pixels at a time
+        for k in range(7):
+            x0 = 14 + k * 21
+            run = (k * 5 + f * 5) % 20
+            for t in range(4):
+                x, y = x0 + run + t, 50 - (x0 + run + t) * 0.28 - (k % 3) * 5
+                if (int(x), int(y)) in depth and depth[(int(x), int(y))] >= 3:
+                    sheet.putpixel((int(x), f * h + int(y)), STREAK + (255,))
+    sheet.save(os.path.join(ROOT, "art", "fx", "water_wave.png"))
+
+
 make_stream()
-make_crest()
 make_mound()
+make_wave()

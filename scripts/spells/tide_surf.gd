@@ -15,6 +15,8 @@ const SHOVE := Vector2(620.0, -260.0)
 const SHOVE_GAP := 0.8       # seconds before it shoves the same one again
 const HEIGHT := 44.0         # how tall the crest stands
 const FOAM := Color(0.92, 0.98, 1.0, 0.9)
+const WAVE := preload("res://art/fx/water_wave.png")
+const WAVE_SIZE := Vector2(176.0, 56.0)
 
 var caster: Wizard  # set by the arena before it enters the tree
 var ground: Terrain      # the ground the water will run over when the ride ends
@@ -123,28 +125,14 @@ func _end() -> void:
 	fade.tween_callback(queue_free)
 
 
-## The wave, drawn the way the ponds draw their water (see Pond): a swell that rises behind the wizard to a crest that leans over ahead of
-## them, shaded from light at the top to dark below, with a bright edge along the top. It rises as the ride begins.
+## The wave: a picture of a curling wave in pixel art (art/fx/water_wave.png, made by tools/wizard_parts/water.py in the pond's colors), tail behind the wizard and
+## crest leaning over ahead of them. It rises out of the ground as the ride begins.
 func _draw() -> void:
 	var rise := clampf(_age / 0.25, 0.0, 1.0)
 	var fade := clampf((SECONDS - _age) / 0.4, 0.0, 1.0)
 	var tip := FRONT * 0.5 + 24.0  # where the crest ends
-	var top := PackedVector2Array()
-	var steps := 24
-	for i in steps + 1:
-		var u := lerpf(-LENGTH, tip, float(i) / steps)
-		var swell := 10.0 + (HEIGHT - 10.0) * smoothstep(-LENGTH, tip - 20.0, u)
-		if u > tip - 20.0:
-			swell = lerpf(HEIGHT, HEIGHT * 0.55, smoothstep(tip - 20.0, tip, u))  # the crest curls over and drops away
-		swell += sin(_age * 9.0 + u * 0.12) * 2.5
-		top.append(Vector2(u * direction, 6.0 - swell * rise))
-	var middles := PackedVector2Array()
-	var widths := PackedFloat32Array()
-	var alphas := PackedFloat32Array()
-	for point in top:
-		middles.append(Vector2(point.x, (point.y + 6.0) * 0.5))
-		widths.append(clampf(6.0 - point.y, 4.0, 48.0))
-		alphas.append(fade)
-	WaterPixels.stream(self, middles, widths, alphas, _age)  # the body of the wave, from pixel art in the pond's colors
-	var head := top[top.size() - 1]  # foam where the crest curls over
-	draw_texture_rect(Fx.tex("smoke_02"), Rect2(head - Vector2(22.0, 22.0), Vector2(44.0, 44.0)), false, Color(FOAM.r, FOAM.g, FOAM.b, 0.6 * fade))
+	var shown := maxi(int(ceilf(WAVE_SIZE.y * rise)), 1)
+	var frame := int(_age * 8.0) % 4
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2(direction, 1.0))
+	draw_texture_rect_region(WAVE, Rect2(Vector2(tip - WAVE_SIZE.x, 6.0 - shown), Vector2(WAVE_SIZE.x, shown)), Rect2(0.0, frame * WAVE_SIZE.y + WAVE_SIZE.y - shown, WAVE_SIZE.x, shown), Color(1.0, 1.0, 1.0, fade))
+	draw_set_transform(Vector2.ZERO)

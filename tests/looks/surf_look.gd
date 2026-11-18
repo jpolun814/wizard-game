@@ -15,6 +15,7 @@ func _ready() -> void:
 	var player: Wizard = lab.player
 	player.ledger.learn_all()
 	player.facing = 1.0
+	player.global_position += Vector2(-120, 0)
 	lab.casting.by("Tide Surf", "caster", player.global_position, 0.0, {"accuracy": 0.9}, player)
 	await get_tree().create_timer(0.8).timeout
 	DirAccess.make_dir_recursive_absolute(out)
