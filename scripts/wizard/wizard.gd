@@ -20,7 +20,8 @@ const STAMINA_REGEN := 20.0   # per second
 const REGEN_DELAY := 1.0      # seconds after a spell (or a faint, or a blow) before regen starts; walking and jumping do not make it wait
 const ADRENALINE_TAKEN := 0.6   # how much of a blow gets through under Adrenaline
 const ADRENALINE_DEALT := 1.5   # and how much harder the wizard's own blows land
-const ICE_GRIP := 650.0         # how fast a wizard on ice can change speed, in pixels a second each second
+const AIR_ACCEL := 700.0        # how fast the keys can add to or turn a wizard's sideways speed in the air, in pixels a second each second
+const ICE_GRIP := 650.0        # how fast a wizard on ice can change speed, in pixels a second each second
 const OBSIDIAN_SPEED := 0.75    # how fast the wizard walks in black glass
 const OBSIDIAN_SHOTS := 0.5     # and how much of a shot's damage gets through
 const SURF_SPEED := 470.0       # how fast a wave carries the wizard
@@ -152,6 +153,7 @@ var air_jump_ready := false  # the air jump is spent by one use, and comes back 
 var wind := 0.0  # the push of the air along the ground, set every frame by the world that has wind (the snowy peaks)
 var _slide := 0.0  # the sideways speed carried over on ice
 var _shove := Vector2.ZERO  # a Push on the caster: slides them for a moment, then fades
+var _air_vx := 0.0          # the sideways speed carried through the air: a jump, a blow or a pull sets it, and the keys only nudge it
 var mute_time: float: # no rituals while above zero
 	get: return _status.left(&"mute")
 	set(seconds): _status.set_left(&"mute", seconds)
@@ -776,6 +778,7 @@ func _physics_process(delta: float) -> void:
 	_drop_time -= delta
 	set_collision_mask_value(5, _drop_time <= 0.0)
 	if can_move and vine.climb():
+		_air_vx = 0.0  # let go of a vine and the wizard drops straight, until a key or a blow says otherwise
 		return
 	_steer(delta, can_move)
 	_shoved(delta, can_move)
@@ -854,13 +857,29 @@ func _steer(delta: float, can_move: bool) -> void:
 			velocity.y = JUMP_VELOCITY * 0.4
 		# Walking is free; running drains stamina. With none left you still walk, at half speed.
 		var speed := _walking_speed()
-		velocity.x = pad.walking(speed)
+		var wanted := pad.walking(speed)
+		if _in_free_air():
+			# Nothing to push against: the keys only add to the speed the wizard already has, up to a walking pace, and can turn it slowly.
+			# They never brake a speed already beyond it (a blow's), and letting go of them changes nothing.
+			if wanted != 0.0 and _air_vx * signf(wanted) < absf(wanted):
+				_air_vx = move_toward(_air_vx, wanted, AIR_ACCEL * delta)
+			velocity.x = _air_vx
+		else:
+			velocity.x = wanted
+			_air_vx = wanted
 		_stepping = absf(velocity.x) > 10.0 and not flying  # (flying is not a body's work: the stamina comes back all the while)
 		if is_on_floor() and absf(velocity.x) > 10.0 and stamina > 0.0 and not wolf.on:
 			drain(RUN_COST * delta, false)
 	else:
 		velocity.x = 0.0
+		_air_vx = 0.0
 		_stepping = false
+
+
+## In the air with nothing under the wizard to push off, and nothing carrying them (not flying, not swimming, not riding a wave):
+## the sideways speed is then the wizard's own momentum.
+func _in_free_air() -> bool:
+	return not is_on_floor() and not flying and swim_time <= 0.0 and surf_time <= 0.0
 
 
 ## How fast the wizard walks now: half of it when out of stamina, and each thing that slows, mires, tangles, hastens, armours or changes the wizard
@@ -881,6 +900,11 @@ func _shoved(delta: float, can_move: bool) -> void:
 	if fear_time > 0.0 and is_instance_valid(afraid_of) and signf(velocity.x) == signf(afraid_of.global_position.x - global_position.x):
 		velocity.x = 0.0  # they will not go toward the one they flee
 		_slide = 0.0
+		_air_vx = 0.0
+	if can_move and _in_free_air():
+		_air_vx += _shove.x  # a blow or a pull carries the wizard on through the air: only another force, or the keys slowly, turn it
+		_shove.x = 0.0
+		velocity.x = _air_vx
 	velocity.x += _shove.x + wind
 	if _shove.y < 0.0:
 		velocity.y = minf(velocity.y, _shove.y)
@@ -895,6 +919,8 @@ func _move_on(delta: float) -> void:
 	if drawn:
 		velocity = Vector2.ZERO
 	move_and_slide()
+	if is_on_wall():
+		_air_vx = 0.0  # a wall stops the sideways speed it was carrying
 	# A character pushed out of the map's sides is put back inside.
 	global_position.x = clampf(global_position.x, ArenaGen.left_edge() + 12.0, ArenaGen.right_edge() - 12.0)
 	if flying and fly_box.size != Vector2.ZERO:  # the sky has no walls, but a wizard that reaches the end of it simply stops

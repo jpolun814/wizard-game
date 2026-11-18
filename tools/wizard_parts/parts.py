@@ -133,6 +133,9 @@ OPTIONS = {
     "weapon": ["wand", "rose_wand", "bone_wand", "scepter", "crook", "book", "orb_hand", "staff_branch", "staff_root", "staff_flower", "staff_orb",
                "staff_crystal", "staff_moon", "staff_lantern", "staff_skull"],
 }
+for _col in COLORS.values():  # the cloth's second color is the first one a shade darker: the only other color on an outfit is the trim, which is chosen
+    _m = _col["main"]
+    _col["second"] = [_m[1], _m[2], _m[3], tuple(int(v * 0.55) for v in _m[3])]
 TRIMS = {name: COLORS[name]["main"] for name in COLORS}  # an outfit can be edged in any of the colors it can be made in
 assert all(set(OPTIONS[k]) == set(v) for k, v in {"skin": SKINS, "color": COLORS, "trim": TRIMS, "hair_color": HAIRS, "hat_color": COLORS}.items())
 HAT_NO_COLOR = ("none", "circlet", "horned", "skull", "laurel", "crown", "tiara", "flower_crown")  # hats that have no color of their own to choose
