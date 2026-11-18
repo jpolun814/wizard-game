@@ -25,7 +25,8 @@ const ICE_GRIP := 650.0        # how fast a wizard on ice can change speed, in p
 const OBSIDIAN_SPEED := 0.75    # how fast the wizard walks in black glass
 const OBSIDIAN_SHOTS := 0.5     # and how much of a shot's damage gets through
 const SURF_SPEED := 470.0       # how fast a wave carries the wizard
-const GET_UP := 10.0            # a wizard who has fainted stands up again once this much stamina has come back
+const GET_UP := 10.0            # a wizard who has fainted stands up with this much stamina
+const FAINT_TIME := 4.0         # seconds a Faint keeps someone down: it costs the caster maximum stamina, so it has to be worth it
 const BODY_HEIGHT := 78.0     # from the feet to the top of the hood
 const COYOTE_TIME := 0.1      # a jump still works this long after walking off a ledge
 const JUMP_BUFFER := 0.12     # a jump pressed this long before landing happens on landing
@@ -148,7 +149,8 @@ var feather_time: float: # Featherfall: the wizard falls as slowly as a feather 
 var surf_dir := 1.0
 var veil := 0  # hits a Crimson Veil will still turn away
 var _veil_cool := 0.0  # a moment after one is turned away, in which a burn or a second blow is turned away with it
-var fainted := false  # knocked out by a Faint: down on the ground until the stamina comes back
+var fainted := false  # knocked out by a Faint: down on the ground for FAINT_TIME
+var _faint_left := 0.0
 var air_jump_ready := false  # the air jump is spent by one use, and comes back when the wizard lands
 var wind := 0.0  # the push of the air along the ground, set every frame by the world that has wind (the snowy peaks)
 var _slide := 0.0  # the sideways speed carried over on ice
@@ -594,7 +596,7 @@ func pay_max(amount: float) -> bool:
 	return true
 
 
-## A Faint: all the stamina goes, and the wizard drops. They stand up when the stamina has come back to GET_UP.
+## A Faint: all the stamina goes, and the wizard drops for FAINT_TIME seconds. They stand up with GET_UP stamina.
 func faint() -> void:
 	if dead or fainted or is_likeness():
 		return
@@ -646,6 +648,7 @@ func begin_burrow(direction: float, distance: float) -> void:
 	set_collision_mask_value(1, false)
 	set_collision_mask_value(16, false)
 	Fx.burst(get_parent(), global_position, Color("#7a5a3a"), 16, 120.0, 0.5, true)
+	_faint_left = FAINT_TIME
 	Sfx.play("stones", global_position, -4.0)
 	global_position.y += BURROW_DEPTH
 
@@ -789,8 +792,12 @@ func _physics_process(delta: float) -> void:
 func _tick_timers(delta: float) -> void:
 	_grace -= delta
 	_veil_cool -= delta
-	if fainted and stamina >= GET_UP:
-		fainted = false  # the stamina is back: up again
+	if fainted:
+		_faint_left -= delta
+		_since_spend = 0.0  # nothing comes back while they are down
+		if _faint_left <= 0.0:
+			fainted = false
+			stamina = maxf(stamina, GET_UP)  # up again
 	lungs.tick(delta)
 	rage_time = maxf(rage_time - delta, 0.0)
 	fear_time = maxf(fear_time - delta, 0.0)

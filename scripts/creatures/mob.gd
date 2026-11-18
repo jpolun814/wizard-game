@@ -25,7 +25,7 @@ const FOLLOW_REACH := 1100.0   # and goes no farther than this to find them
 const DECOY_NOTICE := 520.0    # a decoy this close is noticed, and attacked instead of the player
 const SPIT_RANGE := 480.0       # a ranged enemy fires from this far away
 const SPIT_STAND_RANGE := 300.0 # and stops walking once it is this close
-const GET_UP := 10.0           # a fainted enemy stands up when its stamina is this high again
+const GET_UP := 10.0           # a fainted enemy stands up with this much stamina, after Wizard.FAINT_TIME
 const STAMINA_CAP := 100.0     # the most stamina an enemy has
 const SPAWN_TIME := 0.7         # enemies fade in over a summoning circle and cannot act until it is done
 const CREATURE_ANIMATIONS := {
@@ -67,7 +67,7 @@ var _knock_x := 0.0
 var _drift := Vector2.ZERO  # a pull (a Black Hole's) that fades
 var _dead := false
 var _fainted := false  # knocked out by a Faint: down until its stamina has come back to GET_UP
-var _since_stamina := 0.0  # seconds since a fainted enemy lost its stamina; it does not come back at once
+var _faint_left := 0.0  # seconds a fainted enemy still lies there
 var _status := StatusEffects.new()  # the timed conditions above, each a Timer
 var _gravity: float = ProjectSettings.get_setting("physics/2d/default_gravity")
 var _idle_t := 0.0
@@ -253,11 +253,10 @@ func _physics_process(delta: float) -> void:
 	if _fainted:
 		_windup = 0.0
 		_charge = 0.0
-		_since_stamina += delta
-		if _since_stamina >= 1.0:
-			stamina = minf(STAMINA_CAP, stamina + Wizard.STAMINA_REGEN * delta)
-		if stamina >= GET_UP and not faint_stays:
+		_faint_left -= delta
+		if _faint_left <= 0.0 and not faint_stays:
 			_fainted = false
+			stamina = GET_UP
 			if _visual.sprite_frames.has_animation("idle"):
 				_visual.play("idle")
 		else:
@@ -604,14 +603,14 @@ func is_drawing_back() -> bool:
 	return _windup > 0.0
 
 
-## A Faint: all the stamina goes and the enemy drops to the ground, until its stamina is back to GET_UP.
+## A Faint: all the stamina goes and the enemy drops to the ground for Wizard.FAINT_TIME seconds.
 func faint() -> void:
 	if _dead or _fainted:
 		return
 	_fainted = true
 	_lie_side = facing
 	stamina = 0.0
-	_since_stamina = 0.0
+	_faint_left = Wizard.FAINT_TIME
 	_windup = 0.0
 	_charge = 0.0
 	FloatText.spawn(get_parent(), center() + Vector2(0, -_body_size.y * 0.5 - 6.0), "Fainted", Color("#c4162f"), 1.0)

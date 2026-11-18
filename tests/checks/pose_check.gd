@@ -136,7 +136,7 @@ func _ready() -> void:
 	await _frames(12)
 	_verdict(String(_player.shown_anim) == "idle_fidget", "standing a long while is a fidget (%s)" % _player.shown_anim)
 	await _frames(90)
-	_player.fainted = true
+	_player.faint()
 	_player.infinite_time = 0.0  # (the waiting room gives endless stamina, and it stands up again once the stamina is back)
 	_player.stamina = 0.0
 	await _frames(3)
@@ -145,6 +145,13 @@ func _ready() -> void:
 	await _frames(3)
 	_verdict(String(_player.shown_anim) == "wake", "and waking is a wake (%s)" % _player.shown_anim)
 	await _frames(70)
+	_player.infinite_time = 0.0
+	_player.faint()
+	await _frames(150)
+	_verdict(_player.fainted, "a Faint keeps them down for a few seconds (still down after 2.5 s)")
+	await _frames(120)
+	_verdict(not _player.fainted and _player.stamina >= Wizard.GET_UP, "and then they stand up with some stamina (%.0f)" % _player.stamina)
+	await _frames(40)
 
 	# Every spell that has a style of its own plays it.
 	var wrong := 0
