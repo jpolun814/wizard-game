@@ -72,6 +72,7 @@ func collapse() -> void:
 	for wizard in world.seats:
 		if is_instance_valid(wizard):
 			wizard.wolf.end()  # the wolf does not travel: the wizard's own stamina is what is carried on
+			wizard.golem.end()
 		if wizard == world.player:
 			state.append({"alive": not world.player.dead, "max": world.player.max_stamina, "stamina": world.player.stamina})
 		elif is_instance_valid(wizard) and not wizard.dead:

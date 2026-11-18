@@ -83,7 +83,7 @@ func attack(to_player: Vector2, sees: bool) -> bool:
 		"Insect Plague": 1.2 if gap < 480.0 else 0.0,
 		"Flaming Sphere": 1.3 if grounded and aim_ok and gap > 120.0 and gap < 620.0 else 0.0,  # it rolls along the ground toward you
 		"Mirage": 0.9 if gap > 250.0 and grounded and brain.real_page_near(500.0) and brain.mirages_set() < 2 else 0.0,  # a bait set among real pages, with the rival still some way off; nonsense at arm's length, or where no page lies
-		"Golem": 1.3 if gap < 600.0 and grounded and wizard.max_stamina > 150.0 and brain.own_raised() < 1 else 0.0,
+		"Golem": 1.3 if gap < 320.0 and grounded and wizard.stamina > 80.0 and wizard.max_stamina > 80.0 and not wizard.shifted() else 0.0,  # a rival close at hand: it goes in with stone fists
 		"Raise Dead": 1.2 if gap < 560.0 and grounded and wizard.max_stamina > 120.0 and brain.own_raised() < 2 else 0.0,
 		"Leech": 1.0 if sees and aim_ok and gap < Leech.REACH - 40.0 and Leech.held_by(wizard.get_tree(), wizard) == null else 0.0,
 		"Eldritch Blast": 1.4 if sees and gap > 120.0 and gap < 560.0 else 0.0,  # slow, and it bends toward you
@@ -648,13 +648,18 @@ func own_walkers_near(reach: float) -> int:
 
 
 
-## A werewolf's turn: straight at the rival, and a swipe once they are in reach.
+## A werewolf's or a golem's turn: straight at the rival, and a blow once they are in reach.
 func wolf(to_player: Vector2, sees: bool) -> void:
-	var near := absf(to_player.x) < WildShape.CLAW_REACH * 0.8
-	wizard.walk(0.0 if near else signf(to_player.x) * Wizard.SPEED * WildShape.SPEED)
+	var stone := wizard.golem.on
+	var reach := GolemForm.SLAM_REACH if stone else WildShape.CLAW_REACH
+	var near := absf(to_player.x) < reach * 0.8
+	wizard.walk(0.0 if near else signf(to_player.x) * Wizard.SPEED * (GolemForm.SPEED if stone else WildShape.SPEED))
 	wizard.facing = signf(to_player.x) if to_player.x != 0.0 else wizard.facing
-	if sees and absf(to_player.x) < WildShape.CLAW_REACH and absf(to_player.y) < 60.0:
-		wizard.wolf.claw()
+	if sees and absf(to_player.x) < reach and absf(to_player.y) < 60.0:
+		if stone:
+			wizard.golem.slam()
+		else:
+			wizard.wolf.claw()
 
 
 ## Whether there is a ceiling over a point that an icicle could hang from.

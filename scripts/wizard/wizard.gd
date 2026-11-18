@@ -197,6 +197,7 @@ var _gem := Color.WHITE  # the color of the last spell it drew, which the gem sh
 
 var _layer_alive := 0
 var wolf := WildShape.new(self)  # the werewolf shape (Wild Shape), when the wizard has taken it
+var golem := GolemForm.new(self)  # the body of stone (Golem), when the wizard has taken it
 var _releasing := 0.0     # time left of the thrust that plays when a spell goes off
 var _hurt_anim := 0.0     # time left of the flinch after a hit
 var cast_color := Color.WHITE  # the school being drawn (set by the arena); the trail and the sparks take it
@@ -217,6 +218,8 @@ const SLOWED := 64
 const FADED := 128
 const VEILED := 256
 const WILD := 512
+const GOLEM_EARTH := preload("res://art/tiles/earth_cemetery.png")  # the stone when the world has none to show (a test, a lab)
+const GOLEM := 8192
 var _hidden := false  # not drawn: faded from sight, and not the wizard at this machine
 const UNSEEN_BUMP := 50.0  # how near a wizard faded from sight must be to be felt rather than seen
 const FADE_ALPHA := 0.35  # how much of a veiled wizard shows
@@ -282,6 +285,8 @@ func dress() -> void:
 	if wolf.on:
 		art = "werewolf"
 		_sprite.scale = Vector2.ONE * WildShape.SCALE
+	elif golem.on:
+		art = "golem"  # the stone of the world, over the picture of a golem (see the shader's stone)
 	elif PartsLook.is_parts(look):
 		var config := PartsLook.decode(look)
 		var made := look if not config.is_empty() else PartsLook.DEFAULT_LOOK  # (a look that is not one of parts is never worn: this is for safety)
@@ -300,7 +305,7 @@ func dress() -> void:
 		art = data.art
 		_sprite.scale = Vector2.ONE * WizardLook.scale_of(look, data.scale)  # the three figures are drawn to one height
 	_art = art
-	_sprite.sprite_frames = CharFrames.build("res://art/chars/" + art, animations_for(art))
+	_sprite.sprite_frames = CharFrames.build(GolemForm.FRAMES if golem.on else "res://art/chars/" + art, GolemForm.ANIMATIONS if golem.on else animations_for(art))
 	_sprite.offset = Vector2(0, -PixelArt.CHARACTERS[art]["size"].y * 0.5)  # the frames' bottom edge is the feet
 	_sprite.play("idle")
 	_paint()
@@ -308,7 +313,7 @@ func dress() -> void:
 
 ## True for a wizard made of parts that is not a werewolf: it has all of the animations, and a magic layer.
 func _uses_parts() -> bool:
-	return PartsLook.is_parts(look) and not wolf.on
+	return PartsLook.is_parts(look) and not wolf.on and not golem.on
 
 
 ## The layer over a wizard made of parts that holds its gem and spell effects, which a shader colors (see MagicLayer).
@@ -360,7 +365,12 @@ func thrust(seconds: float) -> void:
 ## Puts its set of colors on the sprite (the material is made a little after the frames are put on).
 func _paint() -> void:
 	if _body_material != null:
-		WizardLook.paint(_body_material, look, 0 if wolf.on else palette)  # a werewolf keeps its own colors
+		WizardLook.paint(_body_material, look, 0 if wolf.on or golem.on else palette)  # a werewolf keeps its own colors
+		_body_material.set_shader_parameter("stone", 1.0 if golem.on else 0.0)
+		if golem.on:
+			var arena := get_parent()
+			var rock: Texture2D = arena.earth_texture() if arena != null and arena.has_method("earth_texture") else null
+			_body_material.set_shader_parameter("ground", rock if rock != null else GOLEM_EARTH)  # the very ground the wizard stands on
 
 
 ## Where the wizard's mouth is, for Fire Breath.
@@ -471,6 +481,8 @@ func take_damage(amount: int, grace_hit := true, projectile := false) -> void:
 		amount = maxi(1, roundi(amount * OBSIDIAN_SHOTS))  # black glass takes half of what a shot would
 	if adrenaline_time > 0.0:
 		amount = maxi(1, roundi(amount * ADRENALINE_TAKEN))  # a racing heart feels less
+	if golem.on:
+		amount = maxi(1, roundi(amount * GolemForm.TAKEN))  # stone takes half of every blow
 	amount = roundi(amount * Hex.multiplier(get_tree(), self))  # a hexed wizard takes half again as much
 	var had := maxf(max_stamina, 0.0)
 	max_stamina -= amount
@@ -568,9 +580,14 @@ func is_muted() -> bool:
 	return mute_time > 0.0 or fainted or silenced()
 
 
+## True while the wizard has taken another body, the werewolf's or the golem's: no spells, and a fight with the body alone.
+func shifted() -> bool:
+	return wolf.on or golem.on
+
+
 ## True while the wizard stands in a ring of Silence, or is dazed by thunder: they can cast nothing.
 func silenced() -> bool:
-	return daze_time > 0.0 or wolf.on or Silence.covers(get_tree(), center())
+	return daze_time > 0.0 or wolf.on or golem.on or Silence.covers(get_tree(), center())
 
 
 ## Pays for a spell in maximum stamina, which only healing brings back. Never takes the last of it: false, and nothing paid, if the
@@ -591,6 +608,7 @@ func faint() -> void:
 	if dead or fainted or is_likeness():
 		return
 	wolf.end()  # the wolf is knocked out of the wizard
+	golem.end()
 	fainted = true
 	stamina = 0.0
 	_since_spend = 0.0
@@ -692,6 +710,7 @@ func _physics_process(delta: float) -> void:
 	eyes.follow(delta)
 	if brain != null and global_position.y > (ArenaGen.world_size.y * float(ArenaGen.TILE) if ArenaGen.world_size.y > 0 else FALL_LIMIT) and not dead:
 		wolf.lose()
+		golem.lose()
 		max_stamina = 0.0  # off the bottom of the map
 		_check_death()
 	if brain != null and not dead:
@@ -731,6 +750,8 @@ func _tick_timers(delta: float) -> void:
 	if infinite_time > 0.0:
 		stamina = max_stamina
 	_since_spend += delta
+	if golem.on:
+		golem.tick(delta)
 	if wolf.on:
 		wolf.tick(delta)
 	elif _since_spend >= REGEN_DELAY and not _stepping:  # it comes back the moment the wizard stops moving their body
@@ -772,12 +793,12 @@ func _steer(delta: float, can_move: bool) -> void:
 		if swim_time > 0.0 and _jump_buffer > 0.0:
 			velocity.y = -SWIM_STROKE  # a stroke of the arms: it costs nothing
 			_jump_buffer = 0.0
-		elif _jump_buffer > 0.0 and _coyote > 0.0 and sink_time <= 0.0 and tangle_time <= 0.0 and (wolf.on or spend(JUMP_COST, false)):
+		elif _jump_buffer > 0.0 and _coyote > 0.0 and sink_time <= 0.0 and tangle_time <= 0.0 and not golem.on and (wolf.on or spend(JUMP_COST, false)):
 			velocity.y = JUMP_VELOCITY * _jump_strength
 			_jump_buffer = 0.0
 			_coyote = 0.0
 			Sfx.speak(self, WizardLook.jump_sound(look), global_position)
-		elif _jump_buffer > 0.0 and air_jump_time > 0.0 and air_jump_ready and sink_time <= 0.0 and tangle_time <= 0.0 and not is_on_floor():
+		elif _jump_buffer > 0.0 and air_jump_time > 0.0 and air_jump_ready and sink_time <= 0.0 and tangle_time <= 0.0 and not golem.on and not is_on_floor():
 			# The second leap: a jump in the air, free of stamina, once per landing.
 			velocity.y = JUMP_VELOCITY * 0.9
 			_jump_buffer = 0.0
@@ -816,7 +837,7 @@ func _in_free_air() -> bool:
 ## How fast the wizard walks now: half of it when out of stamina, and each thing that slows, mires, tangles, hastens, armours or changes the wizard
 ## on top of that.
 func _walking_speed() -> float:
-	return (SPEED if stamina > 0.0 or wolf.on else SPEED * 0.5) * (0.5 if slow_time > 0.0 else 1.0) * (0.4 if sink_time > 0.0 else 1.0) * (0.3 if tangle_time > 0.0 else 1.0) * (HASTE if haste_time > 0.0 else 1.0) * (OBSIDIAN_SPEED if obsidian_time > 0.0 else 1.0) * (WildShape.SPEED if wolf.on else 1.0)
+	return (SPEED if stamina > 0.0 or wolf.on else SPEED * 0.5) * (0.5 if slow_time > 0.0 else 1.0) * (0.4 if sink_time > 0.0 else 1.0) * (0.3 if tangle_time > 0.0 else 1.0) * (HASTE if haste_time > 0.0 else 1.0) * (OBSIDIAN_SPEED if obsidian_time > 0.0 else 1.0) * (WildShape.SPEED if wolf.on else 1.0) * (GolemForm.SPEED if golem.on else 1.0)
 
 
 ## What moves the wizard that it did not choose: a wave, ice, fear, a shove and the wind.
@@ -1188,7 +1209,7 @@ func share() -> void:
 ## On the machine that drives the wizard: what the others are sent (see share).
 func _tell_others() -> void:
 	net_position = global_position
-	marks = (FROZEN if is_frozen() else 0) | (SHIELDED if has_shield() else 0) | (OBSIDIAN if obsidian_time > 0.0 else 0) | (STUCK if _stuck_time > 0.0 else 0) 			| (GROUNDED if is_on_floor() else 0) | (ROOTED if is_rooted() else 0) | (SLOWED if is_slowed() else 0) | (FADED if fade_time > 0.0 else 0) | (VEILED if veil > 0 else 0) | (WILD if wolf.on else 0)
+	marks = (FROZEN if is_frozen() else 0) | (SHIELDED if has_shield() else 0) | (OBSIDIAN if obsidian_time > 0.0 else 0) | (STUCK if _stuck_time > 0.0 else 0) 			| (GROUNDED if is_on_floor() else 0) | (ROOTED if is_rooted() else 0) | (SLOWED if is_slowed() else 0) | (FADED if fade_time > 0.0 else 0) | (VEILED if veil > 0 else 0) | (WILD if wolf.on else 0) | (GOLEM if golem.on else 0)
 	if brain != null:
 		shown_stroke = pen.so_far()
 
@@ -1196,6 +1217,7 @@ func _tell_others() -> void:
 ## A likeness glides to where its wizard is, or jumps there when it went far at once, and falls when its wizard does.
 func _follow() -> void:
 	wolf.follow(marks & WILD != 0)
+	golem.follow(marks & GOLEM != 0)
 	if global_position.distance_to(net_position) > SNAP:
 		global_position = net_position
 		reset_physics_interpolation()

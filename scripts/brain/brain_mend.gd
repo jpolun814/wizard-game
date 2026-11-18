@@ -34,7 +34,7 @@ func mend(delta: float, fighting: bool) -> float:
 	if camped:
 		camped_for += delta
 		var healed := wizard.max_stamina >= Wizard.MAX_STAMINA * WizardBrain.MEND_UNTIL
-		if fighting or healed or camped_for > WizardBrain.MEND_MAX or fire == null or wizard.wolf.on:
+		if fighting or healed or camped_for > WizardBrain.MEND_MAX or fire == null or wizard.shifted():
 			camped = false
 			mend_wait = 12.0
 			return NAN
@@ -42,7 +42,7 @@ func mend(delta: float, fighting: bool) -> float:
 		if absf(off) > 50.0:
 			return signf(off) * WizardBrain.WALK_SPEED * 0.8
 		return 0.0
-	if fighting or mend_wait > 0.0 or wizard.max_stamina >= Wizard.MAX_STAMINA * WizardBrain.MEND_BELOW or not wizard.is_on_floor() or wizard.pen.active() or wizard.wolf.on:
+	if fighting or mend_wait > 0.0 or wizard.max_stamina >= Wizard.MAX_STAMINA * WizardBrain.MEND_BELOW or not wizard.is_on_floor() or wizard.pen.active() or wizard.shifted():
 		return NAN
 	if fire != null and absf(fire.global_position.y - wizard.global_position.y) < 120.0:
 		camped = true
@@ -84,7 +84,7 @@ func tend(to_player: Vector2, sees: bool, fighting: bool) -> bool:
 		weights["Decoy"] = 1.0  # a rival with heavy blows to throw is given something to throw them at
 	if (tired or (fighting and gap > WizardBrain.FAR)) and wizard.adrenaline_time <= 0.0:
 		weights["Adrenaline"] = 1.2
-	if fighting and sees and gap < 260.0 and wizard.max_stamina > 90.0 and not wizard.wolf.on:
+	if fighting and sees and gap < 260.0 and wizard.max_stamina > 90.0 and not wizard.shifted():
 		weights["Wild Shape"] = 1.1  # a rival close at hand: it comes at them with claws
 	if brain.goal != "page" and brain.scent <= 0.0 and brain.opponent == null:  # (it has lost track of everyone, so it marks one; it cannot know whether anyone is left)
 		weights["Hunter's Mark"] = 1.0

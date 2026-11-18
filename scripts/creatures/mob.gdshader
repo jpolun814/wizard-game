@@ -10,7 +10,6 @@ uniform float outline = 0.0;       // 0 to 1: how strong the school-colored outl
 uniform float flash = 0.0;         // 0 to 1: how far the sprite is washed to flash_color
 uniform vec4 flash_color : source_color = vec4(1.0);
 uniform float frozen = 0.0;        // 0 to 1: how icy it looks
-uniform vec4 stone_color : source_color = vec4(1.0);  // what the gray parts of the art are colored by (white leaves them alone)
 
 // The sprite's modulate. In fragment(), COLOR already has the texture multiplied in, so the plain modulate is
 // carried over from the vertex stage instead.
@@ -31,8 +30,6 @@ void fragment() {
 			c = vec4(school_color.rgb, outline);
 		}
 	} else {
-		float gray = 1.0 - smoothstep(0.04, 0.14, max(c.r, max(c.g, c.b)) - min(c.r, min(c.g, c.b)));
-		c.rgb = mix(c.rgb, c.rgb * stone_color.rgb, gray);
 		float lum = dot(c.rgb, vec3(0.299, 0.587, 0.114));
 		c.rgb = mix(c.rgb, school_color.rgb * (0.35 + lum * 1.2), tint);
 		float shade = dot(c.rgb, vec3(0.333));

@@ -1,6 +1,6 @@
 extends Check
-## Golem, cast in a real world. A golem of stone stands up for the caster at a cost of stamina, never strikes its master, follows them, goes for a rival wizard,
-## is replaced by the next one the same wizard makes, and falls when its master is beaten.
+## Golem, cast in a real world. The wizard is covered in the stone of the world they stand in: it costs stamina, they cannot cast or jump, they are slow,
+## they take half of every blow, a slam hits hard, the stone is the world's own ground, and it falls away with time, a Faint or a new world.
 ##
 ##     godot --headless --fixed-fps 60 --path . tests/checks/golem_check.tscn
 
@@ -36,56 +36,53 @@ func _ready() -> void:
 	get_tree().quit(1 if _failures > 0 else 0)
 
 
-func _golems_of(who: Wizard) -> Array:
-	var out := []
-	for mob: Mob in get_tree().get_nodes_in_group("mobs"):
-		if mob.master == who and mob.kind == "golem" and not mob.is_dead():
-			out.append(mob)
-	return out
-
-
-func _cast(at: Vector2) -> void:
-	_world.casting.by("Golem", "positional", at, 0.0, {"accuracy": 0.9}, _player)
-
-
 func _run() -> void:
 	var before := _player.stamina
-	_cast(_spot + Vector2(80.0, 0.0))
+	_world.casting.by("Golem", "caster", _spot, 0.0, {"accuracy": 0.9}, _player)
 	await _wait(0.3)
-	var mine := _golems_of(_player)
-	_verdict(mine.size() == 1, "a golem stands up")
-	_verdict(before - _player.stamina >= 80.0, "for a good deal of stamina (%.0f)" % (before - _player.stamina))
-	if mine.is_empty():
-		return
-	var golem: Mob = mine[0]
-	_verdict(golem.hp == 80, "with eighty health (%d)" % golem.hp)
-	_player.global_position = golem.global_position + Vector2(-30.0, 0.0)
+	_verdict(_player.golem.on and _player.shifted(), "the wizard is covered in stone")
+	_verdict(before - _player.stamina >= 55.0 and before - _player.stamina <= 65.0, "for a good deal of stamina (%.0f)" % (before - _player.stamina))
+	_verdict(_player.silenced(), "and cannot cast")
+	var material: ShaderMaterial = _player._sprite.material
+	_verdict(material.get_shader_parameter("stone") == 1.0 and material.get_shader_parameter("ground") == _world.earth_texture(), "the stone is the very ground of this world")
 	var held := _player.max_stamina
-	await _wait(4.0)
-	_verdict(_player.max_stamina == held and not _player.dead, "it never strikes its master")
-	_rival.global_position = golem.global_position + Vector2(200.0, 0.0)
+	_player.take_damage(20, true)
+	_verdict(held - _player.max_stamina == 10.0, "it takes half of a blow (%.0f of 20)" % (held - _player.max_stamina))
+	_player.facing = 1.0
+	_player.global_position = _spot
+	_player.velocity = Vector2.ZERO
+	await _wait(0.4)
+	Input.action_press("jump")
+	var rose := false
+	for k in 20:
+		await get_tree().physics_frame
+		rose = rose or _player.velocity.y < -50.0
+	Input.action_release("jump")
+	_verdict(not rose, "and cannot jump")
+	_rival.global_position = _player.global_position + Vector2(60.0, 0.0)
 	_rival.velocity = Vector2.ZERO
 	_rival.max_stamina = 200.0
-	await _wait(0.4)
-	_rival.set_physics_process(true)
-	var waited := 0.0
-	while _rival.max_stamina >= 200.0 and waited < 14.0:
-		await _wait(0.5)
-		waited += 0.5
-	_verdict(_rival.max_stamina < 200.0, "it goes for a rival wizard (%.0f lost)" % (200.0 - _rival.max_stamina))
-	_rival.set_physics_process(false)
+	_rival.stamina = 200.0
+	_player.facing = 1.0
+	_player.golem.slam()
+	await _wait(0.8)
+	_verdict(200.0 - _rival.max_stamina >= 35.0, "a slam hits hard (%.0f lost)" % (200.0 - _rival.max_stamina))
 	_rival.global_position = Vector2(-9000.0, -9000.0)
-	_player.stamina = _player.max_stamina
+	_player.golem.end()
+	_verdict(not _player.golem.on and material.get_shader_parameter("stone") == 0.0 and not _player.silenced(), "when it ends the wizard is as they were")
+
 	_player.thaw()
 	_player.fainted = false
-	_cast(_spot + Vector2(120.0, 0.0))
-	await _wait(0.4)
-	_verdict(_golems_of(_player).size() == 1, "a second one replaces the first (%d)" % _golems_of(_player).size())
-	var doomed: Mob = _golems_of(_player)[0] if not _golems_of(_player).is_empty() else null
-	_player.dead = true
-	await _wait(1.5)
-	_verdict(doomed == null or not is_instance_valid(doomed) or doomed.is_dead(), "when the master is beaten the golem falls")
-	_player.dead = false
+	_player.stamina = _player.max_stamina
+	_player.golem.begin()
+	await _wait(GolemForm.DURATION + 1.0)
+	_verdict(not _player.golem.on, "it wears off with time")
+	_player.stamina = _player.max_stamina
+	_player.golem.begin()
+	_player.faint()
+	await _wait(0.2)
+	_verdict(not _player.golem.on, "a Faint brings the stone down")
+	_player.fainted = false
 
 
 func _wait(seconds: float) -> void:

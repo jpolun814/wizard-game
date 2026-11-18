@@ -15,7 +15,7 @@ func _init(arena: Arena) -> void:
 
 func recipes() -> Dictionary:
 	return {
-		"Earthquake": _earthquake, "Mirage": _mirage, "Raise Dead": _raise_dead, "Golem": _golem, "Black Hole": _black_hole, "Firewall": _firewall, "Supernova": _supernova,
+		"Earthquake": _earthquake, "Mirage": _mirage, "Raise Dead": _raise_dead, "Black Hole": _black_hole, "Firewall": _firewall, "Supernova": _supernova,
 		"Flytrap": _flytrap, "Eclipse": _eclipse, "Decoy": _decoy, "Glowcap": _glowcap, "Moonbeam": _moonbeam, "Sinkhole": _sinkhole, "Silence": _silence,
 		"Updraft": _updraft, "Stonefall": _stonefall,
 	}
@@ -133,27 +133,6 @@ func _stonefall(c: SpellCast) -> void:
 		hangs_at = Vector2(c.origin.x, c.info["rect"].position.y + Boulder.RADIUS)
 	boulder.global_position = _arena.lifted_out_of_rock(hangs_at)
 	c.add(boulder)
-
-
-## A golem of stone stands up from the ground for a wizard: it follows them, fights whoever is near, and falls when they do. A wizard has one at a time (a new
-## one crumbles the old). Named and driven as a raised skeleton is (see `_raise_dead`).
-func _golem(c: SpellCast) -> void:
-	var master := c.caster
-	for old: Mob in _arena.get_tree().get_nodes_in_group("mobs"):
-		if old.kind == "golem" and old.master == master and not old.is_dead():
-			old.take_damage(99999)
-	var feet := _arena.landing(c.origin)
-	var made: Mob = Arena.MOB_SCENE.instantiate()
-	made.kind = "golem"
-	made.master = master
-	made.roams = true
-	made.puppet = master.is_likeness()
-	made.name = "Golem_%s_%d" % [master.name, master.casts_made]
-	made.position = feet
-	made.set_multiplayer_authority(master.get_multiplayer_authority())
-	_arena.add_child(made)
-	Fx.burst(_arena, feet, SpellData.SCHOOL_COLORS["Earth"], 20, 130.0, 0.6, true)
-	Sfx.play("stones", feet, -2.0)
 
 
 ## A skeleton rises from the ground for a wizard. It is named after the wizard and the cast, which are the same on every machine, so the machines can tell each

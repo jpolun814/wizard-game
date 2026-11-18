@@ -18,7 +18,7 @@ func recipes() -> Dictionary:
 	return {
 		"Featherfall": _featherfall, "Rocket Jump": _rocket_jump, "Flaming Sphere": _flaming_sphere, "Barrier": _barrier, "Shadow Step": _shadow_step,
 		"Fire Breath": _fire_breath, "Spore Puff": _spore_puff, "Flare": _flare, "Eldritch Blast": _eldritch_blast, "Scythe": _scythe, "Tide Surf": _tide_surf,
-		"Sneak": _sneak, "Obsidian Armor": _obsidian_armor, "Wild Shape": _wild_shape, "Adrenaline": _adrenaline, "Crimson Veil": _crimson_veil,
+		"Sneak": _sneak, "Obsidian Armor": _obsidian_armor, "Wild Shape": _wild_shape, "Golem": _golem, "Adrenaline": _adrenaline, "Crimson Veil": _crimson_veil,
 		"Hunter's Mark": _hunters_mark,
 	}
 
@@ -105,6 +105,10 @@ func _obsidian_armor(c: SpellCast) -> void:
 
 func _wild_shape(c: SpellCast) -> void:
 	c.caster.wolf.begin()
+
+
+func _golem(c: SpellCast) -> void:
+	c.caster.golem.begin()
 
 
 func _adrenaline(c: SpellCast) -> void:

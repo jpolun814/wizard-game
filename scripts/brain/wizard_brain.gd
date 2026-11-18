@@ -119,7 +119,7 @@ const USES := {
 	"Stalagmite": "attack", "Bramble": "attack", "Flytrap": "attack", "Icicles": "attack under a ceiling", "Sinkhole": "attack", "Tornado": "attack, and a way up",
 	"Ice Prison": "attack", "Blizzard": "attack", "Mudslide": "attack", "Black Hole": "attack", "Earthquake": "attack", "Hex": "attack", "Vacuum": "attack",
 	"Faint": "attack", "Fight or Flight": "attack", "Silence": "attack", "Tide Surf": "attack", "Thunderclap": "attack",
-	"Barbs": "attack", "Pebble": "attack", "Hailstorm": "attack", "Thorn Whip": "attack", "Insect Plague": "attack", "Leech": "attack", "Raise Dead": "attack", "Golem": "attack", "Flaming Sphere": "attack", "Eldritch Blast": "attack", "Hemorrhage": "attack", "Invincible Snail": "attack", "Supernova": "attack", "Scythe": "attack", "Mirage": "attack",
+	"Barbs": "attack", "Pebble": "attack", "Hailstorm": "attack", "Thorn Whip": "attack", "Insect Plague": "attack", "Leech": "attack", "Raise Dead": "attack", "Golem": "attack, and fights as a golem", "Flaming Sphere": "attack", "Eldritch Blast": "attack", "Hemorrhage": "attack", "Invincible Snail": "attack", "Supernova": "attack", "Scythe": "attack", "Mirage": "attack",
 	"Barrier": "defence", "Gust": "defence", "Shadow Step": "defence, and a way over a chasm", "Push": "repel, and a way up", "Rocket Jump": "a way up", "Geyser": "repel, and a way up",
 	"Stone Wall": "tend", "Smoke Screen": "tend", "Decoy": "tend", "Eclipse": "tend", "Crimson Veil": "tend", "Obsidian Armor": "tend, and a way through lava",
 	"Adrenaline": "tend", "Wild Shape": "tend, and fights as a werewolf", "Sneak": "tend", "Hunter's Mark": "tend", "Flare": "tend", "Glowcap": "tend", "Moonbeam": "tend",
@@ -223,7 +223,7 @@ func on_hurt(amount: int) -> void:
 
 ## A Flaming Sphere rolling at it along the ground: a person jumps over it, as over a rolling log, instead of standing in its way or running from it.
 func _hurdle() -> void:
-	if not wizard.is_on_floor() or jump_cooldown > 0.0 or wizard.wolf.on:
+	if not wizard.is_on_floor() or jump_cooldown > 0.0 or wizard.shifted():
 		return
 	for node in wizard.get_tree().get_nodes_in_group("fires"):
 		if node is FlamingSphere:
@@ -372,7 +372,7 @@ func _with_a_rival(delta: float) -> void:
 	var lost_just_now: bool = not sees and not entry.is_empty() and float(entry["age"]) < BLIND_FIGHT
 	var fighting := (sees or lost_just_now) and to_player.length() < ENGAGE
 	var crowd := sight.crowd(700.0)
-	var crowded: bool = not BrainProfile.off("crowd") and crowd["n"] >= 3 and not profile.after_me(foe) and _hurt_age > 2.5 and to_player.length() > TOO_CLOSE * 2.0 and not wizard.wolf.on
+	var crowded: bool = not BrainProfile.off("crowd") and crowd["n"] >= 3 and not profile.after_me(foe) and _hurt_age > 2.5 and to_player.length() > TOO_CLOSE * 2.0 and not wizard.shifted()
 	if crowded:  # three or more wizards in one place: it lets the others spend themselves, and leaves
 		fighting = false
 
@@ -386,8 +386,8 @@ func _with_a_rival(delta: float) -> void:
 		if mend.tend(to_player, sees, fighting):
 			mend.tend_cooldown = 1.4 + rng.randf() * 0.8
 
-	if wizard.wolf.on and fighting:
-		combat.wolf(to_player, sees)  # a werewolf has no spells: it runs at the rival and claws
+	if wizard.shifted() and fighting:
+		combat.wolf(to_player, sees)  # a werewolf or a golem has no spells: it goes at the rival and strikes
 		return
 
 	# Footwork, or the journey.

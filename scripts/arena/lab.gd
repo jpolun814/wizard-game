@@ -308,6 +308,7 @@ func _watch_the_partner(delta: float) -> void:
 	elif not here and not _partner.brain.dormant:
 		_partner.brain.dormant = true
 		_partner.wolf.end()  # (a wolf turns back only when it is struck: it must not wait for a blow nobody will give)
+		_partner.golem.end()
 		_partner.global_position = Vector2(ArenaGen.column_x(SPAR_COL), _floor_y(SPAR_COL))
 		_partner.velocity = Vector2.ZERO
 		_partner.max_stamina = Wizard.MAX_STAMINA

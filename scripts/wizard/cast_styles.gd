@@ -17,9 +17,9 @@ const STYLES := {
 	"Bramble": "cast_ground", "Great Oak": "cast_ground", "Glowcap": "cast_ground", "Flytrap": "cast_ground", "Liana": "cast_ground",
 	"Mudslide": "cast_ground", "Lily Pads": "cast_ground", "Frost Bridge": "cast_ground", "Firewall": "cast_ground",
 	# drawing power into oneself
-	"Adrenaline": "empower", "Crimson Veil": "empower", "Obsidian Armor": "empower", "Barrier": "empower", "Hunter's Mark": "empower",
+	"Adrenaline": "empower", "Crimson Veil": "empower", "Obsidian Armor": "empower", "Golem": "empower", "Barrier": "empower", "Hunter's Mark": "empower",
 	"Thunderclap": "clap",
-	"Raise Dead": "summon", "Golem": "summon", "Invincible Snail": "summon", "Decoy": "summon", "Insect Plague": "summon", "Mirage": "summon",
+	"Raise Dead": "summon", "Invincible Snail": "summon", "Decoy": "summon", "Insect Plague": "summon", "Mirage": "summon",
 	"Hex": "curse", "Hemorrhage": "curse", "Faint": "curse", "Fight or Flight": "curse", "Silence": "curse",
 	"Sneak": "vanish", "Shadow Step": "appear",  # (a Shadow Step is over at the other end, so the wizard arrives)
 	"Rocket Jump": "rocket",

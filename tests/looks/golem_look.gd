@@ -1,6 +1,6 @@
 extends Node
 
-## A picture of a Golem standing beside its wizard in the waiting room. `-- out=DIR` (needs a window).
+## A picture of the wizard as a Golem in the waiting room. `-- out=DIR` (needs a window).
 
 
 func _ready() -> void:
@@ -14,8 +14,8 @@ func _ready() -> void:
 		await get_tree().process_frame
 	var player: Wizard = lab.player
 	player.ledger.learn_all()
-	lab.casting.by("Golem", "positional", player.global_position + Vector2(-110.0, 0.0), 0.0, {"accuracy": 0.9}, player)
-	await get_tree().create_timer(2.5).timeout
+	player.golem.begin()
+	await get_tree().create_timer(1.5).timeout
 	if out != "":
 		DirAccess.make_dir_recursive_absolute(out)
 		get_viewport().get_texture().get_image().save_png(out + "/golem.png")

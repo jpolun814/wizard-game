@@ -153,8 +153,6 @@ func _beside_itself_stroke(spell_name: String, foe: Wizard, feet: Vector2, facin
 			return BrainStrokes.offset(facing_flipped(GestureTemplates.preview_points("sphere"), facing), wizard.center() + Vector2(facing * 50.0, 0.0), 0.8)
 		"Mirage":  # a tall box drawn on the ground a little ahead of it
 			return BrainStrokes.offset(GestureTemplates.preview_points("portrait"), Vector2(wizard.center().x + facing * 90.0, wizard.global_position.y - 60.0), 0.8)
-		"Golem":  # a stick figure drawn upright on the ground beside it: the golem stands up there
-			return BrainStrokes.offset(GestureTemplates.preview_points("stick"), Vector2(wizard.center().x + facing * 80.0, wizard.global_position.y - 50.0), 0.7)
 		"Raise Dead":  # a cross drawn upright in the ground beside it: the skeleton rises there, on its way toward you
 			return BrainStrokes.offset(GestureTemplates.preview_points("latin_cross"), Vector2(wizard.center().x + facing * 70.0, wizard.global_position.y - 40.0), 0.8)
 		"Insect Plague":  # an infinity sign, the wings of a bee, beside it: the swarm sets off from there
@@ -329,6 +327,8 @@ func tend_stroke(spell_name: String, to_player: Vector2) -> PackedVector2Array:
 			return BrainStrokes.offset(GestureTemplates.preview_points("zigzag"), here, 0.6)
 		"Wild Shape":
 			return BrainStrokes.offset(GestureTemplates.preview_points("eclipse"), here, 0.9)
+		"Golem":  # a stick figure drawn over itself: it becomes the figure
+			return BrainStrokes.offset(GestureTemplates.preview_points("stick"), here, 0.7)
 		"Hunter's Mark":
 			return BrainStrokes.offset(GestureTemplates.preview_points("arrow"), here, 0.6)
 		"Sneak":  # a wave deep enough not to be read as a flick, which is a Shadow Step on the same buttons

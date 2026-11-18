@@ -29,6 +29,7 @@ func _init(owner_wizard: Wizard) -> void:
 func begin() -> void:
 	if on or wizard.dead or wizard.is_likeness():
 		return
+	wizard.golem.end()
 	on = true
 	_kept_stamina = wizard.stamina
 	_kept_max = wizard.max_stamina

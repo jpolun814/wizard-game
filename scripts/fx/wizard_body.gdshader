@@ -5,6 +5,14 @@ shader_type canvas_item;
 uniform float keep = 2.0;                       // the part of the picture, from the top, that is shown: 1.0 is all of it
 uniform float obsidian = 0.0;                   // 0 to 1: how far the body has turned to black glass
 uniform float aura = 0.0;                       // 0 to 1: how strongly a blood veil tints the body red
+uniform float stone = 0.0;                      // 0 to 1: how far the gray of the picture is the world's ground (a Golem)
+uniform sampler2D ground : filter_nearest, repeat_enable;  // the ground's own texture, which the stone is cut from
+
+varying vec2 reach;  // where this pixel is in the world, measured from the sprite's origin: the stone moves with the body
+
+void vertex() {
+	reach = (MODEL_MATRIX * vec4(VERTEX, 0.0, 1.0)).xy - MODEL_MATRIX[3].xy;
+}
 
 // The wizard's colors (see WizardLook): two groups of the picture's colors, each picked out by its hue (center and half-width, in turns of the
 // color wheel, and the least color a pixel must have to count), are turned to a new hue and made more or less colorful. Skin, wood and
@@ -73,6 +81,15 @@ void fragment() {
 		float top = max(c.r, max(c.g, c.b));
 		float dark = 1.0 - smoothstep(0.03, 0.12, top);
 		c.rgb = mix(c.rgb, hsv_to_rgb(vec3(shade.x, shade.y, shade.z)), dark);
+	}
+	if (stone > 0.0) {
+		// The gray of the picture is stone: the ground's own texture, at the ground's own size, shaded as the picture is.
+		float gray = 1.0 - smoothstep(0.04, 0.14, max(c.r, max(c.g, c.b)) - min(c.r, min(c.g, c.b)));
+		float lum = dot(c.rgb, vec3(0.299, 0.587, 0.114));
+		vec3 rock = texture(ground, reach / vec2(textureSize(ground, 0))).rgb;
+		float outline = 1.0 - smoothstep(0.2, 0.35, lum);  // the picture's darkest lines stay dark, so the figure is still drawn
+		float shaded = lum / 0.59;
+		c.rgb = mix(c.rgb, rock * mix(0.5 + 0.5 * shaded, shaded, outline), gray * stone);
 	}
 	if (obsidian > 0.0) {
 		// Obsidian: nearly black, with a hard bright sheen that runs across it and a pinprick of light where the picture was bright.
