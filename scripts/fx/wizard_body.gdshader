@@ -89,7 +89,7 @@ void fragment() {
 		vec3 rock = texture(ground, reach / vec2(textureSize(ground, 0))).rgb;
 		float outline = 1.0 - smoothstep(0.2, 0.35, lum);  // the picture's darkest lines stay dark, so the figure is still drawn
 		float shaded = lum / 0.59;
-		c.rgb = mix(c.rgb, rock * mix(0.5 + 0.5 * shaded, shaded, outline), gray * stone);
+		c.rgb = mix(c.rgb, rock * mix(0.7 + 1.0 * shaded, shaded * 0.9, outline), gray * stone);
 	}
 	if (obsidian > 0.0) {
 		// Obsidian: nearly black, with a hard bright sheen that runs across it and a pinprick of light where the picture was bright.

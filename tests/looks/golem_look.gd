@@ -15,8 +15,16 @@ func _ready() -> void:
 	var player: Wizard = lab.player
 	player.ledger.learn_all()
 	player.golem.begin()
-	await get_tree().create_timer(1.5).timeout
+	DirAccess.make_dir_recursive_absolute(out if out != "" else "user://")
+	for shot in [["rise_a", 0.2], ["rise_b", 0.3], ["rise_c", 0.3], ["stand", 0.9]]:
+		await get_tree().create_timer(shot[1]).timeout
+		if out != "":
+			get_viewport().get_texture().get_image().save_png(out + "/golem_%s.png" % shot[0])
+	player.golem.smash()
+	await get_tree().create_timer(0.55).timeout
 	if out != "":
-		DirAccess.make_dir_recursive_absolute(out)
-		get_viewport().get_texture().get_image().save_png(out + "/golem.png")
+		get_viewport().get_texture().get_image().save_png(out + "/golem_smash_up.png")
+	await get_tree().create_timer(0.35).timeout
+	if out != "":
+		get_viewport().get_texture().get_image().save_png(out + "/golem_smash_down.png")
 	get_tree().quit()

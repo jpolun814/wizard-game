@@ -285,7 +285,7 @@ func dress() -> void:
 	if wolf.on:
 		art = "werewolf"
 		_sprite.scale = Vector2.ONE * WildShape.SCALE
-	elif golem.on:
+	elif golem.shown:
 		art = "golem"  # the stone of the world, over the picture of a golem (see the shader's stone)
 	elif PartsLook.is_parts(look):
 		var config := PartsLook.decode(look)
@@ -305,7 +305,7 @@ func dress() -> void:
 		art = data.art
 		_sprite.scale = Vector2.ONE * WizardLook.scale_of(look, data.scale)  # the three figures are drawn to one height
 	_art = art
-	_sprite.sprite_frames = CharFrames.build(GolemForm.FRAMES if golem.on else "res://art/chars/" + art, GolemForm.ANIMATIONS if golem.on else animations_for(art))
+	_sprite.sprite_frames = CharFrames.build(GolemForm.FRAMES if golem.shown else "res://art/chars/" + art, GolemForm.ANIMATIONS if golem.shown else animations_for(art))
 	_sprite.offset = Vector2(0, -PixelArt.CHARACTERS[art]["size"].y * 0.5)  # the frames' bottom edge is the feet
 	_sprite.play("idle")
 	_paint()
@@ -313,7 +313,7 @@ func dress() -> void:
 
 ## True for a wizard made of parts that is not a werewolf: it has all of the animations, and a magic layer.
 func _uses_parts() -> bool:
-	return PartsLook.is_parts(look) and not wolf.on and not golem.on
+	return PartsLook.is_parts(look) and not wolf.on and not golem.shown
 
 
 ## The layer over a wizard made of parts that holds its gem and spell effects, which a shader colors (see MagicLayer).
@@ -365,9 +365,9 @@ func thrust(seconds: float) -> void:
 ## Puts its set of colors on the sprite (the material is made a little after the frames are put on).
 func _paint() -> void:
 	if _body_material != null:
-		WizardLook.paint(_body_material, look, 0 if wolf.on or golem.on else palette)  # a werewolf keeps its own colors
-		_body_material.set_shader_parameter("stone", 1.0 if golem.on else 0.0)
-		if golem.on:
+		WizardLook.paint(_body_material, look, 0 if wolf.on or golem.shown else palette)  # a werewolf keeps its own colors
+		_body_material.set_shader_parameter("stone", 1.0 if golem.shown else 0.0)
+		if golem.shown:
 			var arena := get_parent()
 			var rock: Texture2D = arena.earth_texture() if arena != null and arena.has_method("earth_texture") else null
 			_body_material.set_shader_parameter("ground", rock if rock != null else GOLEM_EARTH)  # the very ground the wizard stands on
@@ -793,8 +793,8 @@ func _steer(delta: float, can_move: bool) -> void:
 		if swim_time > 0.0 and _jump_buffer > 0.0:
 			velocity.y = -SWIM_STROKE  # a stroke of the arms: it costs nothing
 			_jump_buffer = 0.0
-		elif _jump_buffer > 0.0 and _coyote > 0.0 and sink_time <= 0.0 and tangle_time <= 0.0 and not golem.on and (wolf.on or spend(JUMP_COST, false)):
-			velocity.y = JUMP_VELOCITY * _jump_strength
+		elif _jump_buffer > 0.0 and _coyote > 0.0 and sink_time <= 0.0 and tangle_time <= 0.0 and (wolf.on or golem.on or spend(JUMP_COST, false)):
+			velocity.y = JUMP_VELOCITY * _jump_strength * (GolemForm.JUMP if golem.on else 1.0)  # a golem jumps low and comes down hard
 			_jump_buffer = 0.0
 			_coyote = 0.0
 			Sfx.speak(self, WizardLook.jump_sound(look), global_position)
@@ -995,6 +995,8 @@ func _animate(delta: float) -> void:
 		wanted = pose.pick(delta)
 	elif dead or fainted:
 		wanted = "death"
+	elif golem.shown and golem.anim() != "":
+		wanted = golem.anim()  # standing up, a smash, a landing
 	elif _hurt_anim > 0.0:
 		wanted = "hit"
 	elif _releasing > 0.0:
@@ -1209,7 +1211,7 @@ func share() -> void:
 ## On the machine that drives the wizard: what the others are sent (see share).
 func _tell_others() -> void:
 	net_position = global_position
-	marks = (FROZEN if is_frozen() else 0) | (SHIELDED if has_shield() else 0) | (OBSIDIAN if obsidian_time > 0.0 else 0) | (STUCK if _stuck_time > 0.0 else 0) 			| (GROUNDED if is_on_floor() else 0) | (ROOTED if is_rooted() else 0) | (SLOWED if is_slowed() else 0) | (FADED if fade_time > 0.0 else 0) | (VEILED if veil > 0 else 0) | (WILD if wolf.on else 0) | (GOLEM if golem.on else 0)
+	marks = (FROZEN if is_frozen() else 0) | (SHIELDED if has_shield() else 0) | (OBSIDIAN if obsidian_time > 0.0 else 0) | (STUCK if _stuck_time > 0.0 else 0) 			| (GROUNDED if is_on_floor() else 0) | (ROOTED if is_rooted() else 0) | (SLOWED if is_slowed() else 0) | (FADED if fade_time > 0.0 else 0) | (VEILED if veil > 0 else 0) | (WILD if wolf.on else 0) | (GOLEM if golem.shown else 0)
 	if brain != null:
 		shown_stroke = pen.so_far()
 
