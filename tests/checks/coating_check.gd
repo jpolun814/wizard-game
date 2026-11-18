@@ -67,6 +67,21 @@ func _ready() -> void:
 	_wizard.coat.ignite()
 	_verdict(_wizard.burning_time > Coating.BURN_SECONDS * 1.9 and not _wizard.is_oiled(), "an oiled wizard burns twice as long, and the oil goes (%.1f s)" % _wizard.burning_time)
 
+	# Every spell of fire sets a dry wizard alight, cast for real.
+	person.global_position = spot + Vector2(-110.0, 0.0)
+	person.facing = 1.0
+	person.ledger.learn_all()
+	for entry in [["Fire Breath", "caster", {"accuracy": 0.9, "reach": 260.0, "spread": 0.3}], ["Ignite", "directional", {"accuracy": 0.9}], ["Firewall", "positional", {"line": PackedVector2Array([spot + Vector2(-20, 0), spot + Vector2(20, 0), spot + Vector2(20, -60)]), "length": 40.0}], ["Flaming Sphere", "caster", {"accuracy": 0.9}]]:
+		_reset()
+		_wizard.global_position = spot
+		person.global_position = spot + Vector2(-110.0, 0.0)
+		world.spawn_spell(entry[0], entry[1], person.global_position + Vector2(0, -40) if entry[1] != "positional" else spot, 0.0, entry[2], person)
+		await _frames(150)
+		_verdict(_wizard.is_burning() or _wizard.max_stamina < 190.0, "%s sets a dry wizard alight" % entry[0])
+		for fire in get_tree().get_nodes_in_group("fires"):
+			if is_instance_valid(fire) and fire != _wizard:
+				fire.queue_free()
+
 	# A dry wizard is struck by lightning no harder.
 	_reset()
 	_verdict(_wizard.coat.shocked(30) == 30, "a dry wizard takes lightning as it comes")
