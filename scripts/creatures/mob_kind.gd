@@ -17,5 +17,6 @@ extends Resource
 @export var resist := ""  ## and the one it takes none from, if any
 @export var damage := 0
 @export var speed := 1.0
+@export var stone := false             ## its gray parts take the color of the world's stone, where it is summoned
 @export var effect := ""             ## the special behaviour: burning, explode, smash, dummy...
 @export var shot := {}               ## what a ranged or flying one fires: interval, damage and the flags it needs

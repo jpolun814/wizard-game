@@ -182,7 +182,28 @@ func _apply_material() -> void:
 	_material.set_shader_parameter("school_color", _school_color())
 	_material.set_shader_parameter("tint", 0.0 if school in ["", "Shadow"] else 0.22)
 	_material.set_shader_parameter("outline", 0.0 if school == "" else 0.9)
+	if KINDS[kind].stone:
+		_material.set_shader_parameter("stone_color", _world_stone())
 	_visual.material = _material
+
+
+## The color of the stone of the world it stands in: the average of the ground's rock, brought up to the brightness a creature needs to be seen against it.
+func _world_stone() -> Color:
+	var arena := get_parent()
+	if arena == null or not arena.has_method("earth_texture"):
+		return Color.WHITE
+	var rock: Texture2D = arena.earth_texture()
+	if rock == null:
+		return Color.WHITE
+	var image := rock.get_image()
+	if image == null:
+		return Color.WHITE
+	image.resize(1, 1, Image.INTERPOLATE_BILINEAR)
+	var average := image.get_pixel(0, 0)
+	var strongest := maxf(average.r, maxf(average.g, average.b))
+	if strongest <= 0.0:
+		return Color.WHITE
+	return Color(average.r, average.g, average.b) / strongest * clampf(0.5 + strongest * 1.2, 0.5, 1.0)
 
 
 func _school_color() -> Color:

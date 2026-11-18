@@ -9,4 +9,4 @@ school = "Earth"
 gesture = "burrow"
 targeting = "directional"
 cost = 30.0
-effect = "Vanish into the ground and reappear ahead of you."
+effect = "Sink into the ground and travel beneath it."
