@@ -10,6 +10,8 @@
   "hat": "wide",
   "hat_color": "blue",
   "weapon": "staff_orb",
+  "trim": "gold",
+  "boots": "brown",
   "spell_shown": "Fire"
  },
  {
@@ -23,6 +25,8 @@
   "hat": "pointy",
   "hat_color": "charcoal",
   "weapon": "wand",
+  "trim": "gold",
+  "boots": "brown",
   "spell_shown": "Shadow"
  },
  {
@@ -36,6 +40,8 @@
   "hat": "none",
   "hat_color": "emerald",
   "weapon": "staff_branch",
+  "trim": "gold",
+  "boots": "brown",
   "spell_shown": "Flora"
  },
  {
@@ -49,6 +55,8 @@
   "hat": "circlet",
   "hat_color": "purple",
   "weapon": "scepter",
+  "trim": "gold",
+  "boots": "brown",
   "spell_shown": "Water"
  },
  {
@@ -57,11 +65,13 @@
   "color": "charcoal",
   "hair": "none",
   "hair_color": "gray",
-  "beard": "long",
+  "beard": "short",
   "beard_color": "gray",
   "hat": "hood",
   "hat_color": "charcoal",
   "weapon": "staff_crystal",
+  "trim": "gold",
+  "boots": "brown",
   "spell_shown": "Blood"
  },
  {
@@ -75,6 +85,8 @@
   "hat": "none",
   "hat_color": "ivory",
   "weapon": "staff_branch",
+  "trim": "gold",
+  "boots": "brown",
   "spell_shown": "Earth"
  }
 ]

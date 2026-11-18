@@ -1,3 +1,13 @@
+# TRIM, BOOTS, BARE OUTFITS AND THE MAGIC MIRROR (2026-11-18)
+The owner asked for trim color, boot color, outfits that show skin, fewer look-alike beards and no invented color names. Done:
+- **Looks are "parts:3:"** now (`PartsLook.ORDER` gained `trim` after `color` and `boots` after `hat_color`). "parts:1:" and "parts:2:" looks are still read (`ORDER_1`, `ORDER_2`): they get the trim they were drawn with
+  (silver for charcoal, black, lavender and gold robes, gold for the rest) and brown boots; the beards `long`, `braided` and `wispy` (removed: under the arm they looked like `short`) are read as `short`, `short`, `goatee`.
+- **Trim is its own layer.** `far_cuff`, `near_cuff`, `back_trim`, `body_trim` and `hat_trim` hold only what is painted in the trim's ramp; the cloth layers are drawn without it (`PartCanvas` modes "body" and "trim", found by the ramp object itself, so the
+  drawing code is unchanged). Trim layers get no edge darkening. Eight trims (`TRIMS`): gold, silver, copper, iron, ivory, crimson, sapphire, emerald. Boots (`BOOTS`) are their own layers (`far_boot`, `near_boot`): brown, black, tan, gray, red, green, and `bare` (the foot in the skin).
+- **Outfits that show skin:** `vest`, `pelt`, `sash`, `toga` (`SLEEVELESS`; `pelt` and `toga` also bare-legged, `BARE_LEGS`). The skin is its own layers (`torso_skin`, `far_arm`, `near_arm`, `far_bare_leg`, `near_bare_leg`), so every skin tone works.
+- **Files shared by choices:** `variant_key` gives the file a choice is drawn in (or None: nothing); the build writes an `alias` table per slot into the manifest, which `PartFrames.layer_path` and `compose.py` read. The old special case for hats with no color is gone.
+- **The creator** (`LikenessPanel`) is called "Magic Mirror", has rows for trim and boots, and names no colors (they are plain to see; only the bare-feet square has a tooltip). `pale` is lighter and `bone` is now the whitest skin.
+
 # MORE PARTS (2026-11-17, later): the same day the owner asked for variety in every slot
 Added with `tools/wizard_parts/parts.py` (no new slots, so saved looks still read): outfits cloak, ceremonial, rags, gothic, armored; robe colors black, gold, teal, rust;
 skins ashen, frost, undead; hair mohawk, braids, straight, balding, wild; beards braided, handlebar, wispy, stubble; hats horned, skull, laurel, turban, mushroom, crown;

@@ -11,7 +11,7 @@ from compose import compose_sheet, frames_of, load_manifest, variant_key, recolo
 
 # an original combination - deliberately NOT the sample wizard's look (no purple hood / white beard / cyan crystal)
 TEST = dict(skin="tan", outfit="coat", color="blue", hair="short", hair_color="auburn", beard="short",
-            beard_color="auburn", hat="wide", hat_color="blue", weapon="staff_orb")
+            beard_color="auburn", hat="wide", hat_color="blue", weapon="staff_orb", trim="gold", boots="brown")
 TEST_SPELL = "Fire"
 LINEUP = [
     (TEST, "Fire"),
@@ -21,11 +21,14 @@ LINEUP = [
           beard_color="black", hat="none", hat_color="emerald", weapon="staff_branch"), "Flora"),
     (dict(skin="deep", outfit="coat", color="purple", hair="ponytail", hair_color="blonde", beard="none",
           beard_color="blonde", hat="circlet", hat_color="purple", weapon="scepter"), "Water"),
-    (dict(skin="light", outfit="tunic", color="charcoal", hair="none", hair_color="gray", beard="long",
+    (dict(skin="light", outfit="tunic", color="charcoal", hair="none", hair_color="gray", beard="short",
           beard_color="gray", hat="hood", hat_color="charcoal", weapon="staff_crystal"), "Blood"),
     (dict(skin="zombie", outfit="robe", color="ivory", hair="bun", hair_color="gray", beard="goatee", beard_color="gray",
           hat="none", hat_color="ivory", weapon="staff_branch"), "Earth"),
 ]
+for _look, _spell in LINEUP:  # the lineup was made before trim and boots were chosen: gold edges and brown boots
+    _look.setdefault("trim", "gold")
+    _look.setdefault("boots", "brown")
 BG = (38, 40, 52)
 
 
@@ -61,7 +64,7 @@ def main():
     json.dump(dict(TEST, spell_shown=TEST_SPELL), open(os.path.join(work, "test_character.json"), "w"), indent=1)
     with open(os.path.join(work, "layers.txt"), "w") as f:  # for layered.lua
         for s in man["slots"]:
-            path = os.path.join(PARTS, s["name"], variant_key(s["name"], s["depends_on"], TEST) + ".png")
+            path = os.path.join(PARTS, s["name"], variant_key(s["name"], s["depends_on"], TEST, s.get("alias")) + ".png")
             if not os.path.exists(path):
                 continue
             if s["name"] == man["magic"]["slot"]:  # show the magic layer in a spell colour in Aseprite

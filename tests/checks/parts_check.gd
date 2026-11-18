@@ -27,7 +27,7 @@ func _ready() -> void:
 				var path := PartFrames.layer_path(slot, config)
 				if path == "":
 					gaps += 1
-					var empty_ok: bool = (slot["name"] == "hat" and config["hat"] == "none") or (slot["name"] == "beard" and config["beard"] == "none") or (slot["name"] == "hair_back" and ["none", "short", "mohawk"].has(config["hair"])) or (slot["name"] == "hair_front" and config["hair"] == "none") or (slot["name"] in ["back_coat"] and not ["coat", "cloak", "gothic"].has(config["outfit"]))
+					var empty_ok := _gap_is_meant(slot["name"], config)
 					if not empty_ok:
 						wrong += 1
 						print("   no layer for %s with %s=%s" % [slot["name"], option, value])
@@ -74,6 +74,8 @@ func _ready() -> void:
 			same += 1
 	_verdict(same == 200, "200 random looks are read back as they were written (%d)" % same)
 	_verdict(PartsLook.decode("").is_empty() and PartsLook.decode("wizard").is_empty() and PartsLook.decode("parts:1:tan.coat").is_empty() and PartsLook.decode("parts:1:tan.coat.blue.short.auburn.short.auburn.wide.blue.cannon").is_empty() and PartsLook.decode("parts:3:tan.coat.blue.short.auburn.short.auburn.wide.blue.staff_orb.voice_1").is_empty() and not PartsLook.decode("parts:1:tan.coat.blue.short.auburn.short.auburn.wide.blue.staff_orb").is_empty(), "garbage is read as no look")
+	var old := PartsLook.decode("parts:2:tan.coat.charcoal.long.auburn.long.gray.wide.blue.staff_orb.voice_2")
+	_verdict(old.get("trim") == "silver" and old.get("boots") == "brown" and old.get("beard") == "short" and old.get("voice") == "voice_2" and PartsLook.decode("parts:1:tan.coat.blue.short.auburn.short.auburn.wide.blue.staff_orb")["trim"] == "gold", "a look from an older game is read with the trim and boots it was drawn with, and a beard that is gone as the one like it")
 	_verdict(PartsLook.is_valid(look) and not PartsLook.is_valid("parts:2:x.x.x.x.x.x.x.x.x.x.x"), "a look is valid only if every value is a part")
 	_verdict(WizardLook.is_look(look) and not WizardLook.is_look("pyre_wizard") and not WizardLook.is_look("garbage"), "the game takes a look made of parts, and not the old figures")
 
@@ -124,3 +126,35 @@ func _flat(body: Texture2D, glow: Texture2D, ramp: Array) -> Image:
 			magic.set_pixel(x, y, Color(rgb[0] / 255.0, rgb[1] / 255.0, rgb[2] / 255.0, p.a))
 	image.blend_rect(magic, Rect2i(Vector2i.ZERO, magic.get_size()), Vector2i.ZERO)
 	return image
+
+
+## Where a slot is meant to draw nothing for a choice of parts (a bare arm for an outfit with sleeves, a cuff for one without).
+func _gap_is_meant(slot: String, config: Dictionary) -> bool:
+	var sleeveless: bool = ["vest", "pelt", "sash", "toga"].has(config["outfit"])
+	var bare_legs: bool = ["pelt", "toga"].has(config["outfit"])
+	match slot:
+		"far_sleeve", "near_sleeve", "far_cuff", "near_cuff":
+			return sleeveless
+		"far_arm", "near_arm", "torso_skin":
+			return not sleeveless
+		"far_leg", "near_leg":
+			return bare_legs
+		"far_bare_leg", "near_bare_leg":
+			return not bare_legs
+		"back_coat", "back_trim":
+			return not ["coat", "cloak", "gothic"].has(config["outfit"])
+		"front_coat":
+			return ["vest", "sash"].has(config["outfit"])
+		"hat":
+			return config["hat"] == "none"
+		"hat_trim":
+			return not ["circlet", "tiara", "crown", "horned", "headscarf", "pointy", "wide"].has(config["hat"])
+		"beard":
+			return config["beard"] == "none"
+		"hair_back":
+			return ["none", "short", "mohawk"].has(config["hair"])
+		"hair_front":
+			return config["hair"] == "none"
+		"body_trim":
+			return false
+	return false

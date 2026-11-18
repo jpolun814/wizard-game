@@ -371,7 +371,7 @@ whatever the manifest lists, but `parts_check.gd` counts files and `PartsLook` m
 
 ## 9. Changing options safely (saved looks and the network)
 
-A player's look is saved and sent as `"parts:1:" + values in PartsLook.ORDER` (`scripts/wizard/parts_look.gd`).
+A player's look is saved and sent as `"parts:3:" + values in PartsLook.ORDER` (older "parts:1:" and "parts:2:" looks are still read: see chapter 19) (`scripts/wizard/parts_look.gd`).
 - **Adding a value** to an option is safe.
 - **Renaming or removing a value** breaks every saved look using it (`PartsLook.decode` rejects it and the game falls back).
   Don't, or map the old name in `PartsLook.decode`.

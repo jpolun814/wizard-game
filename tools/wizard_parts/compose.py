@@ -5,7 +5,6 @@ import os
 
 from PIL import Image
 
-HAT_NO_COLOR = ("none", "circlet", "horned", "skull", "laurel", "crown", "tiara", "flower_crown")  # keep in step with parts.py
 HERE = os.path.dirname(os.path.abspath(__file__))
 PARTS = os.path.join(HERE, "..", "..", "art_source", "parts_sheets")
 
@@ -14,10 +13,10 @@ def load_manifest(parts=PARTS):
     return json.load(open(os.path.join(parts, "manifest.json")))
 
 
-def variant_key(slot, deps, cfg):
-    if slot == "hat" and cfg["hat"] in HAT_NO_COLOR:
-        return cfg["hat"]
-    return "-".join(cfg[d] for d in deps)
+def variant_key(slot, deps, cfg, alias=None):
+    """The file of a slot for a choice of parts: the choice's values joined, or the file its alias table sends it to."""
+    full = "-".join(cfg[d] for d in deps)
+    return (alias or {}).get(full, full)
 
 
 def recolor(im, ramp4):
@@ -41,7 +40,7 @@ def compose_sheet(cfg, parts=PARTS, layers=False, spell=None):
     out = Image.new("RGBA", (sw, sh), (0, 0, 0, 0))
     used = []
     for s in man["slots"]:
-        key = variant_key(s["name"], s["depends_on"], cfg)
+        key = variant_key(s["name"], s["depends_on"], cfg, s.get("alias"))
         path = os.path.join(parts, s["name"], key + ".png")
         if os.path.exists(path):
             im = Image.open(path).convert("RGBA")

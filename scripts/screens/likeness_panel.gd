@@ -6,20 +6,14 @@ extends CanvasLayer
 
 signal closed
 
-## The rows, in order: the option and what the row is called. A color row goes away when what it colors is not there.
-const ROWS := [
-	["skin", ""], ["outfit", "Outfit"], ["color", ""], ["hair", "Hair"], ["hair_color", ""], ["beard", "Beard"], ["hat", "Hat"], ["weapon", "Weapon"], ["voice", "Voice"],
-]
 ## The options chosen by a color alone, with no words: a row of squares. (The beard takes the hair's color and the hat the robe's: see PartsLook.tied.)
-const COLOR_ROWS := ["skin", "color", "hair_color"]
+const COLOR_ROWS := ["skin", "color", "trim", "hair_color", "boots"]
 ## What each value is called to the person choosing.
 const NAMES := {
-	"pale": "Pale", "light": "Light", "tan": "Tan", "brown": "Brown", "deep": "Deep", "sage": "Sage",
 	"coat": "Coat", "robe": "Robe", "tunic": "Tunic", "cloak": "Cloak", "ceremonial": "Ceremonial robe", "rags": "Rags", "gothic": "Gothic coat", "armored": "Armor",
-	"blue": "Blue", "purple": "Purple", "crimson": "Crimson", "emerald": "Emerald", "charcoal": "Charcoal", "ivory": "Ivory",
+	"vest": "Vest", "pelt": "Pelt", "sash": "Sash", "toga": "Toga",
 	"none": "None", "short": "Short", "long": "Long", "ponytail": "Ponytail", "bun": "Bun", "goatee": "Goatee", "mohawk": "Mohawk", "braids": "Braid", "straight": "Straight", "balding": "Balding", "wild": "Wild",
-	"braided": "Braided", "handlebar": "Handlebar", "wispy": "Wispy", "stubble": "Stubble",
-	"white": "White", "gray": "Gray", "black": "Black", "auburn": "Auburn", "blonde": "Blonde",
+	"handlebar": "Handlebar", "stubble": "Stubble",
 	"pointy": "Pointed hat", "wide": "Witch hat", "hood": "Hood", "circlet": "Circlet", "horned": "Horned helm", "skull": "Skull crown", "laurel": "Laurel", "turban": "Turban", "mushroom": "Mushroom cap", "crown": "Crown",
 	"staff_orb": "Orb staff", "staff_crystal": "Crystal staff", "staff_branch": "Branch staff", "wand": "Wand", "scepter": "Scepter",
 	"voice_1": "Voice 1", "voice_2": "Voice 2", "voice_3": "Voice 3",
@@ -28,23 +22,26 @@ const NAMES := {
 }
 ## The color shown beside a value that is a color (the middle shade of the parts' own).
 const SWATCHES := {
-	"pale": "#d9b5a2", "light": "#c99870", "tan": "#9c6438", "brown": "#624430", "deep": "#4c2c1c", "violet": "#9a68e0", "silver": "#b8c0d0", "frost": "#c4e8f8",
+	"pale": "#f0cdbc", "light": "#c99870", "tan": "#9c6438", "brown": "#624430", "deep": "#4c2c1c", "violet": "#9a68e0", "silver": "#b8c0d0", "frost": "#c4e8f8",
 	"fair": "#d8aa8a", "olive": "#a88050", "bronze": "#80502a", "ebony": "#36201a", "blue": "#3f60c8", "purple": "#7e58b6", "crimson": "#b02a3a", "emerald": "#34b070",
 	"charcoal": "#4a4a60", "ivory": "#d6cdb4", "rose": "#d0607e", "lavender": "#a688d6", "gold": "#f0c040", "teal": "#2a9ca0", "rust": "#b85a2c", "white": "#d4cecd",
 	"gray": "#86848f", "black": "#30303c", "auburn": "#9a3e26", "blonde": "#d8b868", "ginger": "#cc6a2e", "chestnut": "#7a4630", "midnight": "#38447c", "orc": "#667e3e",
-	"zombie": "#7c8a6c", "duergar": "#78748c", "vampire": "#bcc6da", "frostborn": "#86b2d6", "infernal": "#a03a38", "spectral": "#6ee0d0", "bone": "#c8b890",
+	"zombie": "#7c8a6c", "duergar": "#78748c", "vampire": "#bcc6da", "frostborn": "#86b2d6", "infernal": "#a03a38", "spectral": "#6ee0d0", "bone": "#f1ecde",
 	"ember": "#ff8a30", "aqua": "#60e8d8",
 }
+## Trims and boots are colored apart from the cloth and the hair, and share some of their names ("brown", "gold"), so they have squares of their own.
+const TRIM_SWATCHES := {"gold": "#f0c35a", "silver": "#b8b8c8", "copper": "#cf7a4a", "iron": "#5e5e72", "ivory": "#e8dec8", "crimson": "#c03848", "sapphire": "#4a78d8", "emerald": "#38b878"}
+const BOOT_SWATCHES := {"brown": "#4b2c18", "black": "#2c2c36", "tan": "#a06e3c", "gray": "#6e6e7c", "red": "#8a2e3a", "green": "#466a3c"}
 const PREVIEW_SIZE := Vector2(250.0, 440.0)
 const PREVIEW_SCALE := 4.0  # whole numbers only: it is pixel art
-const SWATCH := 24.0
+const SWATCH := 20.0
 const INK := Color("#f0e6d0")   # the cream of a plate's writing
 const DIM := Color("#a89cc0")   # what a row is called
 const EDGE := Color(0.36, 0.26, 0.5)  # the violet edge of the interface's buttons and fields
 ## The rows set apart in groups, with a rule between each.
-const GROUPS := [["skin"], ["outfit", "color"], ["hair", "hair_color", "beard", "hat"], ["weapon", "voice"]]
+const GROUPS := [["skin"], ["outfit", "color", "trim"], ["hair", "hair_color", "beard", "hat"], ["boots", "weapon", "voice"]]
 ## What each row is called.
-const TITLES := {"skin": "Skin", "outfit": "Outfit", "color": "Outfit color", "hair": "Hair", "hair_color": "Hair color", "beard": "Beard", "hat": "Hat", "weapon": "Weapon", "voice": "Voice"}
+const TITLES := {"skin": "Skin", "outfit": "Outfit", "color": "Outfit color", "trim": "Trim", "hair": "Hair", "hair_color": "Hair color", "beard": "Beard", "hat": "Hat", "boots": "Boots", "weapon": "Weapon", "voice": "Voice"}
 
 var wizard: Wizard  # the one the person plays, which wears what is chosen
 var _plate: PanelContainer
@@ -91,8 +88,8 @@ func _ready() -> void:
 	buttons.add_child(_button("Done", close))
 	body.add_child(left)
 	var right := VBoxContainer.new()
-	right.custom_minimum_size.x = 330.0
-	right.add_theme_constant_override("separation", 9)
+	right.custom_minimum_size.x = 392.0
+	right.add_theme_constant_override("separation", 7)
 	for group: Array in GROUPS:
 		if group != GROUPS[0]:
 			right.add_child(_rule())
@@ -118,7 +115,7 @@ func _title() -> Control:
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 2)
 	var label := Label.new()
-	label.text = "Your Wizard"
+	label.text = "Magic Mirror"
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.add_theme_font_override("font", Lettering.FACE)
 	label.add_theme_font_size_override("font_size", Lettering.size_near(44))
@@ -215,41 +212,43 @@ func _make_preview() -> Control:
 	return frame
 
 
-## A row of colors: what it is called and, to the right, the one chosen; and under them a square for each, the chosen one ringed.
+## A row of colors: what it is called, and under it a square for each, the chosen one ringed. (Colors are not given names: they are plain to see.)
 func _make_squares(option: String, title: String) -> Control:
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 4)
-	var head := HBoxContainer.new()
-	head.add_child(_caption(title))
-	var chosen := _caption("", INK)
-	chosen.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	chosen.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	head.add_child(chosen)
-	column.add_child(head)
+	column.add_child(_caption(title))
 	var values: Array = PartFrames.manifest()["options"][option]
 	var flow := GridContainer.new()
-	flow.columns = ceili(values.size() / 2.0)  # two even rows, none with a lone square
-	flow.add_theme_constant_override("h_separation", 4)
-	flow.add_theme_constant_override("v_separation", 4)
+	flow.columns = values.size()
+	flow.add_theme_constant_override("h_separation", 3)
 	column.add_child(flow)
 	var squares := {}
 	for value: String in values:
 		var square := Button.new()
 		square.focus_mode = Control.FOCUS_NONE
 		square.custom_minimum_size = Vector2(SWATCH, SWATCH)
-		square.tooltip_text = NAMES.get(value, value.capitalize())
+		if value == "bare":
+			square.tooltip_text = "Bare feet"
 		square.pressed.connect(_choose.bind(option, value))
 		flow.add_child(square)
 		squares[value] = square
-	_values[option] = chosen
 	_squares[option] = squares
 	return column
 
 
+## The color a square shows: the paint of the cloth, the hair or the skin, or the trim's or the boots', or, for bare feet, the skin of the wizard.
+func _swatch_of(option: String, value: String) -> Color:
+	if option == "trim":
+		return Color(TRIM_SWATCHES[value])
+	if option == "boots":
+		return Color(BOOT_SWATCHES[value]) if BOOT_SWATCHES.has(value) else Color(SWATCHES[PartsLook.option_of(_current(), "skin")])
+	return Color(SWATCHES[value])
+
+
 ## Paints a square: its color, with a gold ring when it is the one chosen and a pale one under the pointer.
-func _paint_square(square: Button, value: String, chosen: bool) -> void:
+func _paint_square(square: Button, color: Color, chosen: bool) -> void:
 	for state in ["normal", "hover", "pressed", "focus"]:
-		var box := _box(Color(SWATCHES[value]).lightened(0.12 if state == "hover" else 0.0), Color(0, 0, 0, 0.75), 1, 0)
+		var box := _box(color.lightened(0.12 if state == "hover" else 0.0), Color(0, 0, 0, 0.75), 1, 0)
 		if chosen:
 			box.set_border_width_all(2)
 			box.border_color = Lettering.GOLD
@@ -337,10 +336,10 @@ func _show_choice() -> void:
 	for option: String in _values:
 		var value: String = config[option]
 		(_values[option] as Label).text = NAMES.get(value, value.capitalize())
-		if _squares.has(option):
-			var squares: Dictionary = _squares[option]
-			for each: String in squares:
-				_paint_square(squares[each], each, each == value)
+	for option: String in _squares:
+		var squares: Dictionary = _squares[option]
+		for each: String in squares:
+			_paint_square(squares[each], _swatch_of(option, each), each == config[option])
 	if look != _shown:
 		_shown = look
 		_sprite.sprite_frames = PartFrames.body(look, true)

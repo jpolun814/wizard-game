@@ -30,14 +30,11 @@ static func manifest() -> Dictionary:
 ## The packed file for a slot under a choice of parts, or "" where that choice draws nothing in the slot.
 static func layer_path(slot: Dictionary, config: Dictionary) -> String:
 	var name: String = slot["name"]
-	var key: String
-	if name == "hat" and PartsLook.HAT_NO_COLOR.has(config["hat"]):
-		key = config["hat"]  # a hat with no color
-	else:
-		var values := PackedStringArray()
-		for option: String in slot["depends_on"]:
-			values.append(config[option])
-		key = "-".join(values)
+	var values := PackedStringArray()
+	for option: String in slot["depends_on"]:
+		values.append(config[option])
+	var key := "-".join(values)
+	key = (slot.get("alias", {}) as Dictionary).get(key, key)  # choices that draw the same picture share a file
 	if not (slot["variants"] as Array).has(key):
 		return ""
 	return DIR + name + "/" + key + ".parts"

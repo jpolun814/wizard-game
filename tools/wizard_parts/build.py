@@ -29,8 +29,23 @@ def variants(slot):
     for combo in itertools.product(*[OPTIONS[d] for d in deps]):
         cfg = dict(DEFAULT)
         cfg.update(zip(deps, combo))
-        seen.setdefault(variant_key(slot, cfg), cfg)
+        key = variant_key(slot, cfg)
+        if key is not None:
+            seen.setdefault(key, cfg)
     return seen
+
+
+def aliases(slot, written):
+    """For every choice of the slot's options that is drawn in another choice's file: choice -> file."""
+    deps = dict(SLOTS)[slot]
+    out = {}
+    for combo in itertools.product(*[OPTIONS[d] for d in deps]):
+        cfg = dict(DEFAULT)
+        cfg.update(zip(deps, combo))
+        key, full = variant_key(slot, cfg), "-".join(combo)
+        if key is not None and key != full and key in written:
+            out[full] = key
+    return out
 
 
 _FRAMES = None
@@ -84,7 +99,7 @@ def main():
     for slot, deps in SLOTS:
         keys = sorted(written.get(slot, [])) if (not only or slot in only) else next(
             (s["variants"] for s in old if s["name"] == slot), [])
-        slots.append(dict(name=slot, depends_on=deps, variants=keys))
+        slots.append(dict(name=slot, depends_on=deps, variants=keys, alias=aliases(slot, set(keys))))
     manifest = dict(
         frame_size=[W, H], columns=COLS, sheet_size=[sw, sh], frame_count=start,
         feet="bottom row of the frame, centred at x=127; the figure faces right",
@@ -96,7 +111,7 @@ def main():
                    example_spells={k: [list(c) for c in v] for k, v in SPELLS.items()}),
         slots=slots,
         file_pattern="<slot>/<variant>.png where <variant> joins the slot's depends_on option values with '-' "
-                     "(hats in HAT_NO_COLOR ignore hat_color). A missing file means that slot is empty for that choice.",
+                     "unless the slot's `alias` table sends that choice to another file (choices that draw the same picture share one). A missing file means that slot is empty for that choice.",
         draw_order="slots are listed back to front",
     )
     json.dump(manifest, open(manifest_path, "w"), indent=1)

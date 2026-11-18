@@ -7,7 +7,7 @@ import numpy as np
 from PIL import Image
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from parts import SLOTS, OPTIONS, render_layer, recolor, W, H  # noqa: E402
+from parts import SLOTS, OPTIONS, render_layer, recolor, variant_key, W, H  # noqa: E402
 from poses import ANIMS  # noqa: E402
 
 FN = {a[0]: a[2] for a in ANIMS}
@@ -17,9 +17,11 @@ def char_frame(cfg, anim, i):
     p, extra = FN[anim](i)
     acc = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     for slot, _ in SLOTS:
+        if variant_key(slot, cfg) is None:  # empty for this choice
+            continue
         px = render_layer(slot, p, extra, cfg, i)
         if slot == "magic":
-            px = recolor(px, cfg.get("spell", "azure"))
+            px = recolor(px, cfg.get("spell", "Fire"))
         acc.alpha_composite(Image.fromarray(px))
     return acc
 
@@ -35,7 +37,7 @@ if __name__ == "__main__":
             cur.append(a)
     groups.append(cur)
     box = (60, 6, 254, 138)
-    z = 3
+    z = 4
     w, h = (box[2] - box[0]) * z, (box[3] - box[1]) * z
     sheet = Image.new("RGBA", (w * len(picks), h * len(groups)), (56, 58, 70, 255))
     for r, grp in enumerate(groups):

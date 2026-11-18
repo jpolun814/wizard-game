@@ -2,22 +2,28 @@ class_name PartsLook
 extends RefCounted
 
 ## A wizard made of parts: skin, outfit and its color, hair, beard, hat and a weapon. The whole choice is kept as one String, the look, which is what
-## the game passes around everywhere (the settings, the network, the epilogue). "parts:2:" and then the values in ORDER, joined with dots. (A look of "parts:1:", which had no voice, is read with the first voice.)
+## the game passes around everywhere (the settings, the network, the epilogue). "parts:3:" and then the values in ORDER, joined with dots. (Looks of "parts:1:" and "parts:2:", from before the voices, the trim and the boots were chosen, are still read: see `decode`.)
 ## The parts themselves, and what each can be, are in res://art/parts/manifest.json (see PartFrames).
 
-const PREFIX := "parts:2:"
-const OLD_PREFIX := "parts:1:"
-const ORDER := ["skin", "outfit", "color", "hair", "hair_color", "beard", "beard_color", "hat", "hat_color", "weapon", "voice"]
+const PREFIX := "parts:3:"
+const ORDER := ["skin", "outfit", "color", "trim", "hair", "hair_color", "beard", "beard_color", "hat", "hat_color", "boots", "weapon", "voice"]
+## The orders of the looks of the older games, and what each is missing.
+const ORDER_2 := ["skin", "outfit", "color", "hair", "hair_color", "beard", "beard_color", "hat", "hat_color", "weapon", "voice"]
+const ORDER_1 := ["skin", "outfit", "color", "hair", "hair_color", "beard", "beard_color", "hat", "hat_color", "weapon"]
+## Beards that were taken out because they looked like another, and the one each is read as.
+const BEARD_NOW := {"long": "short", "braided": "short", "wispy": "goatee"}
+## What an outfit of the older games was edged in: gold, but silver for these colors.
+const SILVER_TRIMMED := ["charcoal", "black", "lavender", "gold"]
 ## The voices (not art, so not in the manifest): the sound a wizard makes when it jumps. See WizardLook.jump_sound.
 const VOICES := ["voice_1", "voice_2", "voice_3"]
 const DEFAULT := {
-	"skin": "tan", "outfit": "coat", "color": "blue", "hair": "short", "hair_color": "auburn", "beard": "short",
-	"beard_color": "auburn", "hat": "wide", "hat_color": "blue", "weapon": "staff_orb", "voice": "voice_1",
+	"skin": "tan", "outfit": "coat", "color": "blue", "trim": "gold", "hair": "short", "hair_color": "auburn", "beard": "short",
+	"beard_color": "auburn", "hat": "wide", "hat_color": "blue", "boots": "brown", "weapon": "staff_orb", "voice": "voice_1",
 }
 
 
 const HAT_NO_COLOR := ["none", "circlet", "horned", "skull", "laurel", "crown", "tiara", "flower_crown"]  # hats with no color of their own (keep in step with tools/wizard_parts/parts.py)
-const DEFAULT_LOOK := "parts:2:tan.coat.blue.short.auburn.short.auburn.wide.blue.staff_orb.voice_1"  # DEFAULT, written down
+const DEFAULT_LOOK := "parts:3:tan.coat.blue.gold.short.auburn.short.auburn.wide.blue.brown.staff_orb.voice_1"  # DEFAULT, written down
 
 
 ## Every option and the values it can have: the parts' (from the manifest) and the voices.
@@ -57,22 +63,33 @@ static func encode(config: Dictionary) -> String:
 ## The choice in a look, as option -> value, or empty when the look is not one of parts or holds a value there is no part for.
 static func decode(look: String) -> Dictionary:
 	var values: PackedStringArray
+	var order: Array = ORDER
 	if look.begins_with(PREFIX):
 		values = look.substr(PREFIX.length()).split(".")
-	elif look.begins_with(OLD_PREFIX):
-		values = look.substr(OLD_PREFIX.length()).split(".")
-		values.append(VOICES[0])
+	elif look.begins_with("parts:2:"):
+		values = look.substr(8).split(".")
+		order = ORDER_2
+	elif look.begins_with("parts:1:"):
+		values = look.substr(8).split(".")
+		order = ORDER_1
 	else:
 		return {}
-	if values.size() != ORDER.size():
+	if values.size() != order.size():
 		return {}
 	var options := options_of_all()
 	var config := {}
-	for k in ORDER.size():
-		var option: String = ORDER[k]
-		if not (options[option] as Array).has(values[k]):
+	for k in order.size():
+		config[order[k]] = values[k]
+	if order != ORDER:  # a look from an older game: what it had not yet chosen is what it was drawn with
+		config["trim"] = "silver" if SILVER_TRIMMED.has(config["color"]) else "gold"
+		config["boots"] = "brown"
+		config["beard"] = BEARD_NOW.get(config["beard"], config["beard"])
+		config["beard_color"] = config["beard_color"] if (options["beard_color"] as Array).has(config["beard_color"]) else config["hair_color"]
+		if not config.has("voice"):
+			config["voice"] = VOICES[0]
+	for option: String in ORDER:
+		if not (options[option] as Array).has(config[option]):
 			return {}
-		config[option] = values[k]
 	return config
 
 

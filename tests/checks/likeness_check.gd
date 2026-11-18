@@ -53,7 +53,7 @@ func _ready() -> void:
 		var panel: LikenessPanel = panels[0]
 		panel._choose("hat", "hood")
 		panel._choose("weapon", "wand")
-		_verdict(lab.player.look == "parts:2:tan.coat.blue.short.auburn.short.auburn.hood.blue.wand.voice_1", "parts chosen are worn at once (%s)" % lab.player.look)
+		_verdict(lab.player.look == "parts:3:tan.coat.blue.gold.short.auburn.short.auburn.hood.blue.brown.wand.voice_1", "parts chosen are worn at once (%s)" % lab.player.look)
 		_verdict(GameSettings.get_value("look") == lab.player.look, "and kept")
 		panel._choose("color", "crimson")
 		panel._choose("hair_color", "black")

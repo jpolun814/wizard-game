@@ -13,7 +13,7 @@ import numpy as np  # noqa: E402
 
 # ============================================================== palettes
 SKINS = {
-    "pale": ramp("#f2dccf", "#d9b5a2", "#b08678", "#6e4a46"),
+    "pale": ramp("#fbe6da", "#f0cdbc", "#c99c8c", "#7c5652"),
     "fair": ramp("#f0d0b4", "#d8aa8a", "#aa7c62", "#684434"),
     "light": ramp("#e6bf98", "#c99870", "#9a6c4c", "#5e3a28"),
     "olive": ramp("#d0a870", "#a88050", "#7c5c38", "#4a321e"),
@@ -29,7 +29,7 @@ SKINS = {
     "frostborn": ramp("#bcdcf0", "#86b2d6", "#5a82ac", "#2a4064"),
     "infernal": ramp("#d0584a", "#a03a38", "#6e2230", "#3a0e1a"),
     "spectral": ramp("#b8fff0", "#6ee0d0", "#38a0b0", "#186070"),
-    "bone": ramp("#ece0c0", "#c8b890", "#9a8a64", "#58482e"),
+    "bone": ramp("#fffdf6", "#f1ecde", "#c4bca4", "#726a52"),
 }
 HAIRS = {
     "white": ramp("#f6f4f4", "#d4cecd", "#a79d9b", "#5e5460"),
@@ -77,6 +77,24 @@ COLORS = {  # main cloth, second cloth, trousers, trim
     "rust": dict(main=ramp("#e8905a", "#b85a2c", "#7e3818", "#401a08"), second=ramp("#e2d8c0", "#b8aa8c", "#867a60", "#463e2c"),
                  legs=ramp("#5e4a3a", "#44342a", "#2c2018", "#150e0a"), trim=GOLD),
 }
+TRIMS = {  # the metal and thread an outfit is edged in
+    "gold": GOLD,
+    "silver": SILVER,
+    "copper": ramp("#f4b08a", "#cf7a4a", "#955030", "#4e2616"),
+    "iron": ramp("#8a8a9c", "#5e5e72", "#3e3e50", "#1e1e2a"),
+    "ivory": ramp("#fffaf0", "#e8dec8", "#b8ab8c", "#665c46"),
+    "crimson": ramp("#f07880", "#c03848", "#82202e", "#400e18"),
+    "sapphire": ramp("#8ab8ff", "#4a78d8", "#2c4a9c", "#162456"),
+    "emerald": ramp("#7ee8a8", "#38b878", "#1e7450", "#0c3a2a"),
+}
+BOOTS = {  # "bare" is the foot itself, in the skin
+    "brown": BOOT,
+    "black": ramp("#4a4a56", "#2c2c36", "#1a1a22", "#0a0a10"),
+    "tan": ramp("#c8985c", "#a06e3c", "#704824", "#3a2410"),
+    "gray": ramp("#9a9aa8", "#6e6e7c", "#48485a", "#22222c"),
+    "red": ramp("#b8505a", "#8a2e3a", "#5a1824", "#2e0a10"),
+    "green": ramp("#6a8a58", "#466a3c", "#2c4628", "#14240f"),
+}
 WOODS = {
     "oak": ramp("#8a5a30", "#5a3418", "#3d2310", "#1e1006"),
     "dark": ramp("#6a4a3a", "#4a3024", "#2e1c14", "#160c08"),
@@ -112,49 +130,93 @@ SPELLS = {name: school_ramp(col) for name, col in SCHOOL_COLORS.items()}
 # The order here is the order the character creator shows: plainest first, the fantastical last; colors run round the wheel and then the neutrals.
 OPTIONS = {
     "skin": ["pale", "fair", "light", "olive", "tan", "bronze", "brown", "deep", "ebony", "orc", "zombie", "duergar", "vampire", "frostborn", "infernal", "spectral", "bone"],
-    "outfit": ["rags", "tunic", "coat", "robe", "cloak", "gown", "bodice", "ceremonial", "gothic", "armored"],
+    "outfit": ["rags", "tunic", "coat", "robe", "cloak", "gown", "bodice", "ceremonial", "gothic", "armored", "vest", "pelt", "sash", "toga"],
     "color": ["crimson", "rust", "gold", "emerald", "teal", "blue", "purple", "lavender", "rose", "ivory", "charcoal", "black"],
+    "trim": ["gold", "silver", "copper", "iron", "ivory", "crimson", "sapphire", "emerald"],
     "hair": ["none", "balding", "tonsure", "short", "bob", "straight", "long", "wavy", "ponytail", "pigtails", "braids", "bun", "updo", "mohawk", "wild"],
     "hair_color": ["white", "silver", "gray", "blonde", "ginger", "auburn", "chestnut", "brown", "black", "midnight", "crimson", "ember", "gold", "emerald", "aqua", "frost", "violet"],
-    "beard": ["none", "stubble", "short", "goatee", "handlebar", "long", "braided", "wispy"],
+    "beard": ["none", "stubble", "goatee", "handlebar", "short"],
     "beard_color": ["white", "silver", "gray", "blonde", "ginger", "auburn", "chestnut", "brown", "black", "midnight", "crimson", "ember", "gold", "emerald", "aqua", "frost", "violet"],
     "hat": ["none", "hood", "headscarf", "turban", "pointy", "wide", "mushroom", "circlet", "tiara", "crown", "laurel", "flower_crown", "horned", "skull"],
     "hat_color": ["crimson", "rust", "gold", "emerald", "teal", "blue", "purple", "lavender", "rose", "ivory", "charcoal", "black"],
+    "boots": ["brown", "black", "tan", "gray", "red", "green", "bare"],
     "weapon": ["wand", "rose_wand", "bone_wand", "scepter", "crook", "book", "orb_hand", "staff_branch", "staff_root", "staff_flower", "staff_orb",
                "staff_crystal", "staff_moon", "staff_lantern", "staff_skull"],
 }
 assert all(set(OPTIONS[k]) == set(v) for k, v in {"skin": SKINS, "color": COLORS, "hair_color": HAIRS, "hat_color": COLORS}.items())
 HAT_NO_COLOR = ("none", "circlet", "horned", "skull", "laurel", "crown", "tiara", "flower_crown")  # hats that have no color of their own to choose
+HAT_TRIMMED = ("circlet", "tiara", "crown", "horned", "headscarf", "pointy", "wide")  # hats with metal or a band that takes the trim's color
 CAP_HAIR = ("short", "long", "ponytail", "bun", "braids", "straight", "wild", "bob", "pigtails", "wavy", "updo")  # styles that draw the cap of hair over the head
 BACK_COAT = ("coat", "cloak", "gothic")  # outfits with a piece behind the legs
+SLEEVELESS = ("vest", "pelt", "sash", "toga")  # outfits that leave the chest and the arms bare, in the skin
+BARE_LEGS = ("pelt", "toga")  # and these leave the legs bare too
+NO_SKIRT = ("vest", "sash")  # worn over trousers, with nothing hanging in front of them
+TRIM_SLOTS = ("far_cuff", "near_cuff", "back_trim", "body_trim", "hat_trim")  # layers made only of what is in the trim's color, so the trim can be chosen apart from the cloth
+BODY_SLOTS = ("far_sleeve", "near_sleeve", "back_coat", "torso", "front_coat", "belt", "hat")  # the cloth layers, drawn without it
 
-# z-order, back to front. Each slot's look depends only on the listed options.
+# z-order, back to front. Each slot's look depends only on the listed options (and variant_key says which choices share a file).
 SLOTS = [
-    ("far_sleeve", ["color"]),
+    ("far_sleeve", ["outfit", "color"]),
+    ("far_arm", ["outfit", "skin"]),
+    ("far_cuff", ["outfit", "trim"]),
     ("far_hand", ["skin"]),
-    ("far_leg", ["color"]),
+    ("far_leg", ["outfit", "color"]),
+    ("far_bare_leg", ["outfit", "skin"]),
+    ("far_boot", ["boots", "skin"]),
     ("back_coat", ["outfit", "color"]),
+    ("back_trim", ["outfit", "trim"]),
+    ("torso_skin", ["outfit", "skin"]),
     ("torso", ["outfit", "color"]),
-    ("near_leg", ["color"]),
+    ("near_leg", ["outfit", "color"]),
+    ("near_bare_leg", ["outfit", "skin"]),
+    ("near_boot", ["boots", "skin"]),
     ("front_coat", ["outfit", "color"]),
     ("belt", ["outfit", "color"]),
+    ("body_trim", ["outfit", "trim"]),
     ("hair_back", ["hair", "hair_color"]),
     ("head", ["skin"]),
     ("beard", ["beard", "beard_color"]),
     ("hair_front", ["hair", "hair_color"]),
     ("hat", ["hat", "hat_color"]),
+    ("hat_trim", ["hat", "trim"]),
     ("weapon", ["weapon"]),
-    ("near_sleeve", ["color"]),
+    ("near_sleeve", ["outfit", "color"]),
+    ("near_arm", ["outfit", "skin"]),
+    ("near_cuff", ["outfit", "trim"]),
     ("near_hand", ["skin"]),
     ("magic", ["weapon"]),  # key greys: recolour per spell at runtime
 ]
 
 
 def variant_key(slot, cfg):
-    deps = dict(SLOTS)[slot]
-    if slot == "hat" and cfg["hat"] in HAT_NO_COLOR:
-        return cfg["hat"]
-    return "-".join(cfg[d] for d in deps)
+    """The file a choice of options is drawn in, or None when the slot is empty for it. Choices that draw the same picture share one file
+    (the build writes an `alias` table into the manifest for the game to find it by)."""
+    o = cfg["outfit"]
+    if slot in ("far_sleeve", "near_sleeve"):
+        return None if o in SLEEVELESS else cfg["color"]
+    if slot in ("far_arm", "near_arm"):
+        return cfg["skin"] if o in SLEEVELESS else None
+    if slot in ("far_cuff", "near_cuff"):
+        return None if o in SLEEVELESS else cfg["trim"]
+    if slot in ("far_leg", "near_leg"):
+        return None if o in BARE_LEGS else cfg["color"]
+    if slot in ("far_bare_leg", "near_bare_leg"):
+        return cfg["skin"] if o in BARE_LEGS else None
+    if slot in ("far_boot", "near_boot"):
+        return "bare-" + cfg["skin"] if cfg["boots"] == "bare" else cfg["boots"]
+    if slot in ("back_coat", "back_trim"):
+        return o + "-" + cfg["color" if slot == "back_coat" else "trim"] if o in BACK_COAT else None
+    if slot == "torso_skin":
+        return o + "-" + cfg["skin"] if o in SLEEVELESS else None
+    if slot == "front_coat" and o in NO_SKIRT:
+        return None
+    if slot == "hat":
+        if cfg["hat"] == "none":
+            return None
+        return cfg["hat"] if cfg["hat"] in HAT_NO_COLOR else cfg["hat"] + "-" + cfg["hat_color"]
+    if slot == "hat_trim":
+        return cfg["hat"] + "-" + cfg["trim"] if cfg["hat"] in HAT_TRIMMED else None
+    return "-".join(cfg[d] for d in dict(SLOTS)[slot])
 
 
 def recolor(px, spell):
@@ -318,17 +380,32 @@ def hand(cv, g, p, which, skin, kind):
         open_hand(cv, el, hd, skin)
 
 
-def leg(cv, g, kn, an, ang, col):
-    hip = g["hip"]
-    cv.paint(limb([hip, kn, an], [3.6, 3.3, 3.0]), col["legs"])
-    # the boot: ONE shape from the calf, down the back of the heel, along the sole to the toe
-    bt = add(kn, (an[0] - kn[0], an[1] - kn[1]), 0.5)
+def arm(cv, sh, el, hd, skin):
+    """A bare arm: the same shape as a sleeve's, in the skin."""
+    cv.paint(limb([sh, el, hd], [3.0, 2.85, 2.7]), skin)
+
+
+def trousers(cv, g, kn, an, col):
+    cv.paint(limb([g["hip"], kn, an], [3.6, 3.3, 3.0]), col["legs"])
+
+
+def bare_leg(cv, g, kn, an, skin):
+    cv.paint(limb([g["hip"], kn, an], [3.6, 3.3, 3.0]), skin)
+
+
+def boot(cv, g, kn, an, ang, boots, skin):
+    """The boot: ONE shape from the calf, down the back of the heel, along the sole to the toe. Bare feet are the same shape from the ankle, in the skin."""
     fa = math.radians(ang)
     f = (math.cos(fa), -math.sin(fa))                     # along the foot, toward the toe
     ball = (an[0] + 3.2 * f[0], an[1] + 1.0 + 3.2 * f[1])   # the instep slopes down from the shin to the toe
     toe = (an[0] + 6.4 * f[0], an[1] + 2.0 + 6.4 * f[1])
-    # mostly one dark brown with a single highlight down the front of the shin, like the sample's boots
-    cv.paint(limb([bt, an, ball, toe], [3.1, 3.0, 2.6, 1.9]), BOOT, hi=0.62, lo=-0.3, inner_outline=False)
+    if boots == "bare":
+        top = add(an, (kn[0] - an[0], kn[1] - an[1]), 0.1)
+        cv.paint(limb([top, an, ball, toe], [2.8, 2.7, 2.4, 1.8]), skin, hi=0.5, lo=-0.2, inner_outline=False)
+        return
+    bt = add(kn, (an[0] - kn[0], an[1] - kn[1]), 0.5)
+    # mostly one dark color with a single highlight down the front of the shin, like the sample's boots
+    cv.paint(limb([bt, an, ball, toe], [3.1, 3.0, 2.6, 1.9]), BOOTS[boots], hi=0.62, lo=-0.3, inner_outline=False)
 
 
 def coat_flap(cv, g, p, col, front):
@@ -402,15 +479,34 @@ def robe_skirt(cv, g, p, col, band=False, gown=False):
         cv.dot(mx + 2, my, col["trim"][0])
 
 
-def tunic_skirt(cv, g, p, col):
+def tunic_skirt(cv, g, p, col, drop=9.0):
     P, waist, fwd, up = g["P"], g["waist"], g["fwd"], g["up"]
     sw = p["sway"]
-    h1 = add(add(P, fwd, 7.0), up, -9.0)
-    h2 = add(add(P, fwd, -7.0), up, -9.5)
+    h1 = add(add(P, fwd, 7.0), up, -drop)
+    h2 = add(add(P, fwd, -7.0), up, -drop - 0.5)
     h1 = (h1[0] + sw * 0.25, h1[1])
     h2 = (h2[0] + sw * 0.6, h2[1])
     cv.paint(cv.poly([add(waist, fwd, -4.8), add(waist, fwd, 5.0), h1, h2]), col["main"], hi=0.5, lo=-0.12)
     cv.paint(cv.capsule(h1, h2, 0.8), col["trim"], inner_outline=False)
+
+
+def kilt_skirt(cv, g, p, col):
+    """A kilt of pelt: short, with a ragged hem and a row of stitches under the belt."""
+    P, waist, fwd, up = g["P"], g["waist"], g["fwd"], g["up"]
+    sw = p["sway"]
+    h1 = add(add(P, fwd, 7.2), up, -9.0)
+    h2 = add(add(P, fwd, -7.2), up, -9.5)
+    h1 = (h1[0] + sw * 0.25, h1[1])
+    h2 = (h2[0] + sw * 0.6, h2[1])
+    hem = []
+    for k in range(9):
+        t = k / 8
+        hem.append((h1[0] + (h2[0] - h1[0]) * t, h1[1] + (h2[1] - h1[1]) * t + (3.0 if k % 2 else 0.0)))
+    cv.paint(cv.poly([add(waist, fwd, -4.8), add(waist, fwd, 5.0)] + hem), col["main"], hi=0.5, lo=-0.12)
+    for k in (1, 3, 5):
+        q = add(add(P, fwd, 5.0 - 2.4 * k), up, -4.0)
+        cv.dot(q[0], q[1], col["main"][3])
+        cv.dot(q[0] + 1.0, q[1] + 2.0, col["main"][3])
 
 
 def armor_skirt(cv, g, p, col):
@@ -426,7 +522,7 @@ def armor_skirt(cv, g, p, col):
         d = add(add(P, fwd, w + 0.6), up, y0 - 3.8)
         pts = [a, b, (c[0] + sw * 0.15 * (k + 1), c[1]), (d[0] + sw * 0.1 * (k + 1), d[1])]
         cv.paint(cv.poly(pts), SILVER, hi=0.4, lo=-0.1)
-        cv.paint(cv.capsule(pts[2], pts[3], 0.4), GOLD if k == 2 else IRON, inner_outline=False)
+        cv.paint(cv.capsule(pts[2], pts[3], 0.4), col["trim"] if k == 2 else IRON, inner_outline=False)
 
 
 def flounce_skirt(cv, g, p, col):
@@ -484,8 +580,56 @@ def cape(cv, g, p, col, long=False):
     cv.paint(cv.capsule(h1, h2, 0.9), col["trim"], inner_outline=False)
 
 
+def bare_torso(cv, g, skin):
+    """The chest, the belly and the neck of someone who wears nothing over them (the layer under a vest, a sash, a pelt or a toga)."""
+    waist, chest, neck, fwd, up = g["waist"], g["chest"], g["neck"], g["fwd"], g["up"]
+    cv.paint(cv.capsule(waist, chest, 4.7), skin, hi=0.45, lo=-0.1)
+    cv.paint(cv.capsule(add(chest, fwd, -2.6), add(chest, fwd, 2.8), 3.4), skin, hi=0.45, lo=-0.1, inner_outline=False)
+    cv.paint(cv.capsule(add(chest, up, 1.0), add(neck, up, 1.5), 2.1), skin, hi=0.45, lo=-0.1, inner_outline=False)
+    m, _ = cv.capsule(add(add(chest, up, -4.0), fwd, 2.8), add(add(waist, up, 2.0), fwd, 3.2), 0.4)  # the line down the belly
+    cv.px[m, :3] = skin[2]
+    q = add(add(chest, up, -3.0), fwd, 2.4)
+    cv.dot(q[0], q[1], skin[2])  # the shadow under the chest
+
+
+def bare_torso_cloth(cv, g, outfit, col):
+    """What a bare-chested outfit has on above the waist."""
+    waist, chest, neck, fwd, up = g["waist"], g["chest"], g["neck"], g["fwd"], g["up"]
+    if outfit == "vest":  # an open vest: the back and the sides, and a lapel down each side of the opening
+        cv.paint(cv.capsule(add(waist, fwd, -2.6), add(chest, fwd, -2.4), 2.5), col["main"], hi=0.45, lo=-0.1)
+        cv.paint(cv.capsule(add(chest, fwd, -2.6), add(neck, fwd, 1.2), 1.3), col["main"], hi=0.45, lo=-0.1, inner_outline=False)
+        cv.paint(cv.capsule(add(neck, fwd, 1.6), add(waist, fwd, 3.8), 1.4), col["main"], hi=0.45, lo=-0.1, inner_outline=False)
+        cv.paint(cv.capsule(add(neck, fwd, 2.9), add(waist, fwd, 4.9), 0.45), col["trim"], inner_outline=False)
+        for k in (3, 6, 9):
+            q = add(add(chest, up, -k), fwd, 3.3)
+            cv.dot(q[0], q[1], col["trim"][1])
+    elif outfit == "pelt":  # a pelt over one shoulder and a strap across the chest, studded
+        cv.paint(cv.capsule(add(add(chest, up, 2.0), fwd, -3.4), add(waist, fwd, 4.2), 1.2), col["second"], inner_outline=False)
+        cv.paint(cv.ellipse(add(chest, up, 1.6), 4.9, 3.4), col["main"], hi=0.45, lo=-0.1)
+        for k in (-3.0, 0.0, 3.0):
+            q = add(add(chest, up, -0.4), fwd, k)
+            cv.dot(q[0], q[1], col["main"][3])
+        for t in (0.3, 0.6):
+            q = (chest[0] + (waist[0] + fwd[0] * 4.2 - chest[0] - fwd[0] * -3.4) * t + fwd[0] * -3.4, chest[1] + (waist[1] + fwd[1] * 4.2 - chest[1] - fwd[1] * -3.4 - up[1] * 2.0) * t + fwd[1] * -3.4 + up[1] * 2.0)
+            cv.dot(q[0], q[1], col["trim"][1])
+    elif outfit == "sash":  # a broad sash from the shoulder to the hip, edged in trim
+        a, b = add(add(chest, up, 2.4), fwd, -3.6), add(add(waist, up, -0.5), fwd, 4.0)
+        cv.paint(cv.capsule(a, b, 2.1), col["main"], hi=0.45, lo=-0.1)
+        cv.paint(cv.capsule(add(a, up, 1.9), add(b, up, 1.9), 0.45), col["trim"], inner_outline=False)
+        cv.paint(cv.capsule(add(a, up, -1.9), add(b, up, -1.9), 0.45), col["trim"], inner_outline=False)
+    elif outfit == "toga":  # a length of cloth over the shoulder and across the chest, with a fold over the shoulder
+        a, b = add(add(chest, up, 2.0), fwd, -3.8), add(add(waist, up, -0.5), fwd, 4.2)
+        cv.paint(cv.capsule(a, b, 3.0), col["main"], hi=0.5, lo=-0.1)
+        cv.paint(cv.ellipse(add(chest, up, 1.5), 3.8, 2.8), col["main"], hi=0.5, lo=-0.1, inner_outline=False)
+        cv.paint(cv.capsule(add(a, up, 2.9), add(b, up, 2.9), 0.5), col["trim"], inner_outline=False)
+        cv.paint(cv.capsule(add(a, up, -1.0), add(b, up, -1.0), 0.4), col["second"], inner_outline=False)
+
+
 def torso(cv, g, outfit, col):
     waist, chest, neck, fwd, up = g["waist"], g["chest"], g["neck"], g["fwd"], g["up"]
+    if outfit in SLEEVELESS:
+        bare_torso_cloth(cv, g, outfit, col)
+        return
     cv.paint(cv.capsule(waist, chest, 4.7), col["main"], hi=0.45, lo=-0.1)
     cv.paint(cv.capsule(add(chest, fwd, -2.6), add(chest, fwd, 2.8), 3.4), col["main"], hi=0.45, lo=-0.1,
              inner_outline=False)
@@ -529,7 +673,7 @@ def torso(cv, g, outfit, col):
                 cv.dot(q[0] - 1.0, q[1], col["trim"][2])
     elif outfit == "armored":  # a breastplate and a plate on each shoulder, over a tunic
         cv.paint(cv.capsule(add(waist, up, -1.0), add(chest, up, 0.5), 5.4), SILVER, hi=0.4, lo=-0.1)  # the breastplate, with a ridge down it
-        cv.paint(cv.capsule(add(add(waist, up, 0.0), fwd, 2.4), add(add(chest, up, 0.0), fwd, 2.4), 0.6), GOLD, inner_outline=False)
+        cv.paint(cv.capsule(add(add(waist, up, 0.0), fwd, 2.4), add(add(chest, up, 0.0), fwd, 2.4), 0.6), col["trim"], inner_outline=False)
         for k in (-1, 4, 9):  # rivets and the lames across the belly
             cv.paint(cv.capsule(add(add(waist, up, k * 0.5 + 1), fwd, -4.6), add(add(waist, up, k * 0.5 + 1), fwd, 4.8), 0.4), IRON, inner_outline=False)
         cv.paint(cv.capsule(add(neck, fwd, -3.0), add(neck, fwd, 3.2), 2.2), SILVER, hi=0.4, lo=-0.1, inner_outline=False)  # a gorget at the neck
@@ -537,7 +681,7 @@ def torso(cv, g, outfit, col):
             cv.paint(cv.ellipse(add(sh, up, 1.0), 5.6, 4.2), SILVER, hi=0.4, lo=-0.1)
             cv.paint(cv.ellipse(add(add(sh, up, -0.8), fwd, 1.0), 4.6, 3.0), SILVER, hi=0.2, lo=-0.2, inner_outline=False)
             cv.paint(cv.poly([add(add(sh, up, 4.6), fwd, -1.4), add(add(sh, up, 4.6), fwd, 1.4), add(add(sh, up, 9.0), fwd, 0.2)]), IRON, hi=0.4, lo=-0.1)
-            cv.paint(cv.capsule(add(sh, fwd, -4.4), add(sh, fwd, 4.6), 0.5), GOLD, inner_outline=False)
+            cv.paint(cv.capsule(add(sh, fwd, -4.4), add(sh, fwd, 4.6), 0.5), col["trim"], inner_outline=False)
     elif outfit == "rags":  # open neck, a patch and the stitches round it
         cv.paint(cv.capsule(add(neck, fwd, -2.2), add(neck, fwd, 2.4), 1.5), col["second"], inner_outline=False)
         q = add(add(chest, up, -4.0), fwd, 0.6)
@@ -558,7 +702,7 @@ def belt(cv, g, p, outfit, col):
     hw = 5.4
     q = [add(add(bw, fwd, -hw), up, -1.4), add(add(bw, fwd, hw), up, -1.4), add(add(bw, fwd, hw), up, 1.4),
          add(add(bw, fwd, -hw), up, 1.4)]
-    if outfit in ("tunic", "rags", "bodice"):
+    if outfit in ("tunic", "rags", "bodice", "sash", "toga"):
         cv.paint(cv.poly(q), col["second"], inner_outline=False)
         tail0 = add(add(bw, fwd, -hw + 0.5), up, -1)
         tail1 = add(add(tail0, up, -7), fwd, -1.5 + p["sway"] * 0.15)
@@ -590,31 +734,16 @@ def beard(cv, g, p, style, hair):
         return
     R = head_R(g)
     bs = p["beard"]
-    if style == "long":
-        cv.paint(cv.poly([R(-3.2, 1), R(2.4, 2.0), R(5.8, 3.3), R(5.8, 5.5), R(3.2 + bs, 14), R(-1 + bs * 0.6, 11.5),
-                          R(-3.6, 6.5)]), hair, hi=0.35, lo=-0.1)
-    elif style == "short":
+    if style == "short":
         cv.paint(cv.poly([R(-3.1, 1), R(2.4, 2.0), R(5.6, 3.3), R(5.4, 5.6), R(2.9 + bs * 0.2, 7.8), R(-0.7, 7.3),
                           R(-3.4, 4.2)]), hair, hi=0.35, lo=-0.1)
     elif style == "goatee":
         cv.paint(cv.poly([R(3.0, 4.0), R(5.6, 4.2), R(5.2 + bs * 0.3, 9), R(3.3, 7.8)]), hair, hi=0.35, lo=-0.1)
-    elif style == "braided":  # a full short beard, with one long braid down from the chin
-        cv.paint(cv.poly([R(-3.1, 1), R(2.4, 2.0), R(5.6, 3.3), R(5.4, 5.6), R(2.9, 7.4), R(-0.7, 7.0), R(-3.4, 4.2)]), hair, hi=0.35, lo=-0.1)
-        cv.paint(limb([R(3.6, 6.5), R(3.2 + bs * 0.3, 10.5), R(2.8 + bs * 0.6, 15.0)], [1.9, 1.7, 1.3]), hair, inner_outline=False)
-        for k, yy_ in enumerate((8.3, 10.3, 12.3)):
-            q = R(3.4 + bs * 0.4 * (k + 1) / 3, yy_)
-            cv.dot(q[0], q[1], hair[3])
-        q = R(2.9 + bs * 0.6, 14.6)
-        cv.dot(q[0], q[1], GOLD[1])
     elif style == "handlebar":  # no beard: a great moustache, curled up at the ends, and a small tuft under the lip
         cv.paint(cv.poly([R(3.6, 4.6), R(5.6, 4.8), R(5.2, 7.4), R(3.8, 6.8)]), hair, hi=0.35, lo=-0.1)  # the tuft
         # a great moustache that sweeps out past the face, then curls up and round into a ring
         cv.paint(limb([R(2.2, 2.9), R(5.6, 3.8), R(8.8, 4.0), R(10.6, 2.4), R(10.0, 0.4), R(8.4, 0.6)], [1.5, 1.7, 1.5, 1.2, 1.0, 0.7]), hair, hi=0.35, lo=-0.1)
         cv.paint(cv.capsule(R(2.0, 2.7), R(-1.4, 3.6), 1.2), hair, inner_outline=False)
-        return
-    elif style == "wispy":  # thin and long, hanging in a point
-        cv.paint(cv.poly([R(3.2, 3.8), R(5.6, 4.4), R(3.4 + bs, 17.0), R(1.6, 5.6)]), hair, hi=0.35, lo=-0.1)
-        cv.paint(cv.capsule(R(2.8, 2.7), R(6.0, 4.3), 0.7), hair, inner_outline=False)
         return
     elif style == "stubble":  # a shadow along the jaw, a dot here and there
         from rig import xx, yy
@@ -722,15 +851,15 @@ def hair_front(cv, g, p, style, hair):
         cv.dot(r[0], r[1], brow)
 
 
-def hat(cv, g, p, style, colname):
+def hat(cv, g, p, style, colname, trim_ramp=None):
     if style == "none":
         return
     R = head_R(g)
     rot = g["hrot"]
     col = COLORS.get(colname, COLORS["blue"])
-    main, trim = col["main"], col["trim"]
+    main, trim = col["main"], trim_ramp or col["trim"]
     if style == "circlet":
-        cv.paint(cv.capsule(R(-5.3, -3.1), R(4.4, -4.2), 0.8), GOLD, inner_outline=False)
+        cv.paint(cv.capsule(R(-5.3, -3.1), R(4.4, -4.2), 0.8), trim, inner_outline=False)
         cv.paint(cv.ellipse(R(4.2, -4.1), 1.2, 1.2), SAPPHIRE, inner_outline=False)
         return
     if style == "hood":
@@ -749,8 +878,8 @@ def hat(cv, g, p, style, colname):
         for pts in (((-3.0, -3.4), (-5.6, -8.0), (-5.0, -12.2)), ((0.6, -3.2), (1.0, -7.6), (3.4, -11.6))):
             cv.paint(limb([R(*q) for q in pts], [2.0, 1.5, 0.5]), BONE, inner_outline=False)
         cv.paint(cv.poly(arc(R, -0.9, -3.0, 6.2, 4.8, 180, 360, 12)), IRON, hi=0.35, lo=-0.15)
-        cv.paint(cv.capsule(R(-7.0, -2.8), R(4.9, -3.8), 0.95), SILVER, inner_outline=False)
-        cv.paint(cv.capsule(R(4.9, -3.8), R(5.4, 0.2), 0.7), SILVER, inner_outline=False)
+        cv.paint(cv.capsule(R(-7.0, -2.8), R(4.9, -3.8), 0.95), trim, inner_outline=False)
+        cv.paint(cv.capsule(R(4.9, -3.8), R(5.4, 0.2), 0.7), trim, inner_outline=False)
         return
     if style == "skull":  # a band of bone with spikes and a skull at the front
         cv.paint(cv.capsule(R(-5.8, -3.0), R(4.8, -4.2), 0.95), BONE, inner_outline=False)
@@ -769,18 +898,18 @@ def hat(cv, g, p, style, colname):
             cv.paint(cv.ellipse(c, 2.2, 1.0, math.radians(a + 90 + rot + (35 if k % 2 else -35))), LEAF, inner_outline=False)
         return
     if style == "crown":  # a gold band with points, and a red stone
-        cv.paint(cv.capsule(R(-5.6, -3.4), R(4.7, -4.6), 1.15), GOLD, inner_outline=False)
+        cv.paint(cv.capsule(R(-5.6, -3.4), R(4.7, -4.6), 1.15), trim, inner_outline=False)
         for x, hgt in ((-4.4, 3.2), (-2.2, 4.4), (0.0, 5.2), (2.2, 4.4), (4.0, 3.2)):
             by = -3.4 - (x + 5.6) * 0.12
-            cv.paint(cv.poly([R(x - 1.3, by), R(x + 1.3, by - 0.2), R(x, by - hgt)]), GOLD, inner_outline=False)
+            cv.paint(cv.poly([R(x - 1.3, by), R(x + 1.3, by - 0.2), R(x, by - hgt)]), trim, inner_outline=False)
         q = R(2.6, -4.3)
         cv.dot(q[0], q[1], (205, 40, 60))
         return
     if style == "tiara":  # a slim band with three points and a stone
-        cv.paint(cv.capsule(R(-5.4, -3.6), R(4.8, -4.7), 0.7), GOLD, inner_outline=False)
+        cv.paint(cv.capsule(R(-5.4, -3.6), R(4.8, -4.7), 0.7), trim, inner_outline=False)
         for x, hgt in ((-2.4, 2.4), (0.6, 3.8), (3.4, 2.4)):
             by = -3.8 - (x + 5.4) * 0.1
-            cv.paint(cv.poly([R(x - 1.0, by), R(x + 1.0, by - 0.1), R(x, by - hgt)]), GOLD, inner_outline=False)
+            cv.paint(cv.poly([R(x - 1.0, by), R(x + 1.0, by - 0.1), R(x, by - hgt)]), trim, inner_outline=False)
         q = R(0.6, -4.6)
         cv.dot(q[0], q[1], (240, 120, 170))
         return
@@ -1255,15 +1384,27 @@ def selout(cv):
 
 
 class PartCanvas(Canvas):
-    def __init__(self):
+    """A canvas that can draw a cloth layer without its trim, or a trim layer without its cloth: `mode` is "all", "body" or "trim", and the trim is
+    whatever is painted in the ramp `trim` (found by the ramp itself, so the drawing code is the same for all three)."""
+
+    def __init__(self, mode="all", trim=None):
         super().__init__()
         self.edge2 = np.zeros((H, W, 3), np.uint8)
+        self.mode = mode
+        self.trim = trim
+
+    def _drawn(self, is_trim):
+        return self.mode == "all" or self.trim is None or is_trim == (self.mode == "trim")
 
     def paint(self, ms, rmp, hi=0.42, lo=-0.2, inner_outline=True, bias=0.0):
+        if not self._drawn(rmp is self.trim):
+            return
         super().paint(ms, rmp, hi=hi, lo=lo, inner_outline=inner_outline, bias=bias)
         self.edge2[ms[0]] = rmp[2]
 
     def dot(self, x, y, col, a=255):
+        if not self._drawn(self.trim is not None and tuple(col) in [tuple(c) for c in self.trim]):
+            return
         super().dot(x, y, col, a)
         xi, yi = int(round(x)), int(round(y))
         if 0 <= xi < W and 0 <= yi < H:
@@ -1271,50 +1412,84 @@ class PartCanvas(Canvas):
 
 
 # ============================================================== slot dispatch
+def front_cloth(cv, g, p, o, col):
+    """What hangs in front of the legs for an outfit."""
+    {"coat": lambda: coat_flap(cv, g, p, col, front=True), "robe": lambda: robe_skirt(cv, g, p, col),
+     "tunic": lambda: tunic_skirt(cv, g, p, col), "cloak": lambda: coat_flap(cv, g, p, col, front=True),
+     "ceremonial": lambda: robe_skirt(cv, g, p, col, band=True), "rags": lambda: ragged_skirt(cv, g, p, col),
+     "gothic": lambda: coat_flap(cv, g, {**p, "flap": p.get("flap", 1.0) * 1.3}, col, front=True),
+     "armored": lambda: armor_skirt(cv, g, p, col), "gown": lambda: robe_skirt(cv, g, p, col, gown=True),
+     "bodice": lambda: flounce_skirt(cv, g, p, col), "pelt": lambda: kilt_skirt(cv, g, p, col),
+     "toga": lambda: tunic_skirt(cv, g, p, col, drop=15.0), "vest": lambda: None, "sash": lambda: None}[o]()
+
+
+def back_cloth(cv, g, p, o, col):
+    if o == "coat":
+        coat_flap(cv, g, p, col, front=False)
+    elif o == "cloak":
+        cape(cv, g, p, col)
+    elif o == "gothic":
+        cape(cv, g, p, col, long=True)
+
+
 def draw_slot(cv, slot, g, p, extra, cfg, frame):
-    col = COLORS[cfg["color"]]
-    if slot == "far_sleeve":
+    col = dict(COLORS[cfg["color"]])
+    if slot in TRIM_SLOTS:
+        col["trim"] = TRIMS[cfg["trim"]]
+    skin = SKINS[cfg["skin"]]
+    o = cfg["outfit"]
+    if slot in ("far_sleeve", "far_cuff"):
         sleeve(cv, g["sh_f"], g["el_f"], g["hf"], col)
+    elif slot == "far_arm":
+        arm(cv, g["sh_f"], g["el_f"], g["hf"], skin)
     elif slot == "far_hand":
-        hand(cv, g, p, "far", SKINS[cfg["skin"]], cfg["weapon"])
+        hand(cv, g, p, "far", skin, cfg["weapon"])
     elif slot == "far_leg":
-        leg(cv, g, g["kn_f"], g["an_f"], p["ff_ang"], col)
-    elif slot == "back_coat":
-        if cfg["outfit"] == "coat":
-            coat_flap(cv, g, p, col, front=False)
-        elif cfg["outfit"] == "cloak":
-            cape(cv, g, p, col)
-        elif cfg["outfit"] == "gothic":
-            cape(cv, g, p, col, long=True)
+        trousers(cv, g, g["kn_f"], g["an_f"], col)
+    elif slot == "far_bare_leg":
+        bare_leg(cv, g, g["kn_f"], g["an_f"], skin)
+    elif slot == "far_boot":
+        boot(cv, g, g["kn_f"], g["an_f"], p["ff_ang"], cfg["boots"], skin)
+    elif slot in ("back_coat", "back_trim"):
+        back_cloth(cv, g, p, o, col)
+    elif slot == "torso_skin":
+        bare_torso(cv, g, skin)
     elif slot == "torso":
-        torso(cv, g, cfg["outfit"], col)
+        torso(cv, g, o, col)
     elif slot == "near_leg":
-        leg(cv, g, g["kn_n"], g["an_n"], p["fn_ang"], col)
+        trousers(cv, g, g["kn_n"], g["an_n"], col)
+    elif slot == "near_bare_leg":
+        bare_leg(cv, g, g["kn_n"], g["an_n"], skin)
+    elif slot == "near_boot":
+        boot(cv, g, g["kn_n"], g["an_n"], p["fn_ang"], cfg["boots"], skin)
     elif slot == "front_coat":
-        {"coat": lambda: coat_flap(cv, g, p, col, front=True), "robe": lambda: robe_skirt(cv, g, p, col),
-         "tunic": lambda: tunic_skirt(cv, g, p, col), "cloak": lambda: coat_flap(cv, g, p, col, front=True),
-         "ceremonial": lambda: robe_skirt(cv, g, p, col, band=True), "rags": lambda: ragged_skirt(cv, g, p, col),
-         "gothic": lambda: coat_flap(cv, g, {**p, "flap": p.get("flap", 1.0) * 1.3}, col, front=True),
-         "armored": lambda: armor_skirt(cv, g, p, col), "gown": lambda: robe_skirt(cv, g, p, col, gown=True),
-         "bodice": lambda: flounce_skirt(cv, g, p, col)}[cfg["outfit"]]()
+        front_cloth(cv, g, p, o, col)
     elif slot == "belt":
-        belt(cv, g, p, cfg["outfit"], col)
+        belt(cv, g, p, o, col)
+    elif slot == "body_trim":
+        torso(cv, g, o, col)
+        front_cloth(cv, g, p, o, col)
+        belt(cv, g, p, o, col)
     elif slot == "hair_back":
         hair_back(cv, g, p, cfg["hair"], HAIRS[cfg["hair_color"]])
     elif slot == "head":
-        head(cv, g, SKINS[cfg["skin"]])
+        head(cv, g, skin)
     elif slot == "beard":
         beard(cv, g, p, cfg["beard"], HAIRS[cfg["beard_color"]])
     elif slot == "hair_front":
         hair_front(cv, g, p, cfg["hair"], HAIRS[cfg["hair_color"]])
     elif slot == "hat":
         hat(cv, g, p, cfg["hat"], cfg["hat_color"])
+    elif slot == "hat_trim":
+        hat(cv, g, p, cfg["hat"], cfg["hat_color"], trim_ramp=TRIMS[cfg["trim"]])
     elif slot == "weapon":
         weapon(cv, g, p, cfg["weapon"])
-    elif slot == "near_sleeve":
+    elif slot in ("near_sleeve", "near_cuff"):
         sleeve(cv, g["sh_n"], g["el_n"], g["hn"], col)
+    elif slot == "near_arm":
+        arm(cv, g["sh_n"], g["el_n"], g["hn"], skin)
     elif slot == "near_hand":
-        hand(cv, g, p, "near", SKINS[cfg["skin"]], cfg["weapon"])
+        hand(cv, g, p, "near", skin, cfg["weapon"])
     elif slot == "magic":
         magic(cv, g, p, extra, cfg["weapon"], frame)
 
@@ -1341,11 +1516,16 @@ def apply_xform(px, xf, is_magic):
 
 
 def render_layer(slot, pose, extra, cfg, frame):
-    cv = PartCanvas()
+    if slot in TRIM_SLOTS:
+        cv = PartCanvas("trim", TRIMS[cfg["trim"]])
+    elif slot in BODY_SLOTS:
+        cv = PartCanvas("body", COLORS[cfg["hat_color" if slot == "hat" else "color"]]["trim"])
+    else:
+        cv = PartCanvas()
     g = skeleton(pose)
     draw_slot(cv, slot, g, pose, extra, cfg, frame)
-    if slot in ("magic", "far_hand", "near_hand"):
-        cv.apply_glows()  # light / hands: their shading is drawn by hand, no edge darkening
+    if slot in ("magic", "far_hand", "near_hand") or slot in TRIM_SLOTS:
+        cv.apply_glows()  # light / hands: their shading is drawn by hand, no edge darkening (nor on trim, which lies on the cloth)
     else:
         selout(cv)
     if pose.get("flash") and slot != "magic":
