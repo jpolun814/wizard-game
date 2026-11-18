@@ -399,7 +399,7 @@ static func _offsets(biome: String, n: int, rng: RandomNumberGenerator) -> Packe
 			var count := 3 if n > 330 else 2
 			var peaks := []
 			for k in count:
-				peaks.append([(k + 0.5 + rng.randf_range(-0.2, 0.2)) * n / count, rng.randf_range(60.0, 98.0), rng.randf_range(0.85, 1.0)])
+				peaks.append([(k + 0.5 + rng.randf_range(-0.2, 0.2)) * n / count, rng.randf_range(34.0, 52.0), rng.randf_range(0.85, 1.0)])
 			for k in n:
 				var h := 0.0
 				for peak in peaks:

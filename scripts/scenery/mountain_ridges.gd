@@ -7,12 +7,12 @@ extends Node2D
 ## front, the way the stairs of a castle work. A ridge is hollow like those stairs: its slopes are one-way, so it is jumped up
 ## through and landed on from above.
 
-const HEIGHT_LEAST := 4   # how many rows a ridge's top stands above the highest ground under it
-const HEIGHT_MOST := 8
+const HEIGHT_LEAST := 3   # how many rows a ridge's top stands above the highest ground under it
+const HEIGHT_MOST := 5
 const LENGTH_LEAST := 8   # columns of level top
 const LENGTH_MOST := 20
-const GAP_LEAST := 14     # columns of the world between the end of one ridge's top and the start of the next's
-const GAP_MOST := 34
+const GAP_LEAST := 40     # columns of the world between the end of one ridge's top and the start of the next's
+const GAP_MOST := 90
 const SLOPE_STEEPEST := 0.95  # the steepest a run of a flank is, in rows to a column: a little under the steepest a wizard can stand on
 const BAND := 12.0        # how deep the lip along a ridge's top is, in pixels
 ## Each ridge is in the shade of the ground in front of it, so that it reads as farther off, and each is shaded a little differently from the

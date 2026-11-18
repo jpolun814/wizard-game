@@ -20,7 +20,7 @@ func _ready() -> void:
 	z_index = 5
 	var sprite := Sprite2D.new()
 	sprite.texture = PICTURES[int(absf(position.x)) % PICTURES.size()]
-	sprite.scale = Vector2.ONE * (6.0 if sprite.texture == PICTURES[0] else 5.0)  # whole-number scales only
+	sprite.scale = Vector2.ONE * (3.0 if sprite.texture == PICTURES[0] else 4.0)  # whole-number scales only (and no bigger: at six times the flat base of the picture was a hard edge across the screen)
 	sprite.modulate = Color(0.82, 0.88, 1.0, 0.93)
 	add_child(sprite)
 	var half := sprite.texture.get_width() * sprite.scale.x * 0.4
