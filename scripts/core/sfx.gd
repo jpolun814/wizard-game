@@ -15,7 +15,7 @@ const VOLUME := {
 	"earth": -6.0, "stones": -4.0, "quake": -4.0, "explosion": -6.0,
 	"misfire": -6.0, "mob_hurt": -12.0, "mob_die": -10.0, "mob_shoot": -12.0,
 	"player_hurt": -4.0, "jump": -14.0, "jump_bone_wizard": -14.0, "jump_lightning_mage": -14.0, "jump_voice_4": -14.0, "jump_voice_5": -14.0,
-	"hurt_voice_2": -4.0, "hurt_voice_3": -4.0, "hurt_voice_4": -4.0, "hurt_voice_5": -4.0, "step": -26.0, "type": -22.0,
+	"hurt_voice_1": -4.0, "hurt_voice_2": -4.0, "hurt_voice_3": -4.0, "hurt_voice_4": -4.0, "hurt_voice_5": -4.0, "step": -26.0, "type": -22.0,
 	"portal_open": -6.0, "portal_enter": -4.0, "ritual_ok": -4.0, "heal": -8.0,
 	"book_open": -8.0, "book_close": -8.0, "page": -8.0, "pickup": -8.0,
 	"blood_cast": -6.0, "heartbeat": -2.0, "surf": -3.0, "glass": -8.0, "faint": -4.0, "jaw_snap": -4.0, "chomp": -8.0, "wizard_cast": -8.0, "game_over": -6.0, "summon": -12.0, "ui_click": -10.0,
@@ -79,16 +79,20 @@ func play(sound: String, at: Variant = null, volume_db := 0.0, pitch_spread := 0
 	return player
 
 
-## A voice: the cry or grunt of a wizard. One voice never speaks over itself: a new sound from the same speaker cuts the one still sounding.
+## A voice: the cry or grunt of a wizard. One voice never speaks over itself: while a sound is sounding, the same sound asked for again is let go,
+## and a different one (a cry in the middle of a jump's grunt) takes its place.
 func speak(speaker: Node, sound: String, at: Vector2) -> void:
 	var id := speaker.get_instance_id()
 	var old: Node = _voices.get(id)
 	if is_instance_valid(old) and old.playing:
+		if old.get_meta("sound") == sound:
+			return
 		old.stop()  # (a stopped player does not announce that it finished)
 		_done(old)
 	var player := play(sound, at)
 	if player != null:
 		player.set_meta("speaker", id)
+		player.set_meta("sound", sound)
 		_voices[id] = player
 
 

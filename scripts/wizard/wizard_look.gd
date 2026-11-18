@@ -65,10 +65,10 @@ static func jump_sound(look: String) -> String:
 	return JUMP_VOICES.get(look, "jump")
 
 
-## The sound of being hurt, in the same voice. The first voice keeps the cry every wizard had.
+## The sound of being hurt, in the same voice.
 static func hurt_sound(look: String) -> String:
 	var voice := PartsLook.option_of(look, "voice")
-	return "player_hurt" if voice in ["", "voice_1"] else "hurt_" + voice
+	return "hurt_" + (voice if voice != "" else "voice_1")
 
 
 ## True for a look the game accepts: a wizard made of parts, every value of it a part there is. (A look comes over the network, so it is checked here.)
