@@ -14,7 +14,8 @@ const ORDER_1 := ["skin", "outfit", "color", "hair", "hair_color", "beard", "bea
 const BEARD_NOW := {"braided": "short", "wispy": "goatee"}
 ## What an outfit of the older games was edged in: gold, but silver (here the nearest, ivory) for these colors.
 const SILVER_TRIMMED := ["charcoal", "black", "lavender", "gold"]
-## The voices: no longer heard (every wizard grunts the same since 2026-11-19), kept in a look only so that looks made before still load and travel over the network.
+## The voices (not art, so not in the manifest): the sounds a wizard makes when it jumps and when it is hurt. See WizardLook.jump_sound and hurt_sound.
+## voice_1 and voice_3 are men, voice_4 and voice_5 women (NOX SOUND's Voices Essentials, CC0).
 ## (There is no voice_2: it was taken out, and a look that had it speaks with voice_1. The numbers a player sees are counted without the gap.)
 const VOICES := ["voice_1", "voice_3", "voice_4", "voice_5"]
 const DEFAULT := {

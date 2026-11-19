@@ -48,14 +48,19 @@ static func swatch(look: String, palette: int) -> Color:
 	return Color.from_hsv(hue, 0.65 * float(set["robe"][1]), 0.78)
 
 
-## The sound of a jump: a short grunt, the same for every wizard (the human voice recordings sounded wrong and were taken out, 2026-11-19).
-static func jump_sound(_look: String) -> String:
-	return "jump_creature"
+## The sound of a jump, in the wizard's own voice (the voice a look carries: a man or a woman, one of four recordings).
+static func jump_sound(look: String) -> String:
+	return "jump_" + _voice_of(look)
 
 
-## The sound of being hurt: a creature's cry, the same for every wizard.
-static func hurt_sound(_look: String) -> String:
-	return "hurt_creature"
+## The sound of being hurt, in the same voice.
+static func hurt_sound(look: String) -> String:
+	return "hurt_" + _voice_of(look)
+
+
+static func _voice_of(look: String) -> String:
+	var voice := PartsLook.option_of(look, "voice")
+	return voice if PartsLook.VOICES.has(voice) else PartsLook.VOICES[0]
 
 
 ## True for a look the game accepts: a wizard made of parts, every value of it a part there is. (A look comes over the network, so it is checked here.)
