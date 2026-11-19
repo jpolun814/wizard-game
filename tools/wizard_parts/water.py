@@ -1,5 +1,5 @@
 """The water of the Water Jet and the Geyser (scripts/fx/water_pixels.gd), in the colors of the ponds (Pond.WATER_*): short tiles of a stream, cut across it, in widths
-from 4 to 48 pixels in steps of 4, four frames each (the bright streaks run along it), the mound the Geyser wells up from, and the curling wave of Tide Surf.
+from 4 to 48 pixels in steps of 4, four frames each , the mound the Geyser wells up from, and the curling wave of Tide Surf.
 Run it from anywhere:
 
     python tools/wizard_parts/water.py
@@ -17,7 +17,6 @@ TOP = (38, 87, 128)
 BOTTOM = (13, 26, 61)
 RIM = (153, 199, 224)
 LIGHT = (58, 110, 150)
-STREAK = (205, 228, 240)
 LEN, MAXW, FRAMES = 8, 48, 4
 
 
@@ -44,9 +43,6 @@ def stream_tile(width, frame, both):
                 color, alpha = mix(RIM, BOTTOM, 0.6), 255
         for x in range(LEN):
             c = color
-            # bright streaks racing along it: a few pixels that move a little each frame
-            if 0 < edge < width - 1 and width >= 8 and ((x + frame * 2 + (y // 4) * 3) % LEN < 3) and (y % 4 == 1):
-                c = STREAK
             tile.putpixel((x, top + y), c + (alpha,))
     return tile
 
