@@ -16,7 +16,9 @@ const SHOVE_GAP := 0.8       # seconds before it shoves the same one again
 const HEIGHT := 44.0         # how tall the crest stands
 const FOAM := Color(0.92, 0.98, 1.0, 0.9)
 const WAVE := preload("res://art/fx/water_wave.png")
-const WAVE_SIZE := Vector2(176.0, 56.0)
+const WAVE_FRAMES := 6
+const RIDER_X := 118.0  # where in the picture the rider's feet are
+const WAVE_SIZE := Vector2(200.0, 80.0)
 
 var caster: Wizard  # set by the arena before it enters the tree
 var ground: Terrain      # the ground the water will run over when the ride ends
@@ -153,7 +155,7 @@ func _draw() -> void:
 	var fade := clampf((SECONDS - _age) / 0.4, 0.0, 1.0)
 	var tip := FRONT * 0.5 + 24.0  # where the crest ends
 	var shown := maxi(int(ceilf(WAVE_SIZE.y * rise)), 1)
-	var frame := int(_age * 8.0) % 4
+	var frame := int(_age * 8.0) % WAVE_FRAMES
 	draw_set_transform(Vector2.ZERO, _slope, Vector2(direction, 1.0))
-	draw_texture_rect_region(WAVE, Rect2(Vector2(tip - WAVE_SIZE.x, 6.0 - shown), Vector2(WAVE_SIZE.x, shown)), Rect2(0.0, frame * WAVE_SIZE.y + WAVE_SIZE.y - shown, WAVE_SIZE.x, shown), Color(1.0, 1.0, 1.0, fade))
+	draw_texture_rect_region(WAVE, Rect2(Vector2(-RIDER_X, 6.0 - shown), Vector2(WAVE_SIZE.x, shown)), Rect2(0.0, frame * WAVE_SIZE.y + WAVE_SIZE.y - shown, WAVE_SIZE.x, shown), Color(1.0, 1.0, 1.0, fade))
 	draw_set_transform(Vector2.ZERO)
