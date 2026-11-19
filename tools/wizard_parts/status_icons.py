@@ -51,8 +51,8 @@ ICONS = [
         "....c....", "....c....", "...ccc...", "...cac...", "..ccbcc..", ".cccbccc.", ".ccccccc.", "..ccccc..", "...ccc..."]),
     ("sturdy", {"a": "#6a6a78", "b": "#b0b0c0", "c": "#3a3a48"}, [
         "aaaaaaaaa", "abbbabbba", "abbbabbba", "aaaaaaaaa", "bbabbbabb", "bbabbbabb", "aaaaaaaaa", "abbbabbba", "aaaaaaaaa"]),
-    ("fireproof", {"a": "#ff7a1a", "b": "#ffe060", "d": "#b8a8e8"}, [
-        "..ddddd..", ".d.....d.", "d...a...d", "d..aaa..d", "d.aabaa.d", "d.aabaa.d", "d..aaa..d", ".d.....d.", "..ddddd.."]),
+    ("fireproof", {"a": "#8a7ac8", "b": "#f0eaff", "c": "#1a1030"}, [
+        "....a....", "...aba...", "..abcca..", "..abcca..", ".abcccca.", ".abcccca.", "abcccccca", "aacccccaa", ".aaaaaaa."]),
     ("invisible", {"a": "#b8c0d8", "b": "#ffffff"}, [
         ".........", ".........", "..a.a.a..", ".a.....a.", "a..bbb..a", ".a.....a.", "..a.a.a..", ".........", "........."]),
     ("unconscious", {"a": "#9fc8ff", "b": "#ffffff"}, [
