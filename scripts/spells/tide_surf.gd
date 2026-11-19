@@ -8,7 +8,7 @@ extends Node2D
 ## and spills it where the ride ends.
 
 const WATER := 2.0           # how much liquid the wave carries (a cell holds 1)
-const SECONDS := 4.0
+const SECONDS := 2.5
 const LENGTH := 150.0        # how far the wave reaches behind its crest
 const FRONT := 80.0          # how far ahead of the caster it shoves
 const SHOVE := Vector2(620.0, -260.0)
@@ -21,6 +21,11 @@ var ground: Terrain      # the ground the water will run over when the ride ends
 var _carried := 0.0
 var direction := 1.0
 var _age := 0.0
+var _foam_layer: Node2D
+var _foam_front := PackedVector2Array()   # what the foam is drawn along, worked out with the body
+var _foam_surface := PackedVector2Array()
+var _foam_top := 0.0
+var _foam_grow := 0.0
 var _skin: StaticBody2D       # the top of the water under the rider: they ride across a pond on it and do not sink into it
 var _skin_shape: CollisionShape2D
 var _spent := 0.0   # how much of its life the wave has lost to climbing
@@ -234,6 +239,8 @@ const AHEAD := 44.0       # how far past its front the wave reads the ground: it
 const TOO_STEEP := 1.0     # a climb this steep (a rise as long as the run, 45 degrees) and the wave breaks at once
 const CLIMB_DRAIN := 5.0   # on a climb the wave spends itself this much faster for each unit of steepness
 const SKIN_LENGTH := 150.0  # how long the stretch of water's top is that the rider can stand on
+const POND_DEPTH := 112.0   # how deep the colors of a pond go from its surface to its darkest (the waiting room's pond; the colors only matter near the top)
+const SKIN_DEPTH := 14.0     # the color of the pond's water this far under its surface, which is the color of the whole top of it (its first few rows are a band of their own), found by comparing the two
 const GROUND_STEP := 8.0  # the distance between the points where the ground is read
 const STEP := 4.0        # the distance between the points of its outline
 
@@ -241,8 +248,13 @@ const STEP := 4.0        # the distance between the points of its outline
 func _ready_look() -> void:
 	var made := ShaderMaterial.new()
 	made.shader = preload("res://scripts/terrain/pixel_liquid.gdshader")
-	made.set_shader_parameter("levels", 14.0)
+	made.set_shader_parameter("levels", 14.0)  # as a pond has it,
+	made.set_shader_parameter("tint", Vector3(Pond.WATER_TINT.r, Pond.WATER_TINT.g, Pond.WATER_TINT.b))  # and its veil
 	material = made
+	_foam_layer = Node2D.new()  # the foam and the drops are white, not the color of water: their own layer, without the water's tint
+	_foam_layer.use_parent_material = false
+	_foam_layer.draw.connect(_draw_foam)
+	add_child(_foam_layer)
 
 
 func _draw() -> void:
@@ -276,23 +288,41 @@ func _draw() -> void:
 		var foot := BACK + float(foot_at) * GROUND_STEP
 		body.append(Vector2(minf(foot, CREST + ROLL), _ground_at(foot) + 2.0))
 		foot_at -= 1
+	# The colors are the pond's own, worked out as the pond works them out: the color of its surface (the wave stands above the level it rides on), painted as it is before
+	# the veil, banded by the same shader and then tinted as the veil tints it. So over a pond it is the very color of the pond, and it looks to be part of it.
+	var tint := Pond.WATER_TINT
 	var colors := PackedColorArray()
 	for point in body:
-		var depth := clampf((point.y - (_ground_at(point.x) - top)) / maxf(top, 1.0), 0.0, 1.0)
-		var shade := Pond.WATER_TOP.lerp(Pond.WATER_BOTTOM, depth)
-		colors.append(Color(shade.r, shade.g, shade.b, 0.92 * grow * clampf((point.x - BACK) / 30.0, 0.2, 1.0)))
+		var below := clampf(point.y - _ground_at(point.x) + SKIN_DEPTH, 0.0, 400.0)  # the wave stands above the level of the water or the ground it is on: it is the color of the pond's surface
+		var shade := Pond.WATER_TOP.lerp(Pond.WATER_BOTTOM, clampf(below / POND_DEPTH, 0.0, 1.0))
+		colors.append(Color(minf(shade.r / tint.r, 1.0), minf(shade.g / tint.g, 1.0), minf(shade.b / tint.b, 1.0), clampf((point.x - BACK) / 30.0, 0.0, 1.0) * grow))
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2(direction, 1.0))
 	draw_polygon(body, colors)
-	draw_polyline(outline, Color(Pond.WATER_RIM.r, Pond.WATER_RIM.g, Pond.WATER_RIM.b, grow), 2.0)
+	var rim := Pond.WATER_RIM
+	draw_polyline(outline, Color(minf(rim.r / tint.r, 1.0), minf(rim.g / tint.g, 1.0), minf(rim.b / tint.b, 1.0), grow), 2.0)
+	draw_set_transform(Vector2.ZERO)
+	_foam_surface = surface
+	_foam_front = front
+	_foam_top = top
+	_foam_grow = grow
+	_foam_layer.queue_redraw()
+
+
+## The foam that breaks off the roll at the front and clots along the crest, different every moment, and the drops thrown off the front.
+func _draw_foam() -> void:
+	if _foam_front.is_empty() or _foam_surface.is_empty():
+		return
+	var grow := _foam_grow
+	_foam_layer.draw_set_transform(Vector2.ZERO, 0.0, Vector2(direction, 1.0))
 	var rng := RandomNumberGenerator.new()
 	rng.seed = int(_age * 12.0) * 7919 + 11
-	for k in 16:  # foam breaks off the roll at the front and clots along the crest, and is different every moment
-		var at := front[rng.randi_range(0, front.size() - 1)] if k < 9 else surface[maxi(surface.size() - 1 - rng.randi_range(0, 8), 0)]
+	for k in 16:
+		var at := _foam_front[rng.randi_range(0, _foam_front.size() - 1)] if k < 9 else _foam_surface[maxi(_foam_surface.size() - 1 - rng.randi_range(0, 8), 0)]
 		var size := 2.0 if rng.randf() < 0.7 else 3.0
 		var spot := (at + Vector2(rng.randf_range(-2.0, 3.0), rng.randf_range(-3.0, 1.0))).round()
-		draw_rect(Rect2(spot, Vector2(size, size)), Color(0.93, 0.98, 1.0, 0.95 * grow))
-	for k in 6:  # drops thrown off the front, each one somewhere along its fall
+		_foam_layer.draw_rect(Rect2(spot, Vector2(size, size)), Color(0.93, 0.98, 1.0, 0.95 * grow))
+	for k in 6:
 		var life := fposmod(_age * 1.7 + float(k) * 0.167, 1.0)
-		var drop := Vector2(CREST + ROLL * 0.7 + 8.0 * life * (1.0 + 0.25 * float(k % 3)), _ground_at(CREST) - top - 4.0 - 14.0 * life + 60.0 * life * life)
-		draw_rect(Rect2(drop.round(), Vector2(2.0, 2.0)), Color(0.93, 0.98, 1.0, (1.0 - life) * grow))
-	draw_set_transform(Vector2.ZERO)
+		var drop := Vector2(CREST + ROLL * 0.7 + 8.0 * life * (1.0 + 0.25 * float(k % 3)), _ground_at(CREST) - _foam_top - 4.0 - 14.0 * life + 60.0 * life * life)
+		_foam_layer.draw_rect(Rect2(drop.round(), Vector2(2.0, 2.0)), Color(0.93, 0.98, 1.0, (1.0 - life) * grow))
+	_foam_layer.draw_set_transform(Vector2.ZERO)

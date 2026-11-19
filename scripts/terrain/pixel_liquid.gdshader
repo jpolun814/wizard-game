@@ -2,6 +2,7 @@ shader_type canvas_item;
 
 // Turns the smooth shading of a pool into dithered bands, drawn in 2 by 2 world pixel blocks like the pixel art around it.
 uniform float levels = 7.0;
+uniform vec3 tint = vec3(1.0);  // what is multiplied over the bands afterwards (a pool does this with its veil; a wave of the same water does it here)
 varying vec2 world;
 
 void vertex() {
@@ -19,5 +20,5 @@ float bayer(vec2 p) {
 void fragment() {
 	vec2 block = floor(world / 2.0);
 	vec3 c = COLOR.rgb * levels + bayer(block);
-	COLOR.rgb = floor(c + 0.5) / levels;
+	COLOR.rgb = floor(c + 0.5) / levels * tint;
 }
