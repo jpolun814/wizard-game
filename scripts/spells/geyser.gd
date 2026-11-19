@@ -271,3 +271,24 @@ func _draw() -> void:
 		widths.append(WIDTH * lerpf(1.0, 0.3, t * t) + sin(_age * 22.0 + t * 9.0) * 2.5)
 		alphas.append(fade)
 	WaterPixels.stream(self, points, widths, alphas, _age, true)
+	_draw_crest(height, fade)
+
+
+## The head of the column: the water does not stop at the top, it bursts open and is flung out and up in drops that arch over and fall, as a fountain's do.
+func _draw_crest(height: float, fade: float) -> void:
+	if height < 40.0:
+		return
+	var top := Vector2(0.0, -height + 6.0)
+	var spread := clampf((height - 40.0) / 90.0, 0.0, 1.0)  # it opens as it reaches full height
+	var mist := Fx.tex("smoke_01")  # a breath of spray hangs over the head of it
+	draw_texture_rect(mist, Rect2(top + Vector2(-34.0, -34.0), Vector2(68.0, 60.0)), false, Color(0.85, 0.95, 1.0, 0.22 * fade * spread))
+	var drop := Fx.pixel_drop()
+	var count := 28
+	for k in count:
+		var life := fposmod(_age * 1.6 + float(k) / count, 1.0)
+		var side := -1.0 if k % 2 == 0 else 1.0
+		var strength := fposmod(float(k) * 0.618, 1.0)  # no two drops are thrown the same
+		var t := life * 0.75
+		var flung := Vector2(side * (14.0 + 62.0 * strength) * t, -(95.0 + 60.0 * fposmod(float(k) * 0.37, 1.0)) * t + 190.0 * t * t)
+		var at := top + flung * spread
+		draw_texture_rect(drop, Rect2(at.round() - Vector2(2.0, 2.5), Vector2(4.0, 5.0)), false, Color(1.0, 1.0, 1.0, clampf((1.0 - life) * 1.6, 0.0, 1.0) * fade * 0.95))
