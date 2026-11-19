@@ -23,6 +23,7 @@ var ground: Terrain      # the ground the water will run over when the ride ends
 var _carried := 0.0
 var direction := 1.0
 var _age := 0.0
+var _slope := 0.0  # the angle of the ground under the wave, left to right: the wave lies along it
 var _shoved := {}  # who it has shoved lately -> seconds until it can again
 var _spray: CPUParticles2D
 var _sound: AudioStreamPlayer2D  # the sea, heard for as long as the ride lasts
@@ -60,6 +61,7 @@ func _physics_process(delta: float) -> void:
 		_end()
 		return
 	global_position = caster.global_position
+	_slope = lerp_angle(_slope, _ground_angle(), minf(1.0, delta * 12.0))
 	caster.coat.soak()  # whoever rides the wave is wet
 	queue_redraw()
 	for body in _shoved.keys():
@@ -83,6 +85,25 @@ func _physics_process(delta: float) -> void:
 		if fire is Hazard and absf(fire.global_position.x - global_position.x) < LENGTH * 0.5 + fire.width * 0.5 and absf(fire.global_position.y - global_position.y) < 60.0:
 			Fx.smoke(get_parent(), fire.global_position, Color(0.85, 0.85, 0.9, 0.6), 4, 20.0, 40.0)
 			fire.queue_free()  # a wave over burning ground puts it out
+
+
+## The slope of the ground under the wave, from the ground a little way behind the wizard and a little way ahead of them (0 on the flat), so the wave lies along a
+## hill and does not hang over it or sink into it.
+func _ground_angle() -> float:
+	var space := get_world_2d().direct_space_state
+	var ends := []
+	for along in [-LENGTH * 0.4, FRONT * 0.5]:
+		var from := global_position + Vector2(along * direction, -50.0)
+		var query := PhysicsRayQueryParameters2D.create(from, from + Vector2(0.0, 140.0))
+		query.collision_mask = 1  # the ground
+		var hit := space.intersect_ray(query)
+		if hit.is_empty():
+			return 0.0
+		ends.append(hit["position"])
+	var run: Vector2 = ends[1] - ends[0]
+	if direction < 0.0:
+		run = -run
+	return clampf(atan2(run.y, run.x), -0.7, 0.7)
 
 
 ## The wave takes up the water at the caster's feet, and makes up what is missing from below.
@@ -133,6 +154,6 @@ func _draw() -> void:
 	var tip := FRONT * 0.5 + 24.0  # where the crest ends
 	var shown := maxi(int(ceilf(WAVE_SIZE.y * rise)), 1)
 	var frame := int(_age * 8.0) % 4
-	draw_set_transform(Vector2.ZERO, 0.0, Vector2(direction, 1.0))
+	draw_set_transform(Vector2.ZERO, _slope, Vector2(direction, 1.0))
 	draw_texture_rect_region(WAVE, Rect2(Vector2(tip - WAVE_SIZE.x, 6.0 - shown), Vector2(WAVE_SIZE.x, shown)), Rect2(0.0, frame * WAVE_SIZE.y + WAVE_SIZE.y - shown, WAVE_SIZE.x, shown), Color(1.0, 1.0, 1.0, fade))
 	draw_set_transform(Vector2.ZERO)
