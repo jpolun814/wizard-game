@@ -79,35 +79,58 @@ def make_mound():
 
 
 def make_wave():
-    """The wave of Tide Surf: 176 wide and 56 tall, four frames one under another (flecks of bright water run up it). The tail is on the left, low, and it swells to a crest
-    on the right that leans over and curls, with a hollow under the lip. The outline is laid out as points and filled; the shading is by how deep each pixel is in it."""
+    """The wave of Tide Surf: 176 wide and 56 tall, four frames one under another. The tail is on the left, low, and it swells to a crest on the right that leans over and
+    curls, with a hollow under the lip. The crest is not smooth: its edge is ragged and differs a little in each frame, foam clots along the lip and the face under it, and
+    drops fly off the tip. The foot breaks up into spray. The outline is laid out as points and filled; the shading is by how deep each pixel is in it."""
+    import math
+    import random
     from PIL import ImageDraw
     w, h, frames = 176, 56, 4
     foam = (236, 247, 255)
-    outline = [(0, 55), (0, 51), (18, 47), (44, 40), (70, 30), (96, 18), (116, 10), (134, 6), (150, 7), (160, 12), (165, 20), (163, 28), (157, 32), (156, 27), (151, 22),
-               (144, 21), (138, 26), (136, 36), (140, 46), (147, 55)]
-    mask = Image.new("L", (w, h), 0)
-    ImageDraw.Draw(mask).polygon(outline, fill=255)
-    m = mask.load()
+    foam_shade = (190, 222, 240)
+    base = [(0, 55), (0, 51), (18, 47), (44, 40), (70, 30), (96, 18), (116, 10), (134, 6), (150, 7), (160, 12), (165, 20), (163, 28), (157, 32), (156, 27), (151, 22),
+            (144, 21), (138, 26), (136, 36), (140, 46), (147, 55)]
 
-    def inside(x, y):
-        return 0 <= x < w and 0 <= y < h and m[x, y] > 0
+    def dense(points):
+        out = []
+        for i in range(len(points) - 1):
+            (x0, y0), (x1, y1) = points[i], points[i + 1]
+            n = max(int(math.hypot(x1 - x0, y1 - y0) / 3), 1)
+            for k in range(n):
+                out.append((x0 + (x1 - x0) * k / n, y0 + (y1 - y0) * k / n))
+        out.append(points[-1])
+        return out
 
-    depth = {}
-    for y in range(h):
-        for x in range(w):
-            if not inside(x, y):
-                continue
-            d = 0
-            while d < 6 and all(inside(x + dx * (d + 1), y + dy * (d + 1)) for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))):
-                d += 1
-            depth[(x, y)] = d
     sheet = Image.new("RGBA", (w, h * frames), (0, 0, 0, 0))
     for f in range(frames):
+        rng = random.Random(100 + f)
+        ragged = []
+        for (x, y) in dense(base):
+            crest = max(0.0, min(1.0, (x - 100) / 50.0)) if y < 36 else 0.0
+            ragged.append((x + rng.uniform(-1, 1) * 2.2 * crest, y + rng.uniform(-1, 1) * 2.2 * crest))
+        mask = Image.new("L", (w, h), 0)
+        ImageDraw.Draw(mask).polygon(ragged, fill=255)
+        m = mask.load()
+
+        def inside(x, y):
+            return 0 <= x < w and 0 <= y < h and m[x, y] > 0
+
+        depth = {}
+        for y in range(h):
+            for x in range(w):
+                if not inside(x, y):
+                    continue
+                d = 0
+                while d < 6 and all(inside(x + dx * (d + 1), y + dy * (d + 1)) for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))):
+                    d += 1
+                depth[(x, y)] = d
         for (x, y), d in depth.items():
-            top_edge = not inside(x, y - 1)
+            near_crest = x > 104 and y < 40
+            clot = near_crest and d <= 4 and rng.random() < (0.85 - d * 0.17)  # foam clots along the lip and the face under it
             if d == 0:
-                c = foam if top_edge and x > 60 else RIM
+                c = foam if (not inside(x, y - 1) and x > 60) or clot else RIM
+            elif clot:
+                c = foam if d < 3 else foam_shade
             elif d == 1:
                 c = RIM if y < 40 else mix(RIM, LIGHT, 0.6)
             elif d == 2:
@@ -115,7 +138,16 @@ def make_wave():
             else:
                 c = mix(LIGHT, BOTTOM, min(max(y - 6, 0) / 50.0, 1.0))
             sheet.putpixel((x, f * h + y), c + (255,))
-        # flecks of bright water running up the face, a few pixels at a time
+        # drops flying off the tip of the lip and the top of the crest
+        for k in range(9):
+            ang = rng.uniform(-2.4, 0.4)
+            dist = rng.uniform(4, 15)
+            x, y = int(162 + math.cos(ang) * dist), int(14 + math.sin(ang) * dist)
+            if 0 <= x < w and 0 <= y < h and not inside(x, y):
+                sheet.putpixel((x, f * h + y), foam + (255,))
+                if rng.random() < 0.4 and x + 1 < w:
+                    sheet.putpixel((x + 1, f * h + y), foam_shade + (255,))
+        # flecks of bright water running up the face
         for k in range(7):
             x0 = 14 + k * 21
             run = (k * 5 + f * 5) % 20
@@ -133,7 +165,7 @@ def make_wave():
                     continue
                 if bayer[(y + f) % 4][(x + f * 2) % 4] / 16.0 < fade * 1.05:
                     sheet.putpixel((x, f * h + y), (0, 0, 0, 0))
-                elif fade > 0.2 and y > 0 and sheet.getpixel((x, f * h + y + 1))[3] == 0 if y + 1 < h else False:
+                elif fade > 0.2 and y + 1 < h and sheet.getpixel((x, f * h + y + 1))[3] == 0:
                     sheet.putpixel((x, f * h + y), foam + (255,))
     sheet.save(os.path.join(ROOT, "art", "fx", "water_wave.png"))
 
