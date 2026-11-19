@@ -15,10 +15,6 @@ const SHOVE := Vector2(620.0, -260.0)
 const SHOVE_GAP := 0.8       # seconds before it shoves the same one again
 const HEIGHT := 44.0         # how tall the crest stands
 const FOAM := Color(0.92, 0.98, 1.0, 0.9)
-const WAVE := preload("res://art/fx/water_wave.png")
-const WAVE_FRAMES := 6
-const RIDER_X := 118.0  # where in the picture the rider's feet are
-const WAVE_SIZE := Vector2(200.0, 80.0)
 
 var caster: Wizard  # set by the arena before it enters the tree
 var ground: Terrain      # the ground the water will run over when the ride ends
@@ -148,14 +144,92 @@ func _end() -> void:
 	fade.tween_callback(queue_free)
 
 
-## The wave: a picture of a curling wave in pixel art (art/fx/water_wave.png, made by tools/wizard_parts/water.py in the pond's colors), tail behind the wizard and
-## crest leaning over ahead of them. It rises out of the ground as the ride begins.
+## The wave is not a picture: it is drawn every frame as a body of water, pixel by pixel in the pond's colors. A swell of columns rises behind the rider to a wall, and
+## a lip of water curls over from the top of the wall and forward, with a hollow under it where the rider stands. Nothing in it holds still: the height of the swell
+## breathes, ripples run up its back, the lip's edge is thrown about and foam clots and breaks off it, and the spray at its tip falls away behind. It rises out
+## of the ground as the ride begins and sinks back when it ends.
+const SKIN := Color(0.60, 0.78, 0.88)    # the lit surface
+const BODY := Color(0.23, 0.43, 0.59)    # the water just under it
+const DEEP := Color(0.05, 0.10, 0.24)    # the water at the bottom
+const BACK := -150.0     # where the swell begins, behind the rider
+const WALL := -16.0      # where the back wall of the barrel stands
+const COLUMN := 2.0      # the width of a column of water: two world pixels, as a pixel of the pond's art
+
+
 func _draw() -> void:
-	var rise := clampf(_age / 0.25, 0.0, 1.0)
-	var fade := clampf((SECONDS - _age) / 0.4, 0.0, 1.0)
-	var tip := FRONT * 0.5 + 24.0  # where the crest ends
-	var shown := maxi(int(ceilf(WAVE_SIZE.y * rise)), 1)
-	var frame := int(_age * 8.0) % WAVE_FRAMES
+	var rise := clampf(_age / 0.35, 0.0, 1.0)
+	var fade := clampf((SECONDS - _age) / 0.5, 0.0, 1.0)
+	var grow := rise * rise * (3.0 - 2.0 * rise) * fade
+	if grow <= 0.01:
+		return
+	var tide := _age * 7.0
+	var top := (HEIGHT + 30.0) * grow * (1.0 + 0.07 * sin(tide) + 0.04 * sin(tide * 2.3 + 1.0))
 	draw_set_transform(Vector2.ZERO, _slope, Vector2(direction, 1.0))
-	draw_texture_rect_region(WAVE, Rect2(Vector2(-RIDER_X, 6.0 - shown), Vector2(WAVE_SIZE.x, shown)), Rect2(0.0, frame * WAVE_SIZE.y + WAVE_SIZE.y - shown, WAVE_SIZE.x, shown), Color(1.0, 1.0, 1.0, fade))
+	var x := BACK
+	while x < WALL:
+		var along := (x - BACK) / (WALL - BACK)
+		# the swell climbs slowly and then steeply, and ripples run up it toward the crest
+		var ripple := sin(x * 0.11 - tide * 1.7) * 1.6 * along + sin(x * 0.047 - tide) * 1.2 * along
+		var height := maxf(top * pow(along, 1.6) + ripple * grow, 0.0)
+		var low := 6.0
+		var high := roundf((low - height) / COLUMN) * COLUMN
+		_column(x, high, low, grow)
+		x += COLUMN
+	# the wall of the barrel: a curved edge of lit water from the foot of the swell up to the lip, rippling as it goes
+	var y := 6.0
+	while y > -top + 18.0 * grow:
+		var up := (6.0 - y) / maxf(top, 1.0)
+		var bend := -7.0 * sin(up * PI * 0.9) + 1.5 * sin(y * 0.3 - tide * 2.0)
+		draw_rect(Rect2(roundf(WALL + bend), roundf(y), 3.0, 2.0), Color(SKIN.r, SKIN.g, SKIN.b, 0.9 * grow))
+		draw_rect(Rect2(roundf(WALL + bend) - 4.0, roundf(y), 4.0, 2.0), Color(BODY.r, BODY.g, BODY.b, 0.7 * grow))
+		y -= 2.0
+	_lip(top, tide, grow)
 	draw_set_transform(Vector2.ZERO)
+
+
+## One column of the swell: bright at the top, going deeper and darker toward the ground, and thinning to nothing at the foot.
+func _column(x: float, high: float, low: float, grow: float) -> void:
+	if low - high < 2.0:
+		return
+	var points := PackedVector2Array([Vector2(x, high), Vector2(x + COLUMN, high), Vector2(x + COLUMN, low), Vector2(x, low)])
+	var skin := Color(SKIN.r, SKIN.g, SKIN.b, 0.95 * grow)
+	var body := Color(BODY.r, BODY.g, BODY.b, 0.93 * grow)
+	var deep := Color(DEEP.r, DEEP.g, DEEP.b, 0.8 * grow)
+	var skin_depth := minf(4.0, low - high)
+	draw_colored_polygon(PackedVector2Array([Vector2(x, high), Vector2(x + COLUMN, high), Vector2(x + COLUMN, high + skin_depth), Vector2(x, high + skin_depth)]), skin)
+	var colors := PackedColorArray([body, body, deep, deep])
+	draw_polygon(PackedVector2Array([Vector2(x, high + skin_depth), Vector2(x + COLUMN, high + skin_depth), points[2], points[3]]), colors)
+	if int(x / COLUMN + _age * 9.0) % 7 == 0 and low - high > 12.0:  # bright flecks slide up the face
+		var y := high + 6.0 + fposmod(x * 3.7 - _age * 40.0, maxf(low - high - 10.0, 1.0))
+		draw_rect(Rect2(x, roundf(y), COLUMN * 2.0, 1.0), Color(SKIN.r, SKIN.g, SKIN.b, 0.7 * grow))
+
+
+## The lip: a curl of water from the top of the wall over and forward and down, thrown about as it goes, with foam on its outer edge and drops on its tip.
+func _lip(top: float, tide: float, grow: float) -> void:
+	var seed := int(_age * 14.0)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed * 7919 + 17
+	var centre := Vector2(WALL + 22.0, -top + 24.0 * grow)
+	var radius := 24.0 * grow * (1.0 + 0.06 * sin(tide * 1.3))
+	var steps := 34
+	for k in steps:
+		var t := float(k) / float(steps - 1)
+		var angle := deg_to_rad(lerpf(-168.0, 52.0, t) + 5.0 * sin(tide + t * 6.0))
+		var jitter := Vector2(rng.randf_range(-1.6, 1.6), rng.randf_range(-1.6, 1.6)) * (0.4 + t)
+		var at := centre + Vector2(cos(angle), sin(angle)) * (radius + 2.0 * sin(t * 9.0 - tide * 2.0)) + jitter
+		var thick := lerpf(7.0, 2.0, t) * grow  # the curl is thick where it leaves the wall and thins to a tip
+		at = (at / 1.0).round()
+		draw_rect(Rect2(at - Vector2(thick, thick) * 0.5, Vector2(thick, thick)), Color(BODY.r, BODY.g, BODY.b, 0.9 * grow))
+		draw_rect(Rect2(at - Vector2(thick, thick) * 0.5, Vector2(thick, 2.0)), Color(SKIN.r, SKIN.g, SKIN.b, 0.95 * grow))
+		if rng.randf() < 0.55:  # foam on the outside of the curl, clotting and breaking
+			var out := at + Vector2(cos(angle), sin(angle)) * (thick * 0.5 + 1.0)
+			var size := 2.0 if rng.randf() < 0.7 else 3.0
+			draw_rect(Rect2(out.round() - Vector2(size, size) * 0.5, Vector2(size, size)), Color(0.93, 0.98, 1.0, 0.95 * grow))
+	# drops thrown off the tip: each one is somewhere along its fall, and the fall begins again as it lands
+	for k in 7:
+		var life := fposmod(_age * 1.6 + float(k) * 0.143, 1.0)
+		var start := centre + Vector2(cos(deg_to_rad(52.0)), sin(deg_to_rad(52.0))) * radius
+		var drop := start + Vector2(10.0 * life * (1.0 + 0.3 * float(k % 3)), -14.0 * life + 70.0 * life * life)
+		draw_rect(Rect2(drop.round(), Vector2(2.0, 2.0)), Color(0.93, 0.98, 1.0, (1.0 - life) * grow))
+
+
