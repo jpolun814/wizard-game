@@ -31,6 +31,12 @@ func _ready() -> void:
 				if arg.begins_with("column="):
 					column = int(arg.substr(7))
 			var floors: PackedInt32Array = arena.graph.surface["floor"]
+			if OS.get_cmdline_user_args().has("hill"):  # a gentle slope to ride along: the floor rises 4 to 6 rows over 12 columns
+				for c in range(60, floors.size() - 60):
+					var rise := floors[c - 6] - floors[c + 6]
+					if rise >= 2 and rise <= 3 and absi(floors[c - 12] - floors[c + 12]) <= 12 and c > column:
+						column = c
+						break
 			var at := Vector2((column + 0.5) * 32.0, floors[column] * 32.0 - 60.0)
 			arena._ground.watch([at] as Array[Vector2], true)
 			for k in 15:

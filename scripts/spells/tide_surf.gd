@@ -21,7 +21,7 @@ var ground: Terrain      # the ground the water will run over when the ride ends
 var _carried := 0.0
 var direction := 1.0
 var _age := 0.0
-var _slope := 0.0  # the angle of the ground under the wave, left to right: the wave lies along it
+var _floor := PackedFloat32Array()  # the height of the ground under the wave at points along it (from its tail to its front), relative to the rider's feet
 var _shoved := {}  # who it has shoved lately -> seconds until it can again
 var _spray: CPUParticles2D
 var _sound: AudioStreamPlayer2D  # the sea, heard for as long as the ride lasts
@@ -60,7 +60,7 @@ func _physics_process(delta: float) -> void:
 		_end()
 		return
 	global_position = caster.global_position
-	_slope = lerp_angle(_slope, _ground_angle(), minf(1.0, delta * 12.0))
+	_read_ground()
 	caster.coat.soak()  # whoever rides the wave is wet
 	queue_redraw()
 	for body in _shoved.keys():
@@ -86,23 +86,32 @@ func _physics_process(delta: float) -> void:
 			fire.queue_free()  # a wave over burning ground puts it out
 
 
-## The slope of the ground under the wave, from the ground a little way behind the wizard and a little way ahead of them (0 on the flat), so the wave lies along a
-## hill and does not hang over it or sink into it.
-func _ground_angle() -> float:
+## Reads the ground under the whole length of the wave, a point every `GROUND_STEP` pixels from its tail to its front, so the water lies on a hill, in a dip or at
+## a step as it is and does not hang over it or sink into it.
+func _read_ground() -> void:
 	var space := get_world_2d().direct_space_state
-	var ends := []
-	for along in [-LENGTH * 0.4, FRONT * 0.5]:
-		var from := global_position + Vector2(along * direction, -50.0)
-		var query := PhysicsRayQueryParameters2D.create(from, from + Vector2(0.0, 140.0))
+	var count := int((CREST + ROLL - BACK) / GROUND_STEP) + 2
+	_floor.resize(count)
+	var last := 4.0
+	for k in count:
+		var along := (BACK + float(k) * GROUND_STEP) * direction
+		var from := global_position + Vector2(along, -70.0)
+		var query := PhysicsRayQueryParameters2D.create(from, from + Vector2(0.0, 190.0))
 		query.collision_mask = 1  # the ground
 		var hit := space.intersect_ray(query)
-		if hit.is_empty():
-			return 0.0
-		ends.append(hit["position"])
-	var run: Vector2 = ends[1] - ends[0]
-	if direction < 0.0:
-		run = -run
-	return clampf(atan2(run.y, run.x), -0.7, 0.7)
+		if not hit.is_empty():
+			last = clampf(hit["position"].y - global_position.y + 4.0, -60.0, 60.0)
+		_floor[k] = last
+
+
+## The height of the ground at a point along the wave (`x` from the rider, toward the front), between the points that were read.
+func _ground_at(x: float) -> float:
+	if _floor.size() < 2:
+		return 4.0
+	var spot := clampf((x - BACK) / GROUND_STEP, 0.0, float(_floor.size() - 1))
+	var low := int(spot)
+	var high := mini(low + 1, _floor.size() - 1)
+	return lerpf(_floor[low], _floor[high], spot - float(low))
 
 
 ## The wave takes up the water at the caster's feet, and makes up what is missing from below.
@@ -154,6 +163,7 @@ const BACK := -140.0     # where the surge begins, behind the rider
 const CREST := 14.0      # where it is highest, just ahead of the rider
 const ROLL := 22.0       # how far the front rolls over and down ahead of the crest
 const RIDE := 24.0       # how high the water lifts the rider's feet, at its fullest
+const GROUND_STEP := 8.0  # the distance between the points where the ground is read
 const STEP := 4.0        # the distance between the points of its outline
 
 
@@ -174,30 +184,33 @@ func _draw() -> void:
 		return
 	var tide := _age * 6.0
 	var top := RIDE * grow * (1.0 + 0.06 * sin(tide))
-	var ground := 4.0
 	var surface := PackedVector2Array()
 	var x := BACK
 	while x < CREST:
 		var along := (x - BACK) / (CREST - BACK)
 		var swell := top * pow(along, 1.4)
 		var ripple := (sin(x * 0.13 - tide * 1.6) * 1.2 + sin(x * 0.05 - tide) * 1.0) * along * grow
-		surface.append(Vector2(x, ground - maxf(swell + ripple, 0.0)))
+		surface.append(Vector2(x, _ground_at(x) - maxf(swell + ripple, 0.0)))
 		x += STEP
 	var front := PackedVector2Array()  # the front rolls over and down, a little past straight down at its foot
 	for k in 9:
 		var t := float(k) / 8.0
-		front.append(Vector2(CREST + sin(t * PI * 0.5) * ROLL, ground - top * cos(t * PI * 0.5) - sin(t * PI) * 1.5 * grow))
+		var at_x := CREST + sin(t * PI * 0.5) * ROLL
+		front.append(Vector2(at_x, _ground_at(at_x) - top * cos(t * PI * 0.5) - sin(t * PI) * 1.5 * grow))
 	var outline := PackedVector2Array(surface)
 	outline.append_array(front)
 	var body := PackedVector2Array(outline)
-	body.append(Vector2(CREST + ROLL, ground))
-	body.append(Vector2(BACK, ground))
+	var foot_at := int((CREST + ROLL - BACK) / GROUND_STEP)  # the foot of the body follows the ground back to the tail
+	while foot_at >= 0:
+		var foot := BACK + float(foot_at) * GROUND_STEP
+		body.append(Vector2(minf(foot, CREST + ROLL), _ground_at(foot) + 2.0))
+		foot_at -= 1
 	var colors := PackedColorArray()
 	for point in body:
-		var depth := clampf((point.y - (ground - top)) / maxf(top, 1.0), 0.0, 1.0)
+		var depth := clampf((point.y - (_ground_at(point.x) - top)) / maxf(top, 1.0), 0.0, 1.0)
 		var shade := Pond.WATER_TOP.lerp(Pond.WATER_BOTTOM, depth)
 		colors.append(Color(shade.r, shade.g, shade.b, 0.92 * grow * clampf((point.x - BACK) / 30.0, 0.2, 1.0)))
-	draw_set_transform(Vector2.ZERO, _slope, Vector2(direction, 1.0))
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2(direction, 1.0))
 	draw_polygon(body, colors)
 	draw_polyline(outline, Color(Pond.WATER_RIM.r, Pond.WATER_RIM.g, Pond.WATER_RIM.b, grow), 2.0)
 	var rng := RandomNumberGenerator.new()
@@ -209,6 +222,6 @@ func _draw() -> void:
 		draw_rect(Rect2(spot, Vector2(size, size)), Color(0.93, 0.98, 1.0, 0.95 * grow))
 	for k in 6:  # drops thrown off the front, each one somewhere along its fall
 		var life := fposmod(_age * 1.7 + float(k) * 0.167, 1.0)
-		var drop := Vector2(CREST + ROLL * 0.7 + 8.0 * life * (1.0 + 0.25 * float(k % 3)), ground - top - 4.0 - 14.0 * life + 60.0 * life * life)
+		var drop := Vector2(CREST + ROLL * 0.7 + 8.0 * life * (1.0 + 0.25 * float(k % 3)), _ground_at(CREST) - top - 4.0 - 14.0 * life + 60.0 * life * life)
 		draw_rect(Rect2(drop.round(), Vector2(2.0, 2.0)), Color(0.93, 0.98, 1.0, (1.0 - life) * grow))
 	draw_set_transform(Vector2.ZERO)
