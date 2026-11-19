@@ -83,16 +83,16 @@ func _ready() -> void:
 			if not Sfx.has_sound(sound):
 				silent.append(voice + ": " + sound)
 	_verdict(silent.is_empty(), "every voice has a jump and a hurt sound (missing: %s)" % str(silent))
-	Sfx.speak(self, "jump_voice_5", Vector2.ZERO)
-	Sfx.speak(self, "hurt_voice_5", Vector2.ZERO)
+	Sfx.speak(self, "jump_creature", Vector2.ZERO)
+	Sfx.speak(self, "hurt_creature", Vector2.ZERO)
 	var sounding := 0
 	for child in Sfx.get_children():
 		if child is AudioStreamPlayer2D and child.playing:
 			sounding += 1
 	_verdict(sounding == 1, "a voice never speaks over itself: a new sound cuts the one before (%d sounding)" % sounding)
-	Sfx.speak(self, "hurt_voice_5", Vector2.ZERO)
+	Sfx.speak(self, "hurt_creature", Vector2.ZERO)
 	var first: Node = Sfx._voices.get(get_instance_id())
-	Sfx.speak(self, "hurt_voice_5", Vector2.ZERO)
+	Sfx.speak(self, "hurt_creature", Vector2.ZERO)
 	_verdict(Sfx._voices.get(get_instance_id()) == first and first.playing, "the same sound asked for again carries on, it is not restarted")
 	_verdict(PartsLook.is_valid(look) and not PartsLook.is_valid("parts:2:x.x.x.x.x.x.x.x.x.x.x"), "a look is valid only if every value is a part")
 	_verdict(WizardLook.is_look(look) and not WizardLook.is_look("pyre_wizard") and not WizardLook.is_look("garbage"), "the game takes a look made of parts, and not the old figures")

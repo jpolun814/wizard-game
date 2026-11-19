@@ -40,10 +40,6 @@ const PALETTES := [
 	{"name": "Ash", "robe": [-1.0, 0.0], "trim": [-1.0, 0.0]},
 ]
 
-## The sound of a jump, in the figure's own voice: the Lightning Mage has a voice of her own, and the rest share the one that every wizard had.
-const JUMP_VOICES := {"lightning_mage": "jump_lightning_mage"}
-
-
 ## The color shown on the button for a set of colors: the robe's, as that figure would wear it.
 static func swatch(look: String, palette: int) -> Color:
 	var groups: Array = GROUPS.get(look, GROUPS["wizard"])
@@ -52,21 +48,14 @@ static func swatch(look: String, palette: int) -> Color:
 	return Color.from_hsv(hue, 0.65 * float(set["robe"][1]), 0.78)
 
 
-static func jump_sound(look: String) -> String:
-	match PartsLook.option_of(look, "voice"):
-		"voice_3":
-			return "jump_lightning_mage"
-		"voice_4":
-			return "jump_voice_4"
-		"voice_5":
-			return "jump_voice_5"
-	return JUMP_VOICES.get(look, "jump")
+## The sound of a jump: a short grunt, the same for every wizard (the human voice recordings sounded wrong and were taken out, 2026-11-19).
+static func jump_sound(_look: String) -> String:
+	return "jump_creature"
 
 
-## The sound of being hurt, in the same voice.
-static func hurt_sound(look: String) -> String:
-	var voice := PartsLook.option_of(look, "voice")
-	return "hurt_" + (voice if voice != "" else "voice_1")
+## The sound of being hurt: a creature's cry, the same for every wizard.
+static func hurt_sound(_look: String) -> String:
+	return "hurt_creature"
 
 
 ## True for a look the game accepts: a wizard made of parts, every value of it a part there is. (A look comes over the network, so it is checked here.)
