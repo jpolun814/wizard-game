@@ -18,7 +18,7 @@ const WIZARD_RX := 32.0   # the ring lies outside the body, so no bubble covers 
 const WIZARD_RY := 46.0
 const NAMES := {"frozen": "Frozen", "slowed": "Slowed", "dazed": "Dazed", "hexed": "Hexed", "silenced": "Silenced", "holding": "Holding breath", "choking": "Choking", "confused": "Confused", "fleeing": "Fleeing", "bleeding": "Bleeding", "veiled": "Veiled", "hasted": "Hasted", "adrenaline": "Adrenaline", "unlimited": "Unlimited stamina", "extra_jump": "Extra jump", "wet": "Wet", "burning": "Burning", "oiled": "Oiled"}
 const TIPS := {
-	"wet": "Extinguishes flames\nTake increased damage from electricity\nFreeze faster and for longer",
+	"wet": "Take increased damage from electricity\nFreeze faster and for longer",
 	"burning": "Take fire damage over time\nIgnite anything else you touch",
 	"oiled": "Burn for longer",
 	"frozen": "Cannot move, act, or breathe",
