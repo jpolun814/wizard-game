@@ -43,6 +43,17 @@ for a Necromancy spell, which is paid in maximum stamina; a drawn size gives a r
 (none, except a Rift's maximum stamina). **The two stat lines always sit at the foot of the page, just above the page number, damage first and cost last** (`Spellbook._foot`),
 so a reader always knows where to look for them, whatever the length of the description above.
 
+**The page also names the states a spell puts on someone (owner, 2026-11-19; a second change of heart on "let players learn the interactions").** Above the damage and cost lines
+sits a row of small status icons (`Spell.applies`, `Spell.removes`, set in each spell's `.tres`; chants in `Spellbook.CHANT_STATES`). An icon for a state the spell takes off
+wears a red cross and is dimmed ("Removes: Burning"). Hovering an icon shows the state's name and what it does to whoever is in it (`StatusBubbles.TIPS`, `Spellbook._status_row`;
+tooltips appear at once: `gui/timers/tooltip_delay_sec` is 0). **What a tooltip says is what the state does to the one who has it, never what to cast against it** (no "cast X to
+counter Y"). Tooltip style (owner): short fragments, one per line, no full stops, said the way a person would say them ("Take fire damage over time", not notes for a machine). A state
+the page already shows by a "Removes" icon is not repeated in another state's tooltip (Wet does not say it puts out flames). The icons are the status bubbles' 9x9 pictures
+(`tools/wizard_parts/status_icons.py`; the red cross is one of them); a state's bubble on a wizard shows only its name when hovered. The states: Frozen, Slowed, Dazed, Hexed, Silenced,
+Holding breath, Choking, Confused (was Raging), Fleeing, Bleeding, Veiled (its bubble shows how many blows are left), Hasted, Adrenaline, Unlimited, Extra jump, Wet, Burning, Oiled,
+Sturdy, Fireproof (an obsidian shard), Invisible, Unconscious, Pursued (by a snail). Tangle and Sink are folded into Slowed. A new state needs an icon in that script, an entry in
+`StatusBubbles.ORDER`, `NAMES` and `TIPS`, and a line in `_states`.
+
 **A line does not have to begin with a verb (owner, 2026-11-07).** It can, but the test is whether a person would say it. A thing that happens in the world is
 often better said as a plain statement: "A jet of scalding water shoots up from the ground.", "Icicles grow down from the ceiling.", "Thorny brambles sprout from the
 ground.", "A glowing mushroom grows from the ground.", "A stream of rising air." Use a command ("Shake the earth.", "Cover your body in obsidian.", "Summon an undead
