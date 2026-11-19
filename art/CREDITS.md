@@ -63,7 +63,7 @@ and are no longer drawn by the game.
 | `portal_open`, `portal_enter`, `gravity`, `heal`, `wizard_cast`, `summon` | [Magic spell SFX](https://opengameart.org/content/magic-spell-sfx) by JaggedStone (OpenGameArt) | CC0 |
 | `cast_fire`, `fire_hit`, `fire_wall`, `stones_*`, `mob_die_1` | [80 CC0 RPG SFX](https://opengameart.org/content/80-cc0-rpg-sfx) by rubberduck (OpenGameArt) | CC0 |
 | `mob_hurt_1`, `mob_hurt_3`, `mob_die_2` | [80 CC0 creature SFX](https://opengameart.org/content/80-cc0-creature-sfx) by rubberduck (OpenGameArt) | CC0 |
-| `hurt_creature_1..3`, `jump_creature_1..3` | The same [80 CC0 creature SFX](https://opengameart.org/content/80-cc0-creature-sfx) by rubberduck (`hurt_04`, `troll_03`, `grunt_02` for being hurt; the starts of `hurt_04`, `grunt_02`, `troll_03` for a jump), each sped up so its pitch is about 290 Hz, high enough not to sound like a deep man, so that every wizard sounds the same whoever it is | CC0 |
+| `hurt_creature_1..3`, `jump_creature_1..3` | The same [80 CC0 creature SFX](https://opengameart.org/content/80-cc0-creature-sfx) by rubberduck (`hurt_04`, `troll_03`, `grunt_02` for being hurt; the starts of `hurt_04`, `grunt_02`, `troll_03` for a jump), each sped up so its pitch is about 310 Hz, high enough not to sound like a deep man, so that every wizard sounds the same whoever it is | CC0 |
 | `ice_shatter_*`, `explosion`, `misfire`, `ritual_ok`, `game_over` | [100 CC0 SFX](https://opengameart.org/content/100-cc0-sfx) by rubberduck (OpenGameArt) | CC0 |
 | `thunder` | [100 CC0 SFX #2](https://opengameart.org/content/100-cc0-sfx-2) by rubberduck (OpenGameArt) | CC0 |
 | `volcano` | [Fireball 1](https://opengameart.org/content/fireball-1) (Julien Matthey, via OpenGameArt) | CC0 |
