@@ -28,6 +28,7 @@ var _sound: AudioStreamPlayer2D  # the sea, heard for as long as the ride lasts
 
 
 func _ready() -> void:
+	_ready_look()
 	add_to_group("lasting")
 	z_index = 6
 	caster.start_surf(direction, SECONDS)
@@ -146,17 +147,21 @@ func _end() -> void:
 	fade.tween_callback(queue_free)
 
 
-## The wave is not a picture: it is drawn every frame as a body of water, pixel by pixel in the pond's colors. A swell of columns rises behind the rider to a wall, and
-## a lip of water curls over from the top of the wall and forward, with a hollow under it where the rider stands. Nothing in it holds still: the height of the swell
-## breathes, ripples run up its back, the lip's edge is thrown about and foam clots and breaks off it, and the spray at its tip falls away behind. It rises out
-## of the ground as the ride begins and sinks back when it ends.
-const SKIN := Color(0.60, 0.78, 0.88)    # the lit surface
-const BODY := Color(0.23, 0.43, 0.59)    # the water just under it
-const DEEP := Color(0.05, 0.10, 0.24)    # the water at the bottom
-const BACK := -150.0     # where the swell begins, behind the rider
-const CREST := 12.0      # where the crest stands, just ahead of the rider
-const RIDE := 32.0       # how high the water lifts the rider's feet, at its fullest
-const COLUMN := 2.0      # the width of a column of water: two world pixels, as a pixel of the pond's art
+## The wave is the pond's own water, heaped up and moving: a low surge drawn with the pond's colors, its dithered shading (pixel_liquid.gdshader) and its bright edge on top,
+## so it matches the ponds, the Geyser and the Water Jet. It is long and low behind the rider and rolls over at the front, where foam breaks off it and spray is thrown up.
+## The surface ripples as it goes. It rises out of the ground as the ride begins and sinks back when it ends.
+const BACK := -140.0     # where the surge begins, behind the rider
+const CREST := 14.0      # where it is highest, just ahead of the rider
+const ROLL := 22.0       # how far the front rolls over and down ahead of the crest
+const RIDE := 24.0       # how high the water lifts the rider's feet, at its fullest
+const STEP := 4.0        # the distance between the points of its outline
+
+
+func _ready_look() -> void:
+	var made := ShaderMaterial.new()
+	made.shader = preload("res://scripts/terrain/pixel_liquid.gdshader")
+	made.set_shader_parameter("levels", 14.0)
+	material = made
 
 
 func _draw() -> void:
@@ -164,75 +169,46 @@ func _draw() -> void:
 	var fade := clampf((SECONDS - _age) / 0.5, 0.0, 1.0)
 	var grow := rise * rise * (3.0 - 2.0 * rise) * fade
 	if is_instance_valid(caster):
-		caster.ride_lift(RIDE * grow)  # the rider stands on top of the water, not in it
+		caster.ride_lift(RIDE * 0.8 * grow)  # the rider stands on top of the water, not in it
 	if grow <= 0.01:
 		return
-	var tide := _age * 7.0
-	var top := (RIDE + 5.0) * grow * (1.0 + 0.08 * sin(tide) + 0.04 * sin(tide * 2.3 + 1.0))
-	draw_set_transform(Vector2.ZERO, _slope, Vector2(direction, 1.0))
+	var tide := _age * 6.0
+	var top := RIDE * grow * (1.0 + 0.06 * sin(tide))
+	var ground := 4.0
+	var surface := PackedVector2Array()
 	var x := BACK
 	while x < CREST:
 		var along := (x - BACK) / (CREST - BACK)
-		# the swell climbs slowly and then steeply, and ripples run up it toward the crest
-		var ripple := sin(x * 0.11 - tide * 1.7) * 1.6 * along + sin(x * 0.047 - tide) * 1.2 * along
-		var height := maxf(top * pow(along, 1.5) + ripple * grow, 0.0)
-		var low := 6.0
-		var high := roundf((low - height) / COLUMN) * COLUMN
-		_column(x, high, low, grow)
-		x += COLUMN
-	x = CREST  # the front face falls away steeply, hollowed under the lip
-	while x < CREST + 16.0:
-		var down := (x - CREST) / 16.0
-		var face := top * (1.0 - pow(down, 0.45)) + sin(x * 0.4 + tide * 2.0) * 0.8 * grow
-		_column(x, roundf((6.0 - maxf(face, 0.0)) / COLUMN) * COLUMN, 6.0, grow)
-		x += COLUMN
-	_lip(top, tide, grow)
-	draw_set_transform(Vector2.ZERO)
-
-
-## One column of the swell: bright at the top, going deeper and darker toward the ground, and thinning to nothing at the foot.
-func _column(x: float, high: float, low: float, grow: float) -> void:
-	if low - high < 2.0:
-		return
-	var points := PackedVector2Array([Vector2(x, high), Vector2(x + COLUMN, high), Vector2(x + COLUMN, low), Vector2(x, low)])
-	var skin := Color(SKIN.r, SKIN.g, SKIN.b, 0.95 * grow)
-	var body := Color(BODY.r, BODY.g, BODY.b, 0.93 * grow)
-	var deep := Color(DEEP.r, DEEP.g, DEEP.b, 0.8 * grow)
-	var skin_depth := minf(4.0, low - high)
-	draw_colored_polygon(PackedVector2Array([Vector2(x, high), Vector2(x + COLUMN, high), Vector2(x + COLUMN, high + skin_depth), Vector2(x, high + skin_depth)]), skin)
-	var colors := PackedColorArray([body, body, deep, deep])
-	draw_polygon(PackedVector2Array([Vector2(x, high + skin_depth), Vector2(x + COLUMN, high + skin_depth), points[2], points[3]]), colors)
-	if int(x / COLUMN + _age * 9.0) % 7 == 0 and low - high > 12.0:  # bright flecks slide up the face
-		var y := high + 6.0 + fposmod(x * 3.7 - _age * 40.0, maxf(low - high - 10.0, 1.0))
-		draw_rect(Rect2(x, roundf(y), COLUMN * 2.0, 1.0), Color(SKIN.r, SKIN.g, SKIN.b, 0.7 * grow))
-
-
-## The lip: a curl of water from the top of the wall over and forward and down, thrown about as it goes, with foam on its outer edge and drops on its tip.
-func _lip(top: float, tide: float, grow: float) -> void:
-	var seed := int(_age * 14.0)
+		var swell := top * pow(along, 1.4)
+		var ripple := (sin(x * 0.13 - tide * 1.6) * 1.2 + sin(x * 0.05 - tide) * 1.0) * along * grow
+		surface.append(Vector2(x, ground - maxf(swell + ripple, 0.0)))
+		x += STEP
+	var front := PackedVector2Array()  # the front rolls over and down, a little past straight down at its foot
+	for k in 9:
+		var t := float(k) / 8.0
+		front.append(Vector2(CREST + sin(t * PI * 0.5) * ROLL, ground - top * cos(t * PI * 0.5) - sin(t * PI) * 1.5 * grow))
+	var outline := PackedVector2Array(surface)
+	outline.append_array(front)
+	var body := PackedVector2Array(outline)
+	body.append(Vector2(CREST + ROLL, ground))
+	body.append(Vector2(BACK, ground))
+	var colors := PackedColorArray()
+	for point in body:
+		var depth := clampf((point.y - (ground - top)) / maxf(top, 1.0), 0.0, 1.0)
+		var shade := Pond.WATER_TOP.lerp(Pond.WATER_BOTTOM, depth)
+		colors.append(Color(shade.r, shade.g, shade.b, 0.92 * grow * clampf((point.x - BACK) / 30.0, 0.2, 1.0)))
+	draw_set_transform(Vector2.ZERO, _slope, Vector2(direction, 1.0))
+	draw_polygon(body, colors)
+	draw_polyline(outline, Color(Pond.WATER_RIM.r, Pond.WATER_RIM.g, Pond.WATER_RIM.b, grow), 2.0)
 	var rng := RandomNumberGenerator.new()
-	rng.seed = seed * 7919 + 17
-	var centre := Vector2(CREST + 6.0, -top + 17.0 * grow)
-	var radius := 17.0 * grow * (1.0 + 0.06 * sin(tide * 1.3))
-	var steps := 34
-	for k in steps:
-		var t := float(k) / float(steps - 1)
-		var angle := deg_to_rad(lerpf(-150.0, 60.0, t) + 5.0 * sin(tide + t * 6.0))
-		var jitter := Vector2(rng.randf_range(-1.6, 1.6), rng.randf_range(-1.6, 1.6)) * (0.4 + t)
-		var at := centre + Vector2(cos(angle), sin(angle)) * (radius + 2.0 * sin(t * 9.0 - tide * 2.0)) + jitter
-		var thick := lerpf(6.0, 2.0, t) * grow  # the curl is thick where it leaves the wall and thins to a tip
-		at = (at / 1.0).round()
-		draw_rect(Rect2(at - Vector2(thick, thick) * 0.5, Vector2(thick, thick)), Color(BODY.r, BODY.g, BODY.b, 0.9 * grow))
-		draw_rect(Rect2(at - Vector2(thick, thick) * 0.5, Vector2(thick, 2.0)), Color(SKIN.r, SKIN.g, SKIN.b, 0.95 * grow))
-		if rng.randf() < 0.55:  # foam on the outside of the curl, clotting and breaking
-			var out := at + Vector2(cos(angle), sin(angle)) * (thick * 0.5 + 1.0)
-			var size := 2.0 if rng.randf() < 0.7 else 3.0
-			draw_rect(Rect2(out.round() - Vector2(size, size) * 0.5, Vector2(size, size)), Color(0.93, 0.98, 1.0, 0.95 * grow))
-	# drops thrown off the tip: each one is somewhere along its fall, and the fall begins again as it lands
-	for k in 7:
-		var life := fposmod(_age * 1.6 + float(k) * 0.143, 1.0)
-		var start := centre + Vector2(cos(deg_to_rad(60.0)), sin(deg_to_rad(60.0))) * radius
-		var drop := start + Vector2(9.0 * life * (1.0 + 0.3 * float(k % 3)), -14.0 * life + 70.0 * life * life)
+	rng.seed = int(_age * 12.0) * 7919 + 11
+	for k in 16:  # foam breaks off the roll at the front and clots along the crest, and is different every moment
+		var at := front[rng.randi_range(0, front.size() - 1)] if k < 9 else surface[maxi(surface.size() - 1 - rng.randi_range(0, 8), 0)]
+		var size := 2.0 if rng.randf() < 0.7 else 3.0
+		var spot := (at + Vector2(rng.randf_range(-2.0, 3.0), rng.randf_range(-3.0, 1.0))).round()
+		draw_rect(Rect2(spot, Vector2(size, size)), Color(0.93, 0.98, 1.0, 0.95 * grow))
+	for k in 6:  # drops thrown off the front, each one somewhere along its fall
+		var life := fposmod(_age * 1.7 + float(k) * 0.167, 1.0)
+		var drop := Vector2(CREST + ROLL * 0.7 + 8.0 * life * (1.0 + 0.25 * float(k % 3)), ground - top - 4.0 - 14.0 * life + 60.0 * life * life)
 		draw_rect(Rect2(drop.round(), Vector2(2.0, 2.0)), Color(0.93, 0.98, 1.0, (1.0 - life) * grow))
-
-
+	draw_set_transform(Vector2.ZERO)
