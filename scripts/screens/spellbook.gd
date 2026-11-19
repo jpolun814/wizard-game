@@ -347,7 +347,7 @@ func _page_spell(column: VBoxContainer, spell_name: String) -> void:
 	preview.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	column.add_child(preview)
 	column.add_child(_ink(s.effect, 22, TEXT_INK))
-	_foot(column, [s.damage_line(), s.cost_line()], s.applies, s.removes)
+	_foot(column, [s.damage_line(), s.cost_line()], s.applies, s.removes, spell_name)
 
 
 ## True for a spell or chant that this wizard has not cast yet this game (in the waiting room every page is known and nothing is marked).
@@ -405,22 +405,22 @@ func _page_incantation(column: VBoxContainer, ritual_id: String) -> void:
 		column.add_child(_new_badge())
 	column.add_child(_ink("“%s”" % r["text"], 26, TEXT_INK))
 	column.add_child(_ink(ritual_effect(ritual_id), 20, TEXT_INK))
-	_foot(column, [ritual_cost_line(ritual_id)], [CHANT_STATES[ritual_id]] if CHANT_STATES.has(ritual_id) else [], [])
+	_foot(column, [ritual_cost_line(ritual_id)], [CHANT_STATES[ritual_id]] if CHANT_STATES.has(ritual_id) else [], [], "chant:" + ritual_id)
 
 
 ## The states a page puts on someone (a picture each), and the ones it takes off (the same picture with a red cross over it). The mouse resting on one says what the
 ## state does.
-func _status_row(applies: Array, removes: Array) -> HBoxContainer:
+func _status_row(applies: Array, removes: Array, source: String) -> HBoxContainer:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 6)
 	for name: String in applies:
-		row.add_child(_status_icon(name, false))
+		row.add_child(_status_icon(name, false, source))
 	for name: String in removes:
-		row.add_child(_status_icon(name, true))
+		row.add_child(_status_icon(name, true, source))
 	return row
 
 
-func _status_icon(name: String, removed: bool) -> TextureRect:
+func _status_icon(name: String, removed: bool, source: String) -> TextureRect:
 	var icon := TextureRect.new()
 	icon.texture = _status_picture(name)
 	icon.custom_minimum_size = Vector2(STATUS_ICON, STATUS_ICON)
@@ -443,6 +443,59 @@ func _status_icon(name: String, removed: bool) -> TextureRect:
 	return icon
 
 
+## " 4s": how long the state lasts when this spell or chant gives it, or nothing where it has no set time (it lasts as long as something else does).
+func _lasts(state: String, source: String) -> String:
+	var seconds := _state_seconds(state, source)
+	if seconds <= 0.0:
+		return ""
+	return " %ds" % roundi(seconds) if is_equal_approx(seconds, roundf(seconds)) else " %.1fs" % seconds
+
+
+## Seconds a state lasts from a given source, 0 for none. The sources are the spell's name or "chant:" and the chant's id.
+static func _state_seconds(state: String, source: String) -> float:
+	match [source, state]:
+		["Golem", "sturdy"], ["Golem", "holding"]:
+			return GolemForm.DURATION
+		["Obsidian Armor", _]:
+			return 20.0
+		["Sneak", _], ["chant:haste", _], ["chant:boundless", _], ["chant:double_jump", _]:
+			return 20.0
+		["chant:deep_breath", _]:
+			return Lungs.DEEP_BREATH
+		["Adrenaline", _]:
+			return 10.0
+		["Silence", _]:
+			return Silence.LIFE
+		["Frostbolt", "slowed"]:
+			return IceSpear.SLOW_SECONDS
+		["Blizzard", "slowed"]:
+			return Blizzard.SLOW_SECONDS
+		["Spore Puff", "slowed"]:
+			return SporePuff.SLOW_SECONDS
+		["Blizzard", "frozen"], ["Ice Prison", "frozen"]:
+			return IcePrison.FREEZE_SECONDS
+		["Bramble", _], ["Mudslide", _], ["Vacuum", _], ["Crimson Veil", _]:
+			return 0.0
+	match state:
+		"wet":
+			return Coating.WET_SECONDS
+		"burning":
+			return Coating.BURN_SECONDS
+		"oiled":
+			return Coating.OIL_SECONDS
+		"dazed":
+			return Thunderclap.DAZE
+		"hexed":
+			return Hex.SECONDS
+		"bleeding":
+			return Hemorrhage.SECONDS
+		"confused", "fleeing":
+			return FightOrFlight.SECONDS
+		"unconscious":
+			return Wizard.FAINT_TIME
+	return 0.0
+
+
 func _status_picture(name: String) -> AtlasTexture:
 	var picture := AtlasTexture.new()
 	picture.atlas = StatusBubbles.ICONS
@@ -453,12 +506,12 @@ func _status_picture(name: String) -> AtlasTexture:
 
 ## The figures of a page, always at its foot just above the page number, so a reader knows where to look: damage first, then cost.
 ## Lines that are empty are left out.
-func _foot(column: VBoxContainer, lines: Array, applies := [], removes := []) -> void:
+func _foot(column: VBoxContainer, lines: Array, applies := [], removes := [], source := "") -> void:
 	var gap := Control.new()
 	gap.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	column.add_child(gap)
 	if not applies.is_empty() or not removes.is_empty():
-		column.add_child(_status_row(applies, removes))
+		column.add_child(_status_row(applies, removes, source))
 	for line: String in lines:
 		if line != "":
 			column.add_child(_ink(line, 20, SUBTLE if line == lines[lines.size() - 1] else TEXT_INK))
