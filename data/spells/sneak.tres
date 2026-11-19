@@ -9,3 +9,4 @@ school = "Shadow"
 gesture = "wave"
 cost = 30.0
 effect = "Become invisible until your next spell interrupts it."
+applies = Array[String](["invisible"])

@@ -11,3 +11,4 @@ targeting = "positional"
 cost = 120.0
 effect = "Summon a snail that kills with a touch."
 damage = "Kills"
+applies = Array[String](["pursued"])

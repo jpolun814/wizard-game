@@ -9,3 +9,4 @@ school = "Earth"
 gesture = "circle"
 cost = 40.0
 effect = "Cover your body in obsidian."
+applies = Array[String](["sturdy", "fireproof"])

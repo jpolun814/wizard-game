@@ -7,7 +7,7 @@ extends RefCounted
 ## A copy of a wizard on another machine can only show what the marks carry: frozen, slowed, veiled, wet, burning and oiled.
 
 const ICONS := preload("res://art/fx/status_icons.png")
-const ORDER := ["frozen", "slowed", "dazed", "hexed", "silenced", "holding", "choking", "confused", "fleeing", "bleeding", "veiled", "hasted", "adrenaline", "unlimited", "extra_jump", "wet", "burning", "oiled", "cross"]
+const ORDER := ["frozen", "slowed", "dazed", "hexed", "silenced", "holding", "choking", "confused", "fleeing", "bleeding", "veiled", "hasted", "adrenaline", "unlimited", "extra_jump", "wet", "burning", "oiled", "sturdy", "fireproof", "invisible", "unconscious", "pursued", "cross"]
 const ICON := 9.0         # a picture is 9 pixels
 const RADIUS := 5.5       # the bubble
 const RING_COLOR := Color(0.92, 0.95, 1.0, 0.95)
@@ -16,17 +16,22 @@ const PER_ROUND := 21     # bubbles in the first round about the wizard; the nex
 const ROUND_STEP := 11.0
 const WIZARD_RX := 32.0   # the ring lies outside the body, so no bubble covers any of the wizard
 const WIZARD_RY := 46.0
-const NAMES := {"frozen": "Frozen", "slowed": "Slowed", "dazed": "Dazed", "hexed": "Hexed", "silenced": "Silenced", "holding": "Holding breath", "choking": "Choking", "confused": "Confused", "fleeing": "Fleeing", "bleeding": "Bleeding", "veiled": "Veiled", "hasted": "Hasted", "adrenaline": "Adrenaline", "unlimited": "Unlimited stamina", "extra_jump": "Extra jump", "wet": "Wet", "burning": "Burning", "oiled": "Oiled"}
+const NAMES := {"frozen": "Frozen", "slowed": "Slowed", "dazed": "Dazed", "hexed": "Hexed", "silenced": "Silenced", "holding": "Holding breath", "choking": "Choking", "confused": "Confused", "fleeing": "Fleeing", "bleeding": "Bleeding", "veiled": "Veiled", "hasted": "Hasted", "adrenaline": "Adrenaline", "unlimited": "Unlimited stamina", "extra_jump": "Extra jump", "wet": "Wet", "burning": "Burning", "oiled": "Oiled", "sturdy": "Sturdy", "fireproof": "Fireproof", "invisible": "Invisible", "unconscious": "Unconscious", "pursued": "Pursued"}
 const TIPS := {
 	"wet": "Take increased damage from electricity\nFreeze faster and for longer",
 	"burning": "Take fire damage over time\nIgnite anything else you touch",
 	"oiled": "Burn for longer",
+	"sturdy": "Take less damage",
+	"fireproof": "Immune to fire and lava",
+	"invisible": "Invisible to others",
+	"unconscious": "Cannot move or act",
+	"pursued": "Chased by an invincible snail\nIt kills at a touch",
 	"frozen": "Cannot move, act, or breathe",
 	"slowed": "Move slower",
 	"dazed": "Move slower\nCannot cast spells or chant incantations",
 	"hexed": "Take increased damage\nCannot hide from whoever cast it",
 	"silenced": "Cannot cast spells or chant incantations",
-	"holding": "Cannot inhale, exhale, or speak",
+	"holding": "Cannot inhale, exhale, or speak\nTurns into choking when your air runs out",
 	"choking": "Out of air\nTake damage over time",
 	"confused": "Cast random spells",
 	"fleeing": "Cannot move toward whoever cast it",
@@ -135,6 +140,17 @@ func _states() -> Dictionary:
 		states["burning"] = wizard.burning_time
 	if wizard.oiled_time > 0.0:
 		states["oiled"] = wizard.oiled_time
+	if (wizard.golem.on and wizard.golem.shown) or wizard.obsidian_time > 0.0:
+		states["sturdy"] = wizard.golem.time_left() if wizard.golem.on else wizard.obsidian_time
+	if wizard.obsidian_time > 0.0:
+		states["fireproof"] = wizard.obsidian_time
+	if wizard.fade_time > 0.0:
+		states["invisible"] = wizard.fade_time
+	if wizard.fainted:
+		states["unconscious"] = -1.0
+	for snail: InvincibleSnail in tree.get_nodes_in_group("snails"):
+		if snail.target == wizard:
+			states["pursued"] = -1.0
 	return states
 
 
