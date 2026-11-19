@@ -108,11 +108,11 @@ func _states() -> Dictionary:
 	if Silence.covers(tree, wizard.center()):
 		states["silenced"] = -1.0
 	if wizard.lungs.holding() and not wizard.is_frozen():
-		var air := wizard.deep_breath_time / Lungs.DEEP_BREATH if wizard.deep_breath_time > 0.0 else wizard.lungs.air / Lungs.BREATH
+		var air := wizard.deep_breath_time if wizard.deep_breath_time > 0.0 else wizard.lungs.air  # seconds of breath left
 		if wizard.golem.on:
-			air = wizard.golem.time_left() / GolemForm.DURATION  # the stone holds its breath for as long as it lasts
+			air = wizard.golem.time_left()  # the stone holds its breath for as long as it lasts
 		if air > 0.0:
-			states["holding"] = air * 100.0   # a count of its own: 100 is a full breath
+			states["holding"] = air
 		else:
 			states["choking"] = -1.0
 	if wizard.daze_time > 0.0:
@@ -159,8 +159,6 @@ func ring_of(name: String) -> float:
 	var seconds: float = _left.get(name, -1.0)
 	if seconds < 0.0:
 		return -1.0
-	if name == "holding":
-		return clampf(seconds / 100.0, 0.0, 1.0)
 	return clampf(seconds / maxf(_most.get(name, seconds), 0.001), 0.0, 1.0)
 
 
@@ -214,7 +212,7 @@ func draw(canvas: CanvasItem) -> void:
 		var font := ThemeDB.fallback_font
 		var text: String = NAMES[hovered]
 		var seconds: float = _left.get(hovered, -1.0)
-		if seconds > 0.0 and hovered != "holding":  # (a held breath is counted in its own way, not in seconds)
+		if seconds > 0.0:
 			text += " %ds" % ceili(seconds)  # the time left, as 4s
 		var size := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, 10)
 		var at := _layer.get_local_mouse_position() + Vector2(10.0, -8.0)
