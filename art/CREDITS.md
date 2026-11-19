@@ -72,6 +72,8 @@ and are no longer drawn by the game.
 | `cast_ice`, `snow` | [Ice spells](https://opengameart.org/content/ice-spells) (OpenGameArt) | CC0 |
 | `earth` | [Earth element magic spell](https://opengameart.org/content/earth-element-magic-spell) (OpenGameArt) | CC0 |
 
+The voices (`jump*`, `hurt_voice_*`) are the recordings above run through `python tools/process_voices.py` (the raw clips are in `art_source/voices_raw/`): the highest and lowest frequencies rolled off and a small hall's echo under them, so they do not sound close to a microphone. Nothing is added to them.
+
 ### Mixed sounds
 
 `ritual_ok` (a low chant, cut from [Chant](https://opengameart.org/content/chant) by christislord, CC0), `tornado` (a jet roar with its hiss removed), `quicksand` ([25 CC0 mud sfx](https://opengameart.org/content/25-cc0-mud-sfx) by rubberduck) and `jump` ([Jumping man sounds](https://opengameart.org/content/jumping-man-sounds) by IgnasD, CC0) are listed here too.
