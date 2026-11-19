@@ -17,6 +17,8 @@ ICONS = [
         "....a....", ".a..a..a.", "..a.a.a..", "...aaa...", "aaaabaaaa", "...aaa...", "..a.a.a..", ".a..a..a.", "....a...."]),
     ("slowed", {"a": "#c9a36a", "b": "#f0d9a8", "c": "#7a5a34"}, [
         "..aaaaa..", ".abbbbba.", "ab.bbb.ba", "a..bbb..a", "a.b.b.b.a", "a..bbb..a", "ac.bbb.ca", ".acccccca", "..aaaaa.."]),
+    ("dazed", {"a": "#f0d060", "b": "#fffbd0", "c": "#a08a1a"}, [
+        "....b....", "....a....", "..a.a.a..", "...aba...", "bbaabaabb", "...aba...", "..a.a.a..", "....a....", "....b...."]),
     ("hexed", {"a": "#b04ae0", "b": "#e6a8ff", "c": "#5c1f80"}, [
         "....a....", "....a....", "...aba...", "aaaabaaaa", ".aabbbaa.", "..abbba..", "..aa.aa..", ".aa...aa.", ".a.....a."]),
     ("silenced", {"a": "#8a8aa8", "b": "#d8d8ee", "c": "#3a3a52", "d": "#e0484e"}, [
@@ -25,7 +27,7 @@ ICONS = [
         "....d....", "....d....", "...ada...", ".aa.d.aa.", "abba.abba", "abba.abba", "abba.abba", ".acc...cc.".replace("...cc.", "..cc."), "..cc.cc.."]),
     ("choking", {"a": "#e8584e", "b": "#ffb0a8", "c": "#7a1a1a"}, [
         "...aaa...", "..abbba..", ".abaaaca.", ".aba.aca.", ".abaaaca.", "..accca..", "...aaa...", "a.......a", ".aaaaaaa."]),
-    ("raging", {"a": "#e0302a", "b": "#ff9a60", "c": "#701010"}, [
+    ("confused", {"a": "#e0302a", "b": "#ff9a60", "c": "#701010"}, [
         "a.......a", "aa.....aa", ".aa.b.aa.", "..aabaa..", "...aba...", "..a.b.a..", ".aa...aa.", ".ac...ca.", "cc.....cc"]),
     ("fleeing", {"a": "#f0e060", "b": "#fffbd0", "c": "#a08a1a"}, [
         "...aa....", "..abba...", "...aa.a..", "..aaaa.a.", ".aaaa..a.", "..a.a..a.", ".a...a.a.", "a.....a..", "........."]),
@@ -47,6 +49,8 @@ ICONS = [
         "....a....", "...aa....", "...aaa.a.", "..aabaaa.", ".aaabbaa.", ".aabbbaa.", ".aabbbaa.", "..aabaa..", "...ccc..."]),
     ("oiled", {"a": "#6a5a9a", "b": "#b8a8e8", "c": "#241a3a"}, [
         "....c....", "....c....", "...ccc...", "...cac...", "..ccbcc..", ".cccbccc.", ".ccccccc.", "..ccccc..", "...ccc..."]),
+    ("cross", {"a": "#ff2a2a", "b": "#ff8a8a"}, [
+        "a.......a", ".ab...ba.", "..ab.ba..", "...aba...", "....a....", "...aba...", "..ab.ba..", ".ab...ba.", "a.......a"]),
 ]
 
 

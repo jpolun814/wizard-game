@@ -11,3 +11,5 @@ targeting = "shape"
 cost = 20.0
 effect = "A jet of scalding water shoots up from the ground."
 damage = "1 dmg/sec"
+applies = Array[String](["wet"])
+removes = Array[String](["burning"])

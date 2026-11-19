@@ -9,3 +9,4 @@ school = "Earth"
 gesture = "stick"
 cost = 60.0
 effect = "Become a golem of stone."
+applies = Array[String](["holding"])

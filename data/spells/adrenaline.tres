@@ -9,3 +9,4 @@ school = "Blood"
 gesture = "zigzag"
 cost = 15.0
 effect = "Move faster, take less damage and deal more damage."
+applies = Array[String](["adrenaline"])

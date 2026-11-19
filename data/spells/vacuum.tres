@@ -10,3 +10,4 @@ gesture = "lungs"
 cost = 30.0
 effect = "Draw the air out of someone's lungs."
 damage = "3 dmg/sec"
+applies = Array[String](["holding", "choking"])

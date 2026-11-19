@@ -42,6 +42,10 @@ var _left_number: Label  # the page numbers, at the foot of each page
 var _right_number: Label
 
 
+const STATUS_ICON := 27.0  # a status picture on a page, three times its 9 pixels
+## The state a chant gives whoever says it.
+const CHANT_STATES := {"boundless": "unlimited", "double_jump": "extra_jump", "haste": "hasted", "deep_breath": "holding"}
+
 func _ready() -> void:
 	visible = false
 	layer = 5  # under the ritual typing box (layer 10), so the book never covers what you type
@@ -343,7 +347,7 @@ func _page_spell(column: VBoxContainer, spell_name: String) -> void:
 	preview.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	column.add_child(preview)
 	column.add_child(_ink(s.effect, 22, TEXT_INK))
-	_foot(column, [s.damage_line(), s.cost_line()])
+	_foot(column, [s.damage_line(), s.cost_line()], s.applies, s.removes)
 
 
 ## True for a spell or chant that this wizard has not cast yet this game (in the waiting room every page is known and nothing is marked).
@@ -401,15 +405,60 @@ func _page_incantation(column: VBoxContainer, ritual_id: String) -> void:
 		column.add_child(_new_badge())
 	column.add_child(_ink("“%s”" % r["text"], 26, TEXT_INK))
 	column.add_child(_ink(ritual_effect(ritual_id), 20, TEXT_INK))
-	_foot(column, [ritual_cost_line(ritual_id)])
+	_foot(column, [ritual_cost_line(ritual_id)], [CHANT_STATES[ritual_id]] if CHANT_STATES.has(ritual_id) else [], [])
+
+
+## The states a page puts on someone (a picture each), and the ones it takes off (the same picture with a red cross over it). The mouse resting on one says what the
+## state does.
+func _status_row(applies: Array, removes: Array) -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 6)
+	for name: String in applies:
+		row.add_child(_status_icon(name, false))
+	for name: String in removes:
+		row.add_child(_status_icon(name, true))
+	return row
+
+
+func _status_icon(name: String, removed: bool) -> TextureRect:
+	var icon := TextureRect.new()
+	icon.texture = _status_picture(name)
+	icon.custom_minimum_size = Vector2(STATUS_ICON, STATUS_ICON)
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	icon.mouse_filter = Control.MOUSE_FILTER_STOP
+	var title: String = StatusBubbles.NAMES[name]
+	icon.tooltip_text = "Removes: %s" % title if removed else "%s\n%s" % [title, StatusBubbles.TIPS[name]]
+	if removed:
+		icon.self_modulate = Color(1, 1, 1, 0.45)  # dimmed, so the cross over it reads
+		var cross := TextureRect.new()
+		cross.texture = _status_picture("cross")
+		cross.set_anchors_preset(Control.PRESET_FULL_RECT)
+		cross.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		cross.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		cross.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		cross.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		icon.add_child(cross)
+	return icon
+
+
+func _status_picture(name: String) -> AtlasTexture:
+	var picture := AtlasTexture.new()
+	picture.atlas = StatusBubbles.ICONS
+	var size := StatusBubbles.ICON
+	picture.region = Rect2(StatusBubbles.ORDER.find(name) * size, 0.0, size, size)
+	return picture
 
 
 ## The figures of a page, always at its foot just above the page number, so a reader knows where to look: damage first, then cost.
 ## Lines that are empty are left out.
-func _foot(column: VBoxContainer, lines: Array) -> void:
+func _foot(column: VBoxContainer, lines: Array, applies := [], removes := []) -> void:
 	var gap := Control.new()
 	gap.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	column.add_child(gap)
+	if not applies.is_empty() or not removes.is_empty():
+		column.add_child(_status_row(applies, removes))
 	for line: String in lines:
 		if line != "":
 			column.add_child(_ink(line, 20, SUBTLE if line == lines[lines.size() - 1] else TEXT_INK))

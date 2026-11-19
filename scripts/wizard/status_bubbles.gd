@@ -7,7 +7,7 @@ extends RefCounted
 ## A copy of a wizard on another machine can only show what the marks carry: frozen, slowed, veiled, wet, burning and oiled.
 
 const ICONS := preload("res://art/fx/status_icons.png")
-const ORDER := ["frozen", "slowed", "hexed", "silenced", "holding", "choking", "raging", "fleeing", "bleeding", "veiled", "hasted", "adrenaline", "unlimited", "extra_jump", "wet", "burning", "oiled"]
+const ORDER := ["frozen", "slowed", "dazed", "hexed", "silenced", "holding", "choking", "confused", "fleeing", "bleeding", "veiled", "hasted", "adrenaline", "unlimited", "extra_jump", "wet", "burning", "oiled", "cross"]
 const ICON := 9.0         # a picture is 9 pixels
 const RADIUS := 5.5       # the bubble
 const RING_COLOR := Color(0.92, 0.95, 1.0, 0.95)
@@ -16,7 +16,27 @@ const PER_ROUND := 21     # bubbles in the first round about the wizard; the nex
 const ROUND_STEP := 11.0
 const WIZARD_RX := 32.0   # the ring lies outside the body, so no bubble covers any of the wizard
 const WIZARD_RY := 46.0
-const NAMES := {"frozen": "Frozen", "slowed": "Slowed", "hexed": "Hexed", "silenced": "Silenced", "holding": "Holding breath", "choking": "Choking", "raging": "Raging", "fleeing": "Fleeing", "bleeding": "Bleeding", "veiled": "Veiled", "hasted": "Hasted", "adrenaline": "Adrenaline", "unlimited": "Unlimited stamina", "extra_jump": "Extra jump", "wet": "Wet", "burning": "Burning", "oiled": "Oiled"}
+const NAMES := {"frozen": "Frozen", "slowed": "Slowed", "dazed": "Dazed", "hexed": "Hexed", "silenced": "Silenced", "holding": "Holding breath", "choking": "Choking", "confused": "Confused", "fleeing": "Fleeing", "bleeding": "Bleeding", "veiled": "Veiled", "hasted": "Hasted", "adrenaline": "Adrenaline", "unlimited": "Unlimited stamina", "extra_jump": "Extra jump", "wet": "Wet", "burning": "Burning", "oiled": "Oiled"}
+const TIPS := {
+	"wet": "Extinguishes flames\nTake increased damage from electricity\nFreeze faster and for longer",
+	"burning": "Take fire damage over time\nIgnite anything else you touch",
+	"oiled": "Burn for longer",
+	"frozen": "Cannot move, act, or breathe",
+	"slowed": "Move slower",
+	"dazed": "Move slower\nCannot cast spells or chant incantations",
+	"hexed": "Take increased damage\nCannot hide from whoever cast it",
+	"silenced": "Cannot cast spells or chant incantations",
+	"holding": "Cannot inhale, exhale, or speak",
+	"choking": "Out of air\nTake damage over time",
+	"confused": "Cast random spells",
+	"fleeing": "Cannot move toward whoever cast it",
+	"bleeding": "Take damage over time\nMove slower and casting is shakier",
+	"veiled": "Negates the next few attacks",
+	"hasted": "Run faster",
+	"adrenaline": "Run faster\nTake less damage\nDeal more damage",
+	"unlimited": "Spells cost no stamina",
+	"extra_jump": "Jump again in mid-air",
+}  # what each state does to whoever is in it, as the spellbook says when the mouse rests on its picture
 const MIDDLE := Vector2(0.0, -34.0)
 
 var wizard: Wizard
@@ -90,8 +110,10 @@ func _states() -> Dictionary:
 			states["holding"] = air * 100.0   # a count of its own: 100 is a full breath
 		else:
 			states["choking"] = -1.0
+	if wizard.daze_time > 0.0:
+		states["dazed"] = wizard.daze_time
 	if wizard.rage_time > 0.0:
-		states["raging"] = wizard.rage_time
+		states["confused"] = wizard.rage_time
 	if wizard.fear_time > 0.0:
 		states["fleeing"] = wizard.fear_time
 	var bleed := Hemorrhage.on(tree, wizard)
@@ -190,6 +212,11 @@ func _draw_one(canvas: CanvasItem, name: String, at: Vector2) -> void:
 		canvas.draw_arc(at, RADIUS + 0.5, -PI * 0.5, -PI * 0.5 + TAU * ring, 24, RING_COLOR, 1.0)  # what is left of the time, from the top, clockwise
 	else:
 		canvas.draw_arc(at, RADIUS + 0.5, 0.0, TAU, 24, Color(RING_COLOR, 0.3), 1.0)
+	if name == "veiled" and wizard.veil > 0:  # how many blows it will still turn away, in the corner of its bubble
+		var font := ThemeDB.fallback_font
+		var corner := at + Vector2(3.0, 9.0)
+		canvas.draw_string_outline(font, corner, str(wizard.veil), HORIZONTAL_ALIGNMENT_LEFT, -1, 8, 3, Color(0.05, 0.04, 0.09))
+		canvas.draw_string(font, corner, str(wizard.veil), HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(1.0, 1.0, 1.0))
 
 
 ## The layer itself: it does nothing but ask the bubbles to draw on it.

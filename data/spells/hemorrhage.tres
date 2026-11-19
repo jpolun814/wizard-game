@@ -11,3 +11,4 @@ targeting = "positional"
 cost = 20.0
 effect = "Make someone bleed."
 damage = "3 dmg/sec"
+applies = Array[String](["bleeding"])

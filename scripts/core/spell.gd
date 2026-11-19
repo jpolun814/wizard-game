@@ -18,6 +18,8 @@ enum Size { NONE, RADIUS, REACH, LINE_WIDTH, LINE_SPAN, LENGTH, STEP_LENGTH, ARE
 @export_enum("directional", "pointed", "raised", "positional", "shape", "cone", "angled") var targeting := "positional"  ## how the stroke aims it: the three first leave along it
 @export var cost := 10.0
 @export_multiline var effect := ""  ## what it does, for the spellbook
+@export var applies: Array[String] = []  ## the states it puts on someone (names as in StatusBubbles), for the spellbook
+@export var removes: Array[String] = []  ## the states it takes off someone
 @export var damage := ""            ## a short figure for the spellbook
 @export var color := Color(0, 0, 0, 0)  ## the glow of a spell that is not its school's color; transparent means the school's
 @export var size_from := Size.NONE

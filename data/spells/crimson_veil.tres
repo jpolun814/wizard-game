@@ -9,3 +9,4 @@ school = "Blood"
 gesture = "wall"
 cost = 5.0
 effect = "Wrap yourself in a veil of blood that negates the next few attacks."
+applies = Array[String](["veiled"])

@@ -14,3 +14,4 @@ size_unit = 100.0
 size_min = 0.5
 size_max = 5.0
 effect_path = "res://scripts/spells/firewall.gd"
+applies = Array[String](["burning"])

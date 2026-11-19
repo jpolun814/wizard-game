@@ -9,3 +9,4 @@ school = "Shadow"
 gesture = "silence"
 cost = 40.0
 effect = "Block magic from being cast in the area."
+applies = Array[String](["silenced"])

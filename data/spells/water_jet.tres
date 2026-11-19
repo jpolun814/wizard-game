@@ -14,3 +14,5 @@ size_from = 2
 size_unit = 160.0
 size_min = 0.7
 size_max = 1.4
+applies = Array[String](["wet"])
+removes = Array[String](["burning"])

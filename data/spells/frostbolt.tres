@@ -12,3 +12,4 @@ cost = 14.0
 effect = "Shoot a chilling bolt of ice."
 damage = "10 dmg"
 effect_path = "res://scripts/spells/ice_spear.gd"
+applies = Array[String](["slowed"])

@@ -9,3 +9,4 @@ school = "Shadow"
 gesture = "pentagram"
 cost = 20.0
 effect = "Curse someone with a dark star: they take extra damage and cannot hide from you."
+applies = Array[String](["hexed"])
