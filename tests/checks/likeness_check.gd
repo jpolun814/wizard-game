@@ -24,7 +24,7 @@ func _ready() -> void:
 				lowest = y
 	var boots := PartFrames.OFFSET.y - float(image.get_height()) * 0.5 + float(lowest + 1)  # where the soles are, from the feet of the wizard (they must be at 0)
 	_verdict(is_zero_approx(boots), "and its boots stand on the ground, not over it or in it (%.0f px off)" % boots)
-	_verdict(Sfx.has_sound(WizardLook.jump_sound(mine)), "and it has a jump sound (%s)" % WizardLook.jump_sound(mine))
+	_verdict(Sfx.has_sound(WizardLook.hurt_sound(mine)), "and it has a hurt sound (%s)" % WizardLook.hurt_sound(mine))
 	var rivals := [Net.rival_look(1), Net.rival_look(2), Net.rival_look(3), Net.rival_look(4)]
 	_verdict(rivals.all(func(look: String) -> bool: return PartsLook.is_valid(look) and look != mine) and rivals.size() == 4 and rivals[0] != rivals[1] and rivals[1] != rivals[2] and rivals[2] != rivals[3], "each brain's wizard is made of parts, and none wears the person's (%s)" % str(rivals))
 	GameSettings.set_value("look", rivals[0])

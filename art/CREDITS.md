@@ -51,13 +51,12 @@ and are no longer drawn by the game.
 | Files in `audio/` | Source | License |
 |---|---|---|
 | `player_hurt`, `mob_shoot` | [Kenney – New Platformer Pack](https://kenney.nl/assets/new-platformer-pack) | CC0 1.0 |
-| `jump` | [Jumping man sounds](https://opengameart.org/content/jumping-man-sounds) by IgnasD | CC0 |
-| `jump_lightning_mage` | [Female RPG Voice Starter Pack](https://opengameart.org/content/female-rpg-voice-starter-pack) by Cici Fyre (the jump clips of voice type 2, converted to 16 bit and brought up to the loudness of `jump`) | CC0 |
 | `pickup` | [Kenney – RPG Audio](https://kenney.nl/assets/rpg-audio) (cloth rustle) | CC0 1.0 |
 | `heartbeat` | [Heartbeat sounds](https://opengameart.org/content/heartbeat-sounds) by estevinho (`heartbeat_slow_0`) | CC0 |
 | `blood_cast`, `chomp` | [40 CC0 water / splash / slime SFX](https://opengameart.org/content/40-cc0-water-splash-slime-sfx) by rockseller (`slime_05`, `slime_12`) | CC0 |
 | `surf` | [Beach ocean waves](https://opengameart.org/content/beach-ocean-waves) by qubodup, from a recording by jasinski (`wave_02`) | CC0 |
 | `glass`, `faint`, `jaw_snap` | [75 CC0 breaking / falling / hit SFX](https://opengameart.org/content/75-cc0-breaking-falling-hit-sfx) by rubberduck (`glass_breaking_01`, `falling_02`, `hit_03`) | CC0 |
+| `hurt_body_1..3` | The same [75 CC0 breaking / falling / hit SFX](https://opengameart.org/content/75-cc0-breaking-falling-hit-sfx) by rubberduck (`hit_06`, `hit_07`, `hit_08`: dull thumps), used for a wizard being hurt in place of the voices | CC0 |
 | `force`, `barrier`, `quake`, `tornado` (a jet roar) | [Kenney – Sci-fi Sounds](https://kenney.nl/assets/sci-fi-sounds) | CC0 1.0 |
 | `type`, `ui_click` | [Kenney – Interface Sounds](https://kenney.nl/assets/interface-sounds) | CC0 1.0 |
 | `book_open`, `book_close`, `page_*` | [Kenney – RPG Audio](https://kenney.nl/assets/rpg-audio) | CC0 1.0 |
@@ -189,8 +188,6 @@ Drawn pixel by pixel by `tools/make_shot_art.py`. No outside source and nothing 
 
 The lectern stand and plaque, the spellbook, the lily pad, the plank, the quicksand, the rock spikes, the door, the shipwreck and the marble stairs (`art/tiles/podium_marble.png`) were redrawn for the game by an agent at the owner's request (2026-11-17) with `python tools/wizard_parts/props.py`; the previous pictures are in `art_source/props/before/`.
 
-| `jump_voice_4`, `hurt_voice_3`, `hurt_voice_4` | The same [Female RPG Voice Starter Pack](https://opengameart.org/content/female-rpg-voice-starter-pack) by Cici Fyre: the jump clips of voice type 3 and the damaged clips of types 2 and 3 (converted to 16 bit mono, loudness matched to `player_hurt`) | CC0 |
-| `jump_voice_5`, `hurt_voice_5`, `hurt_voice_1` | VoiceBosch's [effort sounds male](https://opengameart.org/content/effort-sounds-male-audio-pack) and [damage sounds male](https://opengameart.org/content/damage-sounds-male-audio-pack) audio packs (clips 36, 39 and 38 of the first, 1, 3 and 22 of the second for voice 5, and 5, 10 and 20 of the second for voice 1's hurt cry; cut short, faded and brought to the loudness of the other voices). **CC-BY-SA 4.0: credit VoiceBosch, and the changed clips stay under the same licence** | CC-BY-SA 4.0 |
 The Invincible Snail (`art/mobs/snail/`) was drawn for the game by an agent at the owner's request (2026-11-17) with `python tools/wizard_parts/props.py snail`.
 
 ## Status bubble icons
