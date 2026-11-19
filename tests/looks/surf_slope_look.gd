@@ -42,8 +42,16 @@ func _ready() -> void:
 			for k in 15:
 				await get_tree().physics_frame
 			player.global_position = arena.landing(at)
-		elif not in_world and side > 0.0:
+		elif not in_world and side > 0.0 and not OS.get_cmdline_user_args().has("puddle"):
 			player.global_position = arena.landing(player.global_position + Vector2(shift, -40.0))
+		if side > 0.0 and OS.get_cmdline_user_args().has("puddle"):  # a shallow sheet of water on level ground, ahead of the rider
+			Pond.spill(arena, arena._ground, player.global_position + Vector2(120.0, -6.0), 12.0)
+			await get_tree().create_timer(4.0).timeout
+			player.global_position = arena.landing(player.global_position + Vector2(-20.0, -40.0))
+			for pond: Pond in get_tree().get_nodes_in_group("ponds"):
+				if pond.grid != null and not pond.lava:
+					var xs := player.global_position.x + 120.0
+					print("PUDDLE surface_at(x+120)=", pond.grid.surface_at(xs), " rider y=", player.global_position.y, " region=", pond.region())
 		player.velocity = Vector2.ZERO
 		player.facing = side
 		await get_tree().physics_frame
@@ -53,6 +61,7 @@ func _ready() -> void:
 			get_viewport().get_texture().get_image().save_png(out + "/run_%d_%02d.png" % [int(side), frame])
 		for node in get_tree().get_nodes_in_group("lasting"):
 			if node is TideSurf:
+				print("FLOOR ", node._floor)
 				node.queue_free()
 		player.surf_time = 0.0
 		await get_tree().create_timer(0.8).timeout

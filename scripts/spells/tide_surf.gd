@@ -101,16 +101,39 @@ func _read_ground() -> void:
 	var space := get_world_2d().direct_space_state
 	var count := int((CREST + ROLL + AHEAD - BACK) / GROUND_STEP) + 2
 	_floor.resize(count)
-	var last := 4.0
 	for k in count:
 		var along := (BACK + float(k) * GROUND_STEP) * direction
 		var from := global_position + Vector2(along, -70.0)
 		var query := PhysicsRayQueryParameters2D.create(from, from + Vector2(0.0, 190.0))
 		query.collision_mask = 1  # the ground
 		var hit := space.intersect_ray(query)
-		if not hit.is_empty():
-			last = clampf(hit["position"].y - global_position.y + 4.0, -60.0, 60.0)
-		_floor[k] = last
+		if hit.is_empty():
+			_floor[k] = NAN  # inside rock, or over a drop: filled in from its neighbors below
+			continue
+		var bed: float = hit["position"].y
+		_floor[k] = clampf(minf(bed, _water_top(Vector2(from.x, bed), from.y)) - global_position.y + 4.0, -60.0, 60.0)
+	var here := clampi(int(-BACK / GROUND_STEP), 0, count - 1)  # the point under the rider: a gap takes the value of the nearest point toward it
+	if is_nan(_floor[here]):
+		_floor[here] = 4.0
+	for k in range(here + 1, count):
+		if is_nan(_floor[k]):
+			_floor[k] = _floor[k - 1]
+	for k in range(here - 1, -1, -1):
+		if is_nan(_floor[k]):
+			_floor[k] = _floor[k + 1]
+
+
+## Where the water stands over a bed of ground at this x: the wave is water too, so it skids across the top of a pond and does not dip into it. Gives the height of the surface,
+## or the bed itself where there is no water over it.
+func _water_top(bed: Vector2, from_y: float) -> float:
+	var top := bed.y
+	for pond: Pond in get_tree().get_nodes_in_group("ponds"):
+		if pond.lava or pond.grid == null or not pond.region().has_point(Vector2(bed.x, bed.y - 2.0)):
+			continue
+		var level := pond.grid.surface_at(bed.x)
+		if level < top and level > from_y:
+			top = level
+	return top
 
 
 ## The height of the ground at a point along the wave (`x` from the rider, toward the front), between the points that were read.
@@ -197,7 +220,7 @@ func _draw() -> void:
 	var fade := clampf((SECONDS - _age) / 0.5, 0.0, 1.0)
 	var grow := rise * rise * (3.0 - 2.0 * rise) * fade
 	if is_instance_valid(caster):
-		caster.ride_lift(RIDE * 0.8 * grow)  # the rider stands on top of the water, not in it
+		caster.ride_lift(RIDE * 0.8 * grow + clampf(4.0 - _ground_at(0.0), 0.0, 60.0))  # the rider stands on top of the water, not in it
 	if grow <= 0.01:
 		return
 	var tide := _age * 6.0
