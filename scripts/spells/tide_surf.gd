@@ -21,6 +21,7 @@ var ground: Terrain      # the ground the water will run over when the ride ends
 var _carried := 0.0
 var direction := 1.0
 var _age := 0.0
+var _spent := 0.0   # how much of its life the wave has lost to climbing
 var _floor := PackedFloat32Array()  # the height of the ground under the wave at points along it (from its tail to its front), relative to the rider's feet
 var _shoved := {}  # who it has shoved lately -> seconds until it can again
 var _spray: CPUParticles2D
@@ -57,10 +58,18 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	_age += delta
 	if not is_instance_valid(caster) or caster.dead or caster.fainted or _age >= SECONDS or caster.surf_time <= 0.0:
-		_end()
+		_end(_spent > 0.8 and _age >= SECONDS)
 		return
 	global_position = caster.global_position
 	_read_ground()
+	var climb := (_ground_at(0.0) - _ground_at(CREST + ROLL + AHEAD)) / (CREST + ROLL + AHEAD)  # how steeply the ground rises ahead (negative going down)
+	if climb >= TOO_STEEP:
+		_end(true)  # a wall or a cliff: the wave breaks against it at once
+		return
+	if climb > 0.12:
+		var lost := delta * climb * CLIMB_DRAIN  # water running up a hill gives out sooner, the steeper it is
+		_age += lost
+		_spent += lost
 	caster.coat.soak()  # whoever rides the wave is wet
 	queue_redraw()
 	for body in _shoved.keys():
@@ -90,7 +99,7 @@ func _physics_process(delta: float) -> void:
 ## a step as it is and does not hang over it or sink into it.
 func _read_ground() -> void:
 	var space := get_world_2d().direct_space_state
-	var count := int((CREST + ROLL - BACK) / GROUND_STEP) + 2
+	var count := int((CREST + ROLL + AHEAD - BACK) / GROUND_STEP) + 2
 	_floor.resize(count)
 	var last := 4.0
 	for k in count:
@@ -138,9 +147,15 @@ func _start_sound() -> void:
 	_sound.play()
 
 
-func _end() -> void:
+func _end(crashed := false) -> void:
 	if is_instance_valid(caster):
 		caster.ride_lift(0.0)
+		if crashed:  # the wave breaks over the slope: a heap of foam, and the rider is thrown back off it
+			var front_at := global_position + Vector2(direction * (CREST + ROLL), -RIDE * 0.5)
+			Fx.burst(get_parent(), front_at, FOAM, 22, 220.0, 0.6, true)
+			Fx.burst(get_parent(), global_position + Vector2(0.0, -RIDE), FOAM, 10, 140.0, 0.5, true)
+			if not caster.dead:
+				caster.push(Vector2(-direction * 140.0, -220.0))
 	if _sound != null:
 		var quiet := create_tween()
 		quiet.tween_property(_sound, "volume_db", -40.0, 0.4)
@@ -163,6 +178,9 @@ const BACK := -140.0     # where the surge begins, behind the rider
 const CREST := 14.0      # where it is highest, just ahead of the rider
 const ROLL := 22.0       # how far the front rolls over and down ahead of the crest
 const RIDE := 24.0       # how high the water lifts the rider's feet, at its fullest
+const AHEAD := 44.0       # how far past its front the wave reads the ground: it feels a hill coming
+const TOO_STEEP := 1.0     # a climb this steep (a rise as long as the run, 45 degrees) and the wave breaks at once
+const CLIMB_DRAIN := 5.0   # on a climb the wave spends itself this much faster for each unit of steepness
 const GROUND_STEP := 8.0  # the distance between the points where the ground is read
 const STEP := 4.0        # the distance between the points of its outline
 
