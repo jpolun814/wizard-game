@@ -16,6 +16,7 @@ const NAMES := {
 	"handlebar": "Handlebar", "stubble": "Stubble",
 	"pointy": "Pointed hat", "wide": "Witch hat", "hood": "Hood", "circlet": "Circlet", "horned": "Horned helm", "skull": "Skull crown", "laurel": "Laurel", "turban": "Turban", "mushroom": "Mushroom cap", "crown": "Crown",
 	"staff_orb": "Orb staff", "staff_crystal": "Crystal staff", "staff_branch": "Branch staff", "wand": "Wand", "scepter": "Scepter",
+	"voice_1": "Voice 1", "voice_3": "Voice 2", "voice_4": "Voice 3", "voice_5": "Voice 4",
 	"gown": "Gown", "bodice": "Bodice", "bob": "Bob", "pigtails": "Pigtails", "wavy": "Wavy", "updo": "Updo", "tonsure": "Tonsure", "tiara": "Tiara", "flower_crown": "Flower crown", "headscarf": "Headscarf", "rose_wand": "Rose wand", "staff_flower": "Flower staff",
 	"staff_skull": "Skull staff", "staff_moon": "Moon staff", "staff_root": "Root staff", "staff_lantern": "Lantern staff", "crook": "Crook", "book": "Spellbook", "orb_hand": "Orb", "bone_wand": "Bone wand",
 }
@@ -37,7 +38,7 @@ const INK := Color("#f0e6d0")   # the cream of a plate's writing
 const DIM := Color("#a89cc0")   # what a row is called
 const EDGE := Color(0.36, 0.26, 0.5)  # the violet edge of the interface's buttons and fields
 ## The rows set apart in groups, with a rule between each.
-const GROUPS := [["skin"], ["outfit", "color", "trim"], ["hair", "hair_color", "beard", "hat"], ["boots", "weapon"]]
+const GROUPS := [["skin"], ["outfit", "color", "trim"], ["hair", "hair_color", "beard", "hat"], ["boots", "weapon", "voice"]]
 ## What each row is called.
 const TITLES := {"skin": "Skin", "outfit": "Outfit", "color": "Outfit color", "trim": "Trim", "hair": "Hair", "hair_color": "Hair color", "beard": "Beard", "hat": "Hat", "boots": "Boots", "weapon": "Weapon", "voice": "Voice"}
 
@@ -306,6 +307,8 @@ func _choose(option: String, value: String) -> void:
 	Sfx.play("ui_click")
 	GameSettings.set_value("look", PartsLook.with_option(_current(), option, value))
 	_changed()
+	if option == "voice":
+		Sfx.play(WizardLook.jump_sound(_current()))  # a voice is heard when it is chosen
 
 
 func _randomize() -> void:
