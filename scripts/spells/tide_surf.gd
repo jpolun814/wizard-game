@@ -21,6 +21,8 @@ var ground: Terrain      # the ground the water will run over when the ride ends
 var _carried := 0.0
 var direction := 1.0
 var _age := 0.0
+var _skin: StaticBody2D       # the top of the water under the rider: they ride across a pond on it and do not sink into it
+var _skin_shape: CollisionShape2D
 var _spent := 0.0   # how much of its life the wave has lost to climbing
 var _floor := PackedFloat32Array()  # the height of the ground under the wave at points along it (from its tail to its front), relative to the rider's feet
 var _shoved := {}  # who it has shoved lately -> seconds until it can again
@@ -30,6 +32,20 @@ var _sound: AudioStreamPlayer2D  # the sea, heard for as long as the ride lasts
 
 func _ready() -> void:
 	_ready_look()
+	_skin = StaticBody2D.new()
+	_skin.top_level = true
+	_skin.collision_layer = 16  # a one-way platform, as a lily pad is
+	_skin.collision_mask = 0
+	_skin_shape = CollisionShape2D.new()
+	var plank := RectangleShape2D.new()
+	plank.size = Vector2(SKIN_LENGTH, 8.0)
+	_skin_shape.shape = plank
+	_skin_shape.position = Vector2(0.0, 4.0)
+	_skin_shape.one_way_collision = true
+	_skin_shape.one_way_collision_margin = 8.0
+	_skin_shape.disabled = true
+	_skin.add_child(_skin_shape)
+	add_child(_skin)
 	add_to_group("lasting")
 	z_index = 6
 	caster.start_surf(direction, SECONDS)
@@ -62,6 +78,7 @@ func _physics_process(delta: float) -> void:
 		return
 	global_position = caster.global_position
 	_read_ground()
+	_hold_on_water()
 	var climb := (_ground_at(0.0) - _ground_at(CREST + ROLL + AHEAD)) / (CREST + ROLL + AHEAD)  # how steeply the ground rises ahead (negative going down)
 	if climb >= TOO_STEEP:
 		_end(true)  # a wall or a cliff: the wave breaks against it at once
@@ -93,6 +110,18 @@ func _physics_process(delta: float) -> void:
 		if fire is Hazard and absf(fire.global_position.x - global_position.x) < LENGTH * 0.5 + fire.width * 0.5 and absf(fire.global_position.y - global_position.y) < 60.0:
 			Fx.smoke(get_parent(), fire.global_position, Color(0.85, 0.85, 0.9, 0.6), 4, 20.0, 40.0)
 			fire.queue_free()  # a wave over burning ground puts it out
+
+
+## Over a pond the rider is carried on the top of the water: a thin floor is laid at the surface under them while there is water just ahead and about level with their feet,
+## and goes where there is none. Without it they would ride the slope of the bed down into the water, and the wave would go with them.
+func _hold_on_water() -> void:
+	var ahead := global_position.x + direction * SKIN_LENGTH * 0.25
+	var level := Pond.surface_below(get_tree(), ahead, global_position.y - 40.0, 90.0)
+	if level == INF:
+		_skin_shape.set_deferred("disabled", true)
+		return
+	_skin.global_position = Vector2(ahead, level)
+	_skin_shape.set_deferred("disabled", false)
 
 
 ## Reads the ground under the whole length of the wave, a point every `GROUND_STEP` pixels from its tail to its front, so the water lies on a hill, in a dip or at
@@ -204,6 +233,7 @@ const RIDE := 24.0       # how high the water lifts the rider's feet, at its ful
 const AHEAD := 44.0       # how far past its front the wave reads the ground: it feels a hill coming
 const TOO_STEEP := 1.0     # a climb this steep (a rise as long as the run, 45 degrees) and the wave breaks at once
 const CLIMB_DRAIN := 5.0   # on a climb the wave spends itself this much faster for each unit of steepness
+const SKIN_LENGTH := 150.0  # how long the stretch of water's top is that the rider can stand on
 const GROUND_STEP := 8.0  # the distance between the points where the ground is read
 const STEP := 4.0        # the distance between the points of its outline
 

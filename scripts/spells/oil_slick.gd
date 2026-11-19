@@ -18,6 +18,8 @@ const BURN_LIFE := 4.5   # how long the ground burns
 var width := 140.0
 var caster: Wizard
 var _age := 0.0
+var _left := 0.0   # where the pool begins and ends, across it (it stops at a wall and at the edge of a drop, and does not hang past them)
+var _right := 0.0
 var _surface := PackedFloat32Array()  # the ground's height under the pool, sampled across it, relative to its middle
 var _lit := false
 
@@ -25,10 +27,7 @@ var _lit := false
 func _ready() -> void:
 	width = clampf(width, MIN_WIDTH, MAX_WIDTH)
 	global_position = SpellTargets.surface_over(get_world_2d(), global_position)
-	_surface.resize(SAMPLES)
-	for i in SAMPLES:
-		var x := lerpf(-width * 0.5, width * 0.5, float(i) / (SAMPLES - 1))
-		_surface[i] = SpellTargets.solid_below(get_world_2d(), global_position + Vector2(x, -40)).y - global_position.y
+	_lay_on_ground()
 	add_to_group("lasting")
 	add_to_group("oil_slicks")
 	z_index = 1
@@ -37,10 +36,29 @@ func _ready() -> void:
 	Fx.burst(get_parent(), global_position, Color(0.1, 0.08, 0.12, 0.9), 8, 90.0, 0.5, false)
 
 
+## Reads the ground the pool lies on and trims the pool to the part of it that is ground: see SpellTargets.ground_run.
+func _lay_on_ground() -> void:
+	var run := SpellTargets.ground_run(get_world_2d(), global_position, width, SAMPLES)
+	var first := SAMPLES / 2
+	var last := SAMPLES / 2
+	for i in SAMPLES:
+		if not is_nan(run[i]):
+			first = mini(first, i)
+			last = maxi(last, i)
+	_surface.resize(SAMPLES)
+	for i in SAMPLES:
+		_surface[i] = run[clampi(i, first, last)]  # what lies past either end is the end's height, so the pool's edge is level
+	_left = lerpf(-width * 0.5, width * 0.5, float(first) / (SAMPLES - 1))
+	_right = lerpf(-width * 0.5, width * 0.5, float(last) / (SAMPLES - 1))
+	if _right - _left < 24.0:  # nowhere to lie: a small patch where it was cast
+		_left = -12.0
+		_right = 12.0
+
+
 func _physics_process(delta: float) -> void:
 	_age += delta
 	queue_redraw()
-	if SpellTargets.fire_touching(get_tree(), Rect2(global_position + Vector2(-width * 0.5, -DEPTH * 2.0), Vector2(width, DEPTH * 3.0))):
+	if SpellTargets.fire_touching(get_tree(), Rect2(global_position + Vector2(_left, -DEPTH * 2.0 + _surface_at(0.0)), Vector2(_right - _left, DEPTH * 3.0))):
 		_go_up()
 		return
 	for body in SpellTargets.all(get_tree()):
@@ -56,7 +74,7 @@ func _physics_process(delta: float) -> void:
 func _caught(body: Node2D) -> bool:
 	var feet := body.global_position
 	var local_x := feet.x - global_position.x
-	if absf(local_x) > width * 0.5:
+	if local_x < _left or local_x > _right:
 		return false
 	var surface := global_position.y + _surface_at(local_x)
 	return feet.y >= surface - DEPTH and feet.y <= surface + 6.0
@@ -84,10 +102,11 @@ func _go_up() -> void:
 	queue_free()
 
 
-## True when a point is on any slick of oil.
+## True when a point is on any slick of oil: over it, and at the height of the ground it lies on (not on a floor above it or below it).
 static func under(tree: SceneTree, point: Vector2) -> bool:
 	for slick: OilSlick in tree.get_nodes_in_group("oil_slicks"):
-		if absf(point.x - slick.global_position.x) <= slick.width * 0.5 and absf(point.y - slick.global_position.y) < 40.0:
+		var local_x := point.x - slick.global_position.x
+		if local_x >= slick._left and local_x <= slick._right and absf(point.y - (slick.global_position.y + slick._surface_at(local_x))) < DEPTH:
 			return true
 	return false
 
@@ -106,12 +125,11 @@ func _draw() -> void:
 		return
 	var grow := clampf(_age / 0.4, 0.0, 1.0)
 	var fade := clampf((LIFE - _age) / 1.0, 0.0, 1.0)
-	var half := width * 0.5 * grow
 	var scroll := fmod(_age * 2.0, SAND.get_width())
 	var top := PackedVector2Array()
 	var uvs := PackedVector2Array()
 	for i in SAMPLES:
-		var x := lerpf(-half, half, float(i) / (SAMPLES - 1))
+		var x := lerpf(_left * grow, _right * grow, float(i) / (SAMPLES - 1))
 		top.append(Vector2(x, _surface_at(x) - 1.0))
 		uvs.append(Vector2((x + scroll) / SAND.get_width(), 0.0))
 	var bottom := PackedVector2Array()

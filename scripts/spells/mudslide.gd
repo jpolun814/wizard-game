@@ -17,6 +17,8 @@ var planted_ground := PackedFloat32Array()  # for a pit the world digs (the jung
 var _age := 0.0
 var _dried := 0.0
 var _tick := 0.0
+var _left := 0.0   # where the pool begins and ends, across it (it stops at a wall and at the edge of a drop, and does not hang past them)
+var _right := 0.0
 var _surface := PackedFloat32Array()  # the ground's height under the pit, sampled across it, relative to the pit
 const SAND := preload("res://art/props/quicksand.png")
 const SAMPLES := 17  # ground heights taken across the pit, so the mud follows the slope
@@ -29,13 +31,12 @@ func _ready() -> void:
 	var dug := not planted_ground.is_empty()
 	if dug:
 		_surface = planted_ground
+		_left = -width * 0.5
+		_right = width * 0.5
 		_age = 1.0  # already there: no growing in
 	else:
 		global_position = SpellTargets.surface_over(get_world_2d(), global_position)
-		_surface.resize(SAMPLES)
-		for i in SAMPLES:
-			var x := lerpf(-width * 0.5, width * 0.5, float(i) / (SAMPLES - 1))
-			_surface[i] = SpellTargets.solid_below(get_world_2d(), global_position + Vector2(x, -40)).y - global_position.y
+		_lay_on_ground()
 	add_to_group("danger")
 	add_to_group("lasting")
 	z_index = 1
@@ -45,10 +46,11 @@ func _ready() -> void:
 		Fx.debris(get_parent(), global_position, Color("#c8a46a"), 10, 160.0)
 	# Grains of sand bubbling up from the pit.
 	var p := CPUParticles2D.new()
-	p.amount = int(width / 6.0)
+	p.amount = maxi(int((_right - _left) / 6.0), 3)
 	p.lifetime = 0.8
 	p.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
-	p.emission_rect_extents = Vector2(width * 0.42, 2)
+	p.position.x = (_left + _right) * 0.5
+	p.emission_rect_extents = Vector2((_right - _left) * 0.42, 2)
 	p.direction = Vector2.UP
 	p.spread = 25.0
 	p.initial_velocity_min = 20.0
@@ -61,16 +63,36 @@ func _ready() -> void:
 	add_child(p)
 	p.emitting = true
 	# Bubbles of sand rising and popping across the pit.
-	for i in maxi(1, int(width / 50.0)):
+	var bubble_count := maxi(1, int((_right - _left) / 50.0))
+	for i in bubble_count:
 		var bubbles := PixelFx.sprite("bubbles", 30.0 + i * 5.0)
-		bubbles.position = Vector2((i + 0.5) * width / maxi(1, int(width / 50.0)) - width * 0.5, -10.0)
+		bubbles.position = Vector2(_left + (i + 0.5) * (_right - _left) / bubble_count, _surface_at(_left + (i + 0.5) * (_right - _left) / bubble_count) - 10.0)
 		bubbles.frame = i * 17
 		add_child(bubbles)
 
 
+## Reads the ground the pool lies on and trims the pool to the part of it that is ground: see SpellTargets.ground_run.
+func _lay_on_ground() -> void:
+	var run := SpellTargets.ground_run(get_world_2d(), global_position, width, SAMPLES)
+	var first := SAMPLES / 2
+	var last := SAMPLES / 2
+	for i in SAMPLES:
+		if not is_nan(run[i]):
+			first = mini(first, i)
+			last = maxi(last, i)
+	_surface.resize(SAMPLES)
+	for i in SAMPLES:
+		_surface[i] = run[clampi(i, first, last)]  # what lies past either end is the end's height, so the pool's edge is level
+	_left = lerpf(-width * 0.5, width * 0.5, float(first) / (SAMPLES - 1))
+	_right = lerpf(-width * 0.5, width * 0.5, float(last) / (SAMPLES - 1))
+	if _right - _left < 24.0:  # nowhere to lie: a small patch where it was cast
+		_left = -12.0
+		_right = 12.0
+
+
 func _physics_process(delta: float) -> void:
 	_age += delta
-	if SpellTargets.fire_heat_near(get_tree(), Rect2(global_position + Vector2(-width * 0.5, -DEPTH), Vector2(width, DEPTH * 2.0)), 10.0) > 0.0:
+	if SpellTargets.fire_heat_near(get_tree(), Rect2(global_position + Vector2(_left, -DEPTH), Vector2(_right - _left, DEPTH * 2.0)), 10.0) > 0.0:
 		_dried += delta  # fire bakes the mud hard
 		if _dried >= DRY_SECONDS:
 			Fx.smoke(get_parent(), global_position, Color(0.75, 0.62, 0.42, 0.6), 6, 26.0, 40.0)
@@ -97,7 +119,7 @@ func _physics_process(delta: float) -> void:
 func _caught(body: Node2D) -> bool:
 	var feet := body.global_position
 	var local_x := feet.x - global_position.x
-	if absf(local_x) > width * 0.5:
+	if local_x < _left or local_x > _right:
 		return false
 	var surface := global_position.y + _surface_at(local_x)
 	return feet.y >= surface - DEPTH and feet.y <= surface + 6.0
@@ -111,7 +133,8 @@ func _surface_at(local_x: float) -> float:
 
 
 func danger_at(point: Vector2) -> bool:
-	return absf(point.x - global_position.x) <= width * 0.5 + 10.0 and absf(point.y - global_position.y) < 50.0
+	var local_x := point.x - global_position.x
+	return local_x >= _left - 10.0 and local_x <= _right + 10.0 and absf(point.y - (global_position.y + _surface_at(local_x))) < 50.0
 
 
 ## The ground turned to pixel-art sand. The mud is drawn as a band that follows the sampled slope of the ground,
@@ -121,13 +144,12 @@ func _draw() -> void:
 		return
 	var grow := clampf(_age / 0.3, 0.0, 1.0)
 	var fade := clampf((LIFE - _age) / 0.6, 0.0, 1.0)
-	var half := width * 0.5 * grow
 	var scroll := fmod(_age * 6.0, SAND.get_width())
 	var top := PackedVector2Array()
 	var uvs := PackedVector2Array()
 	var edge := PackedVector2Array()
 	for i in SAMPLES:
-		var x := lerpf(-half, half, float(i) / (SAMPLES - 1))
+		var x := lerpf(_left * grow, _right * grow, float(i) / (SAMPLES - 1))
 		var y := _surface_at(x) - 1.0
 		top.append(Vector2(x, y))
 		uvs.append(Vector2((x + scroll) / SAND.get_width(), 0.0))

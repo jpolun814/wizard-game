@@ -90,19 +90,63 @@ static func wizards(tree: SceneTree) -> Array:
 
 ## The surface a point sits on. A point under the ground is moved up to the ground above it, so a drawn spell that
 ## starts underground still lands on top of the earth.
+## How far a pool's ground may step up or down between two neighboring points, in pixels.
+const RUN_STEP_UP := 26.0
+const RUN_STEP_DOWN := 34.0
+
+
 static func surface_over(world: World2D, point: Vector2) -> Vector2:
 	# A point in the open is over the first ground below it, not a ceiling above it.
 	var inside := PhysicsPointQueryParameters2D.new()
 	inside.position = point
 	inside.collision_mask = 1
 	if world.direct_space_state.intersect_point(inside, 1).is_empty():
-		return solid_below(world, point + Vector2(0, -40))
-	var query := PhysicsRayQueryParameters2D.create(Vector2(point.x, point.y - 800.0), point)
-	query.collision_mask = 1
-	var hit := world.direct_space_state.intersect_ray(query)
-	if not hit.is_empty():
-		return hit["position"]
-	return solid_below(world, point + Vector2(0, -40))
+		for lift in [6.0, 40.0]:  # the ground just under the point, and failing that a rise a little above it (a slope that climbs)
+			var down := PhysicsRayQueryParameters2D.create(point + Vector2(0.0, -lift), point + Vector2(0.0, 800.0))
+			down.collision_mask = 1
+			var below := world.direct_space_state.intersect_ray(down)
+			if not below.is_empty():
+				return below["position"]
+		return Vector2(point.x, ArenaGen.GROUND_Y)
+	# A point inside the ground is over the nearest surface above it (the ground it is in), and only failing that the first one far above (never a platform overhead
+	# when the ground right here is near).
+	for reach in [64.0, 800.0]:
+		var query := PhysicsRayQueryParameters2D.create(Vector2(point.x, point.y - reach), point)
+		query.collision_mask = 1
+		var hit := world.direct_space_state.intersect_ray(query)
+		if not hit.is_empty():
+			return hit["position"]
+	return solid_below(world, point + Vector2(0, -6))
+
+
+## The ground a pool lies on (oil, mud), read across its width from its middle outward, the way a person would walk it: each next point is found a step up or down from the
+## last one, so the pool follows a slope or a small step and stops at a wall or at the edge of a drop (a platform's end, a cliff, a pit) and does not hang in the air past it,
+## or jump down to a floor below. Gives the height of the ground at `samples` points evenly across `width` (relative to `origin`), and NAN for the points it did not reach.
+static func ground_run(world: World2D, origin: Vector2, width: float, samples: int) -> PackedFloat32Array:
+	var out := PackedFloat32Array()
+	out.resize(samples)
+	out.fill(NAN)
+	var middle := samples / 2
+	out[middle] = 0.0
+	var here := PhysicsRayQueryParameters2D.create(origin + Vector2(0.0, -RUN_STEP_UP), origin + Vector2(0.0, RUN_STEP_DOWN))
+	here.collision_mask = 1
+	if world.direct_space_state.intersect_ray(here).is_empty():
+		out.fill(0.0)  # no ground under the middle of it at all (it was cast over open air): a level pool, as wide as it was drawn
+		return out
+	for direction in [-1, 1]:
+		var last := origin.y
+		var i: int = middle + direction
+		while i >= 0 and i < samples:
+			var x := origin.x + lerpf(-width * 0.5, width * 0.5, float(i) / float(samples - 1))
+			var query := PhysicsRayQueryParameters2D.create(Vector2(x, last - RUN_STEP_UP), Vector2(x, last + RUN_STEP_DOWN))
+			query.collision_mask = 1
+			var hit := world.direct_space_state.intersect_ray(query)
+			if hit.is_empty():
+				break  # a wall (the ray starts in rock) or a drop (nothing under it): the pool ends here
+			last = hit["position"].y
+			out[i] = last - origin.y
+			i += direction
+	return out
 
 
 ## The middle of a body, for distance checks. Enemies and the player both have center(); anything else uses its
