@@ -213,6 +213,9 @@ func draw(canvas: CanvasItem) -> void:
 	if hovered != "":
 		var font := ThemeDB.fallback_font
 		var text: String = NAMES[hovered]
+		var seconds: float = _left.get(hovered, -1.0)
+		if seconds > 0.0 and hovered != "holding":  # (a held breath is counted in its own way, not in seconds)
+			text += " %ds" % ceili(seconds)  # the time left, as 4s
 		var size := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, 10)
 		var at := _layer.get_local_mouse_position() + Vector2(10.0, -8.0)
 		canvas.draw_rect(Rect2(at - Vector2(3.0, size.y - 1.0), size + Vector2(6.0, 4.0)), Color(0.05, 0.04, 0.09, 0.92))

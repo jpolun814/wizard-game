@@ -49,7 +49,7 @@ wears a red cross and is dimmed ("Removes: Burning"). Hovering an icon shows the
 tooltips appear at once: `gui/timers/tooltip_delay_sec` is 0). **What a tooltip says is what the state does to the one who has it, never what to cast against it** (no "cast X to
 counter Y"). Tooltip style (owner): short fragments, one per line, no full stops, said the way a person would say them ("Take fire damage over time", not notes for a machine). A state
 the page already shows by a "Removes" icon is not repeated in another state's tooltip (Wet does not say it puts out flames). The icons are the status bubbles' 9x9 pictures
-(`tools/wizard_parts/status_icons.py`; the red cross is one of them); a state's bubble on a wizard shows only its name when hovered. The states: Frozen, Slowed, Dazed, Hexed, Silenced,
+(`tools/wizard_parts/status_icons.py`; the red cross is one of them); hovering a state's bubble on a wizard shows its name and the seconds it has left, as "Wet 5s" (owner; not shown for a held breath or a state with no clock). The states: Frozen, Slowed, Dazed, Hexed, Silenced,
 Holding breath, Choking, Confused (was Raging), Fleeing, Bleeding, Veiled (its bubble shows how many blows are left), Hasted, Adrenaline, Unlimited, Extra jump, Wet, Burning, Oiled,
 Sturdy, Fireproof (an obsidian shard), Invisible, Unconscious, Pursued (by a snail). Tangle and Sink are folded into Slowed. A new state needs an icon in that script, an entry in
 `StatusBubbles.ORDER`, `NAMES` and `TIPS`, and a line in `_states`.
