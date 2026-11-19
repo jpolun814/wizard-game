@@ -48,7 +48,7 @@ sits a row of small status icons (`Spell.applies`, `Spell.removes`, set in each 
 wears a red cross and is dimmed ("Removes: Burning"). Hovering an icon shows the state's name and what it does to whoever is in it (`StatusBubbles.TIPS`, `Spellbook._status_row`;
 tooltips appear at once: `gui/timers/tooltip_delay_sec` is 0). **What a tooltip says is what the state does to the one who has it, never what to cast against it** (no "cast X to
 counter Y"). Tooltip style (owner): short fragments, one per line, no full stops, said the way a person would say them ("Take fire damage over time", not notes for a machine). A state
-the page already shows by a "Removes" icon is not repeated in another state's tooltip (Wet does not say it puts out flames). The tooltip's title carries how long the state lasts from that spell or chant, as "Frozen 4s" (owner: short form, `Spellbook._state_seconds`; nothing where it has no set time, as under Bramble or a Vacuum). The icons are the status bubbles' 9x9 pictures
+the page already shows by a "Removes" icon is not repeated in another state's tooltip (Wet does not say it puts out flames). The icons are the status bubbles' 9x9 pictures
 (`tools/wizard_parts/status_icons.py`; the red cross is one of them); a state's bubble on a wizard shows only its name when hovered. The states: Frozen, Slowed, Dazed, Hexed, Silenced,
 Holding breath, Choking, Confused (was Raging), Fleeing, Bleeding, Veiled (its bubble shows how many blows are left), Hasted, Adrenaline, Unlimited, Extra jump, Wet, Burning, Oiled,
 Sturdy, Fireproof (an obsidian shard), Invisible, Unconscious, Pursued (by a snail). Tangle and Sink are folded into Slowed. A new state needs an icon in that script, an entry in
