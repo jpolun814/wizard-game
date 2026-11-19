@@ -17,12 +17,12 @@ ICONS = [
         "....a....", ".a..a..a.", "..a.a.a..", "...aaa...", "aaaabaaaa", "...aaa...", "..a.a.a..", ".a..a..a.", "....a...."]),
     ("slowed", {"a": "#c9a36a", "b": "#f0d9a8", "c": "#7a5a34"}, [
         "aaaaaaaaa", ".a.....a.", ".a.bbb.a.", "..a.b.a..", "...a.a...", "..a.c.a..", ".a.ccc.a.", ".acccccca", "aaaaaaaaa"]),
-    ("dazed", {"a": "#f0d060", "b": "#fffbd0", "c": "#a08a1a"}, [
-        "....a....", "....a....", "...aba...", "aaaabaaaa", ".aabbbaa.", "..abbba..", "..aa.aa..", ".aa...aa.", ".a.....a."]),
+    ("dazed", {"a": "#f0d060", "b": "#fffbd0"}, [
+        "....a....", "...aaa...", "....a....", ".........", "....b....", ".a.....a.", "aaa...aaa", ".a.....a.", "........."]),
     ("hexed", {"a": "#b04ae0", "b": "#e6a8ff", "c": "#5c1f80"}, [
         "....a....", "....a....", "...aba...", "aaaabaaaa", ".aabbbaa.", "..abbba..", "..aa.aa..", ".aa...aa.", ".a.....a."]),
-    ("silenced", {"b": "#d8d8ee", "d": "#e0484e"}, [
-        "..bbbbb..", ".bb...bd.", "b.....d.b", "b....d..b", "b...d...b", "b..d....b", "b.d.....b", ".db...bb.", "..bbbbb.."]),
+    ("silenced", {"b": "#e0484e"}, [
+        "..bbbbb..", ".bb...bb.", "b.....b.b", "b....b..b", "b...b...b", "b..b....b", "b.b.....b", ".bb...bb.", "..bbbbb.."]),
     ("holding", {"a": "#e89aa8", "b": "#ffd8de", "c": "#9a4658", "d": "#bfeaff"}, [
         "....d....", "....d....", "...ada...", ".aa.d.aa.", "abba.abba", "abba.abba", "abba.abba", ".acc...cc.".replace("...cc.", "..cc."), "..cc.cc.."]),
     ("choking", {"a": "#e8584e", "b": "#ffb0a8", "c": "#7a1a1a", "d": "#ff3a3a"}, [
@@ -51,8 +51,8 @@ ICONS = [
         "....c....", "....c....", "...ccc...", "...cac...", "..ccbcc..", ".cccbccc.", ".ccccccc.", "..ccccc..", "...ccc..."]),
     ("sturdy", {"a": "#6a6a78", "b": "#b0b0c0", "c": "#3a3a48"}, [
         "aaaaaaaaa", "abbbabbba", "abbbabbba", "aaaaaaaaa", "bbabbbabb", "bbabbbabb", "aaaaaaaaa", "abbbabbba", "aaaaaaaaa"]),
-    ("fireproof", {"a": "#6a5a9a", "b": "#d0c0ff", "c": "#2a1a4a"}, [
-        "....a....", "...aa....", "...aaa.a.", "..aabaaa.", ".aaabbaa.", ".aabbbaa.", ".aabbbaa.", "..aabaa..", "...ccc..."]),
+    ("fireproof", {"a": "#ff7a1a", "b": "#ffe060", "d": "#b8a8e8"}, [
+        "..ddddd..", ".d.....d.", "d...a...d", "d..aaa..d", "d.aabaa.d", "d.aabaa.d", "d..aaa..d", ".d.....d.", "..ddddd.."]),
     ("invisible", {"a": "#b8c0d8", "b": "#ffffff"}, [
         ".........", ".........", "..a.a.a..", ".a.....a.", "a..bbb..a", ".a.....a.", "..a.a.a..", ".........", "........."]),
     ("unconscious", {"a": "#9fc8ff", "b": "#ffffff"}, [
