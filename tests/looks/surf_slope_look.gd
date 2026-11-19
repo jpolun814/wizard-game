@@ -42,10 +42,9 @@ func _ready() -> void:
 		player.facing = side
 		await get_tree().physics_frame
 		arena.casting.by("Tide Surf", "caster", player.global_position, 0.0 if side > 0.0 else PI, {"accuracy": 0.9}, player)
-		await get_tree().create_timer(0.7).timeout
-		get_viewport().get_texture().get_image().save_png(out + "/slope_%da.png" % int(side))
-		await get_tree().create_timer(0.35).timeout
-		get_viewport().get_texture().get_image().save_png(out + "/slope_%d.png" % int(side))
+		for frame in 16:  # a run of frames a tenth of a second apart, to look at the motion
+			await get_tree().create_timer(0.1).timeout
+			get_viewport().get_texture().get_image().save_png(out + "/run_%d_%02d.png" % [int(side), frame])
 		for node in get_tree().get_nodes_in_group("lasting"):
 			if node is TideSurf:
 				node.queue_free()

@@ -129,6 +129,8 @@ func _start_sound() -> void:
 
 
 func _end() -> void:
+	if is_instance_valid(caster):
+		caster.ride_lift(0.0)
 	if _sound != null:
 		var quiet := create_tween()
 		quiet.tween_property(_sound, "volume_db", -40.0, 0.4)
@@ -152,7 +154,8 @@ const SKIN := Color(0.60, 0.78, 0.88)    # the lit surface
 const BODY := Color(0.23, 0.43, 0.59)    # the water just under it
 const DEEP := Color(0.05, 0.10, 0.24)    # the water at the bottom
 const BACK := -150.0     # where the swell begins, behind the rider
-const WALL := -16.0      # where the back wall of the barrel stands
+const CREST := 12.0      # where the crest stands, just ahead of the rider
+const RIDE := 32.0       # how high the water lifts the rider's feet, at its fullest
 const COLUMN := 2.0      # the width of a column of water: two world pixels, as a pixel of the pond's art
 
 
@@ -160,29 +163,29 @@ func _draw() -> void:
 	var rise := clampf(_age / 0.35, 0.0, 1.0)
 	var fade := clampf((SECONDS - _age) / 0.5, 0.0, 1.0)
 	var grow := rise * rise * (3.0 - 2.0 * rise) * fade
+	if is_instance_valid(caster):
+		caster.ride_lift(RIDE * grow)  # the rider stands on top of the water, not in it
 	if grow <= 0.01:
 		return
 	var tide := _age * 7.0
-	var top := (HEIGHT + 30.0) * grow * (1.0 + 0.07 * sin(tide) + 0.04 * sin(tide * 2.3 + 1.0))
+	var top := (RIDE + 5.0) * grow * (1.0 + 0.08 * sin(tide) + 0.04 * sin(tide * 2.3 + 1.0))
 	draw_set_transform(Vector2.ZERO, _slope, Vector2(direction, 1.0))
 	var x := BACK
-	while x < WALL:
-		var along := (x - BACK) / (WALL - BACK)
+	while x < CREST:
+		var along := (x - BACK) / (CREST - BACK)
 		# the swell climbs slowly and then steeply, and ripples run up it toward the crest
 		var ripple := sin(x * 0.11 - tide * 1.7) * 1.6 * along + sin(x * 0.047 - tide) * 1.2 * along
-		var height := maxf(top * pow(along, 1.6) + ripple * grow, 0.0)
+		var height := maxf(top * pow(along, 1.5) + ripple * grow, 0.0)
 		var low := 6.0
 		var high := roundf((low - height) / COLUMN) * COLUMN
 		_column(x, high, low, grow)
 		x += COLUMN
-	# the wall of the barrel: a curved edge of lit water from the foot of the swell up to the lip, rippling as it goes
-	var y := 6.0
-	while y > -top + 18.0 * grow:
-		var up := (6.0 - y) / maxf(top, 1.0)
-		var bend := -7.0 * sin(up * PI * 0.9) + 1.5 * sin(y * 0.3 - tide * 2.0)
-		draw_rect(Rect2(roundf(WALL + bend), roundf(y), 3.0, 2.0), Color(SKIN.r, SKIN.g, SKIN.b, 0.9 * grow))
-		draw_rect(Rect2(roundf(WALL + bend) - 4.0, roundf(y), 4.0, 2.0), Color(BODY.r, BODY.g, BODY.b, 0.7 * grow))
-		y -= 2.0
+	x = CREST  # the front face falls away steeply, hollowed under the lip
+	while x < CREST + 16.0:
+		var down := (x - CREST) / 16.0
+		var face := top * (1.0 - pow(down, 0.45)) + sin(x * 0.4 + tide * 2.0) * 0.8 * grow
+		_column(x, roundf((6.0 - maxf(face, 0.0)) / COLUMN) * COLUMN, 6.0, grow)
+		x += COLUMN
 	_lip(top, tide, grow)
 	draw_set_transform(Vector2.ZERO)
 
@@ -209,15 +212,15 @@ func _lip(top: float, tide: float, grow: float) -> void:
 	var seed := int(_age * 14.0)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed * 7919 + 17
-	var centre := Vector2(WALL + 22.0, -top + 24.0 * grow)
-	var radius := 24.0 * grow * (1.0 + 0.06 * sin(tide * 1.3))
+	var centre := Vector2(CREST + 6.0, -top + 17.0 * grow)
+	var radius := 17.0 * grow * (1.0 + 0.06 * sin(tide * 1.3))
 	var steps := 34
 	for k in steps:
 		var t := float(k) / float(steps - 1)
-		var angle := deg_to_rad(lerpf(-168.0, 52.0, t) + 5.0 * sin(tide + t * 6.0))
+		var angle := deg_to_rad(lerpf(-150.0, 60.0, t) + 5.0 * sin(tide + t * 6.0))
 		var jitter := Vector2(rng.randf_range(-1.6, 1.6), rng.randf_range(-1.6, 1.6)) * (0.4 + t)
 		var at := centre + Vector2(cos(angle), sin(angle)) * (radius + 2.0 * sin(t * 9.0 - tide * 2.0)) + jitter
-		var thick := lerpf(7.0, 2.0, t) * grow  # the curl is thick where it leaves the wall and thins to a tip
+		var thick := lerpf(6.0, 2.0, t) * grow  # the curl is thick where it leaves the wall and thins to a tip
 		at = (at / 1.0).round()
 		draw_rect(Rect2(at - Vector2(thick, thick) * 0.5, Vector2(thick, thick)), Color(BODY.r, BODY.g, BODY.b, 0.9 * grow))
 		draw_rect(Rect2(at - Vector2(thick, thick) * 0.5, Vector2(thick, 2.0)), Color(SKIN.r, SKIN.g, SKIN.b, 0.95 * grow))
@@ -228,8 +231,8 @@ func _lip(top: float, tide: float, grow: float) -> void:
 	# drops thrown off the tip: each one is somewhere along its fall, and the fall begins again as it lands
 	for k in 7:
 		var life := fposmod(_age * 1.6 + float(k) * 0.143, 1.0)
-		var start := centre + Vector2(cos(deg_to_rad(52.0)), sin(deg_to_rad(52.0))) * radius
-		var drop := start + Vector2(10.0 * life * (1.0 + 0.3 * float(k % 3)), -14.0 * life + 70.0 * life * life)
+		var start := centre + Vector2(cos(deg_to_rad(60.0)), sin(deg_to_rad(60.0))) * radius
+		var drop := start + Vector2(9.0 * life * (1.0 + 0.3 * float(k % 3)), -14.0 * life + 70.0 * life * life)
 		draw_rect(Rect2(drop.round(), Vector2(2.0, 2.0)), Color(0.93, 0.98, 1.0, (1.0 - life) * grow))
 
 

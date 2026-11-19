@@ -214,6 +214,7 @@ var drawn := false  # the portal of a collapsing world is carrying the wizard up
 var _art := "wizard"  # the folder of frames it wears now
 var pose := WizardPose.new(self)  # which of a wizard made of parts' many animations to play
 var _tips := {}  # where the gem is in each frame of the magic layer, found once (see tip)
+var _ride_lift := 0.0
 var _magic: MagicLayer  # a wizard made of parts has its gem, its glow and its spell effects on a layer of their own, in the color of the spell (see magic_ramp.gdshader)
 var _gem := Color.WHITE  # the color of the last spell it drew, which the gem shows; a wizard that has cast none shows a school of its own
 
@@ -1095,6 +1096,14 @@ func unstick() -> void:
 	_stuck_time = 0.0
 	_set_keep(2.0)
 	_sprite.position = Vector2.ZERO
+
+
+## The body is drawn this far above where it stands: a wizard riding a wave stands on top of the water (Tide Surf). Only how they look moves, not where they are.
+func ride_lift(height: float) -> void:
+	_ride_lift = height
+	_sprite.position.y = -height if _stuck_time <= 0.0 else 57.0
+	if _magic != null:
+		_magic.position.y = -height
 
 
 func _process(delta: float) -> void:
