@@ -37,7 +37,8 @@ def clip(path):
     if rate != RATE:
         n = int(len(x) * RATE / rate)
         x = np.interp(np.linspace(0, len(x) - 1, n), np.arange(len(x)), x).astype(np.float32)
-    return x[: RATE * 10]
+    x = x[: RATE * 10]
+    return x * (0.9 / max(float(np.abs(x).max()), 1e-6))  # every clip at one peak: the model hears level, and a quiet recording would score worse for being quiet
 
 
 def embed_audio(files, model, proc, torch):
@@ -86,4 +87,5 @@ def main():
             print("%.3f  %s" % (v, f))
 
 
-main()
+if __name__ == "__main__":
+    main()
