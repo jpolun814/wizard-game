@@ -5,7 +5,7 @@
 Each is a recording trimmed to its start, faded at the ends and brought to one loudness; nothing is made up:
     step_<ground>_1..4   a footstep on each kind of ground (the biome decides which: Wizard.STEP_SOUNDS)
     fire_wall            the crackle of a camp fire
-    summon               an eerie drone, swelling in and out
+    summon               earth giving way: a deep cave rumble, two thuds of earth and the creak of a wooden door, mixed
     pickup               a coat picked up: a rustle of cloth
     water_jet, geyser    the rush of a waterfall
 The wizards' voices are cut by tools/make_voices.py from the same pack. Needs numpy and soundfile.
@@ -71,7 +71,20 @@ def main(pack):
     save("water_jet", cut(os.path.join(nature, "Ambiance_Waterfall_Strong_Loop_Stereo.wav"), 3.0, 1.5, 0.08, 0.4, 0.15))
     save("geyser", cut(os.path.join(nature, "Ambiance_Waterfall_Strong_Loop_Stereo.wav"), 8.0, 2.0, 0.05, 0.8, 0.18))
     sample = os.path.join(pack, "Sample_A_Sound_Effect")
-    save("summon", cut(os.path.join(sample, "Atmosphere_Drone_Hum_Eerie_Loop_Stereo.wav"), 1.0, 1.6, 0.5, 0.6, 0.12))
+    rumble, rate = cut(os.path.join(nature, "Ambiance_Cave_Deep_Loop_Stereo.wav"), 5.0, 1.8, 0.4, 0.7, 0.12)
+    parts = [(rumble, 0.0, 0.9)]
+    for name, at, gain in (("Footsteps_DirtyGround_Jump_Land_01", 0.0, 1.0), ("Footsteps_Mud_Jump_Land_01", 0.35, 0.8)):
+        path = glob.glob(os.path.join(steps, "**", name + ".wav"), recursive=True)[0]
+        parts.append((cut(path, onset(path), 0.5, 0.0, 0.1, 0.2)[0], at, gain))
+    door = os.path.join(sample, "Household_Door_Wood_Open_Stereo.wav")
+    parts.append((cut(door, 0.0, 1.0, 0.05, 0.3, 0.1)[0], 0.5, 0.5))
+    mixed = np.zeros(int(1.8 * rate))
+    for x, at, gain in parts:
+        start = int(at * rate)
+        piece = x[: len(mixed) - start]
+        mixed[start:start + len(piece)] += piece / (np.abs(piece).max() or 1.0) * gain
+    mixed *= 0.9 / np.abs(mixed).max()
+    save("summon", (mixed, rate))
     coat = os.path.join(sample, "Cloth_Coat_PickUp_Stereo.wav")
     save("pickup", cut(coat, onset(coat), 0.7, 0.0, 0.15, 0.1))
 
