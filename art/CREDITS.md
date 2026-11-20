@@ -17,7 +17,7 @@ packed into atlases, effects into strips).
 | `art/tiles/swamp`, swamp props, `art/backgrounds/swamp/` | [GothicVania Swamp](https://opengameart.org/content/gotthicvania-swamp) by ansimuz | CC0 1.0 |
 | `art/tiles/church`, `art/tiles/stone`, church props, `art/backgrounds/church/` | [GothicVania Church](https://opengameart.org/content/gothicvania-church-pack) by ansimuz | CC0 1.0 |
 | the wooden walkway planks, barrel | [GothicVania Town](https://ansimuz.itch.io/gothicvania-town) by ansimuz | CC0 1.0 |
-| `art/fx/fireball`, `icespear`, `thunder_orb` | [Spell Effects](https://opengameart.org/content/spell-effects-by-starsteelgaming) by StarsteelGaming | CC0 |
+| `art/fx/fireball`, `thunder_orb` | [Spell Effects](https://opengameart.org/content/spell-effects-by-starsteelgaming) by StarsteelGaming | CC0 |
 | `art/fx/magic_bolt`, `dark_bolt`, `dark_orb`, `ice_lance`, `rock`, `shield` | [Pixel Art Spells](https://opengameart.org/content/pixel-art-spells) by DevWizard | CC0 |
 | `art/fx/lightning` | [Lighting Strike](https://opengameart.org/content/lighting-strike) by Remedyn | CC0 |
 | `art/fx/blast_*` | [Animated Explosions](https://opengameart.org/content/animated-explosions) by ansimuz | CC0 |
@@ -152,9 +152,11 @@ and are no longer drawn by the game.
 
 `art/props/lectern_stand.png` (the large wooden crate) and `art/props/lectern_plaque.png` (the gold frame, with the picture inside filled with its own gold) are cut from nikllamadev's [Dungeon Castle pixel art pack](https://nikllamadev.itch.io/dungeon-castle-pixel-art-asset-pack-free) (CC-BY 4.0) by `tools/prepare_lectern.py`. The source sheets are not kept in the repo.
 
-## Fire bolt and fire breath (art/fx/pimen_*.png)
+## Fire bolt, fire breath and ice shard (art/fx/pimen_*.png)
 
 Cut by `tools/prepare_pimen_fire.py` from pimen's [Fire Spell Effect 01](https://pimen.itch.io/fire-spell). The page allows use and changes in personal and commercial projects, does not require credit (it is appreciated), and forbids reselling or redistributing the sprites. Not CC0 or CC-BY: ask the owner before the files go into a public repository. The download is not kept in the repo (the page forbids passing the files on).
+
+The Frostbolt's ice shard and its burst (`art/fx/pimen_ice.png`, `pimen_ice_hit.png`) are cut by `tools/prepare_pimen_ice.py` from pimen's [Ice Spell Effect 01](https://pimen.itch.io/ice-spell-effect-01), on the same terms (use and changes allowed in personal and commercial projects, credit appreciated, no reselling or redistributing the sprites).
 
 ## The hammer in the cut-scene after a win (art/props/hammer.png)
 

@@ -166,7 +166,6 @@ BACKDROPS = {
 # Effects, saved as one horizontal strip each: name -> list of frame files, or (sheet, frame width).
 FX = {
     "fireball": ("x_starsteel/Fireball{}.png", 9),
-    "icespear": ("x_starsteel/Icespear{}.png", 6),
     "lightning": ("x_lightning/Lighting Strike {}.png", 7),
 }
 FX_SHEETS = {

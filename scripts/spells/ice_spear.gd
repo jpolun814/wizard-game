@@ -8,17 +8,19 @@ const HARM := 10
 const FLIGHT := 2.0
 const SLOW_SECONDS := 2.0
 const SHARDS := Color("#b8f0ff")
+const HEAD := 13.0  # how far the point of the shard is from the middle of its frame, in art pixels
+const DROP := 1.0   # how far below the middle of its frame the shard lies
 
 
 func _begin(origin: Vector2, aim_angle: float) -> void:
 	_life = FLIGHT
 	_launch(aim_angle, Vector2(22, 12))
-	# Drawn normally rather than as light, and a little blue, so the snow shows up against a snowy level.
-	_trail = Fx.trail(Color("#a9dcff"), 36, 0.55, 30.0, Vector2(0, 60), "star_04", 12.0)
-	_trail.material = null
-	add_child(_trail)
-	var shot := PixelFx.sprite("icespear", 18.0)
-	shot.offset = Vector2(-18, 0)
+	# The shot itself: pimen's ice shard, its point on the node and its tail streaming behind. Drawn normally rather than as light, so the snow shows up against it.
+	var shot := AnimatedSprite2D.new()
+	shot.sprite_frames = PixelFx.square_frames("pimen_ice", 16.0, true)
+	shot.offset = Vector2(-HEAD, -DROP)
+	shot.scale = Vector2(2.0, 2.0)
+	shot.play("default")
 	add_child(shot)
 	Sfx.play("cast_ice", origin)
 
@@ -43,6 +45,7 @@ func _hurt_mob(mob: Mob) -> void:
 
 ## Ice shatters into shards.
 func _impact_effect() -> void:
+	PixelFx.play_square(get_parent(), global_position, "pimen_ice_hit", 18.0, 2.0, aim.angle())
 	Shatter.spawn(get_parent(), global_position, SHARDS)
 	Sfx.play("ice_shatter", global_position)
 	SpellTargets.douse(get_tree(), global_position, 50.0)

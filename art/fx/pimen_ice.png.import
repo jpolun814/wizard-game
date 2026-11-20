@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cmx3swgjnfp7f"
-path="res://.godot/imported/icespear.png-ebb5ba4a67658178e5a08f5ba425e950.ctex"
+uid="uid://btou8404v3oki"
+path="res://.godot/imported/pimen_ice.png-b8f12e69abefb6e97cbeea648bc79e4d.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/fx/icespear.png"
-dest_files=["res://.godot/imported/icespear.png-ebb5ba4a67658178e5a08f5ba425e950.ctex"]
+source_file="res://art/fx/pimen_ice.png"
+dest_files=["res://.godot/imported/pimen_ice.png-b8f12e69abefb6e97cbeea648bc79e4d.ctex"]
 
 [params]
 

@@ -22,7 +22,6 @@ const CHARACTERS := {
 
 const FX := {
 	"fireball": {"size": Vector2(64, 32), "frames": 9},
-	"icespear": {"size": Vector2(64, 32), "frames": 6},
 	"lightning": {"size": Vector2(100, 200), "frames": 7},
 	"blast_small": {"size": Vector2(64, 64), "frames": 8},
 	"blast_fire": {"size": Vector2(80, 80), "frames": 16},
