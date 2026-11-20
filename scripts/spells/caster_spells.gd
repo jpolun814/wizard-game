@@ -88,9 +88,16 @@ func _eldritch_blast(c: SpellCast) -> void:
 	c.add(blast)
 
 
+## How far to one side of the wizard a crescent must be drawn to turn the swing that way (px).
+const SWING_SIDE := 24.0
+
+
 func _scythe(c: SpellCast) -> void:
 	var swing := Scythe.new()
 	swing.caster = c.caster
+	# The crescent was drawn to one side of the wizard: they swing that way (as a breath of fire turns them), not the way they last walked.
+	if absf(c.origin.x - c.caster.center().x) > SWING_SIDE:
+		c.caster.facing = signf(c.origin.x - c.caster.center().x)
 	c.add(swing)
 
 

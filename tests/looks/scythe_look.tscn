@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://tests/looks/scythe_look.gd" id="1"]
+
+[node name="ScytheLook" type="Node"]
+script = ExtResource("1")

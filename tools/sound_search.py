@@ -67,7 +67,7 @@ def main():
     a = ap.parse_args()
     model, proc, torch = load_model()
     if a.cmd == "index":  # adds to the index: files already in it are kept, not embedded again
-        files = sorted(os.path.join(r, f) for d in a.args for r, _, fs in os.walk(d) for f in fs if f.lower().endswith((".wav", ".ogg", ".flac", ".mp3")))
+        files = sorted(os.path.join(r, f) for d in a.args for r, _, fs in os.walk(d) for f in fs if f.lower().endswith((".wav", ".ogg", ".flac", ".mp3")) and "__MACOSX" not in r and not f.startswith("._"))
         old = np.load(INDEX) if os.path.exists(INDEX) else None
         have = set(str(f) for f in old["files"]) if old is not None else set()
         new = [f for f in files if f not in have]

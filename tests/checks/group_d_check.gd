@@ -175,6 +175,13 @@ func _scythe() -> void:
 	await _wait(0.6)
 	_verdict(cut.hp == before, "and a wall shelters whoever is behind it")
 	screen.queue_free()
+	await _wait(0.4)
+	_player.facing = 1.0  # a crescent drawn on the other side turns the swing that way, whichever way the wizard faces
+	var behind_before := behind.hp
+	var cut_before := cut.hp
+	_world.spawn_spell("Scythe", "positional", _player.center() + Vector2(-120.0, 0.0), 0.0, {"length": 90.0, "accuracy": 0.9}, _player)
+	await _wait(0.6)
+	_verdict(behind.hp < behind_before and cut.hp == cut_before and _player.facing == -1.0, "a crescent drawn behind the wizard swings the scythe behind (%d hurt, in front %d)" % [behind_before - behind.hp, cut_before - cut.hp])
 	cut.queue_free()
 	behind.queue_free()
 	far.queue_free()
