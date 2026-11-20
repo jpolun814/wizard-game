@@ -21,6 +21,15 @@ import sound_search as ss
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
+def pack_name(path):
+    """A recording as 'pack/file': the pack is the folder it sits in under its download folder."""
+    parts = path.replace("\\", "/").split("/")
+    for marker in ("Essentials_Series_NOX_SOUND", "400 Sounds Pack", "extra96", "oga"):
+        if marker in parts:
+            return marker.replace("Essentials_Series_NOX_SOUND", "NOX") + "/" + parts[-1]
+    return parts[-1]
+
+
 def owned():
     reg = json.load(open(os.path.join(ROOT, "data/sounds.json")))
     for f in glob.glob(os.path.join(ROOT, "data/spells/*.tres")):
@@ -43,7 +52,7 @@ def main():
     words = json.load(open(os.path.join(ROOT, "tools/sound_descriptions.json")))
     model, proc, torch = ss.load_model()
     idx = np.load(ss.INDEX)
-    names = [os.path.basename(str(f)) for f in idx["files"]]
+    names = [pack_name(str(f)) for f in idx["files"]]
     rows = []
     texts = {}
     for owner, event, files in owned():

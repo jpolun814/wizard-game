@@ -1,6 +1,6 @@
 """Finds sounds by describing them, and says what a sound is: the nearest thing to listening that a script can do.
 
-    python tools/sound_search.py index <folder> [<folder>...]      embeds every .wav/.ogg/.flac under the folders (once; kept in tools/sound_index.npz)
+    python tools/sound_search.py index <folder> [<folder>...]      adds every .wav/.ogg/.mp3/.flac under the folders to tools/sound_index.npz (files already in it are skipped)
     python tools/sound_search.py find "a heavy stone door scraping" [-n 10]     the best matches in the index, with their scores
     python tools/sound_search.py label audio/wizard__step_dirt_1.wav            how well a file matches each of a list of plain descriptions
     python tools/sound_search.py check "a footstep" audio/a.wav audio/b.wav     scores each file against one description
@@ -66,10 +66,15 @@ def main():
     ap.add_argument("-n", type=int, default=10)
     a = ap.parse_args()
     model, proc, torch = load_model()
-    if a.cmd == "index":
-        files = sorted(os.path.join(r, f) for d in a.args for r, _, fs in os.walk(d) for f in fs if f.lower().endswith((".wav", ".ogg", ".flac")))
-        np.savez(INDEX, files=np.array(files), vecs=embed_audio(files, model, proc, torch))
-        print("indexed", len(files))
+    if a.cmd == "index":  # adds to the index: files already in it are kept, not embedded again
+        files = sorted(os.path.join(r, f) for d in a.args for r, _, fs in os.walk(d) for f in fs if f.lower().endswith((".wav", ".ogg", ".flac", ".mp3")))
+        old = np.load(INDEX) if os.path.exists(INDEX) else None
+        have = set(str(f) for f in old["files"]) if old is not None else set()
+        new = [f for f in files if f not in have]
+        if new:
+            vecs = embed_audio(new, model, proc, torch)
+            np.savez(INDEX, files=np.array(list(old["files"] if old is not None else []) + new), vecs=np.concatenate([old["vecs"], vecs]) if old is not None else vecs)
+        print("indexed", len(new), "new,", len(have) + len(new), "in all")
     elif a.cmd == "find":
         d = np.load(INDEX)
         s = d["vecs"] @ embed_text([a.args[0]], model, proc, torch)[0]
