@@ -5,7 +5,7 @@
 - **Playing sounds:** `Sfx.play("name", world_position_or_null, volume_db, pitch_spread)`.
   - World sounds pan and fade with distance; pass `null` for interface sounds.
   - Files `audio/name_1.wav`, `name_2.wav` and so on are random variants of one name (footsteps, voices, stones).
-  - `Sfx.VOLUME` balances loudness per name. Add an entry whenever you add a sound.
+  - `Sfx.VOLUME` balances loudness per name. Add an entry whenever you add a sound, then run `python tools/level_sounds.py` (it lists what is off its target loudness; `--apply` fixes it) and judge by ear.
 - **Mute:** M mutes everything.
 
 ## Where sounds come from
