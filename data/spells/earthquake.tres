@@ -9,3 +9,4 @@ school = "Earth"
 gesture = "earthquake"
 cost = 60.0
 effect = "Shake the earth."
+sounds = {"rumble": "earthquake__rumble"}

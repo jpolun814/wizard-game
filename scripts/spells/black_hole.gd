@@ -20,7 +20,7 @@ var _collapsed := false
 func _ready() -> void:
 	add_to_group("danger")
 	z_index = 3
-	Sfx.play("gravity", global_position)
+	Sfx.cue("Black Hole", "dark_whoosh", global_position)
 	# Motes drawn in from all round, spiralling as they fall toward the middle.
 	var p := CPUParticles2D.new()
 	p.amount = 40
@@ -56,7 +56,7 @@ func _physics_process(delta: float) -> void:
 	elif not _collapsed:
 		_collapsed = true
 		Fx.impact(get_parent(), global_position, DARK, 60.0)
-		Sfx.play("explosion", global_position, -4.0)  # the collapse
+		Sfx.cue("Black Hole", "explosion", global_position, -4.0)  # the collapse
 		GameCamera.shake_scene(get_tree(), 0.2)
 	if _age >= LIFE + 0.3:
 		queue_free()

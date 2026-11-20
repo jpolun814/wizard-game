@@ -9,3 +9,4 @@ school = "Shadow"
 gesture = "eclipse"
 cost = 60.0
 effect = "Plunge the whole world into darkness."
+sounds = {"dark_whoosh": "eclipse__dark_whoosh"}

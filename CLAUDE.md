@@ -15,7 +15,7 @@ trust the code and this file where they disagree.
 | `02_codebase_map.md` | change code: every script, the scene tree, coordinates, physics layers |
 | `03_gestures_and_spell_design.md` | add or change a spell or gesture: how recognition works, design rules, school identities, vetted ideas |
 | `04_art_and_assets.md` | add or change anything visible: style rules, every source, how to judge and process an asset |
-| `05_audio.md` | touch sound: sources, layering, choosing sounds you can't hear |
+| `05_audio.md` | touch sound: every sound has one owner and is played with `Sfx.cue(owner, event)`; sources, layering, choosing sounds you can't hear |
 | `06_enemies_and_ai.md` | touch the creatures or the AI wizards |
 | `07_testing.md` | say anything is done |
 | `08_working_with_the_owner.md` | reply to the owner |

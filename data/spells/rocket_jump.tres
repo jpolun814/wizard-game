@@ -9,3 +9,4 @@ school = "Fire"
 gesture = "rocket"
 cost = 30.0
 effect = "Launch into the sky like a rocket."
+sounds = {"breath": "rocket_jump__breath"}

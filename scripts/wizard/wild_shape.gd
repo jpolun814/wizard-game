@@ -40,7 +40,7 @@ func begin() -> void:
 	_claw_in = -1.0
 	wizard.dress()
 	Fx.burst(wizard.get_parent(), wizard.center(), Color(0.55, 0.5, 0.7), 18, 160.0, 0.5, true)
-	Sfx.play("summon", wizard.center())
+	Sfx.cue("Wild Shape", "summon", wizard.center())
 
 
 ## The wolf is gone: the wizard stands as they were, with the stamina they had.
@@ -108,5 +108,5 @@ func _land() -> void:
 		if SpellTargets.sight_blocked(tree, wizard.center(), at):
 			continue
 		SpellTargets.hurt(body, CLAW_DAMAGE, "", false, false, wizard)
-		Sfx.play("mob_hurt", at, 3.0)  # only a swipe that lands is heard
+		Sfx.cue("Wild Shape", "hurt", at, 3.0)  # only a swipe that lands is heard
 		Fx.burst(wizard.get_parent(), at, Color(0.9, 0.25, 0.3), 6, 120.0, 0.3, true)

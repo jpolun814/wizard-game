@@ -44,7 +44,7 @@ func _begin(origin: Vector2, _aim_angle: float) -> void:
 	band.points = polygon
 	_add_shape(band)
 	_build_pile_body()
-	Sfx.play("snow", origin)
+	Sfx.cue("Blizzard", "wind", origin)
 
 
 func _act(delta: float) -> void:

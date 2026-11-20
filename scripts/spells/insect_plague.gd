@@ -29,7 +29,7 @@ func _begin(origin: Vector2, _aim_angle: float) -> void:
 	shape.radius = RADIUS
 	_add_shape(shape)
 	global_position = origin + Vector2(0.0, -30.0)
-	Sfx.play("summon", origin, -8.0)
+	Sfx.cue("Insect Plague", "summon", origin, -8.0)
 
 
 func _act(delta: float) -> void:
@@ -83,7 +83,7 @@ func _sting() -> void:
 			body.take_damage(STING, _school())
 		else:
 			body.take_damage(STING, false)
-	Sfx.play("mob_hurt", global_position, -22.0)
+	Sfx.cue("Insect Plague", "hurt", global_position, -22.0)
 
 
 ## True when a stone wall (or any wall that was raised) stands at the point: the swarm does not fly through it.

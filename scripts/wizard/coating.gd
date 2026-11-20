@@ -45,7 +45,7 @@ func ignite(seconds := BURN_SECONDS, by: Node = null) -> void:
 		seconds *= OILED_BURN
 		wizard.oiled_time = 0.0
 	if wizard.burning_time <= 0.0:
-		Sfx.play("fire_hit", wizard.center(), -6.0)
+		Sfx.cue("coating", "fire", wizard.center(), -6.0)
 	wizard.burning_time = maxf(wizard.burning_time, seconds)
 	_by = SpellTargets.striker_of(by)
 
@@ -70,7 +70,7 @@ func frozen_for(seconds: float) -> float:
 func _put_out() -> void:
 	wizard.burning_time = 0.0
 	Fx.smoke(wizard.get_parent(), wizard.center(), Color(0.88, 0.92, 0.96, 0.5), 3, 18.0, 36.0)
-	Sfx.play("freeze", wizard.center(), -10.0)
+	Sfx.cue("coating", "ice", wizard.center(), -10.0)
 
 
 ## Every physics frame: the bites of a burn, water putting a flame out, and the show of each.

@@ -59,7 +59,7 @@ func _ready() -> void:
 	_drip = Fx.trail(Color("#c4162f"), 22, 0.8, 24.0, Vector2(0, 360), "circle_05", 11.0)
 	_drip.material = null
 	add_child(_drip)
-	Sfx.play("blood_cast", global_position, -4.0)
+	Sfx.cue("Hemorrhage", "blood", global_position, -4.0)
 	Fx.pop(get_parent(), global_position, "slash_01", Color("#c4162f"), 90.0, 0.35, 1.3, 0.0, false)  # the cut
 	Fx.burst(get_parent(), global_position, Color("#c4162f"), 16, 130.0, 0.5, false)
 

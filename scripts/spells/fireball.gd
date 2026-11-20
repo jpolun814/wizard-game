@@ -29,7 +29,7 @@ func _begin(origin: Vector2, aim_angle: float) -> void:
 	shot.scale = Vector2(2.0, 2.0)
 	shot.play("default")
 	add_child(shot)
-	Sfx.play("cast_fire", origin)
+	Sfx.cue("Ignite", "cast", origin)
 
 
 func damage() -> int:
@@ -59,4 +59,4 @@ func _impact_effect() -> void:
 	PixelFx.play_square(get_parent(), global_position, "pimen_firebolt_hit", 18.0, 2.0, aim.angle())
 	Blizzard.melt_at(get_tree(), global_position)  # a fireball that hits a snowbank bites a piece out of it
 	Fx.smoke(get_parent(), global_position, Color(0.3, 0.25, 0.25, 0.4), 3, 18.0, 30.0)
-	Sfx.play("fire_hit", global_position)
+	Sfx.cue("Ignite", "fire", global_position)

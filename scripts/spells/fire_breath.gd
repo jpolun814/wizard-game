@@ -57,7 +57,7 @@ func _ready() -> void:
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST  # the flame is pixel art, turned and enlarged: no smoothing between its pixels
 	_cast_facing = _facing()
 	_mouth = _mouth_position()
-	Sfx.play("fire_breath", _mouth)
+	Sfx.cue("Fire Breath", "breath", _mouth)
 	_glow = Node2D.new()
 	_glow.material = Fx.additive()
 	_glow.z_index = 3

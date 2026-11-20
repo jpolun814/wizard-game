@@ -11,7 +11,7 @@ const TOP := 600.0  # the speed up, in pixels a second, when the flame dies: abo
 static func cast(caster: Wizard) -> void:
 	var feet: Vector2 = caster.global_position
 	Fx.burst(caster.get_parent(), feet, Color("#ff8a2a"), 40, 200.0, 0.7, true, "flame_05")  # a small puff of flame as it lights
-	Sfx.play("fire_breath", feet, -2.0)
+	Sfx.cue("Rocket Jump", "breath", feet, -2.0)
 	var jet := Fx.trail(Color("#ff8a2a"), 120, 0.65, 22.0, Vector2(0.0, 80.0), "flame_05", 30.0)
 	jet.position = Vector2.ZERO  # at the feet (a wizard's origin is the soles)
 	jet.direction = Vector2.DOWN

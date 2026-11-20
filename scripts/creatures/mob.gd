@@ -136,7 +136,7 @@ func _ready() -> void:
 		return
 	# Every enemy arrives through a summoning circle.
 	Fx.pop(get_parent(), global_position + Vector2(0, -2), "magic_02", _school_color(), 70.0, SPAWN_TIME + 0.2, 1.2, 1.5)
-	Sfx.play("summon", global_position)
+	Sfx.cue("mob_" + kind, "summon", global_position)
 	modulate.a = 0.0
 
 
@@ -488,7 +488,7 @@ func _update_shooter(delta: float, distance: float, sees: bool, shot: Dictionary
 func _shoot(shot: Dictionary) -> void:
 	var origin := center() + Vector2(facing * _body_size.x * 0.5, -4.0)
 	EnemyBolt.fire(get_parent(), origin, _quake_target(origin, _target().center()), _school_color(), shot["damage"], self)
-	Sfx.play("mob_shoot", origin)
+	Sfx.cue("mob_" + kind, "shoot", origin)
 
 
 ## Who this enemy is after: a decoy it has noticed, otherwise the player.
@@ -530,7 +530,7 @@ func take_damage(amount: int, school := "", shot := false) -> void:
 		dealt = roundi(dealt * 1.5)
 		_frozen_time = 0.0
 		Shatter.spawn(get_parent(), center(), Color("#cdeeff"))
-		Sfx.play("ice_shatter", center())
+		Sfx.cue("mob_" + kind, "shatter", center())
 	var text_at := center() + Vector2(0, -_body_size.y * 0.5 - 6.0)
 	if dealt <= 0:
 		FloatText.spawn(get_parent(), text_at, "Resisted", Color(0.75, 0.75, 0.82), 0.8)
@@ -550,7 +550,7 @@ func take_damage(amount: int, school := "", shot := false) -> void:
 	if hp <= 0:
 		_die()
 	else:
-		Sfx.play("mob_hurt", center())
+		Sfx.cue("mob_" + kind, "hurt", center())
 		if _visual.sprite_frames.has_animation("hit") and _windup <= 0.0 and _charge <= 0.0:
 			_visual.play("hit")
 	MatchStats.hit(self, counted, school)
@@ -569,7 +569,7 @@ func _die() -> void:
 	_windup = 0.0
 	_charge = 0.0
 	_frozen_time = 0.0
-	Sfx.play("mob_die", center())
+	Sfx.cue("mob_" + kind, "die", center())
 	Fx.burst(get_parent(), center(), _school_color(), 18, 180.0, 0.6, true)
 	Fx.smoke(get_parent(), center(), Color(0.25, 0.2, 0.3, 0.6), 5, 30.0)
 	GameCamera.shake_near(get_tree(), global_position, 0.18, SHAKE_REACH)
@@ -619,7 +619,7 @@ func faint() -> void:
 	_windup = 0.0
 	_charge = 0.0
 	FloatText.spawn(get_parent(), center() + Vector2(0, -_body_size.y * 0.5 - 6.0), "Fainted", Color("#c4162f"), 1.0)
-	Sfx.play("mob_hurt", center())
+	Sfx.cue("mob_" + kind, "hurt", center())
 
 
 func is_fainted() -> bool:
@@ -697,11 +697,11 @@ func _attack() -> void:
 			Net.send(target, &"_struck_by_the_dead", [data.damage])  # the machine that drives it decides what the blow does
 		else:
 			target.take_damage(data.damage)  # a decoy takes the blow
-		Sfx.play("push", target.center(), -6.0)
+		Sfx.cue("mob_" + kind, "whoosh", target.center(), -6.0)
 		return
 	var impulse := Vector2(signf(player.global_position.x - global_position.x) * 420.0, -160.0) if data.effect == "knockback" else Vector2.ZERO
 	_strike(player, data.damage, impulse)
-	Sfx.play("stones" if data.school == "Earth" else "push", player.center(), -6.0)
+	Sfx.cue("mob_" + kind, "rocks" if data.school == "Earth" else "whoosh", player.center(), -6.0)
 
 
 func _process(delta: float) -> void:

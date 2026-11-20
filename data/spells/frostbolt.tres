@@ -13,3 +13,4 @@ effect = "Shoot a chilling bolt of ice."
 damage = "10 dmg"
 effect_path = "res://scripts/spells/ice_spear.gd"
 applies = Array[String](["slowed"])
+sounds = {"cast": "frostbolt__cast", "shatter": "frostbolt__shatter", "turned": "frostbolt__turned"}

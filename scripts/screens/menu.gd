@@ -83,10 +83,10 @@ func _ready() -> void:
 	_host.pressed.connect(_on_host)
 	_join.pressed.connect(_on_join)
 	_tutorial.pressed.connect(func() -> void:
-		Sfx.play("ui_click")
+		Sfx.cue("menu", "click")
 		get_tree().change_scene_to_file(TUTORIAL))
 	_library.pressed.connect(func() -> void:
-		Sfx.play("ui_click")
+		Sfx.cue("menu", "click")
 		get_tree().change_scene_to_file(LIBRARY))
 	_options.pressed.connect(_open_settings)
 	$Box/Main/Quit.pressed.connect(func() -> void: get_tree().quit())
@@ -241,7 +241,7 @@ func _unhandled_input(event: InputEvent) -> void:
 func _show_page(page: VBoxContainer, focus: Button, forward: bool) -> void:
 	if _busy:
 		return
-	Sfx.play("ui_click")
+	Sfx.cue("menu", "click")
 	_status.text = ""
 	_box.visible = false
 	_demo.visible = false
@@ -366,7 +366,7 @@ func _choose(button: Button) -> void:
 
 ## The page of settings opens over the book; while it is open, nothing is drawn on the book behind it.
 func _open_settings() -> void:
-	Sfx.play("ui_click")
+	Sfx.cue("menu", "click")
 	_busy = true
 	var panel := SettingsPanel.new()
 	panel.closed.connect(func() -> void:
@@ -376,12 +376,12 @@ func _open_settings() -> void:
 
 
 func _on_alone() -> void:
-	Sfx.play("ui_click")
+	Sfx.cue("menu", "click")
 	get_tree().change_scene_to_file(WAITING_ROOM)
 
 
 func _on_host() -> void:
-	Sfx.play("ui_click")
+	Sfx.cue("menu", "click")
 	if Net.host() != OK:
 		_status.text = "Close the other copy of the game that is hosting, then try again."  # the port is taken
 		return
@@ -389,7 +389,7 @@ func _on_host() -> void:
 
 
 func _on_join() -> void:
-	Sfx.play("ui_click")
+	Sfx.cue("menu", "click")
 	var address := _address.text.strip_edges()
 	if address == "":
 		_status.text = "Type the address your friend sees in their waiting room."

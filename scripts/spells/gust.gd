@@ -33,7 +33,7 @@ func _begin(origin: Vector2, aim_angle: float) -> void:
 		streak.frame = i
 		add_child(streak)
 		_streaks.append(streak)
-	Sfx.play("push", origin, -4.0)
+	Sfx.cue("Gust", "whoosh", origin, -4.0)
 
 
 func _act(delta: float) -> void:

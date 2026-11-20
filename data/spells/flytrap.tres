@@ -10,3 +10,4 @@ gesture = "jaws"
 cost = 26.0
 effect = "Plant a snapping flytrap on the ground."
 damage = "9 dmg/sec"
+sounds = {"chomp": "flytrap__chomp", "fire": "flytrap__fire", "jaw_snap": "flytrap__jaw_snap"}

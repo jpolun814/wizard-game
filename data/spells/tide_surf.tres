@@ -12,3 +12,4 @@ cost = 30.0
 effect = "Ride a wave along the ground, shoving anyone aside."
 applies = Array[String](["wet"])
 removes = Array[String](["burning"])
+sounds = {"sea": "tide_surf__sea"}

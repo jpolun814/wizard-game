@@ -35,6 +35,6 @@ func _begin(origin: Vector2, _aim_angle: float) -> void:
 	Fx.pop(get_parent(), middle, "circle_03", pale.lightened(0.3), RADIUS * 2.0, 0.5, 1.3)
 	Fx.pop(get_parent(), middle, "circle_05", Color(1.0, 1.0, 0.85), RADIUS * 0.7, 0.2, 1.6)
 	Fx.burst(get_parent(), middle, Color(1.0, 1.0, 0.8), 26, 380.0, 0.5, true, "star_04")
-	Sfx.play("thunder", middle, 4.0)  # a recording of thunder
-	Sfx.play("quake", middle, -6.0)  # and the ground rumbling under it
+	Sfx.cue("Thunderclap", "thunder", middle, 4.0)  # a recording of thunder
+	Sfx.cue("Thunderclap", "rumble", middle, -6.0)  # and the ground rumbling under it
 	GameCamera.shake_scene(tree, 0.7)

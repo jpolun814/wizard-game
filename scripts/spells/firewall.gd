@@ -26,7 +26,7 @@ func _begin(origin: Vector2, _aim_angle: float) -> void:
 	_add_flames()
 	add_to_group("danger")
 	add_to_group("fires")
-	Sfx.play("fire_hit", global_position, -10.0)
+	Sfx.cue("Firewall", "fire", global_position, -10.0)
 
 
 ## Four tall flames of the pixel fire, overlapping up the wall so they read as one wall of fire, with embers rising.
@@ -62,7 +62,7 @@ func _act(delta: float) -> void:
 			flame.visible = true
 			flame.modulate.a = 1.0
 		_embers.emitting = true
-		Sfx.play("fire_wall", global_position)
+		Sfx.cue("Firewall", "burn", global_position)
 	_tick -= delta
 	if _tick <= 0.0:
 		_tick = TICK

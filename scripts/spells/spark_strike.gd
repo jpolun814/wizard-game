@@ -36,7 +36,7 @@ func _begin(origin: Vector2, _aim_angle: float) -> void:
 	PixelFx.play(get_parent(), ground, "blast_small", 20.0, 1.0, Color(1.0, 0.95, 0.6), true, false, true)
 	Fx.impact(get_parent(), ground, Color("#ffe85a"), 50.0)
 	Fx.burst(get_parent(), ground, Color("#ffe85a"), 20, 240.0, 0.4, true, "spark_04")
-	Sfx.play("spark", ground)
+	Sfx.cue("Spark", "spark", ground)
 	landing = ground
 	add_to_group("fires")  # lightning sets plants alight
 	_shock_pond(ground)

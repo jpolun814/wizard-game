@@ -133,7 +133,7 @@ func toggle_pause() -> void:
 
 ## Back to the first screen, out of the game (a network game goes on without you; one you host ends for everyone).
 func _on_leave() -> void:
-	Sfx.play("ui_click")
+	Sfx.cue("hud", "click")
 	Net.leave()
 	get_tree().paused = false
 	get_tree().change_scene_to_file(Net.MENU)
@@ -146,13 +146,13 @@ func offer_stats() -> void:
 
 
 func _on_stats() -> void:
-	Sfx.play("ui_click")
+	Sfx.cue("hud", "click")
 	stats_requested.emit()
 
 
 ## The Settings button on the pause screen opens the page of settings over it.
 func _on_settings() -> void:
-	Sfx.play("ui_click")
+	Sfx.cue("hud", "click")
 	$Pause.add_child(SettingsPanel.new())
 
 

@@ -52,7 +52,7 @@ func _ready() -> void:
 
 
 func close() -> void:
-	Sfx.play("ui_click")
+	Sfx.cue("settings", "click")
 	closed.emit()
 	queue_free()
 
@@ -89,7 +89,7 @@ func _slider(key: String) -> HSlider:
 	slider.value = float(GameSettings.get_value(key))
 	slider.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	slider.value_changed.connect(func(value: float) -> void: GameSettings.set_value(key, value))
-	slider.drag_ended.connect(func(_changed: bool) -> void: Sfx.play("ui_click"))  # so a change to the effects can be heard
+	slider.drag_ended.connect(func(_changed: bool) -> void: Sfx.cue("settings", "click"))  # so a change to the effects can be heard
 	return slider
 
 
@@ -97,7 +97,7 @@ func _toggle(key: String) -> CheckButton:
 	var toggle := CheckButton.new()
 	toggle.button_pressed = bool(GameSettings.get_value(key))
 	toggle.toggled.connect(func(on: bool) -> void:
-		Sfx.play("ui_click")
+		Sfx.cue("settings", "click")
 		GameSettings.set_value(key, on))
 	return toggle
 
@@ -108,6 +108,6 @@ func _choice(key: String, names: Array) -> OptionButton:
 		choice.add_item(name)
 	choice.selected = int(GameSettings.get_value(key))
 	choice.item_selected.connect(func(index: int) -> void:
-		Sfx.play("ui_click")
+		Sfx.cue("settings", "click")
 		GameSettings.set_value(key, index))
 	return choice

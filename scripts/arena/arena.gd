@@ -127,7 +127,7 @@ func add_person(peer_id: int, feet: Vector2) -> Wizard:
 ## A page has been found: the book takes it in.
 func on_page_found(page: String) -> void:
 	spellbook.refresh()
-	Sfx.play("pickup", player.center())
+	Sfx.cue("arena", "rustle", player.center())
 	FloatText.spawn(self, player.center() + Vector2(0, -70), "Page: %s" % Pages.title_of(page), Color("#ffe9a0"), 1.1)
 
 
@@ -295,7 +295,7 @@ func _on_player_died() -> void:
 func end_run() -> void:
 	caster.set_casting_enabled(false)
 	ritual.cancel()
-	Sfx.play("game_over")
+	Sfx.cue("arena", "game_over")
 	hud.show_game_over()
 
 
@@ -412,7 +412,7 @@ func spawn_spell(spell: String, targeting: String, origin: Vector2, aim: float, 
 	if SpellLimits.fizzles(caster_node, spell, origin):  # water puts a fire spell out as it starts, as it does a fireball dropped in a pond
 		var out := caster_node.center() if Spell.DIRECTIONAL.has(targeting) or origin.distance_to(caster_node.center()) > 600.0 else origin
 		Fx.smoke(self, out, Color(0.9, 0.95, 1.0, 0.6), 6, 24.0, 50.0)
-		Sfx.play("freeze", out, -6.0)
+		Sfx.cue("arena", "ice", out, -6.0)
 		return
 	var before := get_child_count()
 	spawner.spawn(spell, targeting, origin, aim, info, caster_node)

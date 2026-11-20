@@ -50,7 +50,7 @@ static func hurt(body: Node, amount: int, school: String, shot := false, lava :=
 			amount = roundi(amount * 1.5)  # a frozen wizard is shattered out of the ice, as a frozen enemy is
 			body.thaw()
 			Shatter.spawn(body.get_parent(), body.center(), Color("#cdeeff"))
-			Sfx.play("ice_shatter", body.center())
+			Sfx.cue("ice_block", "shatter", body.center())
 		MatchStats.strike(by)  # (whose blow it is, for the count of what each wizard has done)
 		body.take_damage(amount, true, shot)
 	else:

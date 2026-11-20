@@ -43,7 +43,7 @@ func _ready() -> void:
 	collision_mask = 7  # enemies, the player, and terrain
 	area_entered.connect(_on_area)
 	add_to_group("danger")
-	Sfx.play("tornado", global_position)
+	Sfx.cue("Tornado", "whirl", global_position)
 	# Dust kicked up around the base.
 	var dust := CPUParticles2D.new()
 	dust.amount = 24

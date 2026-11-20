@@ -61,7 +61,7 @@ func _physics_process(delta: float) -> void:
 		return
 	_cool = interval
 	var at := SpellTargets.center_of(target)
-	Sfx.play("spark", center(), -8.0)
+	Sfx.cue("sentinel", "spark", center(), -8.0)
 	_sprite.play("shoot")
 	if target is Decoy:  # the shot lands on the decoy at once, so no bolt flies on past it to hit whoever stands behind
 		target.take_damage(DECOY_DAMAGE)

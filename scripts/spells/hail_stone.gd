@@ -63,5 +63,5 @@ func _on_hit(body: Node2D) -> void:
 
 func _shatter() -> void:
 	Shatter.spawn(get_parent(), global_position, Color("#cdeeff"))
-	Sfx.play("ice_shatter", global_position, -14.0)
+	Sfx.cue("Hailstorm", "shatter", global_position, -14.0)
 	queue_free()

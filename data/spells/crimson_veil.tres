@@ -10,3 +10,4 @@ gesture = "wall"
 cost = 5.0
 effect = "Wrap yourself in a veil of blood that negates the next few attacks."
 applies = Array[String](["veiled"])
+sounds = {"blood": "crimson_veil__blood", "glass": "crimson_veil__glass"}

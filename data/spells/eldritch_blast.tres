@@ -11,3 +11,4 @@ targeting = "pointed"
 cost = 16.0
 effect = "Fire a beam of eldritch energy."
 damage = "16 dmg"
+sounds = {"blast": "eldritch_blast__blast"}

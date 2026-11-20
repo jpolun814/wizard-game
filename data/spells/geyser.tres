@@ -13,3 +13,4 @@ effect = "A jet of scalding water shoots up from the ground."
 damage = "1 dmg/sec"
 applies = Array[String](["wet"])
 removes = Array[String](["burning"])
+sounds = {"geyser": "geyser__geyser", "ice": "geyser__ice", "whoosh": "geyser__whoosh", "wind": "geyser__wind"}

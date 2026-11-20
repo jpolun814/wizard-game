@@ -26,7 +26,7 @@ func _begin(origin: Vector2, _aim_angle: float) -> void:
 	_add_shape(shape)
 	scale.y = 0.0
 	create_tween().tween_property(self, "scale:y", 1.0, RISE).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	Sfx.play("stones", origin, -2.0)
+	Sfx.cue("Stalagmite", "rocks", origin, -2.0)
 	Fx.debris(get_parent(), origin, Color("#8a6a4a"), 6, 120.0)
 
 

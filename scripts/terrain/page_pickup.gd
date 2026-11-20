@@ -120,7 +120,7 @@ func _chime() -> void:
 	var far := SpellTargets.center_of(wizard).distance_to(global_position + Vector2(0, -FLOAT))
 	if not _chimed and far < CHIME_NEAR:
 		_chimed = true
-		Sfx.play("pickup", global_position + Vector2(0, -FLOAT), -12.0)
+		Sfx.cue("page_pickup", "rustle", global_position + Vector2(0, -FLOAT), -12.0)
 	elif _chimed and far > CHIME_FAR:
 		_chimed = false
 

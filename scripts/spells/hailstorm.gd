@@ -24,7 +24,7 @@ func _begin(origin: Vector2, _aim_angle: float) -> void:
 	_right = maxf(line[0].x, line[line.size() - 1].x)
 	_y = (line[0].y + line[line.size() - 1].y) * 0.5
 	global_position = Vector2(_left, _y)
-	Sfx.play("thunder", Vector2((_left + _right) * 0.5, _y), -10.0)
+	Sfx.cue("Hailstorm", "thunder", Vector2((_left + _right) * 0.5, _y), -10.0)
 
 
 func _act(delta: float) -> void:

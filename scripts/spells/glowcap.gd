@@ -46,7 +46,7 @@ func _ready() -> void:
 		_light.position = Vector2(0, -16)
 		add_child(_light)
 	Fx.burst(get_parent(), global_position, GREEN, 8, 70.0, 0.5, true)
-	Sfx.play("pickup", global_position, -8.0)  # a rustle of leaves
+	Sfx.cue("Glowcap", "rustle", global_position, -8.0)  # a rustle of leaves
 
 
 func _physics_process(delta: float) -> void:
@@ -80,7 +80,7 @@ func _eaten_by(wizard: Wizard) -> void:
 	wizard.heal(FEED)
 	GlowAura.give(wizard)
 	Fx.burst(get_parent(), global_position + Vector2(0, -16), GREEN, 10, 90.0, 0.5, true)
-	Sfx.play("pickup", global_position, -4.0)
+	Sfx.cue("Glowcap", "rustle", global_position, -4.0)
 	queue_free()
 
 

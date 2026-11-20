@@ -76,7 +76,7 @@ func _physics_process(delta: float) -> void:
 		_shake(top, 0.04)
 		if _rumbled != _slot and into >= 0.0:
 			_rumbled = _slot
-			Sfx.play("quake", top, -2.0)
+			Sfx.cue("avalanche", "rumble", top, -2.0)
 		if _smoke <= 0.0:
 			_smoke = 0.25
 			Fx.smoke(get_parent(), top + Vector2(randf_range(-60.0, 60.0), -10.0), Color(0.95, 0.97, 1.0, 0.7), 2, 30.0, 30.0)

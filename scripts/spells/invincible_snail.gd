@@ -39,7 +39,7 @@ static func conjure(parent: Node, at: Vector2, hunted: Wizard, by: Wizard, quiet
 	snail.position = at
 	parent.add_child(snail)
 	if not quiet:
-		Sfx.play("summon", at, -4.0)
+		Sfx.cue("Invincible Snail", "summon", at, -4.0)
 	Fx.burst(parent, at, SpellData.SCHOOL_COLORS["Blood"], 10, 80.0, 0.5, true)
 	return snail
 

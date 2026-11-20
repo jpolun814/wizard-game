@@ -43,7 +43,7 @@ func _ready() -> void:
 		magic.paint(SpellData.SCHOOL_COLORS["Shadow"])  # a decoy is a shadow: its staff shows the school it was made with
 		add_child(magic)
 	Fx.burst(get_parent(), center(), Color("#9a70d0"), 14, 110.0, 0.5, true)
-	Sfx.play("gravity", global_position, -4.0)
+	Sfx.cue("Decoy", "dark_whoosh", global_position, -4.0)
 
 
 func center() -> Vector2:

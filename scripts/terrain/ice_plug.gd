@@ -32,7 +32,7 @@ func take_blow_near(point: Vector2, damage: float) -> bool:
 		return false
 	_health -= damage * 2.0
 	Shatter.spawn(get_parent(), point, Color("#cdeeff"))
-	Sfx.play("ice_shatter", point, -6.0)
+	Sfx.cue("ice_plug", "shatter", point, -6.0)
 	if _health <= 0.0:
 		_gone(false)
 	return true
@@ -41,9 +41,9 @@ func take_blow_near(point: Vector2, damage: float) -> bool:
 func _gone(melted: bool) -> void:
 	if melted:
 		Fx.smoke(get_parent(), _box.get_center(), Color(0.9, 0.95, 1.0, 0.6), 10, 36.0, 40.0)
-		Sfx.play("freeze", _box.get_center(), -2.0)
+		Sfx.cue("ice_plug", "ice", _box.get_center(), -2.0)
 	else:
-		Sfx.play("ice_shatter", _box.get_center())
+		Sfx.cue("ice_plug", "shatter", _box.get_center())
 		GameCamera.shake_scene(get_tree(), 0.2)
 	Shatter.spawn(get_parent(), _box.get_center(), Color("#cdeeff"))
 	queue_free()

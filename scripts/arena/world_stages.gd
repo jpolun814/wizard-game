@@ -43,7 +43,7 @@ func begin() -> void:
 		return
 	_in = MatchState.WARNING
 	world.hud.banner("The portal is growing unstable")
-	Sfx.play("thunder", world.player.center(), -4.0)
+	Sfx.cue("world_stages", "thunder", world.player.center(), -4.0)
 	tear = World.PortalCollapse.new()
 	tear.position = Vector2(ArenaGen.world_size.x * World.TILE * 0.5, 8.0 * World.TILE)  # high in the middle of the world
 	world.add_child(tear)
@@ -82,7 +82,7 @@ func collapse() -> void:
 	MatchState.snails = InvincibleSnail.carry_on(world)
 	World.next_seed = MatchState.advance(world.ledgers, state, Incantation.seed_count())
 	world.leave_network_scene()
-	Sfx.play("portal_enter", world.player.center(), -2.0)
+	Sfx.cue("world_stages", "portal_enter", world.player.center(), -2.0)
 	world.fade_to_black(0.7, func() -> void:
 		Loading.quiet = true
 		world.get_tree().change_scene_to_file(Loading.SCREEN))

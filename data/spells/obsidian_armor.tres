@@ -10,3 +10,4 @@ gesture = "circle"
 cost = 40.0
 effect = "Cover your body in obsidian."
 applies = Array[String](["sturdy", "fireproof"])
+sounds = {"barrier": "obsidian_armor__barrier", "glass": "obsidian_armor__glass"}

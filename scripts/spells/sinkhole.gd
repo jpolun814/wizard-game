@@ -107,7 +107,7 @@ func _ready() -> void:
 	_dust.scale_amount_max = 9.0 / Fx.TEX_SIZE
 	_dust.color = Color(0.7, 0.58, 0.45, 0.8)
 	add_child(_dust)
-	Sfx.play("quake", global_position, -6.0)
+	Sfx.cue("Sinkhole", "rumble", global_position, -6.0)
 
 
 func _physics_process(delta: float) -> void:
@@ -124,7 +124,7 @@ func _physics_process(delta: float) -> void:
 	if dug:
 		GameCamera.shake_scene(get_tree(), 0.35)
 		Fx.debris(get_parent(), global_position, Color("#8a6a4a"), 14, 200.0)
-		Sfx.play("stones", global_position, -2.0)
+		Sfx.cue("Sinkhole", "rocks", global_position, -2.0)
 	else:
 		Fx.smoke(get_parent(), global_position, Color(0.5, 0.47, 0.45, 0.6), 4, 24.0, 30.0)  # nothing here gave way
 

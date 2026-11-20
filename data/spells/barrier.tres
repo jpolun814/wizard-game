@@ -9,3 +9,4 @@ school = "Air"
 gesture = "circle"
 cost = 35.0
 effect = "Protect yourself from projectiles by blowing them away."
+sounds = {"barrier": "barrier__barrier"}

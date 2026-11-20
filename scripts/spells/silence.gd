@@ -44,7 +44,7 @@ func _ready() -> void:
 	motes.color_ramp = Fx.fade_ramp(Color(0.25, 0.15, 0.4, 0.55))
 	motes.local_coords = false
 	add_child(motes)
-	Sfx.play("gravity", global_position, -8.0)
+	Sfx.cue("Silence", "dark_whoosh", global_position, -8.0)
 
 
 func _physics_process(delta: float) -> void:

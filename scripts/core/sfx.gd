@@ -6,21 +6,16 @@ extends Node
 ## varies the pitch each time, so repeated sounds don't all sound the same. Everything plays on the SFX bus
 ## (default_bus_layout.tres). M mutes and unmutes.
 
-## Loudness of each sound in decibels, so quiet recordings and loud ones sit together. Anything not listed is 0.
+## Loudness of the sounds that are played by name (the wizard's steps, landings and voices), in decibels. Everything else is asked for by owner and event, and its loudness is in data/sound_levels.json. Anything not listed is 0.
 const VOLUME := {
-	"cast_fire": 6.0, "fire_hit": 6.0, "fire_wall": -2.5, "fire_breath": -10.0, "volcano": -6.0,
-	"cast_ice": -1.0, "ice_shatter": -6.0, "freeze": -6.0, "snow": -8.0,
-	"barrier": -15.5, "push": -7.0, "gravity": 4.0,
-	"spark": -2.0, "eldritch": -4.0, "quicksand": -4.0, "thunder": -3.5, "tornado": -1.0, "blink": -4.5,
-	"stones": 2.5, "quake": -12.5, "explosion": -0.5,
-	"misfire": -6.0, "mob_hurt": -12.0, "mob_die": -10.0, "mob_shoot": -12.0,
-	"player_hurt": -8.5, "jump_voice_1": -14.0, "jump_voice_3": -14.0, "jump_voice_4": -14.0, "jump_voice_5": -14.0,
-	"hurt_voice_1": -13.5, "hurt_voice_3": -15.0, "hurt_voice_4": -15.0, "hurt_voice_5": -15.0,
-	"step_dirt": -21.0, "step_snow": -22.0, "step_leaves": -16.5, "step_gravel": -18.5, "step_tile": -16.5, "step_rock": -18.0, "step_grass": -19.5, "step_wood": -19.5, "step_mud": -23.5, "push_air": -7.0, "raise_dead": -10.5, 
-	"portal_open": -6.0, "portal_enter": 2.0, "ritual_ok": -4.0, 
-	"book_open": 0.5, "book_close": -14.5, "page": -1.3, "pickup": -2.0,
-	"blood_cast": 3.3, "heartbeat": -15.5, "surf": 0.0, "glass": -1.5, "faint": 1.0, "jaw_snap": 3.0, "chomp": 1.5, "game_over": -6.0, "summon": 14.5, "water_jet": -6.0, "geyser": -6.0, "ui_click": -10.0,
+	"jump_voice_1": -14.0, "jump_voice_3": -14.0, "jump_voice_4": -14.0, "jump_voice_5": -14.0, "hurt_voice_1": -13.5, "hurt_voice_3": -15.0, "hurt_voice_4": -15.0, "hurt_voice_5": -15.0, 
 }
+## Who owns which sounds. Every sound in the game belongs to exactly one owner (a spell, a kind of creature, the wizard's body, a piece of scenery, a screen) and is
+## asked for by that owner and the event it stands for: Sfx.cue("Ignite", "cast", where). A spell's own list is `sounds` in its data file; everyone else's is in
+## data/sounds.json. The file behind an event is the owner's alone (audio/<owner>__<event>_N), even when it is a copy of another's, so changing one never changes
+## another. data/sound_levels.json holds how loud each file is.
+const REGISTRY := "res://data/sounds.json"
+const LEVELS := "res://data/sound_levels.json"
 const MAX_DISTANCE := 1400.0  # world sounds farther than this from the camera are not heard
 const POLYPHONY := 24         # how many sounds can play at once; the oldest are cut off beyond that
 const BUS := &"SFX"
@@ -29,12 +24,16 @@ var muted := false
 var _files := {}      # name -> Array of file paths, one per variant
 var _sounds := {}     # name -> AudioStreamRandomizer, built the first time the sound plays
 var _live := 0
+var _owned := {}      # owner -> {event: sound name}, for everything that is not a spell
+var _levels := {}     # sound name -> loudness in decibels
 var _voices := {}     # instance id of a speaker -> the voice sound it is making now
 
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS  # interface sounds still play while the game is paused
 	GameSettings.load_saved()
+	_owned = _read(REGISTRY)
+	_levels = _read(LEVELS)
 	for file in ResourceLoader.list_directory("res://audio"):
 		var base := file.get_basename()
 		if not (file.ends_with(".ogg") or file.ends_with(".wav")):
@@ -48,6 +47,37 @@ func _ready() -> void:
 		# Only the paths are kept: a sound is loaded the first time it plays, because loading every sound at launch
 		# made the game take most of a minute to open.
 		_files[key].append("res://audio/" + file)
+
+
+func _read(path: String) -> Dictionary:
+	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(path))
+	return parsed if parsed is Dictionary else {}
+
+
+## The sound an owner makes for an event, or "" when it has none.
+func sound_of(owner: String, event: String) -> String:
+	var spell: Spell = SpellData.SPELLS.get(owner)
+	if spell != null:
+		return spell.sounds.get(event, "")
+	return _owned.get(owner, {}).get(event, "")
+
+
+## The first file of an owner's event, for a sound that is not played through Sfx (a loop that lasts as long as the spell does).
+func path_of(owner: String, event: String) -> String:
+	return _files[sound_of(owner, event)][0]
+
+
+func level_of(sound: String) -> float:
+	return _levels.get(sound, VOLUME.get(sound, 0.0))
+
+
+## Plays the sound an owner makes for an event (see REGISTRY). Same arguments as play.
+func cue(owner: String, event: String, at: Variant = null, volume_db := 0.0, pitch_spread := 0.08, pitch := 1.0) -> Node:
+	var sound := sound_of(owner, event)
+	if sound == "":
+		push_warning("Sfx.cue: %s has no sound for %s" % [owner, event])
+		return null
+	return play(sound, at, volume_db, pitch_spread, pitch)
 
 
 ## True when there is a sound of this name.
@@ -72,7 +102,7 @@ func play(sound: String, at: Variant = null, volume_db := 0.0, pitch_spread := 0
 	player.stream = stream
 	player.bus = BUS
 	player.pitch_scale = pitch
-	player.volume_db = VOLUME.get(sound, 0.0) + volume_db
+	player.volume_db = _levels.get(sound, VOLUME.get(sound, 0.0)) + volume_db
 	player.finished.connect(_done.bind(player))
 	_live += 1
 	add_child(player)

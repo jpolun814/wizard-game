@@ -11,3 +11,4 @@ targeting = "shape"
 cost = 20.0
 effect = "Raise spikes of stone from the ground."
 damage = "12 dmg/sec"
+sounds = {"rocks": "stalagmite__rocks"}

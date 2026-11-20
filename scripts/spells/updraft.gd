@@ -25,7 +25,7 @@ func _ready() -> void:
 		gust.frame = i
 		add_child(gust)
 		_streaks.append(gust)
-	Sfx.play("tornado", global_position, -14.0)
+	Sfx.cue("Updraft", "whirl", global_position, -14.0)
 	Fx.smoke(get_parent(), global_position, Color(0.85, 0.9, 0.95, 0.5), 5, 24.0, 40.0)
 
 

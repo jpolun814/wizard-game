@@ -49,12 +49,12 @@ func finished(id: String, acc: float, unfinished: bool) -> void:
 
 	if id == "rift" and (player.max_stamina - RIFT_WEAR < RIFT_LEAST or player.stamina < RIFT_LEAST):
 		arena.feedback("Too frail." if player.stamina >= RIFT_LEAST else "Too tired.", Color("#ffb86b"))
-		Sfx.play("misfire", player.center(), -6.0)
+		Sfx.cue("rituals", "misfire", player.center(), -6.0)
 		return
 	var power := RitualInput.power_for(acc)
 	if power <= 0.0:
 		player.take_damage(15)
-		Sfx.play("explosion", player.center())
+		Sfx.cue("rituals", "explosion", player.center())
 		Fx.impact(arena, player.center(), Color("#ff4a4a"), 50.0)
 		return
 
@@ -119,7 +119,7 @@ func show_chant(speaker_name: String) -> void:
 	var speaker := arena.get_node_or_null(NodePath(speaker_name)) as Wizard
 	if speaker == null:
 		return
-	Sfx.play("ritual_ok", speaker.center())
+	Sfx.cue("rituals", "chant", speaker.center())
 	Fx.pop(arena, speaker.global_position + Vector2(0, -2), "magic_02", Color(1.0, 0.9, 0.6), 80.0, 0.8, 1.3, 2.0)
 
 
@@ -178,7 +178,7 @@ func _rift() -> void:
 	Fx.burst(arena, start + Vector2(0, -24), color, 16, 140.0, 0.3, true)
 	Fx.pop(arena, player.global_position + Vector2(0, -24), "twirl_02", color, 24.0, 0.3, 2.4, -8.0)
 	Fx.burst(arena, player.global_position + Vector2(0, -24), color, 16, 140.0, 0.3, true)
-	Sfx.play("gravity", player.global_position, -2.0)
+	Sfx.cue("rituals", "dark_whoosh", player.global_position, -2.0)
 
 
 ## A toggle chant shows or hides a HUD module. Incantations cost no stamina.
@@ -189,4 +189,4 @@ func toggle(data: Dictionary, acc: float) -> void:
 	var module: String = data["module"]
 	arena.revealed[module] = true  # said once, it holds for the rest of the match
 	arena.player.ledger.settle(module)
-	Sfx.play("ritual_ok", arena.player.center(), -6.0)
+	Sfx.cue("rituals", "chant", arena.player.center(), -6.0)

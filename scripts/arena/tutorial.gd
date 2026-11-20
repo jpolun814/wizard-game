@@ -350,7 +350,7 @@ func _on_portal_entered(body: Node2D) -> void:
 	if body != player or _leaving:
 		return
 	_leaving = true
-	Sfx.play("portal_enter")
+	Sfx.cue("tutorial", "portal_enter")
 	var fade := create_tween()
 	fade.tween_property(player, "modulate:a", 0.0, 0.25)
 	fade.tween_callback(get_tree().change_scene_to_file.bind(MENU))

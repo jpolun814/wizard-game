@@ -79,7 +79,7 @@ func _physics_process(delta: float) -> void:
 	if _burning():
 		# The gas catches and burns off in a flash.
 		Fx.burst(get_parent(), box.get_center(), Color("#ffb040"), 24, 160.0, 0.5, true)
-		Sfx.play("fire_hit", box.get_center(), -4.0)
+		Sfx.cue("gas_bank", "fire", box.get_center(), -4.0)
 		dissipate()
 		return
 	_tick -= delta

@@ -9,3 +9,4 @@ school = "Flora"
 gesture = "circle"
 cost = 14.0
 effect = "A glowing mushroom grows from the ground."
+sounds = {"rustle": "glowcap__rustle"}

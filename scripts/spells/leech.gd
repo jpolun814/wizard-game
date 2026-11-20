@@ -72,7 +72,7 @@ func _ready() -> void:
 	for other: Leech in get_tree().get_nodes_in_group("leeches"):
 		if other != self and other.caster == caster:
 			other.queue_free()  # one tether at a time
-	Sfx.play("blood_cast", caster.center(), -4.0)
+	Sfx.cue("Leech", "blood", caster.center(), -4.0)
 
 
 func _physics_process(delta: float) -> void:

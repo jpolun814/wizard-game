@@ -27,6 +27,11 @@ var _crushed := {}  # bodies the falling trunk has already hit
 var _picture: Node2D
 
 
+## Whose sounds it makes (see FloraSpell).
+func spell_owner() -> String:
+	return "Great Oak"
+
+
 func _ready() -> void:
 	add_to_group("oaks")
 	burn_seconds = 3.0
@@ -46,8 +51,8 @@ func _ready() -> void:
 	var grow := create_tween()
 	grow.tween_property(self, "scale:y", 1.0, GROW_SECONDS).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
 	grow.tween_callback(_stand)
-	Sfx.play("pickup", global_position)  # a rustle of leaves
-	Sfx.play("quake", global_position, -4.0)
+	Sfx.cue("Great Oak", "rustle", global_position)  # a rustle of leaves
+	Sfx.cue("Great Oak", "rumble", global_position, -4.0)
 	Fx.debris(get_parent(), global_position, Color("#7a6a3a"), 12, 220.0)
 	GameCamera.shake_scene(get_tree(), 0.3)
 
@@ -94,7 +99,7 @@ func _physics_process(delta: float) -> void:
 			var sway := sin(_t * 18.0) * 0.015 + _lean * 0.07 * (_t / CREAK_SECONDS)
 			rotation = sway
 			if fmod(_t, 0.35) < delta:
-				Sfx.play("stones", global_position, -8.0)
+				Sfx.cue("Great Oak", "rocks", global_position, -8.0)
 				Fx.debris(get_parent(), global_position + Vector2(0, -4), Color("#7a6a3a"), 3, 90.0)
 			if _t >= CREAK_SECONDS:
 				_state = "falling"
@@ -117,7 +122,7 @@ func take_blow_near(point: Vector2, damage: float) -> bool:
 		return false
 	_health -= damage
 	Fx.debris(get_parent(), point, Color("#7a6a3a"), 6, 140.0)
-	Sfx.play("stones", global_position, -4.0)
+	Sfx.cue("Great Oak", "rocks", global_position, -4.0)
 	if _health <= 0.0:
 		_topple(signf(global_position.x - point.x) if point.x != global_position.x else 1.0)
 	return true
@@ -156,7 +161,7 @@ func _land() -> void:
 	rotation = _lean * PI * 0.5
 	remove_from_group("danger")
 	GameCamera.shake_scene(get_tree(), 0.6)
-	Sfx.play("quake", global_position)
+	Sfx.cue("Great Oak", "rumble", global_position)
 	Fx.debris(get_parent(), global_position + Vector2(_lean * HEIGHT * 0.9, -6), Color("#7a6a3a"), 18, 260.0)
 	Fx.smoke(get_parent(), global_position + Vector2(_lean * HEIGHT * 0.9, -6), Color(0.45, 0.4, 0.3, 0.5), 6, 34.0, 40.0)
 

@@ -1,0 +1,278 @@
+{
+ "arena": {
+  "game_over": "arena__game_over",
+  "ice": "arena__ice",
+  "rustle": "arena__rustle"
+ },
+ "arrival_portal": {
+  "portal_open": "arrival_portal__portal_open"
+ },
+ "avalanche": {
+  "rumble": "avalanche__rumble"
+ },
+ "casting": {
+  "misfire": "casting__misfire",
+  "rustle": "casting__rustle"
+ },
+ "coating": {
+  "fire": "coating__fire",
+  "ice": "coating__ice"
+ },
+ "enemy_bolt": {
+  "whoosh": "enemy_bolt__whoosh"
+ },
+ "epilogue": {
+  "book_close": "epilogue__book_close",
+  "rustle": "epilogue__rustle",
+  "summon": "epilogue__summon",
+  "blow": "epilogue__blow",
+  "blow_last": "epilogue__blow_last"
+ },
+ "eruption": {
+  "volcano": "eruption__volcano"
+ },
+ "falling_rock": {
+  "rocks": "falling_rock__rocks"
+ },
+ "field_portal": {
+  "portal_open": "field_portal__portal_open"
+ },
+ "gas_bank": {
+  "fire": "gas_bank__fire"
+ },
+ "hud": {
+  "click": "hud__click"
+ },
+ "ice_block": {
+  "shatter": "ice_block__shatter"
+ },
+ "ice_plug": {
+  "ice": "ice_plug__ice",
+  "shatter": "ice_plug__shatter"
+ },
+ "intro": {
+  "blink": "intro__blink",
+  "explosion": "intro__explosion",
+  "thunder": "intro__thunder",
+  "volcano": "intro__volcano",
+  "whoosh": "intro__whoosh",
+  "hurt_wizard": "intro__hurt_wizard",
+  "page": "intro__page",
+  "hurt": "intro__hurt",
+  "dark_whoosh": "intro__dark_whoosh"
+ },
+ "lab": {
+  "book_open": "lab__book_open",
+  "chant": "lab__chant"
+ },
+ "lava_ball": {
+  "fire": "lava_ball__fire",
+  "whoosh": "lava_ball__whoosh"
+ },
+ "level_wall": {
+  "chant": "level_wall__chant"
+ },
+ "library": {
+  "book_close": "library__book_close",
+  "book_open": "library__book_open",
+  "click": "library__click",
+  "page": "library__page"
+ },
+ "likeness_panel": {
+  "click": "likeness_panel__click"
+ },
+ "match_end": {
+  "chant": "match_end__chant",
+  "game_over": "match_end__game_over"
+ },
+ "menu": {
+  "click": "menu__click"
+ },
+ "mob_basic": {
+  "die": "mob_basic__die",
+  "hurt": "mob_basic__hurt",
+  "rocks": "mob_basic__rocks",
+  "shatter": "mob_basic__shatter",
+  "shoot": "mob_basic__shoot",
+  "summon": "mob_basic__summon",
+  "whoosh": "mob_basic__whoosh"
+ },
+ "mob_bone_wizard": {
+  "die": "mob_bone_wizard__die",
+  "hurt": "mob_bone_wizard__hurt",
+  "rocks": "mob_bone_wizard__rocks",
+  "shatter": "mob_bone_wizard__shatter",
+  "shoot": "mob_bone_wizard__shoot",
+  "summon": "mob_bone_wizard__summon",
+  "whoosh": "mob_bone_wizard__whoosh"
+ },
+ "mob_dark_wizard": {
+  "die": "mob_dark_wizard__die",
+  "hurt": "mob_dark_wizard__hurt",
+  "rocks": "mob_dark_wizard__rocks",
+  "shatter": "mob_dark_wizard__shatter",
+  "shoot": "mob_dark_wizard__shoot",
+  "summon": "mob_dark_wizard__summon",
+  "whoosh": "mob_dark_wizard__whoosh"
+ },
+ "mob_dummy": {
+  "die": "mob_dummy__die",
+  "hurt": "mob_dummy__hurt",
+  "rocks": "mob_dummy__rocks",
+  "shatter": "mob_dummy__shatter",
+  "shoot": "mob_dummy__shoot",
+  "summon": "mob_dummy__summon",
+  "whoosh": "mob_dummy__whoosh"
+ },
+ "mob_earth_melee": {
+  "die": "mob_earth_melee__die",
+  "hurt": "mob_earth_melee__hurt",
+  "rocks": "mob_earth_melee__rocks",
+  "shatter": "mob_earth_melee__shatter",
+  "shoot": "mob_earth_melee__shoot",
+  "summon": "mob_earth_melee__summon",
+  "whoosh": "mob_earth_melee__whoosh"
+ },
+ "mob_fire_wizard": {
+  "die": "mob_fire_wizard__die",
+  "hurt": "mob_fire_wizard__hurt",
+  "rocks": "mob_fire_wizard__rocks",
+  "shatter": "mob_fire_wizard__shatter",
+  "shoot": "mob_fire_wizard__shoot",
+  "summon": "mob_fire_wizard__summon",
+  "whoosh": "mob_fire_wizard__whoosh"
+ },
+ "mob_giant": {
+  "die": "mob_giant__die",
+  "hurt": "mob_giant__hurt",
+  "rocks": "mob_giant__rocks",
+  "shatter": "mob_giant__shatter",
+  "shoot": "mob_giant__shoot",
+  "summon": "mob_giant__summon",
+  "whoosh": "mob_giant__whoosh"
+ },
+ "mob_knight": {
+  "die": "mob_knight__die",
+  "hurt": "mob_knight__hurt",
+  "rocks": "mob_knight__rocks",
+  "shatter": "mob_knight__shatter",
+  "shoot": "mob_knight__shoot",
+  "summon": "mob_knight__summon",
+  "whoosh": "mob_knight__whoosh"
+ },
+ "mob_lightning_mage": {
+  "die": "mob_lightning_mage__die",
+  "hurt": "mob_lightning_mage__hurt",
+  "rocks": "mob_lightning_mage__rocks",
+  "shatter": "mob_lightning_mage__shatter",
+  "shoot": "mob_lightning_mage__shoot",
+  "summon": "mob_lightning_mage__summon",
+  "whoosh": "mob_lightning_mage__whoosh"
+ },
+ "mob_pyre_wizard": {
+  "die": "mob_pyre_wizard__die",
+  "hurt": "mob_pyre_wizard__hurt",
+  "rocks": "mob_pyre_wizard__rocks",
+  "shatter": "mob_pyre_wizard__shatter",
+  "shoot": "mob_pyre_wizard__shoot",
+  "summon": "mob_pyre_wizard__summon",
+  "whoosh": "mob_pyre_wizard__whoosh"
+ },
+ "mob_runner": {
+  "die": "mob_runner__die",
+  "hurt": "mob_runner__hurt",
+  "rocks": "mob_runner__rocks",
+  "shatter": "mob_runner__shatter",
+  "shoot": "mob_runner__shoot",
+  "summon": "mob_runner__summon",
+  "whoosh": "mob_runner__whoosh"
+ },
+ "mob_turret": {
+  "die": "mob_turret__die",
+  "hurt": "mob_turret__hurt",
+  "rocks": "mob_turret__rocks",
+  "shatter": "mob_turret__shatter",
+  "shoot": "mob_turret__shoot",
+  "summon": "mob_turret__summon",
+  "whoosh": "mob_turret__whoosh"
+ },
+ "mob_wanderer": {
+  "die": "mob_wanderer__die",
+  "hurt": "mob_wanderer__hurt",
+  "rocks": "mob_wanderer__rocks",
+  "shatter": "mob_wanderer__shatter",
+  "shoot": "mob_wanderer__shoot",
+  "summon": "mob_wanderer__summon",
+  "whoosh": "mob_wanderer__whoosh"
+ },
+ "page_pickup": {
+  "rustle": "page_pickup__rustle"
+ },
+ "pond": {
+  "ice": "pond__ice"
+ },
+ "portal_collapse": {
+  "portal_enter": "portal_collapse__portal_enter",
+  "portal_open": "portal_collapse__portal_open",
+  "thunder": "portal_collapse__thunder"
+ },
+ "rituals": {
+  "chant": "rituals__chant",
+  "dark_whoosh": "rituals__dark_whoosh",
+  "explosion": "rituals__explosion",
+  "misfire": "rituals__misfire"
+ },
+ "rock_wall": {
+  "rocks": "rock_wall__rocks",
+  "rumble": "rock_wall__rumble"
+ },
+ "sentinel": {
+  "spark": "sentinel__spark"
+ },
+ "settings": {
+  "click": "settings__click"
+ },
+ "sky_cloud": {
+  "spark": "sky_cloud__spark",
+  "thunder": "sky_cloud__thunder"
+ },
+ "spellbook": {
+  "book_close": "spellbook__book_close",
+  "book_open": "spellbook__book_open",
+  "page": "spellbook__page"
+ },
+ "swing_stair": {
+  "rocks": "swing_stair__rocks"
+ },
+ "tutorial": {
+  "portal_enter": "tutorial__portal_enter"
+ },
+ "wizard": {
+  "die": "wizard__die",
+  "faint": "wizard__faint",
+  "misfire": "wizard__misfire",
+  "summon": "wizard__summon",
+  "land_dirt": "wizard__land_dirt",
+  "land_snow": "wizard__land_snow",
+  "land_leaves": "wizard__land_leaves",
+  "land_gravel": "wizard__land_gravel",
+  "land_tile": "wizard__land_tile",
+  "land_rock": "wizard__land_rock",
+  "land_grass": "wizard__land_grass",
+  "land_wood": "wizard__land_wood",
+  "land_mud": "wizard__land_mud",
+  "step_dirt": "wizard__step_dirt",
+  "step_snow": "wizard__step_snow",
+  "step_leaves": "wizard__step_leaves",
+  "step_gravel": "wizard__step_gravel",
+  "step_tile": "wizard__step_tile",
+  "step_rock": "wizard__step_rock",
+  "step_grass": "wizard__step_grass",
+  "step_wood": "wizard__step_wood",
+  "step_mud": "wizard__step_mud"
+ },
+ "world_stages": {
+  "portal_enter": "world_stages__portal_enter",
+  "thunder": "world_stages__thunder"
+ }
+}

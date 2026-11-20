@@ -159,7 +159,7 @@ func plate_rect() -> Rect2:
 
 
 func close() -> void:
-	Sfx.play("ui_click")
+	Sfx.cue("likeness_panel", "click")
 	closed.emit()
 	queue_free()
 
@@ -304,7 +304,7 @@ func _step(option: String, way: int) -> void:
 
 
 func _choose(option: String, value: String) -> void:
-	Sfx.play("ui_click")
+	Sfx.cue("likeness_panel", "click")
 	GameSettings.set_value("look", PartsLook.with_option(_current(), option, value))
 	_changed()
 	if option == "voice":
@@ -312,7 +312,7 @@ func _choose(option: String, value: String) -> void:
 
 
 func _randomize() -> void:
-	Sfx.play("ui_click")
+	Sfx.cue("likeness_panel", "click")
 	var rng := RandomNumberGenerator.new()
 	rng.randomize()
 	GameSettings.set_value("look", PartsLook.encode(PartsLook.random_config(rng)))

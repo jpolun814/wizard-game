@@ -9,7 +9,7 @@ const FAN := 0.5  # the angle the volley spreads across, in radians
 
 func _begin(origin: Vector2, aim_angle: float) -> void:
 	_life = 0.05
-	Sfx.play("push", origin, -6.0)
+	Sfx.cue("Barbs", "whoosh", origin, -6.0)
 	for k in COUNT:
 		var thorn := Thorn.new()
 		thorn.caster = caster

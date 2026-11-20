@@ -10,3 +10,4 @@ gesture = "latin_cross"
 targeting = "positional"
 cost = 37.0
 effect = "Summon an undead servant."
+sounds = {"rise": "raise_dead__rise"}

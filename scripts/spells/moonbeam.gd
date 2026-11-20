@@ -53,7 +53,7 @@ func _ready() -> void:
 	motes.scale_amount_max = 4.0 / Fx.TEX_SIZE
 	motes.color_ramp = Fx.fade_ramp(Color(PALE.r, PALE.g, PALE.b, 0.7))
 	add_child(motes)
-	Sfx.play("gravity", global_position, -12.0)
+	Sfx.cue("Moonbeam", "dark_whoosh", global_position, -12.0)
 	Fx.burst(get_parent(), global_position, PALE, 8, 60.0, 0.6, true)
 
 

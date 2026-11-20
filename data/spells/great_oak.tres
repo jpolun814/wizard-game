@@ -11,3 +11,4 @@ targeting = "shape"
 cost = 52.0
 effect = "Grow a great oak tree."
 damage = "35 dmg"
+sounds = {"fire": "great_oak__fire", "rocks": "great_oak__rocks", "rumble": "great_oak__rumble", "rustle": "great_oak__rustle"}

@@ -64,7 +64,7 @@ func _physics_process(delta: float) -> void:
 				_state = "erupting"
 				_phase = ERUPT_SECONDS
 				_vent.visible = true
-				Sfx.play("volcano", global_position)
+				Sfx.cue("eruption", "volcano", global_position)
 				GameCamera.shake_scene(get_tree(), 0.3)
 		"erupting":
 			_shake(0.09)

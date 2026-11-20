@@ -40,7 +40,7 @@ func _ready() -> void:
 	add_child(_mark)
 	Fx.burst(get_parent(), target.center(), color, 18, 160.0, 0.5, true)
 	Fx.impact(get_parent(), target.center(), color, 50.0)
-	Sfx.play("heartbeat", target.center(), -2.0)
+	Sfx.cue("Fight or Flight", "heartbeat", target.center(), -2.0)
 	if target.is_likeness():
 		return  # the machine that plays them does the rest
 	if fights:

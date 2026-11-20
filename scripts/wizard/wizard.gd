@@ -29,6 +29,8 @@ const AIR_OWN_ACCEL := 2400.0  # and how fast they can when the wizard jumped or
 ## The sound of a footstep on each biome's ground (NOX SOUND's Footsteps Essentials, tools/make_nox_sounds.py).
 const STEP_SOUNDS := {"graveyard": "step_dirt", "mountains": "step_snow", "jungle": "step_leaves", "ashlands": "step_gravel", "castle": "step_tile",
 	"underground": "step_rock", "portals": "step_grass", "ocean": "step_wood"}
+## How fast a wizard must be falling (px/s) to be heard landing.
+const LAND_SPEED := 380.0
 const OIL_GRIP := 380.0        # and on oil, which is more slippery still
 const ICE_GRIP := 650.0        # how fast a wizard on ice can change speed, in pixels a second each second
 const OBSIDIAN_SPEED := 0.75    # how fast the wizard walks in black glass
@@ -284,7 +286,7 @@ func _ready() -> void:
 		$Camera2D.queue_free()
 		_sprite.animation_finished.connect(_on_animation_finished)
 		Fx.pop(get_parent(), global_position + Vector2(0, -2), "magic_02", Color("#d8d0e8"), 70.0, SPAWN_TIME + 0.2, 1.2, 1.5)  # it arrives through a summoning circle
-		Sfx.play("summon", global_position)
+		Sfx.cue("wizard", "summon", global_position)
 		if _uses_parts():
 			pose.arrive()
 	if brain != null:
@@ -482,7 +484,7 @@ func center() -> Vector2:
 
 func raise_shield(seconds: float) -> void:
 	_shield_time = maxf(_shield_time, seconds)
-	Sfx.play("barrier", center())
+	Sfx.cue("Barrier", "barrier", center())
 
 
 func has_shield() -> bool:
@@ -581,7 +583,7 @@ func take_damage(amount: int, grace_hit := true, projectile := false) -> void:
 			veil -= 1
 			_veil_cool = 0.5
 			Fx.burst(get_parent(), center(), SpellData.SCHOOL_COLORS["Blood"], 14, 140.0, 0.4, true)
-			Sfx.play("glass", center(), -4.0)
+			Sfx.cue("Crimson Veil", "glass", center(), -4.0)
 			FloatText.spawn(get_parent(), center() + Vector2(0, -44), "Negated", Color("#ff6b7a"), 1.0)
 		if grace_hit:
 			_grace = HURT_GRACE
@@ -633,7 +635,7 @@ func _pass_away() -> void:
 	_passed = true
 	_layer_alive = collision_layer
 	set_deferred("collision_layer", 0)
-	Sfx.play("mob_die", center())
+	Sfx.cue("wizard", "die", center())
 	Fx.burst(get_parent(), center(), Color("#d8d0e8"), 18, 180.0, 0.6, true)
 	Fx.smoke(get_parent(), center(), Color(0.25, 0.2, 0.3, 0.6), 5, 30.0)
 	GameCamera.shake_near(get_tree(), global_position, 0.18, FALL_SHAKE_REACH)  # (a fall far off shakes nobody's screen)
@@ -735,7 +737,7 @@ func grant_adrenaline(seconds: float) -> void:
 
 func fade_from_sight(seconds: float) -> void:
 	fade_time = maxf(fade_time, seconds)
-	Sfx.play("faint", center(), -6.0)
+	Sfx.cue("wizard", "faint", center(), -6.0)
 
 
 ## True while the wizard is faded from sight.
@@ -764,7 +766,7 @@ func break_sneak() -> void:
 
 func raise_obsidian(seconds: float) -> void:
 	obsidian_time = maxf(obsidian_time, seconds)
-	Sfx.play("barrier", center())
+	Sfx.cue("Obsidian Armor", "barrier", center())
 
 
 ## A wave takes hold of the wizard and carries them, whichever way it runs.
@@ -1000,7 +1002,10 @@ func _move_on(delta: float) -> void:
 		velocity.y = minf(velocity.y, -330.0)
 	if drawn:
 		velocity = Vector2.ZERO
+	var fell_at := velocity.y if not is_on_floor() else 0.0  # how fast they were falling as they reached the ground, if they did
 	move_and_slide()
+	if is_on_floor() and fell_at > LAND_SPEED and not flying and swim_time <= 0.0 and surf_time <= 0.0:
+		Sfx.cue("wizard", "land_mud" if sink_time > 0.0 else _ground_sound("land"), global_position, minf((fell_at - LAND_SPEED) / 400.0, 1.0) * 4.0)
 	if is_on_wall():
 		_air_vx = 0.0  # a wall stops the sideways speed it was carrying
 		_shove.x = 0.0
@@ -1012,11 +1017,18 @@ func _move_on(delta: float) -> void:
 			velocity.y = 0.0
 		global_position = held
 	_placed_at = global_position
-	if is_on_floor() and absf(velocity.x) > 10.0 and surf_time <= 0.0:  # (a wave carries the rider: no steps)
+	# A step is a foot set down by a wizard walking or running on the ground under their own power: not a ride on a wave, a slide on a shove,
+	# a swim, a fall or a flight (the keys must be held, and the wizard must actually be moving).
+	if is_on_floor() and _stepping and absf(velocity.x) > 10.0 and surf_time <= 0.0 and swim_time <= 0.0 and absf(_shove.x) < 20.0:
 		_step -= delta
 		if _step <= 0.0:
 			_step = STEP_EVERY
-			Sfx.play("step_mud" if sink_time > 0.0 else STEP_SOUNDS.get(ArenaGen.biome_name_at(global_position.x), "step_dirt"), global_position)  # in mud, a squelch
+			Sfx.cue("wizard", "step_mud" if sink_time > 0.0 else _ground_sound("step"), global_position)  # in mud, a squelch
+
+
+## The name of the sound a wizard makes on the ground under them: kind is "step" or "land".
+func _ground_sound(kind: String) -> String:
+	return kind + STEP_SOUNDS.get(ArenaGen.biome_name_at(global_position.x), "step_dirt").trim_prefix("step")
 
 
 ## Out of its depth in a sea (see Pond.deep): the water holds the wizard up for a moment, and the call comes again each frame while it is there.
@@ -1267,7 +1279,7 @@ func interrupt_cast() -> void:
 func _show_interrupt() -> void:
 	Fx.burst(get_parent(), center() + Vector2(facing * 14.0, -16.0), cast_color, 14, 140.0, 0.4, true)
 	FloatText.spawn(get_parent(), center() + Vector2(0, -44), "Interrupted!", Color("#d9b8ff"), 0.9)
-	Sfx.play("misfire", center())
+	Sfx.cue("wizard", "misfire", center())
 
 
 ## Things drawn over the sprite: the stroke any other wizard is drawing (a brain's, or a

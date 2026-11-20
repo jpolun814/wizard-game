@@ -34,7 +34,7 @@ func _ready() -> void:
 		light.energy = 1.3
 		light.shadow_enabled = false
 		add_child(light)
-	Sfx.play("fire_hit", global_position, -8.0)
+	Sfx.cue("Flare", "fire", global_position, -8.0)
 	Fx.burst(get_parent(), global_position, Color("#ff9a40"), 6, 60.0, 0.4, true)
 
 
@@ -68,7 +68,7 @@ func _draw() -> void:
 ## Puts the flame out, in a puff of smoke.
 func snuff() -> void:
 	Fx.smoke(get_parent(), global_position + Vector2(0, -14), Color(0.8, 0.8, 0.85, 0.6), 4, 18.0, 30.0)
-	Sfx.play("fire_hit", global_position, -4.0)
+	Sfx.cue("Flare", "fire", global_position, -4.0)
 	queue_free()
 
 

@@ -407,7 +407,7 @@ func _show_guide(wanted: bool) -> void:
 func _open_likeness() -> void:
 	if _making != null:
 		return
-	Sfx.play("ritual_ok", player.center(), -6.0)
+	Sfx.cue("lab", "chant", player.center(), -6.0)
 	_making = LikenessPanel.new()
 	_making.wizard = player
 	_show_guide(false)
@@ -442,7 +442,7 @@ func _on_book_touched(body: Node2D) -> void:
 	if body != player or _leaving or ritual.visible:
 		return
 	_leaving = true
-	Sfx.play("book_open", _lectern.global_position)
+	Sfx.cue("lab", "book_open", _lectern.global_position)
 	if not Net.online():
 		_go(World.next_seed)
 		return
@@ -520,7 +520,7 @@ func _on_seed_spoken(text: String) -> void:
 	if Net.online() and not Net.is_host():
 		_tune.rpc_id(1, Incantation.seed_of(text))
 	feedback("Touch the book to enter that world.", Color("#c8a8ff"))
-	Sfx.play("ritual_ok", player.center(), -6.0)
+	Sfx.cue("lab", "chant", player.center(), -6.0)
 
 
 @rpc("any_peer", "call_remote", "reliable")

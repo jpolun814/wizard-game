@@ -34,7 +34,7 @@ func on_player_died() -> void:
 		return
 	world.caster.set_casting_enabled(false)
 	world.ritual.cancel()
-	Sfx.play("game_over")
+	Sfx.cue("match_end", "game_over")
 	spectating = true
 	world.player.collision_layer = 0
 	world.player.collision_mask = 0
@@ -127,7 +127,7 @@ func count_wizards(delta: float) -> void:
 		win_stats_due = true
 		world.get_tree().create_timer(STATS_AFTER).timeout.connect(_show_win_stats)
 		Library.flush()
-		Sfx.play("ritual_ok", world.player.center())
+		Sfx.cue("match_end", "chant", world.player.center())
 	if standing.size() == 1 and Library.real_match() and (Net.is_host() or not Net.online()):
 		won = true
 		var champion: Wizard = standing[0]

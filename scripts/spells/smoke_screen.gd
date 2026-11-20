@@ -59,7 +59,7 @@ func _ready() -> void:
 	_emitter.z_index = 3
 	add_child(_emitter)
 	_emitter.emitting = true
-	Sfx.play("fire_hit", global_position, -8.0)
+	Sfx.cue("Smoke Screen", "fire", global_position, -8.0)
 
 
 func _physics_process(delta: float) -> void:

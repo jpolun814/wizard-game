@@ -78,9 +78,9 @@ func _sound(delta: float) -> void:
 		_grind -= delta
 		if _grind <= 0.0:
 			_grind = GRIND_GAP * _rng_gap()
-			Sfx.play("stones", global_position + Vector2(_way * _length * 0.5, 0.0).rotated(rotation), -3.0, 0.2, 0.32)
+			Sfx.cue("swing_stair", "rocks", global_position + Vector2(_way * _length * 0.5, 0.0).rotated(rotation), -3.0, 0.2, 0.32)
 	elif _was_swinging and not swinging and heard:
-		Sfx.play("stones", global_position + Vector2(_way * _length, 0.0).rotated(rotation), 0.0, 0.1, 0.25)
+		Sfx.cue("swing_stair", "rocks", global_position + Vector2(_way * _length, 0.0).rotated(rotation), 0.0, 0.1, 0.25)
 	_was_swinging = swinging
 
 

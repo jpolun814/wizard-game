@@ -18,6 +18,11 @@ var _stride := {}  # body -> seconds since its last footfall in the thorns
 var _box := Rect2()
 
 
+## Whose sounds it makes (see FloraSpell).
+func spell_owner() -> String:
+	return "Bramble"
+
+
 func _ready() -> void:
 	add_to_group("danger")
 	var planted := not planted_ground.is_empty()
@@ -57,7 +62,7 @@ func _ready() -> void:
 	var right := _surface[_surface.size() - 1].x
 	_box = Rect2(left - 10.0, top - HEIGHT, right - left + 20.0, bottom - top + HEIGHT + 14.0)
 	if not planted:
-		Sfx.play("pickup", _surface[0], -6.0)  # a rustle of leaves
+		Sfx.cue("Bramble", "rustle", _surface[0], -6.0)  # a rustle of leaves
 
 
 func _physics_process(delta: float) -> void:

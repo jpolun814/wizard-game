@@ -105,7 +105,7 @@ func _fade() -> void:
 	var heart := global_position + Vector2(0.0, -FLOAT)
 	Fx.burst(get_parent(), heart, _color, 12, 90.0, 0.6, true)
 	Fx.smoke(get_parent(), heart, Color(0.3, 0.2, 0.4, 0.5), 3, 20.0)
-	Sfx.play("glass", heart, -10.0)
+	Sfx.cue("Mirage", "glass", heart, -10.0)
 	for wizard: Wizard in SpellTargets.wizards(get_tree()):
 		if wizard.brain != null and SpellTargets.center_of(wizard).distance_to(heart) < WITNESS:
 			wizard.brain.saw_a_mirage_fade()

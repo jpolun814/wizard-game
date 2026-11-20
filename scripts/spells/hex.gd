@@ -50,7 +50,7 @@ func _ready() -> void:
 	mark.scale = Vector2(2.0, 2.0)
 	mark.visible = not target is Wizard  # a wizard's status bubble already says they are hexed; a creature has none, so it keeps the star
 	add_child(mark)
-	Sfx.play("gravity", global_position, -6.0)
+	Sfx.cue("Hex", "dark_whoosh", global_position, -6.0)
 	Fx.burst(get_parent(), global_position, Color("#a070e0"), 12, 100.0, 0.5, true)
 
 

@@ -38,8 +38,8 @@ func _begin(origin: Vector2, aim_angle: float) -> void:
 	collision_mask = 1  # shots live on layer 1
 	area_entered.connect(_on_struck)
 	_add_slab()
-	Sfx.play("stones", origin, -2.0)  # pebbles shifting under the slab
-	Sfx.play("quake", origin)  # and the ground heaving under it
+	Sfx.cue("Stone Wall", "rocks", origin, -2.0)  # pebbles shifting under the slab
+	Sfx.cue("Stone Wall", "rumble", origin)  # and the ground heaving under it
 	Fx.debris(get_parent(), origin, Color("#a08060"), 10, 200.0)
 	GameCamera.shake_scene(get_tree(), 0.2)
 
@@ -109,12 +109,12 @@ func _take_blow(damage: float, at: Vector2) -> void:
 	_health -= damage
 	if _health <= 0.0:
 		Fx.debris(get_parent(), to_global(Vector2(_length * 0.5, 0.0)), Color("#6b5a48"), 16, 220.0)
-		Sfx.play("stones", global_position)
+		Sfx.cue("Stone Wall", "rocks", global_position)
 		GameCamera.shake_scene(get_tree(), 0.15)
 		queue_free()
 		return
 	Fx.debris(get_parent(), at, Color("#6b5a48"), 5, 120.0)
-	Sfx.play("stones", global_position, -6.0)
+	Sfx.cue("Stone Wall", "rocks", global_position, -6.0)
 
 
 ## The slab's face: the level's earth, crumbling as its health falls, drawn out from its foot as far as it has grown.

@@ -21,6 +21,7 @@ enum Size { NONE, RADIUS, REACH, LINE_WIDTH, LINE_SPAN, LENGTH, STEP_LENGTH, ARE
 @export var applies: Array[String] = []  ## the states it puts on someone (names as in StatusBubbles), for the spellbook
 @export var removes: Array[String] = []  ## the states it takes off someone
 @export var damage := ""            ## a short figure for the spellbook
+@export var sounds := {}  ## the sounds this spell makes, by event (cast, hit...): each a file of its own, owned by this spell alone (see Sfx.cue)
 @export var color := Color(0, 0, 0, 0)  ## the glow of a spell that is not its school's color; transparent means the school's
 @export var size_from := Size.NONE
 @export var size_unit := 1.0

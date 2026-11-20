@@ -85,7 +85,7 @@ func _land(ground: Vector2, struck := Vector2.INF) -> void:
 		Hazard.place(get_parent(), ground, FIRE_WIDTH, FIRE_SECONDS)
 	SpellTargets.hurt_within(get_tree(), struck + Vector2(0, -12), REACH, DAMAGE, "Fire", true, true, self)
 	PixelFx.play(get_parent(), struck, "blast_small", 20.0, 1.0, Color.WHITE, true)
-	Sfx.play("fire_hit", struck, -6.0)
+	Sfx.cue("lava_ball", "fire", struck, -6.0)
 	queue_free()
 
 
@@ -93,7 +93,7 @@ func _land(ground: Vector2, struck := Vector2.INF) -> void:
 func reflect(direction: Vector2) -> void:
 	velocity = direction.normalized() * velocity.length()
 	rotation = velocity.angle()
-	Sfx.play("push", global_position, -4.0)
+	Sfx.cue("lava_ball", "whoosh", global_position, -4.0)
 
 
 ## A steady pull, such as a Black Hole's. Call it every frame the pull lasts.

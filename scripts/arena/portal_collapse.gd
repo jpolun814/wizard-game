@@ -21,7 +21,7 @@ func _ready() -> void:
 	_portal.z_index = 5  # over the sky and anything in it
 	add_child(_portal)
 	_portal.open()
-	Sfx.play("portal_open", global_position, -2.0)
+	Sfx.cue("portal_collapse", "portal_open", global_position, -2.0)
 	create_tween().tween_property(_portal, "scale", Vector2.ONE * SIZE, GROW).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 
@@ -42,7 +42,7 @@ func _process(delta: float) -> void:
 		add_child(bolt)
 		bolt.play("default")
 		if randf() < 0.5:
-			Sfx.play("thunder", global_position, -14.0)
+			Sfx.cue("portal_collapse", "thunder", global_position, -14.0)
 	_trail -= delta
 	if _trail <= 0.0:
 		_trail = 0.05
@@ -60,4 +60,4 @@ func pull(wizards: Array) -> void:
 		body.drawn = true  # the portal carries them: no walking, no falling
 		var tween := body.create_tween().set_parallel()
 		tween.tween_property(body, "global_position", global_position + Vector2(0.0, 30.0), PULL).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-	Sfx.play("portal_enter", global_position, -2.0)
+	Sfx.cue("portal_collapse", "portal_enter", global_position, -2.0)

@@ -72,7 +72,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 ## Back shuts the tome that is open; with none open it leaves for the first screen.
 func _on_back() -> void:
-	Sfx.play("ui_click")
+	Sfx.cue("library", "click")
 	if _tome != "":
 		close_tome()
 	else:
@@ -397,7 +397,7 @@ func _make_ribbon(value: String, words: String, at: Vector2) -> Button:
 		cloth.set_corner_radius_all(2)
 		ribbon.add_theme_stylebox_override(state, cloth)
 	ribbon.pressed.connect(func() -> void:
-		Sfx.play("ui_click", null, -8.0)
+		Sfx.cue("library", "click", null, -8.0)
 		_world = value
 		_refresh()
 		_lift_ribbons())
@@ -414,7 +414,7 @@ func _lift_ribbons() -> void:
 
 ## Takes a tome down from the shelf and opens it at its first page.
 func open_tome(tome: String) -> void:
-	Sfx.play("book_open")
+	Sfx.cue("library", "book_open")
 	_tome = tome
 	_spread = 0
 	_shelf.visible = false
@@ -427,7 +427,7 @@ func open_tome(tome: String) -> void:
 
 ## Puts the tome back on the shelf.
 func close_tome() -> void:
-	Sfx.play("book_close")
+	Sfx.cue("library", "book_close")
 	_tome = ""
 	_reading.visible = false
 	_shelf.visible = true
@@ -440,7 +440,7 @@ func _turn(by: int) -> void:
 	var turned := clampi(_spread + by, 0, last)
 	if turned == _spread:
 		return
-	Sfx.play("page")
+	Sfx.cue("library", "page")
 	_spread = turned
 	_writing.visible = false
 	_book.play([4, 5, 6, Spellbook.OPEN] if by > 0 else [6, 5, 4, Spellbook.OPEN], func() -> void:

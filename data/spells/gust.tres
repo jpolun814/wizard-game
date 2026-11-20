@@ -11,3 +11,4 @@ targeting = "directional"
 cost = 14.0
 effect = "Blow a gust of wind."
 effect_path = "res://scripts/spells/gust.gd"
+sounds = {"whoosh": "gust__whoosh"}

@@ -32,7 +32,7 @@ func _ready() -> void:
 	add_to_group("oil_slicks")
 	z_index = 1
 	texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
-	Sfx.play("quicksand", global_position, -6.0)
+	Sfx.cue("Oil Slick", "mud", global_position, -6.0)
 	Fx.burst(get_parent(), global_position, Color(0.1, 0.08, 0.12, 0.9), 8, 90.0, 0.5, false)
 
 
@@ -91,7 +91,7 @@ func _go_up() -> void:
 	if _lit:
 		return
 	_lit = true
-	Sfx.play("fire_hit", global_position, -2.0)
+	Sfx.cue("Oil Slick", "fire", global_position, -2.0)
 	var count := maxi(2, int(ceilf(width / PATCH)))
 	for k in count:
 		var x := lerpf(-width * 0.5 + PATCH * 0.5, width * 0.5 - PATCH * 0.5, float(k) / maxf(count - 1, 1))

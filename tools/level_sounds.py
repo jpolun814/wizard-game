@@ -1,4 +1,4 @@
-"""Sets the loudness of every sound so they sit together (Sfx.VOLUME).
+"""Sets the loudness of every sound so they sit together (data/sound_levels.json, and Sfx.VOLUME for the voices).
 
     python tools/level_sounds.py            # lists the sounds that are more than 3 dB from their target
     python tools/level_sounds.py --apply    # and writes the new values into scripts/core/sfx.gd
@@ -11,8 +11,10 @@ import os,re,glob,sys,numpy as np,soundfile as sf
 os.chdir(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 path="scripts/core/sfx.gd"
 src=open(path,encoding="utf-8",newline="").read(); nl="\r\n" if "\r\n" in src else "\n"; src=src.replace("\r\n","\n")
-blk=src[src.index("const VOLUME"):src.index("const MAX_DISTANCE")]
-vol={k:float(v) for k,v in re.findall(r'"([a-z_0-9]+)": (-?[0-9.]+)',blk)}
+import json
+blk=src[src.index("const VOLUME"):src.index("const REGISTRY")]
+LV="data/sound_levels.json"; levels=json.load(open(LV))
+vol={k:float(v) for k,v in re.findall(r'"([a-z_0-9]+)": (-?[0-9.]+)',blk)}; vol.update(levels)
 peaks=[]
 def level(p):
     x,r=sf.read(p,always_2d=True); x=x.mean(axis=1)
@@ -23,6 +25,13 @@ for f in glob.glob("audio/*"):
     if f.endswith(".import"): continue
     b=re.sub(r"\.(wav|ogg|mp3)$","",os.path.basename(f)); k=re.sub(r"_\d+$","",b); g.setdefault(k,[]).append(level(f)); pk[k]=max(pk.get(k,-99),peaks[-1])
 def target(k):
+    if k.startswith("wizard__step"): return -46
+    if k.startswith("wizard__land"): return -42
+    owner,_,ev=k.partition("__")
+    if ev in ("hurt","die","shoot","whoosh","rocks") and owner.startswith("mob_"): return -26
+    if ev in ("click","page","book_open","book_close","rustle","wind"): return -32
+    if ev in ("rumble","whirl"): return -20
+    if ev=="explosion": return -22
     if k.startswith("step_"): return -46
     if k.startswith("jump_voice"): return -30
     if k.startswith("hurt_voice"): return -30  # as loud as a jump
@@ -44,7 +53,9 @@ for k,(a,b) in sorted(changes.items()): print("%-16s %5.1f -> %5.1f"%(k,a,b))
 if "--apply" in sys.argv:
     new=blk
     for k,(a,b) in changes.items():
-        if re.search(r'"%s": -?[0-9.]+'%k,new): new=re.sub(r'"%s": -?[0-9.]+'%k,'"%s": %.1f'%(k,b),new)
+        if k in levels or "__" in k: levels[k]=b
+        elif re.search(r'"%s": -?[0-9.]+'%k,new): new=re.sub(r'"%s": -?[0-9.]+'%k,'"%s": %.1f'%(k,b),new)
         else: print("missing",k)
+    json.dump(dict(sorted(levels.items())),open(LV,"w"),indent=1)
     src=src.replace(blk,new)
     open(path,"w",encoding="utf-8",newline="").write(src.replace("\n",nl))

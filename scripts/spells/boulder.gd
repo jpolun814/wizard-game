@@ -85,7 +85,7 @@ func _on_contact(body: Node) -> void:
 		SpellTargets.hurt_within(get_tree(), global_position, LANDING_RADIUS, _blow(), "Earth", false, false, self)
 	Fx.debris(get_parent(), global_position, Color("#9c7a52"), 12, 200.0)
 	Fx.smoke(get_parent(), global_position, Color(0.45, 0.38, 0.3, 0.5), 5, 30.0, 30.0)
-	Sfx.play("quake", global_position)
+	Sfx.cue("Stonefall", "rumble", global_position)
 	GameCamera.shake_scene(get_tree(), 0.5)
 	for thing in get_tree().get_nodes_in_group("breakables"):
 		if thing is IcePlug or thing is RockWall:  # it breaks a plug of ice, or brings a wall down, where it lands
@@ -122,8 +122,8 @@ func _take_blow(damage: float, at: Vector2) -> void:
 	_health -= damage
 	if _health <= 0.0:
 		Fx.debris(get_parent(), global_position, Color("#6b5a48"), 16, 220.0)
-		Sfx.play("stones", global_position)
+		Sfx.cue("Stonefall", "rocks", global_position)
 		queue_free()
 	else:
 		Fx.debris(get_parent(), at, Color("#6b5a48"), 5, 120.0)
-		Sfx.play("stones", global_position, -6.0)
+		Sfx.cue("Stonefall", "rocks", global_position, -6.0)

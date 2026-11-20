@@ -37,7 +37,7 @@ func _ready() -> void:
 	_bubble.scale = Vector2.ONE * (56.0 / Fx.TEX_SIZE)
 	_bubble.modulate = Color(0.75, 0.92, 1.0, 0.9)
 	add_child(_bubble)
-	Sfx.play("gravity", global_position, -8.0)
+	Sfx.cue("Vacuum", "dark_whoosh", global_position, -8.0)
 
 
 func _on_caster_hurt(_amount: int) -> void:

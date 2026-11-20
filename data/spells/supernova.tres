@@ -12,3 +12,4 @@ cost = 80.0
 effect = "Summon a dying star."
 damage = "6 dmg/sec + 45 dmg"
 applies = Array[String](["burning"])
+sounds = {"explosion": "supernova__explosion", "fire": "supernova__fire"}

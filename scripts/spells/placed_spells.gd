@@ -153,4 +153,4 @@ func _raise_dead(c: SpellCast) -> void:
 	risen.max_hp = RAISED_HEALTH
 	risen.hp = RAISED_HEALTH
 	Fx.burst(_arena, feet, SpellData.SCHOOL_COLORS["Blood"], 12, 110.0, 0.5, true)
-	Sfx.play("raise_dead", feet, -4.0)
+	Sfx.cue("Raise Dead", "rise", feet, -4.0)

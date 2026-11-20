@@ -29,6 +29,11 @@ var _sunk := 0.0
 var _facing := -1.0  # which way the mouth points: the art faces left
 
 
+## Whose sounds it makes (see FloraSpell).
+func spell_owner() -> String:
+	return "Flytrap"
+
+
 func _ready() -> void:
 	global_position = SpellTargets.surface_over(get_world_2d(), global_position)
 	add_to_group("danger")
@@ -127,7 +132,7 @@ func _snap(prey: Node2D) -> void:
 	var rise := create_tween().set_parallel()  # and it shoots up out of its hiding place
 	rise.tween_method(_sink, _sunk, 0.0, 0.08)
 	rise.tween_property(_picture, "modulate", Color.WHITE, 0.08)
-	Sfx.play("jaw_snap", global_position)
+	Sfx.cue("Flytrap", "jaw_snap", global_position)
 
 
 func _bite() -> void:
@@ -135,7 +140,7 @@ func _bite() -> void:
 	_bite_clock = BITE_GAP
 	SpellTargets.hurt(_victim, BITE_DAMAGE, "Flora", false, false, self)
 	Fx.burst(get_parent(), global_position + Vector2(0, -20), Color("#c04050"), 8, 90.0, 0.4)
-	Sfx.play("chomp", global_position, -4.0)
+	Sfx.cue("Flytrap", "chomp", global_position, -4.0)
 	var chomp := create_tween()  # it chews: the head bulges and sinks back
 	chomp.tween_property(_picture, "scale", Vector2(SIZE * 1.18, SIZE * 0.88), 0.1)
 	chomp.tween_property(_picture, "scale", Vector2(SIZE, SIZE), 0.25)
@@ -146,7 +151,7 @@ func _release() -> void:
 	_spit_out()
 	_state = "spitting"
 	_picture.play("spit")
-	Sfx.play("chomp", global_position, -2.0)
+	Sfx.cue("Flytrap", "chomp", global_position, -2.0)
 	var wither := create_tween()
 	wither.tween_interval(0.9)
 	wither.tween_property(_picture, "modulate:a", 0.0, 0.8)

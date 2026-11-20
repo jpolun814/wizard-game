@@ -45,7 +45,7 @@ func _ready() -> void:
 	embers.radial_accel_max = -80.0
 	embers.gravity = Vector2.ZERO
 	add_child(embers)
-	Sfx.play("fire_hit", global_position, -2.0)
+	Sfx.cue("Supernova", "fire", global_position, -2.0)
 
 
 func _physics_process(delta: float) -> void:
@@ -124,7 +124,7 @@ func _explode() -> void:
 	Fx.pop(get_parent(), global_position, "circle_03", fire.lightened(0.2), EXPLODE_RADIUS * 2.0, 0.5, 1.3)
 	Fx.pop(get_parent(), global_position, "circle_05", Color(1.0, 0.9, 0.6), EXPLODE_RADIUS * 0.9, 0.25, 1.6)
 	Fx.burst(get_parent(), global_position, fire, 40, 420.0, 0.7, true)
-	Sfx.play("explosion", global_position)
+	Sfx.cue("Supernova", "explosion", global_position)
 	GameCamera.shake_scene(tree, 0.9)
 
 

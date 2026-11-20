@@ -20,6 +20,11 @@ var _statics: Array[StaticBody2D] = []
 var _box := Rect2()
 
 
+## Whose sounds it makes (see FloraSpell).
+func spell_owner() -> String:
+	return "Lily Pads"
+
+
 func _ready() -> void:
 	add_to_group("lily_pads")
 	var span := GestureTemplates.bounds(line)
@@ -66,7 +71,7 @@ func _ready() -> void:
 		queue_free()
 		return
 	_box = Rect2(span.position.x - 10.0, high - 10.0, span.size.x + 20.0, low - high + 34.0)
-	Sfx.play("snow", Vector2(span.get_center().x, high), -6.0)
+	Sfx.cue("Lily Pads", "wind", Vector2(span.get_center().x, high), -6.0)
 
 
 ## Whether a body stands on these leaves (fire would burn what it stands on).

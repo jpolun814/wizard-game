@@ -473,7 +473,7 @@ func _douse_shots() -> void:
 	for shot in get_tree().get_nodes_in_group("shots"):
 		if shot.is_in_group("fires") and wet_at(shot.global_position):
 			Fx.smoke(get_parent(), shot.global_position, Color(0.9, 0.95, 1.0, 0.6), 4, 24.0, 40.0)
-			Sfx.play("freeze", shot.global_position, -6.0)
+			Sfx.cue("pond", "ice", shot.global_position, -6.0)
 			if shot is SpellEffect:
 				shot.end()
 			else:
@@ -489,7 +489,7 @@ func _douse_standing_fires() -> void:
 		var foot: Vector2 = (fire as Node2D).global_position
 		if wet_at(foot):
 			Fx.smoke(get_parent(), foot, Color(0.9, 0.95, 1.0, 0.6), 4, 24.0, 40.0)
-			Sfx.play("freeze", foot, -6.0)
+			Sfx.cue("pond", "ice", foot, -6.0)
 			fire.quench()
 
 
@@ -537,7 +537,7 @@ func freeze_span(x0: float, x1: float) -> bool:
 	body.add_child(shape)
 	add_child(body)
 	_slabs.append({"body": body, "x0": left, "x1": right, "y": level, "age": 0.0})
-	Sfx.play("freeze", Vector2((left + right) * 0.5, level))
+	Sfx.cue("pond", "ice", Vector2((left + right) * 0.5, level))
 	Shatter.spawn(get_parent(), Vector2((left + right) * 0.5, level), Color("#cdeeff"))
 	return true
 

@@ -36,10 +36,15 @@ func is_burning() -> bool:
 
 
 ## Sets the plant alight: a fire scattered over it (see Flames), and the sound of it catching.
+## Whose sounds the plant makes: the spell that grew it (each plant says so).
+func spell_owner() -> String:
+	return ""
+
+
 func _ignite(box: Rect2) -> void:
 	_burning = 0.001
 	Flames.lay(self, box, int(box.position.x * 3.0 + box.position.y), box.size.y * 0.5)
-	Sfx.play("fire_hit", box.get_center(), -4.0)
+	Sfx.cue(spell_owner(), "fire", box.get_center(), -4.0)
 
 
 ## What happens when the plant has burned away. Most simply vanish.

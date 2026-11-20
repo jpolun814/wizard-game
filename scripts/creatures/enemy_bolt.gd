@@ -54,7 +54,7 @@ static func fire(parent: Node, origin: Vector2, target: Vector2, color: Color, d
 func reflect(direction: Vector2) -> void:
 	_velocity = direction.normalized() * _speed
 	rotation = _velocity.angle()
-	Sfx.play("push", global_position, -4.0)
+	Sfx.cue("enemy_bolt", "whoosh", global_position, -4.0)
 
 
 ## A steady pull, such as a Black Hole's. Call it every frame the pull lasts.

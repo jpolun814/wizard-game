@@ -8,3 +8,4 @@ spell_name = "Flare"
 gesture = "flare"
 cost = 9.0
 effect = "Light a small flame to light your way."
+sounds = {"fire": "flare__fire"}

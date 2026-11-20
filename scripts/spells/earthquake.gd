@@ -21,7 +21,7 @@ var _side := 1.0
 func _ready() -> void:
 	add_to_group("earthquakes")
 	GameCamera.shake_scene(get_tree(), 0.6)
-	Sfx.play("quake", null, 0.0)
+	Sfx.cue("Earthquake", "rumble", null, 0.0)
 
 
 ## True while an earthquake is shaking the ground.

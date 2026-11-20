@@ -42,7 +42,7 @@ func _ready() -> void:
 	z_index = 1
 	texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
 	if not dug:
-		Sfx.play("quicksand", global_position, -4.0)
+		Sfx.cue("Mudslide", "mud", global_position, -4.0)
 		Fx.debris(get_parent(), global_position, Color("#c8a46a"), 10, 160.0)
 	# Grains of sand bubbling up from the pit.
 	var p := CPUParticles2D.new()

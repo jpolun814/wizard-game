@@ -56,5 +56,5 @@ func set_level(new_level: int, announce := true) -> void:
 func _on_shot(which: int) -> void:
 	if which == level:
 		return
-	Sfx.play("ritual_ok", _crystals[which - 1].global_position, -8.0)
+	Sfx.cue("level_wall", "chant", _crystals[which - 1].global_position, -8.0)
 	set_level(which)

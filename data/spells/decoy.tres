@@ -9,3 +9,4 @@ school = "Shadow"
 gesture = "stick"
 cost = 20.0
 effect = "Conjure a shadow of yourself."
+sounds = {"dark_whoosh": "decoy__dark_whoosh"}

@@ -20,7 +20,7 @@ func take_blow_near(point: Vector2, damage: float) -> bool:
 		return false
 	_health -= damage
 	Fx.debris(get_parent(), point, Color("#6b5a6e"), 6, 160.0)
-	Sfx.play("stones", point, -6.0)
+	Sfx.cue("rock_wall", "rocks", point, -6.0)
 	if _health <= 0.0:
 		_gone()
 	queue_redraw()
@@ -28,7 +28,7 @@ func take_blow_near(point: Vector2, damage: float) -> bool:
 
 
 func _gone() -> void:
-	Sfx.play("quake", _box.get_center())
+	Sfx.cue("rock_wall", "rumble", _box.get_center())
 	GameCamera.shake_scene(get_tree(), 0.5)
 	for k in 4:
 		Fx.debris(get_parent(), _box.position + Vector2(randf() * _box.size.x, randf() * _box.size.y), Color("#6b5a6e"), 8, 220.0)

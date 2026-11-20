@@ -9,3 +9,4 @@ school = "Blood"
 gesture = "arrow"
 cost = 20.0
 effect = "Catch the scent of the nearest wizard."
+sounds = {"heartbeat": "hunter_s_mark__heartbeat"}

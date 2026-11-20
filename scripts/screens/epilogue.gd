@@ -155,10 +155,10 @@ func _set_the_book_down() -> void:
 		_lectern.book.visible = true
 		_lectern.wake()
 		_celebrate()
-		Sfx.play("book_close", top)
+		Sfx.cue("epilogue", "book_close", top)
 		Fx.burst(self, top + Vector2(0.0, -30.0), Color("#b070ff"), 24, 110.0, 0.8, true)
 		Fx.smoke(self, top, Color(0.5, 0.2, 0.75, 0.7), 10, 30.0, 50.0))
-	Sfx.play("summon", top, -8.0)
+	Sfx.cue("epilogue", "summon", top, -8.0)
 
 
 ## The hammer comes in from the side, held up over the stand. Nobody is seen holding it.
@@ -192,7 +192,7 @@ func _strike(blow: int) -> void:
 	swing.tween_property(_hammer, "rotation", HAMMER_STRUCK, 0.1).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	swing.tween_callback(func() -> void:
 		var at := _target()
-		Sfx.play("stones_2" if blow == BLOWS.size() - 1 else "stones_1", at, -2.0)
+		Sfx.cue("epilogue", "blow_last" if blow == BLOWS.size() - 1 else "blow", at, -2.0)
 		Fx.burst(self, at, Color("#ffd890"), 20 if blow == BLOWS.size() - 1 else 10, 120.0, 0.3, true)
 		_camera.offset = Vector2(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)) * 2.0
 		get_tree().create_timer(0.08).timeout.connect(func() -> void: _camera.offset = Vector2.ZERO)
@@ -200,7 +200,7 @@ func _strike(blow: int) -> void:
 			plaque = _lectern.hang_second_plaque()
 			plaque.scale = Vector2.ONE * 1.4
 			create_tween().tween_property(plaque, "scale", Vector2.ONE, 0.12)
-			Sfx.play("pickup", at)
+			Sfx.cue("epilogue", "rustle", at)
 		else:
 			_lectern.second_words.visible_characters = LETTERS[blow])
 	swing.tween_interval(0.06)

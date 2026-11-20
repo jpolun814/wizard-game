@@ -9,3 +9,4 @@ school = "Shadow"
 gesture = "spiral"
 cost = 70.0
 effect = "Open a black hole that pulls everything toward it."
+sounds = {"dark_whoosh": "black_hole__dark_whoosh", "explosion": "black_hole__explosion"}

@@ -78,7 +78,7 @@ func begin() -> void:
 	wizard.pen.drop()
 	wizard.root_time = maxf(wizard.root_time, RISE_TIME + STAND_TIME)  # held where they stand while the stone is made
 	GolemRise.spawn(wizard.get_parent(), wizard.global_position, _earth(), RISE_TIME + STAND_TIME)
-	Sfx.play("stones", wizard.center(), -2.0)
+	Sfx.cue("Golem", "rocks", wizard.center(), -2.0)
 	GameCamera.shake_near(wizard.get_tree(), wizard.global_position, 0.25, 500.0)
 
 
@@ -98,7 +98,7 @@ func end() -> void:
 	if was_shown:
 		Fx.debris(wizard.get_parent(), wizard.center(), _dust(), 14, 200.0)
 		Fx.burst(wizard.get_parent(), wizard.global_position, _dust(), 18, 140.0, 0.6, false)
-	Sfx.play("stones", wizard.center(), -4.0)
+	Sfx.cue("Golem", "rocks", wizard.center(), -4.0)
 
 
 ## The driving machine has changed shape: a likeness only dresses to match.
@@ -202,7 +202,7 @@ func _can_swing() -> bool:
 ## The fist reaches whoever is in front of the wizard, close enough, and in the open.
 func _land_slam() -> void:
 	_strike(SLAM_REACH, SLAM_DAMAGE, SLAM_PUSH, Vector2(wizard.facing * SLAM_PUSH, -160.0))
-	Sfx.play("stones", wizard.center() + Vector2(wizard.facing * SLAM_REACH * 0.7, 0.0), 2.0)
+	Sfx.cue("Golem", "rocks", wizard.center() + Vector2(wizard.facing * SLAM_REACH * 0.7, 0.0), 2.0)
 
 
 func _land_smash() -> void:
@@ -240,7 +240,7 @@ func _land(strength: float) -> void:
 func _quake(at: Vector2, strength: float) -> void:
 	var tree := wizard.get_tree()
 	GameCamera.shake_near(tree, at, clampf(0.5 + 0.5 * strength, 0.0, 1.0), 900.0)  # the shake is squared on the way to the screen, so it has to start high to be seen
-	Sfx.play("quake", at, -6.0 + 4.0 * strength)
+	Sfx.cue("Golem", "rumble", at, -6.0 + 4.0 * strength)
 	Fx.burst(wizard.get_parent(), at, _dust(), int(14 * strength), 190.0, 0.6, false)
 	Fx.debris(wizard.get_parent(), at, _dust(), int(8 * strength), 240.0)
 	var reach := QUAKE_REACH * strength

@@ -11,3 +11,4 @@ cost = 35.0
 effect = "Evoke thunder, throwing and dazing everything around you."
 effect_path = "res://scripts/spells/thunderclap.gd"
 applies = Array[String](["dazed"])
+sounds = {"rumble": "thunderclap__rumble", "thunder": "thunderclap__thunder"}

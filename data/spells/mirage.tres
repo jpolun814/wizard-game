@@ -10,3 +10,4 @@ gesture = "portrait"
 targeting = "positional"
 cost = 40.0
 effect = "Create a mirage of what wizards desire most."
+sounds = {"glass": "mirage__glass"}

@@ -110,7 +110,7 @@ func _sneak(c: SpellCast) -> void:
 func _obsidian_armor(c: SpellCast) -> void:
 	c.caster.raise_obsidian(20.0)
 	Fx.burst(_arena, c.caster.center(), Color(0.45, 0.4, 0.6), 16, 120.0, 0.5, true)
-	Sfx.play("glass", c.caster.center())
+	Sfx.cue("Obsidian Armor", "glass", c.caster.center())
 
 
 func _wild_shape(c: SpellCast) -> void:
@@ -124,13 +124,13 @@ func _golem(c: SpellCast) -> void:
 func _adrenaline(c: SpellCast) -> void:
 	c.caster.grant_adrenaline(10.0)
 	Fx.burst(_arena, c.caster.center(), SpellData.SCHOOL_COLORS["Blood"], 14, 150.0, 0.5, true)
-	Sfx.play("heartbeat", c.caster.center())
+	Sfx.cue("Adrenaline", "heartbeat", c.caster.center())
 
 
 func _crimson_veil(c: SpellCast) -> void:
 	c.caster.veil = 2
 	Fx.burst(_arena, c.caster.center(), SpellData.SCHOOL_COLORS["Blood"], 16, 120.0, 0.5, true)
-	Sfx.play("blood_cast", c.caster.center(), -4.0)
+	Sfx.cue("Crimson Veil", "blood", c.caster.center(), -4.0)
 
 
 func _hunters_mark(c: SpellCast) -> void:
@@ -145,7 +145,7 @@ func _hunters_mark(c: SpellCast) -> void:
 	var hunt := HuntersMark.new()
 	hunt.caster = _arena.player
 	c.add(hunt)
-	Sfx.play("heartbeat", _arena.player.center(), -4.0)
+	Sfx.cue("Hunter's Mark", "heartbeat", _arena.player.center(), -4.0)
 
 
 ## Shadow Step: the caster slips along the stroke, stopping short of walls, so it starts from the caster, not the stroke. Whoever is in the way takes damage,
@@ -178,7 +178,7 @@ func _shadow_step(c: SpellCast) -> void:
 	caster.velocity = Vector2.ZERO
 	Fx.pop(_arena, end + Vector2(0, -24), "twirl_02", color, 24.0, 0.3, 2.4, -8.0)
 	Fx.burst(_arena, end + Vector2(0, -24), color, 12, 120.0, 0.25, true)
-	Sfx.play("gravity", end, -2.0)  # a low whoosh like the other Shadow spells
+	Sfx.cue("Shadow Step", "dark_whoosh", end, -2.0)  # a low whoosh like the other Shadow spells
 
 
 ## The last spot on the way from start to end where a body fits: feet, middle and head all clear of the ground. A step never ends inside rock, so it never

@@ -82,7 +82,7 @@ func _begin_cycle() -> void:
 	_age = 0.0
 	_burst = false
 	_hiss.emitting = true
-	Sfx.play("snow", global_position, 2.0)
+	Sfx.cue("Geyser", "wind", global_position, 2.0)
 
 
 func _physics_process(delta: float) -> void:
@@ -107,7 +107,7 @@ func _physics_process(delta: float) -> void:
 	if not _burst and _age >= WARNING:
 		_burst = true
 		_hiss.emitting = false
-		Sfx.play("geyser", global_position)
+		Sfx.cue("Geyser", "geyser", global_position)
 		_erupt()
 	if _burst:
 		GameCamera.shake_near(get_tree(), global_position, 0.015 if _age < DROP else 0.0, SHAKE_REACH)
@@ -128,7 +128,7 @@ func _douse_shots() -> void:
 	for shot in get_tree().get_nodes_in_group("shots"):
 		if shot.is_in_group("fires") and column.has_point(shot.global_position):
 			Fx.smoke(get_parent(), shot.global_position, Color(0.9, 0.95, 1.0, 0.6), 4, 24.0, 40.0)
-			Sfx.play("freeze", shot.global_position, -6.0)
+			Sfx.cue("Geyser", "ice", shot.global_position, -6.0)
 			if shot is SpellEffect:
 				shot.end()
 			else:
@@ -144,7 +144,7 @@ func _douse_fires() -> void:
 		for point: Vector2 in node.flame_points():
 			if column.has_point(point):
 				Fx.smoke(get_parent(), point, Color(0.88, 0.92, 0.96, 0.7), 6, 24.0, 60.0)
-				Sfx.play("freeze", point, -6.0)
+				Sfx.cue("Geyser", "ice", point, -6.0)
 				node.quench()
 				break
 
@@ -190,7 +190,7 @@ func _let_fall() -> void:
 func _erupt() -> void:
 	_lift()
 	SpellTargets.douse(get_tree(), global_position, 110.0)
-	Sfx.play("push", global_position, -2.0)
+	Sfx.cue("Geyser", "whoosh", global_position, -2.0)
 	GameCamera.shake_near(get_tree(), global_position, 0.07, SHAKE_REACH)
 	# Water thrown up the middle that falls back on both sides, like a fountain.
 	var spray := CPUParticles2D.new()

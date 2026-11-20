@@ -29,7 +29,7 @@ func _begin(origin: Vector2, aim_angle: float) -> void:
 	_picture.scale = Vector2(2.0, 2.0)
 	_picture.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	add_child(_picture)
-	Sfx.play("push", origin, -4.0)
+	Sfx.cue("Pebble", "whoosh", origin, -4.0)
 
 
 func damage() -> int:
@@ -57,4 +57,4 @@ func reflect(direction: Vector2) -> void:
 
 func _impact_effect() -> void:
 	Fx.burst(get_parent(), global_position, Color("#a89270"), 5, 70.0, 0.3, false)
-	Sfx.play("stones", global_position, -6.0)
+	Sfx.cue("Pebble", "rocks", global_position, -6.0)

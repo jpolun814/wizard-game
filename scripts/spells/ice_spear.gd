@@ -26,7 +26,7 @@ func _begin(origin: Vector2, aim_angle: float) -> void:
 	shot.scale = Vector2(1.0, 1.0)
 	shot.play("default")
 	add_child(shot)
-	Sfx.play("cast_ice", origin)
+	Sfx.cue("Frostbolt", "cast", origin)
 
 
 func damage() -> int:
@@ -51,5 +51,5 @@ func _hurt_mob(mob: Mob) -> void:
 func _impact_effect() -> void:
 	PixelFx.play_square(get_parent(), global_position, "pimen_ice_hit", 18.0, 1.0, aim.angle())
 	Shatter.spawn(get_parent(), global_position, SHARDS)
-	Sfx.play("ice_shatter", global_position)
+	Sfx.cue("Frostbolt", "shatter", global_position)
 	SpellTargets.douse(get_tree(), global_position, 50.0)

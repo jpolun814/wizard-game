@@ -80,7 +80,7 @@ func _refusal(spell: String, info: Dictionary, aim: float, origin: Vector2, wiza
 func _say(text: String, color: Color, at: Vector2, wizard: Wizard, sound: bool) -> void:
 	FloatText.spawn(arena, at, text, color, 0.9)
 	if sound:
-		Sfx.play("misfire", wizard.center(), -6.0)
+		Sfx.cue("casting", "misfire", wizard.center(), -6.0)
 
 
 ## A cast goes off on every machine of a network game, sent by the one that drives the wizard: the same spell in the same place, with the same throw of the dice
@@ -112,7 +112,7 @@ func misfire_by(wizard: Wizard) -> void:
 	if not is_instance_valid(wizard) or wizard.dead:
 		return
 	wizard.drain(MISFIRE_COST)
-	Sfx.play("misfire", wizard.center(), -6.0)
+	Sfx.cue("casting", "misfire", wizard.center(), -6.0)
 
 
 ## What a shape or a chant that means nothing does: a puff, a sound and one word, so a player with the sound off still knows.
@@ -120,7 +120,7 @@ func misfire_puff() -> void:
 	if arena.is_in_group(&"world"):
 		MatchStats.miss()  # a stroke that matched nothing is a try that did not go off
 	var at := arena.get_global_mouse_position()
-	Sfx.play("misfire", arena.player.center())
+	Sfx.cue("casting", "misfire", arena.player.center())
 	Fx.burst(arena, at, Color(0.6, 0.6, 0.65), 8, 80.0, 0.3)
 	FloatText.spawn(arena, at + Vector2(0, -22), "Misfire", Color(0.75, 0.75, 0.82), 0.9)  # for a player with the sound off
 
@@ -143,7 +143,7 @@ func _flourish(color: Color) -> void:
 	open.chain().tween_callback(ring.queue_free)
 	Fx.burst(arena, at, color.lightened(0.6), 14, 170.0, 0.5, true, "star_04")
 	FloatText.spawn(arena, at + Vector2(0, -52), "Perfect", Color("#ffe27a"), 1.0)
-	Sfx.play("pickup", at, -6.0)
+	Sfx.cue("casting", "rustle", at, -6.0)
 
 
 ## Which way a spell goes from the wizard, as a sign (0 when it goes nowhere in particular): where it was aimed, or where it was put.

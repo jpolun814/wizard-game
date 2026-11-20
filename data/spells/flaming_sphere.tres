@@ -12,3 +12,4 @@ cost = 30.0
 effect = "Launch a rolling ball of fire."
 damage = "10 dmg + 6 dmg/sec"
 applies = Array[String](["burning"])
+sounds = {"fire": "flaming_sphere__fire"}

@@ -12,3 +12,4 @@ cost = 22.0
 effect = "Lash out with a thorny vine."
 damage = "8 dmg"
 effect_path = "res://scripts/spells/thorn_whip.gd"
+sounds = {"whoosh": "thorn_whip__whoosh"}

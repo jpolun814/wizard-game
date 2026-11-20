@@ -48,7 +48,7 @@ func _sound_of_opening() -> void:
 		return
 	var far := camera.get_screen_center_position().distance_to(global_position)
 	if far < HEARD_WITHIN:
-		Sfx.play("portal_open", global_position, -6.0 - 12.0 * far / HEARD_WITHIN)
+		Sfx.cue("field_portal", "portal_open", global_position, -6.0 - 12.0 * far / HEARD_WITHIN)
 
 
 func _process(delta: float) -> void:

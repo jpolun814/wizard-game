@@ -19,7 +19,7 @@ func _ready() -> void:
 	_portal.collision_mask = 0  # nobody walks into this one
 	add_child(_portal)
 	_portal.open()
-	Sfx.play("portal_open", global_position, -8.0)
+	Sfx.cue("arrival_portal", "portal_open", global_position, -8.0)
 	var tween := create_tween()
 	tween.tween_property(_portal, "scale", Vector2.ONE * 1.5, GROW).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	tween.tween_interval(STAY)

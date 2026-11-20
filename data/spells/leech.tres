@@ -10,3 +10,4 @@ gesture = "swell"
 targeting = "directional"
 cost = 24.0
 effect = "Tether yourself to someone, and they pay half the cost of every spell you cast."
+sounds = {"blood": "leech__blood"}

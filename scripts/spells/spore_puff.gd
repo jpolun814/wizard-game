@@ -49,7 +49,7 @@ func _ready() -> void:
 		caster.facing = signf(cos(aim))
 	_cast_facing = _facing()
 	_mouth = _mouth_position()
-	Sfx.play("snow", _mouth, -4.0)
+	Sfx.cue("Spore Puff", "wind", _mouth, -4.0)
 	for k in PUFFS:
 		_spawn_puff()
 

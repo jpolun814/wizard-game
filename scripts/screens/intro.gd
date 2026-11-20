@@ -306,7 +306,7 @@ func _destabilise(delta: float) -> void:
 	add_child(bolt)
 	bolt.play("default")
 	if randf() < 0.4:
-		Sfx.play("thunder", _portal.position, -24.0)
+		Sfx.cue("intro", "thunder", _portal.position, -24.0)
 
 
 # --- The camera ---------------------------------------------------------------------------------------------------
@@ -353,7 +353,7 @@ func _arrive(wizard: IntroWizard, entry: Dictionary) -> void:
 		_:
 			wizard.modulate.a = 0.0
 			var spot: Vector2 = wizard.position + Vector2(0.0, -50.0)
-			Sfx.play("blink", spot, -8.0)
+			Sfx.cue("intro", "blink", spot, -8.0)
 			Fx.burst(self, spot, CRACKLE_COLOUR, 12, 140.0, 0.5, true)
 			create_tween().tween_property(wizard, "modulate:a", 1.0, 0.25)
 			wizard.here = true
@@ -381,7 +381,7 @@ func _pulse(power: float) -> void:
 	if not _opened:  # the book shudders in the air
 		_book.modulate = Color(1.0 + power, 1.0 + power * 0.7, 1.0 + power * 0.4)
 		create_tween().tween_property(_book, "modulate", Color.WHITE, 0.45)
-		Sfx.play("thunder", _book.global_position, -16.0 + power * 6.0)
+		Sfx.cue("intro", "thunder", _book.global_position, -16.0 + power * 6.0)
 		Fx.burst(self, _book.global_position, GOLD, 10, 140.0, 0.5, true)
 		for wizard in _all:
 			if wizard.alive and wizard.here:
@@ -389,7 +389,7 @@ func _pulse(power: float) -> void:
 		return
 	_portal.modulate = Color(1.0 + power, 0.9 + power * 0.6, 1.2 + power)
 	create_tween().tween_property(_portal, "modulate", Color.WHITE, 0.45)
-	Sfx.play("thunder", _portal.global_position, -16.0 + power * 6.0)
+	Sfx.cue("intro", "thunder", _portal.global_position, -16.0 + power * 6.0)
 	Fx.burst(self, _portal.position, CRACKLE_COLOUR, 10, 160.0, 0.5, true)
 	for wizard in _all:
 		if wizard.alive and wizard.here:
@@ -412,7 +412,7 @@ func _draw_on_the_others(index: int) -> void:
 	var face := 1.0 if (index * 7) % 5 < 2 else -1.0  # each turns on whoever is nearest on a side of its own: this is a free-for-all, not two sides of the pile
 	var color := wizard.color
 	_play(wizard, "grab", face)
-	Sfx.play("push", wizard.position, -14.0)
+	Sfx.cue("intro", "whoosh", wizard.position, -14.0)
 	Fx.burst(self, _staff(index), color, 14, 120.0, 0.5, true)
 	var glow := Fx.trail(color, 12, 0.6, 20.0, Vector2(0, -20), "star_04", 6.0)  # it keeps crackling there
 	glow.position = Vector2(face * 38.0, -62.0)
@@ -434,7 +434,7 @@ func _the_hall_cracks() -> void:
 		page.visible = true
 	_blast(at, 2.2)
 	Fx.burst(self, at, GOLD, 30, 260.0, 0.7, true)
-	Sfx.play("volcano", _portal.global_position, -4.0, 0.05, 0.6)  # a low groan, as of something giving way
+	Sfx.cue("intro", "volcano", _portal.global_position, -4.0, 0.05, 0.6)  # a low groan, as of something giving way
 	_unbound_stream(at)
 
 
@@ -480,7 +480,7 @@ func _reach_for_the_ceiling(k: float, stream: Node2D) -> void:
 func _open_the_portal() -> void:
 	_portal.visible = true
 	_portal.open()
-	Sfx.play("volcano", _portal.global_position, -2.0, 0.05, 0.5)
+	Sfx.cue("intro", "volcano", _portal.global_position, -2.0, 0.05, 0.5)
 	_portal.scale = Vector2.ONE * 0.2
 	create_tween().tween_property(_portal, "scale", Vector2.ONE * PORTAL_SCALE, 0.5).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
@@ -508,7 +508,7 @@ func _shoot(from_index: int, to_index: int, kills := false) -> void:
 	var to_at := to_wizard.position + Vector2(0.0, -55.0)
 	var color: Color = _all[from_index].color
 	_play(_all[from_index], "grab", signf(to_at.x - from_at.x))
-	Sfx.play("push", from_at, -6.0)
+	Sfx.cue("intro", "whoosh", from_at, -6.0)
 	var bolt := _make_bolt(from_at, color)
 	var tween := create_tween()
 	tween.tween_property(bolt, "position", to_at, 0.3)
@@ -522,8 +522,8 @@ func _clash(a: int, b: int) -> void:
 	var middle := (from_a + from_b) * 0.5 + Vector2(0.0, -10.0)
 	_play(_all[a], "grab", signf(from_b.x - from_a.x))
 	_play(_all[b], "grab", signf(from_a.x - from_b.x))
-	Sfx.play("push", from_a, -6.0)
-	Sfx.play("push", from_b, -6.0)
+	Sfx.cue("intro", "whoosh", from_a, -6.0)
+	Sfx.cue("intro", "whoosh", from_b, -6.0)
 	var color_a: Color = _all[a].color
 	var color_b: Color = _all[b].color
 	var bolt_a := _make_bolt(from_a, color_a)
@@ -536,7 +536,7 @@ func _clash(a: int, b: int) -> void:
 		bolt_b.queue_free()
 		_shake = maxf(_shake, 0.9)
 		_unrest = minf(_unrest + 0.04, 1.0)
-		Sfx.play("explosion", middle, -10.0)
+		Sfx.cue("intro", "explosion", middle, -10.0)
 		Fx.burst(self, middle, color_a, 14, 200.0, 0.5, true)
 		Fx.burst(self, middle, color_b, 14, 200.0, 0.5, true)
 		Fx.burst(self, middle, Color.WHITE, 8, 120.0, 0.3, true)
@@ -550,7 +550,7 @@ func _struck(bolt: Node2D, index: int, color: Color, kills: bool) -> void:
 	var face := wizard.face
 	_shake = maxf(_shake, 0.8)
 	_unrest = minf(_unrest + 0.04, 1.0)
-	Sfx.play("player_hurt" if index == 0 else "mob_hurt", wizard.position, -4.0)
+	Sfx.cue("intro", "hurt_wizard" if index == 0 else "hurt", wizard.position, -4.0)
 	Fx.burst(self, wizard.position + Vector2(0.0, -55.0), color, 16, 190.0, 0.5, true)
 	if kills:
 		wizard.alive = false
@@ -593,7 +593,7 @@ func _stray(index: int, x: float) -> void:
 	var to_at := Vector2(x, _ground_at(x) - 6.0)
 	var color: Color = _all[index].color
 	_play(_all[index], "grab", signf(to_at.x - from_at.x))
-	Sfx.play("push", from_at, -6.0)
+	Sfx.cue("intro", "whoosh", from_at, -6.0)
 	var bolt := _make_bolt(from_at, color)
 	var tween := create_tween()
 	tween.tween_property(bolt, "position", to_at, 0.35)
@@ -601,7 +601,7 @@ func _stray(index: int, x: float) -> void:
 		bolt.queue_free()
 		_shake = maxf(_shake, 0.7)
 		_unrest = minf(_unrest + 0.03, 1.0)
-		Sfx.play("explosion", to_at, -10.0)
+		Sfx.cue("intro", "explosion", to_at, -10.0)
 		Fx.burst(self, to_at, color, 16, 220.0, 0.5, true)
 		_blast(to_at, 1.0))
 
@@ -663,7 +663,7 @@ func _flutter(page: IntroPage, vel: Vector2, delta: float) -> Vector2:
 ## The portal takes a page: it shrinks into the ring and the ring flares.
 func _swallowed(page: IntroPage) -> void:
 	_pile.erase(page)
-	Sfx.play("page_1", _portal.global_position, -10.0)
+	Sfx.cue("intro", "page_1", _portal.global_position, -10.0)
 	Fx.burst(self, _portal.position, Color("#c8a8ff"), 8, 110.0, 0.4, true)
 	_portal.modulate = Color(1.6, 1.4, 1.9)
 	create_tween().tween_property(_portal, "modulate", Color.WHITE, 0.25)
@@ -681,8 +681,8 @@ func _the_portal_tears() -> void:
 		gone.tween_callback(_stream.queue_free)
 	_unrest = 1.0
 	_shake = 1.6
-	Sfx.play("thunder", _portal.global_position, -2.0)
-	Sfx.play("volcano", _portal.global_position, -2.0, 0.05, 0.5)
+	Sfx.cue("intro", "thunder", _portal.global_position, -2.0)
+	Sfx.cue("intro", "volcano", _portal.global_position, -2.0, 0.05, 0.5)
 	create_tween().tween_property(_portal, "scale", Vector2.ONE * TORN_SCALE, 0.6).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	create_tween().tween_method(func(k: float) -> void: _bloom_k = k, 0.0, 1.0, 1.8).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	_shot(Vector2(PILE_X, PILE_Y - 190.0), 2.0, 1.8)
@@ -694,7 +694,7 @@ func _the_portal_tears() -> void:
 		tween.tween_interval(0.5 + i * 0.09)
 		tween.tween_callback(_play.bind(wizard, "hit", wizard.face))  # off their feet
 		tween.tween_property(wizard, "position", _portal.position + Vector2(0.0, 40.0), 1.4 - i * 0.08).set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_IN)
-		tween.tween_callback(Sfx.play.bind("gravity", _portal.global_position, -6.0, 0.05, 0.8))
+		tween.tween_callback(Sfx.cue.bind("intro", "dark_whoosh", _portal.global_position, -6.0, 0.05, 0.8))
 		tween.tween_property(wizard, "scale", Vector2.ONE * 0.2, 0.25)
 		tween.parallel().tween_property(wizard, "modulate:a", 0.0, 0.25)
 

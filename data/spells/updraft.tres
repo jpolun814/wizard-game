@@ -9,3 +9,4 @@ school = "Air"
 gesture = "updraft"
 cost = 30.0
 effect = "A stream of rising air."
+sounds = {"whirl": "updraft__whirl"}

@@ -10,3 +10,4 @@ gesture = "stick"
 cost = 60.0
 effect = "Become a golem of stone."
 applies = Array[String](["holding", "sturdy"])
+sounds = {"rocks": "golem__rocks", "rumble": "golem__rumble"}

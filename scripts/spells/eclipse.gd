@@ -34,7 +34,7 @@ func _ready() -> void:
 	add_to_group("eclipses")
 	add_to_group("lasting")
 	_make_veil()
-	Sfx.play("gravity", global_position, -8.0)
+	Sfx.cue("Eclipse", "dark_whoosh", global_position, -8.0)
 
 
 func _physics_process(delta: float) -> void:

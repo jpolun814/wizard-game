@@ -50,7 +50,7 @@ func land() -> void:
 	var tree := mob.get_tree()
 	var facing := mob.facing
 	var point := mob.global_position + Vector2(REACH * facing, HEIGHT)
-	Sfx.play("stones", point, -2.0)
+	Sfx.cue("mob_giant", "rocks", point, -2.0)
 	Fx.debris(mob.get_parent(), point, Color("#a08060"), 10, 180.0)
 	GameCamera.shake_near(tree, mob.global_position, 0.3, Mob.SHAKE_REACH)
 	for wall in tree.get_nodes_in_group("walls"):
@@ -74,4 +74,4 @@ func land() -> void:
 			player.push(Vector2(facing * 900.0, -220.0))
 		else:
 			player.stick_in_ground(STUCK)
-	Sfx.play("push", point, -6.0)
+	Sfx.cue("mob_giant", "whoosh", point, -6.0)

@@ -30,7 +30,7 @@ func _ready() -> void:
 		Fx.burst(get_parent(), global_position, Color("#dff6ff"), 8, 60.0, 0.4, true, "star_04")
 		queue_free()
 		return
-	Sfx.play("freeze", global_position)
+	Sfx.cue("Ice Prison", "ice", global_position)
 	for body in caught:
 		var seconds: float = FREEZE_SECONDS if body.is_in_group("mobs") else body.coat.frozen_for(FREEZE_SECONDS)  # ice holds a wet wizard longer
 		if body.is_in_group("mobs"):
@@ -58,7 +58,7 @@ func _physics_process(delta: float) -> void:
 		if (_age > 1.0 and not body.is_frozen()) or _age >= _life:  # thawed, or broken out of it (a wizard on another machine is told it a moment late)
 			if is_instance_valid(body):
 				Shatter.spawn(get_parent(), body.center(), Color("#cdeeff"))
-				Sfx.play("ice_shatter", body.center())
+				Sfx.cue("Ice Prison", "shatter", body.center())
 			_encased.erase(entry)
 	if _age >= _life or (_age > 1.0 and _encased.is_empty() and _life > 0.6):
 		queue_free()

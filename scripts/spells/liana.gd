@@ -16,6 +16,11 @@ var _age := 0.0
 var _hang: Node2D
 
 
+## Whose sounds it makes (see FloraSpell).
+func spell_owner() -> String:
+	return "Liana"
+
+
 func _ready() -> void:
 	add_to_group("climbables")
 	# The vine springs from the ground under where the line began and climbs as high as the line you drew went.
@@ -44,7 +49,7 @@ func _ready() -> void:
 	_hang.scale = Vector2(1.0, 0.02)
 	create_tween().tween_property(_hang, "scale:y", 1.0, 0.6).set_ease(Tween.EASE_OUT)
 	Fx.debris(get_parent(), foot, Color("#4a6a30"), 6, 120.0)
-	Sfx.play("pickup", foot, -6.0)  # a rustle of leaves
+	Sfx.cue("Liana", "rustle", foot, -6.0)  # a rustle of leaves
 
 
 func _physics_process(delta: float) -> void:

@@ -30,7 +30,7 @@ func _begin(origin: Vector2, _aim_angle: float) -> void:
 	shape.points = polygon
 	_add_shape(shape)
 	area_entered.connect(_on_shot)
-	Sfx.play("ice_shatter", origin, 2.0)
+	Sfx.cue("Icicles", "shatter", origin, 2.0)
 	Fx.burst(get_parent(), origin, Color("#dff6ff"), 8, 80.0, 0.4, true, "star_04")
 
 

@@ -40,7 +40,7 @@ func _physics_process(delta: float) -> void:
 	if global_position.y >= _ground_y - 8.0:
 		Fx.smoke(get_parent(), Vector2(global_position.x, _ground_y), Color(0.45, 0.42, 0.4, 0.7), 4, 30.0, 30.0)
 		Fx.burst(get_parent(), Vector2(global_position.x, _ground_y - 6.0), Color(0.55, 0.5, 0.45), 8, 140.0, 0.5)
-		Sfx.play("stones", global_position, -6.0)
+		Sfx.cue("falling_rock", "rocks", global_position, -6.0)
 		queue_free()
 
 

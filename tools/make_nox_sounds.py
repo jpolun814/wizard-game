@@ -10,6 +10,7 @@ Each is a recording trimmed to its start, faded at the ends and brought to one l
     water_jet, geyser    the rush of a waterfall
     push_air             a bag dropped and a coat thrown (the Push spell; `push` is the shared whoosh of shots, blows and gusts)
     step_mud_1..4        a step in mud (a wizard in a Mudslide)
+    land_<ground>_1..3   a landing on each kind of ground, after a fall (the wizard's own)
     quicksand            a step in mud
     snow                 a gust of cold wind (the Blizzard)
     surf                 the sea (Tide Surf)
@@ -29,6 +30,11 @@ STEPS = {  # ground: the pack's pattern for a single walking step on it
     "dirt": "Footsteps_DirtyGround_Walk_*", "snow": "Footsteps_Snow_Hard_Walk_*", "leaves": "Footsteps_Leaves_Walk_*",
     "gravel": "Footsteps_Gravel_Walk_*", "tile": "Footsteps_Tile_Walk_*", "rock": "Footsteps_Rock_Walk_*",
     "grass": "Footsteps_Walk_Grass_Mono_*", "wood": "Footsteps_Wood_Walk_*",
+}
+LANDS = {  # ground: the pack's pattern for a landing on it (the pack has none for gravel: the ashlands' basalt lands as rock)
+    "dirt": "Footsteps_DirtyGround_Jump_Land_*", "snow": "Footsteps_Snow_Hard_Jump_Land_*", "leaves": "Footsteps_Leaves_Jump_Land_*",
+    "gravel": "Footsteps_Rock_Jump_Land_*", "tile": "Footsteps_Tile_Jump_Land_*", "rock": "Footsteps_Rock_Jump_Land_*",
+    "grass": "Footsteps_Grass_Jump_Land_*", "wood": "Footsteps_Wood_Jump_Land_*", "mud": "Footsteps_Mud_Jump_Land_*",
 }
 
 
@@ -72,7 +78,11 @@ def main(pack):
         files = sorted(glob.glob(os.path.join(steps, "**", pattern + ".wav"), recursive=True))
         step = max(1, len(files) // 4)
         for k, path in enumerate(files[::step][:4], 1):
-            save("step_%s_%d" % (ground, k), cut(path, onset(path), 0.4, 0.0, 0.1, 0.16))
+            save("wizard__step_%s_%d" % (ground, k), cut(path, onset(path), 0.4, 0.0, 0.1, 0.16))
+    for ground, pattern in LANDS.items():
+        files = sorted(glob.glob(os.path.join(steps, "**", pattern + ".wav"), recursive=True))
+        for k, path in enumerate(files[:3], 1):
+            save("wizard__land_%s_%d" % (ground, k), cut(path, onset(path), 0.5, 0.0, 0.15, 0.2))
     nature = os.path.join(pack, "Nature_Essentials_NOX_SOUND")
     save("fire_wall", cut(os.path.join(nature, "Ambiance_Firecamp_Medium_Loop_Mono.wav"), 2.0, 1.4, 0.15, 0.5, 0.15))
     save("water_jet", cut(os.path.join(nature, "Ambiance_Waterfall_Strong_Loop_Stereo.wav"), 3.0, 1.5, 0.08, 0.4, 0.15))
@@ -96,7 +106,7 @@ def main(pack):
     save("quicksand", cut(mud, onset(mud), 0.8, 0.0, 0.2, 0.18))
     steps_in_mud = sorted(glob.glob(os.path.join(steps, "**", "Footsteps_Mud_Walk_*.wav"), recursive=True))
     for k, path in enumerate(steps_in_mud[::max(1, len(steps_in_mud) // 4)][:4], 1):
-        save("step_mud_%d" % k, cut(path, onset(path), 0.5, 0.0, 0.1, 0.16))
+        save("wizard__step_mud_%d" % k, cut(path, onset(path), 0.5, 0.0, 0.1, 0.16))
     save("snow", cut(os.path.join(nature, "Ambiance_Wind_Calm_Loop_Stereo.wav"), 4.0, 2.6, 0.5, 1.0, 0.1))
     save("surf", cut(os.path.join(nature, "Ambiance_Sea_Loop_Stereo.wav"), 6.0, 6.0, 1.0, 1.5, 0.15))
     save("tornado", cut(os.path.join(nature, "Ambiance_Wind_Forest_Loop_Stereo.wav"), 3.0, 4.0, 0.6, 1.0, 0.2))

@@ -9,3 +9,4 @@ school = "Air"
 gesture = "feather"
 cost = 18.0
 effect = "Fall as light as a feather."
+sounds = {"whoosh": "featherfall__whoosh"}

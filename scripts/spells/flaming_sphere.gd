@@ -53,7 +53,7 @@ func _ready() -> void:
 	_sun.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	_sun.material = Fx.additive()  # it adds light to what is behind it, so it blazes
 	add_child(_sun)
-	Sfx.play("fire_hit", global_position, -8.0)
+	Sfx.cue("Flaming Sphere", "fire", global_position, -8.0)
 
 
 func _physics_process(delta: float) -> void:

@@ -163,11 +163,11 @@ func _toggle() -> void:
 	if not visible:
 		visible = true
 		_set_writing(false)
-		Sfx.play("book_open")
+		Sfx.cue("spellbook", "book_open")
 		_book.play([0, 1, 2, OPEN], _set_writing.bind(true))
 	else:
 		_set_writing(false)
-		Sfx.play("book_close")
+		Sfx.cue("spellbook", "book_close")
 		_book.play([2, 1, 0], func() -> void: visible = false)
 
 
@@ -178,7 +178,7 @@ func _turn(leaves: int) -> void:
 	var turned := clampi(_spread + leaves, 0, last_spread)
 	if turned == _spread:
 		return
-	Sfx.play("page")
+	Sfx.cue("spellbook", "page")
 	_spread = turned
 	# The page flips over with the writing hidden, then the new pages show.
 	_set_writing(false)
