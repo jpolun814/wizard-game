@@ -11,4 +11,4 @@ targeting = "positional"
 cost = 30.0
 effect = "Swing a scythe."
 damage = "45 dmg"
-sounds = {"blood": "scythe__blood"}
+sounds = {"swing": "scythe__swing"}

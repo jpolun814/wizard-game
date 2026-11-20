@@ -24,7 +24,7 @@ func _ready() -> void:
 	var blood: Color = SpellData.SCHOOL_COLORS["Blood"]
 	_show_swing()
 	Fx.burst(get_parent(), global_position + Vector2(facing * RADIUS * 0.7, 0.0), blood, 12, 180.0, 0.4, true)
-	Sfx.cue("Scythe", "blood", global_position)
+	Sfx.cue("Scythe", "swing", global_position)
 	_swing()
 
 
