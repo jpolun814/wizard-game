@@ -24,7 +24,7 @@ func _ready() -> void:
 	add_to_group("lasting")
 	z_index = 2
 	_ring = Sprite2D.new()
-	_ring.texture = Fx.tex("circle_03")
+	_ring.texture = Fx.soft("circle_03")
 	_ring.scale = Vector2.ONE * (RADIUS * 2.0 / Fx.TEX_SIZE)
 	_ring.modulate = Color(0.55, 0.4, 0.8, 0.8)
 	add_child(_ring)

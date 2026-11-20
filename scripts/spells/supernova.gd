@@ -121,8 +121,8 @@ func _explode() -> void:
 		if from.distance_to(global_position) <= EXPLODE_RADIUS and shot.has_method("reflect"):
 			shot.reflect((from - global_position).normalized() if from.distance_to(global_position) > 1.0 else Vector2.UP)
 	var fire: Color = SpellData.SCHOOL_COLORS["Fire"]
-	Fx.pop(get_parent(), global_position, "circle_03", fire.lightened(0.2), EXPLODE_RADIUS * 2.0, 0.5, 1.3)
-	Fx.pop(get_parent(), global_position, "circle_05", Color(1.0, 0.9, 0.6), EXPLODE_RADIUS * 0.9, 0.25, 1.6)
+	Fx.pop(get_parent(), global_position, "circle_03", fire.lightened(0.2), EXPLODE_RADIUS * 2.0, 0.5, 1.3, 0.0, true, true)
+	Fx.pop(get_parent(), global_position, "circle_05", Color(1.0, 0.9, 0.6), EXPLODE_RADIUS * 0.9, 0.25, 1.6, 0.0, true, true)
 	Fx.burst(get_parent(), global_position, fire, 40, 420.0, 0.7, true)
 	Sfx.cue("Supernova", "explosion", global_position)
 	GameCamera.shake_scene(tree, 0.9)

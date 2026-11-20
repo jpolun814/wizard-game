@@ -30,6 +30,13 @@ static func pixel_drop() -> ImageTexture:
 	return _pixel_drop
 
 
+## A particle texture in its original soft form, for big smooth shapes (a ring that spreads across a screen) that the chunky pixel cut of `tex` makes coarse.
+static func soft(texture_name: String) -> Texture2D:
+	if not _textures.has("soft:" + texture_name):
+		_textures["soft:" + texture_name] = load("res://art/particles/%s.png" % texture_name)
+	return _textures["soft:" + texture_name]
+
+
 static func tex(texture_name: String) -> Texture2D:
 	if not _textures.has(texture_name):
 		_textures[texture_name] = load("res://art/particles_px/%s.png" % texture_name)
@@ -112,9 +119,9 @@ static func trail(color: Color, amount := 60, lifetime := 0.35, spread := 20.0, 
 
 ## A single sprite that grows, turns and fades out: an impact flash, a shockwave ring, a puff.
 ## size is its width in pixels at the start; grow is how much bigger it ends.
-static func pop(parent: Node, pos: Vector2, texture: String, color: Color, size := 40.0, life := 0.3, grow := 1.8, spin := 0.0, glow := true) -> Sprite2D:
+static func pop(parent: Node, pos: Vector2, texture: String, color: Color, size := 40.0, life := 0.3, grow := 1.8, spin := 0.0, glow := true, smooth := false) -> Sprite2D:
 	var s := Sprite2D.new()
-	s.texture = tex(texture)
+	s.texture = soft(texture) if smooth else tex(texture)
 	s.global_position = pos
 	s.modulate = color
 	s.rotation = randf() * TAU if spin != 0.0 else 0.0
