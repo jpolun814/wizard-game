@@ -124,8 +124,8 @@ func _struck() -> bool:
 		if wizard.has_shield() and SpellTargets.center_of(wizard).distance_to(global_position) < BarrierBubble.RADIUS + RADIUS:
 			return true  # a Barrier turns it away
 	for area in get_overlapping_areas():
-		if area is Gust or area is PushZone or area is Tornado or area is LavaBall:
-			return true  # wind, and a thrown flame
+		if area.is_in_group("winds") or (area.is_in_group("fires") and area.is_in_group("shots")):
+			return true  # moving air, and a thrown flame, whatever made them
 	return false
 
 

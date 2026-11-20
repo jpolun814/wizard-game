@@ -77,6 +77,8 @@ var _air_dirty := true
 
 
 func _ready() -> void:
+	if not lava:
+		add_to_group("waters")
 	material = ShaderMaterial.new()  # dithered bands, as pixel art is shaded
 	(material as ShaderMaterial).shader = preload("res://scripts/terrain/pixel_liquid.gdshader")
 	(material as ShaderMaterial).set_shader_parameter("levels", 14.0)
@@ -145,9 +147,6 @@ func _physics_process(delta: float) -> void:
 			body.apply_debuff("slow", 0.3)
 	_age_ice(delta)
 	_cool(delta)
-	if not lava:
-		_douse_shots()
-		_douse_standing_fires()
 
 
 ## Lava from a volcano slowly dulls and, when it is cold, is gone. It burns the whole time.
@@ -468,29 +467,9 @@ func holds(body: Node2D) -> bool:
 	return wet_at(body.global_position + Vector2(0.0, -4.0)) or wet_at(SpellTargets.center_of(body))
 
 
-## A fire shot that drops into the water goes out in a puff of steam.
-func _douse_shots() -> void:
-	for shot in get_tree().get_nodes_in_group("shots"):
-		if shot.is_in_group("fires") and wet_at(shot.global_position):
-			Fx.smoke(get_parent(), shot.global_position, Color(0.9, 0.95, 1.0, 0.6), 4, 24.0, 40.0)
-			Sfx.cue("pond", "ice", shot.global_position, -6.0)
-			if shot is SpellEffect:
-				shot.end()
-			else:
-				shot.queue_free()
-
-
-## Any other fire whose foot is under the water goes out too: a Firewall drawn into a pond, a bonfire or a jet of flame held under the surface. (Water puts
-## fire out through three rules, none of them general: this one, the pond's one for shots above, and each water spell's own call to SpellTargets.douse.)
-func _douse_standing_fires() -> void:
-	for fire: Node in get_tree().get_nodes_in_group("fires"):
-		if fire == self or fire.is_in_group("shots") or not fire.has_method("quench") or not (fire is Node2D):
-			continue
-		var foot: Vector2 = (fire as Node2D).global_position
-		if wet_at(foot):
-			Fx.smoke(get_parent(), foot, Color(0.9, 0.95, 1.0, 0.6), 4, 24.0, 40.0)
-			Sfx.cue("pond", "ice", foot, -6.0)
-			fire.quench()
+## Whether there is water at a point (Elements asks every source of water: see `wets`).
+func wets(point: Vector2) -> bool:
+	return not lava and wet_at(point)
 
 
 ## Whether a body stands on ice that was frozen over this water (fire would melt what it stands on).
@@ -690,6 +669,24 @@ func _triangulate(piece: PackedVector2Array, points: PackedVector2Array, indices
 	return true
 
 
+## The veil where the ground is not cut to the liquid: the ground is drawn over the liquid, but the veil lies over everything, so it is made of small squares and
+## leaves out those that lie in the ground, or the ground beside a pool comes out tinted.
+func _veil_open_squares(outline: PackedVector2Array, points: PackedVector2Array, indices: PackedInt32Array) -> void:
+	var box := Rect2(outline[0], Vector2.ZERO)
+	for point in outline:
+		box = box.expand(point)
+	var step := 8.0
+	var y := box.position.y
+	while y < box.end.y:
+		var x := box.position.x
+		while x < box.end.x:
+			var at := global_position + Vector2(x + step * 0.5, y + step * 0.5)
+			if ground == null or not ground.solid_at(at):
+				_triangulate(PackedVector2Array([Vector2(x, y), Vector2(x + step, y), Vector2(x + step, y + step), Vector2(x, y + step)]), points, indices)
+			x += step
+		y += step
+
+
 ## Works out the polygons of the liquid from its columns. Runs that lie against the ground reach into it by a whole cell and are then cut
 ## to the air, so nothing of them shows but the part in the open; the rest are plain blocks. An open surface meets the surface of the column
 ## beside it halfway, so the top runs on in a slope instead of a staircase of cells.
@@ -698,6 +695,8 @@ func _build_shapes(top: Color, bottom: Color) -> void:
 	var points := PackedVector2Array()
 	var shades := PackedColorArray()
 	var indices := PackedInt32Array()
+	var veil_points := PackedVector2Array()
+	var veil_indices := PackedInt32Array()
 	var air := _air_pieces()
 	var cell := LiquidGrid.CELL
 	var shift := grid.origin - global_position
@@ -728,6 +727,8 @@ func _build_shapes(top: Color, bottom: Color) -> void:
 				if _triangulate(piece, points, indices):
 					for point in piece:
 						shades.append(top.lerp(bottom, clampf(point.y / depth, 0.0, 1.0)))
+			if air.is_empty():
+				_veil_open_squares(outline, veil_points, veil_indices)
 			if run[2]:
 				var surface := PackedVector2Array([Vector2(left, top_left), Vector2(right, top_right)])
 				var lines: Array = [surface]
@@ -747,10 +748,15 @@ func _build_shapes(top: Color, bottom: Color) -> void:
 		arrays[Mesh.ARRAY_INDEX] = indices
 		_mesh = ArrayMesh.new()
 		_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+		var shape := veil_points if air.is_empty() else points
+		if shape.is_empty() or (veil_indices.is_empty() and air.is_empty()):
+			return  # (no open squares to veil: a mesh built from nothing is an engine error each frame)
 		var tints := PackedColorArray()
-		tints.resize(points.size())
+		tints.resize(shape.size())
 		tints.fill(_tint())
 		_veil_mesh = ArrayMesh.new()
+		arrays[Mesh.ARRAY_VERTEX] = shape
+		arrays[Mesh.ARRAY_INDEX] = veil_indices if air.is_empty() else indices
 		arrays[Mesh.ARRAY_COLOR] = tints
 		_veil_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
 
@@ -773,3 +779,11 @@ func _air_pieces() -> Array:
 					local.append(point - global_position)
 				_air.append(local)
 	return _air
+
+
+## What this fire is to everything else that cares about fire (SpellTargets.fire_points): where it burns, how hot, how big, and whether it is a shot.
+func fire_profile() -> Array:
+	var fires := []
+	for point in heat_points():
+		fires.append({"at": point, "heat": 1.0, "size": LiquidGrid.CELL if grid != null else width * 0.5, "shot": false})
+	return fires

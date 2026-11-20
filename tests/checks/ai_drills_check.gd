@@ -54,7 +54,7 @@ func _drills() -> Array:
 		["shatter_ice", "chooses a heavy blow for a rival frozen in ice", "shatter", _trial_ice, 0.25],
 		["keep_reserve", "keeps its dear spells back when it is running low", "reserve", _trial_reserve, -0.2],
 		["press_recovery", "throws a quick shot at a rival just seen to cast a dear spell", "recover", _trial_recover, 0.04],
-		["burn_thicket", "reaches for fire against a rival standing in thorns", "thicket", _trial_thicket, 0.1],
+		["burn_thicket", "reaches for fire against a rival standing in thorns", "thicket", _trial_thicket, 0.06],  # (the effect is about 0.18 against 0.08, more than double; 0.1 sat right on it and the drill flipped from run to run)
 		["worn_caution", "keeps its distance from a rival when it is worn down to a small maximum", "caution", _trial_worn, -0.2],
 		["range_memory", "stops casting what has missed twice at this range", "range_memory", _trial_range, -0.15],
 	]

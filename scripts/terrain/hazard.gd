@@ -72,3 +72,8 @@ func _draw() -> void:
 	var across := width * 1.1
 	draw_texture_rect(scorch, Rect2(Vector2(-across * 0.5, -1.0 - across * 0.09), Vector2(across, across * 0.18)), false, Color(0.1, 0.05, 0.03, 0.7 * fade))
 	Fx.draw_glow(self, Vector2(0, -3), width * 0.45, Color(1.0, 0.4, 0.1, 0.45 * fade))
+
+
+## What this fire is to everything else that cares about fire (SpellTargets.fire_points): where it burns, how hot, how big, and whether it is a shot.
+func fire_profile() -> Array:
+	return [{"at": global_position, "heat": 1.0, "size": width * 0.5, "shot": false}]

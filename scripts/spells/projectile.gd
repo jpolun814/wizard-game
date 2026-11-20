@@ -92,9 +92,8 @@ func _emerge() -> void:
 func _on_hit(body: Node2D) -> void:
 	if _spent or (body == caster and not _clear):
 		return  # the one who cast it is safe from it until it has flown clear of them
-	if body.is_in_group("wizards") and body.has_shield():
-		reflect(Vector2.from_angle(randf() * TAU))  # a Barrier sends it off in a random direction
-		return
+	if Elements.shield_turns(self, body):
+		return  # a Barrier turns a shot away
 	if body.is_in_group("wizards"):
 		if body.dead:
 			return

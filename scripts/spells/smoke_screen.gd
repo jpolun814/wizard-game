@@ -128,5 +128,10 @@ func dissipate() -> void:
 
 
 ## The left and right edges of the smoke, for a wind that has to be at it.
+## Where it is, for any wind that blows at it (Elements).
+func extent() -> Rect2:
+	return _region
+
+
 func span() -> Vector2:
 	return Vector2(_region.position.x, _region.end.x)

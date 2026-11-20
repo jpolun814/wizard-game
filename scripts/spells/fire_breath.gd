@@ -237,3 +237,11 @@ func flame_points() -> PackedVector2Array:
 	for puff in _puffs:
 		points.append(puff["pos"])
 	return points
+
+
+## What this fire is to everything else that cares about fire (SpellTargets.fire_points): where it burns, how hot, how big, and whether it is a shot.
+func fire_profile() -> Array:
+	var fires := []
+	for point in flame_points():
+		fires.append({"at": point, "heat": 1.0, "size": -10.0, "shot": false})
+	return fires

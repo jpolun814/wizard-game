@@ -43,6 +43,7 @@ func _ready() -> void:
 	collision_mask = 7  # enemies, the player, and terrain
 	area_entered.connect(_on_area)
 	add_to_group("danger")
+	add_to_group("winds")
 	Sfx.cue("Tornado", "whirl", global_position)
 	# Dust kicked up around the base.
 	var dust := CPUParticles2D.new()
@@ -107,7 +108,6 @@ func _physics_process(delta: float) -> void:
 				body.push(impulse)
 			Fx.burst(get_parent(), SpellTargets.center_of(body), Color(0.85, 0.9, 0.95), 8, 140.0, 0.4)
 	_turn_far_side_shots()
-	_blow_clouds(delta)
 	if _age >= LIFE:
 		queue_free()
 
@@ -168,15 +168,15 @@ func _inside(point: Vector2) -> bool:
 	return false
 
 
-## The wind dissipates storm clouds and Blizzard snow that pass through it: they thin away and are gone.
-func _blow_clouds(_delta: float) -> void:
-	for cloud in get_tree().get_nodes_in_group("clouds"):
-		if _over_cloud(cloud):
-			cloud.dissipate()
+## Whether the funnel's wind blows at a point: in or under it, from a little above to well below (Elements: wind thins clouds away and puts small flames out).
+func blows_at(point: Vector2) -> bool:
+	var below := global_position.y - point.y
+	return absf(point.x - global_position.x) <= 40.0 and below >= -220.0 and below <= 140.0
 
 
-## True when the funnel is in or under a cloud or snow, whichever part of it is wide.
-func _over_cloud(cloud: Node2D) -> bool:
-	var span: Vector2 = cloud.span()
-	var below := global_position.y - cloud.global_position.y
-	return global_position.x >= span.x - 40.0 and global_position.x <= span.y + 40.0 and below >= -220.0 and below <= 140.0
+## What this fire is to everything else that cares about fire (SpellTargets.fire_points): where it burns, how hot, how big, and whether it is a shot.
+func fire_profile() -> Array:
+	var fires := []
+	for point in flame_points():
+		fires.append({"at": point, "heat": 1.0, "size": 30.0, "shot": false})
+	return fires

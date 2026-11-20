@@ -1,0 +1,14 @@
+#!/bin/sh
+# Runs the fast tests before a commit is made: the unit tests and the static checks (about 20 seconds), and, for what is staged, the checks that mention it.
+# A failing test stops the commit; `git commit --no-verify` skips this for one commit. Turn it on once, in this repository:
+#
+#     git config core.hooksPath tools/hooks
+#
+# Turn it off again with:  git config --unset core.hooksPath
+
+cd "$(git rev-parse --show-toplevel)" || exit 1
+python tools/test.py --unit || {
+	echo
+	echo "The tests failed: the commit was not made. Fix them, or commit with --no-verify."
+	exit 1
+}

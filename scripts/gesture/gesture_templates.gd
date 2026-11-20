@@ -6,7 +6,7 @@ class_name GestureTemplates
 
 ## Recognizer template name -> gesture name. Several templates can share a gesture. A circle counts the same
 ## whichever way round it is drawn.
-const ALIASES := {"line": "flick", "zig_tall": "zigzag",
+const ALIASES := {"shield_0": "shield", "shield_0r": "shield", "shield_1": "shield", "shield_1r": "shield", "shield_2": "shield", "shield_2r": "shield", "shield_3": "shield", "shield_3r": "shield", "shield_4": "shield", "shield_4r": "shield", "line": "flick", "zig_tall": "zigzag",
 	"circle_cw": "circle", "circle_ccw": "circle", "flame_cw": "flare", "flame_ccw": "flare",
 	"eight_top_cw": "eight", "eight_top_ccw": "eight", "eight_mid_cw": "eight", "eight_mid_ccw": "eight",
 	"vine_cw": "vine", "vine_ccw": "vine", "vine_cw_r": "vine", "vine_ccw_r": "vine",
@@ -21,6 +21,16 @@ const ALIASES := {"line": "flick", "zig_tall": "zigzag",
 ## Templates for the $1 recognizer.
 static func recognizer_templates() -> Dictionary:
 	return {
+		"shield_0": _shield(0, false),
+		"shield_0r": _shield(0, true),
+		"shield_1": _shield(1, false),
+		"shield_1r": _shield(1, true),
+		"shield_2": _shield(2, false),
+		"shield_2r": _shield(2, true),
+		"shield_3": _shield(3, false),
+		"shield_3r": _shield(3, true),
+		"shield_4": _shield(4, false),
+		"shield_4r": _shield(4, true),
 		"line": PackedVector2Array([Vector2(0, 0), Vector2(100, 0)]),
 		"earthquake": _double_arrow(false),
 		"earthquake_r": _double_arrow(true),
@@ -152,6 +162,8 @@ static func preview_points(gesture: String) -> PackedVector2Array:
 			return _eclipse(false, false)
 		"flame_wall":
 			return _across_and_up()
+		"shield":
+			return _shield(0, false)
 		"pentagram":
 			return _pentagram(0, false)
 		"lungs":
@@ -434,6 +446,28 @@ static func _pentagram(start: int, ccw: bool) -> PackedVector2Array:
 		var k := (start + step * (3 if ccw else 2)) % 5
 		pts.append(Vector2.from_angle(-PI / 2.0 + TAU * k / 5.0) * 50.0)
 	return pts
+
+
+## The outline of a heater shield in one stroke: a flat top, two straight sides and a point at the bottom. It is closed, so it can be begun at any of its five
+## corners and drawn either way round (a template for each).
+static func _shield(start: int, ccw: bool) -> PackedVector2Array:
+	var corners := [Vector2(-40, -50), Vector2(40, -50), Vector2(40, 0), Vector2(0, 60), Vector2(-40, 0)]
+	var path: Array[Vector2] = []
+	for edge in 5:
+		var from: Vector2 = corners[(start + edge) % 5]
+		var to: Vector2 = corners[(start + edge + 1) % 5]
+		for step in 6:
+			var t := float(step) / 6.0
+			var point := from.lerp(to, t)
+			if (start + edge) % 5 == 2 or (start + edge) % 5 == 3:
+				# the two lower edges bow outward, as the sides of the shield curve in to its point
+				var bow := 10.0 * sin(t * PI)
+				point += Vector2(bow if (start + edge) % 5 == 2 else -bow, bow)
+			path.append(point)
+	path.append(corners[start % 5])
+	if ccw:
+		path.reverse()
+	return PackedVector2Array(path)
 
 
 ## A line along the ground and then a line up from its end, in one stroke: the width of the wall, then the height of the flames.

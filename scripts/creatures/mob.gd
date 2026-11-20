@@ -83,6 +83,15 @@ var _nojump_time: float: # while above zero, the walker cannot jump (mudslide)
 var _frozen_time: float:
 	get: return _status.left(&"frozen")
 	set(seconds): _status.set_left(&"frozen", seconds)
+var wet_time: float: # water on the body (see Substances: the same laws as a wizard's)
+	get: return _status.left(&"wet")
+	set(seconds): _status.set_left(&"wet", seconds)
+var burning_time: float: # alight: a burn bites each half second while this lasts
+	get: return _status.left(&"burning")
+	set(seconds): _status.set_left(&"burning", seconds)
+var oiled_time: float: # oil on the body: a fire that takes hold burns twice as long
+	get: return _status.left(&"oiled")
+	set(seconds): _status.set_left(&"oiled", seconds)
 var _base_scale := 1.0
 var _lunge := 0.0        # 1 the moment an enemy attacks, fading to 0: it lunges toward the player
 var _windup := 0.0       # counting down to a melee hit
@@ -225,6 +234,8 @@ func _physics_process(delta: float) -> void:
 		_die()  # it was held up by its master's will: when the master is beaten it falls
 		return
 	_share_raised(delta)
+	if _spawn <= 0.0:
+		Substances.live(self, delta)
 	if global_position.y > (ArenaGen.world_size.y * float(ArenaGen.TILE) if ArenaGen.world_size.y > 0 else FALL_LIMIT):
 		queue_free()
 		return
@@ -526,7 +537,7 @@ func take_damage(amount: int, school := "", shot := false) -> void:
 	elif school != "" and school == data.weak:
 		dealt = amount * 2
 	dealt = roundi(dealt * Hex.multiplier(get_tree(), self))  # a hexed enemy takes half again as much
-	if _frozen_time > 0.0 and school in ["Air", "Earth"]:
+	if _frozen_time > 0.0 and Damage.shatters(Damage.kind_of(school)):
 		dealt = roundi(dealt * 1.5)
 		_frozen_time = 0.0
 		Shatter.spawn(get_parent(), center(), Color("#cdeeff"))
@@ -661,6 +672,31 @@ func freeze(seconds: float) -> bool:
 
 func is_frozen() -> bool:
 	return _frozen_time > 0.0
+
+
+func is_wet() -> bool:
+	return wet_time > 0.0
+
+
+func is_burning() -> bool:
+	return burning_time > 0.0
+
+
+func is_oiled() -> bool:
+	return oiled_time > 0.0
+
+
+## A creature whose own element is that of a kind of harm is proof against it: a creature of fire does not catch fire.
+func immune_to(harm: String) -> bool:
+	var own: String = KINDS[kind].resist
+	return own != "" and Damage.kind_of(own) == harm
+
+
+## A burn bites: harm of heat, which a creature that resists fire takes none of.
+func burn_bite(damage: int, by: Node = null) -> void:
+	MatchStats.strike(by)
+	take_damage(damage, "Fire")  # (not `hurt`: a burn that sets alight what it bites would never end)
+	MatchStats.strike(null)
 
 
 ## True for an enemy that ice cannot hold: one already beaten.

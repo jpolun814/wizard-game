@@ -7,7 +7,7 @@ extends CanvasLayer
 
 ## unfinished is true when the words typed are the start of a chant, stopped short.
 signal finished(ritual_id: String, accuracy: float, unfinished: bool)
-signal cancelled
+signal canceled
 ## Four words of a world's name were typed (see Incantation); the waiting room tunes its portal to them.
 signal seed_spoken(text: String)
 ## The words that open the wizard maker were said (only where something listens for them: see likeness_listens).
@@ -50,13 +50,7 @@ func _ready() -> void:
 	layer = 10
 	var view := get_viewport().get_visible_rect().size
 	var box := PanelContainer.new()
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.1, 0.07, 0.05, 0.92)
-	style.border_color = Color("#8a6a3a")
-	style.set_border_width_all(2)
-	style.set_corner_radius_all(6)
-	style.set_content_margin_all(12)
-	box.add_theme_stylebox_override("panel", style)
+	box.theme_type_variation = &"Chant"  # (the look is the theme's: ui/theme.tres)
 	box.custom_minimum_size = Vector2(620, 0)
 	box.position = Vector2((view.x - 620.0) * 0.5, view.y - 120.0)
 	add_child(box)
@@ -87,7 +81,7 @@ func cancel() -> void:
 	if visible:
 		visible = false
 		_line.release_focus()
-		cancelled.emit()
+		canceled.emit()
 
 
 func _input(event: InputEvent) -> void:

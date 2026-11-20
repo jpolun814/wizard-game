@@ -122,7 +122,8 @@ func at_the_goal(delta: float) -> float:
 	if brain.goal == "portal" and brain.route.done():
 		if is_instance_valid(goal_portal) and goal_portal.lift > 0.0 and portal_jumping < WizardBrain.PORTAL_JUMP_FOR and not goal_lost():
 			return jump_for_portal(delta)  # it stands under a portal hung in the air and leaps for it
-		brain.skip[goal_portal.get_instance_id()] = WizardBrain.GIVE_UP  # it has come to the portal and nothing came of it
+		if is_instance_valid(goal_portal):  # (a portal that has collapsed since is gone, and there is nothing to give up on)
+			brain.skip[goal_portal.get_instance_id()] = WizardBrain.GIVE_UP  # it has come to the portal and nothing came of it
 		brain.goal = ""
 		brain.goal_timer = 0.0
 	if brain.goal == "page" and brain.route.done() and not goal_lost() and is_instance_valid(goal_page):
@@ -392,7 +393,7 @@ func choose_goal() -> void:
 		portal_jumping = 0.0
 		brain.route.set_path(portal["path"])
 		return
-	if brain.opponent != null and brain.strength >= WizardBrain.BOLD_ABOVE and (best_page == null or best_path.size() > WizardBrain.HUNT_PAGE_NEAR):  # feeling strong, it goes after a rival rather than a page that lies far off
+	if brain.opponent != null and brain.strength >= WizardBrain.BOLD_ABOVE and (best_page == null or best_path.size() > WizardBrain.HUNT_PAGE_NEAR or (brain.aggression >= 0.5 and not BrainProfile.off("press"))):  # feeling strong, it goes after a rival rather than a page that lies far off
 		var hunt: Array[Vector2i] = find_path(start, wizard.nav.nearest(brain.tile_of(brain.sight.foe_feet())))
 		if not hunt.is_empty():
 			brain.goal = "foe"

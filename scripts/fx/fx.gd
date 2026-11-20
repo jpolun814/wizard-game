@@ -207,11 +207,11 @@ static func debris(parent: Node, pos: Vector2, color: Color, amount := 10, speed
 
 ## Concentric circles that read as a glowing orb. Call from a _draw().
 static func draw_orb(canvas: CanvasItem, radius: float, color: Color, core := Color.WHITE) -> void:
-	canvas.draw_texture_rect(tex("circle_05"), Rect2(-Vector2.ONE * radius * 3.0, Vector2.ONE * radius * 6.0), false, Color(color.r, color.g, color.b, 0.55))
+	canvas.draw_texture_rect(soft("circle_05"), Rect2(-Vector2.ONE * radius * 3.0, Vector2.ONE * radius * 6.0), false, Color(color.r, color.g, color.b, 0.55))
 	canvas.draw_circle(Vector2.ZERO, radius, Color(color.r, color.g, color.b, 0.85))
 	canvas.draw_circle(Vector2.ZERO, radius * 0.5, Color(core.r, core.g, core.b, 0.95))
 
 
-## Draws a glow texture centerd on a point from inside a _draw(). The canvas should use additive blending.
+## Draws a glow (in the smooth texture: a halo cut to a few bands shows as rings) centered on a point from inside a _draw(). The canvas should use additive blending.
 static func draw_glow(canvas: CanvasItem, at: Vector2, radius: float, color: Color, texture := "circle_05") -> void:
-	canvas.draw_texture_rect(tex(texture), Rect2(at - Vector2.ONE * radius, Vector2.ONE * radius * 2.0), false, color)
+	canvas.draw_texture_rect(soft(texture), Rect2(at - Vector2.ONE * radius, Vector2.ONE * radius * 2.0), false, color)

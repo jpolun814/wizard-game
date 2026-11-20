@@ -39,6 +39,7 @@ func _begin(origin: Vector2, _aim_angle: float) -> void:
 	Sfx.cue("Spark", "spark", ground)
 	landing = ground
 	add_to_group("fires")  # lightning sets plants alight
+	add_to_group("lightning")  # and strikes a wet body harder (see SpellTargets.hurt)
 	_shock_pond(ground)
 	for shoal: Piranhas in get_tree().get_nodes_in_group("shoals"):
 		shoal.shock(ground - Vector2(0, 20))  # lightning in the water kills the fish
@@ -61,3 +62,8 @@ func _act(_delta: float) -> void:
 	if not _struck and _age > 0.05:
 		_struck = true
 		_damage_overlapping(DAMAGE)
+
+
+## What this fire is to everything else that cares about fire (SpellTargets.fire_points): where it burns, how hot, how big, and whether it is a shot.
+func fire_profile() -> Array:
+	return [{"at": landing, "heat": 3.0, "size": 14.0, "shot": true}]

@@ -112,6 +112,12 @@ func _top_row(heights: PackedFloat32Array, col: int) -> int:
 
 
 func _init() -> void:
+	_widen()
+
+
+## The room is wider than the others when it holds the court. A restart makes the new room before the old one leaves the tree (and puts the width
+## back), so this is done again on entering the tree, or the pond comes out short and the stairs too near it.
+func _widen() -> void:
 	if _on_its_own():
 		ArenaGen.chunk_count = ArenaGen.CHUNK_COUNT + EXTRA_CHUNKS
 		ArenaGen.right_wall = ArenaGen.FIRST_COL + ArenaGen.CHUNK_WIDTH * ArenaGen.chunk_count
@@ -133,6 +139,7 @@ func _exit_tree() -> void:
 
 
 func _enter_tree() -> void:
+	_widen()
 	add_to_group(&"gate_source")
 
 
@@ -206,7 +213,7 @@ func _dig(heights: PackedFloat32Array, span: Vector2i, rows: float) -> void:
 func _begin_encounter(camera: Camera2D) -> void:
 	player.position = _start_for(Net.my_id())
 	camera.reset_smoothing()
-	player.grant_unlimited(1.0e7)  # nothing here costs stamina
+	player.grant_unlimited(1.0e9)  # nothing here costs stamina
 	player.damaged.connect(func(_amount: int) -> void: _since_hurt = 0.0)
 	ritual.seed_spoken.connect(_on_seed_spoken)
 	if _scene_name() == "lab":

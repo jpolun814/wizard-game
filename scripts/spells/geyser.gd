@@ -36,6 +36,7 @@ func _ready() -> void:
 	global_position = SpellTargets.surface_over(get_world_2d(), global_position)
 	add_to_group("lasting")
 	add_to_group("danger")
+	add_to_group("waters")
 	z_index = 3
 	material = ShaderMaterial.new()  # shaded in dithered bands, like the pools
 	(material as ShaderMaterial).shader = preload("res://scripts/terrain/pixel_liquid.gdshader")
@@ -99,8 +100,6 @@ func _physics_process(delta: float) -> void:
 	if not _burst:
 		_hiss.amount = 16 + int(40.0 * _age / WARNING)  # the hissing grows as the burst nears
 	if _burst:
-		_douse_shots()
-		_douse_fires()
 		_carry_riders()
 		if _lifted > 0.0 and _age >= DROP:
 			_let_fall()
@@ -122,31 +121,9 @@ func _height() -> float:
 	return COLUMN_HEIGHT * (1.0 - pow(1.0 - rise, 3.0)) * (1.0 - sink * sink)
 
 
-## A fire shot that flies through the rising water goes out in a puff of steam.
-func _douse_shots() -> void:
-	var column := Rect2(global_position + Vector2(-WIDTH * 0.5, -_height()), Vector2(WIDTH, _height()))
-	for shot in get_tree().get_nodes_in_group("shots"):
-		if shot.is_in_group("fires") and column.has_point(shot.global_position):
-			Fx.smoke(get_parent(), shot.global_position, Color(0.9, 0.95, 1.0, 0.6), 4, 24.0, 40.0)
-			Sfx.cue("Geyser", "ice", shot.global_position, -6.0)
-			if shot is SpellEffect:
-				shot.end()
-			else:
-				shot.queue_free()
-
-
-## All fire that is in the rising water goes out: a flamethrower's breath, a wall of flame or a bonfire alike.
-func _douse_fires() -> void:
-	var column := Rect2(global_position + Vector2(-WIDTH * 0.5 - 8.0, -_height()), Vector2(WIDTH + 16.0, _height() + 8.0))
-	for node: Node2D in get_tree().get_nodes_in_group("fires"):
-		if not node.has_method("quench") or not node.has_method("flame_points"):
-			continue
-		for point: Vector2 in node.flame_points():
-			if column.has_point(point):
-				Fx.smoke(get_parent(), point, Color(0.88, 0.92, 0.96, 0.7), 6, 24.0, 60.0)
-				Sfx.cue("Geyser", "ice", point, -6.0)
-				node.quench()
-				break
+## Whether the rising column is water at a point (Elements puts out whatever burns there).
+func wets(point: Vector2) -> bool:
+	return _burst and Rect2(global_position + Vector2(-WIDTH * 0.5 - 8.0, -_height()), Vector2(WIDTH + 16.0, _height() + 8.0)).has_point(point)
 
 
 ## Anyone who walks into the column while it stands is thrown up, not only whoever was on the spot when it burst.
@@ -164,7 +141,6 @@ func _carry_riders() -> void:
 		_riders[body] = now
 		if body is Wizard:
 			body.push(Vector2(0.0, -WIZARD_LAUNCH))
-			body.coat.soak()  # the jet leaves them wet
 		else:
 			body.knock_back(Vector2(0.0, -MOB_LAUNCH))  # (a creature, a risen skeleton among them)
 
@@ -189,7 +165,7 @@ func _let_fall() -> void:
 
 func _erupt() -> void:
 	_lift()
-	SpellTargets.douse(get_tree(), global_position, 110.0)
+	Elements.splash(get_tree(), global_position, 110.0)
 	Sfx.cue("Geyser", "whoosh", global_position, -2.0)
 	GameCamera.shake_near(get_tree(), global_position, 0.07, SHAKE_REACH)
 	# Water thrown up the middle that falls back on both sides, like a fountain.

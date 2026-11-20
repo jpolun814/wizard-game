@@ -25,13 +25,31 @@ func _ready() -> void:
 	var patch := Hazard.place(world, spot + Vector2(-150.0, 20.0), 40.0, 30.0)
 	await get_tree().physics_frame
 	await get_tree().physics_frame
-	_verdict(not SpellTargets.douse(get_tree(), spot + Vector2(900.0, 0.0), 50.0), "water far from every fire puts out nothing")
-	_verdict(SpellTargets.douse(get_tree(), wall.global_position, 50.0), "water at a Firewall puts it out")
-	_verdict(SpellTargets.douse(get_tree(), patch.global_position, 50.0), "water at burning ground puts it out")
+	_verdict(not Elements.splash(get_tree(), spot + Vector2(900.0, 0.0), 50.0), "water far from every fire puts out nothing")
+	_verdict(Elements.splash(get_tree(), wall.global_position, 50.0), "water at a Firewall puts it out")
+	_verdict(Elements.splash(get_tree(), patch.global_position, 50.0), "water at burning ground puts it out")
 	await get_tree().physics_frame
 	await get_tree().physics_frame
 	_verdict(not is_instance_valid(wall) or wall.is_queued_for_deletion(), "the Firewall is gone")
 	_verdict(not is_instance_valid(patch) or patch.is_queued_for_deletion(), "the burning ground is gone")
+
+	# The law, not the spell: a plain stand-in for water (nothing in it is a spell) puts out every kind of fire that lies in it.
+	var stand_in := Node2D.new()
+	stand_in.set_script(preload("res://tests/checks/water_stand_in.gd"))
+	world.add_child(stand_in)
+	stand_in.global_position = spot + Vector2(1200.0, 0.0)
+	var wall3 := Firewall.new()
+	world.add_child(wall3)
+	wall3.setup("Firewall", stand_in.global_position, 0.0)
+	var flare := Flare.new()
+	world.add_child(flare)
+	flare.global_position = stand_in.global_position + Vector2(10.0, 0.0)
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	_verdict(not is_instance_valid(wall3) or wall3.is_queued_for_deletion(), "water from no spell at all puts a Firewall out")
+	_verdict(not is_instance_valid(flare) or flare.is_queued_for_deletion(), "and a Flare")
+	stand_in.queue_free()
 
 	var frost := IceSpear.new()
 	world.add_child(frost)

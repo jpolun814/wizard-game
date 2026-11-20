@@ -143,3 +143,29 @@ each new spell with the checklist in `CLAUDE.md` §6, and expect the owner to ve
 Read before the recognizer's guess, in `Caster` (each only on the buttons whose spells use that gesture): `hailstorm` (a ring, a line out, a line down), `feather` (three sweeps across, each bent down in the middle and ending lower than it began, like a falling feather's path), `sphere` (a ring drawn from the bottom, then a level line: the ring-then-line reading with a level tail), `hand` (five peaks, one after another, returning along a base) and `portrait` (a closed box
 taller than it is wide, with four corners; a leaning box is turned upright first). Near misses (four or six fingers, a box on its side, an oval, an open box, a straight zigzag, two sweeps, sweeps bent upward) are in
 `tests/checks/test_gestures.gd`.
+
+## The world has laws; spells only make things (owner, 2026-11-20: "that's the point")
+
+**The principle.** The game has laws of physics, not a table of spell-against-spell cases. A spell says what it MAKES (water, heat, cold, moving air, a hard blow, oil); things in the world have PROPERTIES (wet, burning, oiled, frozen, a shot, a cloud, a fire); a few laws, each written once, act on the properties and never ask where they came from. Water puts out fire from a pond, a jet, a geyser, a snowstorm or a splash of ice, and any fire, a flare included. Oil makes a fire burn longer on a wizard, a skeleton or a goblin, from a slick or from anything else. A new spell that makes water must work with every existing interaction without anyone touching an interaction file, and a new interaction must work for every spell that makes the thing. **Never write `if node is Fireball`, `if spell == "Ice Prison"` or `if school == "Fire"` in an interaction.** The AI's spell scoring (`scripts/brain`) and `Casting`'s "can this spell be cast here" checks are not interactions and may name spells.
+
+**How a thing takes part** (the groups and methods; each law is in the file named):
+
+| Law | Who makes it | Source says | Receiver says |
+|---|---|---|---|
+| Water puts out fire (`Elements`, `scripts/spells/elements.gd`, a node in every arena) | anything that is water: join group `"waters"`, answer `wets(point)`; snow also answers `soaks() -> false` | a pond, jet, geyser, snow, wave; a single moment (ice shattering, an eruption) calls `Elements.splash(tree, at, radius)` | a fire joins `"fires"` and answers `quench()` (a shot is just ended), `flame_points()` |
+| Water soaks any body that it touches | the same sources | | any body with `wet_time` (below) |
+| Water washes away oil (`Elements`) | the same sources | | an oil slick (`lies_at()`, `wash_away()`) |
+| Moving air thins clouds and puts out flares (`Elements._blow`) | join group `"winds"`, answer `blows_at(point)` (Gust, Tornado, Push) | | a cloud joins `"clouds"` and answers `dissipate()`, `span()`; a flare is in `"flares"` |
+| A Barrier turns a shot away (`Elements.shield_turns`) | | any shot (group `"shots"`) that meets a wizard with a Barrier | the shot answers `reflect(heading)` or `deflected()` |
+| What a fire is to everything that cares about fire (plants, oil, ice, pads) | a fire answers `fire_profile()`: where, how hot, how big, shot or not | `SpellTargets.fire_points` | |
+| What a kind of blow does (`Damage`, `scripts/spells/damage.gd`) | a blow has a kind: heat, cold, force, lightning, piercing, dark, blood. A school gives its blows a kind in one table (`Damage.OF_SCHOOL`); a bolt of lightning joins group `"lightning"` | | heat ignites, lightning strikes the wet harder, force shatters the frozen, for ANY body (`SpellTargets.hurt`) |
+| What clings to a body (`Substances`, `scripts/spells/substances.gd`) | whatever makes water, flame or oil calls `Substances.soak/ignite/oil(body)` | | EVERY body (wizard and creature) has `wet_time`, `burning_time`, `oiled_time`, `is_wet()` ...; a wet body cannot be lit, water puts a burn out, oil doubles a burn, a burn bites (`burn_bite`), a creature of an element is proof against its heat (`immune_to`) |
+| Fire melts ice, burns plants and lily pads, lights oil | nothing special: they ask `SpellTargets.fire_touching` | | |
+
+**Rules for new work:**
+1. A thing that is water, fire, wind or a blow joins the group and answers the method in the table. It does not look for the thing it affects.
+2. A reaction is written once, in `Elements`, `Damage` or `Substances`, or (a new family) in a new class of the same kind with a row in this table. A check beside it proves it with a stand-in that is no spell (`tests/checks/water_stand_in.gd`, `wind_stand_in.gd`, `shot_stand_in.gd`; `laws_check` and `interaction_check` use them).
+3. What a person sees and hears of a law (the steam, the hiss) is made in the law, so it is the same whatever the cause.
+4. A thing's own element (a creature's `weak`/`resist` school, a spell's colour) is an element tag, not a law.
+
+**Still not laws (known; convert when touched):** freezing water is Frost Bridge's own effect (`Pond.freeze_span`) and not "cold on water"; Ice Prison and Frostbolt apply their own freeze and slow to the target (the longer hold on a wet body is a law: `Substances.frozen_for`); Insect Plague turns away from a Barrier by its own area test; Hex multiplies damage by its own check (`Hex.multiplier`); Mirage and Lily Pads are specific; lava and water in a pond meet nowhere.

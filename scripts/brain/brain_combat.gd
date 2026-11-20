@@ -140,6 +140,10 @@ func _cleverness(scores: Dictionary, foe: Wizard, gap: float) -> void:
 	if foe.is_oiled() or foe.is_burning():
 		for spell_name in ["Ignite", "Fire Breath", "Firewall", "Flaming Sphere"]:
 			_boost(scores, spell_name, 2.0 if foe.is_oiled() else 1.0, k)
+	if not BrainProfile.off("combo"):
+		_combos(scores, foe, gap, k)
+	if not BrainProfile.off("laws"):
+		_laws(scores, foe, gap, k)
 	match brain.style:  # each wizard has a way of fighting, so no two matches go alike
 		"trapper":
 			for spell_name in ["Bramble", "Flytrap", "Firewall", "Stalagmite", "Mudslide", "Sinkhole", "Ice Prison", "Insect Plague"]:
@@ -226,6 +230,46 @@ func _cleverness(scores: Dictionary, foe: Wizard, gap: float) -> void:
 			_boost(scores, spell_name, 0.25 if share < 0.45 else (0.6 if share < 0.7 else 1.0), k)
 
 
+## A blow set up on purpose: a wizard who holds the follow-up (lightning, a flame, a heavy stone) and can afford both makes the setup first (a soaking, an oil slick,
+## a hold), since the rival's state, once made, makes the next spell worth far more. A person who knows the game does this whether or not it wins any given fight.
+func _combos(scores: Dictionary, foe: Wizard, gap: float, k: float) -> void:
+	var afford := wizard.stamina
+	if brain.ready_to_cast("Spark") and not sheltered() and not foe.is_wet() and afford > 70.0:
+		_boost(scores, "Water Jet", 3.5, k)
+		_boost(scores, "Tide Surf", 2.0, k)
+	var fire := false
+	for spell_name in ["Ignite", "Fire Breath", "Flaming Sphere", "Firewall"]:
+		fire = fire or brain.ready_to_cast(spell_name)
+	if fire and not foe.is_oiled() and not foe.is_wet() and afford > 60.0:
+		_boost(scores, "Oil Slick", 3.0, k)
+	var heavy: bool = brain.ready_to_cast("Stonefall") or brain.ready_to_cast("Earthquake") or brain.ready_to_cast("Scythe")
+	if heavy and not foe.is_frozen() and not brain.held(foe) and afford > 90.0 and gap > 120.0:
+		_boost(scores, "Ice Prison", 2.2, k)
+		_boost(scores, "Mudslide", 1.8, k)
+
+
+## What the world's laws say about the two bodies in the fight: the states each of them is in change what each spell is worth.
+func _laws(scores: Dictionary, foe: Wizard, gap: float, k: float) -> void:
+	if foe.is_wet():  # a soaked body freezes in half the time, and oil will not lie on it
+		_boost(scores, "Blizzard", 2.5, k)
+		_boost(scores, "Hailstorm", 1.4, k)
+		_boost(scores, "Oil Slick", 0.2, k)
+		_boost(scores, "Water Jet", 0.2, k)
+	if foe.is_burning():  # water would put it out: it is left to burn, and what feeds a fire is added
+		_boost(scores, "Water Jet", 0.1, k)
+		_boost(scores, "Tide Surf", 0.2, k)
+		_boost(scores, "Oil Slick", 2.0, k)
+	if foe.is_slowed() or foe.silenced():  # one who cannot get away, or cannot cast, is closed on
+		for spell_name in BrainProfile.CLOSE:
+			_boost(scores, spell_name, 1.5, k)
+	if wizard.is_oiled() and gap < 200.0:  # its own flame would light it too
+		for spell_name in ["Fire Breath", "Firewall", "Flaming Sphere", "Supernova"]:
+			_boost(scores, spell_name, 0.2, k)
+	if wizard.is_burning():  # already alight: nothing that burns near it is cast
+		for spell_name in ["Fire Breath", "Firewall", "Oil Slick"]:
+			_boost(scores, spell_name, 0.3, k)
+
+
 func _boost(scores: Dictionary, spell_name: String, factor: float, k: float) -> void:
 	if scores.has(spell_name):
 		scores[spell_name] *= lerpf(1.0, factor, minf(k, 1.0))
@@ -280,12 +324,14 @@ func lava_beyond(foe: Wizard) -> bool:
 func near_limit() -> float:
 	var close := brain.profile.closeness(brain.opponent)
 	var style_shift := -50.0 if brain.style == "aggressive" else (40.0 if brain.style == "sniper" else 0.0)
-	return WizardBrain.NEAR + style_shift + 90.0 * maxf(close, 0.0) * minf(brain.skill / 0.65, 1.0)
+	var press := 0.0 if BrainProfile.off("press") else 60.0 * brain.aggression  # a bold wizard stays close
+	return WizardBrain.NEAR + style_shift - press + 90.0 * maxf(close, 0.0) * minf(brain.skill / 0.65, 1.0)
 
 
 ## How far it lets a rival get before it closes in: a sniper keeps its distance, an aggressive wizard does not.
 func far_limit() -> float:
-	return WizardBrain.FAR + (-60.0 if brain.style == "aggressive" else (70.0 if brain.style == "sniper" else 0.0))
+	var press := 0.0 if BrainProfile.off("press") else 90.0 * brain.aggression
+	return WizardBrain.FAR + (-60.0 if brain.style == "aggressive" else (70.0 if brain.style == "sniper" else 0.0)) - press
 
 
 ## Which way to a spot within a few steps that has a roof over it (-1, 1), or 0 when there is none, or the way is a pit.

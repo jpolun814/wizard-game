@@ -242,9 +242,16 @@ static func _load() -> void:
 	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(path))
 	if parsed is Dictionary:
 		for key: String in _data:
-			if parsed.has(key) and typeof(parsed[key]) == typeof(_data[key]):
-				_data[key] = parsed[key]
+			if not parsed.has(key):
+				continue
+			var saved: Variant = parsed[key]
+			if typeof(saved) == typeof(_data[key]):
+				_data[key] = saved
+			elif typeof(_data[key]) == TYPE_INT and typeof(saved) == TYPE_FLOAT:
+				_data[key] = int(saved)  # (JSON has one kind of number, and it comes back as a float: a count saved as 9 is read as 9.0, and used to be thrown out)
 	_carry_over("chant:scrying", "chant:dowsing")
+	if _data["history"].size() > MAX_HISTORY:
+		_data["history"] = _data["history"].slice(_data["history"].size() - MAX_HISTORY)  # (the oldest go: a file from outside, or an older game, may hold more than is kept)
 
 
 ## A page that was renamed keeps what was counted under its old name: the Chant of Scrying became the Chant of Dowsing, and a new chant took the old

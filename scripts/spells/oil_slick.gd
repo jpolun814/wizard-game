@@ -3,7 +3,7 @@ extends Node2D
 
 ## Oil Slick: a drop and a line drawn along the ground. A pool of oil spreads where the line was: whoever crosses it slips (cannot stop or turn quickly, as on ice) and is left oiled. It does no harm, until
 ## a fire touches it: then the whole slick goes up at once, in patches of burning ground, and whoever is in it burns (and an oiled wizard burns twice as long).
-## Water (a Water Jet) washes it away.
+## Water washes it away (Elements).
 
 const LIFE := 60.0
 const MIN_WIDTH := 70.0
@@ -64,8 +64,7 @@ func _physics_process(delta: float) -> void:
 	for body in SpellTargets.all(get_tree()):
 		if not _caught(body):
 			continue
-		if body is Wizard:
-			body.coat.oil()  # (and it is slippery under foot: see OilSlick.under)
+		Substances.oil(body)  # whoever or whatever is in it (and it is slippery under foot: see OilSlick.under)
 	if _age >= LIFE:
 		queue_free()
 
@@ -97,8 +96,8 @@ func _go_up() -> void:
 		var x := lerpf(-width * 0.5 + PATCH * 0.5, width * 0.5 - PATCH * 0.5, float(k) / maxf(count - 1, 1))
 		Hazard.place(get_parent(), global_position + Vector2(x, _surface_at(x)), PATCH + 6.0, BURN_LIFE)
 	for body in SpellTargets.all(get_tree()):
-		if _caught(body) and body is Wizard:
-			body.coat.ignite(Coating.BURN_SECONDS, caster)
+		if _caught(body):
+			Substances.ignite(body, Substances.BURN_SECONDS, caster)
 	queue_free()
 
 
@@ -111,12 +110,19 @@ static func under(tree: SceneTree, point: Vector2) -> bool:
 	return false
 
 
-## Water washes oil away: any slick the stream reaches is gone.
-static func wash(tree: SceneTree, point: Vector2, reach: float) -> void:
-	for slick: OilSlick in tree.get_nodes_in_group("oil_slicks"):
-		if absf(point.x - slick.global_position.x) < slick.width * 0.5 + reach and absf(point.y - slick.global_position.y) < 60.0 + reach:
-			Fx.burst(slick.get_parent(), slick.global_position, Color(0.5, 0.5, 0.55, 0.7), 8, 80.0, 0.5, false)
-			slick.queue_free()
+## Where the slick lies, from end to end, for the laws of the world (Elements: water washes oil away, whatever the water is).
+func lies_at() -> PackedVector2Array:
+	var points := PackedVector2Array()
+	for k in 5:
+		var x := lerpf(_left, _right, k / 4.0)
+		points.append(global_position + Vector2(x, _surface_at(x)))
+	return points
+
+
+## Washed away.
+func wash_away() -> void:
+	Fx.burst(get_parent(), global_position, Color(0.5, 0.5, 0.55, 0.7), 8, 80.0, 0.5, false)
+	queue_free()
 
 
 ## The pool: the quicksand's art made black, drawn as a band that follows the ground, with a pale sheen along its top.

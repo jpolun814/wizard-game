@@ -81,11 +81,11 @@ func _physics_process(delta: float) -> void:
 			_smoke = 0.25
 			Fx.smoke(get_parent(), top + Vector2(randf_range(-60.0, 60.0), -10.0), Color(0.95, 0.97, 1.0, 0.7), 2, 30.0, 30.0)
 		return
-	var travelled := (into - WARNING) * SPEED
-	if travelled > _length * tile:
+	var traveled := (into - WARNING) * SPEED
+	if traveled > _length * tile:
 		return
-	var column := clampi(_from + _way * int(travelled / tile), 0, floors.size() - 1)
-	var front := Vector2(top.x + _way * travelled, floors[column] * tile)
+	var column := clampi(_from + _way * int(traveled / tile), 0, floors.size() - 1)
+	var front := Vector2(top.x + _way * traveled, floors[column] * tile)
 	_shake(front, 0.08)
 	if _smoke <= 0.0:
 		_smoke = 0.05

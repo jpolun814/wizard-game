@@ -83,9 +83,8 @@ func _on_body_entered(body: Node2D) -> void:
 		return
 	if (body.is_in_group("mobs") and body.is_dead()) or (body.is_in_group("wizards") and body.dead):
 		return
-	if body.is_in_group("wizards") and body.has_shield():
-		reflect(Vector2.from_angle(randf() * TAU))  # a Barrier sends it off in a random direction
-		return
+	if Elements.shield_turns(self, body):
+		return  # a Barrier turns a shot away
 	if body.is_in_group("wizards"):
 		body.take_damage(damage, true, true)
 	elif body.is_in_group("mobs"):

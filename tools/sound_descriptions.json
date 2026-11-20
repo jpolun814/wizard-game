@@ -134,7 +134,6 @@
  "intro/explosion": "an explosion",
  "intro/thunder": "a rumble and crack of thunder",
  "intro/volcano": "a deep groan and rumble of the earth",
- "intro/whoosh": "a heavy whoosh of air pushing someone",
  "intro/hurt_wizard": "a man grunting in pain",
  "intro/hurt": "a creature grunting in pain",
  "intro/page": "a paper page turning",
@@ -165,7 +164,7 @@
  "swing_stair/rocks": "a heavy stone staircase swinging and thudding",
  "wizard/die": "a person falling dead, a heavy collapse",
  "wizard/misfire": "a magical fizzle, a spell failing",
- "wizard/summon": "a person arriving through a magic portal, a gentle magical arrival",
+ "wizard/summon": "a soft airy whoosh as a person arrives",
  "wizard/step_dirt": "a single footstep on dirt",
  "wizard/step_snow": "a single footstep in snow",
  "wizard/step_leaves": "a single footstep on dry leaves",
@@ -192,5 +191,6 @@
  "*/summon": "a magical arrival, a creature appearing in a swirl of magic",
  "*/whoosh": "a whoosh of a blow through the air",
  "wizard/fade": "a wizard fading from sight, a soft dark whoosh",
- "Hailstorm/barrage": "a barrage of ice hailing down"
+ "Hailstorm/barrage": "a barrage of ice hailing down",
+ "quench/steam": "a hiss of steam as a flame is put out by water"
 }

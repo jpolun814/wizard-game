@@ -117,8 +117,15 @@ func _held_mask() -> int:
 ## Pause casting while another input (the ritual box or spellbook) has focus.
 func set_casting_enabled(on: bool) -> void:
 	if not on:
-		_active_mask = 0
+		clear_stroke()
 	set_process(on)
+
+
+## Wipes the trail from the screen. A caster that stops processing never redraws, so a trail it was showing (being drawn, or fading) would stay frozen there.
+func clear_stroke() -> void:
+	_active_mask = 0
+	_stroke = PackedVector2Array()
+	queue_redraw()
 
 
 func _begin() -> void:
@@ -260,8 +267,10 @@ func _draw() -> void:
 		draw_polyline(_stroke, Color(c.r, c.g, c.b, 0.12 * a), 6.0)
 		draw_polyline(_stroke, Color(c.r, c.g, c.b, 0.4 * a), 3.0)
 		draw_polyline(_stroke, Color(c.r, c.g, c.b, a).lerp(Color.WHITE, 0.5), 2.0)
-	if _active_mask != 0:
+	if _active_mask != 0 and not _stroke.is_empty():
+		draw_set_transform(_stroke[_stroke.size() - 1])  # the orb sits on the pen (it was drawn at the world's own origin, a circle hanging in the air)
 		Fx.draw_orb(self, 4.0, _stroke_color, Color.WHITE)
+		draw_set_transform(Vector2.ZERO)
 
 
 ## The average point of the stroke, in world space.
@@ -278,3 +287,7 @@ func cast_stroke(mask: int, points: PackedVector2Array) -> void:
 	_origin = points[0]
 	_active_mask = mask
 	_end()
+	if not is_processing():  # (a caster that is not running, a brain's or one made for Fight or Flight, never redraws: the stroke it was given would hang there, frozen, in perfect lines)
+		var fade := create_tween()
+		fade.tween_method(func(_k: float) -> void: queue_redraw(), 0.0, 1.0, 0.5)
+		fade.tween_callback(clear_stroke)

@@ -54,6 +54,11 @@ var safe_spot := Vector2.ZERO  # the last place the wizard stood on firm ground
 var _buried := 0.0              # how long the wizard has been inside rock
 
 
+## A world's music is its biome's.
+func _music_place() -> String:
+	return String(MatchState.plan()["biome"])
+
+
 ## The world's tiles, built from the seed. Everything the generator decides comes from this one rng.
 func _build_map() -> Variant:
 	seed_value = next_seed if next_seed >= 0 else randi() % Incantation.seed_count()

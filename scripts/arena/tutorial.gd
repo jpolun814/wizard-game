@@ -11,7 +11,6 @@ extends Lab
 const POND_SPAN := Vector2i(24, 44)   # water too wide to jump, shallow enough to wade, and full of piranhas
 const POND_ROWS := 2.0
 const CHUNKS := 125  # the room is wide, so that the places are far apart
-const PANEL := Color("#1f1528")
 const WORDS := Color("#efe3cf")
 const MENU := "res://scenes/menu.tscn"
 
@@ -451,13 +450,7 @@ func _strike_down() -> void:
 ## The keys to walk and jump, on screen at the start: the one thing the room does not leave to be found out.
 func _show_keys() -> void:
 	_hint = PanelContainer.new()
-	var style := StyleBoxFlat.new()
-	style.bg_color = PANEL
-	style.border_color = Color("#8a6ac8").lightened(0.3)
-	style.set_border_width_all(3)
-	style.set_corner_radius_all(4)
-	style.set_content_margin_all(14.0)
-	_hint.add_theme_stylebox_override("panel", style)
+	_hint.theme_type_variation = &"Hint"  # (the look is the theme's: ui/theme.tres)
 	var lines := VBoxContainer.new()
 	lines.add_theme_constant_override("separation", 8)
 	_hint.add_child(lines)

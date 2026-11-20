@@ -14,13 +14,13 @@ const SCENES := {
 	"Icicles": {"ceiling": true},
 	"Flare": {"dark": true}, "Glowcap": {"dark": true}, "Moonbeam": {"dark": true},
 	"Adrenaline": {"tired": true}, "Sneak": {"low": true},
-	"Hunter's Mark": {"gap": 720.0, "seed": 4},
+	"Hunter's Mark": {"gap": 720.0, "seed": 4}, "Golem": {"gap": 200.0, "hold": true},  # (a spell for a rival close at hand and standing on the ground: the brain keeps away from one that is not, and a rival put on top of it is never on the ground)
 	"Mirage": {"gap": 330.0, "page": true, "page_at": 150.0, "page_spell": "Mirage", "hold": true, "strong": true, "seed": 3},  # a rival some way off (in sight), and a real page for the false one to pass for (one it holds already: a page it wanted, it would go and take first, and then none would be left to pass for)
 	"Scythe": {"gap": 80.0, "rush": true}, "Thunderclap": {"gap": 120.0, "rush": true}, "Silence": {"gap": 270.0}, "Tide Surf": {"gap": 220.0},
 	"Stone Wall": {"shot_at": true}, "Smoke Screen": {"shot_at": true}, "Decoy": {"shot_at": true}, "Crimson Veil": {"shot_at": true},
 	"Obsidian Armor": {"shot_at": true}, "Eclipse": {"shot_at": true, "gap": 300.0, "seed": 3, "hold": true},
 	"Barrier": {"shot_at": true, "gap": 340.0, "hold": true}, "Gust": {"shot_at": true, "gap": 340.0, "hold": true}, "Shadow Step": {"shot_at": true},
-	"Featherfall": {"fall": true}, "Geyser": {"up": true}, "Updraft": {"up": true}, "Push": {"up": true}, "Rocket Jump": {"up": true}, "Liana": {"up": true}, "Great Oak": {"up": true}, "Tornado": {"up": true},
+	"Featherfall": {"fall": true}, "Geyser": {"up": true}, "Updraft": {"up": true}, "Push": {"up": true, "rise": 100.0}, "Rocket Jump": {"up": true}, "Liana": {"up": true}, "Great Oak": {"up": true}, "Tornado": {"up": true},
 }
 
 var _only: Array = []
@@ -155,7 +155,7 @@ func _try(spell_name: String) -> void:
 		box.size = Vector2(240.0, 40.0)
 		body.shape = box
 		ledge.add_child(body)
-		top = spot.y - 120.0
+		top = spot.y - scene.get("rise", 120.0)
 		body.one_way_collision = true  # a ledge in the world is a platform that can be jumped up through, and does not hide a rival standing on it
 		ledge.position = Vector2(spot.x + 200.0, top + 20.0)
 		ledge.collision_layer = 16

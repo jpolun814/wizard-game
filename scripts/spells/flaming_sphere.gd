@@ -159,3 +159,8 @@ func _draw() -> void:
 	Fx.draw_glow(self, Vector2.ZERO, RADIUS * 3.0, Color(1.0, 0.45, 0.1, 0.28))
 	Fx.draw_glow(self, Vector2.ZERO, RADIUS * 1.7, Color(1.0, 0.6, 0.2, 0.55))
 	Fx.draw_glow(self, Vector2.from_angle(_turn) * RADIUS * 0.35, RADIUS * 0.8, Color(1.0, 0.9, 0.5, 0.8))
+
+
+## What this fire is to everything else that cares about fire (SpellTargets.fire_points): where it burns, how hot, how big, and whether it is a shot.
+func fire_profile() -> Array:
+	return [{"at": global_position, "heat": 2.0, "size": 16.0, "shot": false}]

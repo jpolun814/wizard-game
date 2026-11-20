@@ -16,7 +16,7 @@ static func size_near(size: int) -> int:
 	return maxi(1, roundi(float(size) / GRID)) * GRID
 
 
-## A centred heading of a panel, in the interface's pixel font.
+## A centered heading of a panel, in the interface's pixel font.
 static func heading(text: String, size: int, color: Color) -> Label:
 	var label := Label.new()
 	label.text = text

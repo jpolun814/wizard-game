@@ -22,3 +22,8 @@ func _process(_delta: float) -> void:
 
 func _draw() -> void:
 	Fx.draw_glow(self, Vector2.ZERO, 30.0 + 5.0 * sin(Time.get_ticks_msec() * 0.02), Color(1.0, 0.5, 0.15, 0.4))
+
+
+## What this fire is to everything else that cares about fire (SpellTargets.fire_points): where it burns, how hot, how big, and whether it is a shot.
+func fire_profile() -> Array:
+	return [{"at": global_position, "heat": 1.0, "size": 14.0, "shot": false}]

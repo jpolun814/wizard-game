@@ -52,7 +52,7 @@ func _ready() -> void:
 	add_child(_hint)
 	material = Fx.additive()  # the halo below adds light to what is behind it
 	var light := PointLight2D.new()  # and lights the dark round it, in the school's color
-	light.texture = Fx.tex("light_01")
+	light.texture = Fx.soft("light_01")
 	light.texture_scale = 420.0 / Fx.TEX_SIZE
 	light.color = _glow
 	light.energy = 0.9

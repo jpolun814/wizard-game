@@ -43,6 +43,7 @@ func _ready() -> void:
 		caster.facing = signf(cos(aim))
 	position = Vector2.ZERO  # the drops live in world space
 	add_to_group("lasting")
+	add_to_group("waters")
 	z_index = 4
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	_cast_facing = _facing()
@@ -117,6 +118,14 @@ func _radius(drop: Dictionary) -> float:
 	return lerpf(14.0, 34.0, clampf(drop["age"] / drop["life"], 0.0, 1.0)) * drop["size"]
 
 
+## Whether a drop of the stream is at a point (Elements puts out whatever burns there, a flare included).
+func wets(point: Vector2) -> bool:
+	for drop in _drops:
+		if not drop["stopped"] and drop["age"] > 0.1 and point.distance_to(drop["pos"]) < _radius(drop) + 14.0:
+			return true
+	return false
+
+
 ## What the stream does to whatever the drops touch.
 func _work() -> void:
 	var heading := _direction().normalized()
@@ -131,7 +140,6 @@ func _work() -> void:
 				body.knock_back(heading * MOB_PUSH)
 			else:
 				body.push(Vector2(heading.x * PUSH, minf(heading.y * PUSH, 0.0) - PUSH_UP))
-				body.coat.soak()
 			break
 	var tree := get_tree()
 	for drop in _drops:
@@ -143,23 +151,10 @@ func _work() -> void:
 			if not is_instance_valid(shot) or shot.global_position.distance_to(at) > _radius(drop) + 14.0:
 				continue
 			if shot.is_in_group("fires"):
-				Fx.smoke(get_parent(), shot.global_position, Color(0.9, 0.95, 1.0, 0.6), 4, 24.0, 40.0)  # a fire shot goes out in a puff of steam
-				if shot is SpellEffect:
-					shot.end()
-				else:
-					shot.queue_free()
+				continue  # (water puts a fire shot out: see Elements)
 			elif not _turned.has(shot) and shot.has_method("reflect"):
 				_turned[shot] = true
 				shot.reflect(heading)
-		for fire: Node2D in tree.get_nodes_in_group("fires"):
-			if fire.has_method("quench") and fire.has_method("flame_points"):
-				for point: Vector2 in fire.flame_points():
-					if point.distance_to(at) < _radius(drop) + 14.0:
-						Fx.smoke(get_parent(), point, Color(0.88, 0.92, 0.96, 0.7), 5, 22.0, 50.0)
-						fire.quench()
-						break
-		OilSlick.wash(tree, at, _radius(drop) * 0.5)
-	Flare.snuff_along(tree, _mouth, _mouth + heading * reach)
 
 
 ## The water is drawn as the ponds and the Geyser draw theirs (Pond.WATER_*): a solid body shaded from light on its upper side to dark on its lower, with a bright

@@ -13,7 +13,11 @@ const CLOSE := ["Scythe", "Fire Breath", "Spore Puff", "Thunderclap", "Insect Pl
 
 ## For measuring one change at a time: AI_OFF=crowd,roof,... in the environment turns those changes off.
 static func off(change: String) -> bool:
-	return OS.get_environment("AI_OFF").contains(change)
+	return OS.get_environment("AI_OFF").contains(change) or seat_off.contains(change)
+
+
+## The same, for one wizard only (the measuring arena sets `WizardBrain.off_here`, and each wizard's turn to think puts it here): two brains that differ by one change play each other.
+static var seat_off := ""
 
 
 var seen := {}     # rival instance id -> {spell name -> {"n": times, "at": time last seen}}

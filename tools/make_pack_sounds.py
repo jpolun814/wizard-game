@@ -70,6 +70,13 @@ CUTS3 = [
     ("Frostbolt", "cast", "tom", "Ice Throw 1", 0.0, 1.05, 0.0, 0.15), ("Icicles", "shatter", "tom", "Ice Wall 1", 0.0, 1.8, 0.0, 0.4),
     ("Ice Prison", "ice", "tom", "Ice Freeze 1", 0.0, 0.83, 0.0, 0.1),
 ]
+# The fourth round (2026-11-20): the sound of someone arriving, the portal's whoosh and the hiss of a fire put out by water.
+CUTS4 = [
+    ("wizard", "summon", "hor", "Character/woosh_5", 0.0, 1.3, 0.05, 0.6),
+    ("tutorial", "portal_enter", "hor", "Creepy_ambience_5", 0.0, 2.0, 0.2, 0.8), ("world_stages", "portal_enter", "hor", "Creepy_ambience_5", 0.0, 2.0, 0.2, 0.8),
+    ("portal_collapse", "portal_enter", "hor", "Creepy_ambience_5", 0.0, 2.0, 0.2, 0.8),
+    ("quench", "steam", "oga", "sfx100v2_misc_02", 0.0, 1.2, 0.0, 0.3),
+]
 RESTORE = [("Hailstorm", "shatter", "ice_shatter", 3, -6.0), ("Stone Wall", "rocks", "stones", 3, 2.5)]  # owner, event, the old name in git (before 0093277), variants, level
 MOB_WHOOSH = ("p400", "Other/whoosh_1", 0.0, 0.33, 0.0, 0.05)  # every kind of creature's blow
 
@@ -114,7 +121,7 @@ def main(nox, oga, p400, other=""):
     packs = {"nox": nox, "oga": oga, "p400": p400, "hor": os.path.join(other, "Horror SFX Free"), "x96": os.path.join(other, "extra96"), "tom": os.path.join(other, "Free Fantasy SFX Pack By TomMusic")}
     levels = json.load(open(os.path.join(ROOT, "data/sound_levels.json")))
     registry = json.load(open(os.path.join(ROOT, "data/sounds.json")))
-    cuts = list(CUTS3) if "--third" in sys.argv else list(CUTS2) if "--second" in sys.argv else list(CUTS) + [(o, "whoosh") + MOB_WHOOSH for o in registry if o.startswith("mob_")]
+    cuts = list(CUTS4) if "--fourth" in sys.argv else list(CUTS3) if "--third" in sys.argv else list(CUTS2) if "--second" in sys.argv else list(CUTS) + [(o, "whoosh") + MOB_WHOOSH for o in registry if o.startswith("mob_")]
     if "--second" in sys.argv and "--third" not in sys.argv:
         for r in RESTORE:
             restore(*r, levels)

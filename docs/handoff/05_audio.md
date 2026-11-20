@@ -54,8 +54,26 @@
   - Fire roars.
   - Ice shatters.
 - **Not sci-fi lasers** for magic. The old Spark was a laser and was rejected.
-- **Gothic mood.** Music is still missing: dark ambient CC0 loops would fit (OpenGameArt "dark ambient" with the
-  CC0 filter). Pascal Belisle's GothicVania music needs credit, so ask first.
+- **Music: fantasy battle, not slow dark ambient** (owner, 2026-11-20). See "Music" below.
+
+## Music
+
+**Not in the game yet (owner, 2026-11-20): the music is not ready.** `Music.in_the_game` is `false` (nothing plays) and builds exclude `music/*`. Which track goes where, and how to switch it on, is in `docs/music_plan.md`.
+
+- **`Music`** (autoload, `scripts/core/music.gd`): each place has a track (`Music.TRACKS`: place -> file in `music/` and its loudness). A screen calls
+  `Music.play_for(place)` and the track crossfades; a place with no track fades to quiet; a screen that does not call it (Library, loading, cut-scenes)
+  keeps what was playing. The first screen calls it with `"menu"`; every `Arena` calls it with `_music_place()`: `"waiting_room"` (Lab, and the Tutorial,
+  which is one), and the biome for a `World`. Two places that share a track (waiting room and portal fields) carry it on rather than restart it.
+- It plays on the **Music bus** (`default_bus_layout.tres`), set by the settings' Music slider (`GameSettings` `"music"`); M mutes the master bus,
+  so music too. A Silence hushes only the SFX bus: the music is not a sound of the world. `Music.LEVEL` keeps every track 10 dB under the effects.
+- **Files:** `python -I tools/make_music.py` copies each chosen pack's own seamless loop into Ogg Vorbis (no cut, no fade). The downloads stay out of the repo.
+- **The owner's rule: no AI-made music, only human-made music that is free to use.** A pack must say no generative AI was used.
+- **Chosen so far (owner, 2026-11-20):** menu Invincibility (an 8-second loop), waiting room and portal fields Intro Adventurous, ashlands Boss
+  (all Francesco Pirrone); sky Battle Track (TomMusic); jungle Beyond Mist, graveyard Shadowforge Convergence, castle Dread March, ocean Veil of
+  Eternal Nightfall (alkakrab). Held in reserve: Moonspire, Emberlight, Silverbook (alkakrab's ambient pack) and Pirrone's Fight (liked, no place yet).
+  The tutorial plays the waiting room's track (owner). Quiet: underground, peaks.
+- **alkakrab's licence asks for permission before his tracks go in an open-source game** (`art/CREDITS.md`): ask the owner before the repo is made public.
+- **Pirrone's tracks are registered for Content ID**: a video of the game may be claimed (see `art/CREDITS.md`).
 
 ## Every sound has one owner (owner, 2026-11-20)
 
@@ -67,6 +85,6 @@ To change a sound: replace that owner's file (keep the name). To add one: copy a
 ## Checking sounds without ears (owner asked, 2026-11-20)
 
 An agent cannot hear, but three things stand in for part of it. None replaces the owner's ear (they judge taste and loudness by listening); they catch wrong category, wrong timing and broken files.
-- **`tools/sound_search.py`** (LAION CLAP, a model that puts sounds and sentences in one space; first use downloads ~600 MB). `index <folders>` once (indexed now: NOX, the OpenGameArt CC0 packs the game's older sounds came from, and two unlicensed-as-far-as-we-know packs in the owner's Downloads, `400 Sounds Pack` and `96 Extra SFX`: search them, but use nothing from them before their licence is found; `index` adds to `tools/sound_index.npz`, which is not in git; `tools/audit_sounds.py` and `docs/sound_audit.md` judge every game sound against these), then `find "a heavy stone door scraping"` ranks the pack's recordings by how well they match the words: use it to choose a sound instead of guessing from file names. `label file.wav` says what a file sounds like among 16 plain kinds, and `check "a footstep" a.wav b.wav` scores files against one description. Only order and gaps in the scores mean anything. Run `label` on every new sound before showing it to the owner: a "footstep" that reads as a whoosh is wrong.
+- **`tools/sound_search.py`** (LAION CLAP, a model that puts sounds and sentences in one space; first use downloads ~600 MB). `index <folders>` once (indexed now: NOX, the OpenGameArt CC0 packs the game's older sounds came from, and two unlicensed-as-far-as-we-know packs, `400 Sounds Pack` (kept in `C:/Users/Jordan Polun/Documents/wizard-game-sources/`, moved out of Downloads 2026-11-20) and `96 Extra SFX`: search them, but use nothing from them before their licence is found; `index` adds to `tools/sound_index.npz`, which is not in git; `tools/audit_sounds.py` and `docs/sound_audit.md` judge every game sound against these), then `find "a heavy stone door scraping"` ranks the pack's recordings by how well they match the words: use it to choose a sound instead of guessing from file names. `label file.wav` says what a file sounds like among 16 plain kinds, and `check "a footstep" a.wav b.wav` scores files against one description. Only order and gaps in the scores mean anything. Run `label` on every new sound before showing it to the owner: a "footstep" that reads as a whoosh is wrong.
 - **`tests/checks/sound_cues_check.tscn`**: `Sfx.recording` keeps the name of every sound asked for, so a check can assert that a sound happens when its event does (and not otherwise): footsteps only when walking, a landing only after a fall, no steps on a wave. Add a case for every new trigger.
 - **`tests/checks/sound_ownership_check.tscn`**: see above.

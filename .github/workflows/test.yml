@@ -1,0 +1,45 @@
+# Runs the fast tests on GitHub's machines on every push and pull request: the unit tests (gdUnit4) and the static checks (audio files, the code rules).
+# The whole-world checks (python tools/test.py, about five minutes) are run on the owner's machine; they are slow and were tuned there.
+#
+# Needs addons/gdUnit4 to be in the repository (it is where the unit tests get their runner).
+
+name: Tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+env:
+  GODOT_VERSION: 4.7.2
+
+jobs:
+  fast:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get Godot
+        run: |
+          base="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable"
+          curl -fsSL -o godot.zip "$base/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          unzip -q godot.zip
+          mv "Godot_v${GODOT_VERSION}-stable_linux.x86_64" godot
+          chmod +x godot
+          rm godot.zip
+
+      - name: Python packages for the static checks
+        run: pip install --isolated numpy soundfile pillow
+
+      - name: Import the assets
+        run: ./godot --headless --path . --import
+
+      - name: Parse every script
+        run: |
+          ./godot --headless --path . --quit-after 200 2>&1 | tee parse.txt
+          ! grep -E "SCRIPT ERROR|Parse Error" parse.txt
+
+      - name: Unit tests and static checks
+        env:
+          GODOT: ${{ github.workspace }}/godot
+        run: python tools/test.py --unit

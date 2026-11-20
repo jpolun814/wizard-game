@@ -42,6 +42,7 @@ func _ready() -> void:
 	_rng.randomize()
 	var biome := _biome()
 	_cells = _build_map()
+	Music.play_for(_music_place())
 	var backdrop := Backdrop.new()
 	add_child(backdrop)
 	move_child(backdrop, 0)
@@ -63,6 +64,7 @@ func _ready() -> void:
 		camera.limit_right = (ArenaGen.right_wall + 1) * TILE - TILE / 2
 		camera.limit_bottom = (ArenaGen.GROUND_ROW + ArenaGen.DEPTH) * TILE  # the ground ends here; never look below it
 
+	add_child(Elements.new())  # the laws of fire and water (see Elements)
 	hud = preload("res://scenes/hud.tscn").instantiate()
 	hud.player = player
 	add_child(hud)
@@ -203,6 +205,11 @@ func _surface_under(point: Vector2) -> Vector2:
 
 func _biome() -> String:
 	return ArenaGen.WAITING_ROOM_BIOME
+
+
+## Where the player is, for the music (see Music.TRACKS). Asked once the map is built, so a world knows its biome.
+func _music_place() -> String:
+	return "waiting_room"
 
 
 ## The map's tiles. The waiting room builds its own.

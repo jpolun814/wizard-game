@@ -41,13 +41,11 @@ static func hurt(body: Node, amount: int, school: String, shot := false, lava :=
 		amount = roundi(amount * Wizard.ADRENALINE_DEALT)  # blood racing in the one who struck
 	if lava and body.has_method("lava_proof") and body.lava_proof():
 		return  # black glass: the lava runs off it
+	var kind := Damage.kind_of(school, by)
+	amount = Damage.laws(body, amount, kind, by)  # what a blow of this kind does besides harm: any body
 	if body.is_in_group("wizards"):
-		if by is SparkStrike:
-			amount = body.coat.shocked(amount)  # lightning strikes a wet body harder
-		elif school == "Fire":
-			body.coat.ignite(Coating.BURN_SECONDS, by)  # flame sets a wizard alight (a wet one it cannot)
-		if school in ["Air", "Earth"] and body.is_frozen():
-			amount = roundi(amount * 1.5)  # a frozen wizard is shattered out of the ice, as a frozen enemy is
+		if Damage.shatters(kind) and body.is_frozen():
+			amount = roundi(amount * Damage.SHATTER)  # a frozen wizard is shattered out of the ice, as a frozen enemy is
 			body.thaw()
 			Shatter.spawn(body.get_parent(), body.center(), Color("#cdeeff"))
 			Sfx.cue("ice_block", "shatter", body.center())
@@ -199,52 +197,13 @@ static func fire_points(tree: SceneTree) -> Array:
 		return _fires
 	var fires := []
 	for node in tree.get_nodes_in_group("fires"):
-		if node is Hazard:
-			fires.append({"at": node.global_position, "heat": 1.0, "size": node.width * 0.5, "shot": false})
-		elif node is Fireball or node is LavaBall:
-			fires.append({"at": node.global_position, "heat": 3.0, "size": 0.0, "shot": true})
-		elif node is Firewall:
-			for point in node.flame_points():
-				fires.append({"at": point, "heat": 1.0, "size": 12.0, "shot": false})
-		elif node is FireBreath:
-			for point in node.flame_points():
-				fires.append({"at": point, "heat": 1.0, "size": -10.0, "shot": false})
-		elif node is Pond:
-			for point in node.heat_points():
-				fires.append({"at": point, "heat": 1.0, "size": LiquidGrid.CELL if node.grid != null else node.width * 0.5, "shot": false})
-		elif node is Tornado:
-			for point in node.flame_points():
-				fires.append({"at": point, "heat": 1.0, "size": 30.0, "shot": false})
-		elif node is SparkStrike:
-			fires.append({"at": node.landing, "heat": 3.0, "size": 14.0, "shot": true})
-		elif node is Bonfire:
-			fires.append({"at": node.global_position + Vector2(0, -20), "heat": 1.0, "size": 24.0, "shot": false})
-		elif node is FlamingSphere:
-			fires.append({"at": node.global_position, "heat": 2.0, "size": 16.0, "shot": false})
-		elif node is BodyFlames:
-			fires.append({"at": node.global_position, "heat": 1.0, "size": 14.0, "shot": false})
+		if node.has_method("fire_profile"):
+			fires.append_array(node.fire_profile())
 	_fires = fires
 	_fires_frame = frame
 	_fires_count = count
 	_fires_tree = tree
 	return fires
-
-
-## Cold and water put fire out: every fire with a `quench` that has a flame within `radius` of the point goes out in a puff of steam.
-## Returns true when something was put out.
-static func douse(tree: SceneTree, at: Vector2, radius: float) -> bool:
-	var out := false
-	for node: Node2D in tree.get_nodes_in_group("fires"):
-		if not node.has_method("quench"):
-			continue
-		var points: Array = node.flame_points() if node.has_method("flame_points") else [node.global_position]
-		for point: Vector2 in points:
-			if point.distance_to(at) < radius:
-				Fx.smoke(node.get_parent(), point, Color(0.88, 0.92, 0.96, 0.7), 6, 24.0, 60.0)
-				node.quench()
-				out = true
-				break
-	return out
 
 
 ## True when any fire, a fireball in flight included, touches a box in the world. Plants burn from it.

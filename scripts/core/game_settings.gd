@@ -11,7 +11,7 @@ const FULLSCREEN := 1
 const BORDERLESS := 2
 const FRAME_CAPS := [0, 60, 120, 144]  # frames a second the game may draw at most; 0 is no limit
 const DEFAULTS := {
-	"master": 1.0, "effects": 1.0,
+	"master": 1.0, "effects": 1.0, "music": 1.0,
 	"window": WINDOWED, "vsync": true, "frame_cap": 0,
 	"skip_opening": false, "skip_ending": false,
 	"share_logs": true,  # after a match in a network game, how this person played is sent to the machine that keeps the game (see PlayRecorder)
@@ -52,8 +52,17 @@ static func load_saved(force := false) -> void:
 	var file := ConfigFile.new()
 	if file.load(path) == OK:
 		for key: String in DEFAULTS:
-			values[key] = file.get_value("options", key, DEFAULTS[key])
+			values[key] = _of_the_right_kind(file.get_value("options", key, DEFAULTS[key]), DEFAULTS[key])
 	apply()
+
+
+## A saved choice is used only if it is the kind of value the choice is (a damaged or hand-edited file may hold text where a volume goes): otherwise the default stands.
+static func _of_the_right_kind(value: Variant, default: Variant) -> Variant:
+	if typeof(value) == typeof(default):
+		return value
+	if typeof(default) == TYPE_FLOAT and typeof(value) == TYPE_INT:
+		return float(value)  # (a volume written as 1)
+	return default
 
 
 static func _under_test() -> bool:
@@ -76,6 +85,9 @@ static func apply() -> void:
 	var effects := AudioServer.get_bus_index("SFX")
 	if effects >= 0:
 		AudioServer.set_bus_volume_db(effects, linear_to_db(maxf(float(get_value("effects")), 0.0001)))
+	var music := AudioServer.get_bus_index("Music")
+	if music >= 0:
+		AudioServer.set_bus_volume_db(music, linear_to_db(maxf(float(get_value("music")), 0.0001)))
 	var wanted := int(get_value("window"))
 	if wanted != _window_applied:  # only a change to the screen choice touches the window: a window the player maximised stays as it is
 		var mode := DisplayServer.WINDOW_MODE_WINDOWED

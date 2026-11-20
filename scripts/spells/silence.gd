@@ -4,7 +4,7 @@ extends Node2D
 ## Silence: a ring of the world where no sound is made. Whoever stands in it can cast nothing, spell or chant, until they step out or it
 ## fades.
 
-const RADIUS := 130.0
+const RADIUS := 200.0
 const LIFE := 12.0
 
 var _age := 0.0

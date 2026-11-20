@@ -53,10 +53,6 @@ func _physics_process(delta: float) -> void:
 	queue_redraw()
 	if (is_instance_valid(caster) and caster.dead):
 		queue_free()
-	for pond: Pond in get_tree().get_nodes_in_group("ponds"):
-		if not pond.lava and pond.wet_at(global_position):
-			snuff()  # water puts a flame out
-			return
 
 
 ## The light it throws, a soft glow in the air round the flame.
@@ -65,10 +61,13 @@ func _draw() -> void:
 	Fx.draw_glow(self, Vector2(0, -14), LIGHT_RADIUS * 0.4 * flicker, Color(1.0, 0.55, 0.2, 0.22))
 
 
-## Puts the flame out, in a puff of smoke.
+## Puts the flame out, as anything is put out.
 func snuff() -> void:
-	Fx.smoke(get_parent(), global_position + Vector2(0, -14), Color(0.8, 0.8, 0.85, 0.6), 4, 18.0, 30.0)
-	Sfx.cue("Flare", "fire", global_position, -4.0)
+	Elements.put_out(self, global_position)
+
+
+## It goes out (Elements: water puts it out, whatever the water is; wind does by `snuff`).
+func quench() -> void:
 	queue_free()
 
 
@@ -80,10 +79,3 @@ static func snuff_near(tree: SceneTree, point: Vector2, reach: float) -> bool:
 			flare.snuff()
 			out = true
 	return out
-
-
-## Snuffs every flare within reach of a line, such as a gust's path.
-static func snuff_along(tree: SceneTree, from: Vector2, to: Vector2) -> void:
-	for flare: Flare in tree.get_nodes_in_group("flares"):
-		if Geometry2D.get_closest_point_to_segment(flare.global_position, from, to).distance_to(flare.global_position) <= GRAB:
-			flare.snuff()

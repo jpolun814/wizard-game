@@ -58,7 +58,7 @@ func _ready() -> void:
 	await _frames(3)
 	_verdict(not brain.eyes_see(me), "a person who has cast Sneak is not seen by a brain")
 	var last_seen: Vector2 = brain.sight.known[me.get_instance_id()]["at"] if brain.sight.known.has(me.get_instance_id()) else Vector2.INF
-	me.global_position = looker.global_position + Vector2(-Eyes.HALF.x - 400.0, 0.0)  # they slip away unseen, out of its sight (and out of bumping reach)
+	me.global_position = looker.global_position + Vector2(-Eyes.HALF.x - 4000.0, 0.0)  # they slip away unseen, out of its sight, and so far that a looker wandering after them in the wait does not come in sight of them again
 	await _frames(30)
 	var thought: Vector2 = brain.sight.seen_feet(me)
 	_verdict(thought.distance_to(last_seen) < 2.0, "it thinks them where it last saw them, not where they went (%s)" % (thought - last_seen))
@@ -122,7 +122,10 @@ func _ready() -> void:
 	world.add_child(shadow)
 	await _frames(40)
 	shadow.global_position = looker.global_position + Vector2(220.0, 0.0)
-	await _frames(10)
+	for k in 12:  # (it looks about a few times a second, and what it takes the shadow for is settled at one of those looks)
+		await _frames(10)
+		if brain.sight.lure == shadow and brain.opponent == other:
+			break
 	_verdict(brain.sight.lure == shadow and brain.opponent == other, "a shadow it did not see conjured is taken for its caster")
 	shadow.queue_free()
 	await _frames(3)

@@ -139,6 +139,16 @@ func dissipate() -> void:
 		_thinning = FADE
 
 
+## Where the spores are, for any wind that blows at them (Elements): the box round every puff.
+func extent() -> Rect2:
+	if _puffs.is_empty():
+		return Rect2(_mouth, Vector2.ZERO)
+	var box := Rect2(_puffs[0]["pos"], Vector2.ZERO)
+	for puff in _puffs:
+		box = box.expand(puff["pos"])
+	return box.grow(30.0)
+
+
 ## The left and right edges of the spores, for a wind that has to be at it.
 func span() -> Vector2:
 	if _puffs.is_empty():

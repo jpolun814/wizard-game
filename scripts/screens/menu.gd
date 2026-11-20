@@ -74,6 +74,7 @@ var _clock := 0.0
 func _ready() -> void:
 	if Net.online():
 		Net.leave()  # back here from a game: this machine plays alone again until it hosts or joins
+	Music.play_for("menu")
 	_status.text = Net.farewell
 	Net.farewell = ""
 	var settings := ConfigFile.new()

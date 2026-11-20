@@ -99,3 +99,8 @@ func _draw_flames() -> void:
 		var drift := sin(i * 2.3 + _age * 2.0) * 12.0 * k
 		var ember := roundf(2.0 * (1.0 - k)) + 1.0  # a pixel square, smaller as it climbs
 		_flames.draw_rect(Rect2(Vector2(roundf(drift), roundf(-34.0 - k * 50.0)), Vector2(ember, ember)), Color(1.0, 0.7, 0.3, 0.9 * (1.0 - k) * fade))
+
+
+## What this fire is to everything else that cares about fire (SpellTargets.fire_points): where it burns, how hot, how big, and whether it is a shot.
+func fire_profile() -> Array:
+	return [{"at": global_position + Vector2(0, -20), "heat": 1.0, "size": 24.0, "shot": false}]

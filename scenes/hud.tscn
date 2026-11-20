@@ -18,7 +18,7 @@ offset_top = 18.0
 offset_right = 400.0
 offset_bottom = 58.0
 script = ExtResource("2")
-fill = Color(0.753, 0.541, 0.173, 1)
+fill = Color(0.851, 0.635, 0.2, 1)
 title = "Stamina"
 
 [node name="Status" type="Label" parent="."]

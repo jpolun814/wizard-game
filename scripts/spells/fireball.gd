@@ -46,7 +46,7 @@ func _draw() -> void:
 
 func _hurt_wizard(wizard: Wizard) -> void:
 	super._hurt_wizard(wizard)
-	wizard.coat.ignite(Coating.BURN_SECONDS, self)  # it sets whoever it hits alight
+	Substances.ignite(wizard, Substances.BURN_SECONDS, self)  # it sets whoever it hits alight
 
 
 func _hurt_mob(mob: Mob) -> void:
@@ -60,3 +60,8 @@ func _impact_effect() -> void:
 	Blizzard.melt_at(get_tree(), global_position)  # a fireball that hits a snowbank bites a piece out of it
 	Fx.smoke(get_parent(), global_position, Color(0.3, 0.25, 0.25, 0.4), 3, 18.0, 30.0)
 	Sfx.cue("Ignite", "fire", global_position)
+
+
+## What this fire is to everything else that cares about fire (SpellTargets.fire_points): where it burns, how hot, how big, and whether it is a shot.
+func fire_profile() -> Array:
+	return [{"at": global_position, "heat": 3.0, "size": 0.0, "shot": true}]

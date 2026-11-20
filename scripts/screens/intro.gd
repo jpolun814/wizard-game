@@ -21,7 +21,7 @@ const PORTAL_SCALE := 1.5  # the ring is drawn at two times its size, so this ma
 const TORN_SCALE := 2.5    # and torn wide, five
 const PAGES_IN_PILE := 26
 const PAGE_SCALE := 0.4  # a page is about as big as a hand
-const CRACKLE_COLOUR := Color(0.55, 0.25, 1.0)  # the portal's violet
+const CRACKLE_COLOR := Color(0.55, 0.25, 1.0)  # the portal's violet
 const GRAVITY := 760.0  # what a page falls with
 const BLAST_REACH := 150.0  # how far from a blast the pages are knocked about
 const FLUTTER_FALL := 70.0  # the fastest a loose page drops: it is paper, and the air holds it up
@@ -83,6 +83,9 @@ const FIGHT := [
 	{"at": 8.9, "kind": "hit", "a": 6, "b": 3},
 ]
 const END := 14.1  # seconds, from the first frame to the world
+
+## The sounds of the shots: a real attack spell cast each time (see `_cast_sound`).
+const _CASTS := [["Ignite", "cast"], ["Frostbolt", "cast"], ["Pebble", "whoosh"], ["Barbs", "whoosh"], ["Eldritch Blast", "blast"], ["Spark", "spark"]]
 
 var _unrest := 0.6  # how unstable the portal is: 0 to 1, and it grows as the fight goes on
 var _crackle := 0.0
@@ -296,7 +299,7 @@ func _destabilise(delta: float) -> void:
 	var bolt := AnimatedSprite2D.new()
 	bolt.sprite_frames = PixelFx.frames("lightning", 24.0, false)
 	bolt.material = Fx.additive()
-	bolt.modulate = CRACKLE_COLOUR
+	bolt.modulate = CRACKLE_COLOR
 	bolt.scale = Vector2.ONE * randf_range(0.5, 0.9)
 	bolt.offset = Vector2(0.0, -100.0)  # the bolt leaves from the portal, down into the hall
 	bolt.rotation = randf_range(PI - 1.1, PI + 1.1)
@@ -354,7 +357,7 @@ func _arrive(wizard: IntroWizard, entry: Dictionary) -> void:
 			wizard.modulate.a = 0.0
 			var spot: Vector2 = wizard.position + Vector2(0.0, -50.0)
 			Sfx.cue("intro", "blink", spot, -8.0)
-			Fx.burst(self, spot, CRACKLE_COLOUR, 12, 140.0, 0.5, true)
+			Fx.burst(self, spot, CRACKLE_COLOR, 12, 140.0, 0.5, true)
 			create_tween().tween_property(wizard, "modulate:a", 1.0, 0.25)
 			wizard.here = true
 
@@ -390,7 +393,7 @@ func _pulse(power: float) -> void:
 	_portal.modulate = Color(1.0 + power, 0.9 + power * 0.6, 1.2 + power)
 	create_tween().tween_property(_portal, "modulate", Color.WHITE, 0.45)
 	Sfx.cue("intro", "thunder", _portal.global_position, -16.0 + power * 6.0)
-	Fx.burst(self, _portal.position, CRACKLE_COLOUR, 10, 160.0, 0.5, true)
+	Fx.burst(self, _portal.position, CRACKLE_COLOR, 10, 160.0, 0.5, true)
 	for wizard in _all:
 		if wizard.alive and wizard.here:
 			_flinch(wizard)
@@ -412,7 +415,7 @@ func _draw_on_the_others(index: int) -> void:
 	var face := 1.0 if (index * 7) % 5 < 2 else -1.0  # each turns on whoever is nearest on a side of its own: this is a free-for-all, not two sides of the pile
 	var color := wizard.color
 	_play(wizard, "grab", face)
-	Sfx.cue("intro", "whoosh", wizard.position, -14.0)
+	_cast_sound(wizard.position, -14.0)
 	Fx.burst(self, _staff(index), color, 14, 120.0, 0.5, true)
 	var glow := Fx.trail(color, 12, 0.6, 20.0, Vector2(0, -20), "star_04", 6.0)  # it keeps crackling there
 	glow.position = Vector2(face * 38.0, -62.0)
@@ -501,6 +504,12 @@ func _make_bolt(at: Vector2, color: Color) -> Node2D:
 	return bolt
 
 
+## Every shot in the scene makes the sound of a real attack spell being cast (a fireball, an ice spear, a stone, thorns, a dark blast, a spark), a different one each time.
+func _cast_sound(at: Vector2, volume_db: float) -> void:
+	var spell: Array = _CASTS[randi() % _CASTS.size()]
+	Sfx.cue(spell[0], spell[1], at, volume_db)
+
+
 ## One wizard fires at another with a bolt of their own color. If it kills, the other goes down for good.
 func _shoot(from_index: int, to_index: int, kills := false) -> void:
 	var from_at := _staff(from_index)
@@ -508,7 +517,7 @@ func _shoot(from_index: int, to_index: int, kills := false) -> void:
 	var to_at := to_wizard.position + Vector2(0.0, -55.0)
 	var color: Color = _all[from_index].color
 	_play(_all[from_index], "grab", signf(to_at.x - from_at.x))
-	Sfx.cue("intro", "whoosh", from_at, -6.0)
+	_cast_sound(from_at, -6.0)
 	var bolt := _make_bolt(from_at, color)
 	var tween := create_tween()
 	tween.tween_property(bolt, "position", to_at, 0.3)
@@ -522,8 +531,8 @@ func _clash(a: int, b: int) -> void:
 	var middle := (from_a + from_b) * 0.5 + Vector2(0.0, -10.0)
 	_play(_all[a], "grab", signf(from_b.x - from_a.x))
 	_play(_all[b], "grab", signf(from_a.x - from_b.x))
-	Sfx.cue("intro", "whoosh", from_a, -6.0)
-	Sfx.cue("intro", "whoosh", from_b, -6.0)
+	_cast_sound(from_a, -6.0)
+	_cast_sound(from_b, -6.0)
 	var color_a: Color = _all[a].color
 	var color_b: Color = _all[b].color
 	var bolt_a := _make_bolt(from_a, color_a)
@@ -593,7 +602,7 @@ func _stray(index: int, x: float) -> void:
 	var to_at := Vector2(x, _ground_at(x) - 6.0)
 	var color: Color = _all[index].color
 	_play(_all[index], "grab", signf(to_at.x - from_at.x))
-	Sfx.cue("intro", "whoosh", from_at, -6.0)
+	_cast_sound(from_at, -6.0)
 	var bolt := _make_bolt(from_at, color)
 	var tween := create_tween()
 	tween.tween_property(bolt, "position", to_at, 0.35)
@@ -663,7 +672,7 @@ func _flutter(page: IntroPage, vel: Vector2, delta: float) -> Vector2:
 ## The portal takes a page: it shrinks into the ring and the ring flares.
 func _swallowed(page: IntroPage) -> void:
 	_pile.erase(page)
-	Sfx.cue("intro", "page_1", _portal.global_position, -10.0)
+	Sfx.cue("intro", "page", _portal.global_position, -10.0)
 	Fx.burst(self, _portal.position, Color("#c8a8ff"), 8, 110.0, 0.4, true)
 	_portal.modulate = Color(1.6, 1.4, 1.9)
 	create_tween().tween_property(_portal, "modulate", Color.WHITE, 0.25)

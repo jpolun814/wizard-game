@@ -6,15 +6,14 @@ extends RefCounted
 ## wizard, and an oiled one burns twice as long. The wizard shows each on its body (drips, flames, black beads) and the status ring shows it too.
 ## Only the machine that drives the wizard decides these; the others are told through `Wizard.marks` and only show them.
 
-const WET_SECONDS := 8.0
-const BURN_SECONDS := 5.0
-const OIL_SECONDS := 10.0
-const BURN_DAMAGE := 3          # each time it bites
-const BURN_GAP := 0.5           # seconds between bites
-const OILED_BURN := 2.0         # an oiled wizard burns this many times as long
-const SHOCK := 1.6              # how much harder lightning strikes a wet wizard
-const CHILL_WET := 2.0           # how much faster a snowstorm freezes a wet wizard
-const FREEZE_WET := 1.5        # how much longer ice holds a wet wizard
+const WET_SECONDS := Substances.WET_SECONDS  # (the laws and their numbers are `Substances`: these names stay for those who ask a wizard)
+const BURN_SECONDS := Substances.BURN_SECONDS
+const OIL_SECONDS := Substances.OIL_SECONDS
+const BURN_DAMAGE := Substances.BURN_DAMAGE
+const BURN_GAP := Substances.BURN_GAP
+const CHILL_WET := Substances.CHILL_WET
+const SHOCK := Substances.SHOCK
+const FREEZE_WET := Substances.FREEZE_WET
 
 var wizard: Wizard
 var _burn_in := 0.0
@@ -28,55 +27,38 @@ func _init(owner_wizard: Wizard) -> void:
 	wizard = owner_wizard
 
 
-## Water on the body. It puts out any flame on it.
 func soak(seconds := WET_SECONDS) -> void:
-	if wizard.dead or wizard.is_likeness():
-		return
-	if wizard.burning_time > 0.0:
-		_put_out()
-	wizard.wet_time = maxf(wizard.wet_time, seconds)
+	Substances.soak(wizard, seconds)
 
 
-## Fire on the body, for as long as the fire's flames last. A wet wizard cannot be lit. Oil on the body burns longer, and burns away.
 func ignite(seconds := BURN_SECONDS, by: Node = null) -> void:
-	if wizard.dead or wizard.is_likeness() or wizard.wet_time > 0.0:
-		return
-	if wizard.oiled_time > 0.0:
-		seconds *= OILED_BURN
-		wizard.oiled_time = 0.0
-	if wizard.burning_time <= 0.0:
-		Sfx.cue("coating", "fire", wizard.center(), -6.0)
-	wizard.burning_time = maxf(wizard.burning_time, seconds)
+	Substances.ignite(wizard, seconds, by)
 	_by = SpellTargets.striker_of(by)
 
 
-## Oil on the body.
 func oil(seconds := OIL_SECONDS) -> void:
-	if wizard.dead or wizard.is_likeness():
-		return
-	wizard.oiled_time = maxf(wizard.oiled_time, seconds)
+	Substances.oil(wizard, seconds)
 
 
-## Lightning on a wet body strikes harder.
 func shocked(amount: int) -> int:
-	return roundi(amount * SHOCK) if wizard.is_wet() else amount
+	return Substances.shocked(wizard, amount)
 
 
-## How long ice holds the body: longer when it is wet.
 func frozen_for(seconds: float) -> float:
-	return seconds * FREEZE_WET if wizard.is_wet() else seconds
+	return Substances.frozen_for(wizard, seconds)
 
 
 func _put_out() -> void:
-	wizard.burning_time = 0.0
-	Fx.smoke(wizard.get_parent(), wizard.center(), Color(0.88, 0.92, 0.96, 0.5), 3, 18.0, 36.0)
-	Sfx.cue("coating", "ice", wizard.center(), -10.0)
+	Substances.put_out(wizard)
 
 
 ## Every physics frame: the bites of a burn, water putting a flame out, and the show of each.
 func tick(delta: float) -> void:
 	var burning := wizard.is_burning()
 	if not wizard.is_likeness():
+		if Elements.soaked_at(wizard.get_tree(), wizard.center()):
+			soak(3.0)  # any water that touches the body, from whatever spell or pond it comes: a burn is put out at once
+			burning = wizard.is_burning()
 		if burning:
 			if wizard.lungs.submerged() or wizard.swim_time > 0.0:
 				_put_out()

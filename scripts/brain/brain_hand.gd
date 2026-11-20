@@ -162,6 +162,8 @@ func _beside_itself_stroke(spell_name: String, foe: Wizard, feet: Vector2, facin
 			return BrainStrokes.offset(GestureTemplates.preview_points("lungs"), wizard.center() + Vector2(facing * 50.0, -10.0), 0.7)
 		"Scythe":  # a crescent drawn in front of the wizard
 			return BrainStrokes.offset(GestureTemplates.preview_points("crescent"), wizard.center() + Vector2(facing * 40.0, 0.0), 0.8)
+		"Golem":  # a stick figure drawn over itself: it becomes the figure (it goes in with stone fists, so it is an attack)
+			return BrainStrokes.offset(GestureTemplates.preview_points("stick"), wizard.center(), 0.7)
 		"Thunderclap":  # a cloud and a bolt, drawn on itself
 			return BrainStrokes.offset(GestureTemplates.preview_points("thunderclap"), wizard.center() + Vector2(0.0, -30.0), 0.8)
 	return PackedVector2Array()
@@ -352,9 +354,9 @@ func tend_stroke(spell_name: String, to_player: Vector2) -> PackedVector2Array:
 		"Eclipse":
 			return BrainStrokes.offset(GestureTemplates.preview_points("eclipse"), brain.sight.seen_center(brain.foe()), 1.0)
 		"Crimson Veil":
-			return BrainStrokes.line(Vector2(here.x, here.y - 50.0), Vector2(here.x, here.y + 20.0))
+			return BrainStrokes.offset(GestureTemplates.preview_points("shield"), here, 0.8)
 		"Obsidian Armor":
-			return BrainStrokes.offset(GestureTemplates.preview_points("circle"), here, 0.8)
+			return BrainStrokes.offset(GestureTemplates.preview_points("shield"), here, 0.8)
 		"Featherfall":
 			return BrainStrokes.offset(GestureTemplates.preview_points("feather"), here, 0.9)
 	return PackedVector2Array()

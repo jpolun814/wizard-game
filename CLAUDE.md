@@ -13,7 +13,7 @@ trust the code and this file where they disagree.
 |---|---|
 | `01_feedback_log.md` | do anything at all: every request the owner made, quoted, and the lesson behind it |
 | `02_codebase_map.md` | change code: every script, the scene tree, coordinates, physics layers |
-| `03_gestures_and_spell_design.md` | add or change a spell or gesture: how recognition works, design rules, school identities, vetted ideas |
+| `03_gestures_and_spell_design.md` | add or change a spell or gesture: how recognition works, design rules, school identities, vetted ideas. **Its last section, "The world has laws", binds every spell and every interaction: a spell makes things, the laws (`Elements`, `Damage`, `Substances`) do the rest; never one spell against another** |
 | `04_art_and_assets.md` | add or change anything visible: style rules, every source, how to judge and process an asset |
 | `05_audio.md` | touch sound: every sound has one owner and is played with `Sfx.cue(owner, event)`; sources, layering, choosing sounds you can't hear |
 | `06_enemies_and_ai.md` | touch the creatures or the AI wizards |
@@ -371,6 +371,7 @@ spell and chant pages now state the cost and the damage (see the start of sectio
     nothing else broke, and report briefly.
 12. **Describe what the thing does to the player, never the numbers behind it** (outside the spellbook's spell and chant pages, which now give their costs and damage, section 0). No multipliers, percentages or comparisons: never "1.6 times faster", "50% more damage", "half damage" or "walks slower". Write "Run faster." The spellbook's damage and cost lines are the only numbers (section 0). Don't list side effects, weaknesses or interactions (what burns it, what it stops, what it combines with): the player learns those by playing. One effect per spell, in one short line.
 13. **Name no team.** Spell and game text says "anyone", "anything" or "whoever", never "foes", "enemies", "allies" or "rivals" (spells have no teams, see section 5).
+14. **The world has laws; spells only make things (owner, 2026-11-20).** Water puts out fire from any source, oil makes any fire burn longer on any body, heat lights, lightning shocks the wet, force shatters ice, a Barrier turns any shot. These are written once (`Elements`, `Damage`, `Substances`) and act on what a thing IS (groups, `wets`, `quench`, `fire_profile`, `blows_at`, wet/burning/oiled), never on which spell made it. Never write `if node is Fireball` or `if school == "Fire"` into an interaction. Full table and rules: `docs/handoff/03_gestures_and_spell_design.md`, last section.
 
 ## 3. Run, test and look
 
@@ -378,7 +379,8 @@ spell and chant pages now state the cost and the damage (see the start of sectio
 GODOT="/c/Users/Jordan Polun/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_console.exe"
 "$GODOT" --headless --path . --import                          # after adding or changing any asset
 "$GODOT" --headless --path . --quit-after 200                  # parse check: grep the output for "SCRIPT ERROR"
-python tools/run_checks.py                                     # the quick set: every check below that matters, about 90 seconds
+python tools/test.py                                           # THE command: unit tests, then the quick checks (about 3 minutes); --unit, --changed, --full, --pictures (docs/handoff/07_testing.md)
+python tools/run_checks.py                                     # the integration checks alone (test.py calls it)
 python tools/run_checks.py --full                              # all of them, about 5 minutes
 ```
 
@@ -622,6 +624,6 @@ clean. It was cleaned up once, without losing any behaviour. Keep it that way:
 
 - More spells that combine (fire melting ice, water putting out fire, lightning in pools and a fire whirl are built).
 - More to the tutorial room (`Tutorial`, `scenes/tutorial.tscn`: a page for each school, with two meetings of spells), such as a place for the chants.
-- Music (CC0 dark ambient).
+- Music is built (`Music`, `scripts/core/music.gd`: a track per place, chosen by the owner; `docs/handoff/05_audio.md`). Places still quiet are waiting for the owner's choice. No AI-made music, ever.
 
 When unsure, ask the owner one clear question rather than guessing big.

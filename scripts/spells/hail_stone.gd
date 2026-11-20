@@ -47,8 +47,7 @@ func _on_hit(body: Node2D) -> void:
 		if body.dead:
 			_spent = false
 			return
-		if body.has_shield():
-			_shatter()
+		if Elements.shield_turns(self, body):
 			return
 		MatchStats.strike(self)
 		body.take_damage(HARM, true, true)
@@ -65,3 +64,8 @@ func _shatter() -> void:
 	Shatter.spawn(get_parent(), global_position, Color("#cdeeff"))
 	Sfx.cue("Hailstorm", "shatter", global_position, -14.0)
 	queue_free()
+
+
+## A Barrier stops it dead (Elements.shield_turns).
+func deflected() -> void:
+	_shatter()

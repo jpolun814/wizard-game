@@ -163,6 +163,7 @@ never block each other.
 ### Sound
 - **`sfx.gd`:** `Sfx.play(name, at=null, volume_db, pitch_spread)`. Files named `name_1`, `name_2` and so on are
   random variants of `name`. The `VOLUME` table balances loudness.
+- **`music.gd`** (autoload `Music`): `Music.play_for(place)` crossfades to that place's track (`TRACKS`, files in `music/`), on the Music bus. See `05_audio.md`, "Music".
 
 ## Tools (`tools/`)
 - **`prepare_gothic_art.py`:** builds all the pixel art. See its docstring for the folders it expects.
@@ -213,3 +214,5 @@ The match (a last-wizard-standing race for pages) runs on these. `World` extends
 - `surface_gen.gd`: the `ocean` and `sky` biomes (`_sea_islands`, `_sea_of`, `_build_sky`, `SEA_*`, `SKY_*`); `match_state.gd` `LATER_BIOMES` deals them in after the first world.
 
 - **The AI level wall (2026-11-15):** `scripts/brain/brain_level.gd` (the nine levels; `BrainLevel.match_level` is set by the waiting room and read by `World.new_brain`), `scripts/arena/level_wall.gd` + `level_crystal.gd` (nine crystals in the waiting room that only a person's shot lights; `Projectile._on_hit` calls `struck`), `Lab` (the wider room, the sparring partner that sleeps unless the player is in its section, the network match's level from the players' ratings). The old Easy/Normal/Hard Settings row was removed (2026-11-15). Check: `level_wall_check`; picture: `tests/looks/level_wall_look.tscn`. Results of the levels: `docs/ai_levels.md`.
+
+| `Elements`, `Damage`, `Substances` (`scripts/spells/`) | the laws of the world (water and fire, wind, Barrier, kinds of blow, what clings to any body): see handoff 03, "The world has laws" |

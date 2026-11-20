@@ -39,7 +39,7 @@ func velocity() -> Vector2:
 
 func _hurt_wizard(wizard: Wizard) -> void:
 	super._hurt_wizard(wizard)
-	wizard.apply_debuff("slow", wizard.coat.frozen_for(SLOW_SECONDS))  # cold bites a wet wizard harder
+	wizard.apply_debuff("slow", Substances.frozen_for(wizard, SLOW_SECONDS))  # cold bites a wet wizard harder
 
 
 func _hurt_mob(mob: Mob) -> void:
@@ -52,4 +52,4 @@ func _impact_effect() -> void:
 	PixelFx.play_square(get_parent(), global_position, "pimen_ice_hit", 18.0, 1.0, aim.angle())
 	Shatter.spawn(get_parent(), global_position, SHARDS)
 	Sfx.cue("Frostbolt", "shatter", global_position)
-	SpellTargets.douse(get_tree(), global_position, 50.0)
+	Elements.splash(get_tree(), global_position, 50.0)

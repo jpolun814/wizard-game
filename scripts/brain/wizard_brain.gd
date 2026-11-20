@@ -130,6 +130,7 @@ var wizard: Wizard            # the body it plays
 var skill := 0.6              # 0 to 1: how quick its reactions are and how true its aim is
 var memory := 1.0             # how long it keeps a rival's place and spells in mind, against the usual (see BrainLevel)
 var level := BrainLevel.DEFAULT
+var aggression := BrainLevel.aggression_of(BrainLevel.DEFAULT)  # 0 to 1: how readily it goes after a rival and stays close (see BrainLevel)
 var dormant := false         # asleep: it does nothing (the sparring partner of the waiting room, when nobody is there to spar with)
 var slow := 1.0               # how much slower than the usual it reacts and how much longer it waits between attacks (see BrainLevel); under 1 only at the top two levels
 var clumsy := 1.0             # how much wider than the usual its aim and its hand stray (see BrainLevel); never under 1
@@ -202,6 +203,7 @@ func set_level(new_level: int) -> void:
 	memory = BrainLevel.memory_of(level)
 	slow = BrainLevel.slow_of(level)
 	clumsy = BrainLevel.clumsy_of(level)
+	aggression = BrainLevel.aggression_of(level)
 
 
 ## A Hunter's Mark was cast: for a while it can find a wizard who has faded from sight.
@@ -255,7 +257,12 @@ func quiet_here() -> bool:
 	return true
 
 
+## Changes turned off for this wizard alone, for measuring (see `BrainProfile.off`); empty in the game.
+var off_here := ""
+
+
 func think(delta: float) -> void:
+	BrainProfile.seat_off = off_here
 	if dormant:
 		wizard.pad.walk = 0.0
 		wizard.pen.drop()
@@ -508,6 +515,7 @@ func _feel_strength(_rival: Wizard) -> float:
 	# A rival's strength and book are not seen (no bar hangs over them): it judges itself against what a rival is like, not against this one.
 	var edge := clampf(0.5 + (wizard.max_stamina - Wizard.MAX_STAMINA * 0.75) / 200.0, 0.0, 1.0)
 	var bold := (0.15 if style == "aggressive" else (-0.08 if style == "turtle" else 0.0))
+	bold += 0.25 * aggression if not BrainProfile.off("press") else 0.0  # a bolder wizard thinks itself fit for a fight sooner
 	bold += 0.1 if (is_instance_valid(_rival) and profile.hurt(_rival)) else 0.0  # a rival it has seen worn down is a rival to go after
 	return minf(armed * 0.5 + health * 0.3 + edge * 0.2 + bold, 1.0)
 

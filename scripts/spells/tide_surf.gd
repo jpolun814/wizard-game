@@ -52,6 +52,7 @@ func _ready() -> void:
 	_skin.add_child(_skin_shape)
 	add_child(_skin)
 	add_to_group("lasting")
+	add_to_group("waters")
 	z_index = 6
 	caster.start_surf(direction, SECONDS)
 	_spray = CPUParticles2D.new()
@@ -76,6 +77,11 @@ func _ready() -> void:
 	_start_sound()
 
 
+## Whether the wave is water at a point: its crest, and the length of the ground it runs over (Elements puts out whatever burns there).
+func wets(point: Vector2) -> bool:
+	return point.distance_to(global_position + Vector2(direction * 40.0, -30.0)) < 60.0 or (absf(point.x - global_position.x) < LENGTH * 0.5 and absf(point.y - global_position.y) < 60.0)
+
+
 func _physics_process(delta: float) -> void:
 	_age += delta
 	if not is_instance_valid(caster) or caster.dead or caster.fainted or _age >= SECONDS or caster.surf_time <= 0.0:
@@ -92,7 +98,6 @@ func _physics_process(delta: float) -> void:
 		var lost := delta * climb * CLIMB_DRAIN  # water running up a hill gives out sooner, the steeper it is
 		_age += lost
 		_spent += lost
-	caster.coat.soak()  # whoever rides the wave is wet
 	queue_redraw()
 	for body in _shoved.keys():
 		_shoved[body] -= delta
@@ -108,13 +113,7 @@ func _physics_process(delta: float) -> void:
 			body.knock_back(impulse)
 		else:
 			body.push(impulse)
-			body.coat.soak()  # the wave leaves them wet
 		Fx.burst(get_parent(), SpellTargets.center_of(body), FOAM, 8, 140.0, 0.4, true)
-	Flare.snuff_near(get_tree(), global_position + Vector2(direction * 40.0, -30.0), 60.0)
-	for fire in get_tree().get_nodes_in_group("fires"):
-		if fire is Hazard and absf(fire.global_position.x - global_position.x) < LENGTH * 0.5 + fire.width * 0.5 and absf(fire.global_position.y - global_position.y) < 60.0:
-			Fx.smoke(get_parent(), fire.global_position, Color(0.85, 0.85, 0.9, 0.6), 4, 20.0, 40.0)
-			fire.queue_free()  # a wave over burning ground puts it out
 
 
 ## Over a pond the rider is carried on the top of the water: a thin floor is laid at the surface under them while there is water just ahead and about level with their feet,
@@ -297,7 +296,8 @@ func _draw() -> void:
 		var shade := Pond.WATER_TOP.lerp(Pond.WATER_BOTTOM, clampf(below / POND_DEPTH, 0.0, 1.0))
 		colors.append(Color(minf(shade.r / tint.r, 1.0), minf(shade.g / tint.g, 1.0), minf(shade.b / tint.b, 1.0), clampf((point.x - BACK) / 30.0, 0.0, 1.0) * grow))
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2(direction, 1.0))
-	draw_polygon(body, colors)
+	if not Geometry2D.triangulate_polygon(body).is_empty():  # (a wave still too small to have a shape folds over itself: there is nothing to fill yet)
+		draw_polygon(body, colors)
 	var rim := Pond.WATER_RIM
 	draw_polyline(outline, Color(minf(rim.r / tint.r, 1.0), minf(rim.g / tint.g, 1.0), minf(rim.b / tint.b, 1.0), grow), 2.0)
 	draw_set_transform(Vector2.ZERO)

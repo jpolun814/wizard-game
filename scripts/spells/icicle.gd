@@ -47,11 +47,11 @@ func _act(delta: float) -> void:
 		_damage_overlapping(DAMAGE)
 
 
-## A fireball or a ball of lava that strikes the ice melts a slice off it.
+## A flame thrown at the ice (a fireball, a ball of lava, any shot of fire) that strikes it melts a slice off it.
 func _on_shot(area: Area2D) -> void:
 	if _struck.has(area.get_instance_id()):
 		return
-	if area is Fireball or area is LavaBall:
+	if area.is_in_group("fires") and area.is_in_group("shots"):  # a flame thrown at it, of whatever kind
 		_struck[area.get_instance_id()] = true
 		_melt_slice()
 

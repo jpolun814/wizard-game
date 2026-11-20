@@ -68,9 +68,8 @@ func _physics_process(delta: float) -> void:
 func _on_body(body: Node2D) -> void:
 	if _spent or not SpellTargets.affects(body):
 		return
-	if body.is_in_group("wizards") and body.has_shield():
-		reflect(Vector2.from_angle(randf() * TAU))  # a Barrier sends it off in a random direction
-		return
+	if Elements.shield_turns(self, body):
+		return  # a Barrier turns a shot away
 	_land(SpellTargets.ground_below(get_world_2d(), global_position), global_position)
 
 
@@ -113,3 +112,8 @@ func damage() -> int:
 ## The light the ball throws round itself.
 func _draw() -> void:
 	Fx.draw_glow(self, Vector2.ZERO, 16.0, Color(1.0, 0.5, 0.15, 0.4))
+
+
+## What this fire is to everything else that cares about fire (SpellTargets.fire_points): where it burns, how hot, how big, and whether it is a shot.
+func fire_profile() -> Array:
+	return [{"at": global_position, "heat": 3.0, "size": 0.0, "shot": true}]

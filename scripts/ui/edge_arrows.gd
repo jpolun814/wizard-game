@@ -22,9 +22,10 @@ func _draw() -> void:
 	var transform := get_viewport().get_canvas_transform()
 	var font: Font = Lettering.PIXEL
 	for thing in get_tree().get_nodes_in_group(group):
-		var target: Node2D = thing.target if "target" in thing else thing
-		if not is_instance_valid(target) or target.is_in_group("player"):
+		var named = thing.target if "target" in thing else thing  # (untyped: what it marks may be freed, and a typed variable cannot hold that)
+		if not is_instance_valid(named) or named.is_in_group("player"):
 			continue
+		var target: Node2D = named
 		var screen: Vector2 = transform * SpellTargets.center_of(target)
 		if Rect2(Vector2.ZERO, view).grow(-30.0).has_point(screen):
 			continue

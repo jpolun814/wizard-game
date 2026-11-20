@@ -18,6 +18,7 @@ config/icon="res://icon.svg"
 [autoload]
 
 Sfx="*res://scripts/core/sfx.gd"
+Music="*res://scripts/core/music.gd"
 Net="*res://scripts/core/net.gd"
 WandCursor="*res://scripts/ui/wand_cursor.gd"
 Warmup="*res://scripts/core/warmup.gd"

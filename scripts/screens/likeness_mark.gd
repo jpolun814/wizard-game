@@ -7,7 +7,7 @@ extends Node2D
 const STRIP := preload("res://art/props/magic_mirror.png")  # the frames side by side (see tools/prepare_mirror.py)
 const FRAME := Vector2i(18, 32)
 const FRAMES := 24
-const COLOUR := Color("#b890ff")
+const COLOR := Color("#b890ff")
 const SCALE := 3.0  # whole pixels: a little taller than a wizard
 const HOVER := 72.0  # how high the middle of the mirror floats over the slab
 const REACH := Vector2(44.0, 48.0)  # how near, across and up, the middle of a wizard must be to its middle for the page to show
@@ -80,4 +80,4 @@ func _process(delta: float) -> void:
 
 func _draw() -> void:
 	var strength := 0.2 + 0.05 * sin(_t * 2.0)
-	Fx.draw_glow(self, Vector2(0.0, -HOVER), 70.0, Color(COLOUR.r, COLOUR.g, COLOUR.b, strength))
+	Fx.draw_glow(self, Vector2(0.0, -HOVER), 70.0, Color(COLOR.r, COLOR.g, COLOR.b, strength))

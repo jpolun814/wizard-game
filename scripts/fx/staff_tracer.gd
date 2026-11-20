@@ -13,16 +13,18 @@ var _color := Color.WHITE
 var _head: Sprite2D
 var _trail: Sprite2D
 var _age := 0.0
+var _wizard: Wizard  # whose staff it leaves: the streak begins at the gem as the staff is thrust out, wherever that is a moment after the cast
 
 
 ## Sends the streak, unless the place is by the wizard already.
-static func launch(parent: Node, from: Vector2, to: Vector2, color: Color) -> void:
+static func launch(parent: Node, from: Vector2, to: Vector2, color: Color, wizard: Wizard = null) -> void:
 	if parent == null or from.distance_to(to) < MIN_DISTANCE:
 		return
 	var tracer := StaffTracer.new()
 	tracer._from = from
 	tracer._to = to
 	tracer._color = color
+	tracer._wizard = wizard
 	parent.add_child(tracer)
 
 
@@ -45,6 +47,8 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	_age += delta
+	if _wizard != null and is_instance_valid(_wizard) and _age < TRAVEL * 0.6:
+		_from = _wizard.tip()  # the staff is still coming round to the thrust, so the streak starts on its gem as it is now
 	var t := clampf(_age / TRAVEL, 0.0, 1.0)
 	var spot := _from.lerp(_to, t)
 	_head.position = spot

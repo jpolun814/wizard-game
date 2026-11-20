@@ -32,7 +32,7 @@ func _ready() -> void:
 		return
 	Sfx.cue("Ice Prison", "ice", global_position)
 	for body in caught:
-		var seconds: float = FREEZE_SECONDS if body.is_in_group("mobs") else body.coat.frozen_for(FREEZE_SECONDS)  # ice holds a wet wizard longer
+		var seconds: float = Substances.frozen_for(body, FREEZE_SECONDS)  # ice holds a wet body longer, whoever it is
 		if body.is_in_group("mobs"):
 			if not body.freeze(seconds):
 				FloatText.spawn(get_parent(), body.center() + Vector2(0, -30), "Immune", Color("#bfe9ff"), 0.8)

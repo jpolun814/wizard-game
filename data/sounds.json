@@ -55,7 +55,6 @@
   "explosion": "intro__explosion",
   "thunder": "intro__thunder",
   "volcano": "intro__volcano",
-  "whoosh": "intro__whoosh",
   "hurt_wizard": "intro__hurt_wizard",
   "page": "intro__page",
   "hurt": "intro__hurt",
@@ -215,6 +214,9 @@
   "portal_enter": "portal_collapse__portal_enter",
   "portal_open": "portal_collapse__portal_open",
   "thunder": "portal_collapse__thunder"
+ },
+ "quench": {
+  "steam": "quench__steam"
  },
  "rituals": {
   "chant": "rituals__chant",

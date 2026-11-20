@@ -3,7 +3,7 @@ extends SpellEffect
 
 ## A slab of the level's earth that grows along the stroke out of the ground, a platform or another wall. It is solid,
 ## as long as the stroke, and stays until shots wear it down; its face crumbles as it is struck. It is cut from the same earth as
-## what it grows from (see RockArt), lumpy and rough at its far end, and it is drawn growing out from its foot.
+## what it grows from (see RockArt), lumpy and rough at its far end, and it is drawn sliding out of its foot.
 
 const LENGTH := 140.0  # a wall drawn without a length of its own
 const MIN_LENGTH := 60.0
@@ -38,7 +38,7 @@ func _begin(origin: Vector2, aim_angle: float) -> void:
 	collision_mask = 1  # shots live on layer 1
 	area_entered.connect(_on_struck)
 	_add_slab()
-	Sfx.cue("Stone Wall", "rocks", origin, -2.0)  # pebbles shifting under the slab
+	get_tree().create_timer(0.15).timeout.connect(func() -> void: Sfx.cue("Stone Wall", "rocks", origin, -2.0))  # pebbles shifting as the slab comes out, not before it moves
 	Sfx.cue("Stone Wall", "rumble", origin)  # and the ground heaving under it
 	Fx.debris(get_parent(), origin, Color("#a08060"), 10, 200.0)
 	GameCamera.shake_scene(get_tree(), 0.2)
@@ -124,4 +124,5 @@ func _draw() -> void:
 	var size := picture.get_size()
 	var shown := maxf(floorf(size.x * _grow), 1.0)
 	var rect := Rect2(0.0, -size.y * RockArt.BLOCK * 0.5, shown * RockArt.BLOCK, size.y * RockArt.BLOCK)
-	draw_texture_rect_region(picture, rect, Rect2(0.0, 0.0, shown, size.y))
+	# The slab slides out of its foot: what is seen is the far end of it, pushed out first, and not the near end uncovered bit by bit.
+	draw_texture_rect_region(picture, rect, Rect2(size.x - shown, 0.0, shown, size.y))

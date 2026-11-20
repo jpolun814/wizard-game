@@ -34,6 +34,7 @@ var _frozen_here := {}  # body -> true, for the bodies this storm has frozen, so
 
 func _begin(origin: Vector2, _aim_angle: float) -> void:
 	add_to_group("clouds")
+	add_to_group("waters")
 	_life = INF
 	add_to_group("lasting")
 	add_to_group("danger")
@@ -47,12 +48,17 @@ func _begin(origin: Vector2, _aim_angle: float) -> void:
 	Sfx.cue("Blizzard", "wind", origin)
 
 
+func soaks() -> bool:
+	return false  # snow puts a fire out but does not soak a body
+
+
+## Snow falling over a point is water there (Elements puts out the flames beneath it).
+func wets(point: Vector2) -> bool:
+	return point.distance_to(global_position + Vector2(_width() * 0.5, 60.0)) < _width() * 0.5 + 20.0
+
+
 func _act(delta: float) -> void:
 	_grow_pile(delta)
-	_tick -= delta
-	if _tick <= 0.0:
-		_tick = 0.5
-		SpellTargets.douse(get_tree(), global_position + Vector2(_width() * 0.5, 60.0), _width() * 0.5 + 20.0)  # snow puts out flames beneath it
 	var inside := {}
 	for body in get_overlapping_bodies():
 		if not SpellTargets.affects(body):

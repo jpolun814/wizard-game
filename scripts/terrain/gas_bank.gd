@@ -106,6 +106,11 @@ func _burning() -> bool:
 
 
 ## The left and right edges of the gas, for a wind that has to be at it.
+## Where it is, for any wind that blows at it (Elements).
+func extent() -> Rect2:
+	return box
+
+
 func span() -> Vector2:
 	return Vector2(box.position.x, box.end.x)
 

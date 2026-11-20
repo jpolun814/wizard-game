@@ -79,7 +79,7 @@ lowers the whole window (see the main design doc). All numbers are provisional.
 ### Earth, newer
 | Spell | Shape | Pictures | Counter | Tags | Stamina |
 |---|---|---|---|---|---|
-| Obsidian Armor | circle round yourself | black glass for 20 seconds: shots do half, lava does nothing, you walk a quarter slower | it ends; blows that are not shots still land in full | wade lava | 40 |
+| Obsidian Armor | a shield (the outline of one, drawn round yourself) | black glass for 20 seconds: shots do half, lava does nothing, you walk a quarter slower | it ends; blows that are not shots still land in full | wade lava | 40 |
 
 ### Flora (Left + Middle)
 
@@ -119,7 +119,7 @@ nothing is paid for a Faint that finds no one. There is no bleeding. Blood is mo
 
 | Spell | Shape | Pictures | Counter | Max cost |
 |---|---|---|---|---|
-| Crimson Veil | vertical line | the next two times you would take damage, you take none | it is only two hits | 36 (twice the average full hit of a spell, 18) |
+| Crimson Veil | a shield | the next two times you would take damage, you take none | it is only two hits | 36 (twice the average full hit of a spell, 18) |
 | Adrenaline | tall zigzag | faster on foot and stamina three times as quick for 10 seconds | it ends | 15 |
 | Faint | spiral | all the target's current stamina goes and they drop (the death animation) until their stamina has recovered to 10; the maximum is kept | the target gets up by itself; it cannot walk, cast or chant meanwhile | 30 |
 

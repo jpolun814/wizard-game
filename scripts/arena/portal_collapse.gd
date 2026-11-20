@@ -6,7 +6,7 @@ extends Node2D
 const GROW := 1.5          # seconds for the portal to open to its full size
 const PULL := 8.0          # seconds the wizards take to be drawn in: a long climb, so it is a drift and not a snatch
 const SIZE := 3.5          # how many times the size of a doorway portal it grows
-const CRACKLE_COLOUR := Color(0.55, 0.25, 1.0)  # the portal's violet
+const CRACKLE_COLOR := Color(0.55, 0.25, 1.0)  # the portal's violet
 
 var _portal: Portal
 var _t := 0.0
@@ -33,7 +33,7 @@ func _process(delta: float) -> void:
 		var bolt := AnimatedSprite2D.new()
 		bolt.sprite_frames = PixelFx.frames("lightning", 24.0, false)
 		bolt.material = Fx.additive()
-		bolt.modulate = CRACKLE_COLOUR
+		bolt.modulate = CRACKLE_COLOR
 		bolt.scale = Vector2.ONE * randf_range(1.0, 2.2)
 		bolt.offset = Vector2(0.0, -100.0)  # the bolt leaves from the portal
 		bolt.rotation = randf() * TAU
@@ -48,7 +48,7 @@ func _process(delta: float) -> void:
 		_trail = 0.05
 		for body in _pulled:
 			if is_instance_valid(body):
-				Fx.burst(get_parent(), body.global_position + Vector2(0.0, -30.0), CRACKLE_COLOUR, 3, 80.0, 0.3, true)
+				Fx.burst(get_parent(), body.global_position + Vector2(0.0, -30.0), CRACKLE_COLOR, 3, 80.0, 0.3, true)
 
 
 ## Draws these wizards into the portal: they rise through the world to it (slowly at first, then faster and faster), whole and solid, and can still cast and

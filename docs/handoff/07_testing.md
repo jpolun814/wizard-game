@@ -1,17 +1,105 @@
 # Testing and verifying: do this every time
 
 You can't play the game by hand, so you must prove things in other ways. The owner notices when something was
-claimed and not checked.
+claimed and not checked. **There is one command: `python tools/test.py`** (built 2026-11-20 at the owner's request: "I only want to build this once").
+
+## The one command
+
+```
+python tools/test.py                 unit tests, then the quick integration checks (about 3 minutes)
+python tools/test.py --unit          only the unit tests (about 7 seconds)
+python tools/test.py --changed       the unit tests, and only the checks that mention a class or file you changed (git status)
+python tools/test.py --full          everything, the slow checks (matches, network) too
+python tools/test.py --pictures      also compare the reference pictures (opens a window for a minute)
+python tools/test.py --quarantined   also run the checks known to fail
+python tools/test.py pond sphere     only the checks with these words in their names
+```
+
+It runs the unit tests first and stops if one fails; counts any `SCRIPT ERROR` as a failure whatever a check printed; leaves out the quarantined checks;
+and ends with one summary (what failed, the error text, the log's path, the slowest checks). Exit code is the number of failures. Run it before you say
+anything is done, and put the result in your report.
+
+## The four layers
+
+1. **Unit tests** (`tests/unit/*_test.gd`, gdUnit4 in `addons/gdUnit4`, no world, milliseconds). Pure rules and data audits: `spell_data_test` (every spell is complete:
+   school, a gesture that can be drawn, a description with no team words, figures or British spelling, a positive cost, cost and damage lines in form, states that exist, an
+   effect that loads) and `laws_test` (`Damage` and `Substances` on a stand-in body). Add a `*_test.gd` for any new rule; a data rule that must hold for every spell, mob
+   or sound goes here as a loop, so it covers things added later. Write assertions with `override_failure_message` naming the item (a loop that fails must say which).
+   Run one alone: `godot --headless --path . -s -d res://addons/gdUnit4/bin/GdUnitCmdTool.gd --add res://tests/unit/NAME_test.gd --ignoreHeadlessMode`.
+2. **Sweeps and matrices** (scene checks that cover EVERYTHING by construction, so a new spell is tested the day its data file is added):
+   - `spell_sweep_check`: casts every spell through the real caster in the waiting room (the spell's own picture), and for each checks that it is read as itself, makes a
+     sound (and no one sound piles up), changes the world or the caster, and prints no script error. `-- leak=1` also follows each for forty seconds to see that what it made
+     goes (slow; run it now and then; the spells that stay on purpose are `LASTING`). `-- groups=1` prints which law groups each spell's nodes join. `-- only=NAME`, `-- shard=0/4`.
+   - `laws_matrix_check`: every spell that makes water against every spell that makes fire; every wind against every cloud and flare; a Barrier against every shot. Each has
+     a control (the cloud left alone must still be there). The geometry is the hard part: a directional spell leaves the caster, a flare follows the caster, a cloud's origin
+     is not where it is (`extent()`); the check stands the caster and holds the flare so that the two meet.
+   - `lifecycle_check`: each place (the waiting room reloaded exactly as R does it, the tutorial, three worlds) built, noted (width, ponds, counts), rebuilt three times and
+     noted again; any difference fails. This would have caught the waiting room coming back 24 columns short after R (proved by removing the fix: 60 became 36).
+   - `laws_check`, `interaction_check`: the laws with stand-ins that are no spell (`water_stand_in.gd`, `wind_stand_in.gd`, `shot_stand_in.gd`).
+3. **Integration checks** (the older ones in `tests/checks`, run by `tools/run_checks.py`, which `test.py` calls): whole worlds, the AI, the network.
+4. **Reference pictures** (`tools/look_compare.py`, scene `tests/looks/reference_shots.tscn`, references in `tests/reference/`): the waiting room, four spells at work, the tutorial and
+   each biome, compared in 16 px blocks (animation and particles do not count; 2% of blocks changed fails; the tutorial 7% because it scatters props with dice of its own).
+   A failure writes old, new and difference side by side to `reports/looks/`. After a change that is meant to alter how something looks, LOOK at the new pictures, then
+   `python tools/look_compare.py --update`. Proved by drawing a red wash over the world: 10 of 13 differed (the rest were out of the wash's reach).
+
+## Added later (2026-11-20, the second pass: "really make it comprehensive")
+
+- **Static checks** (`tools/audio_check.py`, `tools/rules_check.py`: Python, no engine, about a second each; `test.py` runs them right after the unit tests and stops on a failure).
+  `audio_check`: every owner/event in `data/sounds.json` and each spell's `sounds` has files; every file in `audio/` decodes, is not empty or silent, does not clip, has its `.import`;
+  every level in `sound_levels.json` is for a real sound and does not push it over full scale (the rocks sound is tuned 2.6 dB over, told to the owner); nothing is orphaned.
+  `rules_check`: `danger_at` wherever the `danger` group is joined; no `load()` in `_draw`; every `res://` path in a script exists; no spell-name branch in `scripts/spells/`; the laws
+  (`elements.gd`, `damage.gd`, `substances.gd`) name no spell, school or spell class; American spelling outside quoted strings; every written-out `Sfx.cue("owner", "event")` is registered
+  (an unregistered one plays nothing: the intro's swallowed page was silent for that reason). Add a rule here when the owner states one that a program can read.
+- **Text lint** (`tests/unit/text_lint_test.gd`): every spell description, chant line and state tooltip is held to the wording rules of CLAUDE.md section 0 (no figures, no team words,
+  American spelling, no "for a while", no key names in the book, sentences, tooltips with no full stop and no advice). **States** (`tests/unit/states_test.gd`): every state has a name,
+  tooltip and painted icon, and every state a spell or chant names exists.
+- **`mob_sweep_check`**: every creature kind (the files in `data/mobs`) put through the laws as a wizard is (soak, ignite, oil, shock), slowed, rooted, shoved, pulled, frozen, struck by
+  every school, fainted and killed (the dummy and turret must never fall); then every spell cast at a skeleton and at the giant. It found `EdgeArrows` crashing on a freed target and a
+  Tide Surf polygon that cannot be filled.
+- **`spellbook_check`**: every spell and chant page rendered in the real book; its writing ends above the page number, damage comes before cost, the cost is last, the NEW mark shows and goes.
+  (A container is laid out only while it is visible: the check waits for the book to open once. The page's fixed height is the parent's, because the column grows to fit.)
+- **`soak_check`**: random play (random spells at random places, random walking and jumping, the rivals playing) in each of the nine biomes (`MatchState.forced_biome`); fails on any
+  error, a place or stamina that is not a number, a wizard that falls out of the world, nodes that pile up, a step over a second and a half. Quick: three worlds for 12 s; `--full`: all nine for 40 s.
+  Seeded (`-- seed=N`), so a failure comes again.
+- **Engine `ERROR:` lines now fail a check** (`engine_errors` in `run_checks.py`; the shutdown noise, "resources still in use at exit" and the like, is ignored). They are not script errors
+  and used to pass silently: this found a `get_meta(key, null)` in `Substances.live` (a null default is read by the engine as no default) and the pond's empty mesh. Never `get_meta(k, null)`.
+- **Mutation testing** (`python tools/mutate.py FILE --count 20 [--with laws_check]`): breaks one comparison, sign or condition at a time and runs the tests; a SURVIVOR is a line nothing
+  guards. Slow (a test run each); run it on the laws and the spell scripts now and then and write a test for what survives.
+- **Flake tracker**: every run of `test.py` appends each check's result to `reports/test_history.jsonl`; `python tools/flakes.py` lists checks that have both passed and failed, or needed
+  their second try, and checks that are getting slower.
+- **`controls_check`**: the controls table of CLAUDE.md as a test: every action bound to the keys the table gives and no others, no two actions on one key (W is shared by design:
+  jump and climb), and in the waiting room A/D walk and stop, W/Space jump, Tab opens and shuts the book, Enter opens the chant box, Esc closes it and pauses, M mutes. When the owner
+  changes a key, change `BINDINGS` in the check and the table in CLAUDE.md together.
+- **`saved_data_test`** (unit): the Library's record and the options file survive an empty file, half a file, text, JSON of the wrong shape, fields of the wrong kind, an older game's
+  fewer fields, a huge history. It found that `GameSettings.load_saved` trusted the type of every saved value (now `_of_the_right_kind`).
+- **More reference pictures**: the first menu, the Library, three spellbook pages (a spell, a curse, a chant) and the pause screen join the waiting room, spells, tutorial and biomes
+  (`reference_shots.gd`). After changing how a screen looks, LOOK at the new picture, then `python tools/look_compare.py --update`.
+- **Automation**: `.github/workflows/test.yml` runs the parse check, the unit tests and the static checks on every push (it needs `addons/gdUnit4` committed). `tools/hooks/pre-commit`
+  runs the unit tests and static checks before a commit; it is NOT switched on: `git config core.hooksPath tools/hooks` turns it on, `git config --unset core.hooksPath` off.
+- **Not built, and why:** a baseline of how well the AI plays (`tools/ai_bench.py`, `tools/ai_ladder.py` exist; they take minutes to hours and their numbers move with the dice, so
+  a pass/fail line needs a chosen tolerance from the owner), and more network desync checks beyond `net_check`, `net_match_check` and the cluster checks.
+- A picture of one spellbook page: `godot --path . --audio-driver Dummy tests/looks/book_page_look.tscn -- page=Barrier out=FILE`.
+- **Tool notes:** in this environment the Bash tool eats backslashes in heredocs (regex written there came out wrong twice): write Python files with the Write tool.
+
+## Rules that keep the suite worth having
+
+- **A red suite is never normal.** A check that fails for a known reason goes in `tools/quarantine.json` WITH the reason (it still runs under `--quarantined`, and is reported
+  when it starts passing). Nothing is quarantined without a reason written down. Today: nothing is quarantined (the list is empty).
+- **A check must be proved able to fail.** After writing one, break the thing it guards (comment out the fix) and watch it go red, then put the fix back. The lifecycle check,
+  the laws matrix and the pictures were each proved this way; the matrix's first version passed for the wrong reason (clouds that die on their own), which is why it has controls.
+- **A flaky check is a bug in the check or in the game.** Run it ten times; find the cause (here: a tornado left standing from the last trial, a partner burning in lava, a
+  caster still busy). Do not add retries to hide it, and do not loosen it.
+- **Prefer the sweep to a hand-picked case.** If a rule holds for every spell, loop over `SpellData.SPELLS` rather than naming three.
+- **Sound:** a check can say a cue was asked for (`Sfx.recording`, `Sfx.heard`), how often and at what level; it cannot say how it sounds. That stays with the owner's ears.
+- **A bug the suite found when it was built:** wind never reached a Spore Puff (the cloud's origin is at the world's); a cloud now says where it is with `extent()`.
 
 ## The minimum after any change
 
-1. **Import:** `godot --headless --path . --import` (needed if you added or changed any png, ogg or wav).
-2. **Parse check:** `godot --headless --path . --quit-after 200 2>&1 | grep -iE "SCRIPT|parse|error"`. It
-   must print nothing (ignore "leaked" and "still in use" at exit).
-3. **Gestures:** `godot --headless -s tests/checks/test_gestures.gd` must report every check passed.
-4. **Look at it:** run the showcase scenario that covers your change, and open the screenshots.
-5. **Soak:** `scenario=soak`, headless. Grep for
-   `SCRIPT ERROR`.
+1. `python tools/test.py` (or `--changed` while you work). After adding or changing any png, ogg or wav run `godot --headless --path . --import` first.
+2. If it is something visible: `python tools/test.py --pictures`, and open the differences it writes.
+3. Say plainly what no check can see (sound, how the controls feel).
+
+## Older notes (still true)
 
 ## Network play (two copies of the game on this computer)
 
@@ -206,3 +294,5 @@ GODOT="/c/Users/Jordan Polun/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.
 `parts_check` (every packed layer, every option, pixel match with the art's reference sheet, look strings, all 46 animations, timings) and `pose_check` (the state of the body -> the animation, the magic layer
 keeping to the body, the gem's color) are in the quick set. Pictures: `tests/looks/parts_look.tscn -- out=DIR scenario=lineup|anims|magic|memory`. `brain_spells_check` shards 1 and 3 failed in the same
 spells (Push, Tornado, Spore Puff) with the creator switched off too, while the working tree held another session's unfinished brain edits: not caused by it, but not shown to pass either.
+
+`laws_check` and `interaction_check` prove the laws of the world (handoff 03, "The world has laws") with stand-ins that are no spell: a source of water, a wind and a shot. `laws_check` also proves that a creature is soaked, lit, oiled and shocked by the same rules as a wizard. A new interaction gets a case like these.

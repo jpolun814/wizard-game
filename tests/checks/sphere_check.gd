@@ -124,7 +124,7 @@ func _roll() -> void:
 	# Water puts it out.
 	_verdict(is_instance_valid(ball) and not ball._out, "it is still alight")
 	_verdict(ball.get_children().any(func(child: Node) -> bool: return child is PointLight2D), "it lights the dark round it, as every fire does")
-	SpellTargets.douse(get_tree(), ball.global_position, 40.0)
+	Elements.splash(get_tree(), ball.global_position, 40.0)
 	await _wait(0.6)
 	_verdict(not is_instance_valid(ball), "water puts it out")
 	# Rain puts it out.

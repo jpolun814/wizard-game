@@ -13,6 +13,7 @@ var _pushed := false
 
 
 func _begin(origin: Vector2, aim_angle: float) -> void:
+	add_to_group("winds")
 	aim = Vector2.from_angle(aim_angle)
 	_life = LIFE
 	rotation = aim_angle
@@ -25,6 +26,11 @@ func _act(_delta: float) -> void:
 	if not _pushed and _age > 0.05:
 		_pushed = true
 		_push_everything()
+
+
+## Whether the shove of air is at a point (Elements: wind thins clouds away and puts small flames out).
+func blows_at(point: Vector2) -> bool:
+	return _inside(point)
 
 
 func _inside(point: Vector2) -> bool:

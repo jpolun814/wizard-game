@@ -8,8 +8,8 @@ extends CanvasLayer
 signal stats_requested  # the person asked to see the story of their match again
 
 const HEALTH := Color("#b3122e")
-const STAMINA := Color("#c08a2c")
-const UNLIMITED := Color("#7fe0ff")
+const STAMINA := Color("#d9a233")
+const UNLIMITED := Color("#4fb4e8")
 const INK := Color(0.07, 0.04, 0.1)
 const CONTROLS := [
 	["W A S D", "Move"], ["Space", "Jump"],
@@ -61,13 +61,7 @@ func _ready() -> void:
 func _lay_on_parchment(rows: GridContainer) -> void:
 	var sheet := PanelContainer.new()
 	sheet.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	var paper := StyleBoxFlat.new()
-	paper.bg_color = Color("#d8b690")
-	paper.border_color = Color("#3a1d1a")
-	paper.set_border_width_all(4)
-	paper.set_corner_radius_all(3)
-	paper.set_content_margin_all(18.0)
-	sheet.add_theme_stylebox_override("panel", paper)
+	sheet.theme_type_variation = &"Parchment"  # (the look is the theme's: ui/theme.tres)
 	var box: Node = rows.get_parent()
 	box.add_child(sheet)
 	box.move_child(sheet, rows.get_index())

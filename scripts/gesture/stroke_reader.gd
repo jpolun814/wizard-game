@@ -146,6 +146,8 @@ func settle(reading: StrokeReading, relative: PackedVector2Array, options: Dicti
 	# A straight stroke that begins on the ground raises a stone wall instead of a spike.
 	if reading.gesture == "flick" and options.has("stone_wall") and on_ground.is_valid() and on_ground.call(stroke[0]):
 		reading.gesture = "stone_wall"
+	if reading.gesture == "shield" and options.has("flare") and StrokeShapes.flame_points_up(relative):
+		reading.gesture = "flare"  # a drop with its point up, warped by a hand, is as near a shield as a flame: a shield's point is at the bottom
 	if reading.gesture == "latin_cross" and not reading.latin:
 		reading.score = 0.0  # a stem alone, or any stroke the recognizer likes, is not a cross
 	if reading.gesture == "flare" and not StrokeShapes.flame_points_up(relative):

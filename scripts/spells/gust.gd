@@ -17,6 +17,7 @@ var _streaks: Array[AnimatedSprite2D] = []
 
 
 func _begin(origin: Vector2, aim_angle: float) -> void:
+	add_to_group("winds")  # moving air, to everything that is scattered or blown by it
 	_life = LIFE
 	_aim = Vector2.from_angle(aim_angle)
 	rotation = aim_angle
@@ -47,9 +48,6 @@ func _act(delta: float) -> void:
 			area.reflect(_aim)
 	for body in get_overlapping_bodies():
 		_blow(body, delta)
-	for cloud in get_tree().get_nodes_in_group("clouds"):
-		if _reaches(cloud.global_position):
-			cloud.dissipate()
 	for item in get_tree().get_nodes_in_group("items"):
 		if _reaches(item.global_position):
 			item.knock(_aim * SPEED * 0.4)
@@ -69,6 +67,11 @@ func _blow(body: Node2D, delta: float) -> void:
 
 
 ## True when a point lies in the gust's path.
+## Whether the wind blows at a point (Elements: wind thins clouds away and puts small flames out, whatever the wind is).
+func blows_at(point: Vector2) -> bool:
+	return _reaches(point)
+
+
 func _reaches(point: Vector2) -> bool:
 	var local := to_local(point)
 	return local.x >= -20.0 and local.x <= LENGTH and absf(local.y) <= WIDTH * 0.5 + 20.0

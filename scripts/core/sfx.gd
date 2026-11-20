@@ -28,6 +28,9 @@ var heard: Array[String] = []  # the sound names asked for while recording, in o
 var _live := 0
 var _owned := {}      # owner -> {event: sound name}, for everything that is not a spell
 var _levels := {}     # sound name -> loudness in decibels
+var _hush := 0.0      # 1 while the listener stands inside a Silence: the world makes no sound there, the listener's own steps and cries included
+var _hush_check := 0.0
+var _hushed := false  # whether the listener was found in a Silence at the last look
 var _voices := {}     # instance id of a speaker -> the voice sound it is making now
 
 
@@ -147,6 +150,18 @@ func _stream(sound: String, pitch_spread: float) -> AudioStreamRandomizer:
 	var randomizer: AudioStreamRandomizer = _sounds[sound]
 	randomizer.random_pitch = 1.0 + pitch_spread
 	return randomizer
+
+
+## Inside a ring of Silence nothing is heard: the sound bus is closed while the view's middle (the wizard) is in one, and opens again when they step out.
+func _process(delta: float) -> void:
+	_hush_check -= delta
+	if _hush_check <= 0.0:
+		_hush_check = 0.1
+		var listener := get_tree().get_first_node_in_group("player") as Node2D  # the wizard the screen is of (the view's middle sits above them)
+		_hushed = listener != null and Silence.covers(get_tree(), listener.global_position + Vector2(0.0, -40.0))
+	var goal := 1.0 if _hushed else 0.0
+	_hush = move_toward(_hush, goal, delta * 8.0)
+	AudioServer.set_bus_volume_db(AudioServer.get_bus_index(BUS), -80.0 * _hush)
 
 
 func _unhandled_input(event: InputEvent) -> void:

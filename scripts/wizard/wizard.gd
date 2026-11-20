@@ -967,7 +967,7 @@ func _in_free_air() -> bool:
 	return not is_on_floor() and not flying and swim_time <= 0.0 and surf_time <= 0.0
 
 
-## How fast the wizard walks now: half of it when out of stamina, and each thing that slows, mires, tangles, hastens, armours or changes the wizard
+## How fast the wizard walks now: half of it when out of stamina, and each thing that slows, mires, tangles, hastens, armors or changes the wizard
 ## on top of that.
 func _walking_speed() -> float:
 	return (SPEED if stamina > 0.0 or wolf.on else SPEED * 0.5) * (0.5 if slow_time > 0.0 else 1.0) * (0.4 if sink_time > 0.0 else 1.0) * (0.3 if tangle_time > 0.0 else 1.0) * (HASTE if haste_time > 0.0 else 1.0) * (OBSIDIAN_SPEED if obsidian_time > 0.0 else 1.0) * (WildShape.SPEED if wolf.on else 1.0) * (GolemForm.SPEED if golem.on else 1.0) * (DRAINED_SPEED if drained_time > 0.0 else 1.0)

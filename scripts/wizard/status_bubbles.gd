@@ -130,7 +130,7 @@ func _states() -> Dictionary:
 		states["hasted"] = wizard.haste_time
 	if wizard.adrenaline_time > 0.0:
 		states["adrenaline"] = wizard.adrenaline_time
-	if wizard.infinite_time > 0.0 and wizard.infinite_time < 1.0e6:  # (the waiting room's endless stamina is no state to show)
+	if wizard.infinite_time > 0.0:  # (the waiting room's endless stamina shows too, with no clock to it: see `_left`)
 		states["unlimited"] = wizard.infinite_time
 	if wizard.air_jump_time > 0.0:
 		states["extra_jump"] = wizard.air_jump_time

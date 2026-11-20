@@ -46,7 +46,7 @@ proposed so far (a smaller wizard count, a list of the spells held with their sh
 
 ## Left open by the combo and momentum work (2026-11-18)
 
-- **The AI does not know the new air control.** In the air the keys only nudge (`Wizard.AIR_STEER`). `brain_spells_check` now fails on navigation (the brain wanders, "explore", and never reaches the ledge or the spot), and `ai_drills_check` was already failing. Rework the brain's jumping to commit to a direction before leaving the ground.
+- **(Fixed 2026-11-20: `brain_spells_check` and `ai_drills_check` pass; the real faults were a missing Golem stroke in `BrainHand._beside_itself_stroke`, so the brain chose Golem and drew nothing, and checks whose set-up did not suit the spell. Push lifts about 150 px, so its check uses a 100 px ledge.) The AI does not know the new air control.** In the air the keys only nudge (`Wizard.AIR_STEER`). `brain_spells_check` now fails on navigation (the brain wanders, "explore", and never reaches the ledge or the spot), and `ai_drills_check` was already failing. Rework the brain's jumping to commit to a direction before leaving the ground.
 - **Status bubbles on other machines** show only what the marks carry (frozen, slowed, veiled, wet, burning, oiled); the rest (hexed, bleeding, breath, rage...) show only on the machine that drives the wizard. Send start and duration if the owner wants them all.
 - **Book lines for Water Jet and Oil Slick are drafts** and need the owner's confirmation. Spell costs (20, 24), Water Jet push (`WaterJet.PUSH`), the shock multiplier (`Coating.SHOCK` 1.6) and the burn numbers are first guesses to tune.
 - **Mute and Blind** are dead states (nothing sets them): remove if the owner agrees.

@@ -6,7 +6,7 @@
 script = ExtResource("1_1vyv5")
 spell_name = "Obsidian Armor"
 school = "Earth"
-gesture = "circle"
+gesture = "shield"
 cost = 40.0
 effect = "Cover your body in obsidian."
 applies = Array[String](["sturdy", "fireproof"])

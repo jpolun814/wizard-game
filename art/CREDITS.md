@@ -46,6 +46,26 @@ and are no longer drawn by the game.
 | `fonts/OldeTome.ttf` (titles, spell names, headings) | [Olde Tome](https://ladyliefy.itch.io/olde-tome) by LadyLiefy | free to use, pay-what-you-want (the itch.io page names no licence; the owner downloaded it from there) |
 | `fonts/Jacquard24-Regular.ttf` (titles) | [Jacquard 24](https://fonts.google.com/specimen/Jacquard+24) by The Soft Type Project (scfried) | OFL 1.1 (`fonts/OFL-Jacquard24.txt`) |
 
+## Interface skins (art/ui/skins/, cut by tools/build_ui_skin.py; the game starts with its own flat look unless one is chosen: tools/ui_skin.py)
+
+| Folder | Pack | Terms |
+|---|---|---|
+| `darkages/` | [Dark Ages UI](https://hypnobius.itch.io/dark-ages-ui) by Hypnobius | Commercial and personal use; credit optional (given gladly); no generative AI; **the files may not be redistributed, resold or passed on, modified or not**, so a public repo that holds them is the owner's call |
+| `gothic/` | [Gothic Pixel UI](https://abyssowl.itch.io/gothic-pixel-ui) (free version) by AbyssOwl | Commercial and non-commercial use; edits allowed; **credit to AbyssOwl required for commercial projects**; no resale; not to be used to train AI; no generative AI. Redistribution is not addressed beyond the ban on resale |
+
+Both are used as pieces cut from the packs (the gold set of Gothic, with its empty frames filled with the game's dark ink and its hover and pressed buttons made by brightening and darkening). The downloads themselves are not in the repo.
+
+## Music (music/, made by tools/make_music.py from each pack's loop versions)
+
+All human-made (the owner's rule: no AI music). Chosen by the owner, 2026-11-20.
+
+| File | Track | Source | Terms |
+|---|---|---|---|
+| `invincibility.ogg`, `intro_adventurous.ogg`, `boss.ogg` | Invincibility, Intro Adventurous, Boss | [Free Epic Fantasy Music Pack](https://francesco-pirrone.itch.io/free-epic-fantasy-music-pack-for-action-platformers-and-rpgs) by Francesco Pirrone | Free for any project, commercial included; no credit required (given gladly). He keeps the performing rights, and the tracks are registered for Content ID on YouTube, Meta and TikTok: a video of the game may be claimed, and he asks to be contacted to clear it. No AI training or AI-made versions of the tracks. |
+| `shadowforge_convergence.ogg`, `dread_march.ogg`, `veil_of_eternal_nightfall.ogg` | Shadowforge Convergence, Dread March, Veil of Eternal Nightfall (loop versions) | [Free 6 Dark Fantasy Boss Battle Tracks](https://alkakrab.itch.io/6-dark-fantasy-boss-battle-tracks) by alkakrab | alkakrab's Music License Agreement (in the download): royalty-free, commercial use allowed, credit appreciated, not required. No passing on or reselling the files as they are, no remixing; **use in an open-source game needs his permission** (alkakrab04@gmail.com) |
+| `beyond_mist.ogg` | Beyond Mist (Full Loop) | [Free 12 Fairytale Magical Fantasy Tracks](https://alkakrab.itch.io/free-12-magical-fantasy-tracks-music-pack-no-ai) by alkakrab | The same agreement |
+| `battle_track.ogg` | Battle Track | [Free Fantasy Music Pack (Feather Falling)](https://tommusic.itch.io/fantasy-music-pack-for-rpg-platformer) by TomMusic | Royalty-free, commercial or otherwise; credit appreciated, not required; the files may not be resold or passed on as files |
+
 ## Sound (CC0)
 
 | Files in `audio/` | Source | License |
@@ -69,6 +89,8 @@ and are no longer drawn by the game.
 | `dark_whoosh` (Shadow Step, Eclipse), `summon` (Invincible Snail) | Horror SFX Free (`woosh`, `Drone_doom`, `Gore_Wet_4`); author and licence not recorded, used because the owner supplied it, 2026-11-20 | owner-approved |
 | `wind` (Spore Puff, `human_breathe_out`) | 96 Extra SFX; author and licence not recorded, used because the owner supplied it, 2026-11-20 | owner-approved |
 | `wind` (Lily Pads, `splash_14`), `summon` (Wild Shape, `creature_roar_02`), `dark_whoosh` (Decoy, `sfx100v2_misc_37`), Moonbeam (`music_box_chime_quick`, 400 Sounds Pack) | rubberduck's CC0 OpenGameArt packs, and the 400 Sounds Pack as above | CC0 / owner-approved |
+| `summon` (wizard arriving), `portal_enter` (portals) | Horror SFX Free (`woosh_5`, `Creepy_ambience_5`); licence not recorded, owner-approved 2026-11-20 | owner-approved |
+| `steam` (a flame put out by water, owner `quench`) | rubberduck's 100 CC0 SFX (`sfx100v2_misc_02`) | CC0 |
 | `ice_shatter_*`, `explosion`, `misfire`, `ritual_ok`, `game_over` | [100 CC0 SFX](https://opengameart.org/content/100-cc0-sfx) by rubberduck (OpenGameArt) | CC0 |
 | `thunder` | [100 CC0 SFX #2](https://opengameart.org/content/100-cc0-sfx-2) by rubberduck (OpenGameArt) | CC0 |
 | `volcano` | [Fireball 1](https://opengameart.org/content/fireball-1) (Julien Matthey, via OpenGameArt) | CC0 |

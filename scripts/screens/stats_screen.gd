@@ -176,7 +176,7 @@ func _draw_face() -> void:
 		5:
 			_page_tally()
 		6:
-			_page_favourites()
+			_page_favorites()
 	# The turning of the pages: an arrow each side, and a mark for each page.
 	_arrow(_left_arrow, -1)
 	_arrow(_right_arrow, 1)
@@ -221,7 +221,7 @@ func _page_tally() -> void:
 
 
 ## What was cast most, and what the damage came from.
-func _page_favourites() -> void:
+func _page_favorites() -> void:
 	var rows := []
 	var ranked: Array = MatchStats.cast_by_spell.keys()
 	ranked.sort_custom(func(a: String, b: String) -> bool: return int(MatchStats.cast_by_spell[a]) > int(MatchStats.cast_by_spell[b]))

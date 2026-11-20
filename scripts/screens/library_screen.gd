@@ -7,7 +7,7 @@ extends Control
 ## there is to find. Ribbons along the edge of an open tome choose which kind of world the counts are of.
 
 const MENU := "res://scenes/menu.tscn"
-const PAGE_COLOUR := Color("#ffe9a0")
+const PAGE_COLOR := Color("#ffe9a0")
 const DIM := Color(0.62, 0.58, 0.72)
 const WORLDS := ["graveyard", "mountains", "jungle", "ashlands", "castle", "underground", "portals", "ocean", "sky"]
 const CHANTS := "chants"
@@ -366,7 +366,7 @@ func _build_reading() -> void:
 		arrow.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 		arrow.add_theme_font_override("font", Lettering.PIXEL)
 		arrow.add_theme_font_size_override("font_size", 40)
-		arrow.add_theme_color_override("font_color", PAGE_COLOUR)
+		arrow.add_theme_color_override("font_color", PAGE_COLOR)
 		arrow.add_theme_color_override("font_hover_color", Color.WHITE)
 		arrow.size = Vector2(44.0, 44.0)
 		var page: Rect2 = Spellbook.PAGES[0 if side < 0 else 1]
@@ -560,9 +560,9 @@ func _write_match(area: Control, index: int) -> void:
 	var trace := MatchTrace.new(m.get("dealt_line", []), m.get("taken_line", []), sections)
 	trace.custom_minimum_size = Vector2(0.0, 120.0)
 	column.add_child(trace)
-	var favourite := ""
+	var favorite := ""
 	for entry: Array in m.get("favourites", []):
-		favourite = "%s, %d" % [entry[0], int(entry[1])]
+		favorite = "%s, %d" % [entry[0], int(entry[1])]
 		break
 	var rows := [
 		["Time survived", _clock(int(m.get("seconds", 0)))],
@@ -573,8 +573,8 @@ func _write_match(area: Control, index: int) -> void:
 		["Accuracy", "%d%%" % roundi(float(m.get("accuracy", 0.0)) * 100.0)],
 		["Pages held", str(int(m.get("pages", 0)))],
 	]
-	if favourite != "":
-		rows.append(["Favorite", favourite])
+	if favorite != "":
+		rows.append(["Favorite", favorite])
 	for entry in rows:
 		var row := HBoxContainer.new()
 		row.add_child(_ink(entry[0], 19, Spellbook.SUBTLE))

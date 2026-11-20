@@ -89,3 +89,11 @@ func flame_points() -> PackedVector2Array:
 
 func danger_at(point: Vector2) -> bool:
 	return absf(point.x - global_position.x) < 24.0 and absf(point.y - global_position.y) < HEIGHT * 0.5 + 10.0
+
+
+## What this fire is to everything else that cares about fire (SpellTargets.fire_points): where it burns, how hot, how big, and whether it is a shot.
+func fire_profile() -> Array:
+	var fires := []
+	for point in flame_points():
+		fires.append({"at": point, "heat": 1.0, "size": 12.0, "shot": false})
+	return fires

@@ -38,13 +38,13 @@ CHECKS = [
     ("knowledge_check", "script", ""),
 ] + [(name, "scene", "") for name in (
     "scripts_load_check", "sound_ownership_check", "sound_cues_check", "flow_check", "tutorial_check", "tutorial_path_check", "menu_check", "settings_check", "lab_revive_check", "level_wall_check", "dither_check", "behind_wall_check", "ai_drills_check", "likeness_check", "parts_check", "pose_check", "stairs_check", "stairwell_check", "castle_spells_check", "castle_sinkhole_fall_check",
-    "biome_jump_check", "page_underfoot_check", "earthquake_check", "stonefall_check", "sinkhole_check", "sinkhole_biomes_check", "ridge_check", "stalagmite_check", "parity_check", "air_momentum_check", "coating_check", "bubbles_check", "combo_check", "interaction_check",
+    "biome_jump_check", "page_underfoot_check", "earthquake_check", "stonefall_check", "sinkhole_check", "sinkhole_biomes_check", "ridge_check", "stalagmite_check", "parity_check", "air_momentum_check", "coating_check", "laws_check", "spell_sweep_check", "lifecycle_check", "laws_matrix_check", "mob_sweep_check", "spellbook_check", "controls_check", "forced_stroke_check", "bubbles_check", "combo_check", "interaction_check",
     "ritual_check", "library_screen_check", "avalanche_check", "pieces_check", "spellbook_order_check", "arrival_check", "sneak_check", "limits_check",
     "cluster_check", "brains_start_check", "blizzard_freeze_check", "blizzard_melt_check", "group_a_check", "group_d_check", "flytrap_check", "snail_check", "podium_check", "group_c_check", "group_b_check", "leech_check", "raise_dead_check", "golem_check", "mirage_check", "recorder_check", "log_upload_check", "solo_record_check", "sphere_check", "lab_sphere_check", "eye_check", "puppet_swing_check",
-)] + [("route_check", "scene", "seed=7 moves=90")] + [("brain_spells_check#%d" % k, "scene", "shard=%d/4" % k) for k in range(4)]
+)] + [("route_check", "scene", "seed=7 moves=90"), ("soak_check", "scene", "seconds=12 only=graveyard,ocean,sky")] + [("brain_spells_check#%d" % k, "scene", "shard=%d/4" % k) for k in range(4)]
 
 # Slower checks, or ones that need arguments: run with --full. (route_check goes on to more moves than the quick set's.)
-SLOW = [("route_check#a", "scene", "seed=7 moves=260"), ("debug_end_check#win", "scene", "mode=win"), ("debug_end_check#lose", "scene", "mode=lose"), ("route_check#b", "scene", "seed=3 moves=150"),
+SLOW = [("soak_check#a", "scene", "seconds=40 only=graveyard,mountains,jungle"), ("soak_check#b", "scene", "seconds=40 only=ashlands,castle,underground"), ("soak_check#c", "scene", "seconds=40 only=portals,ocean,sky"), ("route_check#a", "scene", "seed=7 moves=260"), ("debug_end_check#win", "scene", "mode=win"), ("debug_end_check#lose", "scene", "mode=lose"), ("route_check#b", "scene", "seed=3 moves=150"),
         ("net_check", "net", "host,client"), ("net_crowd_check", "net", "host,first,second"), ("net_hazard_check", "net", "host seed=2,client seed=2"),
         ("net_match_check", "net", "host,client"), ("dedicated_check", "net", "run"), ("net_spells_check", "net", "host,client"), ("test_world#1", "scene", "seeds=5 first=0"), ("test_world#2", "scene", "seeds=5 first=5"), ("test_world#3", "scene", "seeds=5 first=10"), ("test_world#4", "scene", "seeds=5 first=15"), ("test_world#5", "scene", "seeds=5 first=20"), ("test_world#6", "scene", "seeds=5 first=25"), ("showcase:checks", "scene", "scenario=checks"), ("showcase:newspells", "scene", "scenario=newspells"),
         ("showcase:spells", "scene", "scenario=spells"), ("showcase:soak", "scene", "scenario=soak")] + [(name, "scene", "") for name in (
@@ -107,6 +107,21 @@ def run_net(check, folder, project, extra_env, instrumented):
     return name, all(c == 0 for c in codes) and (broken == 0 or instrumented), time.time() - started, output_path, broken
 
 
+# Engine errors that are only the game closing with things still alive (a check quits without freeing its world): not the check's finding.
+SHUTDOWN_NOISE = ("still in use at exit", "RID allocations", "leaked at exit", "ObjectDB instances leaked", "Pages in use exist at exit", "RenderingServer::get_singleton",
+                  "were leaked", "Resource still in use", "instances of", "orphan")
+
+
+def engine_errors(text):
+    """How many lines the engine printed as an ERROR that are not shutdown noise: a mesh built from nothing, a polygon that cannot be filled, a bad parameter.
+    They are not script errors and they do not stop the game, so nothing failed on them until they were counted."""
+    count = 0
+    for line in text.splitlines():
+        if line.startswith("ERROR:") and not any(n in line for n in SHUTDOWN_NOISE):
+            count += 1
+    return count
+
+
 def run_one(check, folder, project, extra_env, instrumented):
     name, kind, args = check
     if kind == "net":
@@ -133,7 +148,7 @@ def run_one(check, folder, project, extra_env, instrumented):
         if code in (0, 1, 124) or len(text.strip().splitlines()) > 1:
             break
     open(output_path, "w", encoding="utf-8").write(text)
-    broken = text.count("SCRIPT ERROR") - text.count("Identifier not found: Sfx")  # a script run with -s has no autoloads: expected
+    broken = text.count("SCRIPT ERROR") - text.count("Identifier not found: Sfx") + engine_errors(text)  # (a script run with -s has no autoloads: that one is expected)
     # Godot now and then crashes while shutting down, after the check has printed all it has to say (more often with many copies at once).
     # Such an exit, with passes printed and no failure, is not the check's failure; it is noted in the output.
     lines = text.splitlines()
@@ -150,12 +165,14 @@ def main():
     parser.add_argument("only", nargs="*", help="run only the checks whose name contains one of these")
     parser.add_argument("-j", type=int, default=max(2, (os.cpu_count() or 4) + 1), help="how many to run at once")
     parser.add_argument("--full", "--all", dest="all", action="store_true", help="the slower checks too (the whole set aims at under five minutes)")
+    parser.add_argument("--skip", default="", help="comma-separated names of checks to leave out (tools/test.py leaves out the quarantined ones)")
     parser.add_argument("--cov", action="store_true", help="measure line coverage in a scratch copy of the project")
     options = parser.parse_args()
     folder = os.environ.get("CHECK_OUT") or os.path.join(tempfile.gettempdir(), "wizard_checks")
     os.makedirs(folder, exist_ok=True)
     quick = [c for c in CHECKS if not (options.all and c[0] == "route_check")]  # the long route check replaces the short one
-    checks = [c for c in quick + (SLOW if options.all else []) if not options.only or any(word in c[0] for word in options.only)]
+    skipped = [s for s in options.skip.split(",") if s]
+    checks = [c for c in quick + (SLOW if options.all else []) if (not options.only or any(word in c[0] for word in options.only)) and c[0].split("#")[0] not in skipped]
     project, extra_env = ROOT, (lambda name: {})
     if options.cov:
         import coverage_run

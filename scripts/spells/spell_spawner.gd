@@ -25,7 +25,6 @@ func _init(arena: Arena) -> void:
 func spawn(spell: String, targeting: String, origin: Vector2, aim: float, info: Dictionary, caster_node: Wizard) -> void:
 	var cast := SpellCast.new(_arena, spell, targeting, origin, aim, info, caster_node)
 	_record(cast)
-	_put_out_flares(cast)
 	_trace_from_staff(cast)
 	if _recipes.has(spell):
 		_recipes[spell].call(cast)
@@ -56,18 +55,7 @@ func _trace_from_staff(c: SpellCast) -> void:
 		return
 	var to := c.center() if c.targeting == "shape" and not c.line().is_empty() else c.origin
 	var school: String = SpellData.SPELLS[c.spell].school if SpellData.SPELLS.has(c.spell) else ""
-	StaffTracer.launch(_arena, c.caster.launch_tip(), to, SpellData.SCHOOL_COLORS.get(school, Color(0.8, 0.8, 1.0)))
-
-
-## Water and wind put a flare out, but only one the spell actually reaches.
-func _put_out_flares(c: SpellCast) -> void:
-	var school: String = SpellData.SPELLS[c.spell].school if SpellData.SPELLS.has(c.spell) else ""
-	if (school != "Water" and school != "Air") or c.spell == "Barrier":
-		return
-	if c.is_directional():
-		Flare.snuff_along(_arena.get_tree(), c.origin, c.origin + Vector2.from_angle(c.aim) * maxf(c.info.get("length", 0.0), 60.0))  # only along the stroke itself
-	else:
-		Flare.snuff_near(_arena.get_tree(), c.origin, 30.0)  # only where the spell lands
+	StaffTracer.launch(_arena, c.caster.launch_tip(), to, SpellData.SCHOOL_COLORS.get(school, Color(0.8, 0.8, 1.0)), c.caster)
 
 
 ## A spell with no recipe is the effect its resource names. A directional spell leaves the caster along the stroke (Stone Wall rises from where the stroke
