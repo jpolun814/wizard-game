@@ -26,6 +26,9 @@ const AIR_DRAG := 100.0         # how slowly a blow's sideways speed dies away i
 const AIR_STEER := 0.5          # how much of a walking pace the keys can give or take away in the air once a wizard has been thrown or pulled
 const AIR_ACCEL := 300.0       # how fast the keys can add to or turn a wizard's sideways speed then, in pixels a second each second
 const AIR_OWN_ACCEL := 2400.0  # and how fast they can when the wizard jumped or walked off a ledge themselves: they steer as freely as on the ground
+## The sound of a footstep on each biome's ground (NOX SOUND's Footsteps Essentials, tools/make_nox_sounds.py).
+const STEP_SOUNDS := {"graveyard": "step_dirt", "mountains": "step_snow", "jungle": "step_leaves", "ashlands": "step_gravel", "castle": "step_tile",
+	"underground": "step_rock", "portals": "step_grass", "ocean": "step_wood"}
 const OIL_GRIP := 380.0        # and on oil, which is more slippery still
 const ICE_GRIP := 650.0        # how fast a wizard on ice can change speed, in pixels a second each second
 const OBSIDIAN_SPEED := 0.75    # how fast the wizard walks in black glass
@@ -1013,7 +1016,7 @@ func _move_on(delta: float) -> void:
 		_step -= delta
 		if _step <= 0.0:
 			_step = STEP_EVERY
-			Sfx.play("step", global_position)
+			Sfx.play(STEP_SOUNDS.get(ArenaGen.biome_name_at(global_position.x), "step_dirt"), global_position)
 
 
 ## Out of its depth in a sea (see Pond.deep): the water holds the wizard up for a moment, and the call comes again each frame while it is there.

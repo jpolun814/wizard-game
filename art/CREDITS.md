@@ -51,25 +51,23 @@ and are no longer drawn by the game.
 | Files in `audio/` | Source | License |
 |---|---|---|
 | `player_hurt`, `mob_shoot` | [Kenney – New Platformer Pack](https://kenney.nl/assets/new-platformer-pack) | CC0 1.0 |
-| `pickup` | [Kenney – RPG Audio](https://kenney.nl/assets/rpg-audio) (cloth rustle) | CC0 1.0 |
 | `heartbeat` | [Heartbeat sounds](https://opengameart.org/content/heartbeat-sounds) by estevinho (`heartbeat_slow_0`) | CC0 |
 | `blood_cast`, `chomp` | [40 CC0 water / splash / slime SFX](https://opengameart.org/content/40-cc0-water-splash-slime-sfx) by rockseller (`slime_05`, `slime_12`) | CC0 |
 | `surf` | [Beach ocean waves](https://opengameart.org/content/beach-ocean-waves) by qubodup, from a recording by jasinski (`wave_02`) | CC0 |
 | `glass`, `faint`, `jaw_snap` | [75 CC0 breaking / falling / hit SFX](https://opengameart.org/content/75-cc0-breaking-falling-hit-sfx) by rubberduck (`glass_breaking_01`, `falling_02`, `hit_03`) | CC0 |
-| `force`, `barrier`, `quake`, `tornado` (a jet roar) | [Kenney – Sci-fi Sounds](https://kenney.nl/assets/sci-fi-sounds) | CC0 1.0 |
-| `type`, `ui_click` | [Kenney – Interface Sounds](https://kenney.nl/assets/interface-sounds) | CC0 1.0 |
+| `barrier`, `quake`, `tornado` (a jet roar) | [Kenney – Sci-fi Sounds](https://kenney.nl/assets/sci-fi-sounds) | CC0 1.0 |
+| `ui_click` | [Kenney – Interface Sounds](https://kenney.nl/assets/interface-sounds) | CC0 1.0 |
 | `book_open`, `book_close`, `page_*` | [Kenney – RPG Audio](https://kenney.nl/assets/rpg-audio) | CC0 1.0 |
-| `step_*` | [Kenney – Impact Sounds](https://kenney.nl/assets/impact-sounds) | CC0 1.0 |
-| `portal_open`, `portal_enter`, `gravity`, `heal`, `wizard_cast`, `summon` | [Magic spell SFX](https://opengameart.org/content/magic-spell-sfx) by JaggedStone (OpenGameArt) | CC0 |
-| `cast_fire`, `fire_hit`, `fire_wall`, `stones_*`, `mob_die_1` | [80 CC0 RPG SFX](https://opengameart.org/content/80-cc0-rpg-sfx) by rubberduck (OpenGameArt) | CC0 |
+| `portal_open`, `portal_enter`, `gravity` | [Magic spell SFX](https://opengameart.org/content/magic-spell-sfx) by JaggedStone (OpenGameArt) | CC0 |
+| `cast_fire`, `fire_hit`, `stones_*`, `mob_die_1` | [80 CC0 RPG SFX](https://opengameart.org/content/80-cc0-rpg-sfx) by rubberduck (OpenGameArt) | CC0 |
 | `mob_hurt_1`, `mob_hurt_3`, `mob_die_2` | [80 CC0 creature SFX](https://opengameart.org/content/80-cc0-creature-sfx) by rubberduck (OpenGameArt) | CC0 |
 | `hurt_voice_*`, `jump_voice_*` | [Essentials Series](https://nox-sound-design.itch.io/essentials-series-sfx-nox-sound) by NOX SOUND (Voices Essentials: the male and female voices V1 and V2, their short hits and their jumps; trimmed and brought to one loudness) | CC0 |
+| `step_*`, `fire_wall`, `water_jet`, `geyser`, `summon`, `pickup` | The same [Essentials Series](https://nox-sound-design.itch.io/essentials-series-sfx-nox-sound) by NOX SOUND (Footsteps Essentials, Nature Essentials and a sample pack: a footstep on each kind of ground, a camp fire, a waterfall, an eerie drone and a coat picked up; cut by `tools/make_nox_sounds.py`) | CC0 |
 | `ice_shatter_*`, `explosion`, `misfire`, `ritual_ok`, `game_over` | [100 CC0 SFX](https://opengameart.org/content/100-cc0-sfx) by rubberduck (OpenGameArt) | CC0 |
 | `thunder` | [100 CC0 SFX #2](https://opengameart.org/content/100-cc0-sfx-2) by rubberduck (OpenGameArt) | CC0 |
 | `volcano` | [Fireball 1](https://opengameart.org/content/fireball-1) (Julien Matthey, via OpenGameArt) | CC0 |
 | `freeze` | [Freeze spell](https://opengameart.org/content/freeze-spell-0) (OpenGameArt) | CC0 |
 | `cast_ice`, `snow` | [Ice spells](https://opengameart.org/content/ice-spells) (OpenGameArt) | CC0 |
-| `earth` | [Earth element magic spell](https://opengameart.org/content/earth-element-magic-spell) (OpenGameArt) | CC0 |
 
 
 ### Mixed sounds

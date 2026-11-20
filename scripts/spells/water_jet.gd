@@ -47,7 +47,7 @@ func _ready() -> void:
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	_cast_facing = _facing()
 	_mouth = caster.launch_tip() if is_instance_valid(caster) else global_position
-	Sfx.play("freeze", _mouth, -4.0)
+	Sfx.play("water_jet", _mouth)
 
 
 func _physics_process(delta: float) -> void:

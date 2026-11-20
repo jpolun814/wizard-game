@@ -8,18 +8,18 @@ extends Node
 
 ## Loudness of each sound in decibels, so quiet recordings and loud ones sit together. Anything not listed is 0.
 const VOLUME := {
-	"cast_fire": -6.0, "fire_hit": -8.0, "fire_wall": -6.0, "fire_breath": -5.0, "volcano": -6.0,
+	"cast_fire": 4.0, "fire_hit": 6.0, "fire_wall": -6.0, "fire_breath": -5.0, "volcano": -6.0,
 	"cast_ice": -6.0, "ice_shatter": -10.0, "freeze": -6.0, "snow": -10.0,
-	"force": -10.0, "barrier": -8.0, "push": -4.0, "gravity": -6.0,
+	"barrier": -8.0, "push": -4.0, "gravity": 4.0,
 	"spark": -5.0, "eldritch": -4.0, "quicksand": -4.0, "thunder": -8.0, "tornado": -1.0, "blink": -8.0,
-	"earth": -6.0, "stones": -4.0, "quake": -4.0, "explosion": -6.0,
+	"stones": -4.0, "quake": -4.0, "explosion": -6.0,
 	"misfire": -6.0, "mob_hurt": -12.0, "mob_die": -10.0, "mob_shoot": -12.0,
 	"player_hurt": -4.0, "jump_voice_1": -14.0, "jump_voice_3": -14.0, "jump_voice_4": -14.0, "jump_voice_5": -14.0,
 	"hurt_voice_1": -4.0, "hurt_voice_3": -4.0, "hurt_voice_4": -4.0, "hurt_voice_5": -4.0,
-	"step": -26.0, "type": -22.0,
-	"portal_open": -6.0, "portal_enter": -4.0, "ritual_ok": -4.0, "heal": -8.0,
+	"step_dirt": -26.0, "step_snow": -26.0, "step_leaves": -26.0, "step_gravel": -26.0, "step_tile": -26.0, "step_rock": -26.0, "step_grass": -26.0, "step_wood": -26.0, 
+	"portal_open": -6.0, "portal_enter": -2.0, "ritual_ok": -4.0, 
 	"book_open": -8.0, "book_close": -8.0, "page": -8.0, "pickup": -8.0,
-	"blood_cast": -6.0, "heartbeat": -2.0, "surf": -3.0, "glass": -8.0, "faint": -4.0, "jaw_snap": -4.0, "chomp": -8.0, "wizard_cast": -8.0, "game_over": -6.0, "summon": -12.0, "ui_click": -10.0,
+	"blood_cast": -6.0, "heartbeat": -2.0, "surf": -3.0, "glass": -8.0, "faint": -4.0, "jaw_snap": -4.0, "chomp": -8.0, "game_over": -6.0, "summon": -4.0, "water_jet": -6.0, "geyser": -6.0, "ui_click": -10.0,
 }
 const MAX_DISTANCE := 1400.0  # world sounds farther than this from the camera are not heard
 const POLYPHONY := 24         # how many sounds can play at once; the oldest are cut off beyond that

@@ -107,6 +107,7 @@ func _physics_process(delta: float) -> void:
 	if not _burst and _age >= WARNING:
 		_burst = true
 		_hiss.emitting = false
+		Sfx.play("geyser", global_position)
 		_erupt()
 	if _burst:
 		GameCamera.shake_near(get_tree(), global_position, 0.015 if _age < DROP else 0.0, SHAKE_REACH)
