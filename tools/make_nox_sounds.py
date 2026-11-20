@@ -5,11 +5,11 @@
 Each is a recording trimmed to its start, faded at the ends and brought to one loudness; nothing is made up:
     step_<ground>_1..4   a footstep on each kind of ground (the biome decides which: Wizard.STEP_SOUNDS)
     fire_wall            the crackle of a camp fire
-    summon               earth giving way: a deep cave rumble, two thuds of earth and the creak of a wooden door, mixed
+    raise_dead           earth giving way: a deep cave rumble, two thuds of earth and the creak of a wooden door, mixed
     pickup               a coat picked up: a rustle of cloth
     water_jet, geyser    the rush of a waterfall
-    push                 a bag dropped and a coat thrown
-    stones_1..4          rock landed on (the Boulder, Stonefall, falling stone)
+    push_air             a bag dropped and a coat thrown (the Push spell; `push` is the shared whoosh of shots, blows and gusts)
+    step_mud_1..4        a step in mud (a wizard in a Mudslide)
     quicksand            a step in mud
     snow                 a gust of cold wind (the Blizzard)
     surf                 the sea (Tide Surf)
@@ -91,12 +91,12 @@ def main(pack):
         piece = x[: len(mixed) - start]
         mixed[start:start + len(piece)] += piece / (np.abs(piece).max() or 1.0) * gain
     mixed *= 0.9 / np.abs(mixed).max()
-    save("summon", (mixed, rate))
-    rock = sorted(glob.glob(os.path.join(steps, "**", "Footsteps_Rock_Jump_Land_*.wav"), recursive=True))
-    for k, path in enumerate(rock[:4], 1):
-        save("stones_%d" % k, cut(path, onset(path), 0.6, 0.0, 0.15, 0.2))
+    save("raise_dead", (mixed, rate))
     mud = sorted(glob.glob(os.path.join(steps, "**", "Footsteps_Mud_Walk_*.wav"), recursive=True))[2]
     save("quicksand", cut(mud, onset(mud), 0.8, 0.0, 0.2, 0.18))
+    steps_in_mud = sorted(glob.glob(os.path.join(steps, "**", "Footsteps_Mud_Walk_*.wav"), recursive=True))
+    for k, path in enumerate(steps_in_mud[::max(1, len(steps_in_mud) // 4)][:4], 1):
+        save("step_mud_%d" % k, cut(path, onset(path), 0.5, 0.0, 0.1, 0.16))
     save("snow", cut(os.path.join(nature, "Ambiance_Wind_Calm_Loop_Stereo.wav"), 4.0, 2.6, 0.5, 1.0, 0.1))
     save("surf", cut(os.path.join(nature, "Ambiance_Sea_Loop_Stereo.wav"), 6.0, 6.0, 1.0, 1.5, 0.15))
     save("tornado", cut(os.path.join(nature, "Ambiance_Wind_Forest_Loop_Stereo.wav"), 3.0, 4.0, 0.6, 1.0, 0.2))
@@ -113,7 +113,7 @@ def main(pack):
     for layer, gain in ((bag, 1.0), (whoosh, 0.7)):
         layer = layer[: len(pushed)]
         pushed[: len(layer)] += layer / (np.abs(layer).max() or 1.0) * gain
-    save("push", (pushed * (0.9 / np.abs(pushed).max()), rate))
+    save("push_air", (pushed * (0.9 / np.abs(pushed).max()), rate))
     coat = os.path.join(sample, "Cloth_Coat_PickUp_Stereo.wav")
     save("pickup", cut(coat, onset(coat), 0.7, 0.0, 0.15, 0.1))
 

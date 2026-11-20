@@ -4,11 +4,13 @@
 
 The downloads dir is the one tools/prepare_art.py uses, plus these CC0 packs unpacked into it:
     elec/      the Electricity Game Sound Pack (faxcorp)    opengameart.org/node/150369
+    nox/       the NOX SOUND Essentials Series (Sample_A_Sound_Effect), for push
     firestaff/ Fire Staff Sound Effects (LEGIT Audio)       opengameart.org/content/fire-staff-sound-effects
 
 Each sound is a short mix of recordings and a little synthesis:
     spark       a lightning strike: a recording of thunder from its first crack
     blink       a teleport zip: an electric crackle over a quick rush of air
+    push        the shared whoosh of shots, blows and gusts: a bag dropped, a coat thrown (NOX) and a rush of air
     fire_breath a jet of flame: a roaring burner with a fire burst at its start
 Needs numpy and soundfile.
 """
@@ -77,6 +79,17 @@ def blink(dl, rng):
     return mix(0.55, (zap, 0.0, 0.8), (rush, 0.0, 0.7))
 
 
+def push(dl, rng):
+    """Three recordings: a bag dropped (the thump), a coat thrown (the whoosh) and a rush of air. The NOX pack is the second download (dl/nox)."""
+    nox = os.path.join(dl, "nox", "Sample_A_Sound_Effect")
+    thump = load(os.path.join(nox, "Backpack_Medium_Polyester_Drop_Stereo.wav"))
+    thump = fade(thump[max(0, envelope_peak(thump) - seconds(0.01)):][: seconds(0.45)], 0.003, 0.2)
+    coat = load(os.path.join(nox, "Cloth_Winter_Coat_Throw_Moderate_Stereo.wav"))
+    whoosh = fade(coat[max(0, envelope_peak(coat) - seconds(0.2)):][: seconds(0.5)], 0.05, 0.2)
+    rush = fade(load(os.path.join(dl, "oga", "sfx_100_v2", "sfx100v2_air_03.ogg")), 0.01, 0.1)
+    return fade(mix(0.5, (thump, 0.0, 1.0), (whoosh, 0.0, 0.6), (rush, 0.02, 0.55)), 0.0, 0.08)
+
+
 def fire_breath(dl, rng):
     roar = load(os.path.join(dl, "scifi", "Audio", "thrusterFire_003.ogg"))
     roar = fade(roar[seconds(1.2):seconds(2.5)], 0.06, 0.45)
@@ -108,7 +121,7 @@ def quake(dl, rng):
 def main():
     dl = sys.argv[1] if len(sys.argv) > 1 else "."
     rng = np.random.default_rng(7)
-    for name, build in [("spark", spark), ("blink", blink), ("fire_breath", fire_breath),
+    for name, build in [("spark", spark), ("blink", blink), ("push", push), ("fire_breath", fire_breath),
                         ("ritual_ok", chant), ("quake", quake)]:
         sf.write(os.path.join(ROOT, "audio", name + ".wav"), build(dl, rng), RATE, subtype="PCM_16")
         print("wrote", name)

@@ -16,7 +16,7 @@ func _begin(origin: Vector2, aim_angle: float) -> void:
 	aim = Vector2.from_angle(aim_angle)
 	_life = LIFE
 	rotation = aim_angle
-	Sfx.play("push", origin)
+	Sfx.play("push_air", origin)
 	var ring := PixelFx.play(get_parent(), origin, "ring", 60.0, maxf(1.0, roundf(zone_radius / 22.0)), SpellData.SCHOOL_COLORS["Air"])  # the same pale wind as a Gust and an Updraft
 	ring.material = Fx.additive()
 

@@ -147,6 +147,7 @@ func _physics_process(delta: float) -> void:
 	_cool(delta)
 	if not lava:
 		_douse_shots()
+		_douse_standing_fires()
 
 
 ## Lava from a volcano slowly dulls and, when it is cold, is gone. It burns the whole time.
@@ -477,6 +478,19 @@ func _douse_shots() -> void:
 				shot.end()
 			else:
 				shot.queue_free()
+
+
+## Any other fire whose foot is under the water goes out too: a Firewall drawn into a pond, a bonfire or a jet of flame held under the surface. (Water puts
+## fire out through three rules, none of them general: this one, the pond's one for shots above, and each water spell's own call to SpellTargets.douse.)
+func _douse_standing_fires() -> void:
+	for fire: Node in get_tree().get_nodes_in_group("fires"):
+		if fire == self or fire.is_in_group("shots") or not fire.has_method("quench") or not (fire is Node2D):
+			continue
+		var foot: Vector2 = (fire as Node2D).global_position
+		if wet_at(foot):
+			Fx.smoke(get_parent(), foot, Color(0.9, 0.95, 1.0, 0.6), 4, 24.0, 40.0)
+			Sfx.play("freeze", foot, -6.0)
+			fire.quench()
 
 
 ## Whether a body stands on ice that was frozen over this water (fire would melt what it stands on).

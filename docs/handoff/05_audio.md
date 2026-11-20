@@ -12,7 +12,7 @@
 
 - **NOX SOUND's Essentials Series (CC0) is the preferred source now** (owner, 2026-11-19: "use as many sounds from the same pack as possible"). Look there first; it is unpacked into a scratch folder and cut by two scripts:
   - `tools/make_voices.py`: the four wizard voices, `hurt_voice_N_k` (short hit grunts) and `jump_voice_N_k`. `WizardLook.jump_sound` and `hurt_sound` pick the voice a look carries (`voice_1`, `voice_3` men, `voice_4`, `voice_5` women), chosen in the character creator.
-  - `tools/make_nox_sounds.py`: `step_<ground>_k` (the biome decides the ground: `Wizard.STEP_SOUNDS`), `fire_wall` (a camp fire), `water_jet` and `geyser` (a waterfall), `summon` (a cave rumble, thuds of earth and a door's creak), `pickup` (a coat), `push` (a bag and a coat), `stones_k` (rock landed on), `quicksand` (a step in mud), `snow` (wind), `surf` (the sea) and `tornado` (wind in a forest). **Owner, 2026-11-20: prefer pure sounds** (one pack, no other recordings mixed in); `push` and `summon` layer only NOX recordings. The pack also has sea, rain, wind, cave and fire loops, and more footsteps (sand, mud, metal, water), not used yet.
+  - `tools/make_nox_sounds.py`: `step_<ground>_k` (the biome decides the ground: `Wizard.STEP_SOUNDS`), `fire_wall` (a camp fire), `water_jet` and `geyser` (a waterfall), `raise_dead` (a cave rumble, thuds of earth and a door's creak; `summon` is the older shared sound of an enemy arriving, a swarm or a wolf), `step_mud_k` (a wizard in a Mudslide), `pickup` (a coat), `push_air` (a bag and a coat: the Push spell only), `quicksand` (a step in mud), `snow` (wind), `surf` (the sea) and `tornado` (wind in a forest). **Owner, 2026-11-20: prefer pure sounds** (one pack, no other recordings mixed in); `push` and `summon` layer only NOX recordings. The pack also has sea, rain, wind, cave and fire loops, and more footsteps (sand, mud, metal, water), not used yet.
 - **Copied files:** the older sounds are copied by `tools/prepare_art.py` (see `SOUNDS` there) from:
   - Kenney's Sci-fi, Interface, RPG Audio, Impact and Platformer packs;
   - OpenGameArt's CC0 packs by rubberduck (80 RPG SFX, 80 creature SFX, 100 SFX, 100 SFX #2), "magic spell
@@ -56,3 +56,7 @@
 - **Not sci-fi lasers** for magic. The old Spark was a laser and was rejected.
 - **Gothic mood.** Music is still missing: dark ambient CC0 loops would fit (OpenGameArt "dark ambient" with the
   CC0 filter). Pascal Belisle's GothicVania music needs credit, so ask first.
+
+## Shared sound names
+
+A sound is played by name and many things share one: `push` is the whoosh of Pebble, Gust, Barbs, Featherfall, a Thorn Whip, a lava ball, every shot that hits and every creature's blow; `stones` of every rock; `snow` of Blizzard, Spore Puff, Lily Pads and a Geyser; `quicksand` of Mudslide and Oil Slick; `summon` of every enemy that arrives, Insect Plague and Wild Shape; `tornado` of Tornado and Updraft. **Changing one of those files changes all of them**; give a spell a name of its own first (as `push_air` and `raise_dead` were) when it should sound different. Several sounds also play at one moment (a Geyser plays `freeze` twice, `snow`, `push` and `geyser`).

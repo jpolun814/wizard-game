@@ -2,13 +2,13 @@
 
 importer="wav"
 type="AudioStreamWAV"
-uid="uid://degc17hwvyr8b"
-path="res://.godot/imported/stones_3.wav-3d151aeeced7b8813158668337e092ca.sample"
+uid="uid://dfthyyxlepm28"
+path="res://.godot/imported/raise_dead.wav-662803dba6d766183d2d1947d2662f3e.sample"
 
 [deps]
 
-source_file="res://audio/stones_3.wav"
-dest_files=["res://.godot/imported/stones_3.wav-3d151aeeced7b8813158668337e092ca.sample"]
+source_file="res://audio/raise_dead.wav"
+dest_files=["res://.godot/imported/raise_dead.wav-662803dba6d766183d2d1947d2662f3e.sample"]
 
 [params]
 

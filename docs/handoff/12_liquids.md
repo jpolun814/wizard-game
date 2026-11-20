@@ -54,6 +54,8 @@ Water from a spell is real liquid, and is not made from nothing more than once:
   `SPRING` from below, once; after that it only moves that water about.
 - Tide Surf takes up the water at the caster's feet (up to `WATER`, made up from below) and spills it where the ride ends. The ride is `SECONDS` (2.5). The wave is painted as a pond is (the same pre-veil colors, `pixel_liquid.gdshader` dither and tint multiply) with white foam on its own layer, and it lies on the ground along its whole length (a point every `GROUND_STEP` from tail to front). Over a pond the rider is carried across the top of the water on a thin floor laid at the surface; a climb drains the wave and a cliff breaks it at once and throws the rider back.
 
+Water puts fire out by three separate rules, not one law: a pond ends any fire shot that falls into it (`Pond._douse_shots`) and any other fire whose foot is under the water, a Firewall or a bonfire (`Pond._douse_standing_fires`, added 2026-11-20; before it a Firewall drawn into a pond burned on), and each water spell calls `SpellTargets.douse` at the fire it meets (Water Jet, Geyser, Frostbolt, Blizzard). Flaming Sphere checks `_in_water` itself, and a wet wizard cannot be lit (`Coating.ignite`).
+
 ## What is not done
 
 - Pools nobody has seen are still the old rectangle for everything that asks `Pond` directly.

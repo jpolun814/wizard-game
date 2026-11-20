@@ -1012,11 +1012,11 @@ func _move_on(delta: float) -> void:
 			velocity.y = 0.0
 		global_position = held
 	_placed_at = global_position
-	if is_on_floor() and absf(velocity.x) > 10.0:
+	if is_on_floor() and absf(velocity.x) > 10.0 and surf_time <= 0.0:  # (a wave carries the rider: no steps)
 		_step -= delta
 		if _step <= 0.0:
 			_step = STEP_EVERY
-			Sfx.play(STEP_SOUNDS.get(ArenaGen.biome_name_at(global_position.x), "step_dirt"), global_position)
+			Sfx.play("step_mud" if sink_time > 0.0 else STEP_SOUNDS.get(ArenaGen.biome_name_at(global_position.x), "step_dirt"), global_position)  # in mud, a squelch
 
 
 ## Out of its depth in a sea (see Pond.deep): the water holds the wizard up for a moment, and the call comes again each frame while it is there.

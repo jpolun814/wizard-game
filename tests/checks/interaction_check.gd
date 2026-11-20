@@ -93,6 +93,14 @@ func _ready() -> void:
 		await get_tree().physics_frame
 	_verdict(wizard.stamina < before, "lightning that lands in a pool shocks whoever stands in it (%.0f to %.0f)" % [before, wizard.stamina])
 
+	var drawn := Firewall.new()  # a Firewall drawn into the pond: its foot is under the water, so it goes out of itself
+	world.add_child(drawn)
+	drawn.setup("Firewall", pond.global_position + Vector2(100.0, 40.0), 0.0)
+	drawn.global_position = pond.global_position + Vector2(100.0, 40.0)  # (setup lands it on the ground above; put it in the water)
+	for k in 20:
+		await get_tree().physics_frame
+	_verdict(not is_instance_valid(drawn) or drawn.is_queued_for_deletion() or not drawn.is_inside_tree(), "a Firewall drawn into a pond goes out")
+
 	var wiz: Wizard = world.player
 	_verdict(wiz.haste_time < 100.0 and wiz.air_jump_time < 100.0, "before the chants are said, neither Swift Feet nor the Second Leap holds")
 	wiz.ledger.settle("haste")

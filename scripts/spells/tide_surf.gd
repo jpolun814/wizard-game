@@ -195,7 +195,7 @@ func _start_sound() -> void:
 	if Sfx.muted:
 		return
 	_sound = AudioStreamPlayer2D.new()
-	_sound.stream = load("res://audio/surf.ogg")
+	_sound.stream = load("res://audio/surf.wav")
 	_sound.bus = Sfx.BUS
 	_sound.volume_db = Sfx.VOLUME["surf"]
 	_sound.max_distance = Sfx.MAX_DISTANCE
