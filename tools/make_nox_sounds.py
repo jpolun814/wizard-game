@@ -8,6 +8,13 @@ Each is a recording trimmed to its start, faded at the ends and brought to one l
     summon               earth giving way: a deep cave rumble, two thuds of earth and the creak of a wooden door, mixed
     pickup               a coat picked up: a rustle of cloth
     water_jet, geyser    the rush of a waterfall
+    push                 a bag dropped and a coat thrown
+    stones_1..4          rock landed on (the Boulder, Stonefall, falling stone)
+    quicksand            a step in mud
+    snow                 a gust of cold wind (the Blizzard)
+    surf                 the sea (Tide Surf)
+    tornado              wind through a forest
+Every sound here is NOX and nothing else (the owner prefers pure sounds). Only `summon` and `push` lay two or more NOX recordings over each other.
 The wizards' voices are cut by tools/make_voices.py from the same pack. Needs numpy and soundfile.
 """
 import glob
@@ -85,6 +92,28 @@ def main(pack):
         mixed[start:start + len(piece)] += piece / (np.abs(piece).max() or 1.0) * gain
     mixed *= 0.9 / np.abs(mixed).max()
     save("summon", (mixed, rate))
+    rock = sorted(glob.glob(os.path.join(steps, "**", "Footsteps_Rock_Jump_Land_*.wav"), recursive=True))
+    for k, path in enumerate(rock[:4], 1):
+        save("stones_%d" % k, cut(path, onset(path), 0.6, 0.0, 0.15, 0.2))
+    mud = sorted(glob.glob(os.path.join(steps, "**", "Footsteps_Mud_Walk_*.wav"), recursive=True))[2]
+    save("quicksand", cut(mud, onset(mud), 0.8, 0.0, 0.2, 0.18))
+    save("snow", cut(os.path.join(nature, "Ambiance_Wind_Calm_Loop_Stereo.wav"), 4.0, 2.6, 0.5, 1.0, 0.1))
+    save("surf", cut(os.path.join(nature, "Ambiance_Sea_Loop_Stereo.wav"), 6.0, 6.0, 1.0, 1.5, 0.15))
+    save("tornado", cut(os.path.join(nature, "Ambiance_Wind_Forest_Loop_Stereo.wav"), 3.0, 4.0, 0.6, 1.0, 0.2))
+    thump = os.path.join(sample, "Backpack_Medium_Polyester_Drop_Stereo.wav")
+    coat_throw = os.path.join(sample, "Cloth_Winter_Coat_Throw_Moderate_Stereo.wav")
+    bag = cut(thump, onset(thump), 0.45, 0.0, 0.2, 0.2)[0]
+    x, rate = sf.read(coat_throw, always_2d=True)
+    x = x.mean(axis=1)
+    window = int(0.1 * rate)
+    energy = [np.sum(x[i:i + window] ** 2) for i in range(0, len(x) - window, window)]
+    peak = int(np.argmax(energy)) * window / rate
+    whoosh = cut(coat_throw, max(0.0, peak - 0.15), 0.5, 0.04, 0.2, 0.2)[0]
+    pushed = np.zeros(int(0.5 * rate))
+    for layer, gain in ((bag, 1.0), (whoosh, 0.7)):
+        layer = layer[: len(pushed)]
+        pushed[: len(layer)] += layer / (np.abs(layer).max() or 1.0) * gain
+    save("push", (pushed * (0.9 / np.abs(pushed).max()), rate))
     coat = os.path.join(sample, "Cloth_Coat_PickUp_Stereo.wav")
     save("pickup", cut(coat, onset(coat), 0.7, 0.0, 0.15, 0.1))
 

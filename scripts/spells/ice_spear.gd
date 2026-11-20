@@ -15,6 +15,10 @@ const DROP := 1.0   # how far below the middle of its frame the shard lies
 func _begin(origin: Vector2, aim_angle: float) -> void:
 	_life = FLIGHT
 	_launch(aim_angle, Vector2(22, 12))
+	# Flecks of frost stream off it, so it is seen to come from the staff and not to appear from nowhere.
+	_trail = Fx.trail(Color("#a9dcff"), 36, 0.55, 30.0, Vector2(0, 60), "star_04", 12.0)
+	_trail.material = null
+	add_child(_trail)
 	# The shot itself: pimen's ice shard, its point on the node and its tail streaming behind. Drawn normally rather than as light, so the snow shows up against it.
 	var shot := AnimatedSprite2D.new()
 	shot.sprite_frames = PixelFx.square_frames("pimen_ice", 16.0, true)

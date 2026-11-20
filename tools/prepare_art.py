@@ -26,7 +26,7 @@ PARTICLES = ["circle_05", "dirt_01", "dirt_02", "dirt_03", "fire_01", "fire_02",
              "muzzle_01", "slash_01", "window_01"]
 
 # Sound name in the game -> file in the downloads folder.
-# spark, blink, push, fire_breath, ritual_ok and tornado are made by tools/make_sounds.py; jump and quicksand come from
+# spark, blink, fire_breath and ritual_ok are made by tools/make_sounds.py (the NOX ones by tools/make_nox_sounds.py); the rest come from
 # the files in tools/make_sounds.py's NEW_ASSETS.
 SOUNDS = {
     "cast_fire": "oga/80-CC0-RPG-SFX_0/spell_fire_04.ogg",
@@ -37,13 +37,9 @@ SOUNDS = {
     "ice_shatter_2": "oga/100-CC0-SFX_0/glass_02.ogg",
     "ice_shatter_3": "oga/100-CC0-SFX_0/glass_03.ogg",
     "freeze": "oga/freeze.wav",
-    "snow": "oga/icespells/coldsnap.wav",
     "barrier": "scifi/Audio/forceField_002.ogg",
     "gravity": "oga/magical_4.ogg",
     "thunder": "oga/sfx_100_v2/sfx100v2_thunder_01.ogg",
-    "stones_1": "oga/80-CC0-RPG-SFX_0/stones_01.ogg",
-    "stones_2": "oga/80-CC0-RPG-SFX_0/stones_02.ogg",
-    "stones_3": "oga/80-CC0-RPG-SFX_0/stones_04.ogg",
     "explosion": "oga/100-CC0-SFX_0/explosion.ogg",
     "misfire": "oga/100-CC0-SFX_0/weird_03.ogg",
     "mob_hurt_1": "oga/80-CC0-creature-SFX_0/hurt_01.ogg",

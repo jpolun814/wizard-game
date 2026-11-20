@@ -132,8 +132,7 @@ func _ready() -> void:
 	_shot_timer = 0.8 + randf() * 1.2
 	if rises:
 		_spawn = RISE_TIME  # (see _climb_out)
-		Fx.debris(get_parent(), global_position, Color("#6a5240"), 12, 150.0)
-		Sfx.play("stones", global_position, -2.0)
+		Fx.debris(get_parent(), global_position, Color("#6a5240"), 12, 150.0)  # (the sound is the spell's own: Raise Dead plays "summon")
 		return
 	# Every enemy arrives through a summoning circle.
 	Fx.pop(get_parent(), global_position + Vector2(0, -2), "magic_02", _school_color(), 70.0, SPAWN_TIME + 0.2, 1.2, 1.5)
@@ -141,13 +140,15 @@ func _ready() -> void:
 	modulate.a = 0.0
 
 
-## Rising from the grave: the picture starts sunk in the ground, cut off at the ground line so only what is above it shows, and comes up out of it, with now and
-## then a fall of earth.
+## Rising from the grave: it appears lying as it lies when it has fallen (the last frame of its death) and plays that fall backwards, so it gets up off the
+## ground, with now and then a fall of earth.
 func _climb_out() -> void:
 	var t := clampf(1.0 - _spawn / RISE_TIME, 0.0, 1.0)
-	var height: float = PixelArt.CHARACTERS[KINDS[kind].art]["size"].y * _base_scale
-	_visual.position.y = height * pow(1.0 - t, 2.0)
-	_material.set_shader_parameter("cut_y", global_position.y)
+	if _visual.sprite_frames.has_animation("death"):
+		var last := _visual.sprite_frames.get_frame_count("death") - 1
+		_visual.animation = "death"
+		_visual.pause()
+		_visual.set_frame_and_progress(clampi(roundi((1.0 - t) * last), 0, last), 0.0)
 	modulate.a = 1.0
 	if randf() < 0.12:
 		Fx.debris(get_parent(), global_position, Color("#6a5240"), 2, 60.0)
@@ -240,8 +241,7 @@ func _physics_process(delta: float) -> void:
 	modulate.a = 1.0
 	if rises:
 		rises = false
-		_visual.position.y = 0.0
-		_material.set_shader_parameter("cut_y", 1.0e9)
+		_visual.play("idle")
 	_cooldown -= delta
 	_since_hit += delta
 	if KINDS[kind].effect == "dummy" and _since_hit > 3.0 and not felled_stays:
@@ -733,11 +733,13 @@ func _animate(delta: float) -> void:
 	elif moving and _visual.sprite_frames.has_animation("walk"):
 		wanted = "walk"
 	var busy: bool = _visual.animation == "hit" or (_visual.animation == "attack" and _visual.is_playing())
+	if rises and _spawn > 0.0:
+		wanted = _visual.animation  # getting up out of the ground: _climb_out sets the frame
 	if not _dead and _visual.animation != wanted and not (busy and wanted != "attack"):
 		_visual.play(wanted)
 	var lies := _fainted and not _visual.sprite_frames.has_animation("death")  # one with no fall of its own is toppled over instead
 	_visual.rotation = lerp_angle(_visual.rotation, PI * 0.5 * _lie_side if lies else 0.0, minf(delta * 5.0, 1.0))
-	_visual.speed_scale = 0.0 if _frozen_time > 0.0 or lies else 1.0
+	_visual.speed_scale = 0.0 if _frozen_time > 0.0 or lies or (rises and _spawn > 0.0) else 1.0
 	_visual.position = Vector2(lunge, 0.0)
 	_visual.scale = Vector2(_base_scale, _base_scale)
 	_visual.flip_h = facing < 0.0

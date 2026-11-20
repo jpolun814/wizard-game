@@ -12,15 +12,14 @@
 
 - **NOX SOUND's Essentials Series (CC0) is the preferred source now** (owner, 2026-11-19: "use as many sounds from the same pack as possible"). Look there first; it is unpacked into a scratch folder and cut by two scripts:
   - `tools/make_voices.py`: the four wizard voices, `hurt_voice_N_k` (short hit grunts) and `jump_voice_N_k`. `WizardLook.jump_sound` and `hurt_sound` pick the voice a look carries (`voice_1`, `voice_3` men, `voice_4`, `voice_5` women), chosen in the character creator.
-  - `tools/make_nox_sounds.py`: `step_<ground>_k` (the biome decides the ground: `Wizard.STEP_SOUNDS`), `fire_wall` (a camp fire), `water_jet` and `geyser` (a waterfall), `summon` (an eerie drone) and `pickup` (a coat). The pack also has sea, rain, wind, cave and fire loops, and more footsteps (sand, mud, metal, water), not used yet.
+  - `tools/make_nox_sounds.py`: `step_<ground>_k` (the biome decides the ground: `Wizard.STEP_SOUNDS`), `fire_wall` (a camp fire), `water_jet` and `geyser` (a waterfall), `summon` (a cave rumble, thuds of earth and a door's creak), `pickup` (a coat), `push` (a bag and a coat), `stones_k` (rock landed on), `quicksand` (a step in mud), `snow` (wind), `surf` (the sea) and `tornado` (wind in a forest). **Owner, 2026-11-20: prefer pure sounds** (one pack, no other recordings mixed in); `push` and `summon` layer only NOX recordings. The pack also has sea, rain, wind, cave and fire loops, and more footsteps (sand, mud, metal, water), not used yet.
 - **Copied files:** the older sounds are copied by `tools/prepare_art.py` (see `SOUNDS` there) from:
   - Kenney's Sci-fi, Interface, RPG Audio, Impact and Platformer packs;
   - OpenGameArt's CC0 packs by rubberduck (80 RPG SFX, 80 creature SFX, 100 SFX, 100 SFX #2), "magic spell
     sfx", "ice spells", "freeze spell" and "fireball 1".
-- **Mixed sounds:** `spark`, `blink`, `push` and `fire_breath` are layered by `tools/make_sounds.py` from recordings only. The synthesized parts (a noise crack, a sine thump) were taken out on 2026-11-19, because an agent must not make sounds:
+- **Mixed sounds:** `spark`, `blink` and `fire_breath` are layered by `tools/make_sounds.py` from recordings only. The synthesized parts (a noise crack, a sine thump) were taken out on 2026-11-19, because an agent must not make sounds:
   - **spark:** thunder from its first crack (the electric snap is gone with the synthesized crack; it may want a recording back).
   - **blink:** an electric teleport crackle over an air rush.
-  - **push:** a dropped bag, a thrown coat (both NOX) and an air rush.
   - **fire_breath:** a rocket-thruster roar with a fire-staff burst.
 - **Credits:** listed in `art/CREDITS.md`.
 

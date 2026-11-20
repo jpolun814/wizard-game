@@ -8,18 +8,18 @@ extends Node
 
 ## Loudness of each sound in decibels, so quiet recordings and loud ones sit together. Anything not listed is 0.
 const VOLUME := {
-	"cast_fire": 14.0, "fire_hit": 6.0, "fire_wall": -2.5, "fire_breath": -10.0, "volcano": -6.0,
-	"cast_ice": -1.0, "ice_shatter": -6.0, "freeze": -6.0, "snow": -3.0,
+	"cast_fire": 6.0, "fire_hit": 6.0, "fire_wall": -2.5, "fire_breath": -10.0, "volcano": -6.0,
+	"cast_ice": -1.0, "ice_shatter": -6.0, "freeze": -6.0, "snow": -8.0,
 	"barrier": -15.5, "push": -7.0, "gravity": 4.0,
 	"spark": -2.0, "eldritch": -4.0, "quicksand": -4.0, "thunder": -3.5, "tornado": -1.0, "blink": -4.5,
-	"stones": -1.1, "quake": -12.5, "explosion": -0.5,
+	"stones": 2.5, "quake": -12.5, "explosion": -0.5,
 	"misfire": -6.0, "mob_hurt": -12.0, "mob_die": -10.0, "mob_shoot": -12.0,
 	"player_hurt": -8.5, "jump_voice_1": -14.0, "jump_voice_3": -14.0, "jump_voice_4": -14.0, "jump_voice_5": -14.0,
-	"hurt_voice_1": -4.0, "hurt_voice_3": -4.0, "hurt_voice_4": -4.0, "hurt_voice_5": -4.0,
-	"step_dirt": -13.0, "step_snow": -14.0, "step_leaves": -8.5, "step_gravel": -10.5, "step_tile": -8.5, "step_rock": -10.0, "step_grass": -11.5, "step_wood": -11.5, 
+	"hurt_voice_1": -13.5, "hurt_voice_3": -15.0, "hurt_voice_4": -15.0, "hurt_voice_5": -15.0,
+	"step_dirt": -21.0, "step_snow": -22.0, "step_leaves": -16.5, "step_gravel": -18.5, "step_tile": -16.5, "step_rock": -18.0, "step_grass": -19.5, "step_wood": -19.5, 
 	"portal_open": -6.0, "portal_enter": 2.0, "ritual_ok": -4.0, 
 	"book_open": 0.5, "book_close": -14.5, "page": -1.3, "pickup": -2.0,
-	"blood_cast": 3.3, "heartbeat": -15.5, "surf": -8.5, "glass": -1.5, "faint": 1.0, "jaw_snap": 3.0, "chomp": 1.5, "game_over": -6.0, "summon": -10.5, "water_jet": -6.0, "geyser": -6.0, "ui_click": -10.0,
+	"blood_cast": 3.3, "heartbeat": -15.5, "surf": 0.0, "glass": -1.5, "faint": 1.0, "jaw_snap": 3.0, "chomp": 1.5, "game_over": -6.0, "summon": -10.5, "water_jet": -6.0, "geyser": -6.0, "ui_click": -10.0,
 }
 const MAX_DISTANCE := 1400.0  # world sounds farther than this from the camera are not heard
 const POLYPHONY := 24         # how many sounds can play at once; the oldest are cut off beyond that

@@ -25,7 +25,7 @@ func _ready() -> void:
 	await get_tree().create_timer(1.8).timeout
 	lab.spawn_spell("Frostbolt", "directional", player.center(), 0.0, {"length": 90.0, "accuracy": 0.9}, player)
 	var last := 0.0
-	for t: float in [0.1, 0.25, 0.4, 0.5, 0.58, 0.64, 0.72, 0.9]:
+	for t: float in [0.02, 0.04, 0.06, 0.08, 0.11, 0.15, 0.25, 0.4]:
 		await get_tree().create_timer(t - last).timeout
 		last = t
 		get_viewport().get_texture().get_image().save_png("%s/frostbolt_%d.png" % [out_dir, int(t * 100.0)])

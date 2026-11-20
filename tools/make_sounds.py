@@ -4,19 +4,16 @@
 
 The downloads dir is the one tools/prepare_art.py uses, plus these CC0 packs unpacked into it:
     elec/      the Electricity Game Sound Pack (faxcorp)    opengameart.org/node/150369
-    nox/       the NOX SOUND Essentials Series, unpacked, for push (its Sample_A_Sound_Effect)
     firestaff/ Fire Staff Sound Effects (LEGIT Audio)       opengameart.org/content/fire-staff-sound-effects
 
 Each sound is a short mix of recordings and a little synthesis:
     spark       a lightning strike: a recording of thunder from its first crack
     blink       a teleport zip: an electric crackle over a quick rush of air
-    push        a force push: a bag dropped, a coat thrown and a rush of air, all recordings
     fire_breath a jet of flame: a roaring burner with a fire burst at its start
 Needs numpy and soundfile.
 """
 
 import os
-import shutil
 import sys
 
 import numpy as np
@@ -80,17 +77,6 @@ def blink(dl, rng):
     return mix(0.55, (zap, 0.0, 0.8), (rush, 0.0, 0.7))
 
 
-def push(dl, rng):
-    """Three recordings: a bag dropped (the thump), a coat thrown (the whoosh) and a rush of air. The NOX pack is the second download (dl/nox)."""
-    nox = os.path.join(dl, "nox", "Sample_A_Sound_Effect")
-    thump = load(os.path.join(nox, "Backpack_Medium_Polyester_Drop_Stereo.wav"))
-    thump = fade(thump[max(0, envelope_peak(thump) - seconds(0.01)):][: seconds(0.45)], 0.003, 0.2)
-    coat = load(os.path.join(nox, "Cloth_Winter_Coat_Throw_Moderate_Stereo.wav"))
-    whoosh = fade(coat[max(0, envelope_peak(coat) - seconds(0.2)):][: seconds(0.5)], 0.05, 0.2)
-    rush = fade(load(os.path.join(dl, "oga", "sfx_100_v2", "sfx100v2_air_03.ogg")), 0.01, 0.1)
-    return fade(mix(0.5, (thump, 0.0, 1.0), (whoosh, 0.0, 0.6), (rush, 0.02, 0.55)), 0.0, 0.08)
-
-
 def fire_breath(dl, rng):
     roar = load(os.path.join(dl, "scifi", "Audio", "thrusterFire_003.ogg"))
     roar = fade(roar[seconds(1.2):seconds(2.5)], 0.06, 0.45)
@@ -110,21 +96,6 @@ def chant(dl, rng):
     return fade(voice[start:start + length], 0.35, 0.9)
 
 
-def roar(dl, rng):
-    """The jet roar with its hiss taken out: the broad rumble below about a kilohertz is kept."""
-    source = load(os.path.join(dl, "scifi", "Audio", "thrusterFire_003.ogg"))[: seconds(4.0)]
-    spectrum = np.fft.rfft(source)
-    freqs = np.fft.rfftfreq(len(source), 1 / RATE)
-    above = freqs > 1000.0  # the hiss lives above a kilohertz; the roar's body is the broad band below it
-    spectrum[above] *= np.exp(-((freqs[above] - 1000.0) / 300.0) ** 2)
-    low = np.fft.irfft(spectrum, len(source))
-    return fade(low / (np.abs(low).max() or 1.0) * 0.9, 0.2, 0.8)
-
-
-# Sounds copied in as they are: name in audio/ -> file in new_assets/ (both CC0, see art/CREDITS.md).
-NEW_ASSETS = {"quicksand.ogg": "mud_17.ogg"}
-
-
 def quake(dl, rng):
     """The low explosion, with its bass folded up into overtones. A sub-bass rumble is silent on small speakers, so
     a little distortion adds the harmonics that carry the rumble through them, and a share of the original keeps its body."""
@@ -137,10 +108,8 @@ def quake(dl, rng):
 def main():
     dl = sys.argv[1] if len(sys.argv) > 1 else "."
     rng = np.random.default_rng(7)
-    for out_name, src_name in NEW_ASSETS.items():
-        shutil.copy(os.path.join(dl, "new_assets", src_name), os.path.join(ROOT, "audio", out_name))
-    for name, build in [("spark", spark), ("blink", blink), ("push", push), ("fire_breath", fire_breath),
-                        ("ritual_ok", chant), ("tornado", roar), ("quake", quake)]:
+    for name, build in [("spark", spark), ("blink", blink), ("fire_breath", fire_breath),
+                        ("ritual_ok", chant), ("quake", quake)]:
         sf.write(os.path.join(ROOT, "audio", name + ".wav"), build(dl, rng), RATE, subtype="PCM_16")
         print("wrote", name)
 
