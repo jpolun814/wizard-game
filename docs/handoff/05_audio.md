@@ -63,3 +63,10 @@
 To change a sound: replace that owner's file (keep the name). To add one: copy a file to `audio/<owner>__<event>.wav`, add the event to the owner's `sounds`, and call `Sfx.cue`. An event name must not end in a number (it would read as a variant).
 
 **A sound plays when the thing it stands for happens.** A footstep is a foot set down by a wizard walking or running on the ground under their own power (`Wizard._stepping`, on the floor, no ride on a wave, no shove, no swim); a landing is the ground met after a fall of 380 px/s or more (not in a swim, a flight or a wave). The ground is the biome's (`Wizard.STEP_SOUNDS`), and mud under a Mudslide. A creature's, spell's or scene's sound is played from the code that does what the sound is (the strike, the hit, the burn), not from nearby.
+
+## Checking sounds without ears (owner asked, 2026-11-20)
+
+An agent cannot hear, but three things stand in for part of it. None replaces the owner's ear (they judge taste and loudness by listening); they catch wrong category, wrong timing and broken files.
+- **`tools/sound_search.py`** (LAION CLAP, a model that puts sounds and sentences in one space; first use downloads ~600 MB). `index <folders>` once (the NOX pack is indexed; the index is `tools/sound_index.npz`, not in git), then `find "a heavy stone door scraping"` ranks the pack's recordings by how well they match the words: use it to choose a sound instead of guessing from file names. `label file.wav` says what a file sounds like among 16 plain kinds, and `check "a footstep" a.wav b.wav` scores files against one description. Only order and gaps in the scores mean anything. Run `label` on every new sound before showing it to the owner: a "footstep" that reads as a whoosh is wrong.
+- **`tests/checks/sound_cues_check.tscn`**: `Sfx.recording` keeps the name of every sound asked for, so a check can assert that a sound happens when its event does (and not otherwise): footsteps only when walking, a landing only after a fall, no steps on a wave. Add a case for every new trigger.
+- **`tests/checks/sound_ownership_check.tscn`**: see above.
