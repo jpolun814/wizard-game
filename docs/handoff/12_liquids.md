@@ -52,7 +52,7 @@ Water from a spell is real liquid, and is not made from nothing more than once:
   puddle that starts empty and runs over the ground).
 - Geyser lifts `LIFT` of the water at its foot at each burst and lets it fall back as the column sinks. On dry ground the first burst brings up
   `SPRING` from below, once; after that it only moves that water about.
-- Tide Surf takes up the water at the caster's feet (up to `WATER`, made up from below) and spills it where the ride ends.
+- Tide Surf takes up the water at the caster's feet (up to `WATER`, made up from below) and spills it where the ride ends. The ride is `SECONDS` (2.5). The wave is painted as a pond is (the same pre-veil colors, `pixel_liquid.gdshader` dither and tint multiply) with white foam on its own layer, and it lies on the ground along its whole length (a point every `GROUND_STEP` from tail to front). Over a pond the rider is carried across the top of the water on a thin floor laid at the surface; a climb drains the wave and a cliff breaks it at once and throws the rider back.
 
 ## What is not done
 

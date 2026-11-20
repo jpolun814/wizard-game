@@ -58,3 +58,8 @@ proposed so far (a smaller wizard count, a list of the spells held with their sh
 - **Pixel art made by rig scripts** in `tools/wizard_parts/`: `water.py` (`WaterPixels`: the Water Jet, Geyser and Tide Surf), `feathers.py` (Featherfall), `cracks.py` (Stone Wall), `status_icons.py`. Still drawn in code: the Stone Wall's outline box, the pond's surface (a liquid grid), textured terrain polygons, interface.
 - **Decoy's gesture is the stick figure** (the Golem's, on the Umbramancy buttons); the figure of eight is unused. The Hex star, Fight or Flight mark and so on show only on creatures: a wizard has status bubbles.
 
+## Sounds (2026-11-19)
+
+- **`spark` has lost its electric snap** (it is thunder alone now, since the synthesized crack was taken out); listen to it, and if it is flat find a CC0 recording of a crackle.
+- **Unverified by ear:** all the NOX sounds (the four voices, the footsteps for each ground, the camp fire, the waterfall for the Water Jet and the Geyser, the drone for Raise Dead, the cloth for pages) were chosen by analysis; the quiet ones (`cast_fire`, `fire_hit`, `gravity`, `summon`) were raised by ear-less guess.
+- **Old art not yet removed:** `art/chars/` still holds the seven retired looks (`bone_wizard`, `pyre_wizard`, `dark_wizard`, `fire_wizard`, `wanderer`, `lightning_mage`, `wizard` and their recolors, 5.8 MB), and `scripts/wizard/wizard_look.gd`, `pixel_art.gd` and `look_palettes.gd` still name them; retiring them is a job of its own.

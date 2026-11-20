@@ -362,7 +362,7 @@ Found by `grep -rn "art/chars\|\.look\b\|is_look\|PixelArt.CHARACTERS" scripts`:
 
 | File | What to do |
 |---|---|
-| `scripts/wizard/wizard_look.gd` | `is_look`, `scale_of`, `paint`, `swatch`, `jump_sound` handle parts strings. The 7 old looks can stay as presets or be retired; ask the owner. |
+| `scripts/wizard/wizard_look.gd` | `is_look`, `scale_of`, `paint`, `swatch`, `jump_sound`, `hurt_sound` handle parts strings (the voice is a look option again, four recordings, 2026-11-19). The 7 old looks can stay as presets or be retired; ask the owner. |
 | `scripts/core/net.gd` | `look_of` / `_said_style` validate through `WizardLook.is_look`. `rival_look(seat)` chooses a brain's look: give brains `PartsLook.encode(PartsLook.random_config(rng_seeded_by_seat))` so AI wizards are varied too (and never two alike). |
 | `scripts/core/game_settings.gd` | `"look"` already stores a String: the parts string fits. `"palette"` becomes unused for parts looks. |
 | `scripts/wizard/wizard.gd` | `dress()`, `_animate()` (section 7), the magic sprite. |

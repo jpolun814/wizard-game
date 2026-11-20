@@ -72,17 +72,17 @@ and are no longer drawn by the game.
 
 ### Mixed sounds
 
-`ritual_ok` (a low chant, cut from [Chant](https://opengameart.org/content/chant) by christislord, CC0), `tornado` (a jet roar with its hiss removed), `quicksand` ([25 CC0 mud sfx](https://opengameart.org/content/25-cc0-mud-sfx) by rubberduck) and `jump` ([Jumping man sounds](https://opengameart.org/content/jumping-man-sounds) by IgnasD, CC0) are listed here too.
+`ritual_ok` (a low chant, cut from [Chant](https://opengameart.org/content/chant) by christislord, CC0), `tornado` (a jet roar with its hiss removed), `quicksand` ([25 CC0 mud sfx](https://opengameart.org/content/25-cc0-mud-sfx) by rubberduck) are listed here too.
 
-`tools/make_sounds.py` builds these by layering recordings from the packs above and below with a little synthesis
-(a noise crack, a low thump):
+`tools/make_sounds.py` builds these by layering recordings from the packs above and below
+(no sound is synthesized any more: every layer is a recording):
 
 | File | Made from |
 |---|---|
-| `spark` (lightning strike) | a synthesized crack, `groundhit` from the [Electricity Game Sound Pack](https://opengameart.org/node/150369) by faxcorp (CC0), and the thunder from 100 CC0 SFX #2 |
+| `spark` (lightning strike) | the thunder from 100 CC0 SFX #2, from its first crack, used as it is |
 | `blink` (teleport zip) | `teleport` from the Electricity Game Sound Pack, and an air rush from 100 CC0 SFX #2 |
 | `eldritch` (Eldritch Blast) | `hit` from the Electricity Game Sound Pack by faxcorp (CC0), used as it is |
-| `push` (force push) | a synthesized thump and whump, and an air rush from 100 CC0 SFX #2 |
+| `push` (force push) | a dropped bag and a thrown coat from NOX SOUND's Essentials Series sample pack (CC0), and an air rush from 100 CC0 SFX #2 |
 | `fire_breath` (jet of flame) | `thrusterFire_003` from Kenney – Sci-fi Sounds, and a burst from [Fire Staff Sound Effects](https://opengameart.org/content/fire-staff-sound-effects) by LEGIT Audio (CC0) |
 
 ## Fire (fire wall, fire breath, burning ground)

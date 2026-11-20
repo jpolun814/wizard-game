@@ -4,12 +4,13 @@
 
 The downloads dir is the one tools/prepare_art.py uses, plus these CC0 packs unpacked into it:
     elec/      the Electricity Game Sound Pack (faxcorp)    opengameart.org/node/150369
+    nox/       the NOX SOUND Essentials Series, unpacked, for push (its Sample_A_Sound_Effect)
     firestaff/ Fire Staff Sound Effects (LEGIT Audio)       opengameart.org/content/fire-staff-sound-effects
 
 Each sound is a short mix of recordings and a little synthesis:
-    spark       a lightning strike: a sharp crack that re-strikes twice, an electric snap, then a thunder roll
+    spark       a lightning strike: a recording of thunder from its first crack
     blink       a teleport zip: an electric crackle over a quick rush of air
-    push        a force push: a deep thump, a low whump of displaced air and a whoosh
+    push        a force push: a bag dropped, a coat thrown and a rush of air, all recordings
     fire_breath a jet of flame: a roaring burner with a fire burst at its start
 Needs numpy and soundfile.
 """
@@ -67,26 +68,10 @@ def mix(length, *layers):
     return out / (np.abs(out).max() or 1.0) * 0.9
 
 
-def noise_burst(length, decay, rng):
-    t = np.arange(seconds(length)) / RATE
-    return rng.standard_normal(len(t)) * np.exp(-t / decay)
-
-
-def lowpass(x, taps):
-    return np.convolve(x, np.ones(taps) / taps, mode="same")
-
-
 def spark(dl, rng):
-    crack = np.diff(noise_burst(0.15, 0.012, rng), prepend=0.0)  # differenced noise: bright and sharp
-    restrike = np.zeros(seconds(0.15))
-    for at, gain in [(0.0, 1.0), (0.03, 0.6), (0.07, 0.4)]:
-        burst = crack[: seconds(0.15) - seconds(at)] * gain
-        restrike[seconds(at):seconds(at) + len(burst)] += burst
-    snap = load(os.path.join(dl, "elec", "groundhit.wav"))
     thunder = load(os.path.join(dl, "oga", "sfx_100_v2", "sfx100v2_thunder_01.ogg"))
-    start = max(0, envelope_peak(thunder) - seconds(0.05))
-    roll = fade(thunder[start:start + seconds(1.6)], 0.01, 0.7)
-    return mix(1.7, (restrike, 0.0, 1.0), (snap, 0.0, 0.7), (roll, 0.04, 0.75))
+    start = max(0, envelope_peak(thunder) - seconds(0.02))
+    return fade(thunder[start:start + seconds(1.7)], 0.003, 0.7) * 0.9
 
 
 def blink(dl, rng):
@@ -96,12 +81,14 @@ def blink(dl, rng):
 
 
 def push(dl, rng):
-    t = np.arange(seconds(0.45)) / RATE
-    freq = 45.0 + 95.0 * np.exp(-t / 0.06)  # a falling thump, like a door slammed by the air
-    thump = np.sin(2 * np.pi * np.cumsum(freq) / RATE) * np.exp(-t / 0.09)
-    whump = lowpass(rng.standard_normal(len(t)), 40) * np.exp(-t / 0.12)
+    """Three recordings: a bag dropped (the thump), a coat thrown (the whoosh) and a rush of air. The NOX pack is the second download (dl/nox)."""
+    nox = os.path.join(dl, "nox", "Sample_A_Sound_Effect")
+    thump = load(os.path.join(nox, "Backpack_Medium_Polyester_Drop_Stereo.wav"))
+    thump = fade(thump[max(0, envelope_peak(thump) - seconds(0.01)):][: seconds(0.45)], 0.003, 0.2)
+    coat = load(os.path.join(nox, "Cloth_Winter_Coat_Throw_Moderate_Stereo.wav"))
+    whoosh = fade(coat[max(0, envelope_peak(coat) - seconds(0.2)):][: seconds(0.5)], 0.05, 0.2)
     rush = fade(load(os.path.join(dl, "oga", "sfx_100_v2", "sfx100v2_air_03.ogg")), 0.01, 0.1)
-    return fade(mix(0.45, (fade(thump, 0.004, 0.05), 0.0, 1.0), (fade(whump, 0.004, 0.1), 0.0, 0.6), (rush, 0.02, 0.55)), 0.0, 0.08)
+    return fade(mix(0.5, (thump, 0.0, 1.0), (whoosh, 0.0, 0.6), (rush, 0.02, 0.55)), 0.0, 0.08)
 
 
 def fire_breath(dl, rng):
@@ -135,13 +122,7 @@ def roar(dl, rng):
 
 
 # Sounds copied in as they are: name in audio/ -> file in new_assets/ (both CC0, see art/CREDITS.md).
-NEW_ASSETS = {"quicksand.ogg": "mud_17.ogg"}  # a male grunt for the jump was tried first: it sounded like retching
-
-
-def jump(dl, rng):
-    """A short, springy jump: the first part of a recording of a jump, loud enough to hear over the rest."""
-    source = load(os.path.join(dl, "new_assets", "jump_long.ogg"))[: seconds(0.45)]
-    return fade(source / (np.abs(source).max() or 1.0) * 0.9, 0.005, 0.2)
+NEW_ASSETS = {"quicksand.ogg": "mud_17.ogg"}
 
 
 def quake(dl, rng):
@@ -159,7 +140,7 @@ def main():
     for out_name, src_name in NEW_ASSETS.items():
         shutil.copy(os.path.join(dl, "new_assets", src_name), os.path.join(ROOT, "audio", out_name))
     for name, build in [("spark", spark), ("blink", blink), ("push", push), ("fire_breath", fire_breath),
-                        ("ritual_ok", chant), ("tornado", roar), ("jump", jump), ("quake", quake)]:
+                        ("ritual_ok", chant), ("tornado", roar), ("quake", quake)]:
         sf.write(os.path.join(ROOT, "audio", name + ".wav"), build(dl, rng), RATE, subtype="PCM_16")
         print("wrote", name)
 

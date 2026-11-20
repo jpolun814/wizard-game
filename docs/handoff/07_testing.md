@@ -120,6 +120,9 @@ GODOT="/c/Users/Jordan Polun/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.
 "$GODOT" --headless --fixed-fps 60 --path . tests/checks/wall_liquid_check.tscn  # a Stone Wall holds back poured lava like any ground, and the lava runs on when it is gone
 "$GODOT" --path . tests/looks/minimap_look.tscn -- seed=0 out=DIR  # how much of the minimap is ground (needs a window)
 "$GODOT" --path . tests/looks/water_look.tscn -- out=DIR             # pictures of a Geyser and a Tide Surf by the waiting-room pond (needs a window)
+"$GODOT" --path . tests/looks/surf_pond_look.tscn -- out=DIR         # a Tide Surf across the waiting room's pond: a run of frames, and what the wave reads of the water and the ground (needs a window)
+"$GODOT" --path . tests/looks/pools_look.tscn -- out=DIR             # Oil Slick and Mudslide on uneven ground (under a floating slab, on top of it, across its edge, at the pond's slope): they stay on the ground they were cast on (needs a window)
+"$GODOT" --path . tests/looks/tour_look.tscn -- out=DIR stops=20    # a walk along a whole open world, a picture at columns spread across it and at its highest and lowest ground; WORLD_SEED=4 is the snowy peaks (needs a window)
 "$GODOT" --path . tests/looks/bonfire_look.tscn -- out=DIR [seed=N]  # a picture of a Bonfire beside the wizard in the waiting room, or in the world of a seed (needs a window)
 "$GODOT" --path . tests/looks/marks_look.tscn -- out=DIR             # pictures of the Hex, Fight or Flight and Moonbeam marks (needs a window)
 "$GODOT" --path . tests/checks/minimap_check.tscn  # the minimap stays in the top right corner as the window is resized

@@ -11,7 +11,7 @@ const VOLUME := {
 	"cast_fire": 4.0, "fire_hit": 6.0, "fire_wall": -6.0, "fire_breath": -5.0, "volcano": -6.0,
 	"cast_ice": -6.0, "ice_shatter": -10.0, "freeze": -6.0, "snow": -10.0,
 	"barrier": -8.0, "push": -4.0, "gravity": 4.0,
-	"spark": -5.0, "eldritch": -4.0, "quicksand": -4.0, "thunder": -8.0, "tornado": -1.0, "blink": -8.0,
+	"spark": -2.0, "eldritch": -4.0, "quicksand": -4.0, "thunder": -8.0, "tornado": -1.0, "blink": -8.0,
 	"stones": -4.0, "quake": -4.0, "explosion": -6.0,
 	"misfire": -6.0, "mob_hurt": -12.0, "mob_die": -10.0, "mob_shoot": -12.0,
 	"player_hurt": -4.0, "jump_voice_1": -14.0, "jump_voice_3": -14.0, "jump_voice_4": -14.0, "jump_voice_5": -14.0,
