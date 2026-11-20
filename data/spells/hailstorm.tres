@@ -16,4 +16,4 @@ size_unit = 200.0
 size_min = 0.6
 size_max = 2.0
 effect_path = "res://scripts/spells/hailstorm.gd"
-sounds = {"shatter": "hailstorm__shatter", "thunder": "hailstorm__thunder"}
+sounds = {"shatter": "hailstorm__shatter", "barrage": "hailstorm__barrage"}

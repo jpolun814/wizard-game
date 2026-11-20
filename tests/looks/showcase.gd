@@ -620,7 +620,7 @@ func _plan_new_spells() -> void:
 		wizard._grace = 0.0)
 	_at(4.35, func() -> void: _arena.caster.cast_stroke(SpellData.SPELLS["Crimson Veil"].buttons, _stroke("wall", wizard.center(), 1.0)))
 	_at(4.4, func() -> void:
-		check.call("a Crimson Veil is raised and costs 5 of the most (max %d, veil %d)" % [wizard.max_stamina, wizard.veil], wizard.veil == 2 and wizard.max_stamina == 195.0)
+		check.call("a Crimson Veil is raised and costs 36 of the most (max %d, veil %d)" % [wizard.max_stamina, wizard.veil], wizard.veil == 2 and wizard.max_stamina == 164.0)
 		wizard.take_damage(30)
 		wizard._grace = 0.0
 		wizard._veil_cool = 0.0)

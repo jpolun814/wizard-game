@@ -10,4 +10,3 @@ gesture = "spiral"
 cost = 30.0
 effect = "Knock the target unconscious."
 applies = Array[String](["unconscious"])
-sounds = {"faint": "faint__faint"}

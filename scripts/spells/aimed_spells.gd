@@ -58,7 +58,6 @@ func _faint(c: SpellCast) -> void:
 	if down != null:
 		down.faint()
 		Fx.burst(_arena, SpellTargets.center_of(down), Color(0.55, 0.1, 0.2), 14, 100.0, 0.6, true)
-		Sfx.cue("Faint", "faint", SpellTargets.center_of(down))
 
 
 func _fight_or_flight(c: SpellCast) -> void:

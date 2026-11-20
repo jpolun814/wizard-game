@@ -737,7 +737,7 @@ func grant_adrenaline(seconds: float) -> void:
 
 func fade_from_sight(seconds: float) -> void:
 	fade_time = maxf(fade_time, seconds)
-	Sfx.cue("wizard", "faint", center(), -6.0)
+	Sfx.cue("wizard", "fade", center(), -6.0)
 
 
 ## True while the wizard is faded from sight.

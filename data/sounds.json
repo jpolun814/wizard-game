@@ -249,7 +249,6 @@
  },
  "wizard": {
   "die": "wizard__die",
-  "faint": "wizard__faint",
   "misfire": "wizard__misfire",
   "summon": "wizard__summon",
   "land_dirt": "wizard__land_dirt",
@@ -269,7 +268,8 @@
   "step_rock": "wizard__step_rock",
   "step_grass": "wizard__step_grass",
   "step_wood": "wizard__step_wood",
-  "step_mud": "wizard__step_mud"
+  "step_mud": "wizard__step_mud",
+  "fade": "wizard__fade"
  },
  "world_stages": {
   "portal_enter": "world_stages__portal_enter",
