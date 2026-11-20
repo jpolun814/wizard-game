@@ -23,6 +23,8 @@ const BUS := &"SFX"
 var muted := false
 var _files := {}      # name -> Array of file paths, one per variant
 var _sounds := {}     # name -> AudioStreamRandomizer, built the first time the sound plays
+var recording := false  # a check turns this on to see which sounds the game asks for, and when
+var heard: Array[String] = []  # the sound names asked for while recording, in order
 var _live := 0
 var _owned := {}      # owner -> {event: sound name}, for everything that is not a spell
 var _levels := {}     # sound name -> loudness in decibels
@@ -88,6 +90,8 @@ func has_sound(sound: String) -> bool:
 ## Plays a sound. at is a world position, or leave it out for a sound that is not in the world.
 ## pitch_spread varies the pitch a little each time, so repeats sound alive; pitch plays it lower (under 1) or higher (over 1) than it was recorded.
 func play(sound: String, at: Variant = null, volume_db := 0.0, pitch_spread := 0.08, pitch := 1.0) -> Node:
+	if recording:
+		heard.append(sound)
 	if muted or not _files.has(sound) or _live >= POLYPHONY:
 		return null
 	var stream := _stream(sound, pitch_spread)
