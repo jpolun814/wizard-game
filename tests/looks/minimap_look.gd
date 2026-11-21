@@ -20,6 +20,7 @@ func _ready() -> void:
 	add_child(world)
 	for k in 30:
 		await get_tree().process_frame
+	world.revealed["minimap"] = true
 	world._minimap.visible = true
 	for k in 5:
 		await get_tree().process_frame

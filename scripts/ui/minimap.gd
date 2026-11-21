@@ -8,6 +8,7 @@ extends Control
 const MAX_CELL := 3.0      # pixels per tile, for small maps
 const MAX_WIDTH := 320.0   # the minimap never gets wider than this
 const MARGIN := 16.0
+const FRAME := 8.0        # how far the skinned frame stands out round the map
 const SKY_ROWS := 40       # rows of sky kept above the highest ground
 const SIDE_COLS := 8
 const ROCK_ROWS := 24      # and of rock kept under the lowest air
@@ -92,7 +93,7 @@ func _ready() -> void:
 
 ## Puts the map in the top right corner of whatever the window is now.
 func _place() -> void:
-	position = Vector2(get_viewport_rect().size.x - size.x - MARGIN, MARGIN + 60.0)
+	position = Vector2(get_viewport_rect().size.x - size.x - MARGIN - FRAME, MARGIN + 60.0 + FRAME)
 
 
 func _process(_delta: float) -> void:
@@ -101,6 +102,8 @@ func _process(_delta: float) -> void:
 
 
 func _draw() -> void:
+	if has_theme_stylebox("frame", "HudBar"):  # a skinned look: the map sits in the interface's gold frame
+		draw_style_box(get_theme_stylebox("frame", "HudBar"), Rect2(Vector2(-FRAME, -FRAME), size + Vector2(FRAME, FRAME) * 2.0))
 	draw_rect(Rect2(Vector2.ZERO, size), Color(0, 0, 0, 0.55))
 	draw_texture_rect(_picture, Rect2(Vector2.ZERO, size), false)
 	draw_circle(_to_map(arena.player.center()), 2.5, Color("#7fe0ff"))

@@ -151,8 +151,11 @@ func _draw() -> void:
 	var foot := _center.y + _radius * 0.84
 	for tier in [[0.62, 30.0, 0.0], [0.82, 22.0, 30.0], [1.02, 16.0, 52.0]]:  # a stand of three stepped tiers
 		var box := Rect2(_center.x - _radius * tier[0], foot + tier[2], _radius * tier[0] * 2.0, tier[1])
-		draw_rect(box, BRASS_DARK)
-		draw_rect(Rect2(box.position, Vector2(box.size.x, 4.0)), BRASS)
+		if has_theme_stylebox("frame", "HudBar"):
+			draw_style_box(get_theme_stylebox("frame", "HudBar"), box)
+		else:
+			draw_rect(box, BRASS_DARK)
+			draw_rect(Rect2(box.position, Vector2(box.size.x, 4.0)), BRASS)
 
 
 func _draw_face() -> void:
@@ -318,8 +321,11 @@ func _draw_reading(view: Vector2) -> void:
 		var tip := Rect2(Vector2(x + 12.0, plot.position.y + 8.0), Vector2(120.0, 12.0 + 24.0 * rows.size()))
 		if tip.end.x > plot.end.x:
 			tip.position.x = x - 12.0 - tip.size.x
-		_face.draw_rect(tip, Color(0.02, 0.0, 0.05, 0.95))
-		_face.draw_rect(tip, BRASS, false, 1.0)
+		if has_theme_stylebox("frame", "HudBar"):
+			_face.draw_style_box(get_theme_stylebox("frame", "HudBar"), tip)
+		else:
+			_face.draw_rect(tip, Color(0.02, 0.0, 0.05, 0.95))
+			_face.draw_rect(tip, BRASS, false, 1.0)
 		for index in rows.size():
 			_face.draw_string(Lettering.PIXEL, tip.position + Vector2(10.0, 24.0 + 24.0 * index), rows[index], HORIZONTAL_ALIGNMENT_LEFT, tip.size.x - 14.0, 22, colors[index])
 		return

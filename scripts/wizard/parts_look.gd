@@ -24,7 +24,7 @@ const DEFAULT := {
 }
 
 
-const HAT_NO_COLOR := ["none", "circlet", "horned", "skull", "laurel", "crown", "tiara", "flower_crown"]  # hats with no color of their own (keep in step with tools/wizard_parts/parts.py)
+const HAT_NO_COLOR := ["none", "skull", "laurel", "flower_crown"]  # hats with no color of their own (keep in step with tools/wizard_parts/parts.py)
 const DEFAULT_LOOK := "parts:3:tan.coat.blue.charcoal.short.auburn.short.auburn.wide.blue.brown.staff_orb.voice_1"  # DEFAULT, written down
 
 
@@ -107,10 +107,9 @@ static func random_config(rng: RandomNumberGenerator) -> Dictionary:
 	return tied(config)
 
 
-## A beard is the color of the hair, and a hat the color of the robe.
+## A beard is the color of the hair. (The hat has a color of its own.)
 static func tied(config: Dictionary) -> Dictionary:
 	config["beard_color"] = config["hair_color"]
-	config["hat_color"] = config["color"]
 	return config
 
 

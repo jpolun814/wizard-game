@@ -11,6 +11,7 @@ the owner chose Gothic and the rest were removed. Credit to AbyssOwl is required
 - **Buttons** (`Choice`, `Back`, `OptionButton`): the ornate gold plaque; dropdowns and text fields use the plain gold frame, which leaves room for text.
 - **Panels** (`Plate`, `Parchment`, `Chant`, `Hint`): the plain gold frame over the game's dark purple (parchment color for the controls sheet), with small corner brackets, drawn at 2x.
 - **Stamina bar** (`HudBar`): the plain gold frame with a tight inset. The fill is the color of the school of the spell cast last (gold until the first one), eased in; unlimited stamina lays a pale white veil over it (`HudBar.sheen`, `Hud._color_of_last_spell`).
+- **Wizard maker, stats screen, minimap**: the maker wears `Plate` (a little less padding); the stats screen's stand and chart tooltip and the minimap's frame use the stamina bar's gold frame (`HudBar` `frame` style), with the old flat look as the fallback.
 - **Sliders**: a flat gold fill in a dark channel; **toggles**: the pack's ornate check buttons.
 
 The pieces are drawn at 2x (one art pixel is two world pixels), as the rest of the UI art is. A new screen takes the look by using one of the type variations in `ui/theme.tres`; a panel built in code
@@ -20,5 +21,5 @@ Pictures of every screen under a theme: `godot --path . --audio-driver Dummy tes
 
 ## Not skinned yet
 
-Enemy health bars (`scripts/creatures/mob.gd`), the minimap frame, the stats screen, the Library's shelf ribbons, the wizard-maker panel, key caps. The F1 debug panel stays plain on purpose; the menu book and
+Enemy health bars (`scripts/creatures/mob.gd`), the Library's shelf ribbons, key caps. The F1 debug panel stays plain on purpose; the menu book and
 the spellbook are their own art and are left alone.

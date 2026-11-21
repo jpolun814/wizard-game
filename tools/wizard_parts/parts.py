@@ -123,8 +123,8 @@ OPTIONS = {
 }
 TRIMS = {name: COLORS[name]["main"] for name in COLORS}  # an outfit can be edged in any of the colors it can be made in
 assert all(set(OPTIONS[k]) == set(v) for k, v in {"skin": SKINS, "color": COLORS, "trim": TRIMS, "hair_color": HAIRS, "hat_color": COLORS}.items())
-HAT_NO_COLOR = ("none", "circlet", "horned", "skull", "laurel", "crown", "tiara", "flower_crown")  # hats that have no color of their own to choose
-HAT_TRIMMED = ("circlet", "tiara", "crown", "horned", "headscarf", "pointy", "wide")  # hats with metal or a band that takes the trim's color
+HAT_NO_COLOR = ("none", "skull", "laurel", "flower_crown")  # hats that have no color of their own to choose
+HAT_TRIMMED = ("headscarf", "pointy", "wide")  # hats with metal or a band that takes the trim's color
 CAP_HAIR = ("short", "long", "ponytail", "bun", "braids", "straight", "wild", "bob", "pigtails", "wavy", "updo")  # styles that draw the cap of hair over the head
 BACK_COAT = ("coat", "cloak", "gothic")  # outfits with a piece behind the legs
 SLEEVELESS = ("vest", "pelt", "sash", "toga")  # outfits that leave the chest and the arms bare, in the skin
@@ -844,7 +844,7 @@ def hat(cv, g, p, style, colname, trim_ramp=None):
     col = COLORS.get(colname, COLORS["blue"])
     main, trim = col["main"], trim_ramp or col["trim"]
     if style == "circlet":
-        cv.paint(cv.capsule(R(-5.3, -3.1), R(4.4, -4.2), 0.8), trim, inner_outline=False)
+        cv.paint(cv.capsule(R(-5.3, -3.1), R(4.4, -4.2), 0.8), main, inner_outline=False)
         cv.paint(cv.ellipse(R(4.2, -4.1), 1.2, 1.2), SAPPHIRE, inner_outline=False)
         return
     if style == "hood":
@@ -863,8 +863,8 @@ def hat(cv, g, p, style, colname, trim_ramp=None):
         for pts in (((-3.0, -3.4), (-5.6, -8.0), (-5.0, -12.2)), ((0.6, -3.2), (1.0, -7.6), (3.4, -11.6))):
             cv.paint(limb([R(*q) for q in pts], [2.0, 1.5, 0.5]), BONE, inner_outline=False)
         cv.paint(cv.poly(arc(R, -0.9, -3.0, 6.2, 4.8, 180, 360, 12)), IRON, hi=0.35, lo=-0.15)
-        cv.paint(cv.capsule(R(-7.0, -2.8), R(4.9, -3.8), 0.95), trim, inner_outline=False)
-        cv.paint(cv.capsule(R(4.9, -3.8), R(5.4, 0.2), 0.7), trim, inner_outline=False)
+        cv.paint(cv.capsule(R(-7.0, -2.8), R(4.9, -3.8), 0.95), main, inner_outline=False)
+        cv.paint(cv.capsule(R(4.9, -3.8), R(5.4, 0.2), 0.7), main, inner_outline=False)
         return
     if style == "skull":  # a band of bone with spikes and a skull at the front
         cv.paint(cv.capsule(R(-5.8, -3.0), R(4.8, -4.2), 0.95), BONE, inner_outline=False)
@@ -883,18 +883,18 @@ def hat(cv, g, p, style, colname, trim_ramp=None):
             cv.paint(cv.ellipse(c, 2.2, 1.0, math.radians(a + 90 + rot + (35 if k % 2 else -35))), LEAF, inner_outline=False)
         return
     if style == "crown":  # a gold band with points, and a red stone
-        cv.paint(cv.capsule(R(-5.6, -3.4), R(4.7, -4.6), 1.15), trim, inner_outline=False)
+        cv.paint(cv.capsule(R(-5.6, -3.4), R(4.7, -4.6), 1.15), main, inner_outline=False)
         for x, hgt in ((-4.4, 3.2), (-2.2, 4.4), (0.0, 5.2), (2.2, 4.4), (4.0, 3.2)):
             by = -3.4 - (x + 5.6) * 0.12
-            cv.paint(cv.poly([R(x - 1.3, by), R(x + 1.3, by - 0.2), R(x, by - hgt)]), trim, inner_outline=False)
+            cv.paint(cv.poly([R(x - 1.3, by), R(x + 1.3, by - 0.2), R(x, by - hgt)]), main, inner_outline=False)
         q = R(2.6, -4.3)
         cv.dot(q[0], q[1], (205, 40, 60))
         return
     if style == "tiara":  # a slim band with three points and a stone
-        cv.paint(cv.capsule(R(-5.4, -3.6), R(4.8, -4.7), 0.7), trim, inner_outline=False)
+        cv.paint(cv.capsule(R(-5.4, -3.6), R(4.8, -4.7), 0.7), main, inner_outline=False)
         for x, hgt in ((-2.4, 2.4), (0.6, 3.8), (3.4, 2.4)):
             by = -3.8 - (x + 5.4) * 0.1
-            cv.paint(cv.poly([R(x - 1.0, by), R(x + 1.0, by - 0.1), R(x, by - hgt)]), trim, inner_outline=False)
+            cv.paint(cv.poly([R(x - 1.0, by), R(x + 1.0, by - 0.1), R(x, by - hgt)]), main, inner_outline=False)
         q = R(0.6, -4.6)
         cv.dot(q[0], q[1], (240, 120, 170))
         return

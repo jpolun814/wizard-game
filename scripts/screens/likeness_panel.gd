@@ -6,8 +6,8 @@ extends CanvasLayer
 
 signal closed
 
-## The options chosen by a color alone, with no words: a row of squares. (The beard takes the hair's color and the hat the robe's: see PartsLook.tied.)
-const COLOR_ROWS := ["skin", "color", "trim", "hair_color", "boots"]
+## The options chosen by a color alone, with no words: a row of squares. (The beard takes the hair's color: see PartsLook.tied.)
+const COLOR_ROWS := ["skin", "color", "trim", "hair_color", "hat_color", "boots"]
 ## What each value is called to the person choosing.
 const NAMES := {
 	"coat": "Coat", "robe": "Robe", "tunic": "Tunic", "cloak": "Cloak", "ceremonial": "Ceremonial robe", "rags": "Rags", "gothic": "Gothic coat", "armored": "Armor",
@@ -38,13 +38,14 @@ const INK := Color("#f0e6d0")   # the cream of a plate's writing
 const DIM := Color("#a89cc0")   # what a row is called
 const EDGE := Color(0.36, 0.26, 0.5)  # the violet edge of the interface's buttons and fields
 ## The rows set apart in groups, with a rule between each.
-const GROUPS := [["skin"], ["outfit", "color", "trim"], ["hair", "hair_color", "beard", "hat"], ["boots", "weapon", "voice"]]
+const GROUPS := [["skin"], ["hair", "hair_color", "beard"], ["outfit", "color", "trim", "hat", "hat_color", "boots"], ["weapon", "voice"]]
 ## What each row is called.
-const TITLES := {"skin": "Skin", "outfit": "Outfit", "color": "Outfit color", "trim": "Trim", "hair": "Hair", "hair_color": "Hair color", "beard": "Beard", "hat": "Hat", "boots": "Boots", "weapon": "Weapon", "voice": "Voice"}
+const TITLES := {"skin": "Skin", "outfit": "Outfit", "color": "Outfit color", "trim": "Trim", "hair": "Hair", "hair_color": "Hair color", "beard": "Beard", "hat": "Hat", "hat_color": "Hat color", "boots": "Boots", "weapon": "Weapon", "voice": "Voice"}
 
 var wizard: Wizard  # the one the person plays, which wears what is chosen
 var _plate: PanelContainer
 var _values: Dictionary = {}   # option -> the label with the value's name
+var _rows: Dictionary = {}     # option -> the whole row of colors, so one can be hidden
 var _squares: Dictionary = {}  # option -> {value -> its square}, for the rows of colors
 var _sprite: AnimatedSprite2D  # the picture of the wizard being made
 var _magic: MagicLayer
@@ -57,6 +58,7 @@ func _ready() -> void:
 	var margin := MarginContainer.new()  # the plate stands at the left, halfway down
 	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	margin.add_theme_constant_override("margin_left", 24)
+	margin.add_theme_constant_override("margin_top", 64)  # (clear of the stamina bar)
 	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(margin)
 	var side := VBoxContainer.new()
@@ -65,10 +67,15 @@ func _ready() -> void:
 	margin.add_child(side)
 	_plate = PanelContainer.new()  # a gold frame, and inside it a second, finer one, as a ruled page has
 	_plate.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	_plate.add_theme_stylebox_override("panel", _box(Color(0.09, 0.05, 0.14, 0.96), Lettering.GOLD, 3, 8))
+	if ThemeDB.get_project_theme().has_stylebox("panel", "Plate"):  # a skinned look: the interface's own plate
+		var skin: StyleBox = ThemeDB.get_project_theme().get_stylebox("panel", "Plate").duplicate()  # (a little less room round the writing than a plain plate has: the maker is tall)
+		skin.set_content_margin_all(22.0)
+		_plate.add_theme_stylebox_override("panel", skin)
+	else:
+		_plate.add_theme_stylebox_override("panel", _box(Color(0.09, 0.05, 0.14, 0.96), Lettering.GOLD, 3, 8))
 	side.add_child(_plate)
 	var inner := PanelContainer.new()
-	inner.add_theme_stylebox_override("panel", _box(Color(0, 0, 0, 0), Color(Lettering.GOLD, 0.35), 1, 16))
+	inner.add_theme_stylebox_override("panel", _box(Color(0, 0, 0, 0), Color(Lettering.GOLD, 0.35), 1, 4))
 	_plate.add_child(inner)
 	var page := VBoxContainer.new()
 	page.add_theme_constant_override("separation", 10)
@@ -88,7 +95,7 @@ func _ready() -> void:
 	body.add_child(left)
 	var right := VBoxContainer.new()
 	right.custom_minimum_size.x = 392.0
-	right.add_theme_constant_override("separation", 7)
+	right.add_theme_constant_override("separation", 4)
 	for group: Array in GROUPS:
 		if group != GROUPS[0]:
 			right.add_child(_rule())
@@ -232,6 +239,7 @@ func _make_squares(option: String, title: String) -> Control:
 		flow.add_child(square)
 		squares[value] = square
 	_squares[option] = squares
+	_rows[option] = column
 	return column
 
 
@@ -337,6 +345,7 @@ func _show_choice() -> void:
 		var squares: Dictionary = _squares[option]
 		for each: String in squares:
 			_paint_square(squares[each], _swatch_of(option, each), each == config[option])
+	(_rows["hat_color"] as Control).visible = not PartsLook.HAT_NO_COLOR.has(config["hat"])  # a hat with no color of its own has no row for it
 	if look != _shown:
 		_shown = look
 		_sprite.sprite_frames = PartFrames.body(look, true)
