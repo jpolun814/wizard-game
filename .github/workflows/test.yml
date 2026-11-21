@@ -28,6 +28,10 @@ jobs:
           chmod +x godot
           rm godot.zip
 
+      - uses: actions/setup-python@v5  # (a Python of its own: the checks run with python -I, which does not look in a user's site-packages)
+        with:
+          python-version: "3.12"
+
       - name: Python packages for the static checks
         run: pip install --isolated numpy soundfile pillow
 

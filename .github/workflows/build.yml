@@ -44,7 +44,7 @@ jobs:
       - name: Export the game
         run: |
           mkdir -p build
-          ./godot --headless --path . --export-release "Windows Desktop" build/WizardGame.exe
+          ./godot --headless --verbose --path . --export-release "Windows Desktop" build/WizardGame.exe > export.log 2>&1 || { grep -v "Storing File" export.log | tail -n 80; exit 1; }
           test -f build/WizardGame.exe
           # The short commit hash goes in the file name, so a download says which build it is.
           mv build/WizardGame.exe "build/WizardGame-${GITHUB_SHA::7}.exe"
