@@ -46,14 +46,11 @@ and are no longer drawn by the game.
 | `fonts/OldeTome.ttf` (titles, spell names, headings) | [Olde Tome](https://ladyliefy.itch.io/olde-tome) by LadyLiefy | free to use, pay-what-you-want (the itch.io page names no licence; the owner downloaded it from there) |
 | `fonts/Jacquard24-Regular.ttf` (titles) | [Jacquard 24](https://fonts.google.com/specimen/Jacquard+24) by The Soft Type Project (scfried) | OFL 1.1 (`fonts/OFL-Jacquard24.txt`) |
 
-## Interface skins (art/ui/skins/, cut by tools/build_ui_skin.py; the game starts with its own flat look unless one is chosen: tools/ui_skin.py)
+## Interface skin (art/ui/skins/gothic/, cut by tools/build_ui_skin.py; the game's theme is ui/theme_gothic.tres)
 
-| Folder | Pack | Terms |
-|---|---|---|
-| `darkages/` | [Dark Ages UI](https://hypnobius.itch.io/dark-ages-ui) by Hypnobius | Commercial and personal use; credit optional (given gladly); no generative AI; **the files may not be redistributed, resold or passed on, modified or not**, so a public repo that holds them is the owner's call |
-| `gothic/` | [Gothic Pixel UI](https://abyssowl.itch.io/gothic-pixel-ui) (free version) by AbyssOwl | Commercial and non-commercial use; edits allowed; **credit to AbyssOwl required for commercial projects**; no resale; not to be used to train AI; no generative AI. Redistribution is not addressed beyond the ban on resale |
+[Gothic Pixel UI](https://abyssowl.itch.io/gothic-pixel-ui) (free version) by AbyssOwl. Commercial and non-commercial use; edits allowed; **credit to AbyssOwl required for commercial projects**; no resale; not to be used to train AI; no generative AI. Redistribution is not addressed beyond the ban on resale.
 
-Both are used as pieces cut from the packs (the gold set of Gothic, with its empty frames filled with the game's dark ink and its hover and pressed buttons made by brightening and darkening). The downloads themselves are not in the repo.
+Used as pieces cut from the pack: the gold ornate plaque (buttons and the stamina bar), the plain gold frame tile (panels, dropdowns, text fields), the corner bracket, the check toggles and the slider handle. The empty insides of its frames are filled with the game's own dark ink, and hover and pressed looks are made by brightening and darkening. The download itself is not in the repo.
 
 ## Music (music/, made by tools/make_music.py from each pack's loop versions)
 

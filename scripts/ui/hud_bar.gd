@@ -6,6 +6,7 @@ extends Control
 
 @export var fill := Color.WHITE
 @export var title := ""
+var sheen := 0.0  # 0 to 1: a pale white veil over the fill, for a bar that cannot go down (unlimited stamina)
 
 var _value := 1.0
 var _max := 1.0
@@ -45,6 +46,8 @@ func _draw() -> void:
 		draw_rect(Rect2(inner.position, Vector2(roundf(inner.size.x * _chip), inner.size.y)), Color(0.95, 0.85, 0.75, 0.7))
 	if share > 0.0:
 		_draw_fill(Rect2(inner.position, Vector2(roundf(inner.size.x * share), inner.size.y)), inner)
+		if sheen > 0.0:
+			draw_rect(Rect2(inner.position, Vector2(roundf(inner.size.x * share), inner.size.y)), Color(1.0, 1.0, 1.0, 0.4 * sheen))
 	if has_theme_icon("crown", "HudBar"):  # (an ornament standing on the frame's top edge)
 		var crown := get_theme_icon("crown", "HudBar")
 		draw_texture(crown, Vector2(roundf((size.x - crown.get_width()) * 0.5), -crown.get_height() + float(get_theme_constant("crown_sink", "HudBar"))))

@@ -1,11 +1,10 @@
-"""Cuts an interface art pack into stretchable pieces and writes a theme that uses them: `art/ui/skins/<name>/*.png` and `ui/theme_<name>.tres`.
+"""Cuts the Gothic Pixel UI pack into stretchable pieces and writes the game's theme from them: `art/ui/skins/gothic/*.png` and `ui/theme_gothic.tres`.
 
-    python -I tools/build_ui_skin.py darkages <folder holding DarkAgesUi_v1.0>
     python -I tools/build_ui_skin.py gothic <folder holding gothic_pixel_ui_free_v_1-0-2>
 
-The theme is the game's own `ui/theme.tres` (fonts, colors, type variations) with the styles named in SKINS replaced by textured ones, so everything else stays
-as it is. To try a skin, set `gui/theme/custom` in project.godot to its file; to go back, set it to `res://ui/theme.tres`. The downloads stay out of the repo
-(their licences forbid passing the files on), and only the pieces cut for the game are kept in `art/ui/skins/`. Credits: art/CREDITS.md.
+The theme is the game's own `ui/theme.tres` (fonts, colors, type variations) with the styles named in the wiring replaced by textured ones, so everything else
+stays as it is; `gui/theme/custom` in project.godot points at the result. The download stays out of the repo; only the pieces cut for the game are kept in
+`art/ui/skins/gothic/`. Credits: art/CREDITS.md (AbyssOwl: credit required).
 """
 import os
 import sys
@@ -13,30 +12,6 @@ import sys
 from PIL import Image
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
-# --- Dark Ages UI (Hypnobius): one 384 x 352 sheet of 32-pixel tiles, used at its own size ------------------------------------------------------------------
-# name -> (box in the sheet, nine-slice margins left, top, right, bottom, scale)
-DARKAGES_PIECES = {
-    "button": ((0, 96, 64, 128), (14, 10, 14, 8), 1),
-    "button_hover": ((128, 96, 192, 128), (14, 10, 14, 8), 1),
-    "button_pressed": ((64, 96, 128, 128), (14, 10, 14, 8), 1),
-    "frame_gold": ((0, 0, 96, 96), (28, 28, 28, 28), 1),  # the pack's showpiece: gold, blue weave and scrolled corners
-    "panel_dark": ((210, 18, 270, 78), (20, 20, 20, 20), 1),
-    "panel_light": ((306, 18, 366, 78), (20, 20, 20, 20), 1),
-    "parchment": ((96, 0, 192, 96), (14, 14, 14, 14), 1),
-    "field": ((288, 96, 320, 128), (8, 10, 8, 8), 1),
-    "bar_body": ((197, 142, 283, 150), (3, 3, 3, 2), 2),  # the frame of a bar, without the crown, drawn twice the size
-    "bar_crown": ((233, 135, 249, 142), (0, 0, 0, 0), 2),
-    "slider_track": ((102, 141, 186, 148), (8, 2, 8, 2), 2),
-    "slider_fill": ((296, 144, 378, 148), (2, 1, 2, 1), 2),
-    "diamond_on": ((10, 266, 23, 278), (0, 0, 0, 0), 2),
-    "diamond_off": ((10, 298, 23, 310), (0, 0, 0, 0), 2),
-}
-
-
-# name -> (piece it is made from, (width, height) it is made at): the sizes the panels are shown at in the game
-LAID_OUT = {"frame_hint": ("frame_gold", (200, 116)), "frame_plate": ("frame_gold", (510, 640)), "frame_chant": ("panel_dark", (620, 64))}
-
 
 def laid_out(source, margin, width, height):
     """A frame at the size it will be used at: the four corners as drawn, each edge made of the artist's own edge pattern repeated (cut at the end, never stretched),
@@ -67,14 +42,6 @@ def laid_out(source, margin, width, height):
     middle = source.getpixel((src_w // 2, src_h // 2))
     out.paste(Image.new("RGBA", (width - 2 * m, height - 2 * m), middle), (m, m))
     return out
-
-
-def cut(sheet, name, pieces):
-    box, margins, scale = pieces[name]
-    image = sheet.crop(box)
-    if scale != 1:
-        image = image.resize((image.width * scale, image.height * scale), Image.NEAREST)
-    return image, tuple(m * scale for m in margins)
 
 
 def textured(id_, res_path, margins, content=None, center=True, tile=False):
@@ -128,45 +95,6 @@ def build(name, pieces, wiring):
     print("wrote ui/theme_%s.tres and %d pieces in art/ui/skins/%s" % (name, len(pieces), name))
 
 
-def darkages(source):
-    sheet = Image.open(os.path.join(source, "DarkAgesUi_v1.0", "32x32-Tilesheet.png")).convert("RGBA")
-    button = (20, 12, 20, 10)
-    wiring = {
-        "styles": {
-            "sk_button": ("button", button), "sk_button_hover": ("button_hover", button), "sk_button_pressed": ("button_pressed", button),
-            "sk_field": ("field", (12, 8, 12, 8)),
-            "sk_plate": ("frame_plate", (36, 36, 36, 36)), "sk_parchment": ("parchment", (20, 20, 20, 20)),
-            "sk_chant": ("frame_chant", (20, 14, 20, 14)), "sk_hint": ("frame_hint", (32, 30, 32, 30)),
-            "sk_bar": ("bar_body", None),
-            "sk_track": ("slider_track", None), "sk_fill": ("slider_fill", None),
-        },
-        "assign": [
-            'Choice/styles/normal = SubResource("sk_button")', 'Choice/styles/hover = SubResource("sk_button_hover")', 'Choice/styles/pressed = SubResource("sk_button_pressed")',
-            'Choice/styles/focus = SubResource("sk_button_hover")', 'Choice/styles/disabled = SubResource("sk_button")',
-            'Back/styles/normal = SubResource("sk_button")', 'Back/styles/hover = SubResource("sk_button_hover")', 'Back/styles/pressed = SubResource("sk_button_pressed")',
-            'Back/styles/focus = SubResource("sk_button_hover")', 'Back/styles/disabled = SubResource("sk_button")',
-            'Field/styles/normal = SubResource("sk_field")', 'Field/styles/focus = SubResource("sk_button_hover")',
-            'Plate/styles/panel = SubResource("sk_plate")', 'Parchment/styles/panel = SubResource("sk_parchment")',
-            'Chant/styles/panel = SubResource("sk_chant")', 'Hint/styles/panel = SubResource("sk_hint")',
-            'HudBar/styles/frame = SubResource("sk_bar")', 'HudBar/constants/inset_x = 6', 'HudBar/constants/inset_y = 4', 'HudBar/constants/crown_sink = 4',
-            'HudBar/icons/crown = ExtResource("skin_bar_crown")',
-            'HSlider/styles/slider = SubResource("sk_track")', 'HSlider/styles/grabber_area = SubResource("sk_fill")', 'HSlider/styles/grabber_area_highlight = SubResource("sk_fill")',
-            'HSlider/icons/grabber = ExtResource("skin_diamond_on")', 'HSlider/icons/grabber_highlight = ExtResource("skin_diamond_on")', 'HSlider/icons/grabber_disabled = ExtResource("skin_diamond_off")',
-            'CheckButton/icons/checked = ExtResource("skin_diamond_on")', 'CheckButton/icons/unchecked = ExtResource("skin_diamond_off")',
-            'CheckButton/icons/checked_disabled = ExtResource("skin_diamond_off")', 'CheckButton/icons/unchecked_disabled = ExtResource("skin_diamond_off")',
-            'CheckButton/icons/checked_mirrored = ExtResource("skin_diamond_on")', 'CheckButton/icons/unchecked_mirrored = ExtResource("skin_diamond_off")',
-            'CheckButton/icons/checked_disabled_mirrored = ExtResource("skin_diamond_off")', 'CheckButton/icons/unchecked_disabled_mirrored = ExtResource("skin_diamond_off")',
-            'OptionButton/styles/normal = SubResource("sk_button")', 'OptionButton/styles/hover = SubResource("sk_button_hover")', 'OptionButton/styles/pressed = SubResource("sk_button_pressed")',
-            'OptionButton/styles/focus = SubResource("sk_button_hover")', 'OptionButton/constants/h_separation = 8',
-        ],
-    }
-    pieces = {piece: cut(sheet, piece, DARKAGES_PIECES) for piece in DARKAGES_PIECES}
-    for name, (source, size) in LAID_OUT.items():  # (a frame cut to the size it is shown at)
-        image, edge = pieces[source]
-        pieces[name] = (laid_out(image, edge[0], size[0], size[1]), edge)
-    build("darkages", pieces, wiring)
-
-
 # --- Gothic Pixel UI (AbyssOwl): the gold set, whose frames are empty inside, filled here with the game's own dark ink ----------------------------------------
 INK = (24, 13, 36, 255)        # the dark purple of the game's panels
 PARCHMENT_INK = (216, 182, 144, 255)
@@ -215,64 +143,156 @@ def tint(image, factor):
     return out
 
 
+def retile(tile, fill, frame=1.0):
+    """A framed tile with its brown middle swapped for `fill` and the gold frame brightened (above 1) or darkened (below 1)."""
+    old = tile.getpixel((tile.width // 2, tile.height // 2))
+    out = tile.copy()
+    px = out.load()
+    for y in range(out.height):
+        for x in range(out.width):
+            r, g, b, a = px[x, y]
+            if not a:
+                continue
+            if (r, g, b, a) == old:
+                px[x, y] = fill
+            elif frame != 1.0:
+                px[x, y] = (min(255, int(r * frame)), min(255, int(g * frame)), min(255, int(b * frame)), a)
+    return out
+
+
+def with_corners(panel, corner, inset=0):
+    """The pack's scrolled corner laid on each corner of a panel (one drawing, turned to fit all four)."""
+    out = panel.copy()
+    w, h = out.size
+    cw, ch = corner.size
+    flips = ((corner, (inset, inset)),
+             (corner.transpose(Image.FLIP_LEFT_RIGHT), (w - cw - inset, inset)),
+             (corner.transpose(Image.FLIP_TOP_BOTTOM), (inset, h - ch - inset)),
+             (corner.transpose(Image.ROTATE_180), (w - cw - inset, h - ch - inset)))
+    for image, at in flips:
+        out.alpha_composite(image, at)
+    return out
+
+
+def tile_template(tile, m=4, g=8):
+    """A frame tile cut down to its four corners and one clean stretch of each edge, so a panel made from it repeats only the clean part."""
+    size = 2 * m + g
+    out = Image.new("RGBA", (size, size))
+    w, h = tile.size
+    mid_x, mid_y = (w - g) // 2, (h - g) // 2
+    out.paste(tile.crop((0, 0, m, m)), (0, 0))
+    out.paste(tile.crop((w - m, 0, w, m)), (size - m, 0))
+    out.paste(tile.crop((0, h - m, m, h)), (0, size - m))
+    out.paste(tile.crop((w - m, h - m, w, h)), (size - m, size - m))
+    out.paste(tile.crop((mid_x, 0, mid_x + g, m)), (m, 0))
+    out.paste(tile.crop((mid_x, h - m, mid_x + g, h)), (m, size - m))
+    out.paste(tile.crop((0, mid_y, m, mid_y + g)), (0, m))
+    out.paste(tile.crop((w - m, mid_y, w, mid_y + g)), (size - m, m))
+    out.paste(tile.crop((mid_x, mid_y, mid_x + g, mid_y + g)), (m, m))
+    return out
+
+
 def gothic(source):
     root = os.path.join(source, "gothic_pixel_ui_free_v_1-0-2")
-    sheet = Image.open(os.path.join(root, "gothic_pixel_ui_free-v1-0-2.png")).convert("RGBA").crop((0, 0, 650, 400))
+    sheet = Image.open(os.path.join(root, "gothic_pixel_ui_free-v1-0-2.png")).convert("RGBA")
     split = os.path.join(root, "split_assets")
     frames = os.path.join(split, "frames and bars")
     strip = Image.open(os.path.join(split, "toggles and switches", "check_02_strip3.png")).convert("RGBA")
-    box = lambda x0, y0, x1, y1: sheet.crop((x0, y0, x1, y1))
-    pill = box(472, 72, 526, 92)          # the ornate button, dark inside
-    square = box(158, 17, 202, 61)        # the square frame
-    rounded = box(106, 17, 154, 65)       # the rounded frame
+    box = lambda x0, y0, x1, y1: sheet.crop((x0, y0, x1 + 1, y1 + 1))
+    tile32 = box(492, 329, 523, 360)      # the plain gold-framed tile: the pack's own nine-slice set
+    corner = x2(box(222, 54, 230, 62))    # a plain L-shaped corner bracket (the scrolled corners were too busy)
+    crest = x2(box(343, 15, 366, 27))     # a small flourish for the top of a bar
+    plaque = box(417, 32, 472, 47)        # the ornate plaque: scrolled ends, two thin rails
+    DEEP = (16, 9, 24, 255)
+    INK2 = (36, 22, 52, 255)
+    HOVER = (66, 42, 92, 255)
+    base = fill_inside(plaque, INK2)
+
+    def bar_piece(fill, frame):
+        return x2(retile(base, fill, frame))
+
+    template = tile_template(tile32)
+
+    def panel(fill, size, ornaments=True):
+        body = laid_out(retile(template, fill, 1.4), 4, size[0] // 2, size[1] // 2)
+        return with_corners(x2(body), corner, inset=6) if ornaments else x2(body)
+
+    plate = (14, 14, 14, 14)
     pieces = {
-        "button": (x2(pill), (20, 12, 20, 12)),
-        "button_hover": (x2(tint(pill, 1.35)), (20, 12, 20, 12)),
-        "button_pressed": (x2(tint(pill, 0.7)), (20, 12, 20, 12)),
-        "field": (x2(box(407, 70, 467, 94)), (24, 14, 24, 14)),
-        "panel_plate": (x2(fill_inside(square, INK)), (30, 30, 30, 30)),
-        "panel_hint": (x2(fill_inside(rounded, INK)), (32, 32, 32, 32)),
-        "panel_chant": (x2(fill_inside(square, (30, 20, 14, 235))), (30, 30, 30, 30)),
-        "parchment": (x2(fill_inside(square, PARCHMENT_INK)), (30, 30, 30, 30)),
-        "bar_body": (x2(box(418, 15, 472, 31)), (16, 10, 16, 10)),
-        "slider_track": (Image.open(os.path.join(frames, "24px_border_03.png")).convert("RGBA"), (6, 4, 6, 4)),
-        "slider_fill": (Image.open(os.path.join(frames, "bar_fill_01.png")).convert("RGBA"), (1, 1, 1, 1)),
+        "button": (bar_piece(INK2, 1.35), (28, 10, 28, 10)),
+        "button_hover": (bar_piece(HOVER, 1.8), (28, 10, 28, 10)),
+        "button_pressed": (bar_piece(DEEP, 1.1), (28, 10, 28, 10)),
+        "field": (x2(retile(template, (12, 7, 18, 255), 1.3)), (8, 8, 8, 8)),
+        "dropdown": (x2(retile(template, INK2, 1.4)), (8, 8, 8, 8)),
+        "dropdown_hover": (x2(retile(template, HOVER, 1.8)), (8, 8, 8, 8)),
+        "bar_body": (x2(retile(template, (10, 6, 16, 255), 1.5)), (8, 8, 8, 8)),
+        "panel_hint": (panel(INK2, (200, 116)), plate),
+        "panel_plate": (panel(INK2, (510, 640)), plate),
+        "parchment": (panel(PARCHMENT_INK, (510, 330)), plate),
+        "panel_chant": (panel((22, 13, 14, 235), (620, 64), ornaments=False), (8, 8, 8, 8)),
         "grabber": (Image.open(os.path.join(frames, "slider_handle_01.png")).convert("RGBA"), (0, 0, 0, 0)),
         "check_off": (strip.crop((0, 0, 28, 28)), (0, 0, 0, 0)),
         "check_on": (strip.crop((56, 0, 84, 28)), (0, 0, 0, 0)),
     }
-    button = (24, 8, 24, 8)
-    wiring = {
+    pieces.update(plain_slider((200, 160, 56), (14, 8, 22), (224, 176, 64)))  # (a flat gold fill in a dark channel, no gradient)
+    button = (34, 14, 34, 14)
+    wiring = skin_wiring(button, (30, 28, 30, 28), (30, 30, 30, 30), (30, 28, 30, 28), (14, 8, 14, 8), (16, 6, 16, 6), 6)
+    wiring["styles"]["sk_drop"] = ("dropdown", (16, 11, 16, 11))
+    wiring["styles"]["sk_drop_hover"] = ("dropdown_hover", (16, 11, 16, 11))
+    wiring["assign"] = [a for a in wiring["assign"] if not a.startswith("OptionButton/styles/")] + [
+        'OptionButton/styles/normal = SubResource("sk_drop")', 'OptionButton/styles/hover = SubResource("sk_drop_hover")',
+        'OptionButton/styles/pressed = SubResource("sk_drop_hover")', 'OptionButton/styles/focus = SubResource("sk_drop_hover")']
+    build("gothic", pieces, wiring)
+
+
+def solid(color, size=3):
+    return Image.new("RGBA", (size, size), color)
+
+
+def plain_slider(outline, back, fill):
+    """A thin track and its fill, the way every one of these packs has none: small flat boxes in the pack's own colors."""
+    track = Image.new("RGBA", (8, 6), outline + (255,))
+    track.paste(Image.new("RGBA", (6, 4), back + (255,)), (1, 1))
+    return {"slider_track": (x2(track), (4, 4, 4, 4)), "slider_fill": (solid(fill + (255,)), (1, 1, 1, 1))}
+
+
+def skin_wiring(button, hint, plate, parchment, chant, field, bar_inset, crown=False, button_text=None):
+    """The wiring every skin shares (styles named sk_*, pieces named as in the dictionaries above)."""
+    assign = [
+        'Choice/styles/normal = SubResource("sk_button")', 'Choice/styles/hover = SubResource("sk_button_hover")', 'Choice/styles/pressed = SubResource("sk_button_pressed")',
+        'Choice/styles/focus = SubResource("sk_button_hover")', 'Choice/styles/disabled = SubResource("sk_button")',
+        'Back/styles/normal = SubResource("sk_button")', 'Back/styles/hover = SubResource("sk_button_hover")', 'Back/styles/pressed = SubResource("sk_button_pressed")',
+        'Back/styles/focus = SubResource("sk_button_hover")', 'Back/styles/disabled = SubResource("sk_button")',
+        'Field/styles/normal = SubResource("sk_field")', 'Field/styles/focus = SubResource("sk_button_hover")',
+        'Plate/styles/panel = SubResource("sk_plate")', 'Parchment/styles/panel = SubResource("sk_parchment")',
+        'Chant/styles/panel = SubResource("sk_chant")', 'Hint/styles/panel = SubResource("sk_hint")',
+        'HudBar/styles/frame = SubResource("sk_bar")', 'HudBar/constants/inset_x = %d' % (bar_inset[0] if isinstance(bar_inset, tuple) else bar_inset), 'HudBar/constants/inset_y = %d' % (bar_inset[1] if isinstance(bar_inset, tuple) else bar_inset),
+        'HSlider/styles/slider = SubResource("sk_track")', 'HSlider/styles/grabber_area = SubResource("sk_fill")', 'HSlider/styles/grabber_area_highlight = SubResource("sk_fill")',
+        'HSlider/icons/grabber = ExtResource("skin_grabber")', 'HSlider/icons/grabber_highlight = ExtResource("skin_grabber")', 'HSlider/icons/grabber_disabled = ExtResource("skin_grabber")',
+        'CheckButton/icons/checked = ExtResource("skin_check_on")', 'CheckButton/icons/unchecked = ExtResource("skin_check_off")',
+        'CheckButton/icons/checked_disabled = ExtResource("skin_check_off")', 'CheckButton/icons/unchecked_disabled = ExtResource("skin_check_off")',
+        'CheckButton/icons/checked_mirrored = ExtResource("skin_check_on")', 'CheckButton/icons/unchecked_mirrored = ExtResource("skin_check_off")',
+        'CheckButton/icons/checked_disabled_mirrored = ExtResource("skin_check_off")', 'CheckButton/icons/unchecked_disabled_mirrored = ExtResource("skin_check_off")',
+        'OptionButton/styles/normal = SubResource("sk_button")', 'OptionButton/styles/hover = SubResource("sk_button_hover")', 'OptionButton/styles/pressed = SubResource("sk_button_pressed")',
+        'OptionButton/styles/focus = SubResource("sk_button_hover")', 'OptionButton/constants/h_separation = 8',
+    ]
+    if button_text:  # a light button needs dark lettering: (resting, hovered, pressed) as "r, g, b"
+        for kind in ("Choice", "Back", "OptionButton"):
+            for key, rgb in zip(("font_color", "font_focus_color", "font_hover_color", "font_pressed_color"), (button_text[0], button_text[1], button_text[1], button_text[2])):
+                assign.append("%s/colors/%s = Color(%s, 1)" % (kind, key, rgb))
+    if crown:
+        assign += ['HudBar/constants/crown_sink = %d' % crown, 'HudBar/icons/crown = ExtResource("skin_bar_crown")']
+    return {
         "styles": {
             "sk_button": ("button", button), "sk_button_hover": ("button_hover", button), "sk_button_pressed": ("button_pressed", button),
-            "sk_field": ("field", (16, 8, 16, 8)),
-            "sk_plate": ("panel_plate", (26, 26, 26, 26)), "sk_parchment": ("parchment", (26, 26, 26, 26)),
-            "sk_chant": ("panel_chant", (22, 22, 22, 22)), "sk_hint": ("panel_hint", (26, 26, 26, 26)),
-            "sk_bar": ("bar_body", None),
+            "sk_field": ("field", field), "sk_plate": ("panel_plate", plate), "sk_parchment": ("parchment", parchment),
+            "sk_chant": ("panel_chant", chant), "sk_hint": ("panel_hint", hint), "sk_bar": ("bar_body", None),
             "sk_track": ("slider_track", None), "sk_fill": ("slider_fill", None),
         },
-        "assign": [
-            'Choice/styles/normal = SubResource("sk_button")', 'Choice/styles/hover = SubResource("sk_button_hover")', 'Choice/styles/pressed = SubResource("sk_button_pressed")',
-            'Choice/styles/focus = SubResource("sk_button_hover")', 'Choice/styles/disabled = SubResource("sk_button")',
-            'Back/styles/normal = SubResource("sk_button")', 'Back/styles/hover = SubResource("sk_button_hover")', 'Back/styles/pressed = SubResource("sk_button_pressed")',
-            'Back/styles/focus = SubResource("sk_button_hover")', 'Back/styles/disabled = SubResource("sk_button")',
-            'Field/styles/normal = SubResource("sk_field")', 'Field/styles/focus = SubResource("sk_button_hover")',
-            'Plate/styles/panel = SubResource("sk_plate")', 'Parchment/styles/panel = SubResource("sk_parchment")',
-            'Chant/styles/panel = SubResource("sk_chant")', 'Hint/styles/panel = SubResource("sk_hint")',
-            'HudBar/styles/frame = SubResource("sk_bar")', 'HudBar/constants/inset_x = 12', 'HudBar/constants/inset_y = 8',
-            'HSlider/styles/slider = SubResource("sk_track")', 'HSlider/styles/grabber_area = SubResource("sk_fill")', 'HSlider/styles/grabber_area_highlight = SubResource("sk_fill")',
-            'HSlider/icons/grabber = ExtResource("skin_grabber")', 'HSlider/icons/grabber_highlight = ExtResource("skin_grabber")', 'HSlider/icons/grabber_disabled = ExtResource("skin_grabber")',
-            'CheckButton/icons/checked = ExtResource("skin_check_on")', 'CheckButton/icons/unchecked = ExtResource("skin_check_off")',
-            'CheckButton/icons/checked_disabled = ExtResource("skin_check_off")', 'CheckButton/icons/unchecked_disabled = ExtResource("skin_check_off")',
-            'CheckButton/icons/checked_mirrored = ExtResource("skin_check_on")', 'CheckButton/icons/unchecked_mirrored = ExtResource("skin_check_off")',
-            'CheckButton/icons/checked_disabled_mirrored = ExtResource("skin_check_off")', 'CheckButton/icons/unchecked_disabled_mirrored = ExtResource("skin_check_off")',
-            'OptionButton/styles/normal = SubResource("sk_button")', 'OptionButton/styles/hover = SubResource("sk_button_hover")', 'OptionButton/styles/pressed = SubResource("sk_button_pressed")',
-            'OptionButton/styles/focus = SubResource("sk_button_hover")', 'OptionButton/constants/h_separation = 8',
-        ],
+        "assign": assign,
     }
-    build("gothic", pieces, wiring)
 
 
 if __name__ == "__main__":
     pack, source = sys.argv[1], sys.argv[2]
-    {"darkages": darkages, "gothic": gothic}[pack](source)
+    {"gothic": gothic}[pack](source)

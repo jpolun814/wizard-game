@@ -8,8 +8,7 @@ extends CanvasLayer
 signal stats_requested  # the person asked to see the story of their match again
 
 const HEALTH := Color("#b3122e")
-const STAMINA := Color("#d9a233")
-const UNLIMITED := Color("#4fb4e8")
+const STAMINA := Color("#d9a233")  # the bar before anything has been cast; after that it takes the color of the last school cast
 const INK := Color(0.07, 0.04, 0.1)
 const CONTROLS := [
 	["W A S D", "Move"], ["Space", "Jump"],
@@ -68,10 +67,17 @@ func _lay_on_parchment(rows: GridContainer) -> void:
 	rows.reparent(sheet, false)
 
 
+## The color of the school of the spell the wizard cast last (gold until the first one).
+func _color_of_last_spell() -> Color:
+	var data = SpellData.SPELLS.get(player.last_spell)
+	return SpellData.SCHOOL_COLORS.get(data.school, STAMINA) if data else STAMINA
+
+
 func _process(delta: float) -> void:
 	if player:
 		var unlimited: bool = player.infinite_time > 0.0
-		stamina_bar.fill = UNLIMITED if unlimited else STAMINA
+		stamina_bar.fill = stamina_bar.fill.lerp(_color_of_last_spell(), minf(1.0, delta * 8.0))  # (a color change eases in)
+		stamina_bar.sheen = move_toward(stamina_bar.sheen, 1.0 if unlimited else 0.0, delta * 3.0)
 		stamina_bar.set_value(player.stamina, player.max_stamina, player.MAX_STAMINA)
 		_status.text = player.status_text()
 	_feedback_time -= delta

@@ -3,7 +3,7 @@ extends Node
 ## Pictures of the interface under a theme, to see a skin on every kind of screen: the home screen, the Library, the waiting room with the stamina bar, the chant box,
 ## the pause screen and its settings, the tutorial's key hints, and a world's stamina bar. Needs a window; pass --audio-driver Dummy.
 ##
-##     godot --path . --audio-driver Dummy --fixed-fps 60 tests/looks/ui_look.tscn -- theme=res://ui/theme_darkages.tres out=DIR
+##     godot --path . --audio-driver Dummy --fixed-fps 60 tests/looks/ui_look.tscn -- theme=project.tres out=DIR
 
 var _out := ""
 var _scene: Node

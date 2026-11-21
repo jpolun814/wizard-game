@@ -1,0 +1,434 @@
+[gd_resource type="Theme" load_steps=15 format=3]
+[ext_resource type="Texture2D" path="res://art/ui/skins/gothic/button.png" id="skin_button"]
+[ext_resource type="Texture2D" path="res://art/ui/skins/gothic/button_hover.png" id="skin_button_hover"]
+[ext_resource type="Texture2D" path="res://art/ui/skins/gothic/button_pressed.png" id="skin_button_pressed"]
+[ext_resource type="Texture2D" path="res://art/ui/skins/gothic/field.png" id="skin_field"]
+[ext_resource type="Texture2D" path="res://art/ui/skins/gothic/dropdown.png" id="skin_dropdown"]
+[ext_resource type="Texture2D" path="res://art/ui/skins/gothic/dropdown_hover.png" id="skin_dropdown_hover"]
+[ext_resource type="Texture2D" path="res://art/ui/skins/gothic/bar_body.png" id="skin_bar_body"]
+[ext_resource type="Texture2D" path="res://art/ui/skins/gothic/panel_hint.png" id="skin_panel_hint"]
+[ext_resource type="Texture2D" path="res://art/ui/skins/gothic/panel_plate.png" id="skin_panel_plate"]
+[ext_resource type="Texture2D" path="res://art/ui/skins/gothic/parchment.png" id="skin_parchment"]
+[ext_resource type="Texture2D" path="res://art/ui/skins/gothic/panel_chant.png" id="skin_panel_chant"]
+[ext_resource type="Texture2D" path="res://art/ui/skins/gothic/grabber.png" id="skin_grabber"]
+[ext_resource type="Texture2D" path="res://art/ui/skins/gothic/check_off.png" id="skin_check_off"]
+[ext_resource type="Texture2D" path="res://art/ui/skins/gothic/check_on.png" id="skin_check_on"]
+[ext_resource type="Texture2D" path="res://art/ui/skins/gothic/slider_track.png" id="skin_slider_track"]
+[ext_resource type="Texture2D" path="res://art/ui/skins/gothic/slider_fill.png" id="skin_slider_fill"]
+
+[ext_resource type="FontFile" path="res://fonts/Jersey15-Regular.ttf" id="1"]
+[ext_resource type="FontFile" path="res://fonts/Jacquard24-Regular.ttf" id="2"]
+[ext_resource type="FontVariation" path="res://fonts/olde_tome.tres" id="3"]
+
+[sub_resource type="StyleBoxFlat" id="button"]
+content_margin_left = 18.0
+content_margin_top = 6.0
+content_margin_right = 18.0
+content_margin_bottom = 6.0
+bg_color = Color(0.1, 0.06, 0.15, 0.92)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.36, 0.26, 0.5, 1)
+
+[sub_resource type="StyleBoxFlat" id="button_hover"]
+content_margin_left = 18.0
+content_margin_top = 6.0
+content_margin_right = 18.0
+content_margin_bottom = 6.0
+bg_color = Color(0.18, 0.1, 0.26, 0.95)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.784, 0.659, 1, 1)
+
+[sub_resource type="StyleBoxFlat" id="button_pressed"]
+content_margin_left = 18.0
+content_margin_top = 6.0
+content_margin_right = 18.0
+content_margin_bottom = 6.0
+bg_color = Color(0.05, 0.03, 0.08, 0.95)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.949, 0.757, 0.306, 1)
+
+[sub_resource type="StyleBoxFlat" id="field"]
+content_margin_left = 10.0
+content_margin_top = 6.0
+content_margin_right = 10.0
+content_margin_bottom = 6.0
+bg_color = Color(0.03, 0.01, 0.05, 0.95)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.36, 0.26, 0.5, 1)
+
+[sub_resource type="StyleBoxFlat" id="back"]
+content_margin_left = 14.0
+content_margin_top = 4.0
+content_margin_right = 18.0
+content_margin_bottom = 4.0
+bg_color = Color(0.06, 0.04, 0.09, 0.7)
+border_width_left = 6
+border_color = Color(0.45, 0.2, 0.22, 1)
+
+[sub_resource type="StyleBoxFlat" id="back_hover"]
+content_margin_left = 14.0
+content_margin_top = 4.0
+content_margin_right = 18.0
+content_margin_bottom = 4.0
+bg_color = Color(0.14, 0.08, 0.14, 0.9)
+border_width_left = 6
+border_color = Color(0.85, 0.35, 0.3, 1)
+
+[sub_resource type="StyleBoxEmpty" id="inscription"]
+content_margin_left = 8.0
+content_margin_top = 4.0
+content_margin_right = 8.0
+content_margin_bottom = 4.0
+
+[sub_resource type="StyleBoxFlat" id="inscription_hover"]
+content_margin_left = 8.0
+content_margin_top = 4.0
+content_margin_right = 8.0
+content_margin_bottom = 2.0
+bg_color = Color(0.431, 0.078, 0.125, 0.1)
+border_width_bottom = 2
+border_color = Color(0.431, 0.078, 0.125, 0.8)
+
+[sub_resource type="StyleBoxFlat" id="inscription_back"]
+content_margin_left = 12.0
+content_margin_top = 2.0
+content_margin_right = 8.0
+content_margin_bottom = 2.0
+bg_color = Color(0, 0, 0, 0)
+border_width_left = 4
+border_color = Color(0.431, 0.078, 0.125, 0.7)
+
+[sub_resource type="StyleBoxFlat" id="inked"]
+content_margin_left = 8.0
+content_margin_top = 4.0
+content_margin_right = 8.0
+content_margin_bottom = 4.0
+bg_color = Color(0.72, 0.56, 0.45, 0.55)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.227, 0.114, 0.102, 0.85)
+
+[sub_resource type="StyleBoxFlat" id="plate"]
+bg_color = Color(0.09, 0.05, 0.14, 1)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.784, 0.604, 0.235, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+content_margin_left = 26.0
+content_margin_top = 26.0
+content_margin_right = 26.0
+content_margin_bottom = 26.0
+
+[sub_resource type="StyleBoxFlat" id="parchment"]
+bg_color = Color(0.847, 0.714, 0.565, 1)
+border_width_left = 4
+border_width_top = 4
+border_width_right = 4
+border_width_bottom = 4
+border_color = Color(0.227, 0.114, 0.102, 1)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+content_margin_left = 18.0
+content_margin_top = 18.0
+content_margin_right = 18.0
+content_margin_bottom = 18.0
+
+[sub_resource type="StyleBoxFlat" id="chant"]
+bg_color = Color(0.1, 0.07, 0.05, 0.92)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.541, 0.416, 0.227, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+content_margin_left = 12.0
+content_margin_top = 12.0
+content_margin_right = 12.0
+content_margin_bottom = 12.0
+
+[sub_resource type="StyleBoxFlat" id="hint"]
+bg_color = Color(0.122, 0.082, 0.157, 1)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.679, 0.591, 0.849, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+content_margin_left = 14.0
+content_margin_top = 14.0
+content_margin_right = 14.0
+content_margin_bottom = 14.0
+
+[sub_resource type="StyleBoxTexture" id="sk_button"]
+texture = ExtResource("skin_button")
+texture_margin_left = 28.0
+texture_margin_top = 10.0
+texture_margin_right = 28.0
+texture_margin_bottom = 10.0
+content_margin_left = 34.0
+content_margin_top = 14.0
+content_margin_right = 34.0
+content_margin_bottom = 14.0
+
+[sub_resource type="StyleBoxTexture" id="sk_button_hover"]
+texture = ExtResource("skin_button_hover")
+texture_margin_left = 28.0
+texture_margin_top = 10.0
+texture_margin_right = 28.0
+texture_margin_bottom = 10.0
+content_margin_left = 34.0
+content_margin_top = 14.0
+content_margin_right = 34.0
+content_margin_bottom = 14.0
+
+[sub_resource type="StyleBoxTexture" id="sk_button_pressed"]
+texture = ExtResource("skin_button_pressed")
+texture_margin_left = 28.0
+texture_margin_top = 10.0
+texture_margin_right = 28.0
+texture_margin_bottom = 10.0
+content_margin_left = 34.0
+content_margin_top = 14.0
+content_margin_right = 34.0
+content_margin_bottom = 14.0
+
+[sub_resource type="StyleBoxTexture" id="sk_field"]
+texture = ExtResource("skin_field")
+texture_margin_left = 8.0
+texture_margin_top = 8.0
+texture_margin_right = 8.0
+texture_margin_bottom = 8.0
+content_margin_left = 16.0
+content_margin_top = 6.0
+content_margin_right = 16.0
+content_margin_bottom = 6.0
+
+[sub_resource type="StyleBoxTexture" id="sk_plate"]
+texture = ExtResource("skin_panel_plate")
+texture_margin_left = 14.0
+texture_margin_top = 14.0
+texture_margin_right = 14.0
+texture_margin_bottom = 14.0
+content_margin_left = 30.0
+content_margin_top = 30.0
+content_margin_right = 30.0
+content_margin_bottom = 30.0
+
+[sub_resource type="StyleBoxTexture" id="sk_parchment"]
+texture = ExtResource("skin_parchment")
+texture_margin_left = 14.0
+texture_margin_top = 14.0
+texture_margin_right = 14.0
+texture_margin_bottom = 14.0
+content_margin_left = 30.0
+content_margin_top = 28.0
+content_margin_right = 30.0
+content_margin_bottom = 28.0
+
+[sub_resource type="StyleBoxTexture" id="sk_chant"]
+texture = ExtResource("skin_panel_chant")
+texture_margin_left = 8.0
+texture_margin_top = 8.0
+texture_margin_right = 8.0
+texture_margin_bottom = 8.0
+content_margin_left = 14.0
+content_margin_top = 8.0
+content_margin_right = 14.0
+content_margin_bottom = 8.0
+
+[sub_resource type="StyleBoxTexture" id="sk_hint"]
+texture = ExtResource("skin_panel_hint")
+texture_margin_left = 14.0
+texture_margin_top = 14.0
+texture_margin_right = 14.0
+texture_margin_bottom = 14.0
+content_margin_left = 30.0
+content_margin_top = 28.0
+content_margin_right = 30.0
+content_margin_bottom = 28.0
+
+[sub_resource type="StyleBoxTexture" id="sk_bar"]
+texture = ExtResource("skin_bar_body")
+texture_margin_left = 8.0
+texture_margin_top = 8.0
+texture_margin_right = 8.0
+texture_margin_bottom = 8.0
+
+[sub_resource type="StyleBoxTexture" id="sk_track"]
+texture = ExtResource("skin_slider_track")
+texture_margin_left = 4.0
+texture_margin_top = 4.0
+texture_margin_right = 4.0
+texture_margin_bottom = 4.0
+
+[sub_resource type="StyleBoxTexture" id="sk_fill"]
+texture = ExtResource("skin_slider_fill")
+texture_margin_left = 1.0
+texture_margin_top = 1.0
+texture_margin_right = 1.0
+texture_margin_bottom = 1.0
+
+[sub_resource type="StyleBoxTexture" id="sk_drop"]
+texture = ExtResource("skin_dropdown")
+texture_margin_left = 8.0
+texture_margin_top = 8.0
+texture_margin_right = 8.0
+texture_margin_bottom = 8.0
+content_margin_left = 16.0
+content_margin_top = 11.0
+content_margin_right = 16.0
+content_margin_bottom = 11.0
+
+[sub_resource type="StyleBoxTexture" id="sk_drop_hover"]
+texture = ExtResource("skin_dropdown_hover")
+texture_margin_left = 8.0
+texture_margin_top = 8.0
+texture_margin_right = 8.0
+texture_margin_bottom = 8.0
+content_margin_left = 16.0
+content_margin_top = 11.0
+content_margin_right = 16.0
+content_margin_bottom = 11.0
+
+[resource]
+default_font = ExtResource("1")
+default_font_size = 18
+Choice/base_type = &"Button"
+Choice/colors/font_color = Color(0.92, 0.9, 1, 1)
+Choice/colors/font_hover_color = Color(1, 0.949, 0.839, 1)
+Choice/colors/font_pressed_color = Color(0.949, 0.757, 0.306, 1)
+Choice/colors/font_focus_color = Color(1, 0.949, 0.839, 1)
+Choice/colors/font_disabled_color = Color(0.5, 0.46, 0.58, 1)
+Choice/fonts/font = ExtResource("3")
+Choice/font_sizes/font_size = 22
+Back/base_type = &"Button"
+Back/colors/font_color = Color(0.7, 0.62, 0.66, 1)
+Back/colors/font_hover_color = Color(1, 0.9, 0.85, 1)
+Back/colors/font_pressed_color = Color(0.949, 0.757, 0.306, 1)
+Back/colors/font_focus_color = Color(1, 0.9, 0.85, 1)
+Back/fonts/font = ExtResource("3")
+Back/font_sizes/font_size = 22
+Label/colors/font_color = Color(1, 1, 1, 1)
+Label/colors/font_outline_color = Color(0.07, 0.04, 0.1, 1)
+Label/constants/outline_size = 0
+Plate/base_type = &"PanelContainer"
+Parchment/base_type = &"PanelContainer"
+Chant/base_type = &"PanelContainer"
+Hint/base_type = &"PanelContainer"
+Field/base_type = &"LineEdit"
+Field/colors/font_color = Color(0.92, 0.9, 1, 1)
+Field/colors/font_placeholder_color = Color(0.5, 0.46, 0.58, 1)
+Field/font_sizes/font_size = 22
+Outlined/base_type = &"Label"
+Outlined/constants/outline_size = 4
+Title/base_type = &"Label"
+Title/fonts/font = ExtResource("3")
+Title/constants/outline_size = 4
+Title/colors/font_color = Color(1, 0.949, 0.839, 1)
+Heading/base_type = &"Label"
+Heading/fonts/font = ExtResource("3")
+Heading/font_sizes/font_size = 66
+Heading/constants/outline_size = 8
+Heading/constants/shadow_offset_x = 3
+Heading/constants/shadow_offset_y = 3
+Heading/colors/font_color = Color(0.9, 0.8, 1, 1)
+Heading/colors/font_outline_color = Color(0.12, 0.02, 0.2, 1)
+Heading/colors/font_shadow_color = Color(0.8, 0.1, 0.35, 0.55)
+Inscription/base_type = &"Button"
+Inscription/colors/font_color = Color(0.227, 0.114, 0.102, 1)
+Inscription/colors/font_hover_color = Color(0.431, 0.078, 0.125, 1)
+Inscription/colors/font_pressed_color = Color(0.75, 0.35, 0.1, 1)
+Inscription/colors/font_focus_color = Color(0.431, 0.078, 0.125, 1)
+Inscription/colors/font_disabled_color = Color(0.42, 0.33, 0.28, 0.6)
+Inscription/fonts/font = ExtResource("3")
+Inscription/font_sizes/font_size = 33
+Inscription/styles/normal = SubResource("inscription")
+Inscription/styles/hover = SubResource("inscription_hover")
+Inscription/styles/pressed = SubResource("inscription_hover")
+Inscription/styles/focus = SubResource("inscription_hover")
+Inscription/styles/disabled = SubResource("inscription")
+InscriptionBack/base_type = &"Button"
+InscriptionBack/colors/font_color = Color(0.42, 0.267, 0.204, 1)
+InscriptionBack/colors/font_hover_color = Color(0.431, 0.078, 0.125, 1)
+InscriptionBack/colors/font_pressed_color = Color(0.75, 0.35, 0.1, 1)
+InscriptionBack/colors/font_focus_color = Color(0.431, 0.078, 0.125, 1)
+InscriptionBack/colors/font_disabled_color = Color(0.42, 0.33, 0.28, 0.6)
+InscriptionBack/fonts/font = ExtResource("3")
+InscriptionBack/font_sizes/font_size = 33
+InscriptionBack/styles/normal = SubResource("inscription_back")
+InscriptionBack/styles/hover = SubResource("inscription_back")
+InscriptionBack/styles/pressed = SubResource("inscription_back")
+InscriptionBack/styles/focus = SubResource("inscription_back")
+InscriptionBack/styles/disabled = SubResource("inscription_back")
+Inked/base_type = &"LineEdit"
+Inked/colors/font_color = Color(0.227, 0.114, 0.102, 1)
+Inked/colors/font_placeholder_color = Color(0.42, 0.267, 0.204, 0.7)
+Inked/fonts/font = ExtResource("3")
+Inked/font_sizes/font_size = 22
+Inked/styles/normal = SubResource("inked")
+Inked/styles/focus = SubResource("inked")
+Choice/styles/normal = SubResource("sk_button")
+Choice/styles/hover = SubResource("sk_button_hover")
+Choice/styles/pressed = SubResource("sk_button_pressed")
+Choice/styles/focus = SubResource("sk_button_hover")
+Choice/styles/disabled = SubResource("sk_button")
+Back/styles/normal = SubResource("sk_button")
+Back/styles/hover = SubResource("sk_button_hover")
+Back/styles/pressed = SubResource("sk_button_pressed")
+Back/styles/focus = SubResource("sk_button_hover")
+Back/styles/disabled = SubResource("sk_button")
+Field/styles/normal = SubResource("sk_field")
+Field/styles/focus = SubResource("sk_button_hover")
+Plate/styles/panel = SubResource("sk_plate")
+Parchment/styles/panel = SubResource("sk_parchment")
+Chant/styles/panel = SubResource("sk_chant")
+Hint/styles/panel = SubResource("sk_hint")
+HudBar/styles/frame = SubResource("sk_bar")
+HudBar/constants/inset_x = 6
+HudBar/constants/inset_y = 6
+HSlider/styles/slider = SubResource("sk_track")
+HSlider/styles/grabber_area = SubResource("sk_fill")
+HSlider/styles/grabber_area_highlight = SubResource("sk_fill")
+HSlider/icons/grabber = ExtResource("skin_grabber")
+HSlider/icons/grabber_highlight = ExtResource("skin_grabber")
+HSlider/icons/grabber_disabled = ExtResource("skin_grabber")
+CheckButton/icons/checked = ExtResource("skin_check_on")
+CheckButton/icons/unchecked = ExtResource("skin_check_off")
+CheckButton/icons/checked_disabled = ExtResource("skin_check_off")
+CheckButton/icons/unchecked_disabled = ExtResource("skin_check_off")
+CheckButton/icons/checked_mirrored = ExtResource("skin_check_on")
+CheckButton/icons/unchecked_mirrored = ExtResource("skin_check_off")
+CheckButton/icons/checked_disabled_mirrored = ExtResource("skin_check_off")
+CheckButton/icons/unchecked_disabled_mirrored = ExtResource("skin_check_off")
+OptionButton/constants/h_separation = 8
+OptionButton/styles/normal = SubResource("sk_drop")
+OptionButton/styles/hover = SubResource("sk_drop_hover")
+OptionButton/styles/pressed = SubResource("sk_drop_hover")
+OptionButton/styles/focus = SubResource("sk_drop_hover")
