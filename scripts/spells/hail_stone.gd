@@ -1,7 +1,8 @@
 class_name HailStone
 extends Area2D
 
-## One stone of a Hailstorm, falling. It stops at the first ground or platform it meets, and hurts the first body it meets before that.
+## One stone of a Hailstorm, falling. It stops at the first ground or platform it meets, and hurts the first body it meets before that. It is a shot like any other
+## (the group "shots"): wind holds it back or turns it, a hole pulls it, a Barrier turns it away.
 
 const FALL_SPEED := 640.0
 const HARM := 5
@@ -10,9 +11,13 @@ const ART := preload("res://art/fx/hailstone.png")
 var caster: Node
 var _spent := false
 var _age := 0.0
+var _v := Vector2(0.0, FALL_SPEED)  # where it is going, each second
+var _drag := 1.0                    # how much of its way it covers this frame (a wind holds it back)
+var _pulled := Vector2.ZERO         # a pull on it this frame
 
 
 func _ready() -> void:
+	add_to_group("shots")
 	collision_layer = 0
 	collision_mask = 1 | 2 | 4 | 16  # ground, enemies, wizards and platforms
 	var box := RectangleShape2D.new()
@@ -34,7 +39,9 @@ func damage() -> int:
 
 func _physics_process(delta: float) -> void:
 	_age += delta
-	position.y += FALL_SPEED * delta
+	position += _v * _drag * delta + _pulled * delta
+	_drag = 1.0
+	_pulled = Vector2.ZERO
 	if _age > 3.0:
 		queue_free()
 
@@ -69,3 +76,24 @@ func _shatter() -> void:
 ## A Barrier stops it dead (Elements.shield_turns).
 func deflected() -> void:
 	_shatter()
+
+
+## A wind holds it back: for this frame it covers only this much of its way. It falls the same way.
+func hinder(pace: float) -> void:
+	_drag = minf(_drag, pace)
+
+
+## Which way it is going right now.
+func heading() -> Vector2:
+	return _v.normalized()
+
+
+## Something pulls it (a hole).
+func pull(force: Vector2, _delta: float) -> void:
+	_pulled += force
+
+
+## A gust or a Barrier turns it: it goes on the new way at the speed it had.
+func reflect(direction: Vector2) -> void:
+	_v = direction.normalized() * _v.length()
+	_spent = false

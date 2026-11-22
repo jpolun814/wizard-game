@@ -53,16 +53,10 @@ func _body_radius(body: Node2D) -> float:
 	return 16.0 if body.is_in_group("wizards") else 14.0
 
 
-## The beam is a streak of glowing motes laid along its line, crackling as they fade.
+## The beam: a rope of dark energy, drawn for the game, laid from the staff to where it struck, with a glow at its start.
 func _show_beam(from: Vector2, tip: Vector2) -> void:
-	var length := from.distance_to(tip)
-	var steps := maxi(2, int(length / 8.0))
-	for i in steps + 1:
-		var at := from.lerp(tip, float(i) / steps) + Vector2(randf_range(-3.0, 3.0), randf_range(-3.0, 3.0))
-		Fx.pop(get_parent(), at, "circle_05", COLOR.lightened(0.15), 40.0, 0.3, 0.4)  # the body of the beam
-		Fx.pop(get_parent(), at, "circle_05", Color(0.95, 0.9, 1.0), 18.0, 0.22, 0.3)  # its white core
-		if i % 3 == 0:
-			Fx.pop(get_parent(), at + Vector2(randf_range(-14.0, 14.0), randf_range(-14.0, 14.0)), "spark_01", Color(0.9, 0.8, 1.0), 20.0, 0.25, 0.6, 1.0)  # and the crackle round it
+	BoltLine.lay(get_parent(), from, tip, BoltLine.BEAMS, 0.4)
+	Fx.pop(get_parent(), from, "circle_05", COLOR, 40.0, 0.25, 1.4)
 
 
 func danger_at(_point: Vector2) -> bool:

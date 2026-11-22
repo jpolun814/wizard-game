@@ -286,10 +286,17 @@ func _chart(title: String, lines: Array, stepped := false) -> void:
 			points.append(at)
 			previous = at
 		if points.size() >= 2:
-			var fill := PackedVector2Array(points)
-			fill.append(Vector2(points[points.size() - 1].x, plot.end.y))
-			fill.append(Vector2(points[0].x, plot.end.y))
-			f.draw_colored_polygon(fill, Color(line[1], 0.14))
+			var highest := plot.end.y
+			for each: Vector2 in points:
+				highest = minf(highest, each.y)
+			if plot.end.y - highest > 1.0:  # (a line along the bottom has nothing under it to fill, and a flat shape cannot be drawn)
+				var fill := PackedVector2Array()
+				for each: Vector2 in points:
+					if fill.is_empty() or not each.is_equal_approx(fill[fill.size() - 1]):  # (two samples alike would make a shape the engine cannot fill)
+						fill.append(each)
+				fill.append(Vector2(points[points.size() - 1].x, plot.end.y))
+				fill.append(Vector2(points[0].x, plot.end.y))
+				f.draw_colored_polygon(fill, Color(line[1], 0.14))
 			f.draw_polyline(points, Color(line[1], 0.35), 7.0, true)  # a glow under the line
 			f.draw_polyline(points, line[1], 3.0, true)
 		f.draw_string(Lettering.PIXEL, Vector2(key_x, plot.position.y - 12.0), line[0], HORIZONTAL_ALIGNMENT_LEFT, -1.0, 22, line[1])

@@ -31,8 +31,8 @@ const STEP_SOUNDS := {"graveyard": "step_dirt", "mountains": "step_snow", "jungl
 	"underground": "step_rock", "portals": "step_grass", "ocean": "step_wood"}
 ## How fast a wizard must be falling (px/s) to be heard landing.
 const LAND_SPEED := 380.0
-const OIL_GRIP := 380.0        # and on oil, which is more slippery still
-const ICE_GRIP := 650.0        # how fast a wizard on ice can change speed, in pixels a second each second
+const OIL_GRIP := 90.0        # and on oil, which is more slippery still
+const ICE_GRIP := 150.0        # how fast a wizard on ice can change speed, in pixels a second each second
 const OBSIDIAN_SPEED := 0.75    # how fast the wizard walks in black glass
 const OBSIDIAN_SHOTS := 0.5     # and how much of a shot's damage gets through
 const SURF_SPEED := 470.0       # how fast a wave carries the wizard

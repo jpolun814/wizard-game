@@ -35,6 +35,8 @@ const RITUALS := {
 		"text": "paginam quaero"},
 	"scrying_eye": {"kind": "toggle", "module": "scrying_eye", "name": "Chant of the Scrying Eye",
 		"text": "oculum mitto"},
+	"darkvision": {"kind": "ritual", "name": "Chant of Darkvision",
+		"text": "melius in tenebris video"},
 }
 const LIKENESS_WORDS := "faciem meam muta"
 const BACKFIRE_BELOW := 0.6  # accuracy under this misfires

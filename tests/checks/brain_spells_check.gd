@@ -12,7 +12,7 @@ const ELSEWHERE := {"Frost Bridge": "cross_check kind=flood", "Lily Pads": "cros
 ## How each spell is set up: "gap" the pixels between the two wizards, and flags for what the spell is for. Spells not listed are tried with the defaults.
 const SCENES := {
 	"Icicles": {"ceiling": true},
-	"Flare": {"dark": true}, "Glowcap": {"dark": true}, "Moonbeam": {"dark": true},
+	"Flare": {"dark": true}, "Dancing Lights": {"dark": true}, "Bathe": {"burning": true}, "Headwind": {"rush": true, "gap": 150.0}, "Glowcap": {"dark": true}, "Moonbeam": {"dark": true},
 	"Adrenaline": {"tired": true}, "Sneak": {"low": true},
 	"Hunter's Mark": {"gap": 720.0, "seed": 4}, "Golem": {"gap": 200.0, "hold": true},  # (a spell for a rival close at hand and standing on the ground: the brain keeps away from one that is not, and a rival put on top of it is never on the ground)
 	"Mirage": {"gap": 330.0, "page": true, "page_at": 150.0, "page_spell": "Mirage", "hold": true, "strong": true, "seed": 3},  # a rival some way off (in sight), and a real page for the false one to pass for (one it holds already: a page it wanted, it would go and take first, and then none would be left to pass for)
@@ -194,6 +194,8 @@ func _try(spell_name: String) -> void:
 		if not is_instance_valid(rival) or not is_instance_valid(tester):  # (one has been taken out of the world: there is nothing left to try it on)
 			break
 		rival.stamina = 200.0
+		if scene.get("burning", false):
+			tester.burning_time = maxf(tester.burning_time, 3.0)  # (a flame on it that water would take off)
 		if scene.get("rush", false):
 			rival.global_position = tester.global_position + Vector2(70.0, 0.0)  # a rival who keeps on top of it
 		elif scene.get("hold", false):  # and one who keeps its distance, so that its shots take as long to arrive each time, standing on the ground there

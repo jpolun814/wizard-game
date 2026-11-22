@@ -50,6 +50,11 @@ func shake(point: Vector2, reach: float, damage: float) -> void:
 		take_blow_near(_box.get_center(), damage)
 
 
+## The middle of the block.
+func covers_center() -> Vector2:
+	return _box.get_center()
+
+
 ## Is the point in the block.
 func covers(point: Vector2) -> bool:
 	return _box.has_point(point)

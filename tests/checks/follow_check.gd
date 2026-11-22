@@ -51,6 +51,7 @@ func _ready() -> void:
 	var slab: Dictionary = pond._slabs[pond._slabs.size() - 1] if not pond._slabs.is_empty() else {}
 	_verdict(not slab.is_empty() and absf(slab["y"] - level_before) < 1.0, "the ice lies on the surface of the water (%.0f, the water is at %.0f)" % [slab.get("y", 0.0), level_before])
 
+	_verdict(IceSheet.under(get_tree(), Vector2(middle, slab["y"])) and not IceSheet.under(get_tree(), Vector2(middle, slab["y"] + 60.0)), "and ice on water is slippery, as ice on the ground is")
 	# A Geyser standing in the pool lifts its water and lets it fall back: the pool loses none.
 	for k in 120:
 		await get_tree().physics_frame

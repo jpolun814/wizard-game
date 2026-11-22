@@ -8,6 +8,8 @@ extends Control
 @export var title := ""
 var sheen := 0.0  # 0 to 1: a pale white veil over the fill, for a bar that cannot go down (unlimited stamina)
 
+var _rest_x := 0.0  # where the bar sits when it is still
+var _alarm := 0.0  # 1 just after something could not be paid for (a spell with too little stamina): the bar flares red, then calms
 var _value := 1.0
 var _max := 1.0
 var _cap := 1.0  # the most the bar could ever show: what a hit takes off the most is drawn as a dark gap at its end
@@ -20,7 +22,18 @@ func set_value(value: float, maximum: float, cap := -1.0) -> void:
 	_cap = cap if cap > 0.0 else maximum
 
 
+func _ready() -> void:
+	_rest_x = position.x
+
+
+## The bar flares red and shakes: what was asked of it could not be paid.
+func alarm() -> void:
+	_alarm = 1.0
+
+
 func _process(delta: float) -> void:
+	_alarm = move_toward(_alarm, 0.0, delta * 0.9)
+	position.x = _rest_x + (sin(Time.get_ticks_msec() * 0.06) * 7.0 * _alarm if _alarm > 0.0 else 0.0)  # it shakes as it flares, and settles
 	var share := clampf(_value / _cap, 0.0, 1.0)
 	_chip = share if share > _chip else move_toward(_chip, share, delta * 0.6)
 	queue_redraw()
@@ -48,6 +61,10 @@ func _draw() -> void:
 		_draw_fill(Rect2(inner.position, Vector2(roundf(inner.size.x * share), inner.size.y)), inner)
 		if sheen > 0.0:
 			draw_rect(Rect2(inner.position, Vector2(roundf(inner.size.x * share), inner.size.y)), Color(1.0, 1.0, 1.0, 0.4 * sheen))
+	if _alarm > 0.0:
+		var pulse := 0.5 + 0.5 * sin(_alarm * 26.0)  # it blinks while it fades
+		draw_rect(Rect2(Vector2.ZERO, size), Color(1.0, 0.1, 0.08, 0.5 * _alarm * pulse))
+		draw_rect(Rect2(Vector2.ZERO, size), Color(1.0, 0.25, 0.2, _alarm), false, 4.0)
 	if has_theme_icon("crown", "HudBar"):  # (an ornament standing on the frame's top edge)
 		var crown := get_theme_icon("crown", "HudBar")
 		draw_texture(crown, Vector2(roundf((size.x - crown.get_width()) * 0.5), -crown.get_height() + float(get_theme_constant("crown_sink", "HudBar"))))

@@ -14,6 +14,10 @@ const BREAKING_BLOW := 60.0  # what it takes off a wall or a plug of ice where i
 const HEALTH := 63.0  # the same as a default stone wall (45% of its length)
 
 var earth: Texture2D  # the world's earth, which the boulder is cut from; set by the arena
+var caster: Wizard    # who cast it (a wind it was cast into does not slow it)
+var _pace := 1.0      # how much of its way a wind lets it cover
+var _pull := Vector2.ZERO
+var _flying := false  # whether it is moving fast enough to be a shot (see _integrate_forces)
 var _health := HEALTH
 var _landed := false
 var _speed := 0.0  # how fast it was moving just before it struck, which is how hard it hits
@@ -66,6 +70,21 @@ func _integrate_forces(state: PhysicsDirectBodyState2D) -> void:
 	if _recent.size() > RECENT_STEPS:
 		_recent.pop_front()
 	_speed = _recent.max()
+	# A boulder in flight (falling, or rolling fast enough to hurt) is a shot: wind slows it, a hole pulls it, a Barrier turns it. One at rest is a rock, and is not.
+	var moving := _speed >= RUNNING_SLOWEST or not _landed  # (a boulder still falling is one too, though it has not yet got up speed)
+	if moving != _flying:
+		_flying = moving
+		if moving:
+			add_to_group("shots")
+		else:
+			remove_from_group("shots")
+	if _pace < 1.0:  # a wind: gravity takes less of it, and it is dragged a little
+		state.linear_velocity -= state.total_gravity * (1.0 - _pace) * state.step
+		state.linear_velocity *= 1.0 - 1.5 * state.step
+	_pace = 1.0
+	if _pull != Vector2.ZERO:
+		state.linear_velocity += _pull
+		_pull = Vector2.ZERO
 
 
 ## A walker or the player it bumps takes damage in proportion to how fast it was moving, your own boulder included. The first time it touches the
@@ -76,6 +95,8 @@ func _on_contact(body: Node) -> void:
 		if _speed < RUNNING_SLOWEST or now - int(_last_bump.get(body, -10000)) < 600:
 			return
 		_last_bump[body] = now
+		if body.is_in_group("wizards") and Elements.shield_turns(self, body):  # a Barrier turns it away
+			return
 		SpellTargets.hurt(body, _blow(), "Earth", false, false, self)
 		return
 	if _landed:
@@ -127,3 +148,23 @@ func _take_blow(damage: float, at: Vector2) -> void:
 	else:
 		Fx.debris(get_parent(), at, Color("#6b5a48"), 5, 120.0)
 		Sfx.cue("Stonefall", "rocks", global_position, -6.0)
+
+
+## A wind holds it back: it falls and rolls slower for this frame.
+func hinder(pace: float) -> void:
+	_pace = minf(_pace, pace)
+
+
+## Which way it is moving.
+func heading() -> Vector2:
+	return linear_velocity.normalized()
+
+
+## A pull on it (a hole).
+func pull(force: Vector2, delta: float) -> void:
+	_pull += force * delta
+
+
+## A Barrier or a shove sends it off the way it is turned, at the speed it had.
+func reflect(way: Vector2) -> void:
+	linear_velocity = way.normalized() * maxf(linear_velocity.length(), RUNNING_SLOWEST)

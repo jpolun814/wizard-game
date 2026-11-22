@@ -6,7 +6,7 @@ class_name GestureTemplates
 
 ## Recognizer template name -> gesture name. Several templates can share a gesture. A circle counts the same
 ## whichever way round it is drawn.
-const ALIASES := {"shield_0": "shield", "shield_0r": "shield", "shield_1": "shield", "shield_1r": "shield", "shield_2": "shield", "shield_2r": "shield", "shield_3": "shield", "shield_3r": "shield", "shield_4": "shield", "shield_4r": "shield", "line": "flick", "zig_tall": "zigzag",
+const ALIASES := {"shield_0": "shield", "shield_0r": "shield", "shield_1": "shield", "shield_1r": "shield", "shield_2": "shield", "shield_2r": "shield", "shield_3": "shield", "shield_3r": "shield", "shield_4": "shield", "shield_4r": "shield", "line": "flick", "zig_tall": "zigzag", "bolt_r": "bolt",
 	"circle_cw": "circle", "circle_ccw": "circle", "flame_cw": "flare", "flame_ccw": "flare",
 	"eight_top_cw": "eight", "eight_top_ccw": "eight", "eight_mid_cw": "eight", "eight_mid_ccw": "eight",
 	"vine_cw": "vine", "vine_ccw": "vine", "vine_cw_r": "vine", "vine_ccw_r": "vine",
@@ -36,6 +36,8 @@ static func recognizer_templates() -> Dictionary:
 		"earthquake_r": _double_arrow(true),
 		"circle_cw": _ring(false),
 		"circle_ccw": _ring(true),
+		"bolt": _bolt(false),
+		"bolt_r": _bolt(true),
 		"zig_tall": PackedVector2Array([Vector2(0, 0), Vector2(-40, 40), Vector2(0, 80), Vector2(-40, 120)]),
 		"stonefall": _circle_and_drop(),
 		"cross": PackedVector2Array([Vector2(0, 0), Vector2(100, 100), Vector2(50, 50), Vector2(100, 0), Vector2(0, 100)]),
@@ -104,6 +106,8 @@ static func preview_points(gesture: String) -> PackedVector2Array:
 			return _ring(true)
 		"zigzag":
 			return recognizer_templates()["zig_tall"]
+		"bolt":
+			return _bolt(false)
 		"stonefall":
 			return recognizer_templates()["stonefall"]
 		"tornado":
@@ -440,6 +444,15 @@ static func _lungs(mirror: bool, start: float) -> PackedVector2Array:
 
 ## A five-pointed star drawn in one stroke without lifting: from a point, straight to the point two along, and so on
 ## round until it closes. start picks which point it begins at, ccw the way round.
+## Lightning on its side (Jolt): Spark's own zigzag, turned a quarter so that it runs across, to the right (or, reversed, to the left).
+static func _bolt(reversed: bool) -> PackedVector2Array:
+	var points := PackedVector2Array([Vector2(0, 0), Vector2(40, 40), Vector2(80, 0), Vector2(120, 40)])  # Spark's zigzag (zig_tall) turned on its side
+	if reversed:  # the same bolt seen in a mirror, running to the left
+		for k in points.size():
+			points[k].x = -points[k].x
+	return points
+
+
 static func _pentagram(start: int, ccw: bool) -> PackedVector2Array:
 	var pts := PackedVector2Array()
 	for step in 6:

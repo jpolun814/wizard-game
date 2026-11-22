@@ -120,6 +120,12 @@ func _physics_process(delta: float) -> void:
 			wizard.take_damage(99999, true)
 
 
+## It loses the one it was after (they have washed it away) and fades.
+func lose_scent() -> void:
+	if not _fading:
+		_vanish()
+
+
 func _vanish() -> void:
 	_fading = true
 	Fx.burst(get_parent(), global_position, SLIME, 8, 60.0, 0.5, false)

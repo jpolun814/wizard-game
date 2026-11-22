@@ -207,6 +207,7 @@ Drawn pixel by pixel by `tools/make_shot_art.py`. No outside source and nothing 
 - `art/tiles/earth_seabed.png`, `lip_seabed.png`: made by `tools/prepare_earth.py`, as every biome's ground is.
 
 `art/fx/scythe.png` (the Scythe spell's blade) is pixel art drawn for the game (`tools/make_scythe.py`; the owner approved it, but agents should not draw art).
+`art/fx/bolt_segments.png` and `art/fx/beam_segments.png` (Jolt's lightning and the Eldritch Blast's beam) are pixel art drawn for the game by `tools/make_bolt_art.py` (the owner asked for it, 2026-11-21); `BoltLine` lays them along a line.
 
 `art/parts/` (the character creator's wizards: skin, outfit, hair, beard, hat, weapon and the magic layer, 46 animations) was generated procedurally for the game by an agent under the owner's close watch (the generator is in `wizard-azure/creator`, outside this repo); the sheets are in `art_source/parts_sheets/` and packed by `tools/pack_parts.gd`. Only the style was matched to `art/chars/wizard`. No outside art. The owner approved it.
 

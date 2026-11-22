@@ -96,11 +96,30 @@ func grant(speaker: Wizard, id: String) -> void:
 			speaker.grant_haste(20.0)
 		"deep_breath":
 			speaker.lungs.grant_deep(Lungs.DEEP_BREATH)
+		"darkvision":
+			give_sight(speaker)
 		"bonfire":
 			if speaker.brain != null:  # (the person's own bonfire is made by their ritual, with the power of how well they said it)
 				var spot := bonfire_spot(speaker)
 				kindle(spot, 1.0)
 				Net.send(arena, &"kindle", [spot, 1.0])
+
+
+## The light of the Chant of Darkvision, a flare with no flame, on a wizard: it lasts until they fall, and a later world of the match gives it again (the chant, once
+## said, holds: see `Ledger.LASTING`). A new one replaces the old.
+func give_sight(speaker: Wizard) -> void:
+	var sight := Flare.new()
+	sight.unseen = true
+	sight.caster = speaker
+	arena.add_child(sight)
+
+
+## True when a wizard has the light of Darkvision on them.
+func has_sight(speaker: Wizard) -> bool:
+	for flare: Flare in arena.get_tree().get_nodes_in_group("flares"):
+		if flare.unseen and flare.caster == speaker and not flare.is_queued_for_deletion():
+			return true
+	return false
 
 
 ## A bonfire burns at a spot (every machine of a network game is told to).

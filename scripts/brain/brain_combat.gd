@@ -87,6 +87,7 @@ func attack(to_player: Vector2, sees: bool) -> bool:
 		"Raise Dead": 1.2 if gap < 560.0 and grounded and wizard.max_stamina > 120.0 and brain.own_raised() < 2 else 0.0,
 		"Leech": 1.0 if sees and aim_ok and gap < Leech.REACH - 40.0 and Leech.held_by(wizard.get_tree(), wizard) == null else 0.0,
 		"Eldritch Blast": 1.4 if sees and gap > 120.0 and gap < 560.0 else 0.0,  # slow, and it bends toward you
+		"Jolt": (1.6 if foe.is_wet() else 1.2) if sees and absf(to_player.normalized().x) > 0.8 and gap > 80.0 and gap < 480.0 else 0.0,  # drawn across: a steep bolt would be read as a Spark  # it strikes at once, and a soaked rival takes it hard
 		"Hemorrhage": 1.2 if sees and gap < 420.0 else 0.0,
 		"Invincible Snail": 1.1 if gap > 260.0 and wizard.max_stamina > 150.0 and not wizard.get_tree().get_nodes_in_group("snails").any(func(n: Node) -> bool: return n.caster == wizard) else 0.0,  # slow: it wants a rival who is not about to be on top of you
 		"Supernova": 1.4 if gap < 560.0 and wizard.max_stamina > 140.0 and not sheltered() else 0.0,  # a sun that hangs about: it likes a rival who stays near

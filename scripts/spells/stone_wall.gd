@@ -105,6 +105,11 @@ static func crumble_at(tree: SceneTree, point: Vector2) -> bool:
 	return false
 
 
+## The wall comes down at once, as when the ground it stands on shakes apart.
+func crumble() -> void:
+	_take_blow(_health + 1.0, to_global(Vector2(_length * 0.5, 0.0)))
+
+
 func _take_blow(damage: float, at: Vector2) -> void:
 	_health -= damage
 	if _health <= 0.0:

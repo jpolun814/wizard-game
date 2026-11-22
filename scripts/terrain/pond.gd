@@ -77,6 +77,7 @@ var _air_dirty := true
 
 
 func _ready() -> void:
+	add_to_group("slippery")  # (only where it is frozen: see `covers`)
 	if not lava:
 		add_to_group("waters")
 	material = ShaderMaterial.new()  # dithered bands, as pixel art is shaded
@@ -475,6 +476,14 @@ func wets(point: Vector2) -> bool:
 ## Whether a body stands on ice that was frozen over this water (fire would melt what it stands on).
 func carries(body: Node2D) -> bool:
 	return _on_ice(body)
+
+
+## True when a point is on the frozen top of this pond, where a foot slides.
+func covers(point: Vector2) -> bool:
+	for slab in _slabs:
+		if point.x >= slab["x0"] and point.x <= slab["x1"] and absf(point.y - slab["y"]) <= 10.0:
+			return true
+	return false
 
 
 ## True when the body stands on frozen water rather than in it.

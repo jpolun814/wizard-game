@@ -20,7 +20,27 @@ func _ready() -> void:
 	camera.shake(0.6)
 	var calm := GameCamera.shake_px(get_tree())
 	_verdict(calm > 0.0 and not Earthquake.is_shaking(get_tree()), "a shake of 0.6 moves the view %.1f px when the ground is still" % calm)
+	# Every stone wall raised anywhere in the world comes down in a quake, near the wizard or not.
+	var walls: Array[StoneWall] = []
+	for far in [60.0, 2500.0]:
+		var wall := StoneWall.new()
+		wall.wall_texture = world.earth_texture()
+		world.add_child(wall)
+		wall.setup("Stone Wall", world.player.global_position + Vector2(far, -40.0), 0.0)
+		walls.append(wall)
+	var bricks: Array[RockWall] = []
+	for far in [60.0, 2500.0]:
+		var brick := RockWall.new()
+		brick.columns = [{"x": 10, "top": 2, "bottom": 10}]
+		brick.global_position = world.player.global_position + Vector2(far, -3000.0)
+		world.add_child(brick)
+		bricks.append(brick)
+	await get_tree().physics_frame
+	_verdict(walls.all(func(w) -> bool: return is_instance_valid(w) and not w.is_queued_for_deletion()), "two stone walls stand, one near and one far")
 	world.spawn_spell("Earthquake", "positional", world.player.center(), 0.0, {}, world.player)
+	await get_tree().create_timer(Earthquake.WALLS_FALL_AT + 0.6).timeout
+	_verdict(walls.all(func(w) -> bool: return not is_instance_valid(w) or w.is_queued_for_deletion()), "an earthquake brings down every stone wall in the world")
+	_verdict(bricks.all(func(b) -> bool: return not is_instance_valid(b) or b.is_queued_for_deletion() or b._health < RockWall.HEALTH), "and wears down every wall of brick in it, near or far")
 	camera._trauma = 0.6  # (the cast shakes the screen too: the same shake as before is compared)
 	var quake := GameCamera.shake_px(get_tree())
 	_verdict(Earthquake.is_shaking(get_tree()), "the ground shakes after the cast")

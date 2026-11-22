@@ -7,6 +7,8 @@ var camped := false             # it rests by a bonfire to mend
 var camped_for := 0.0
 var mend_wait := 0.0
 var resting := false            # it has stopped to get its breath back
+const STAR_DRAW := 1.1  # seconds to draw a star: too quick a stroke is read as a flick
+var sight_wait := 0.0              # seconds before it thinks again of saying the chant that sees in the dark
 var brace_wait := 0.0              # seconds before it thinks again of saying the chant that fills its strength
 var tend_cooldown := 3.0        # counting down to the next time it looks to its own needs
 
@@ -24,6 +26,7 @@ func _init(owner: WizardBrain, body: Wizard) -> void:
 func mend(delta: float, fighting: bool) -> float:
 	mend_wait -= delta
 	brace_wait -= delta
+	sight_wait -= delta
 	if (brain.chant.is_typing() or camped or brain.settle > 0.0) and (brain.assailant() != null or brain.danger.scorched() or brain.danger.bitten()):  # it does not sit and chant with a blade or a flame on it
 		brain.chant.typing = ""
 		brain.settle = 0.0
@@ -60,12 +63,34 @@ func mend(delta: float, fighting: bool) -> float:
 
 ## Looks to what it needs, and casts for it: a way up to a rival over its head, a light in the dark, its strength, and something between it and a rival who
 ## is hurting it. True when it has begun a cast.
+## Whether the Chant of Darkvision is on it already (its light is a flare nobody sees).
+func _sees_in_the_dark() -> bool:
+	for flare: Flare in wizard.get_tree().get_nodes_in_group("flares"):
+		if flare.unseen and flare.caster == wizard:
+			return true
+	return false
+
+
+## Whether there is something on it that water would wash off: a flame, a curse, a wound, a snail on its heels.
+func _needs_washing() -> bool:
+	if wizard.burning_time > 0.0 or Hex.on(wizard.get_tree(), wizard) != null or Hemorrhage.on(wizard.get_tree(), wizard) != null:
+		return true
+	for snail: InvincibleSnail in wizard.get_tree().get_nodes_in_group("snails"):
+		if snail.target == wizard:
+			return true
+	return false
+
+
 func tend(to_player: Vector2, sees: bool, fighting: bool) -> bool:
 	if fighting and brain.combat.chase(to_player, sees):
 		return true
 	if not fighting and brace_wait <= 0.0 and brain.knows("chant:boundless") and wizard.infinite_time <= 0.0 and brain.quiet_here() and not BrainProfile.off("brace") and brain.pressure > 0.3:
 		brace_wait = 50.0  # a rival it has seen shoot at it is somewhere near, and not yet on it: it says the words that fill the strength, as a person would before a fight
 		brain.chant.open("boundless")
+		return true
+	if not fighting and sight_wait <= 0.0 and brain.in_dark() and brain.knows("chant:darkvision") and brain.quiet_here() and not _sees_in_the_dark():
+		sight_wait = 60.0  # the dark has come down on it: it says the words that let it see, as a person would
+		brain.chant.open("darkvision")
 		return true
 	var gap := absf(to_player.x)
 	var low := wizard.max_stamina < Wizard.MAX_STAMINA * 0.45
@@ -74,10 +99,15 @@ func tend(to_player: Vector2, sees: bool, fighting: bool) -> bool:
 	var weights := {}
 	if brain.in_dark():
 		weights["Flare"] = 1.5
+		weights["Dancing Lights"] = 1.3
 		weights["Glowcap"] = 0.6 if tired or fighting else 0.0
 		weights["Moonbeam"] = 0.8 if fighting else 0.0
 	if brain.in_dark() and not brain.knows("Flare") and not brain.knows("Glowcap"):
 		weights["Ignite"] = 0.8  # a fireball thrown ahead lights the way when nothing gentler is held
+	if _needs_washing():
+		weights["Bathe"] = 2.0  # a flame, a snail or a wound on it: water takes them all
+	if sees and gap < 160.0 and wizard.max_stamina > 60.0:
+		weights["Headwind"] = 0.35  # a rival closing on it: the wind slows them
 	if ambush:
 		weights["Sneak"] = 1.4
 	if fighting and not BrainProfile.off("decoy") and brain.pressure > 0.3 and brain.profile.shown_any(brain.opponent, ["Stonefall", "Spark", "Supernova", "Scythe", "Eldritch Blast"]):
@@ -111,7 +141,7 @@ func tend(to_player: Vector2, sees: bool, fighting: bool) -> bool:
 	var choice := brain.combat.pick(weights)
 	if choice == "":
 		return false
-	if not brain.hand.begin_cast(choice, brain.hand.tend_stroke(choice, to_player), WizardBrain.QUICK_DRAW):
+	if not brain.hand.begin_cast(choice, brain.hand.tend_stroke(choice, to_player), STAR_DRAW if choice == "Dancing Lights" else WizardBrain.QUICK_DRAW):
 		return false
 	brain.rest[choice] = WizardBrain.TEND_REST[choice]
 	return true

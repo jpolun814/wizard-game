@@ -38,6 +38,10 @@ var _title_font: Font
 var _faces: Array[Font] = []
 var _title_faces: Array[Font] = []
 const FACE_FILES := ["res://fonts/Jersey15-Regular.ttf"]  # the face the text of the book is written in (names and headings are in Lettering.FACE)
+var _turn_hint: Label   # "use the arrow keys", under the open book
+var _turn_arrows: Array[Label] = []  # a "<" and a ">" at the book's sides, which show where there is another page to turn to
+static var _ever_turned := false  # once the person has turned a page, the arrows stop pulsing
+var _pulse := 0.0
 var _left_number: Label  # the page numbers, at the foot of each page
 var _right_number: Label
 
@@ -68,6 +72,7 @@ func _ready() -> void:
 	_use_face(0)
 	_left_number = _page_number(_left)
 	_right_number = _page_number(_right)
+	_make_turn_cues()
 
 	_show_spread()
 
@@ -125,6 +130,61 @@ func refresh() -> void:
 	_show_spread()
 
 
+## The words under the book, and an arrow at each side: how to turn the pages is on the screen.
+func _make_turn_cues() -> void:
+	_turn_hint = _cue_label("Use the left and right arrow keys to turn the pages", 26)
+	_turn_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	add_child(_turn_hint)
+	for symbol in ["<", ">"]:
+		var arrow := _cue_label(symbol, 64)
+		arrow.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		add_child(arrow)
+		_turn_arrows.append(arrow)
+	_place_turn_cues()
+	get_viewport().size_changed.connect(_place_turn_cues)
+
+
+func _cue_label(text: String, font_size: int) -> Label:
+	var label := Label.new()
+	label.text = text
+	label.add_theme_font_override("font", Lettering.PIXEL)
+	label.add_theme_font_size_override("font_size", font_size)
+	label.add_theme_color_override("font_color", Color("#fff2c8"))
+	label.add_theme_color_override("font_outline_color", Color(0.05, 0.02, 0.06))
+	label.add_theme_constant_override("outline_size", 8)
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return label
+
+
+func _place_turn_cues() -> void:
+	var view := get_viewport().get_visible_rect().size
+	_turn_hint.size = Vector2(view.x, 40.0)
+	_turn_hint.position = Vector2(0.0, view.y - 64.0)
+	var middle_y := _book.position.y + OPEN_MIDDLE.y * SCALE - 35.0
+	_turn_arrows[0].size = Vector2(60.0, 70.0)
+	_turn_arrows[1].size = Vector2(60.0, 70.0)
+	_turn_arrows[0].position = Vector2(_book.position.x + 6.0 * SCALE, middle_y)
+	_turn_arrows[1].position = Vector2(_book.position.x + 173.0 * SCALE - 60.0, middle_y)
+
+
+## The cues show only where there is a page to turn to, and pulse until the first time the person turns one.
+func _tend_turn_cues(delta: float) -> void:
+	var last := ceili(_pages.size() / 2.0) - 1
+	_pulse += delta
+	var beat := 1.0 if _ever_turned else 0.55 + 0.45 * sin(_pulse * 5.0)
+	_turn_hint.visible = last > 0
+	_turn_hint.modulate.a = 0.55 if _ever_turned else beat
+	_turn_arrows[0].visible = last > 0 and _spread > 0
+	_turn_arrows[1].visible = last > 0 and _spread < last
+	for arrow in _turn_arrows:
+		arrow.modulate.a = 0.5 if _ever_turned else beat
+
+
+func _process(delta: float) -> void:
+	if visible:
+		_tend_turn_cues(delta)
+
+
 func _input(event: InputEvent) -> void:
 	if event.is_action_pressed("book"):
 		var lying := PagePickup.underfoot(get_tree()) if not visible else null
@@ -179,6 +239,7 @@ func _turn(leaves: int) -> void:
 	if turned == _spread:
 		return
 	Sfx.cue("spellbook", "page")
+	_ever_turned = true
 	_spread = turned
 	# The page flips over with the writing hidden, then the new pages show.
 	_set_writing(false)
@@ -485,6 +546,8 @@ static func ritual_effect(ritual_id: String) -> String:
 			return "Run faster."
 		"deep_breath":
 			return "Hold your breath."
+		"darkvision":
+			return "See better in the dark."
 		"scrying_eye":
 			return "Spy on another wizard."
 		"dowsing":

@@ -16,6 +16,7 @@ const STAGES := [
 ]
 const LATER_BIOMES := ["portals", "ocean", "sky"]  # the biomes dealt in after the others are shuffled, in the order they were added (see biome_of)
 const CASTLE_SHARE := 0.6  # the share of a stage's width that a castle world takes
+const UNDERGROUND_SHARE := 0.6  # and the underground (owner, 2026-11-21: too wide, wizards were not going down): cut through with halls, so it too is built tall
 const SKY_SHARE := 0.35    # and an open sky (owner, 2026-11-12: too large, twice: it was 1.0, then 0.5): it is open every way, up and down as well as along, so the same width is far more room
 const OCEAN_SHARE := 0.5   # and the ocean (owner, 2026-11-15: too large, a wizard went the whole world without seeing anyone: swimming is slow and a screen sees little through the water)
 const HEIGHT := 380  # every world is this deep, in tiles
@@ -59,6 +60,8 @@ static func plan_of(at: int) -> Dictionary:
 	var plan: Dictionary = STAGES[at].merged({"biome": biome, "caves": halls})
 	if biome == "castle":
 		plan["width"] = roundi(plan["width"] * CASTLE_SHARE)  # a castle world is built tall, and takes less width than the rest
+	elif biome == "underground":
+		plan["width"] = roundi(plan["width"] * UNDERGROUND_SHARE)
 	elif biome == "sky":
 		plan["width"] = roundi(plan["width"] * SKY_SHARE)
 	elif biome == "ocean":
@@ -104,13 +107,16 @@ static func page_counts() -> Array[int]:
 	for at in STAGES.size():
 		var biome := biome_of(at)
 		var width: int = STAGES[at]["width"]
-		out.append(Pages.count_for(biome, roundi(width * CASTLE_SHARE) if biome == "castle" else width))
+		out.append(Pages.count_for(biome, roundi(width * (CASTLE_SHARE if biome == "castle" else UNDERGROUND_SHARE if biome == "underground" else 1.0))))
 	return out
 
 
 ## The pages of each world of this match, and the spare ones, settled by its seed: see Pages.allotment.
 static func page_allotment(wizards: int) -> Dictionary:
-	return Pages.allotment(seed_base, wizards, page_counts())
+	var biomes: Array = []
+	for at in STAGES.size():
+		biomes.append(biome_of(at))
+	return Pages.allotment(seed_base, wizards, page_counts(), biomes)
 
 
 ## The seed of a stage's world: the same for the same match, and not the first world's own.

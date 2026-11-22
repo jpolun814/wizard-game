@@ -10,6 +10,10 @@ const WALK := 170.0
 const FALL := 600.0
 const STEP := 18.0  # the highest step it walks up
 const HEALTH := 40
+const HINT_TIMES := 4     # how many of its decoys a person is told, in a run of the game, that the arrow keys walk them (owner, 2026-11-21: make it clear)
+const HINT_SECONDS := 8.0  # how long the words stay if the decoy is not moved
+
+static var _hints_given := 0
 
 var hp := HEALTH
 var mine := false  # true on the machine of the wizard who cast it: only they see it as a ghost, the rest see a wizard
@@ -22,6 +26,8 @@ var _body: AnimatedSprite2D
 var _magic: MagicLayer  # a decoy of a wizard made of parts shows the glow of their staff too
 var _flash := 0.0
 var _facing := 1.0
+var _hint: Label
+var _hint_done := false
 
 
 ## The decoy that is nearest to a point and close enough to be noticed, or null.
@@ -74,6 +80,7 @@ func _physics_process(delta: float) -> void:
 	_age += delta
 	_flash = maxf(_flash - delta, 0.0)
 	_walk(delta)
+	_tend_hint()
 	var alpha := clampf(_age / 0.3, 0.0, 1.0) * clampf((SECONDS - _age) / 0.8, 0.0, 1.0)
 	if not mine:
 		_body.modulate = Color.WHITE  # to everyone else it is a wizard like any other
@@ -83,6 +90,35 @@ func _physics_process(delta: float) -> void:
 		_magic.mirror(_body)
 	if _age >= SECONDS:
 		_vanish()
+
+
+## Tells whoever cast it, in words over it, to move it with the arrow keys: until they have, or the words have been there a while, and for their first few decoys only.
+func _tend_hint() -> void:
+	if not mine or _hint_done:
+		return
+	if _hint == null:
+		if _hints_given >= HINT_TIMES:
+			_hint_done = true
+			return
+		_hints_given += 1
+		_hint = Label.new()
+		_hint.text = "Move it with the arrow keys"
+		_hint.add_theme_font_override("font", FloatText.font())
+		_hint.add_theme_font_size_override("font_size", 18)
+		_hint.add_theme_color_override("font_color", Color("#e0ccff"))
+		_hint.add_theme_color_override("font_outline_color", Color(0.08, 0.04, 0.12))
+		_hint.add_theme_constant_override("outline_size", 5)
+		_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_hint.z_index = 50
+		_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_hint.size = Vector2(260, 26)
+		_hint.position = Vector2(-130.0, -Wizard.BODY_HEIGHT - 44.0)
+		add_child(_hint)
+	if Input.get_axis("decoy_left", "decoy_right") != 0.0 or _age > HINT_SECONDS:
+		_hint_done = true
+		var tween := _hint.create_tween()
+		tween.tween_property(_hint, "modulate:a", 0.0, 0.4)
+		tween.tween_callback(_hint.queue_free)
 
 
 ## The arrow keys walk it, over the ground and up and down its slopes, and stopped by a wall; it drops when the ground ends.

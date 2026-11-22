@@ -50,7 +50,7 @@ func _blow(tree: SceneTree) -> void:
 		if _cloud_blown(winds, cloud):
 			cloud.dissipate()
 	for flare: Node2D in tree.get_nodes_in_group("flares"):
-		if is_instance_valid(flare) and _blown(winds, flare.global_position):
+		if is_instance_valid(flare) and can_go_out(flare) and _blown(winds, flare.global_position):
 			put_out(flare, flare.global_position)
 
 
@@ -136,6 +136,8 @@ static func shield_turns(shot: Node, body: Node) -> bool:
 
 ## Whether a fire can be put out at all: it knows how to go out, or it is a shot, which is simply ended.
 static func can_go_out(fire: Node) -> bool:
+	if fire.has_method("is_flame") and not fire.is_flame():
+		return false  # a light that is no flame (the sight a chant gives) has nothing to go out
 	return fire.has_method("quench") or fire.is_in_group("shots")
 
 

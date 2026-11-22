@@ -12,8 +12,8 @@ The owner asked for trim color, boot color, outfits that show skin, fewer look-a
 # MORE PARTS (2026-11-17, later): the same day the owner asked for variety in every slot
 Added with `tools/wizard_parts/parts.py` (no new slots, so saved looks still read): outfits cloak, ceremonial, rags, gothic, armored; robe colors black, gold, teal, rust;
 skins ashen, frost, undead; hair mohawk, braids, straight, balding, wild; beards braided, handlebar, wispy, stubble; hats horned, skull, laurel, turban, mushroom, crown;
-weapons staff_skull, staff_moon, staff_root, staff_lantern, crook, book, orb_hand, bone_wand. Hats with no color of their own are in `HAT_NO_COLOR` (parts.py, `PartsLook`, compose.py: keep the three in step).
-578 packed layers. Beard color is always the hair's and hat color the robe's (`PartsLook.tied`). Labels for the creator are `LikenessPanel.NAMES` (drafts until the owner confirms).
+weapons staff_skull, staff_moon, staff_root, staff_lantern, crook, book, orb_hand, bone_wand. Hats with no color of their own (none, skull, laurel, flower crown) are in `HAT_NO_COLOR` (parts.py, `PartsLook`, compose.py: keep the three in step). The circlet, tiara, crown and horned helm take the hat's color for their metal (2026-11-20).
+578 packed layers. Beard color is always the hair's (`PartsLook.tied`); the hat has a color of its own (owner, 2026-11-20). The maker lists its rows as skin, hair (style, color, beard), outfit (outfit, color, trim, hat, hat color, boots), weapon, voice. Labels for the creator are `LikenessPanel.NAMES` (drafts until the owner confirms).
 
 # AS BUILT (2026-11-17): read this first, the plan below it is the art session's and is partly superseded
 
@@ -175,7 +175,7 @@ magic/staff_orb.png
 ```
 
 Two special cases:
-- **`hat` = `none` or `circlet` ignores `hat_color`:** the file is `hat/none.png` (doesn't exist, see the next rule) or
+- **`hat` = `none`, `skull`, `laurel` or `flower_crown` ignores `hat_color`:** the file is `hat/none.png` (doesn't exist, see the next rule) or
   `hat/circlet.png`.
 - **A missing file means that slot draws nothing** for that choice: `hat/none`, `beard/none-*`, `hair_back/none-*`,
   `back_coat/robe-*` and `back_coat/tunic-*` don't exist on purpose. Skip them. Don't treat a missing file as an error,

@@ -153,12 +153,13 @@ func _begin_encounter(camera: Camera2D) -> void:
 	add_child(_guide)
 	_show_keys()
 	for spot: Array in PAGE_SPOTS:
-		_lay_pages(Vector2(ArenaGen.column_x(spot[0]), ArenaGen.surface_y(_cells, spot[0])), spot[1])
+		_lay_pages(Vector2(ArenaGen.column_x(spot[0]), ArenaGen.surface_y(_cells, spot[0])), spot[1], spot == PAGE_SPOTS[0])
 
 
 ## Lays pages on the ground at a point: one page, or several fanned out like cards.
-func _lay_pages(at: Vector2, names: Array) -> void:
+func _lay_pages(at: Vector2, names: Array, hinted := false) -> void:
 	var page := PagePickup.new()
+	page.always_hint = hinted  # the first pages say what to press from afar
 	page.page = names[0]
 	if names.size() > 1:
 		page.spoils.assign(names)
@@ -175,8 +176,9 @@ func _trim_fans() -> void:
 		var fresh := pickup.new_pages(player.ledger)
 		if not fresh.is_empty() and fresh.size() < pickup.spoils.size():
 			var at := pickup.position
+			var hinted := pickup.always_hint
 			pickup.queue_free()
-			_lay_pages(at, fresh)
+			_lay_pages(at, fresh, hinted)
 
 
 ## A pit of the same shape as the others, dug down from the ground at `base` rows.

@@ -10,6 +10,7 @@ const CLEAR_CHECK_AFTER := 0.3  # (it leaves the staff's gem, not the body's mid
 var aim := Vector2.RIGHT
 var _pulled := Vector2.ZERO  # a pull (a Black Hole's) bends the flight, on top of the aim
 var _spent := false
+var _drag := 1.0  # how much of its way it covers this frame: a wind that holds it back (Headwind) sets it lower, each frame it blows
 var _lift := 0.0  # how fast the fall has left it behind, upward
 var _clear := false  # it has flown out of its caster's body: from then on it can hit the caster too
 var _trail: CPUParticles2D
@@ -54,13 +55,19 @@ func heading() -> Vector2:
 	return aim
 
 
+## A wind holds it back: for this frame it covers only this much of its way. It flies the same way.
+func hinder(pace: float) -> void:
+	_drag = minf(_drag, pace)
+
+
 func _act(delta: float) -> void:
 	_emerge()
 	if _age >= CLEAR_CHECK_AFTER and not _clear and not get_overlapping_bodies().has(caster):
 		_clear = true
 	if caster is Wizard and caster.flying:
 		_lift += SKY_LIFT * delta
-	position += (velocity() + _pulled + Vector2(0.0, -_lift)) * delta
+	position += (velocity() + _pulled + Vector2(0.0, -_lift)) * delta * _drag
+	_drag = 1.0
 	rotation = aim.angle()
 
 

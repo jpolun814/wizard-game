@@ -17,7 +17,7 @@ func _init(arena: Arena) -> void:
 func recipes() -> Dictionary:
 	return {
 		"Featherfall": _featherfall, "Rocket Jump": _rocket_jump, "Flaming Sphere": _flaming_sphere, "Barrier": _barrier, "Shadow Step": _shadow_step,
-		"Fire Breath": _fire_breath, "Spore Puff": _spore_puff, "Water Jet": _water_jet, "Flare": _flare, "Eldritch Blast": _eldritch_blast, "Scythe": _scythe, "Tide Surf": _tide_surf,
+		"Fire Breath": _fire_breath, "Spore Puff": _spore_puff, "Water Jet": _water_jet, "Flare": _flare, "Dancing Lights": _dancing_lights, "Jolt": _jolt, "Bathe": _bathe, "Headwind": _headwind, "Eldritch Blast": _eldritch_blast, "Scythe": _scythe, "Tide Surf": _tide_surf,
 		"Sneak": _sneak, "Obsidian Armor": _obsidian_armor, "Wild Shape": _wild_shape, "Golem": _golem, "Adrenaline": _adrenaline, "Crimson Veil": _crimson_veil,
 		"Hunter's Mark": _hunters_mark,
 	}
@@ -79,6 +79,35 @@ func _flare(c: SpellCast) -> void:
 	var flare := Flare.new()
 	flare.caster = c.caster
 	c.add(flare)
+
+
+## The lights dance round the caster and keep to them.
+func _dancing_lights(c: SpellCast) -> void:
+	var lights := DancingLights.new()
+	lights.caster = c.caster
+	c.add(lights)
+
+
+## The bolt leaves the staff the way the stroke ran.
+func _jolt(c: SpellCast) -> void:
+	var bolt := Jolt.new()
+	bolt.caster = c.caster
+	bolt.aim = c.aim
+	c.add(bolt)
+
+
+## The shower falls on the caster.
+func _bathe(c: SpellCast) -> void:
+	var shower := Bathe.new()
+	shower.caster = c.caster
+	c.add(shower)
+
+
+## The wind blows out from the caster and goes with them.
+func _headwind(c: SpellCast) -> void:
+	var wind := Headwind.new()
+	wind.caster = c.caster
+	c.add(wind)
 
 
 func _eldritch_blast(c: SpellCast) -> void:

@@ -21,12 +21,29 @@ const DEFENCES := ["Barrier", "Decoy", "Stone Wall", "Smoke Screen", "Gust", "Ec
 const CHANTS := ["chant:bonfire", "chant:rift"]
 ## Spells that open no gate, and chants that do not: the ones that may lie in a locked area.
 const LOCKABLE := ["Frostbolt", "Icicles", "Ice Prison", "Blizzard", "Stonefall", "Mudslide", "Earthquake", "Stalagmite", "Bramble", "Spore Puff",
-		"Flytrap", "Hex", "Black Hole", "Tide Surf", "Crimson Veil", "Adrenaline", "Faint", "Vacuum", "Fight or Flight", "Sneak", "Hunter's Mark", "Wild Shape", "Barbs", "Pebble", "Hailstorm", "Featherfall", "Thunderclap", "Thorn Whip", "Insect Plague", "Leech", "Raise Dead", "Invincible Snail", "Golem", "Mirage", "Eldritch Blast", "Hemorrhage", "Supernova", "Scythe", "chant:boundless", "chant:double_jump", "chant:haste", "chant:dowsing", "chant:scrying_eye"]
+		"Flytrap", "Hex", "Black Hole", "Tide Surf", "Crimson Veil", "Adrenaline", "Faint", "Vacuum", "Fight or Flight", "Sneak", "Hunter's Mark", "Wild Shape", "Barbs", "Pebble", "Hailstorm", "Featherfall", "Thunderclap", "Thorn Whip", "Insect Plague", "Leech", "Raise Dead", "Invincible Snail", "Golem", "Mirage", "Eldritch Blast", "Hemorrhage", "Supernova", "Scythe", "chant:boundless", "chant:double_jump", "chant:haste", "chant:dowsing", "chant:scrying_eye", "chant:darkvision", "Dancing Lights", "Jolt", "Bathe", "Headwind"]
 ## How many pages lie in a world of each biome, in a world 1000 tiles wide: the ones with little height to spread through (a volcano's
 ## slopes, the portal fields) hold fewer than those with room to climb or dig. Smaller worlds hold fewer (see count_for). The pages that
 ## are not laid are simply not in that world: nothing carries over. Which pages each world lays is settled when the match begins (see allotment).
 const PER_WORLD := {"graveyard": 16, "mountains": 16, "jungle": 18, "ashlands": 12, "castle": 18, "underground": 20, "portals": 10, "ocean": 14, "sky": 14}
 const LEAST := 6  # however small the world
+## Which pages a world is likely to lay (owner, 2026-11-21): a page's weight in the draw for that world. A key is a spell's name, a chant's page ("chant:id") or
+## "school:" and a school; the spell's own entry beats its school's, and a page with none weighs 1. The Deep is dark, so light is found there; the others lean
+## gently to the school that fits the place. Weight is a lean and not a promise: the draw is still chance, and a page may lie in any world.
+## Worlds with no water in them (a pond or a flood gate): a spell that works on water has nothing to work on there.
+const DRY := ["graveyard", "mountains", "ashlands", "portals", "sky"]
+const NEEDS_CEILING := ["Icicles"]
+const NEEDS_WATER :=["Lily Pads"]  # (Frost Bridge freezes ground too, so it is needed nowhere)
+const LEAN := {
+	"underground": {"Flare": 6.0, "Glowcap": 6.0, "Moonbeam": 6.0, "Dancing Lights": 6.0, "chant:darkvision": 6.0, "Fire Breath": 3.0, "Ignite": 3.0, "Firewall": 3.0, "Flaming Sphere": 3.0, "Supernova": 2.0, "Spark": 2.0, "school:Earth": 1.5},
+	"ashlands": {"school:Fire": 2.0},
+	"mountains": {"school:Water": 1.5, "school:Air": 1.5},
+	"jungle": {"school:Flora": 2.0},
+	"graveyard": {"school:Blood": 2.0, "school:Shadow": 1.5},
+	"castle": {"school:Earth": 1.5, "school:Shadow": 1.5},
+	"ocean": {"school:Water": 2.0},
+	"sky": {"school:Air": 2.0},
+}
 const MIN_APART := 40  # columns between two pages lying out in the open of a world with no halls
 const ON_SURFACE := 3  # pages that lie out in the open near the start, so the first one is found within a minute
 ## Where in a castle they lie: a column from its west end, and the height of the floor in rows (the cellar's is below the ground, so negative).
@@ -50,9 +67,9 @@ static func openers_of(kind: String) -> Array:
 
 ## Settles, when a match begins, which pages lie in which world of it. The wizards are dealt their own starting pages (see deal), and each world is
 ## given pages of its own from the others, no page in two places, so no page can lie in a world once a wizard holds it and no two wizards
-## start alike. Some pages are given to no one. `counts` is how many pages each world lays, in order. Returns {"worlds": a list of pages for each
-## world, "spare": the pages given to no one}.
-static func allotment(match_seed: int, wizards: int, counts: Array[int]) -> Dictionary:
+## start alike. Some pages are given to no one. `counts` is how many pages each world lays, in order, and `biomes` (the same length, or empty for no leaning)
+## the biome of each, whose LEAN makes some pages likelier there. Returns {"worlds": a list of pages for each world, "spare": the pages given to no one}.
+static func allotment(match_seed: int, wizards: int, counts: Array[int], biomes: Array = []) -> Dictionary:
 	var dealt := deal(match_seed + 31, wizards)
 	var pool: Array[String] = []
 	for page in every():
@@ -63,14 +80,62 @@ static func allotment(match_seed: int, wizards: int, counts: Array[int]) -> Dict
 	_shuffle(pool, rng)
 	var worlds: Array = []
 	var taken := 0
-	for count in counts:
+	for k in counts.size():
 		var mine: Array[String] = []
-		mine.assign(pool.slice(taken, mini(taken + count, pool.size())))
-		taken += mine.size()
+		var biome: String = biomes[k] if k < biomes.size() else ""
+		var lean: Dictionary = LEAN.get(biome, {})
+		var banned := unusable_in(biome)
+		var fit: Array[String] = []  # the pages that can be used there
+		for page in pool:
+			if not banned.has(page):
+				fit.append(page)
+		if lean.is_empty():
+			mine.assign(fit.slice(0, mini(counts[k], fit.size())))
+		else:
+			mine.assign(_leaning_draw(fit, counts[k], lean, rng))
+		for page in mine:
+			pool.erase(page)
 		worlds.append(mine)
 	var spare: Array[String] = []
-	spare.assign(pool.slice(taken))
+	spare.assign(pool)
 	return {"worlds": worlds, "spare": spare}
+
+
+## The pages that can never lie in a world of this biome, because they could not be used there (owner, 2026-11-21): the sky has no ground, so what needs ground
+## or carries a wizard through the air is left out of it (the same lists as `SpellLimits`, which refuses them there), and a world with no water holds no page that works on water.
+static func unusable_in(biome: String) -> Array:
+	var out: Array = []
+	if biome == "sky":
+		out.append_array(SpellLimits.NEEDS_GROUND)
+		out.append_array(SpellLimits.NOT_NEEDED_IN_THE_AIR)
+	if DRY.has(biome):
+		out.append_array(NEEDS_WATER)
+	if SurfaceGen.OPEN_BIOMES.has(biome):  # no roof to hang from (owner, 2026-11-21)
+		out.append_array(NEEDS_CEILING)
+	return out
+
+
+## `count` pages from the pool, each likelier the heavier its weight (a draw without putting back: a page's score is a random number raised to
+## one over its weight, and the highest scores are taken).
+static func _leaning_draw(pool: Array[String], count: int, lean: Dictionary, rng: RandomNumberGenerator) -> Array[String]:
+	var scored: Array = []
+	for page in pool:
+		scored.append([pow(maxf(rng.randf(), 0.0001), 1.0 / weight_of(page, lean)), page])
+	scored.sort_custom(func(a: Array, b: Array) -> bool: return a[0] > b[0])
+	var out: Array[String] = []
+	for k in mini(count, scored.size()):
+		out.append(scored[k][1])
+	return out
+
+
+## How heavily a page weighs in a draw with this lean: its own entry, else its school's, else 1.
+static func weight_of(page: String, lean: Dictionary) -> float:
+	if lean.has(page):
+		return lean[page]
+	var spell: Spell = SpellData.SPELLS.get(page)
+	if spell != null and lean.has("school:" + spell.school):
+		return lean["school:" + spell.school]
+	return 1.0
 
 
 ## A world's allotted pages, with a page that opens each kind of gate it has swapped in from the spare ones where it has none (and no wizard holds one).

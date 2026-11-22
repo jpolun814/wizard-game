@@ -58,6 +58,7 @@ func _ready() -> void:
 	_view.disable_3d = true
 	_view.snap_2d_transforms_to_pixel = true
 	_camera = Camera2D.new()
+	_camera.process_callback = Camera2D.CAMERA2D_PROCESS_PHYSICS  # (as the engine would make it anyway, with physics interpolation on)
 	_view.add_child(_camera)
 	add_child(_view)
 	_reflection = Sprite2D.new()

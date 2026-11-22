@@ -9,39 +9,45 @@ const FOLLOW := 16.0  # how quickly it catches up with the caster: quick enough 
 const GRAB := 40.0  # how near a click or a gust has to be to reach it
 
 var caster: Wizard  # set by the arena before the flare enters the tree
+## A flare nobody sees: the light of the Chant of Darkvision, which lights the dark for its speaker as a flare would, with no flame to hold. Nothing puts it out.
+var unseen := false
 var _age := 0.0
 var _flame: AnimatedSprite2D
 
 
 func _ready() -> void:
 	for other in get_tree().get_nodes_in_group("flares"):
-		if other != self and other.caster == caster:
-			other.queue_free()  # one flare each: a new one replaces the old
+		if other != self and other.caster == caster and other.unseen == unseen:
+			other.queue_free()  # one flare each (and one darkvision): a new one replaces the old
 	add_to_group("flares")
 	add_to_group("lasting")
 	z_index = 4
 	global_position = _rest_spot()
-	_flame = PixelFx.sprite("fire_puff", 12.0, true, 1)
-	_flame.offset = Vector2(0, -PixelArt.FX["fire_puff"]["size"].y * 0.5)
-	_flame.scale = Vector2.ONE * 0.8
-	add_child(_flame)
-	# In a dark place the flare is a real light. Elsewhere only its glow shows.
-	if get_tree().get_first_node_in_group("darkness") != null:
+	if not unseen:
+		_flame = PixelFx.sprite("fire_puff", 12.0, true, 1)
+		_flame.offset = Vector2(0, -PixelArt.FX["fire_puff"]["size"].y * 0.5)
+		_flame.scale = Vector2.ONE * 0.8
+		add_child(_flame)
+	# In a dark place the flare is a real light. Elsewhere only its glow shows. Darkvision lights only its speaker's own screen, and shows no light of its own.
+	if get_tree().get_first_node_in_group("darkness") != null and (not unseen or (is_instance_valid(caster) and caster.brain == null)):
 		var light := PointLight2D.new()
 		light.texture = Fx.tex("light_01")
 		light.texture_scale = LIGHT_RADIUS * 2.0 / Fx.TEX_SIZE
-		light.color = Color(1.0, 0.7, 0.4)
+		light.color = Color(0.9, 0.93, 1.0) if unseen else Color(1.0, 0.7, 0.4)  # (sight is no flame: it is not warm)
 		light.energy = 1.3
 		light.shadow_enabled = false
 		add_child(light)
-	Sfx.cue("Flare", "fire", global_position, -8.0)
-	Fx.burst(get_parent(), global_position, Color("#ff9a40"), 6, 60.0, 0.4, true)
+	if not unseen:
+		Sfx.cue("Flare", "fire", global_position, -8.0)
+		Fx.burst(get_parent(), global_position, Color("#ff9a40"), 6, 60.0, 0.4, true)
 
 
 ## In front of the caster, where they face, bobbing a little.
 func _rest_spot() -> Vector2:
 	if not is_instance_valid(caster):
 		return global_position
+	if unseen:
+		return SpellTargets.center_of(caster)
 	var bob := sin(_age * 3.0) * 4.0
 	var lead: float = caster.velocity.x * 0.12  # a little ahead of a runner, so it is not left behind
 	return SpellTargets.center_of(caster) + Vector2(34.0 * caster.facing + lead, -30.0 + bob)
@@ -50,25 +56,35 @@ func _rest_spot() -> Vector2:
 func _physics_process(delta: float) -> void:
 	_age += delta
 	global_position = global_position.lerp(_rest_spot(), clampf(FOLLOW * delta, 0.0, 1.0))
-	queue_redraw()
-	if (is_instance_valid(caster) and caster.dead):
+	if not unseen:
+		queue_redraw()
+	if is_instance_valid(caster) and caster.dead:
 		queue_free()
 
 
 ## The light it throws, a soft glow in the air round the flame.
 func _draw() -> void:
+	if unseen:
+		return  # (a canvas item is drawn once whether or not it asks: nothing may be drawn for a light nobody sees)
 	var flicker := 1.0 + 0.08 * sin(_age * 17.0)
 	Fx.draw_glow(self, Vector2(0, -14), LIGHT_RADIUS * 0.4 * flicker, Color(1.0, 0.55, 0.2, 0.22))
 
 
 ## Puts the flame out, as anything is put out.
 func snuff() -> void:
-	Elements.put_out(self, global_position)
+	if not unseen:
+		Elements.put_out(self, global_position)
+
+
+## False for the unseen light a chant gives: it is no flame, so nothing puts it out and nothing hisses.
+func is_flame() -> bool:
+	return not unseen
 
 
 ## It goes out (Elements: water puts it out, whatever the water is; wind does by `snuff`).
 func quench() -> void:
-	queue_free()
+	if not unseen:
+		queue_free()
 
 
 ## Snuffs every flare within reach of a point. True if any went out.

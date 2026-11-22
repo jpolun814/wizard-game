@@ -113,17 +113,33 @@ func _run(world: World) -> void:
 			if p != a and world.player.global_position.distance_to(p.global_position + Vector2(0.0, Portal.RY)) < 60.0:
 				landed = true
 		_check(landed, "stepping into one brings the wizard out of another")
+		# Each portal leads to one portal, always the same: the pairs of a wave are joined both ways, and whoever steps into one comes out of its partner.
+		var partner_of_a: FieldPortal = field.exit_of(a)
+		_check(partner_of_a != null and field.exit_of(a) == partner_of_a, "a portal does not lead to the same portal each time")
+		_check(partner_of_a != null and world.player.global_position.distance_to(partner_of_a.global_position + Vector2(0.0, Portal.RY)) < 60.0, "stepping into a portal brings the wizard out of its partner")
+		var joined := 0
+		var kept := 0
+		for step in range(0, 600, int(PortalField.INTERVAL)):
+			var entries := field.schedule(float(step))
+			for entry in entries:
+				if entry["partner"] != -1:
+					kept += 1
+					var other: Dictionary = entries.filter(func(e: Dictionary) -> bool: return e["id"] == entry["partner"]).front()
+					_check(other["wave"] == entry["wave"] and other["id"] != entry["id"], "a portal leads to another of its own wave")
+					joined += 1 if other["partner"] == entry["id"] else 0
+		_check(kept > 20 and float(joined) / kept > 0.8, "pairs of portals lead to each other (%d of %d)" % [joined, kept])
 		var gate: FieldPortal = live[1]
+		var exit: FieldPortal = field.exit_of(gate)  # (the shot starts well to the left of it, flying right, so it truly flies in)
 		world.spawn_spell("Ignite", "directional", gate.global_position + Vector2(-70.0, 0.0), 0.0, {}, world.player)
 		var fired: Projectile = get_tree().get_nodes_in_group("projectiles").back()
+		fired.global_position = gate.global_position + Vector2(-70.0, 0.0)
+		fired.reset_physics_interpolation()
 		var came_out := false
 		for k in 18:
 			await get_tree().physics_frame
-			if is_instance_valid(fired):
-				for p in live:
-					if p != gate and fired.global_position.distance_to(p.global_position) < 90.0:
-						came_out = true
-		_check(came_out, "a shot that flies into one comes out of another")
+			if is_instance_valid(fired) and exit != null and fired.global_position.distance_to(exit.global_position) < 90.0:
+				came_out = true
+		_check(came_out, "a shot that flies into a portal comes out of its partner")
 		await get_tree().create_timer(PortalField.COOLDOWN + 0.3).timeout  # the rider's cooldown is over
 		var open_now := field.open_portals().filter(func(p: FieldPortal) -> bool: return not p.is_closing() and p.remaining() > 3.0)
 		if open_now.size() >= 2:

@@ -81,7 +81,7 @@ def run_unit(files, folder):
     return failures, tests, time.time() - started
 
 
-STATIC = ["audio_check.py", "rules_check.py"]  # scripts that read the project's files and need no engine: seconds, and they stop the run like a failed unit test
+STATIC = ["audio_check.py", "rules_check.py", "resource_check.py", "shots_check.py"]  # scripts that read the project's files and need no engine: seconds, and they stop the run like a failed unit test
 
 
 def run_static(words):

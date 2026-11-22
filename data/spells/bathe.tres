@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="Spell" format=3]
+
+[ext_resource type="Script" path="res://scripts/core/spell.gd" id="1_spell"]
+
+[resource]
+script = ExtResource("1_spell")
+spell_name = "Bathe"
+school = "Water"
+gesture = "stonefall"
+cost = 30.0
+effect = "Wash yourself clean in a shower of water."
+applies = Array[String](["wet"])
+removes = Array[String](["burning", "oiled", "slowed", "hexed", "bleeding", "dazed", "pursued"])
+sounds = {"shower": "bathe__shower"}

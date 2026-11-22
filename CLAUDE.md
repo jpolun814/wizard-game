@@ -121,7 +121,7 @@ is **non-diegetic**. The one spoken to is the **addressee**. A text with a narra
   plain words such as "pause", "page" and "world".
 - They still follow the rest of this section: imperative, short, no numbers, no rules, no tips.
 
-**Mixed text is the third case.** Floating words over a wizard ("Too tired", "Perfect"), the Insight tooltip and
+**Mixed text is the third case.** Floating words over a wizard ("Not enough stamina", "Perfect"), the Insight tooltip and
 the chant failure lines sit between the two. Decide for each which side it is on and write it that way. If a
 single line seems to need both audiences, split it: the world part goes in the book, the key part goes in a prompt.
 
@@ -227,7 +227,7 @@ unconscious", not "Knock whoever is under it unconscious" (the reader cannot tel
 
 - Decoy: "Conjure a shadow of yourself." Not "to draw attacks", which explains why and how to use it.
 - Faint: "Knock the target unconscious." Not "Draw the strength out of whoever is under it".
-- Frost Bridge: "Freeze the surface of a body of water." Not "Freeze the water into a bridge of ice".
+- Frost Bridge: "Freeze the ground or a body of water." (owner, 2026-11-21, once it could freeze ground; before: "Freeze the surface of a body of water."). Not "Freeze the water into a bridge of ice".
 - Great Oak: "Grow a great oak." Not "that comes crashing down". The falling is what happens; it is for the player to see.
 - Gust: "Blow a gust of wind." Not "in the direction you draw".
 - Hex: "Curse someone with a dark star: they take extra damage and cannot hide from you." The owner suggested this.
@@ -329,7 +329,7 @@ spell and chant pages now state the cost and the damage (see the start of sectio
    - The only exceptions are interface elements: health bars, the gesture trail, shadows, and pixel snowflakes
      or shards made of pixel squares.
    - Before adding `draw_circle`, `draw_line` or `draw_polygon` for a world object, look for an asset first.
-   **Do not make art or sounds yourself, either** (owner, 2026-11-07: "you shouldn't do that"). A picture or a sound that is not code-drawn still has to come from a free source found online (CC0, CC-BY or any
+   **You may draw pixel art yourself, but only the way the other made sprites were (owner, 2026-11-21).** A picture drawn for the game is a Python script in `tools/` (see `tools/wizard_parts/`: `props.py`, `golem.py`, `status_icons.py`) that writes a PNG into `art/`, which the game then loads like any other picture; run it again to rebuild it. Never draw a world object at run time with polygons, circles or lines from your own code (that is the "no code-drawn pictures" rule above, and it stands). Say in the reply which pictures you drew. **Do not make sounds yourself** (owner, 2026-11-07: "you shouldn't do that"). A picture that you do not draw, and every sound, still has to come from a free source found online (CC0, CC-BY or any
    free licence, credited in `art/CREDITS.md`), not be drawn, synthesised or composed by an agent. A synthesised Eldritch Blast "sounded like a fart"; the Scythe blade an agent drew was kept only because the owner
    happened to like it. If nothing free fits, tell the owner and ask. **For sounds, look first in NOX SOUND's Essentials Series (CC0; the owner wants as many sounds as possible from it, 2026-11-19; `docs/handoff/05_audio.md`).**
 4. **Pixel art at one consistent pixel size.**
@@ -436,7 +436,7 @@ python tools/run_checks.py --full                              # all of them, ab
 | Water | Icicles | one or more Vs in a row, under a ceiling | icicles hanging from the ceiling | step around |
 | Water | Ice Prison | circle | freezing whoever is inside solid (4 seconds, and they hold their breath in it) | Push or Earth shatter; Barrier |
 | Water | Blizzard | star then a level line | snow cloud | leave the area |
-| Water | Frost Bridge | wavy line across water | freezing a pond so you can cross | fire melts it |
+| Water | Frost Bridge | wavy line across water, or along level ground | freezing a pond so you can cross, or the ground into a sheet of ice (`IceSheet`, thaws after 25 s). All ice is slippery (group `slippery`, `IceSheet.under`: the pond's frozen top and every sheet; a wizard on it cannot stop or turn quickly) | fire melts it |
 | Water | Geyser | an arrow pointing up | a jet of scalding water that throws what stands on it and scalds it (1 dmg/sec), with steam coming off it | step off while it bubbles |
 | Air | Push | circle then a line out | a shove of air; the only spell that lifts you | positioning |
 | Air | Barrier | circle | a shield bubble | wait it out |
@@ -448,7 +448,7 @@ python tools/run_checks.py --full                              # all of them, ab
 | Earth | Stone Wall | line starting on the ground, a platform or another stone wall | a raised slab | Earthquake, Stonefall, shots wear it down |
 | Earth | Mudslide | wavy line (as Frost Bridge) | a pit of mud: slows, no jumping | walk out |
 | Earth | Stalagmite | one or more peaks (^) over the ground | spikes of rock that rise from the ground and hurt whatever touches them | step around |
-| Earth | Earthquake | arrow with a head at both ends | the ground shakes | be off the ground |
+| Earth | Earthquake | arrow with a head at both ends | the ground shakes, and every stone wall raised anywhere in the world comes down a moment in, and every wall of brick and plug of ice anywhere is worn down by the beats | be off the ground |
 | Earth | Sinkhole | U | the ground opens: `Terrain.dig` cuts a pit the shape of the U that was drawn (`Sinkhole.profile_of`) in the open ground and the rock is cut again (permanent) | jump out, fly |
 | Flora | Bramble | low sawtooth | a thicket of thorns: slows and pricks | jump it; fire |
 | Flora | Spore Puff | cone `<` (as Fire Breath) | poison spores poured from your mouth | wind, water |
@@ -471,6 +471,10 @@ python tools/run_checks.py --full                              # all of them, ab
 
 | School | Spell | Shape | Real thing | Counterplay |
 |---|---|---|---|---|
+| Air | Dancing Lights | a five-point star (`pentagram`, on the Air button) | colorful lights that pop up and fade close round the caster for 25 s (`DancingLights`; each light, `DancingLights.Mote`, is itself the light: a real light in the dark, and a light for the Eclipse and for sight); lights, not fires, so nothing puts them out; costs 14 | none needed |
+| Fire | Jolt | Spark's zigzag turned on its side, three strokes drawn across (`bolt`; the recognizer ignores rotation, so `StrokeReader.settle` tells it from Spark by which way it runs: across is Jolt, down is Spark) | a bolt that leaves the staff along the stroke and strikes the first thing in its way at once (14), and hurries whoever it strikes for 1.5 s (`Jolt`). It is in the group `lightning`, so a wet body takes it harder by the law (`Damage`), not by any rule of its own; costs 20 (draft line: "Shoot a crackling bolt of lightning.") | a wall, distance |
+| Water | Bathe | the Stonefall shape: a circle and a line down (on the Water button) | a shower over the caster that washes them clean (`Substances.wash`: flame, oil, chill, tangle, curse, wound, daze, fright and a snail on their heels all go) and leaves them wet; costs 30 (draft line: "Wash yourself clean in a shower of water.") | none needed |
+| Air | Headwind | the Earthquake shape: an arrow with a head at both ends (on the Air button) | a wind round the caster for 12 s: whoever or whatever comes into it is slowed, every shot in the "shots" group included, lava balls, hail, a falling boulder, a falling stone and a rolling Flaming Sphere too (each shot has `hinder`; `new_spells_check` fails if one lacks it; slowed, not turned or stopped); the caster and their own shots go through it; costs 30 (draft line: "Surround yourself with a howling wind.") | leave it; it ends |
 | Fire | Flaming Sphere | a ring drawn from its bottom, then a level line along the ground | a ball of fire that rolls, follows slopes, falls into pits and climbs a wall (`FlamingSphere`, a `CharacterBody2D`; it keeps the ground round it made through the `ground_watchers` group); burns out after a long roll | jump it; water and rain put it out |
 | Water | Hailstorm | a ring, a line out of it, then a line down | a storm cloud that drops hail along the line | a roof |
 | Air | Featherfall | a feather drifting down: three sweeps across, each bent down in the middle, each ending lower | a slow fall for a while | none needed |
@@ -503,7 +507,9 @@ starts a run. The first screen also has a **Tutorial** (`scripts/arena/tutorial.
 
 The spellbook lines (see the book: every spell now has a plain description, a damage line and a cost line) are drafts until the owner confirms them. Where a school has both a circle and a flame, a loop the recognizer takes for a flame but is not one is read again without the flames (`Caster._end`). `tests/looks/attacks_look.tscn -- out=DIR` (needs a window) takes pictures of them.
 
-**Pages per world:** each world lays only `Pages.count_for(biome, width)` pages (graveyard 16, peaks 16, jungle 18, ashlands 12, castle 18, underground 20, portal fields 10, at 1000 tiles wide, fewer in the smaller worlds, never under 6), and which ones is settled when the match begins, from its seed (`Pages.allotment`): each wizard is dealt starting pages of their own, and each world is given pages of its own from the rest, no page in two places, some in none. So a page is never in a world once a wizard holds it, and no two wizards start alike. Pages not laid do not carry over. A kind of gate the world has always keeps a page that opens it, swapped in from the spare pages if need be (`Pages.with_openers`). In a world with no halls, pages lying out in the open are at least `Pages.MIN_APART` (40) columns apart, apart from the three near the start (`tests/looks/pages_spread_look.tscn` prints where they lie).
+**Pages per world:** each world lays only `Pages.count_for(biome, width)` pages (graveyard 16, peaks 16, jungle 18, ashlands 12, castle 18, underground 20, portal fields 10, at 1000 tiles wide, fewer in the smaller worlds, never under 6), and which ones is settled when the match begins, from its seed (`Pages.allotment`): each wizard is dealt starting pages of their own, and each world is given pages of its own from the rest, no page in two places, some in none. So a page is never in a world once a wizard holds it, and no two wizards start alike. Pages not laid do not carry over. **A world leans to some pages (owner, 2026-11-21): `Pages.LEAN` gives a page a weight in that biome's draw (a spell's name, a chant's page or "school:X"; the Deep favors lights and fire, the others lean gently to their own school). It is chance with a tilt, not a rule, and still obeys "no page in two places".** **A page that could not be used in a world is never laid there (owner, 2026-11-21): `Pages.unusable_in(biome)` leaves out of the sky what needs ground or is not needed in the air (the lists in `SpellLimits`) , Lily Pads from worlds with no water (`Pages.DRY`; Frost Bridge freezes ground too, so it is laid anywhere) and Icicles from the open-air worlds (`SurfaceGen.OPEN_BIOMES`: no roof to hang from).** Light is not one school's job (owner, 2026-11-21): Air got Dancing Lights only because it was the smallest school then, and any school may make light. A new spell goes where its nature fits, and where schools are unequal, to the smaller one; the aim is 12 spells in every school (propose them first, as every new spell). The underground world is 0.6 of a stage's width, as the castle world is (`MatchState.UNDERGROUND_SHARE`). A kind of gate the world has always keeps a page that opens it, swapped in from the spare pages if need be (`Pages.with_openers`). In a world with no halls, pages lying out in the open are at least `Pages.MIN_APART` (40) columns apart, apart from the three near the start (`tests/looks/pages_spread_look.tscn` prints where they lie).
+
+**Reading a page (owner, 2026-11-21):** a page that is read flies to the reader from where it lay, one at a time (`PageFlight`), and its name rises beside them in its school's color (gold for a chant); a fallen wizard's book is read the same way, and the person's own book opens once the last page has arrived. The tutorial's first pages show "Press Tab to read" from afar (`PagePickup.always_hint`). A spell cast with too little stamina says "Not enough stamina" ("Not enough max stamina" for blood) and the stamina bar flares red (`HudBar.alarm`), so it is not taken for a misdrawn shape. The open book says, under it and at its sides, that the arrow keys turn the pages (`Spellbook._make_turn_cues`; the arrows pulse until a page has been turned).
 
 **Targeting types:** `directional`, `pointed` (toward the far end of the stroke, as an arrow points: Thorn Whip, Eldritch Blast), `raised` (from where the stroke began, on the ground: Stone Wall), `positional`, `angled`, `shape` and `cone`. The caster's `cast_resolved`
 signal passes `info` (radius, line, rect, shapes, aim, spread, reach), and `arena.spawn_spell` routes it (see `Casting`).

@@ -103,6 +103,38 @@ func _initialize() -> void:
 			for kept_page in kept:
 				_check(first.has(kept_page) or spare.has(kept_page), "seed %d: %s comes from nowhere" % [seed_value, kept_page])
 			_check(kept.any(func(p: String) -> bool: return wanted.has(p)) or dealt.any(func(l: Ledger) -> bool: return wanted.any(func(p: String) -> bool: return l.knows(p))) or not spare.any(func(p: String) -> bool: return wanted.has(p)), "seed %d: nothing opens a %s gate" % [seed_value, kind])
+	# The Deep leans to light: over many matches its pages hold the lights far more often than a world with no lean, and the draw still obeys every rule above.
+	var lit_deep := 0
+	var lit_plain := 0
+	var biomes := ["underground", "portals", "graveyard", "sky"]
+	for seed_value in 200:
+		var counts: Array[int] = [12, 12, 12, 8]
+		var leaning := Pages.allotment(seed_value, 4, counts, biomes)
+		var seen := {}
+		for k in counts.size():
+			_check(leaning["worlds"][k].size() == counts[k], "seed %d: a leaning world %d has the wrong count" % [seed_value, k])
+			for lying: String in leaning["worlds"][k]:
+				_check(not seen.has(lying), "seed %d: %s lies in two worlds when leaning" % [seed_value, lying])
+				seen[lying] = true
+		_check(Pages.allotment(seed_value, 4, counts, biomes)["worlds"] == leaning["worlds"], "seed %d: a leaning allotment changes between two asks" % seed_value)
+		for light in ["Flare", "Glowcap", "Moonbeam"]:
+			lit_deep += 1 if leaning["worlds"][0].has(light) else 0
+			lit_plain += 1 if leaning["worlds"][1].has(light) else 0
+	# A page that could not be used in a world never lies in it: no ground in the sky, no water in the dry worlds.
+	for seed_value in 100:
+		var every_world := ["sky", "graveyard", "jungle", "portals"]
+		var counts: Array[int] = [10, 10, 10, 10]
+		var fitted := Pages.allotment(seed_value, 4, counts, every_world)
+		for k in every_world.size():
+			_check(fitted["worlds"][k].size() == counts[k], "seed %d: a world with banned pages has %d pages, not %d" % [seed_value, fitted["worlds"][k].size(), counts[k]])
+			for lying: String in fitted["worlds"][k]:
+				_check(not Pages.unusable_in(every_world[k]).has(lying), "seed %d: %s lies in the %s world, where it cannot be used" % [seed_value, lying, every_world[k]])
+	_check(Pages.unusable_in("sky").has("Stone Wall") and Pages.unusable_in("sky").has("Rocket Jump") and not Pages.unusable_in("sky").has("Ignite"), "the sky leaves out what needs ground and not the rest")
+	_check(Pages.unusable_in("graveyard").has("Icicles") and Pages.unusable_in("sky").has("Icicles") and not Pages.unusable_in("underground").has("Icicles") and not Pages.unusable_in("castle").has("Icicles"), "Icicles are left out of open-air worlds and kept for the ones with a roof")
+	_check(Pages.unusable_in("graveyard").has("Lily Pads") and not Pages.unusable_in("jungle").has("Lily Pads") and Pages.unusable_in("underground").is_empty(), "water spells are left out of dry worlds only")
+	_check(lit_deep > lit_plain * 2, "the Deep does not lean to light (%d lights there, %d in the portal fields)" % [lit_deep, lit_plain])
+	_check(Pages.weight_of("Flare", Pages.LEAN["underground"]) > 1.0 and Pages.weight_of("Frostbolt", Pages.LEAN["underground"]) == 1.0, "weights do not follow the table")
+	_check(Pages.weight_of("Barbs", Pages.LEAN["jungle"]) > 1.0, "a spell takes its school's weight")
 	# Nobody starts with a page: what they would have been dealt lies in a cluster by their spawn.
 	var empty := Pages.start_empty(4)
 	_check(empty.size() == 4 and empty.all(func(l: Ledger) -> bool: return l.pages.is_empty() and not l.knows("Ignite") and not l.knows("chant:bonfire")), "four wizards start with empty books")

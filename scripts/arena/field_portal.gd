@@ -9,6 +9,8 @@ signal entered(portal: FieldPortal, body: Node2D)
 const HEARD_WITHIN := 1400.0  # how far from the camera a sound can still be heard (Sfx.MAX_DISTANCE)
 const CLOSE_SECONDS := 8.0 / 12.0  # the closing frames, at twelve a second
 
+var id := 0         # which portal of the world's schedule it is (see PortalField.schedule)
+var partner := -1   # the id of the portal it always leads to
 var tint := Color.WHITE
 var lifetime := 30.0
 var age := 0.0  # seconds since it opened: the field sets it each frame

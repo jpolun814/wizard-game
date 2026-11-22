@@ -128,6 +128,7 @@ func _sinkhole(c: SpellCast) -> void:
 func _stonefall(c: SpellCast) -> void:
 	var boulder := Boulder.new()
 	boulder.earth = _arena.earth_texture()
+	boulder.caster = c.caster
 	var hangs_at := c.origin
 	if c.info.has("rect"):
 		hangs_at = Vector2(c.origin.x, c.info["rect"].position.y + Boulder.RADIUS)

@@ -11,7 +11,7 @@ var cast := {}           # page -> true, for the spells and chants this wizard h
 var settled := {}        # chant id -> true, for the chants that, once said, hold for the rest of the match (see Ledger.LASTING)
 
 ## The chants that are said once: the gift stays, through every world of the match.
-const LASTING := ["minimap", "insight", "double_jump", "haste"]
+const LASTING := ["minimap", "insight", "double_jump", "haste", "darkvision"]
 
 
 ## A ledger that holds every page, for the waiting room.

@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="Spell" format=3]
+
+[ext_resource type="Script" path="res://scripts/core/spell.gd" id="1_spell"]
+
+[resource]
+script = ExtResource("1_spell")
+spell_name = "Headwind"
+school = "Air"
+gesture = "earthquake"
+cost = 30.0
+effect = "Surround yourself with a howling wind."
+applies = Array[String](["slowed"])
+sounds = {"wind": "headwind__wind"}

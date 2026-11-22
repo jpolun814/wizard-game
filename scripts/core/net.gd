@@ -75,6 +75,9 @@ func _start_dedicated() -> void:
 		get_tree().quit(1)
 		return
 	print("server: waiting for wizards on port %d" % port())
+	for address: String in local_addresses():
+		print("server: friends on this network join at %s" % address)  # (typed in the Join box; the port is the default one unless WIZARD_PORT says otherwise)
+	print("server: on this computer, join at 127.0.0.1")
 	if OS.get_cmdline_user_args().has("--upnp"):
 		_upnp_thread = Thread.new()
 		_upnp_thread.start(_open_the_router)

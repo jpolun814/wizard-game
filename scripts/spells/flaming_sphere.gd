@@ -31,11 +31,14 @@ var _turn := 0.0               # the turn of the ball, for the glow of its heart
 var _sun: Sprite2D
 var _age := 0.0
 var _puff := 0.0
+var _drag := 1.0               # how much of its way it covers this frame (a wind holds it back)
+var _pulled := Vector2.ZERO    # a pull on it this frame
 
 
 func _ready() -> void:
 	material = Fx.additive()  # fire adds light to what is behind it: its glow is drawn on this node, as the Firewall's and the lava's are
 	add_to_group("fires")
+	add_to_group("shots")  # a ball rolling at someone is a shot like any other: wind slows it, a hole pulls it, a Barrier turns it
 	add_to_group("danger")
 	add_to_group("ground_watchers")
 	collision_layer = 0
@@ -92,13 +95,15 @@ func _move(delta: float) -> void:
 			direction = -direction  # it cannot find the top: it turns back
 			_climbing = 0.0
 			return
-		velocity = Vector2(direction * 20.0, -CLIMB)  # up the face, pressed to it
+		velocity = Vector2(direction * 20.0, -CLIMB * _drag)  # up the face, pressed to it
 	else:
 		_climbing = 0.0
-		velocity.x = direction * SPEED
+		velocity.x = direction * SPEED * _drag + _pulled.x
 		velocity.y = minf(velocity.y + GRAVITY * delta, FALL_MAX)
 		if is_on_floor():
 			velocity.y = maxf(velocity.y, 0.0)
+	_drag = 1.0
+	_pulled = Vector2.ZERO
 	move_and_slide()
 	_rolled += global_position.distance_to(before)
 
@@ -109,6 +114,9 @@ func _burn() -> void:
 		if not SpellTargets.affects(body) or _burnt.has(body.get_instance_id()):
 			continue
 		if SpellTargets.center_of(body).distance_to(global_position) < RADIUS + 18.0:
+			if body is Wizard and Elements.shield_turns(self, body):  # a Barrier turns it away, as any shot
+				_burnt[body.get_instance_id()] = BURN_GAP
+				continue
 			_burnt[body.get_instance_id()] = BURN_GAP
 			SpellTargets.hurt(body, BURN, "Fire", false, true, self)
 			var throw := Vector2(direction * KNOCK.x, KNOCK.y)
@@ -143,6 +151,7 @@ func _go_out(steam: bool) -> void:
 		return
 	_out = true
 	remove_from_group("fires")
+	remove_from_group("shots")
 	remove_from_group("danger")
 	remove_from_group("ground_watchers")
 	Fx.smoke(get_parent(), global_position, Color(0.88, 0.92, 0.96, 0.7) if steam else Color(0.3, 0.25, 0.25, 0.6), 5, 22.0, 60.0 if steam else 20.0)
@@ -164,3 +173,24 @@ func _draw() -> void:
 ## What this fire is to everything else that cares about fire (SpellTargets.fire_points): where it burns, how hot, how big, and whether it is a shot.
 func fire_profile() -> Array:
 	return [{"at": global_position, "heat": 2.0, "size": 16.0, "shot": false}]
+
+
+## A wind holds it back: for this frame it covers only this much of its way.
+func hinder(pace: float) -> void:
+	_drag = minf(_drag, pace)
+
+
+## Which way it is rolling.
+func heading() -> Vector2:
+	return Vector2(direction, 0.0)
+
+
+## A pull on it (a hole). It rolls on the ground, so only the sideways part moves it.
+func pull(force: Vector2, delta: float) -> void:
+	_pulled.x += force.x * delta
+
+
+## A Barrier or a gust sends it back the other way, or on, along the ground.
+func reflect(way: Vector2) -> void:
+	if absf(way.x) > 0.1:
+		direction = signf(way.x)

@@ -6,6 +6,9 @@ extends Node2D
 ## machine of a match sees the same portals at the same moment. The first wave is never fewer than two; each later one brings none to eight, spread from one end of the world to the other.
 ## Some hang in the air, but the first of every wave stands on the ground and some of the rest can be jumped to, so there is always a way in.
 ## Each portal has a color of its own: no two that are open at once share a hue.
+## Every portal leads to one portal and always the same one (owner, 2026-11-21): the portals of a wave are joined in pairs, first to second, third to
+## fourth, and they open and close together, so a pair is always both open. A wave's odd portal out leads to the wave's first (and the first does not lead
+## back to it). Should a partner not be open (a lone portal, or one the spacing dropped), the way out is any other open portal, as it used to be.
 
 const INTERVAL := 5.0
 const LIFETIME := 15.0     # three intervals
@@ -87,7 +90,26 @@ func schedule(age: float) -> Array[Dictionary]:
 			if k > 0 and chance > 0.5:  # the first of a wave stands on the ground; of the others, half hang in the air
 				lift = rng.randf_range(40.0, JUMPABLE) if chance < 0.75 else rng.randf_range(JUMPABLE + 30.0, HIGHEST)
 			out.append({"id": _id_of(wave, k), "wave": wave, "x": (column + 0.5) * tile, "born": wave * INTERVAL, "column": column, "lift": lift})
-	return _spread(out)
+	return _paired(_spread(out))
+
+
+## Each portal's partner: the id of the portal it leads to ("partner", -1 for none).
+func _paired(list: Array[Dictionary]) -> Array[Dictionary]:
+	var by_wave := {}
+	for portal in list:
+		portal["partner"] = -1
+		if not by_wave.has(portal["wave"]):
+			by_wave[portal["wave"]] = []
+		by_wave[portal["wave"]].append(portal)
+	for wave in by_wave:
+		var group: Array = by_wave[wave]
+		for k in range(0, group.size(), 2):
+			if k + 1 < group.size():
+				group[k]["partner"] = group[k + 1]["id"]
+				group[k + 1]["partner"] = group[k]["id"]
+			elif group.size() > 1:
+				group[k]["partner"] = group[0]["id"]
+	return list
 
 
 ## A portal that would open on top of an older one is dropped, so two are never too close to tell apart.
@@ -134,6 +156,8 @@ func _sync() -> void:
 			continue
 		var entry: Dictionary = want[id]
 		var portal := FieldPortal.new()
+		portal.id = id
+		portal.partner = entry["partner"]
 		portal.tint = tint_of(id)
 		portal.lifetime = LIFETIME
 		portal.age = seconds - entry["born"]
@@ -157,16 +181,26 @@ func _physics_process(_delta: float) -> void:
 			var offset: Vector2 = shot.global_position - portal.global_position
 			if portal.is_closing() or absf(offset.x) > SHOT_REACH.x or absf(offset.y) > SHOT_REACH.y:
 				continue
-			var others := portals.filter(func(p: FieldPortal) -> bool: return p != portal and not p.is_closing())
-			if others.is_empty():
+			var exit := exit_of(portal)
+			if exit == null:
 				break
-			var rng := RandomNumberGenerator.new()
-			rng.seed = seed_value + int(seconds * 10.0) + portal.get_instance_id()
-			var exit: FieldPortal = others[rng.randi_range(0, others.size() - 1)]
 			_recent[shot] = SHOT_COOLDOWN
 			shot.global_position = exit.global_position + shot.heading() * 36.0
 			shot.reset_physics_interpolation()
 			break
+
+
+## The portal that this one leads to: its partner, while that is open, and else any other that is open (null when none is).
+func exit_of(portal: FieldPortal) -> FieldPortal:
+	var partner: FieldPortal = _open.get(portal.partner)
+	if partner != null and is_instance_valid(partner) and not partner.is_closing():
+		return partner
+	var others := open_portals().filter(func(p: FieldPortal) -> bool: return p != portal and not p.is_closing())
+	if others.is_empty():
+		return null
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed_value + int(seconds * 10.0) + portal.get_instance_id()
+	return others[rng.randi_range(0, others.size() - 1)]
 
 
 ## Someone stepped into a portal: they come out of another that is open, if there is one.
@@ -175,12 +209,9 @@ func _on_entered(portal: FieldPortal, body: Node2D) -> void:
 		return
 	if body is Wizard and body.is_likeness():
 		return  # another machine drives that wizard, and moves it through on its own copy of the portal
-	var others := open_portals().filter(func(p: FieldPortal) -> bool: return p != portal and not p.is_closing())
-	if others.is_empty():
+	var exit := exit_of(portal)
+	if exit == null:
 		return
-	var rng := RandomNumberGenerator.new()
-	rng.seed = seed_value + int(seconds * 10.0) + portal.get_instance_id()
-	var exit: FieldPortal = others[rng.randi_range(0, others.size() - 1)]
 	_recent[body] = COOLDOWN
 	carried.emit(body)
 	body.global_position = exit.global_position + Vector2(0.0, Portal.RY)

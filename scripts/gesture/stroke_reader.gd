@@ -129,7 +129,7 @@ func _detect(relative: PackedVector2Array, options: Dictionary, reading: StrokeR
 		"pit": StrokeShapes.pit_stroke(relative) if options.has("pit") else PackedVector2Array(),
 		"cone": StrokeShapes.cone(relative) if options.has("cone") else {},
 		"spikes": StrokeShapes.icicle_triangles(relative, false) if options.has("stalagmite") and not closed and not round_peaks else [],
-		"icicles": StrokeShapes.icicle_triangles(relative) if options.has("icicles") and not closed and not peak and spiral.is_empty() else [],
+		"icicles": StrokeShapes.icicle_triangles(relative) if options.has("icicles") and not closed and not peak and not round_peaks and spiral.is_empty() else [],
 	}
 
 
@@ -143,6 +143,10 @@ func settle(reading: StrokeReading, relative: PackedVector2Array, options: Dicti
 			reading.gesture = "wall"
 		elif options.has("flick_toward") and _points_toward(stroke, anchor):
 			reading.gesture = "flick_toward"
+	# Spark's zigzag and Jolt's are one shape turned a quarter, which the recognizer (it ignores rotation) cannot tell apart: the way the stroke runs does. Down is a Spark, across is a Jolt.
+	if (reading.gesture == "zigzag" or reading.gesture == "bolt") and options.has("zigzag") and options.has("bolt"):
+		var run := relative[relative.size() - 1] - relative[0]
+		reading.gesture = "bolt" if absf(run.x) > absf(run.y) else "zigzag"
 	# A straight stroke that begins on the ground raises a stone wall instead of a spike.
 	if reading.gesture == "flick" and options.has("stone_wall") and on_ground.is_valid() and on_ground.call(stroke[0]):
 		reading.gesture = "stone_wall"

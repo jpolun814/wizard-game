@@ -69,6 +69,11 @@ func _aimed_stroke(spell_name: String, foe: Wizard, feet: Vector2, facing: float
 			return surf_stroke(facing)
 		"Push":  # a circle round the rival and a line out of it, away from here
 			return push_stroke(brain.sight.seen_center(foe), Vector2(facing, 0.0))
+		"Jolt":  # lightning on its side, drawn toward the rival
+			var way: float = (brain.predict(0.2) - wizard.center()).angle()
+			var bolt := GestureTemplates.preview_points("bolt")
+			var lean := (bolt[bolt.size() - 1] - bolt[0]).angle()  # the bolt goes the way its far end is from its start, which is a little off its own level
+			return BrainStrokes.offset(turned(bolt, way - lean), wizard.center(), 0.9)
 		"Eldritch Blast":  # an arrow pointing at the rival
 			var pointing: float = (brain.predict(0.4) - wizard.center()).angle() + brain.rng.randfn(0.0, 0.1 * (1.0 - brain.skill) * brain.clumsy)
 			return BrainStrokes.offset(turned(GestureTemplates.preview_points("arrow"), pointing), wizard.center(), 0.8)
@@ -325,6 +330,12 @@ func tend_stroke(spell_name: String, to_player: Vector2) -> PackedVector2Array:
 			return BrainStrokes.line(here + Vector2(side * 12.0, -6.0), here + Vector2(side * 102.0, -6.0))
 		"Flare":
 			return BrainStrokes.offset(GestureTemplates.preview_points("flare"), here + Vector2(0.0, -40.0), 0.6)
+		"Bathe":
+			return BrainStrokes.offset(GestureTemplates.preview_points("stonefall"), here + Vector2(0.0, -30.0), 0.7)
+		"Headwind":
+			return BrainStrokes.offset(GestureTemplates.preview_points("earthquake"), here, 0.8)
+		"Dancing Lights":
+			return BrainStrokes.offset(GestureTemplates.preview_points("pentagram"), here + Vector2(0.0, -40.0), 0.9)
 		"Glowcap":
 			return BrainStrokes.offset(GestureTemplates.preview_points("circle"), here + Vector2(dir * 60.0, 0.0), 0.6)
 		"Moonbeam":

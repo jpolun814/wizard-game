@@ -137,7 +137,7 @@ hair_front[hair,hair_color]  hat[hat,hat_color]  weapon[weapon]  near_sleeve[col
 ```
 
 - A **variant** is one value per dependency, joined by `-`: `torso/coat-blue.png`, `hair_back/long-auburn.png`,
-  `weapon/wand.png`. `variant_key()` is the rule; the one exception: `hat` `none`/`circlet` ignore `hat_color` (`hat/circlet.png`).
+  `weapon/wand.png`. `variant_key()` is the rule; the one exception: `hat` `none`/`skull`/`laurel`/`flower_crown` ignore `hat_color` (`hat/skull.png`).
 - `build.py` renders every combination of a slot's dependencies, so a slot costs (product of its options' counts) sheets.
   **Keep dependencies minimal**: a slot that depended on 3 options of 6 values each would be 216 sheets.
 - A combination that draws nothing writes no file (`hat/none`, `beard/none-*`, `back_coat/robe-*`...). The manifest's

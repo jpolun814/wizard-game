@@ -128,9 +128,7 @@ func add_person(peer_id: int, feet: Vector2) -> Wizard:
 
 ## A page has been found: the book takes it in.
 func on_page_found(page: String) -> void:
-	spellbook.refresh()
-	Sfx.cue("arena", "rustle", player.center())
-	FloatText.spawn(self, player.center() + Vector2(0, -70), "Page: %s" % Pages.title_of(page), Color("#ffe9a0"), 1.1)
+	spellbook.refresh()  # (the names rise beside the wizard as each page arrives: see PageFlight)
 
 
 ## A wizard reads the page it stands under. In a network game the host says who gets each page, so two never read the same one: a
@@ -161,11 +159,16 @@ func _page_read(pickup_name: String, wizard_name: String) -> void:
 	if pickup == null or wizard == null:
 		return
 	var fresh := pickup.gives(wizard.ledger)
+	var coming := pickup.new_pages(wizard.ledger)
+	var from := pickup.global_position + Vector2(0.0, -PagePickup.FLOAT)
 	var page := pickup.take(wizard.ledger)
+	if fresh:
+		PageFlight.send(self, from, wizard, coming)  # each page flies to the reader, one at a time, and its name rises beside them
 	if wizard == player:
 		if fresh:
-			on_page_found(page)  # takes the page into the book
-		spellbook.show_page(page)
+			on_page_found(page)  # takes the page into the book (it does not open: the names rising beside the wizard are what to read)
+		else:
+			spellbook.show_page(page)  # a page the book already has: the book opens at it
 
 
 ## Every page is known at once, those on the map left where they lie.
@@ -344,6 +347,8 @@ func _process(_delta: float) -> void:
 		player.shown_stroke = _thinned(caster.stroke())  # the others see the stroke being drawn, as you see theirs
 	for module: String in revealed:
 		revealed[module] = revealed[module] or player.ledger.is_settled(module)  # a later world of the match keeps what was said in an earlier one
+	if player.ledger.is_settled("darkvision") and not player.dead and not rituals.has_sight(player):
+		rituals.give_sight(player)  # the chant was said in an earlier world: it holds
 	_minimap.visible = revealed["minimap"]
 	_eye.visible = revealed["scrying_eye"]
 	insight.update()

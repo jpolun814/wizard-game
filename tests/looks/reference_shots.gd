@@ -24,6 +24,7 @@ func _ready() -> void:
 	Library.use_file("user://reference_shots.json")
 	Library.clear()
 	await _screens()
+	await _stats()
 	await _tutorial()
 	for biome: String in WORLDS:
 		await _world(biome, WORLDS[biome])
@@ -108,6 +109,37 @@ func _in_the_room() -> void:
 		await get_tree().physics_frame
 	await _shot("screen_pause")
 	lab.hud.toggle_pause()
+	var mine: String = GameSettings.get_value("look")  # (the wizard maker is shown with the starting wizard, whatever this machine has chosen)
+	GameSettings.set_value("look", PartsLook.DEFAULT_LOOK)
+	lab.ritual.likeness_spoken.emit()
+	for k in 40:
+		await get_tree().physics_frame
+	await _shot("screen_wizard_maker")
+	for panel in lab.find_children("*", "LikenessPanel", true, false):
+		(panel as LikenessPanel).close()
+	GameSettings.set_value("look", mine)
+
+
+## The stats screen the person sees when they fall, with a match's worth of made-up figures (the same each time): its first page and a chart.
+func _stats() -> void:
+	await _swap(Control.new())
+	MatchStats.series.clear()
+	for k in 8:
+		MatchStats.series.append({"t": k * 20.0, "dealt": k * 25.0, "taken": k * 10.0, "known": 6 + k, "casts": k * 3, "misses": k, "kills": k / 3})
+	MatchStats.seconds = 140.0
+	var layer := CanvasLayer.new()
+	_scene.add_child(layer)
+	var screen := StatsScreen.new()
+	layer.add_child(screen)
+	screen.show_stats(3, 8, true)
+	for k in 60:
+		await get_tree().physics_frame
+	await _shot("screen_stats")
+	screen._turn(1)
+	for k in 20:
+		await get_tree().physics_frame
+	await _shot("screen_stats_chart")
+	MatchStats.series.clear()
 
 
 func _tutorial() -> void:
@@ -128,3 +160,6 @@ func _world(biome: String, world_seed: int) -> void:
 		if found != world.player:
 			found.brain = QuietBrain.new(found)
 	await _shot("world_" + biome)
+	if biome == "jungle":  # the minimap, shown (it comes with a revealing spell or chant)
+		world.revealed["minimap"] = true
+		await _shot("world_minimap")

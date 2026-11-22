@@ -48,7 +48,9 @@ func by(spell: String, targeting: String, origin: Vector2, aim: float, info: Dic
 	var paid := wizard.pay_max(cost) if spell_data.pays_max() else wizard.spend(cost)
 	if not paid:
 		# Blood is never spent to the last drop. Said to whoever the wizard is, not only to a person.
-		_say("Too weak" if spell_data.pays_max() else "Too tired", Color("#ff9a9a") if spell_data.pays_max() else Color("#ffb86b"), label_at, wizard, true)
+		_say("Not enough max stamina" if spell_data.pays_max() else "Not enough stamina", Color("#ff8080"), label_at, wizard, true, 1.15)
+		if person and arena.hud != null:
+			arena.hud.stamina_bar.alarm()  # the bar flares red: the shape was right, there was not enough to cast it
 		if person and arena.is_in_group(&"world"):
 			MatchStats.miss()
 		return
@@ -77,8 +79,8 @@ func _refusal(spell: String, info: Dictionary, aim: float, origin: Vector2, wiza
 	return {}
 
 
-func _say(text: String, color: Color, at: Vector2, wizard: Wizard, sound: bool) -> void:
-	FloatText.spawn(arena, at, text, color, 0.9)
+func _say(text: String, color: Color, at: Vector2, wizard: Wizard, sound: bool, size := 0.9) -> void:
+	FloatText.spawn(arena, at, text, color, size)
 	if sound:
 		Sfx.cue("casting", "misfire", wizard.center(), -6.0)
 

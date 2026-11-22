@@ -16,6 +16,7 @@ const LIFE := 6.0  # one thrown off the map is gone after this
 var velocity := Vector2.ZERO
 var burns_ground := true  # the ash storm's rain only burns where it strikes: the ground does not stay alight, so a dodged lump leaves safe ground
 var _age := 0.0
+var _drag := 1.0  # how much of its way it covers this frame: a wind holds it back (see `hinder`)
 var _spent := false
 
 
@@ -59,7 +60,8 @@ func _physics_process(delta: float) -> void:
 	if not hit.is_empty():
 		_land(hit["position"])
 		return
-	global_position = after
+	global_position = global_position + velocity * delta * _drag
+	_drag = 1.0
 	rotation = velocity.angle()
 	queue_redraw()
 
@@ -98,6 +100,11 @@ func reflect(direction: Vector2) -> void:
 ## A steady pull, such as a Black Hole's. Call it every frame the pull lasts.
 func pull(force: Vector2, delta: float) -> void:
 	velocity += force * delta
+
+
+## A wind holds it back: for this frame it covers only this much of its way. It flies the same way.
+func hinder(pace: float) -> void:
+	_drag = minf(_drag, pace)
 
 
 ## Which way it is flying right now.

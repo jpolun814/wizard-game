@@ -12,6 +12,7 @@ var _clear := false  # it has flown out of its shooter's body: from then on it c
 var _shooter: Node
 var _speed := SPEED
 var _velocity := Vector2.RIGHT * SPEED
+var _drag := 1.0  # how much of its way it covers this frame (see hinder)
 var damage := 6
 var _color := Color("#7fd8ff")
 var _age := 0.0
@@ -62,6 +63,11 @@ func pull(force: Vector2, delta: float) -> void:
 	_velocity += force * delta
 
 
+## A wind holds it back: for this frame it covers only this much of its way. It flies the same way.
+func hinder(pace: float) -> void:
+	_drag = minf(_drag, pace)
+
+
 ## Which way it is flying right now.
 func heading() -> Vector2:
 	return _velocity.normalized()
@@ -71,7 +77,8 @@ func _physics_process(delta: float) -> void:
 	_age += delta
 	if _age >= CLEAR_CHECK_AFTER and not _clear and not get_overlapping_bodies().has(_shooter):
 		_clear = true
-	position += _velocity * delta
+	position += _velocity * delta * _drag
+	_drag = 1.0
 	rotation = _velocity.angle()
 	queue_redraw()
 	if _age >= LIFE:

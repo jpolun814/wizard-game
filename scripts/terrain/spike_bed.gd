@@ -5,7 +5,7 @@ extends Area2D
 ## and then they are seen for a while. Whoever touches them is cut, and a jump clears them.
 
 const DAMAGE := 30
-const HEIGHT := 30.0     # how high the spikes stand, which is how high you have to jump
+const HEIGHT := 36.0     # how high the spikes stand, which is how high you have to jump
 const REMEMBER := 8.0    # seconds they stay in view after the light has gone
 const GAP := 0.8         # seconds before the same body is cut again
 const SPRITES := ["rock_spike_1", "rock_spike_2", "rock_spike_3"]
@@ -49,7 +49,7 @@ func _ready() -> void:
 			var sprite := Sprite2D.new()
 			sprite.texture = load("res://art/props/%s.png" % SPRITES[rng.randi() % SPRITES.size()])
 			sprite.offset = Vector2(0, -sprite.texture.get_height() * 0.5 + 2.0)  # it stands on the floor
-			sprite.scale = Vector2.ONE * 2.2
+			sprite.scale = Vector2.ONE * 2.6
 			sprite.flip_h = rng.randf() < 0.5
 			sprite.position = Vector2(x, row * t + SINK)  # its foot is under the ground's own tiles, so it grows out of the rock
 			sprite.modulate = Color(_tint, 0.0)

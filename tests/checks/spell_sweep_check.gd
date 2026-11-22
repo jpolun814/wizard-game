@@ -128,6 +128,10 @@ func _cast(spell_name: String) -> void:
 	var ground := GestureTemplates.preview_ground(data.gesture)
 	var middle := player.center() + Vector2(150.0, -20.0)
 	if spell_name in TARGETED:  # (drawn over someone)
+		_lab._partner.global_position = player.global_position + Vector2(150.0, 0.0)  # (to the right of the caster, the way a stroke that is drawn pointing runs: where the partner has wandered to is not the spell's business)
+		_lab._partner.velocity = Vector2.ZERO
+		_lab._partner.reset_physics_interpolation()
+		await get_tree().physics_frame
 		middle = _lab._partner.center()
 	if not is_nan(ground):
 		middle.x = player.global_position.x + 70.0

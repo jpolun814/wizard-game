@@ -63,3 +63,5 @@ The wizards are falling through the sky: no ground, no jumping and no platforms.
 - **Spells** that need ground are refused with "No ground" (`SpellLimits`, which the brain also asks); Updraft, Featherfall and Rocket Jump say "No need".
 - **The AI** is `SkyBrain`: the scripted brain with its legs changed, flying straight at a page it has seen, a rival it hunts, or somewhere new, round thunderclouds.
 - **Not verified:** how flying feels, and the thunder's sound.
+
+**Portals have fixed partners (owner, 2026-11-21).** Each portal of a wave leads to one other portal, always the same: the wave's portals are joined in pairs (first to second, third to fourth), both ways, and the odd one out leads to the wave's first. `PortalField.schedule` gives each entry a `partner`, `exit_of` finds the way out (the partner while it is open, else any other open portal, as before). Shots go the same way. Portals are still colored apart, so a pair is not marked by color; say so if the owner wants it.

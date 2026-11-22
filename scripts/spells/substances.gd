@@ -62,6 +62,29 @@ static func frozen_for(body: Node, seconds: float) -> float:
 	return seconds * FREEZE_WET if body.is_wet() else seconds
 
 
+## Water that washes the body clean: what clings to it or ails it is rinsed away. A flame, oil, a chill, a tangle, a curse, a wound, a daze, a fright and a
+## hunter on its heels (a snail) all go. Leaves it dry: soak it after, if the water stays on it.
+static func wash(body: Node) -> void:
+	if not alive(body):
+		return
+	if body.burning_time > 0.0:
+		put_out(body)
+	body.oiled_time = 0.0
+	for state in ["slow_time", "daze_time", "sink_time", "tangle_time", "rage_time", "fear_time", "drained_time"]:
+		if state in body:
+			body.set(state, 0.0)
+	var tree := body.get_tree()
+	var curse := Hex.on(tree, body)
+	if curse != null:
+		curse.queue_free()
+	var wound := Hemorrhage.on(tree, body)
+	if wound != null:
+		wound.queue_free()
+	for snail: InvincibleSnail in tree.get_nodes_in_group("snails"):
+		if snail.target == body:
+			snail.lose_scent()
+
+
 static func put_out(body: Node) -> void:
 	body.burning_time = 0.0
 	Fx.smoke(body.get_parent(), body.center(), Color(0.88, 0.92, 0.96, 0.5), 3, 18.0, 36.0)

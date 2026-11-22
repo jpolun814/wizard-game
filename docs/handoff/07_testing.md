@@ -44,12 +44,14 @@ anything is done, and put the result in your report.
 
 ## Added later (2026-11-20, the second pass: "really make it comprehensive")
 
-- **Static checks** (`tools/audio_check.py`, `tools/rules_check.py`: Python, no engine, about a second each; `test.py` runs them right after the unit tests and stops on a failure).
+- **Static checks** (`tools/audio_check.py`, `tools/rules_check.py`, `tools/resource_check.py`, `tools/shots_check.py`: Python, no engine, about a second each; `test.py` runs them right after the unit tests and stops on a failure).
   `audio_check`: every owner/event in `data/sounds.json` and each spell's `sounds` has files; every file in `audio/` decodes, is not empty or silent, does not clip, has its `.import`;
   every level in `sound_levels.json` is for a real sound and does not push it over full scale (the rocks sound is tuned 2.6 dB over, told to the owner); nothing is orphaned.
+  `resource_check`: every file a scene, theme or resource points at (and the project's theme) is held by git, and every picture, sound or font among them has its `.import` (a skin or font left out of a commit works here and breaks the build everywhere else).
   `rules_check`: `danger_at` wherever the `danger` group is joined; no `load()` in `_draw`; every `res://` path in a script exists; no spell-name branch in `scripts/spells/`; the laws
   (`elements.gd`, `damage.gd`, `substances.gd`) name no spell, school or spell class; American spelling outside quoted strings; every written-out `Sfx.cue("owner", "event")` is registered
   (an unregistered one plays nothing: the intro's swallowed page was silent for that reason). Add a rule here when the owner states one that a program can read.
+  `shots_check`: every script that moves a body and hurts someone is in the group `shots` (and answers `hinder`, `pull`, `reflect`, `heading`, which the laws ask of a shot) or is named in `ALLOWED_MOVERS` with the reason it is not one. Lava balls, hail, boulders and Flaming Spheres each slipped past the wind this way and the owner found it; a new flying, falling or rolling thing now fails here until someone decides.
 - **Text lint** (`tests/unit/text_lint_test.gd`): every spell description, chant line and state tooltip is held to the wording rules of CLAUDE.md section 0 (no figures, no team words,
   American spelling, no "for a while", no key names in the book, sentences, tooltips with no full stop and no advice). **States** (`tests/unit/states_test.gd`): every state has a name,
   tooltip and painted icon, and every state a spell or chant names exists.
@@ -73,9 +75,10 @@ anything is done, and put the result in your report.
 - **`saved_data_test`** (unit): the Library's record and the options file survive an empty file, half a file, text, JSON of the wrong shape, fields of the wrong kind, an older game's
   fewer fields, a huge history. It found that `GameSettings.load_saved` trusted the type of every saved value (now `_of_the_right_kind`).
 - **More reference pictures**: the first menu, the Library, three spellbook pages (a spell, a curse, a chant) and the pause screen join the waiting room, spells, tutorial and biomes
-  (`reference_shots.gd`). After changing how a screen looks, LOOK at the new picture, then `python tools/look_compare.py --update`.
+  (`reference_shots.gd`); the wizard maker, two pages of the stats screen and the minimap joined them on 2026-11-20 (23 pictures). After changing how a screen looks, LOOK at the new picture, then `python tools/look_compare.py --update`.
 - **Automation**: `.github/workflows/test.yml` runs the parse check, the unit tests and the static checks on every push (it needs `addons/gdUnit4` committed). `tools/hooks/pre-commit`
-  runs the unit tests and static checks before a commit; it is NOT switched on: `git config core.hooksPath tools/hooks` turns it on, `git config --unset core.hooksPath` off.
+  runs the unit tests and static checks before a commit; it is switched on here (2026-11-20) with `git config core.hooksPath tools/hooks` (a fresh clone has to do it again; `git config --unset core.hooksPath` turns it off).
+  `python tools/ci_rehearsal.py` does what GitHub's machines do (clone the last COMMIT, import, parse every script, unit tests, static checks) before a push, so a file only this machine has shows up first. Two failures it cannot show: a Linux-only difference (the first CI failures were `python -I` not seeing packages pip had put in a user folder), and the Windows export (no templates here); read those from the Actions run (`gh` is not installed: the run's log can be fetched with the API and the git credential).
 - **Not built, and why:** a baseline of how well the AI plays (`tools/ai_bench.py`, `tools/ai_ladder.py` exist; they take minutes to hours and their numbers move with the dice, so
   a pass/fail line needs a chosen tolerance from the owner), and more network desync checks beyond `net_check`, `net_match_check` and the cluster checks.
 - A picture of one spellbook page: `godot --path . --audio-driver Dummy tests/looks/book_page_look.tscn -- page=Barrier out=FILE`.

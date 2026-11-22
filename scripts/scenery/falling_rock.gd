@@ -13,10 +13,15 @@ var tint := Color(1, 1, 1)  ## set by the cave: the color of the ground's own ro
 var _speed := 0.0
 var _ground_y := 0.0
 var _struck := false
+var _drag := 1.0         # how much of its way it covers this frame (a wind holds it back)
+var _pulled := Vector2.ZERO
+var _side := 0.0         # a sideways drift, once it is shoved
+var _turned := 0.0       # seconds since a Barrier turned it, so it is not turned again at once
 
 
 func _ready() -> void:
 	add_to_group("danger")
+	add_to_group("shots")  # a stone falling on someone is a shot like any other
 	z_index = 3
 	var sprite := Sprite2D.new()
 	sprite.texture = SPRITE
@@ -30,10 +35,18 @@ func _ready() -> void:
 
 func _physics_process(delta: float) -> void:
 	_speed += GRAVITY * delta
-	global_position.y += _speed * delta
+	_turned = maxf(_turned - delta, 0.0)
+	global_position += (Vector2(_side, _speed) * _drag + _pulled) * delta
+	if absf(_side) > 1.0 or _pulled != Vector2.ZERO:
+		_ground_y = SpellTargets.ground_below(get_world_2d(), global_position + Vector2(0.0, 24.0)).y  # (it has moved over other ground)
+	_drag = 1.0
+	_pulled = Vector2.ZERO
 	if not _struck:
 		for body: Node2D in SpellTargets.all(get_tree()):
 			if SpellTargets.center_of(body).distance_to(global_position) < RADIUS and not (body is Wizard and body.is_likeness()):
+				if body is Wizard and _turned <= 0.0 and Elements.shield_turns(self, body):  # a Barrier turns it away
+					_turned = 0.5
+					break
 				_struck = true
 				SpellTargets.hurt(body, DAMAGE, "Earth")
 				break
@@ -47,3 +60,23 @@ func _physics_process(delta: float) -> void:
 ## True under the rock while it falls.
 func danger_at(point: Vector2) -> bool:
 	return absf(point.x - global_position.x) < RADIUS + 8.0 and point.y > global_position.y and point.y < _ground_y + 20.0
+
+
+## A wind holds it back: for this frame it covers only this much of its way.
+func hinder(pace: float) -> void:
+	_drag = minf(_drag, pace)
+
+
+## Which way it is going.
+func heading() -> Vector2:
+	return Vector2(_side, _speed).normalized()
+
+
+## A pull on it (a hole).
+func pull(force: Vector2, delta: float) -> void:
+	_pulled += force * delta
+
+
+## A shove or a Barrier sends it off sideways, as fast as it was falling, and slower than that.
+func reflect(way: Vector2) -> void:
+	_side = way.x * maxf(_speed, 200.0) * 0.6

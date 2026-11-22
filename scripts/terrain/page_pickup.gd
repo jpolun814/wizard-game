@@ -17,6 +17,7 @@ const CHIME_FAR := 720.0   # and again only after they have gone this far from i
 
 var page := ""
 var spoils: Array[String] = []  # a dead wizard's whole book, lying together: reading it reads every page in it, and `page` is the first of them
+var always_hint := false  # the words "Press Tab to read" show from afar, not only to one standing under it (the tutorial's first pages)
 var fan := false  # the pages in `spoils` lie fanned out like cards, not shut in a book: one read takes them all
 var _t := 0.0
 var _sprite: Sprite2D
@@ -41,7 +42,7 @@ func _ready() -> void:
 	if fan:
 		_fan_out()
 	_hint = Label.new()
-	_hint.add_theme_font_size_override("font_size", 14)
+	_hint.add_theme_font_size_override("font_size", 20 if always_hint else 14)
 	_hint.add_theme_color_override("font_color", Color("#ffe9a0"))
 	_hint.add_theme_color_override("font_outline_color", Color(0.08, 0.04, 0.08))
 	_hint.add_theme_constant_override("outline_size", 5)
@@ -107,7 +108,7 @@ func _physics_process(delta: float) -> void:
 			(card.material as ShaderMaterial).set_shader_parameter("strength", strength)
 	_chime()
 	var wizard := get_tree().get_first_node_in_group("player") as Node2D
-	_hint.visible = is_underfoot()
+	_hint.visible = is_underfoot() or (always_hint and (wizard == null or gives(wizard.ledger)))
 	_hint.text = "Press Tab to read" if wizard == null or gives(wizard.ledger) else "Press Tab to read it again"
 	queue_redraw()
 

@@ -53,6 +53,35 @@ func _ready() -> void:
 	_verdict(player.max_stamina == health, "a chant stopped short fades harmlessly")
 	_say("deep_breath")
 	_verdict(player.deep_breath_time > 0.0, "the Deep Breath: the breath is held")
+	# Darkvision: the light of a flare with no flame, which nothing puts out, and a second chant replaces the first.
+	player.deep_breath_time = 0.0  # (no one chants with the breath held)
+	_say("darkvision")
+	await _frames(2)
+	var sights := get_tree().get_nodes_in_group("flares").filter(func(f: Flare) -> bool: return f.unseen and f.caster == player)
+	_verdict(sights.size() == 1, "Darkvision: a light that follows the speaker (%d)" % sights.size())
+	_verdict(sights.size() == 1 and sights[0].get_child_count() <= 1 and sights[0]._flame == null, "and shows no flame")
+	Sfx.recording = true
+	Sfx.heard.clear()
+	_arena.spawn_spell("Gust", SpellData.SPELLS["Gust"].targeting, player.center(), 0.0, {}, player)  # a wind over the speaker
+	for wind: Node2D in get_tree().get_nodes_in_group("winds"):
+		wind.global_position = player.center()  # (it blows right over the speaker, as when a wizard gusts a place they stand in)
+	await _frames(30)
+	Sfx.recording = false
+	_verdict(not Sfx.heard.has("quench__steam"), "a wind over the speaker blows out nothing and hisses at nothing")
+	Flare.snuff_near(get_tree(), player.center(), 400.0)
+	sights[0].quench()
+	await _frames(2)
+	_verdict(is_instance_valid(sights[0]) and not sights[0].is_queued_for_deletion(), "and no wind or water puts it out")
+	_say("darkvision")
+	await _frames(2)
+	_verdict(get_tree().get_nodes_in_group("flares").filter(func(f: Flare) -> bool: return f.unseen and f.caster == player).size() == 1, "and saying it again leaves one")
+	# Said once, it holds through the match: a new world gives it again.
+	_verdict(player.ledger.is_settled("darkvision"), "Darkvision, once said, is kept")
+	for f in get_tree().get_nodes_in_group("flares"):
+		if f.unseen:
+			f.free()  # (as when the world it was in has gone)
+	await _frames(3)
+	_verdict(_arena.rituals.has_sight(player), "and it comes again in the next world")
 	print("the chants work" if _failures == 0 else "%d FAILED" % _failures)
 	get_tree().quit(1 if _failures > 0 else 0)
 

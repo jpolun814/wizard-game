@@ -38,6 +38,15 @@ const GAS_BUDGET := 32
 const DARK_BUDGET := 32
 const ICE_FLAT := 6         # a plug of ice only needs a place to stand each side
 const WALL_DEPTH := 22      # rows of rock a wall needs over the floor of a passage: the room it takes from the ceiling, and a roof
+## The underground is a maze (owner, 2026-11-21: "more tunnels, more ways in and out of the rooms"): more halls packed closer, tunnels allowed shorter, and
+## many more loops, so there is hardly a hall with only one way in. These are the numbers a maze uses in place of the ones above.
+const MAZE_HALLS := 1.5         # as many halls again as a world of that width would have
+const MAZE_MIN_RUN := 12
+const MAZE_DESCENT_SHARE := 0.85  # of the growth that is a ramp down from a floor, not a tunnel from a hall's end
+const MAZE_MOUTH_APART := 14   # columns between two ramps down from one floor
+const MAZE_LOOPS := 3           # times the loops (EXTRA_DESCENTS, EXTRA_LINKS)
+const MAZE_LEAST_RUN := 8       # the shortest gap between two halls that a loop tunnel may join
+const MAZE_WANTED_LOOPS := 8    # loops a maze needs before a try is accepted at once
 const GATES := ["chasm", "flood", "brambles", "wall", "ice", "dark", "gas", "piranhas", "sentinel"]  # what can bar a passage; each is beaten by any of several spells
 
 ## Each room: {"id", "cx": middle column, "cy": the row where its floor starts (first solid row at the middle), "hw": half its
@@ -48,6 +57,7 @@ const GATES := ["chasm", "flood", "brambles", "wall", "ice", "dark", "gas", "pir
 ## two mouths, as tiles, pa in room a and pb in room b, "inside_a" or "inside_b": true when that mouth is in the middle of
 ## a floor rather than at a hall's end}.
 static var size := FULL  # the world to build, in tiles: the portal collapses into smaller ones
+static var maze := false  # the world being built is a maze (see MAZE_HALLS): set by build and build_open
 var rooms: Array[Dictionary] = []
 var links: Array[Dictionary] = []
 var locks: Array[Dictionary] = []  # {"id", "link", "rooms": [ids], "key": room id, "gate": what bars the passage}
@@ -61,6 +71,7 @@ var _reserved: Array[Dictionary] = []  # {"rect": Rect2i, "owners": [room ids]}:
 
 ## Tries again from scratch until a world has enough halls, a gate and a deep hall; the best of a few tries if none does.
 static func build(rng: RandomNumberGenerator, biome: String) -> WorldGraph:
+	maze = biome == "underground"
 	var wanted_mouths := _scaled(8, 3)
 	var wanted_locks := 2 if size.x >= 800 else 1
 	var wanted_depth := 3 if size.x >= 800 else 2
@@ -69,11 +80,11 @@ static func build(rng: RandomNumberGenerator, biome: String) -> WorldGraph:
 	for attempt in 60:
 		var graph := _grow(rng, biome)
 		var mouths: int = graph.rooms[0]["mouths"].size()
-		var score := graph.rooms.size() + mouths * 3 + mini(graph.links.size() - graph.rooms.size(), 4) * 4 + (6 if graph.locks.size() >= wanted_locks else 0) + (4 if graph.rooms[graph.deepest]["depth"] >= wanted_depth else 0) + (0 if graph._spawns_apart() else -40)
+		var score := graph.rooms.size() + mouths * 3 + mini(graph.links.size() - graph.rooms.size(), 4) * 4 + (6 if graph.locks.size() >= wanted_locks else 0) + (4 if graph.rooms[graph.deepest]["depth"] >= wanted_depth else 0) + (0 if graph._spawns_apart() else -40) + (mini(graph.links.size() - graph.rooms.size(), MAZE_WANTED_LOOPS) * 3 if maze else 0)
 		if score > best_score:
 			best = graph
 			best_score = score
-		if graph.rooms.size() >= _scaled(MIN_ROOMS, 8) and mouths >= wanted_mouths and graph._every_biome_has_a_way_down() and graph.locks.size() >= wanted_locks and graph.rooms[graph.deepest]["depth"] >= wanted_depth and graph.spawns.size() == PLAYERS and graph._spawns_apart() and graph.links.size() - graph.rooms.size() >= 2:
+		if graph.rooms.size() >= _scaled(MIN_ROOMS, 8) and mouths >= wanted_mouths and graph._every_biome_has_a_way_down() and graph.locks.size() >= wanted_locks and graph.rooms[graph.deepest]["depth"] >= wanted_depth and graph.spawns.size() == PLAYERS and graph._spawns_apart() and graph.links.size() - graph.rooms.size() >= (MAZE_WANTED_LOOPS if maze else 2):
 			return graph
 	return best
 
@@ -85,6 +96,7 @@ static func _scaled(count: int, least: int) -> int:
 
 ## A world with no caves: only the surface, with the players' places spread along it. The last world of a match, with nowhere to hide.
 static func build_open(rng: RandomNumberGenerator, biome: String) -> WorldGraph:
+	maze = false
 	var graph := WorldGraph.new()
 	graph.surface = SurfaceGen.build(size.x, biome, rng)
 	graph._add_room({"cx": size.x / 2, "cy": SURFACE_ROW, "hw": size.x / 2 - 4, "air": SURFACE_ROW - 3, "surface": true,
@@ -121,6 +133,8 @@ static func _grow(rng: RandomNumberGenerator, surface_biome: String) -> WorldGra
 	var graph := WorldGraph.new()
 	graph.surface = SurfaceGen.build(size.x, surface_biome, rng)
 	var count := rng.randi_range(_scaled(MIN_ROOMS, 8), _scaled(MAX_ROOMS, 10))
+	if maze:
+		count = roundi(count * MAZE_HALLS)
 	graph._add_room({"cx": size.x / 2, "cy": SURFACE_ROW, "hw": size.x / 2 - 4, "air": SURFACE_ROW - 3, "surface": true,
 			"tunnel_1": true, "tunnel_-1": true, "mouths": [], "role": "surface", "cluster": -1})
 	# Ways down all along the surface, in every biome, each the start of a system of halls of its own.
@@ -142,10 +156,10 @@ static func _grow(rng: RandomNumberGenerator, surface_biome: String) -> WorldGra
 		for room in graph.rooms:
 			if room["cluster"] == cluster:
 				members.append(room)
-		if members.size() >= CLUSTER_ROOMS + 4:
+		if members.size() >= (CLUSTER_ROOMS + 4) * (2 if maze else 1):
 			continue
 		var from: Dictionary = members[rng.randi() % members.size()]
-		if rng.randf() < 0.55:
+		if rng.randf() < (MAZE_DESCENT_SHARE if maze else 0.55):  # a ramp uses up one end of a hall and a tunnel two, so a maze grows by ramps and keeps ends free for loops
 			graph._try_descent(from, rng, -1)
 		else:
 			graph._try_tunnel(from, rng)
@@ -179,9 +193,9 @@ static func exit_of(room: Dictionary, side: int) -> Vector2i:
 ## The size of a new hall: mostly caverns, now and then a great hall or a small vault.
 static func _roll_hall(rng: RandomNumberGenerator) -> Dictionary:
 	var roll := rng.randf()
-	if roll < 0.14:
+	if roll < (0.05 if maze else 0.14):  # a maze has few great halls: they take the room of several
 		return {"hw": rng.randi_range(30, 42), "air": rng.randi_range(24, 34), "role": "great"}
-	if roll < 0.32:
+	if roll < (0.17 if maze else 0.32):
 		return {"hw": rng.randi_range(8, 11), "air": rng.randi_range(12, 14), "role": "vault"}
 	return {"hw": rng.randi_range(12, 26), "air": rng.randi_range(12, 22) if rng.randf() < 0.8 else rng.randi_range(26, 38), "role": "cavern"}
 
@@ -192,7 +206,7 @@ func _try_tunnel(from: Dictionary, rng: RandomNumberGenerator) -> void:
 	var side := 1 if rng.randf() < 0.5 else -1
 	if from.has("tunnel_%d" % side):
 		return  # a hall has one tunnel at each end: two would cut each other's floors near the mouth
-	var run := rng.randi_range(MIN_RUN, MAX_RUN)
+	var run := rng.randi_range(MAZE_MIN_RUN if maze else MIN_RUN, MAX_RUN)
 	var slope := STEEP if rng.randf() < STEEP_CHANCE else SLOPE
 	var reach := int(run / slope) - 2
 	var dy := rng.randi_range(-reach / 2, reach)  # a little more down than up, so the halls reach the depths
@@ -223,7 +237,7 @@ func _try_descent(from: Dictionary, rng: RandomNumberGenerator, column: int) -> 
 			return false
 	var row: int = surface["floor"][mouth_x] if on_surface else from["cy"]
 	var side := 1 if rng.randf() < 0.5 else -1
-	var run := rng.randi_range(MIN_RUN + 8, MAX_RUN)
+	var run := rng.randi_range((MAZE_MIN_RUN if maze else MIN_RUN) + 8, MAX_RUN)
 	var dy := rng.randi_range(10, run - 2)
 	var spec := _roll_hall(rng)
 	if on_surface:
@@ -352,7 +366,7 @@ func _add_descent_loops(rng: RandomNumberGenerator) -> void:
 	options.sort_custom(func(x: Array, y: Array) -> bool: return x[3] < y[3])  # between systems first
 	var made := 0
 	for option in options:
-		if made >= EXTRA_DESCENTS:
+		if made >= EXTRA_DESCENTS * (MAZE_LOOPS if maze else 1):
 			break
 		var a: Dictionary = rooms[option[0]]
 		var b: Dictionary = rooms[option[1]]
@@ -363,14 +377,15 @@ func _add_descent_loops(rng: RandomNumberGenerator) -> void:
 		var dy: int = end.y - a["cy"]
 		if dy + 2 > MAX_RUN:
 			continue
-		for attempt in 24:
-			var mouth_x: int = a["cx"] + rng.randi_range(-a["hw"] / 2, a["hw"] / 2)
+		for attempt in (80 if maze else 24):
+			var reach_x: int = a["hw"] - 4 if maze else a["hw"] / 2  # a maze lets a ramp start anywhere along the floor
+			var mouth_x: int = a["cx"] + rng.randi_range(-reach_x, reach_x)
 			var run: int = (end.x - mouth_x) * side
 			if run < dy + 2 or run > MAX_RUN:
 				continue
 			var near := false
 			for other in a["mouths"]:
-				near = near or absi(other - mouth_x) < MOUTH_APART
+				near = near or absi(other - mouth_x) < (MAZE_MOUTH_APART if maze else MOUTH_APART)
 			var from_mouth := Vector2i(mouth_x, a["cy"])
 			var tunnel := Rect2i(mini(from_mouth.x, end.x) + 4, mini(from_mouth.y, end.y) - 12, absi(end.x - from_mouth.x) - 8, absi(end.y - from_mouth.y) + 16)
 			if near or _blocked(tunnel, [a["id"], b["id"]]) or not _under_surface(from_mouth, end, STEEP, true):
@@ -396,7 +411,7 @@ func _add_loops(rng: RandomNumberGenerator) -> void:
 				continue
 			var run: int = (b["cx"] - b["hw"]) - (a["cx"] + a["hw"])
 			var dy: int = absi(b["cy"] - a["cy"])
-			if run < 16 or run > MAX_RUN or dy * SLOPE > run - 4 or linked(a["id"], b["id"]):
+			if run < (MAZE_LEAST_RUN if maze else 16) or run > MAX_RUN or dy * SLOPE > run - 4 or linked(a["id"], b["id"]):
 				continue
 			var tunnel := Rect2i(a["cx"] + a["hw"] + 4, mini(a["cy"], b["cy"]) - 12, run - 8, dy + 16)
 			var pa := exit_of(a, 1)
@@ -408,7 +423,7 @@ func _add_loops(rng: RandomNumberGenerator) -> void:
 			list.push_front(list.pop_at(rng.randi() % (i + 1)))
 	var made := 0
 	for option in across + within:
-		if made >= EXTRA_LINKS:
+		if made >= EXTRA_LINKS * (MAZE_LOOPS if maze else 1):
 			break
 		if linked(option[0], option[1]) or _blocked(option[2], [option[0], option[1]]):
 			continue
