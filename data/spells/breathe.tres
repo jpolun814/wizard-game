@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="Spell" format=3]
+
+[ext_resource type="Script" path="res://scripts/core/spell.gd" id="1_spell"]
+
+[resource]
+script = ExtResource("1_spell")
+spell_name = "Breathe"
+school = "Air"
+gesture = "peace"
+cost = 25.0
+effect = "Regain max stamina for 10 seconds."
+heal = "+3 max stamina/sec"
+applies = Array[String](["mending"])
+sounds = {"mend": "breathe__mend"}

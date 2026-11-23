@@ -9,5 +9,5 @@ school = "Flora"
 gesture = "vine"
 targeting = "shape"
 cost = 18.0
-effect = "Grow a climbable vine."
+effect = "Grow a vine you can climb."
 sounds = {"fire": "liana__fire", "rustle": "liana__rustle"}

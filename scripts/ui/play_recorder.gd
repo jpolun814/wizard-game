@@ -15,7 +15,7 @@ extends Node
 ##   A    what the person asks of the body, ten times a second: left or right (-1, 0, 1), jump held, and the buttons held (1 left, 2 right, 4 middle)
 ##   C    the last spell of the person changed; R the chant words as they are typed
 ##   D    the person was hurt: how much, and everything within reach that could have done it
-##   N    a wizard fell, and who and what was near
+##   N    a wizard fell: who, "by_you" when the person struck the last blow (else -), and who and what was near
 const SOLO_KEEP := 30
 
 ## True in a check that wants the automatic recording that only a match someone is playing makes.
@@ -47,6 +47,7 @@ var _spell := ""
 var _typed := ""
 var _seen := {}  # instance id -> true, for what has already been written as new
 var _fallen := {}
+var _last_seen := {}  # each wizard's name and place when last looked at: a wizard taken out of the world as it falls is written down from this
 
 
 ## Hands the recording to the world now being played. The recorder lives on the tree's root, so that one recording runs through every world of a
@@ -233,23 +234,36 @@ func _ground() -> void:
 
 
 func _near() -> void:
-	for other: Wizard in SpellTargets.wizards(get_tree()):
+	var here := {}
+	for other: Wizard in get_tree().get_nodes_in_group("wizards"):  # (all of them, the fallen too: SpellTargets.wizards leaves the fallen out, and so no fall was ever written)
 		if other == wizard or not is_instance_valid(other):
 			continue
+		var id := other.get_instance_id()
+		here[id] = true
+		_last_seen[id] = [other.name, other.global_position]
 		var off := other.global_position - wizard.global_position
-		if other.dead and not _fallen.has(other.get_instance_id()):
-			_fallen[other.get_instance_id()] = true
-			_line("N %s fell %s" % [other.name, _near_text(other.global_position, HURT_REACH * 1.5, other)])
+		if other.dead and not _fallen.has(id):
+			_write_fall(id)
 		if off.length() > SEE * 1.6 or other.dead:
 			continue
 		_line("W %s %s %d %d %d %d %s %s %s" % [other.name, "person" if other.brain == null else "brain", off.x, off.y, other.stamina, other.max_stamina,
 			"wolf" if other.wolf.on else "-", "faint" if other.fainted else "-", str(other.last_spell).replace(" ", "_")])
+	for id in _last_seen.keys():
+		if not here.has(id) and not _fallen.has(id):
+			_write_fall(id)  # (a wizard taken out of the world as it fell)
 	for group in GROUPS:
 		for node in get_tree().get_nodes_in_group(group):
 			if node is Node2D and is_instance_valid(node):
 				var off: Vector2 = node.global_position - wizard.global_position
 				if off.length() < SEE:
 					_line("E %s %s %d %d%s" % [group, _class_of(node), off.x, off.y, _owner_of(node)])
+
+
+## A wizard has fallen: who, whether the person struck the last blow, and what was near where they stood.
+func _write_fall(id: int) -> void:
+	_fallen[id] = true
+	var seen: Array = _last_seen.get(id, ["?", Vector2.ZERO])
+	_line("N %s fell %s %s" % [seen[0], "by_you" if MatchStats.killed.has(id) else "-", _near_text(seen[1], HURT_REACH * 1.5, null)])
 
 
 ## Anything new in the world since the last look: a spell cast by someone, a creature, a page.
@@ -323,6 +337,7 @@ func _toggle() -> void:
 func _start_world() -> void:
 	_seen.clear()
 	_fallen.clear()
+	_last_seen.clear()
 	_typed = ""
 	for node in arena.get_children():
 		_seen[node.get_instance_id()] = true  # (what is already there is not news)

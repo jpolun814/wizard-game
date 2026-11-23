@@ -220,6 +220,7 @@
  },
  "rituals": {
   "chant": "rituals__chant",
+  "mend": "rituals__mend",
   "dark_whoosh": "rituals__dark_whoosh",
   "explosion": "rituals__explosion",
   "misfire": "rituals__misfire"

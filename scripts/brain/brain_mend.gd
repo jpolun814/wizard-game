@@ -8,6 +8,7 @@ var camped_for := 0.0
 var mend_wait := 0.0
 var resting := false            # it has stopped to get its breath back
 const STAR_DRAW := 1.1  # seconds to draw a star: too quick a stroke is read as a flick
+const SPRAYS := ["Barbs", "Insect Plague", "Hailstorm", "Spore Puff", "Fire Breath", "Firewall", "Bramble"]  # what lands as many small blows (each one takes a blow off a veil)
 var sight_wait := 0.0              # seconds before it thinks again of saying the chant that sees in the dark
 var brace_wait := 0.0              # seconds before it thinks again of saying the chant that fills its strength
 var tend_cooldown := 3.0        # counting down to the next time it looks to its own needs
@@ -33,7 +34,9 @@ func mend(delta: float, fighting: bool) -> float:
 		camped = false
 		mend_wait = 3.0
 		return NAN
-	var fire := bonfire_near(wizard.global_position, 900.0)
+	if (wizard.mending.is_on("rest") or wizard.mending.is_on("mud_mask") or wizard.mending.is_on("breathe")) and not fighting and wizard.max_stamina < Wizard.MAX_STAMINA * WizardBrain.MEND_UNTIL:
+		return 0.0  # it sits still while a heal goes on (a Rest is ended by moving, and nothing else is worth walking off for)
+	var fire := camp_near(wizard.global_position, 900.0)
 	if camped:
 		camped_for += delta
 		var healed := wizard.max_stamina >= Wizard.MAX_STAMINA * WizardBrain.MEND_UNTIL
@@ -51,11 +54,12 @@ func mend(delta: float, fighting: bool) -> float:
 		camped = true
 		camped_for = 0.0
 		return 0.0
-	if brain.knows("chant:bonfire"):
+	var chant := heal_chant()
+	if chant != "":
 		if not brain.quiet_here():  # not here: it goes on a while, and tries again
 			mend_wait = 5.0
 			return NAN
-		brain.chant.open("bonfire")
+		brain.chant.open(chant)
 		return 0.0
 	mend_wait = 30.0
 	return NAN
@@ -92,6 +96,10 @@ func tend(to_player: Vector2, sees: bool, fighting: bool) -> bool:
 		sight_wait = 60.0  # the dark has come down on it: it says the words that let it see, as a person would
 		brain.chant.open("darkvision")
 		return true
+	if not fighting and brain.knows("chant:second_chance") and not wizard.mending.is_armed() and brain.quiet_here() and brace_wait <= 0.0:
+		brace_wait = 50.0  # a second chance is said ahead of need, once, as a person would
+		brain.chant.open("second_chance")
+		return true
 	var gap := absf(to_player.x)
 	var low := wizard.max_stamina < Wizard.MAX_STAMINA * 0.45
 	var ambush: bool = not fighting and gap > 360.0 and gap < 900.0 and brain.skill >= 0.4 and wizard.fade_time <= 0.0 and not BrainProfile.off("ambush")  # a rival it knows of, off a way: it goes unseen to close the gap and strikes first
@@ -106,6 +114,13 @@ func tend(to_player: Vector2, sees: bool, fighting: bool) -> bool:
 		weights["Ignite"] = 0.8  # a fireball thrown ahead lights the way when nothing gentler is held
 	if _needs_washing():
 		weights["Bathe"] = 2.0  # a flame, a snail or a wound on it: water takes them all
+	if wizard.max_stamina < Wizard.MAX_STAMINA * WizardBrain.MEND_BELOW and not wizard.shifted() and wizard.is_on_floor() and wizard.mending.kind == "":
+		weights["Mud Mask"] = 1.0  # worn down, with no one at its heels: it mends the way it can
+		weights["Breathe"] = 1.0 if not fighting or not sees or gap > 500.0 else 0.0  # (a blow ends a breath, so it is not drawn in a fight)
+		if (not fighting or not sees or gap > 600.0) and HealingSpring.of(wizard.get_tree(), wizard) == null:
+			weights["Healing Spring"] = 1.2
+		if not wizard.is_wet() and wizard.oiled_time <= 0.0 and wizard.max_stamina < Wizard.MAX_STAMINA * 0.4:
+			weights["Cauterize"] = 1.5  # the sear is quick, and what it burns is far less than it mends
 	if sees and gap < 160.0 and wizard.max_stamina > 60.0:
 		weights["Headwind"] = 0.35  # a rival closing on it: the wind slows them
 	if ambush:
@@ -129,7 +144,9 @@ func tend(to_player: Vector2, sees: bool, fighting: bool) -> bool:
 			weights["Stone Wall"] = maxf(weights.get("Stone Wall", 0.0), 1.8)  # a rival who keeps shooting at it along the ground: it puts a wall up
 		if brain.pressure > 1.2:
 			weights["Decoy"] = 1.0
-		if brain.pressure > 0.8 and wizard.veil == 0:
+		# The veil is paid in blood and negates a few blows, whatever their size: worth it against heavy single blows, wasted on a spray of thorns or a swarm, which
+		# strips it in one go (owner's duel, 2026-11-21: three veils cost an AI more than half its strength, each torn away by one volley of Barbs). Never when wounded.
+		if brain.pressure > 0.8 and wizard.veil == 0 and (BrainProfile.off("veil") or (brain.caution() <= 0.0 and not brain.profile.shown_any(brain.opponent, SPRAYS))):
 			weights["Crimson Veil"] = 1.3
 		if brain.pressure > 1.6 and wizard.obsidian_time <= 0.0:
 			weights["Obsidian Armor"] = 0.8
@@ -138,6 +155,8 @@ func tend(to_player: Vector2, sees: bool, fighting: bool) -> bool:
 	for spell_name in weights.keys():
 		if not brain.ready_to_cast(spell_name):
 			weights[spell_name] = 0.0
+		elif brain.recharging and fighting and spell_name != "Adrenaline":
+			weights[spell_name] = 0.0  # nothing is cast while it gets its stamina back (each cast puts the return off), but the one spell for being worn out
 	var choice := brain.combat.pick(weights)
 	if choice == "":
 		return false
@@ -147,9 +166,23 @@ func tend(to_player: Vector2, sees: bool, fighting: bool) -> bool:
 	return true
 
 
-## The nearest bonfire that burns, within reach of a point, or null.
-func bonfire_near(point: Vector2, reach: float) -> Bonfire:
-	var best: Bonfire = null
+## The chant it says to mend, or "": the greatest it holds first. A Recovery is said only after a wound it could bring back, a Long Rest only where no one is about to
+## find it asleep, and a Stitch or a Gamble never (a person does not stake the little strength they have left on a throw).
+func heal_chant() -> String:
+	for id: String in ["restoration", "bonfire", "mending", "recovery", "long_rest", "rest"]:
+		if not brain.knows("chant:" + id):
+			continue
+		if id == "recovery" and wizard.mending.recent_loss() < 12.0:
+			continue
+		if id == "long_rest" and (brain.pressure > 0.0 or wizard.max_stamina > Wizard.MAX_STAMINA * 0.35 or brain.assailant() != null):
+			continue
+		return id
+	return ""
+
+
+## The nearest place it can mend by that burns or runs, within reach of a point (a bonfire, or a spring it raised), or null.
+func camp_near(point: Vector2, reach: float) -> Node2D:
+	var best: Node2D = null
 	var best_gap := reach
 	for node in wizard.get_tree().get_nodes_in_group("fires"):
 		if node is Bonfire and not node.is_queued_for_deletion():
@@ -157,4 +190,7 @@ func bonfire_near(point: Vector2, reach: float) -> Bonfire:
 			if gap < best_gap:
 				best = node
 				best_gap = gap
+	var spring := HealingSpring.of(wizard.get_tree(), wizard)
+	if spring != null and spring.global_position.distance_to(point) < best_gap:
+		best = spring
 	return best

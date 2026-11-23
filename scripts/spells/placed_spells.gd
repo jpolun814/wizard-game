@@ -17,7 +17,7 @@ func recipes() -> Dictionary:
 	return {
 		"Earthquake": _earthquake, "Mirage": _mirage, "Raise Dead": _raise_dead, "Black Hole": _black_hole, "Firewall": _firewall, "Supernova": _supernova,
 		"Flytrap": _flytrap, "Eclipse": _eclipse, "Decoy": _decoy, "Glowcap": _glowcap, "Moonbeam": _moonbeam, "Sinkhole": _sinkhole, "Silence": _silence,
-		"Updraft": _updraft, "Stonefall": _stonefall,
+		"Updraft": _updraft, "Stonefall": _stonefall, "Healing Spring": _healing_spring,
 	}
 
 
@@ -97,6 +97,14 @@ func _silence(c: SpellCast) -> void:
 	var silence := Silence.new()
 	silence.global_position = c.origin
 	c.add(silence)
+
+
+## The water wells up out of the ground where the basin was drawn, and stays.
+func _healing_spring(c: SpellCast) -> void:
+	var spring := HealingSpring.new()
+	spring.caster = c.caster
+	spring.position = _arena.ground_below(c.origin)
+	c.add(spring)
 
 
 func _updraft(c: SpellCast) -> void:

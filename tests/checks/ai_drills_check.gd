@@ -37,7 +37,7 @@ func _ready() -> void:
 ## less than the control (a negative number) or a number more (a positive one)]
 func _drills() -> Array:
 	return [
-		["read_stonefall", "steps out from under a boulder it saw drawn", "read", _trial_stonefall, 0.5],
+		["read_stonefall", "steps out from under a boulder it saw drawn", "read,wary", _trial_stonefall, 0.5],
 		["push_off_ledge", "chooses a shove for a rival standing at a ledge", "terrain", _trial_ledge, 0.3],
 		["beyond_barrier", "casts what is not thrown at a rival behind a Barrier", "shield", _trial_shield, 0.3],
 		["barrier_habit", "leans on what is not thrown at a rival it has seen raise a Barrier", "shield", _trial_habit, 0.15],
@@ -48,6 +48,7 @@ func _drills() -> Array:
 		["burn_bridge", "reaches for fire against a rival on lily pads", "burn", _trial_bridge, 0.1],
 		["land_shot", "aims where a rival in the air will come down", "landing", _trial_landing, 30.0],
 		["habit_lean", "aims to the side a rival has always stepped to", "habit", _trial_habit_lean, 10.0],
+		["wary_stroke", "steps out from under a great stroke drawn over it, of a spell it does not know", "wary", _trial_wary, 0.5],
 		["falling_stone", "steps aside from a boulder it sees falling on it", "stone", _trial_stone, 0.5],
 		["ambush_sneak", "goes unseen toward a rival it knows of, off a way", "ambush", _trial_ambush, 0.5],
 		["decoy_bait", "gives a rival with heavy blows a shadow to throw them at", "decoy", _trial_decoy, 0.5],
@@ -118,10 +119,25 @@ func _wait(seconds: float) -> void:
 ## A boulder is drawn above the partner while it watches: does it plan to step out from under it? (Its planning is read at the moment of reaction; what its legs then
 ## manage is another matter.) Asked again with the stroke drawn well to the side, where it should plan nothing.
 func _trial_stonefall() -> float:
+	return await _stonefall_drawn(true)
+
+
+## The same stroke, but the partner holds no page of that school and has seen none cast: it cannot know the spell from its shape, and a person who sees a great shape swept over
+## their head steps out all the same.
+func _trial_wary() -> float:
+	return await _stonefall_drawn(false)
+
+
+func _stonefall_drawn(known: bool) -> float:
 	var s := _reset()
 	var partner: Wizard = s["partner"]
 	var b: WizardBrain = partner.brain
 	b.dormant = true  # (its own thinking is held; only the reaction is read)
+	var held_all: bool = partner.ledger.everything
+	var held_pages: Dictionary = partner.ledger.pages.duplicate()
+	if not known:
+		partner.ledger.everything = false
+		partner.ledger.pages.clear()
 	partner.global_position = Vector2(ArenaGen.column_x(-24), s["floor"])
 	_lab.player.global_position = Vector2(ArenaGen.column_x(-16), s["floor"])
 	await _wait(1.6)  # (the view settles on the player: a view still moving drags a stroke out of shape)
@@ -154,6 +170,8 @@ func _trial_stonefall() -> float:
 		elif offset > 0.0 and escaped:
 			planned -= 1.0  # and does not run from a boulder that falls elsewhere
 		await _wait(1.5)
+	partner.ledger.everything = held_all
+	partner.ledger.pages = held_pages
 	return planned
 
 

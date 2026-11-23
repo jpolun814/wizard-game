@@ -48,7 +48,7 @@ var _right_number: Label
 
 const STATUS_ICON := 27.0  # a status picture on a page, three times its 9 pixels
 ## The state a chant gives whoever says it.
-const CHANT_STATES := {"boundless": "unlimited", "double_jump": "extra_jump", "haste": "hasted", "deep_breath": "holding"}
+const CHANT_STATES := {"boundless": "unlimited", "rest": "mending", "stitch": "mending", "long_rest": "mending", "second_chance": "second_chance", "double_jump": "extra_jump", "haste": "hasted", "deep_breath": "holding"}
 
 func _ready() -> void:
 	visible = false
@@ -408,7 +408,7 @@ func _page_spell(column: VBoxContainer, spell_name: String) -> void:
 	preview.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	column.add_child(preview)
 	column.add_child(_ink(s.effect, 22, TEXT_INK))
-	_foot(column, [s.damage_line(), s.cost_line()], s.applies, s.removes)
+	_foot(column, [s.heal_line() if s.heals() else s.damage_line(), s.cost_line()], s.applies, s.removes)
 
 
 ## True for a spell or chant that this wizard has not cast yet this game (in the waiting room every page is known and nothing is marked).
@@ -466,7 +466,7 @@ func _page_incantation(column: VBoxContainer, ritual_id: String) -> void:
 		column.add_child(_new_badge())
 	column.add_child(_ink("“%s”" % r["text"], 26, TEXT_INK))
 	column.add_child(_ink(ritual_effect(ritual_id), 20, TEXT_INK))
-	_foot(column, [ritual_cost_line(ritual_id)], [CHANT_STATES[ritual_id]] if CHANT_STATES.has(ritual_id) else [], [])
+	_foot(column, [ritual_heal_line(ritual_id), ritual_cost_line(ritual_id)], [CHANT_STATES[ritual_id]] if CHANT_STATES.has(ritual_id) else [], [])
 
 
 ## The states a page puts on someone (a picture each), and the ones it takes off (the same picture with a red cross over it). The mouse resting on one says what the
@@ -533,7 +533,7 @@ static func ritual_effect(ritual_id: String) -> String:
 		"minimap":
 			return "Reveal a map of the world."
 		"insight":
-			return "Gain deeper knowledge of those around you."
+			return "See how strong creatures are and what spells wizards know."
 		"bonfire":
 			return "Kindle a bonfire and heal your wounds."
 		"boundless":
@@ -552,6 +552,22 @@ static func ritual_effect(ritual_id: String) -> String:
 			return "Spy on another wizard."
 		"dowsing":
 			return "Show the way to the nearest page you have not read."
+		"mending":
+			return "Regain a little max stamina."
+		"rest":
+			return "Regain max stamina while standing still."
+		"recovery":
+			return "Heal back any max stamina lost over the last 10 seconds."
+		"stitch":
+			return "Regain max stamina whenever you hit someone, for 15 seconds."
+		"gamble":
+			return "A 3 in 4 chance to heal, and a 1 in 4 chance to take damage."
+		"long_rest":
+			return "Go to sleep until your max stamina is full."
+		"second_chance":
+			return "Come back to life the next time you die."
+		"restoration":
+			return "Regain a lot of max stamina."
 	return ""
 
 
@@ -562,3 +578,9 @@ func _page_blank(_column: VBoxContainer) -> void:
 ## What a chant costs, or nothing when it costs no stamina (most do not): a Rift wears down the most stamina you can have.
 static func ritual_cost_line(ritual_id: String) -> String:
 	return "35 max stamina" if ritual_id == "rift" else ""
+
+
+## What a chant that heals mends, where a spell's damage is written, with a plus sign ("+5 max stamina"; a rate where it goes on over time; "up to" where it may
+## give less than it says). Nothing for a chant that does not heal.
+static func ritual_heal_line(ritual_id: String) -> String:
+	return Mending.line_of(ritual_id)

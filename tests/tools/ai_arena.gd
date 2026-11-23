@@ -19,6 +19,11 @@ var need: Array[String] = []  # need=A,B: these are in both books of a duel, wha
 var weak := -1  # weak=K: seat K begins worn down to a maximum of 60, for studying how a wounded wizard behaves
 var off_seat := {0: "", 1: ""}  # off0=a,b / off1=a,b: changes turned off for that seat's brain alone (BrainProfile.off), to set one version of the brain against another
 var levels: Array[int] = []  # lv=A,B,...: seat k plays the new brain at level lv[k] (see BrainLevel); in a duel, none plays the old brain
+var bait := false  # bait=1: all but seat 0 are put away, and a page is laid in the middle of a pond with piranhas, with seat 0 a little way off (does it wade in?)
+var _bait_page: PagePickup
+var forced_biome := ""  # biome=NAME: the first world of a royale is this one (jungle, ocean, ...), to study how the wizards fare there
+var _last_hit := {}  # seat -> what its last wound was, so a fall can be put down to piranhas, drowning or a fight
+var _deaths: Array = []  # [{seat, t, x, y, cause}]: how each wizard fell, for the worlds with their own dangers
 var result_file := ""
 var log_file := ""  # log=FILE: every cast and wound, and where each wizard is every half second, for studying how they fight
 var _log: FileAccess
@@ -65,12 +70,18 @@ func _ready() -> void:
 		elif arg.begins_with("log="):
 			log_file = arg.substr(4)
 			_log = FileAccess.open(log_file, FileAccess.WRITE)
+		elif arg == "bait=1":
+			bait = true
+		elif arg.begins_with("biome="):
+			forced_biome = arg.substr(6)
 		elif arg.begins_with("result="):
 			result_file = arg.substr(7)
 	seed(seed_value)
 	MatchState.begin(seed_value)
 	if mode == "duel":  # (a flat open world, by the seed: no portals to carry them apart, no halls to lose each other in)
 		MatchState.forced_biome = ["graveyard", "mountains", "jungle", "ashlands"][seed_value % 4]
+	if forced_biome != "":
+		MatchState.forced_biome = forced_biome
 	World.next_seed = seed_value
 	# (a collapsing world takes the main scene with it, and the match goes on in the next: this stays where it is, above them, as the main scene no longer)
 	await get_tree().process_frame
@@ -86,6 +97,8 @@ func _attach() -> void:
 	_seats.clear()
 	for seat in _world.seats:
 		_seats.append(seat)
+	if bait:
+		_set_up_bait()
 	if mode == "duel":
 		old_seats.clear()
 		if levels.size() < 2:
@@ -107,7 +120,9 @@ func _attach() -> void:
 	for k in _seats.size():
 		if _seats[k] != null:
 			var seat := k
-			_seats[k].damaged.connect(func(amount: int) -> void: _taken[seat] = _taken.get(seat, 0) + amount)
+			_seats[k].damaged.connect(func(amount: int) -> void:
+				_taken[seat] = _taken.get(seat, 0) + amount
+				_last_hit[seat] = _cause_of(_seats[seat]))
 	if weak >= 0 and _worlds == 1 and weak < _seats.size() and _seats[weak] != null:
 		_seats[weak].max_stamina = 60.0
 		_seats[weak].stamina = 60.0
@@ -119,6 +134,30 @@ func _attach() -> void:
 			var seat := k
 			w.ensure_caster().cast_resolved.connect(func(spell: String, _t: String, _o: Vector2, _a: float, _i: Dictionary) -> void: _log.store_line("C %.2f %d %s" % [_clock, seat, spell]))
 			w.damaged.connect(func(amount: int) -> void: _log.store_line("D %.2f %d %d %d %d %d" % [_clock, seat, amount, 1 if w.pen.active() else 0, int(w.velocity.length()), 1 if w.is_on_floor() else 0]))  # (then: drawing, how fast it moves, on the ground)
+
+
+## One wizard, a pond with piranhas, and a page lying in the water: the others are put away.
+func _set_up_bait() -> void:
+	for k in range(1, _seats.size()):
+		if _seats[k] != null:
+			_seats[k].set_physics_process(false)
+			_seats[k].global_position = Vector2(-9000.0, -9000.0 - 200.0 * k)
+			_seats[k].dead = true
+			_seats[k].hide()
+	var shoals := get_tree().get_nodes_in_group("shoals")
+	if shoals.is_empty():
+		print("NO SHOAL")
+		return
+	var shoal: Piranhas = shoals[0]
+	var middle := shoal.water.get_center()
+	_bait_page = PagePickup.new()
+	_bait_page.page = "Ignite"
+	_bait_page.position = Vector2(middle.x, shoal.water.end.y)
+	_world.add_child(_bait_page)
+	var from := _world.ground_below(Vector2(shoal.water.position.x - 260.0, shoal.water.position.y - 300.0))
+	_seats[0].global_position = from
+	_seats[0].ledger.learn("Ignite")  # (a book that holds this page is not read: it must be one it lacks)
+	_seats[0].ledger.pages.erase("Ignite")
 
 
 ## Two wizards face to face on level ground with the same spells; everyone else is put away.
@@ -194,18 +233,63 @@ func _physics_process(delta: float) -> void:
 			standing += 1
 		elif not _fell.has(k) and (mode == "royale" or k < 2):
 			_fell[k] = _clock
+			if is_instance_valid(w):
+				_deaths.append({"seat": k, "t": snappedf(_clock, 0.1), "x": int(w.global_position.x), "y": int(w.global_position.y), "cause": _death_cause(k, w)})
 	if _clock >= seconds or standing <= 1 or (mode == "duel" and _fell.size() >= 1):
 		_finish()
 
 
+## What a wizard that has just fallen was in: water with piranhas, or out of breath, or neither.
+func _cause_of(w: Wizard) -> String:
+	if not is_instance_valid(w):
+		return "other"
+	for shoal: Piranhas in get_tree().get_nodes_in_group("shoals"):
+		if shoal.alive() and (shoal.is_biting_at(w.global_position + Vector2(0.0, -6.0)) or shoal.is_biting_at(w.center())):
+			return "piranhas"
+	if w.lungs.air <= 0.5:
+		return "drowned"
+	for other: Wizard in _seats:
+		if is_instance_valid(other) and other != w and not other.dead and other.global_position.distance_to(w.global_position) < 700.0:
+			return "fight"  # (another wizard was about)
+	return "alone"  # (no one near, and not water: lava, a fall, thorns, a stone)
+
+
+## How a wizard fell: drowned or bitten (seen now: drowning does not send the damage signal), else what its last wound was.
+func _death_cause(seat: int, w: Wizard) -> String:
+	var now := _cause_of(w)
+	return now if now in ["piranhas", "drowned"] else str(_last_hit.get(seat, now))
+
+
+## The pages still lying at the end, and how many of them lie in or beside water (a shoal's, or the sea's): [lying, by a shoal's pond, by the sea or another pond].
+func _water_pages() -> Array:
+	var lying := 0
+	var by_fish := 0
+	var by_water := 0
+	for node in get_tree().get_nodes_in_group("pages"):
+		if not (node is Node2D) or not is_instance_valid(node):
+			continue
+		lying += 1
+		var at: Vector2 = node.global_position
+		for pond: Pond in get_tree().get_nodes_in_group("ponds"):
+			if not pond.lava and pond.region().grow(90.0).has_point(at):
+				by_water += 1
+				for shoal: Piranhas in get_tree().get_nodes_in_group("shoals"):
+					if shoal.pond == pond:
+						by_fish += 1
+						break
+				break
+	return [lying, by_fish, by_water]
+
+
 func _finish() -> void:
 	_done = true
-	var line := {"mode": mode, "seed": seed_value, "old": old_seats, "levels": levels, "seconds": snappedf(_clock, 0.1), "worlds": _worlds, "taken": _taken, "fell": {}, "stamina": {}, "book": _duel_book}
+	var line := {"mode": mode, "seed": seed_value, "old": old_seats, "levels": levels, "seconds": snappedf(_clock, 0.1), "worlds": _worlds, "taken": _taken, "fell": {}, "stamina": {}, "book": _duel_book, "deaths": _deaths, "pages": {}, "water_pages": _water_pages(), "bait_taken": bait and not is_instance_valid(_bait_page)}
 	for k in 8:
 		if mode == "duel" and k > 1:
 			continue
 		var w: Wizard = _seats[k] if k < _seats.size() else null
 		line["fell"][str(k)] = snappedf(_fell[k], 0.1) if _fell.has(k) else -1.0
+		line["pages"][str(k)] = w.ledger.pages.size() if is_instance_valid(w) else -1
 		line["stamina"][str(k)] = int(w.stamina + w.max_stamina) if is_instance_valid(w) and not w.dead else 0  # (stamina and what is left of the maximum: the one who has lost less is ahead when time runs out)
 	if _log != null:
 		_log.close()

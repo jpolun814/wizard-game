@@ -360,6 +360,18 @@ func wet_at(point: Vector2) -> bool:
 	return Rect2(global_position, Vector2(width, depth)).has_point(point)
 
 
+## The surface of this pool's water at an x that lies over it, or INF: not lava, and nothing at an x the pool does not span. A flowing pool answers from its grid, the sea of the
+## ocean (fixed water that never flows, so it has no grid) from the top of its box: a wave or a lily pad rides the one as it rides the other.
+func level_at(x: float) -> float:
+	if lava:
+		return INF
+	if grid != null:
+		return grid.surface_at(x)
+	if deep and x >= global_position.x and x <= global_position.x + width:
+		return global_position.y
+	return INF
+
+
 ## The height of the liquid's surface where a body at this x would stand in it.
 func surface_at(x: float) -> float:
 	if grid != null:
@@ -402,9 +414,7 @@ static func water_near(tree: SceneTree, point: Vector2) -> Pond:
 ## The height of the water's surface at an x, when there is water within `reach` of a height `near` (a pad drawn there floats on it); INF if not.
 static func surface_near(tree: SceneTree, x: float, near: float, reach: float) -> float:
 	for pond: Pond in tree.get_nodes_in_group("ponds"):
-		if pond.lava or pond.grid == null:
-			continue
-		var level := pond.grid.surface_at(x)
+		var level := pond.level_at(x)
 		if level < INF and absf(level - near) <= reach:
 			return level
 	return INF
@@ -415,9 +425,7 @@ static func surface_near(tree: SceneTree, x: float, near: float, reach: float) -
 static func surface_below(tree: SceneTree, x: float, y: float, reach: float) -> float:
 	var best := INF
 	for pond: Pond in tree.get_nodes_in_group("ponds"):
-		if pond.lava or pond.grid == null:
-			continue
-		var level := pond.grid.surface_at(x)
+		var level := pond.level_at(x)
 		if level < INF and level >= y - 6.0 and level - y <= reach and level < best:
 			best = level
 	return best

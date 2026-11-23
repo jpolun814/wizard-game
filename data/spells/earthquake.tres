@@ -8,5 +8,5 @@ spell_name = "Earthquake"
 school = "Earth"
 gesture = "earthquake"
 cost = 60.0
-effect = "Shake the earth."
+effect = "Shake the ground, bringing down stone walls."
 sounds = {"rumble": "earthquake__rumble"}

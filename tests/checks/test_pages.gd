@@ -22,11 +22,14 @@ func _initialize() -> void:
 			var attacks := 0
 			var moves := 0
 			var defences := 0
+			var heals := 0
 			for page in first[k].pages:
 				attacks += 1 if Pages.ATTACKS.has(page) else 0
 				moves += 1 if Pages.MOVES.has(page) else 0
 				defences += 1 if Pages.DEFENCES.has(page) else 0
+				heals += 1 if Pages.HEALS.has(page) else 0
 			_check(attacks == 1 and moves == 1 and defences == 1, "seed %d: wizard %d does not start with one attack, one move and one defence" % [seed_value, k])
+			_check(heals == 1, "seed %d: wizard %d does not start with one way to heal (%d)" % [seed_value, k, heals])
 			var reaches := false
 			for page in first[k].pages:
 				reaches = reaches or Pages.RANGED.has(page)
@@ -37,8 +40,11 @@ func _initialize() -> void:
 		var attacks_dealt := {}
 		var moves_dealt := {}
 		var defences_dealt := {}
+		var heals_dealt := {}
 		for ledger in first:
 			for page in ledger.pages:
+				if Pages.HEALS.has(page):
+					heals_dealt[page] = true
 				if Pages.MOVES.has(page):
 					moves_dealt[page] = true
 				if Pages.ATTACKS.has(page):
@@ -48,6 +54,7 @@ func _initialize() -> void:
 		_check(attacks_dealt.size() == 4, "seed %d: the four wizards do not start with four different attacks" % seed_value)
 		_check(moves_dealt.size() == 4, "seed %d: the four wizards do not start with four different moves" % seed_value)
 		_check(defences_dealt.size() == 4,"seed %d: the four wizards do not start with four different defences" % seed_value)
+		_check(heals_dealt.size() == 4, "seed %d: the four wizards do not start with four different ways to heal" % seed_value)
 	# A match has eight wizards, and the pages lying by each one's spawn (their cluster) always hold an attack, one that reaches a rival from afar.
 	for seed_value in 200:
 		for seat in 8:
@@ -148,6 +155,29 @@ func _initialize() -> void:
 			for held_page in cluster:
 				if not held_page.begins_with("chant:"):
 					_check(not allotted["worlds"].any(func(world: Array) -> bool: return world.has(held_page)) and not allotted["spare"].has(held_page), "seed %d: %s is in a cluster and in no world" % [seed_value, held_page])
+	# A match that begins in the dark (the underground): every wizard starts with a page that makes light, whatever else it was dealt, and the lights are various;
+	# in any other world nobody is dealt anything extra.
+	for seed_value in 200:
+		var plain := Pages.deal(seed_value + 31, 8)
+		var dark := Pages.starting_deal(seed_value, 8, "underground")
+		var day := Pages.starting_deal(seed_value, 8, "jungle")
+		var lights := {}
+		for seat in 8:
+			var kinds: Array = dark[seat].pages.keys().filter(func(held: String) -> bool: return Pages.LIGHT_MAKERS.has(held))
+			_check(not kinds.is_empty(), "seed %d begins underground: seat %d starts with a page that makes light (%s)" % [seed_value, seat, dark[seat].pages.keys()])
+			for held_one: String in kinds:
+				lights[held_one] = true
+			_check(day[seat].pages.keys() == plain[seat].pages.keys(), "seed %d begins in the jungle: seat %d is dealt as it always was" % [seed_value, seat])
+		var seen_pages := {}
+		var twice := 0
+		for seat in 8:
+			for held_two: String in dark[seat].pages.keys():
+				if not held_two.begins_with("chant:"):
+					twice += 1 if seen_pages.has(held_two) else 0
+					seen_pages[held_two] = true
+		_check(twice == 0, "seed %d: underground, no page is in two hands (%d twice)" % [seed_value, twice])
+		_check(lights.size() >= 5, "seed %d: the lights dealt underground are various (%d kinds)" % [seed_value, lights.size()])
+	_check(Pages.LIGHT_MAKERS.size() >= 8 and Pages.LIGHT_MAKERS.all(func(held: String) -> bool: return Pages.every().has(held)), "there are eight spells that make light, and each is a page of the game")
 	print("%d checks" % _checks)
 	print("all page checks passed" if _failures == 0 else "%d FAILED" % _failures)
 	quit(1 if _failures > 0 else 0)

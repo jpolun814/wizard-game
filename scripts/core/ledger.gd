@@ -9,6 +9,7 @@ var everything := false  # the waiting room: no page is missing
 var pages := {}          # page -> true
 var cast := {}           # page -> true, for the spells and chants this wizard has cast or said this game (the book marks the ones that are still new)
 var settled := {}        # chant id -> true, for the chants that, once said, hold for the rest of the match (see Ledger.LASTING)
+var armed := false       # a second chance waits on this wizard (the chant of that name): kept here so it goes with them from world to world, until it is used
 
 ## The chants that are said once: the gift stays, through every world of the match.
 const LASTING := ["minimap", "insight", "double_jump", "haste", "darkvision"]

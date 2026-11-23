@@ -8,5 +8,5 @@ spell_name = "Hunter's Mark"
 school = "Blood"
 gesture = "arrow"
 cost = 20.0
-effect = "Catch the scent of the nearest wizard."
+effect = "Show an arrow pointing to the nearest wizard."
 sounds = {"heartbeat": "hunter_s_mark__heartbeat"}

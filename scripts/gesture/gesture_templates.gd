@@ -15,7 +15,7 @@ const ALIASES := {"shield_0": "shield", "shield_0r": "shield", "shield_1": "shie
 	"crescent_cw": "crescent", "crescent_ccw": "crescent",
 	"eclipse_a": "eclipse", "eclipse_b": "eclipse", "eclipse_c": "eclipse", "eclipse_d": "eclipse",
 	"stick_b": "stick", "stick_c": "stick", "stick_d": "stick", "lungs_a": "lungs", "lungs_b": "lungs", "lungs_c": "lungs", "lungs_d": "lungs", "lungs_e": "lungs", "lungs_f": "lungs",
-	"silence_cw": "silence", "silence_ccw": "silence", "question_r": "question", "earthquake_r": "earthquake", "arrow_r2": "arrow", "arrow_l": "arrow", "arrow_l2": "arrow"}
+	"silence_cw": "silence", "silence_ccw": "silence", "peace_a": "peace", "peace_b": "peace", "peace_c": "peace", "peace_d": "peace", "spring_r": "spring", "cross_r": "cross", "question_r": "question", "earthquake_r": "earthquake", "arrow_r2": "arrow", "arrow_l": "arrow", "arrow_l2": "arrow"}
 
 
 ## Templates for the $1 recognizer.
@@ -41,6 +41,7 @@ static func recognizer_templates() -> Dictionary:
 		"zig_tall": PackedVector2Array([Vector2(0, 0), Vector2(-40, 40), Vector2(0, 80), Vector2(-40, 120)]),
 		"stonefall": _circle_and_drop(),
 		"cross": PackedVector2Array([Vector2(0, 0), Vector2(100, 100), Vector2(50, 50), Vector2(100, 0), Vector2(0, 100)]),
+		"cross_r": PackedVector2Array([Vector2(100, 0), Vector2(0, 100), Vector2(50, 50), Vector2(0, 0), Vector2(100, 100)]),  # the same X, begun the other way round (a mirror)
 		"flame_cw": _flame(false),
 		"flame_ccw": _flame(true),
 		"eight_top_cw": _eight(0.0, false),
@@ -88,6 +89,12 @@ static func recognizer_templates() -> Dictionary:
 		"lungs_d": _lungs(true, PI * 0.25),
 		"lungs_e": _lungs(false, -PI * 0.25),
 		"lungs_f": _lungs(true, -PI * 0.25),
+		"peace_a": _peace(false, false),
+		"peace_b": _peace(true, false),
+		"peace_c": _peace(false, true),
+		"peace_d": _peace(true, true),
+		"spring": _spring(false),
+		"spring_r": _spring(true),
 	}
 
 
@@ -194,6 +201,10 @@ static func preview_points(gesture: String) -> PackedVector2Array:
 			return _arrow_up()
 		"portrait":
 			return _portrait_stroke()
+		"peace":
+			return _peace(false, false)
+		"spring":
+			return _spring(false)
 	return PackedVector2Array()
 
 
@@ -260,6 +271,38 @@ static func _portrait_stroke() -> PackedVector2Array:
 		for i in range(8):
 			pts.append(corners[k].lerp(corners[k + 1], float(i) / 8.0))
 	pts.append(corners[corners.size() - 1])
+	return pts
+
+
+## The peace sign, in one stroke: the ring round from its top, a line down through the middle and out the bottom, back up to the middle, then out to one
+## lower side and back and out to the other. ccw draws the ring the other way round; right_first goes out to the right foot before the left.
+static func _peace(ccw: bool, right_first: bool) -> PackedVector2Array:
+	var pts := PackedVector2Array()
+	var direction := -1.0 if ccw else 1.0
+	for i in 33:
+		pts.append(Vector2.from_angle(-PI * 0.5 + direction * TAU * i / 32.0) * 42.0)
+	var side := 1.0 if right_first else -1.0
+	var corners := [Vector2(0, 42), Vector2(0, 0), Vector2(side * 30.0, 30.0), Vector2(0, 0), Vector2(-side * 30.0, 30.0)]
+	for corner: Vector2 in corners:
+		var from: Vector2 = pts[pts.size() - 1]
+		for i in range(1, 7):
+			pts.append(from.lerp(corner, float(i) / 6.0))
+	return pts
+
+
+## A spring, in one stroke: the basin (a U, begun at its left rim), back along its top to the middle, and the water rising from there. mirror begins at the right rim.
+static func _spring(mirror: bool) -> PackedVector2Array:
+	var pts := PackedVector2Array()
+	for i in 21:
+		var a := PI - PI * i / 20.0
+		pts.append(Vector2(cos(a) * 50.0, -30.0 + sin(a) * 46.0))
+	for i in range(1, 6):
+		pts.append(Vector2(50.0 - 50.0 * i / 5.0, -30.0))
+	for i in range(1, 9):
+		pts.append(Vector2(0.0, -30.0 - 70.0 * i / 8.0))
+	if mirror:
+		for k in pts.size():
+			pts[k] = Vector2(-pts[k].x, pts[k].y)
 	return pts
 
 

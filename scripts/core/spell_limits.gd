@@ -7,7 +7,7 @@ extends RefCounted
 
 ## Spells that work on the ground, or grow from it: with none under them they have nothing to work on.
 const NEEDS_GROUND := ["Stone Wall", "Stalagmite", "Sinkhole", "Bramble", "Flaming Sphere", "Mudslide", "Great Oak", "Liana", "Flytrap", "Lily Pads", "Frost Bridge",
-		"Geyser", "Tide Surf", "Earthquake", "Raise Dead", "Glowcap", "Moonbeam"]
+		"Geyser", "Tide Surf", "Earthquake", "Raise Dead", "Glowcap", "Moonbeam", "Healing Spring"]
 ## Spells that carry a wizard through the air, which a wizard that flies already does.
 const NOT_NEEDED_IN_THE_AIR := ["Updraft", "Featherfall", "Rocket Jump"]
 

@@ -59,6 +59,9 @@ const FAR := 330.0            # farther than this it closes in
 const HUNT_PAGE_NEAR := 14    # (a page this many steps away or nearer is taken first, even by one that is hunting)
 const BOLD_ABOVE := 0.62      # it thinks itself strong enough to go looking for rivals
 const TIMID_BELOW := 0.3      # it thinks itself too weak to stand and fight, and keeps away while it can
+## How a person plays as the wounds come (owner, 2026-11-21: "once I start getting below 50% I start being more cautious, and once below a third I've got to get out of there").
+const CAREFUL_BELOW := 0.5    # share of the greatest maximum: below this it grows careful (keeps farther off, is less bold), more so the lower it goes (see caution)
+const WOUNDED_BELOW := 1.0 / 3.0  # and below this it gets out: it feels too weak to fight, whatever its book (see _feel_strength)
 const TIMID_HESITATE := 3.0   # seconds a timid wizard stands its ground before it turns away
 const TIMID_STAND := 260.0    # (a timid wizard that is this close, or closer, fights, since it cannot get away)
 const TOO_CLOSE := 95.0       # this close it acts to get you off it
@@ -112,7 +115,8 @@ const OAK_CHASE_MAX := 190.0    # pixels up to a rival that an oak can still be 
 const LIFT_REACH := {"Geyser": 220.0, "Push": 150.0, "Tornado": 200.0, "Updraft": 440.0, "Rocket Jump": 440.0, "Liana": 800.0, "Great Oak": 500.0}  # about how high each lifts it (a wall taller than that is not tried with it)
 const LIFTS := ["Geyser", "Updraft", "Rocket Jump", "Push", "Liana", "Great Oak", "Tornado"]  # what raises it up a wall or to a rival, the one it likes best first
 const TEND_REST := {"Flare": 40.0, "Dancing Lights": 40.0, "Bathe": 20.0, "Headwind": 25.0, "Glowcap": 60.0, "Moonbeam": 30.0, "Adrenaline": 25.0, "Wild Shape": 30.0, "Sneak": 25.0, "Crimson Veil": 8.0, "Obsidian Armor": 25.0,
-		"Ignite": 6.0, "Decoy": 8.0, "Stone Wall": 6.0, "Smoke Screen": 10.0, "Eclipse": 14.0, "Hunter's Mark": 25.0}  # seconds before it looks to the same need with the same spell again
+		"Ignite": 6.0, "Decoy": 8.0, "Stone Wall": 6.0, "Smoke Screen": 10.0, "Eclipse": 14.0, "Hunter's Mark": 25.0,
+		"Cauterize": 20.0, "Breathe": 15.0, "Mud Mask": 25.0, "Healing Spring": 60.0}  # seconds before it looks to the same need with the same spell again
 ## What the brain does with every spell there is (a test holds it to this: a spell with no line here is one it would never cast, and each line is met by a check).
 const USES := {
 	"Ignite": "attack", "Frostbolt": "attack", "Spark": "attack", "Stonefall": "attack", "Fire Breath": "attack", "Firewall": "attack", "Spore Puff": "attack", "Water Jet": "attack", "Oil Slick": "attack",
@@ -123,6 +127,7 @@ const USES := {
 	"Barrier": "defence", "Gust": "defence", "Shadow Step": "defence, and a way over a chasm", "Push": "repel, and a way up", "Rocket Jump": "a way up", "Geyser": "repel, and a way up",
 	"Stone Wall": "tend", "Smoke Screen": "tend", "Decoy": "tend", "Eclipse": "tend", "Crimson Veil": "tend", "Obsidian Armor": "tend, and a way through lava",
 	"Adrenaline": "tend", "Wild Shape": "tend, and fights as a werewolf", "Sneak": "tend", "Hunter's Mark": "tend", "Flare": "tend", "Dancing Lights": "tend", "Bathe": "tend", "Headwind": "tend", "Jolt": "attack", "Glowcap": "tend", "Moonbeam": "tend",
+		"Cauterize": "tend", "Breathe": "tend", "Mud Mask": "tend", "Healing Spring": "tend",
 	"Featherfall": "tend, in a long fall", "Updraft": "a way up", "Great Oak": "a way up", "Liana": "a way up", "Frost Bridge": "a way over water", "Lily Pads": "a way over water",
 }
 
@@ -138,6 +143,8 @@ var strength := 0.5          # 0 to 1: how strong it thinks it is (see _feel_str
 var _strength_in := 0.0
 var _daunted := 0.0           # seconds it has faced a rival it feels too weak for, at a distance: it hesitates (and may cast to hide or mend) before it turns away
 var cast_cooldown := 1.8
+var _wary_of := -1          # the stroke it last stepped out from under, so it answers each once
+var recharging := false      # it ran low and holds its spells until it has got its stamina back (see _attack)
 var _answered_stroke := -1  # the rival's stroke it last answered, by its number (see _react)
 var react := 0.0             # counting down to a planned reaction
 var _reaction := ""
@@ -443,6 +450,14 @@ func _react(delta: float, fighting: bool, to_player: Vector2) -> void:
 			if answer != "":  # (a stroke not yet read as a threat is looked at again as more of it is drawn)
 				_answered_stroke = drawn["id"]
 				_plan(answer, _reaction_time())
+		elif combat.defend_cooldown <= 0.0 and drawn.is_empty() and _wary_of != sight.trail_over_me().get("id", -1) and not sight.trail_over_me().is_empty():  # a great shape being swept over it that it cannot read: out from under
+			var over: Dictionary = sight.trail_over_me()
+			_wary_of = over["id"]
+			combat.escape_dir = signf(wizard.center().x - (over["rect"] as Rect2).get_center().x)
+			if combat.escape_dir == 0.0:
+				combat.escape_dir = 1.0
+			combat.escape_commit = 1.2
+			_plan("escape", _reaction_time())
 		elif combat.defend_cooldown <= 0.0 and not BrainProfile.off("stone") and not sight.falling_stone().is_empty():  # a stone coming down on it: out from under
 			combat.escape_dir = signf(wizard.center().x - float(sight.falling_stone()["x"]))
 			if combat.escape_dir == 0.0:
@@ -469,15 +484,34 @@ func _react(delta: float, fighting: bool, to_player: Vector2) -> void:
 
 ## Its attacks, one when the last is over and nothing hinders it.
 func _attack(foe: Wizard, to_player: Vector2, sees: bool) -> void:
+	if not BrainProfile.off("recharge"):
+		# A person who has run dry stops throwing spells and stands to get their stamina back (owner's duels, 2026-11-21: they stood still more than half the time when low;
+		# the AI kept casting, and every cast put off the return of its stamina by a second). It still answers a rival who cannot answer back.
+		var want := reserve()
+		if wizard.stamina < want:
+			recharging = true
+		elif wizard.stamina >= minf(want * 2.4, wizard.max_stamina * 0.9):
+			recharging = false
+		var window: bool = foe.is_frozen() or foe.fainted or profile.chanting(foe)
+		if recharging and not window:
+			return
 	if cast_cooldown <= 0.0 and not wizard.pen.active() and react <= 0.0:
 		if smothering() or hiding():
 			cast_cooldown = 0.3  # another spell would let the breath go; and a wizard out of sight is shown by casting
 		elif foe.has_shield() and BrainProfile.off("shield"):
 			cast_cooldown = 0.3  # nothing gets through a Barrier; wait it out (it does not now: see BrainCombat.attack, which leaves the thrown spells out and casts the rest)
 		elif combat.attack(to_player, sees):
-			cast_cooldown = (lerpf(ATTACK_GAP_SLOW, ATTACK_GAP_QUICK, skill) + rng.randf() * ATTACK_GAP_SPREAD) * slow
+			cast_cooldown = (lerpf(ATTACK_GAP_SLOW, ATTACK_GAP_QUICK, skill) + rng.randf() * ATTACK_GAP_SPREAD) * slow * _pause_after(combat.recent[0] if not combat.recent.is_empty() else "")
 		else:
 			cast_cooldown = 0.4
+
+
+## How long it waits after a spell, against the usual: a cheap shot is followed by another soon, as a person spams a flick, and a dear spell by a longer pause (the rest of the
+## bar is for what comes next). Down to 0.65 for the cheapest, and the usual for a spell of 35 or more.
+func _pause_after(spell_name: String) -> float:
+	if BrainProfile.off("tempo") or not SpellData.SPELLS.has(spell_name):
+		return 1.0
+	return lerpf(0.65, 1.0, clampf((SpellData.SPELLS[spell_name].cost - 8.0) / 27.0, 0.0, 1.0))
 
 
 ## How long it takes to answer something it has seen: the middle half of the reactions recorded from people runs from a quarter of a second to
@@ -515,9 +549,36 @@ func _feel_strength(_rival: Wizard) -> float:
 	# A rival's strength and book are not seen (no bar hangs over them): it judges itself against what a rival is like, not against this one.
 	var edge := clampf(0.5 + (wizard.max_stamina - Wizard.MAX_STAMINA * 0.75) / 200.0, 0.0, 1.0)
 	var bold := (0.15 if style == "aggressive" else (-0.08 if style == "turtle" else 0.0))
-	bold += 0.25 * aggression if not BrainProfile.off("press") else 0.0  # a bolder wizard thinks itself fit for a fight sooner
+	var spirit := 1.0 - caution()  # boldness goes as the wounds come
+	bold += 0.25 * aggression * spirit if not BrainProfile.off("press") else 0.0  # a bolder wizard thinks itself fit for a fight sooner
 	bold += 0.1 if (is_instance_valid(_rival) and profile.hurt(_rival)) else 0.0  # a rival it has seen worn down is a rival to go after
-	return minf(armed * 0.5 + health * 0.3 + edge * 0.2 + bold, 1.0)
+	var feel := minf(armed * 0.5 + health * 0.3 + edge * 0.2 + bold, 1.0)
+	# Badly wounded, a person gets out and looks for a place to mend, however good their spells (a strong book used to keep a wizard at a twentieth of its
+	# strength walking into the fight). The owner's rule has no exception: "below a third I've got to get out of there".
+	if not BrainProfile.off("wounded") and caution() >= 1.0:
+		feel = minf(feel, TIMID_BELOW - 0.05)
+	return feel
+
+
+## How the rival in mind looks to it, 0 to 1 (see BrainProfile.threat).
+func rival_threat() -> float:
+	return profile.threat(opponent) if is_instance_valid(opponent) else 0.5
+
+
+## How careful its wounds make it, 0 to 1. Where that starts is a feeling, not a line: against a rival it takes for dangerous it grows careful while still hale (from about
+## 0.6 of its greatest maximum), against one it has seen worn down not until about 0.4; and it is wholly careful, and gets out, a sixth lower than where it began.
+## (The owner's own sense of it, at an ordinary rival: careful under half, out under a third.)
+func caution() -> float:
+	if BrainProfile.off("wounded"):
+		return 0.0
+	var begins := CAREFUL_BELOW + (rival_threat() - 0.5) * 0.4
+	return clampf((begins - wizard.max_stamina / Wizard.MAX_STAMINA) / (CAREFUL_BELOW - WOUNDED_BELOW), 0.0, 1.0)
+
+
+## How much stamina it wants in hand before it spends more, as a person feels it: more against a rival it takes for dangerous (it may need to answer), little
+## against one it has seen worn down (a time to press).
+func reserve() -> float:
+	return lerpf(14.0, 56.0, rival_threat())
 
 
 ## Whether a wizard cannot move freely: rooted, or slowed.

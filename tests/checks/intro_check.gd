@@ -27,6 +27,10 @@ func _ready() -> void:
 			GameSettings.set_value("look", arg.substr(5))  # the person at this machine has chosen a figure
 		elif arg.begins_with("palette="):
 			GameSettings.set_value("palette", int(arg.substr(8)))
+	if _mode == "online":  # a game with others: the key that skips the scene when alone does nothing
+		var opened := Net.host()
+		_verdict(opened == OK, "a game is opened for others to join (%s)" % error_string(opened))
+		_mode = "skip_online"
 	_intro = Intro.new()
 	_intro.next_scene = ""
 	_intro.finished.connect(func() -> void: _done_at = _clock)
@@ -49,6 +53,9 @@ func _ready() -> void:
 	if _mode == "skip":
 		_shots = []
 		_checks = {1.5: _check_set}
+	if _mode == "skip_online":
+		_shots = []
+		_checks = {}
 
 
 func _process(delta: float) -> void:
@@ -61,7 +68,13 @@ func _process(delta: float) -> void:
 		if _clock >= t:
 			_shots.erase(t)
 			_snap(t)
-	if _mode == "skip" and _clock >= 2.0 and not _intro._leaving and _done_at < 0.0 and not _pressed:
+	if _mode == "skip_online" and _clock >= 4.0:
+		_verdict(not _intro._leaving and _done_at < 0.0 and not _intro._hint.visible, "in a game with others a key does not skip the scene, and the hint to skip is gone (leaving %s, hint shown %s)" % [_intro._leaving, _intro._hint.visible])
+		multiplayer.multiplayer_peer = OfflineMultiplayerPeer.new()
+		print("all intro checks passed" if _failures == 0 else "%d FAILED" % _failures)
+		get_tree().quit(1 if _failures > 0 else 0)
+		return
+	if (_mode == "skip" or _mode == "skip_online") and _clock >= 2.0 and not _intro._leaving and _done_at < 0.0 and not _pressed:
 		_pressed = true
 		var key := InputEventKey.new()
 		key.keycode = KEY_SPACE

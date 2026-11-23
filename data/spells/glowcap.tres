@@ -8,5 +8,5 @@ spell_name = "Glowcap"
 school = "Flora"
 gesture = "circle"
 cost = 14.0
-effect = "A glowing mushroom grows from the ground."
+effect = "Grow a glowing mushroom that lights up the dark."
 sounds = {"rustle": "glowcap__rustle"}

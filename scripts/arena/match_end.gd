@@ -152,7 +152,7 @@ func end_with_epilogue(look: String, palette: int) -> void:
 		return
 	if Net.is_host():
 		Net.send(world, &"_end_with_epilogue", [look, palette])
-	if GameSettings.skip_ending():
+	if GameSettings.skip_ending() and not Net.online():  # (in a game with others the ending plays for everyone)
 		_fade_to_room()  # this machine's world.player would rather not watch it
 		return
 	_roll_the_epilogue(look, palette)

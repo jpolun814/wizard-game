@@ -334,6 +334,14 @@ func tend_stroke(spell_name: String, to_player: Vector2) -> PackedVector2Array:
 			return BrainStrokes.offset(GestureTemplates.preview_points("stonefall"), here + Vector2(0.0, -30.0), 0.7)
 		"Headwind":
 			return BrainStrokes.offset(GestureTemplates.preview_points("earthquake"), here, 0.8)
+		"Cauterize":
+			return BrainStrokes.offset(GestureTemplates.preview_points("cross"), here, 0.8)
+		"Breathe":
+			return BrainStrokes.offset(GestureTemplates.preview_points("peace"), here, 0.8)
+		"Mud Mask":
+			return BrainStrokes.offset(GestureTemplates.preview_points("eight"), here, 0.8)
+		"Healing Spring":  # drawn over its own feet, so that it stands in the water when it wells up
+			return BrainStrokes.offset(GestureTemplates.preview_points("spring"), Vector2(feet.x, feet.y - 40.0), 0.8)
 		"Dancing Lights":
 			return BrainStrokes.offset(GestureTemplates.preview_points("pentagram"), here + Vector2(0.0, -40.0), 0.9)
 		"Glowcap":

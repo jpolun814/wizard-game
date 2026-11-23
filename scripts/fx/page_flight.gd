@@ -4,7 +4,9 @@ extends Node2D
 ## The pages of a reading fly to the one who reads them, one at a time, from where they lay. As each reaches the wizard its name rises beside them, in its school's color
 ## (a chant's in gold). The pages are already in the book when this begins: it is what a reader sees, nothing more. A fallen wizard's book is read the same way.
 
-const STAGGER := 0.4   # seconds from one page setting off to the next
+const STAGGER := 0.2   # seconds from one page setting off to the next (owner, 2026-11-22: no more than 0.2; the names stay up longer instead)
+const NAME_LIFE := 2.6  # seconds a page's name stays on the screen
+const NAME_ROWS := 8    # the names stack in this many rows, so pages that arrive close together do not write over each other
 const FLIGHT := 0.55   # seconds a page takes to reach the wizard
 const CHANT_COLOR := Color("#ffe9a0")
 
@@ -79,7 +81,7 @@ func _arrive(sprite: Sprite2D, page: String, color: Color, index: int) -> void:
 		var at := SpellTargets.center_of(wizard)
 		Fx.burst(get_parent(), at, color, 12, 110.0, 0.4, true)
 		Fx.pop(get_parent(), at, "circle_05", Color(color.r, color.g, color.b, 0.7), 40.0, 0.3, 1.6)
-		FloatText.spawn(get_parent(), at + Vector2(64.0, -22.0 - 6.0 * (index % 2)), Pages.title_of(page), color.lightened(0.25), 1.15)  # beside them, in their school's color
+		FloatText.spawn(get_parent(), at + Vector2(64.0, -10.0 - 15.0 * (index % NAME_ROWS)), Pages.title_of(page), color.lightened(0.25), 1.15, NAME_LIFE)  # beside them, in their school's color
 		Sfx.cue("page_pickup", "rustle", at, -8.0)
 	_finish()
 

@@ -6,6 +6,8 @@ extends RefCounted
 
 const REMEMBER := 8.0         # seconds a rival gone out of sight is still thought to be where it was last seen
 const ATTENTION_CONE := 0.8  # radians either side of the way to its rival that it watches closely
+const WARY_SIZE := 110.0   # a stroke this long on the screen is a shape, not a flick
+const WARY_REACH := 60.0   # how far to the side of a stroke's span it still counts as being over it
 const READ_SHARE := 0.7      # how much of a rival's stroke must show on the screen before it is known for the spell it is
 const ATTENTION_LAG := 0.25  # seconds before it takes in a shot from elsewhere (on top of the time it takes to answer it)
 
@@ -137,6 +139,25 @@ func rival_drawing() -> Dictionary:
 	glimpse["left"] = foe.pen.time_left()
 	glimpse["id"] = foe.pen.number
 	return glimpse
+
+
+## A stroke a rival is drawing over the place it stands, when the spell is not one it knows: {"rect", "id"}, or nothing. A person who sees a wizard sweep a great shape over their
+## head steps out from under it whether or not they know what it is (owner's game, 2026-11-22: three of five wizards were struck by a Spark they stood under while it
+## was drawn). It reads only the trail on the screen: its size and where it lies, never what the spell would do. A short flick, or a stroke far to one side, is no threat.
+func trail_over_me() -> Dictionary:
+	var foe := brain.foe()
+	if BrainProfile.off("wary") or not is_instance_valid(foe) or foe.dead or not foe.pen.active() or not wizard.eyes.sees_node(foe):
+		return {}
+	var points := foe.pen.so_far()
+	if points.size() < 6:
+		return {}
+	var box := GestureTemplates.bounds(points)
+	if maxf(box.size.x, box.size.y) < WARY_SIZE:
+		return {}  # (a flick: a bolt thrown at it is answered when it flies)
+	var me := wizard.center()
+	if me.x < box.position.x - WARY_REACH or me.x > box.end.x + WARY_REACH or me.y < box.position.y - 260.0 or me.y > box.end.y + 140.0:
+		return {}
+	return {"rect": box, "id": foe.pen.number}
 
 
 ## A stone falling on it from above, seen coming: {"x"} (where it falls), or nothing. A person who sees a boulder over their head steps aside.

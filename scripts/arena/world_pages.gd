@@ -34,7 +34,7 @@ func lay() -> void:
 	var allotment := MatchState.page_allotment(World.WIZARDS)
 	var spare: Array[String] = []
 	spare.assign(allotment["spare"])
-	var layout := Pages.plan(world.graph, rng, Pages.deal(MatchState.seed_base + 31, World.WIZARDS), allotment["worlds"][MatchState.stage], gate_kinds, spare, world.ledgers if world.carried else Pages.deal(MatchState.seed_base + 31, World.WIZARDS))  # (the pages in the clusters count as held, for the gates' openers)
+	var layout := Pages.plan(world.graph, rng, Pages.starting_deal(MatchState.seed_base, World.WIZARDS, MatchState.biome_of(0)), allotment["worlds"][MatchState.stage], gate_kinds, spare, world.ledgers if world.carried else Pages.starting_deal(MatchState.seed_base, World.WIZARDS, MatchState.biome_of(0)))  # (the pages in the clusters count as held, for the gates' openers)
 	if world.flies():
 		_lay_sky(layout)
 		if not world.carried:
@@ -96,7 +96,7 @@ func _lay_clusters(first: int) -> void:
 	var places := world.places()
 	var index := first
 	for seat in World.WIZARDS:
-		var pages := Pages.cluster_of(MatchState.seed_base, seat, World.WIZARDS)
+		var pages := Pages.cluster_of(MatchState.seed_base, seat, World.WIZARDS, MatchState.biome_of(0))
 		if pages.is_empty():
 			continue
 		if world.flies():

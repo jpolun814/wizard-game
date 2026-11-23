@@ -14,6 +14,10 @@ const WORTH := {
 const PLACED := ["Stonefall", "Stalagmite", "Sinkhole", "Firewall", "Bramble", "Flytrap", "Ice Prison", "Black Hole", "Supernova", "Hailstorm", "Blizzard", "Tornado", "Spark", "Silence", "Thunderclap", "Hemorrhage", "Insect Plague", "Icicles", "Invincible Snail"]
 ## The spells a Barrier turns away (it takes only what is thrown): against a rival behind one, or who is known to raise one, the rest are used.
 const SHOTS := ["Ignite", "Frostbolt", "Barbs", "Pebble"]
+## The spells that land where they are drawn and catch whoever is near there, the caster too, with how near (px) the caster may be to the rival before casting one
+## at them would catch the caster as well. A person learns this the first time their own swarm turns on them (owner's duel, 2026-11-21: an AI cast seven Insect
+## Plagues at a rival a hundred pixels off and was stung by its own swarm).
+const OWN_HARM := {"Insect Plague": 170.0, "Stonefall": 90.0, "Blizzard": 200.0, "Hailstorm": 140.0, "Supernova": 340.0, "Black Hole": 220.0, "Firewall": 90.0, "Tornado": 120.0, "Spark": 70.0, "Earthquake": 0.0}
 const REVERSE_HOLD := 0.6  # seconds before it turns the other way after it has turned
 var defend_cooldown := 0.0
 var escape_commit := 0.0     # seconds it keeps the way it chose out of danger
@@ -105,7 +109,23 @@ func attack(to_player: Vector2, sees: bool) -> bool:
 	if foe.has_shield() and not BrainProfile.off("shield"):
 		for spell_name in SHOTS:  # nothing thrown gets through a Barrier: it uses what does not have to be thrown
 			scores[spell_name] = 0.0
-	_cleverness(scores, foe, gap)
+	if not BrainProfile.off("self"):
+		for spell_name in OWN_HARM:
+			if scores.has(spell_name) and gap < OWN_HARM[spell_name]:
+				scores[spell_name] = 0.0  # it would be caught in it too
+		if _own_harm_on(foe):  # a storm, a swarm or a fire of its own is on the rival already: a second is wasted (and the first already does the work)
+			for spell_name in PLACED:
+				if scores.has(spell_name):
+					scores[spell_name] *= 0.2
+	if BrainProfile.off("spamonly"):  # (a test opponent, never a way the game plays: a wizard that throws only the cheap shots, to see how the AI fares against one; tools/ai_ab.py spamonly N)
+		for spell_name in scores.keys():
+			if spell_name not in ["Barbs", "Frostbolt", "Ignite", "Pebble"]:
+				scores[spell_name] = 0.0
+		scores["Barbs"] = maxf(scores["Barbs"], 1.0) if sees else 0.0
+		scores["Frostbolt"] = maxf(scores["Frostbolt"], 1.0) if sees else 0.0
+	else:
+		_cleverness(scores, foe, gap)
+		_thrift(scores, foe)
 	for spell_name in scores.keys():
 		scores[spell_name] *= WORTH.get(spell_name, 1.0)
 		if not brain.ready_to_cast(spell_name):
@@ -121,8 +141,30 @@ func attack(to_player: Vector2, sees: bool) -> bool:
 	recent.push_front(choice)
 	if recent.size() > 2:
 		recent.pop_back()
-	brain.hand.begin_cast(choice, brain.hand.attack_stroke(choice), BrainStrokes.usual_stroke(choice, WizardBrain.ATTACK_DRAW * 0.6), true)  # (as long as a person takes over it: a fireball is a flick)
+	brain.hand.begin_cast(choice, brain.hand.attack_stroke(choice), BrainStrokes.skilled_stroke(choice, WizardBrain.ATTACK_DRAW * 0.6, brain.skill, brain.slow), true)  # (as long as a person takes over it: a fireball is a flick)
 	return true
+
+
+## What a spell costs weighs on the choice, and more the less it has in hand: a person who spams a cheap shot keeps their stamina for the moment it counts, and one who throws
+## a dear spell every time is dry when the fight is decided (owner's duels, 2026-11-21: the owner kept 62% of their stamina in hand, the AI 29%, and the owner's cheap
+## shots landed more often). A spell paid in blood is judged elsewhere.
+func _thrift(scores: Dictionary, foe: Wizard) -> void:
+	var prof := brain.profile
+	if BrainProfile.off("thrift") or foe.is_frozen() or foe.daze_time > 0.0 or foe.fainted or foe.is_rooted() or prof.chanting(foe) or prof.cast_age(foe) < 1.0:
+		return  # (a rival who cannot answer is the time for the dear spell: see the `window` idea in _cleverness)
+	var bite := 0.35 + 0.65 * clampf(1.0 - wizard.stamina / 120.0, 0.0, 1.0)
+	for spell_name in scores.keys():
+		if scores[spell_name] > 0.0 and SpellData.SPELLS.has(spell_name) and not SpellData.SPELLS[spell_name].pays_max():
+			scores[spell_name] *= clampf(pow(16.0 / maxf(SpellData.SPELLS[spell_name].cost, 6.0), bite), 0.45, 1.8)
+
+
+## Whether something harmful it cast itself is about the rival now (it sees its own spells as anyone would).
+func _own_harm_on(foe: Wizard) -> bool:
+	var at := brain.sight.seen_center(foe)
+	for node in wizard.get_tree().get_nodes_in_group("danger"):
+		if node is Node2D and is_instance_valid(node) and node.get("caster") == wizard and not node.is_in_group("shots") and (node as Node2D).global_position.distance_to(at) < 220.0:
+			return true
+	return false
 
 
 ## Raises or lowers what a spell is worth for what it knows of this rival and of its own state: a person does not only ask what is strongest but what suits
@@ -325,14 +367,14 @@ func lava_beyond(foe: Wizard) -> bool:
 func near_limit() -> float:
 	var close := brain.profile.closeness(brain.opponent)
 	var style_shift := -50.0 if brain.style == "aggressive" else (40.0 if brain.style == "sniper" else 0.0)
-	var press := 0.0 if BrainProfile.off("press") else 60.0 * brain.aggression  # a bold wizard stays close
-	return WizardBrain.NEAR + style_shift - press + 90.0 * maxf(close, 0.0) * minf(brain.skill / 0.65, 1.0)
+	var press := 0.0 if BrainProfile.off("press") else 60.0 * brain.aggression * (1.0 - brain.caution())  # a bold wizard stays close, while it is whole enough
+	return WizardBrain.NEAR + style_shift - press + 90.0 * maxf(close, 0.0) * minf(brain.skill / 0.65, 1.0) + 80.0 * brain.caution()  # (and a wounded one keeps farther off)
 
 
 ## How far it lets a rival get before it closes in: a sniper keeps its distance, an aggressive wizard does not.
 func far_limit() -> float:
-	var press := 0.0 if BrainProfile.off("press") else 90.0 * brain.aggression
-	return WizardBrain.FAR + (-60.0 if brain.style == "aggressive" else (70.0 if brain.style == "sniper" else 0.0)) - press
+	var press := 0.0 if BrainProfile.off("press") else 90.0 * brain.aggression * (1.0 - brain.caution())
+	return WizardBrain.FAR + (-60.0 if brain.style == "aggressive" else (70.0 if brain.style == "sniper" else 0.0)) - press + 80.0 * brain.caution()
 
 
 ## Which way to a spot within a few steps that has a roof over it (-1, 1), or 0 when there is none, or the way is a pit.
@@ -393,7 +435,7 @@ func footwork(delta: float, to_player: Vector2, sees: bool) -> float:
 			dir = 0.0 if high and gap > WizardBrain.LIFT_STAND.get(lift, 120.0) else -toward  # a rival high on a ledge is not backed away from: it stands under them, and raises itself up
 	elif gap > far_limit():
 		dir = toward
-	elif wizard.stamina < 45.0 and not BrainProfile.off("still"):
+	elif (wizard.stamina < brain.reserve() * 1.3 or brain.recharging) and not BrainProfile.off("still"):
 		dir = 0.0  # it stands to get its strength back: stamina returns only to one who is still
 		if not BrainProfile.off("rest") and gap > WizardBrain.TOO_CLOSE and not covered_at(wizard.center() - Vector2(0, 50)):
 			dir = roof_walk(delta)  # (it rests under a roof if one is a few steps off: nothing falls on a wizard getting their breath back)

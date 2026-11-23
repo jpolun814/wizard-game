@@ -27,7 +27,7 @@ const RITUALS := {
 		"text": "volo iterum"},
 	"rift": {"kind": "ritual", "name": "Incantation of the Fool's Gate",
 		"text": "locum muta"},
-	"haste": {"kind": "ritual", "name": "Chant of Swift Feet",
+	"haste": {"kind": "ritual", "name": "Charm of Swift Feet",
 		"text": "celeriter curre"},
 	"deep_breath": {"kind": "ritual", "name": "Blessing of the Deep Breath",
 		"text": "teneo"},
@@ -35,8 +35,19 @@ const RITUALS := {
 		"text": "paginam quaero"},
 	"scrying_eye": {"kind": "toggle", "module": "scrying_eye", "name": "Chant of the Scrying Eye",
 		"text": "oculum mitto"},
-	"darkvision": {"kind": "ritual", "name": "Chant of Darkvision",
+	"darkvision": {"kind": "ritual", "name": "Charm of Darkvision",
 		"text": "melius in tenebris video"},
+	# The ways to heal that are said: from the quick and small to the long and great (`Mending`, owner 2026-11-22).
+	"mending": {"kind": "ritual", "name": "Charm of Mending", "text": "sana me"},
+	"rest": {"kind": "ritual", "name": "Psalm of Rest", "text": "quiesce paulum"},
+	"recovery": {"kind": "ritual", "name": "Charm of Recovery", "text": "redde quod ereptum"},
+	"stitch": {"kind": "ritual", "name": "Chant of the Bloody Needle", "text": "suere vulnera mea"},
+	"gamble": {"kind": "ritual", "name": "Chant of the Cast Die", "text": "alea iacta est"},
+	"long_rest": {"kind": "ritual", "name": "Long Rest", "text": "honc shue honc shue"},
+	"second_chance": {"kind": "ritual", "name": "Resurrection",
+		"text": "si cadam iterum surgam et iterum vivam in luce mea"},
+	"restoration": {"kind": "ritual", "name": "Prayer of Restoration",
+		"text": "vulnera mea sanentur et vires meae redeant dum corpus totum integrum fiat"},
 }
 const LIKENESS_WORDS := "faciem meam muta"
 const BACKFIRE_BELOW := 0.6  # accuracy under this misfires

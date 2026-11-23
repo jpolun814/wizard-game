@@ -72,7 +72,9 @@ func _physics_process(delta: float) -> void:
 
 func _draw() -> void:
 	if not _exploded:
-		Fx.draw_glow(self, Vector2.ZERO, BURN_RADIUS * 0.8, Color(1.0, 0.45, 0.12, 0.28 * _glow))
+		Fx.draw_glow(self, Vector2.ZERO, BURN_RADIUS * 2.4, Color(1.0, 0.4, 0.1, 0.16 * _glow))  # (owner, 2026-11-22: a major glow, though not one of the lights the dark is lit by)
+		Fx.draw_glow(self, Vector2.ZERO, BURN_RADIUS * 1.3, Color(1.0, 0.55, 0.2, 0.3 * _glow))
+		Fx.draw_glow(self, Vector2.ZERO, BURN_RADIUS * 0.6, Color(1.0, 0.85, 0.5, 0.45 * _glow))
 
 
 ## Everything near is drawn toward the sun, less the farther off it is. A wall or the ground still stops what is pulled.

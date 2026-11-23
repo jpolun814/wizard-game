@@ -43,8 +43,11 @@ func _check(world: World, seed_value: int) -> void:
 	var places := world.places()
 	var walks := []  # collected before any walking, which is slow and lets the world change
 	for seat in World.WIZARDS:
-		var mine := Pages.cluster_of(MatchState.seed_base, seat, World.WIZARDS)
-		_verdict(mine.size() == 5, "%s: seat %d has five pages in its cluster" % [tag, seat])
+		var mine := Pages.cluster_of(MatchState.seed_base, seat, World.WIZARDS, MatchState.biome_of(0))
+		var dark_start := Pages.DARK_START.has(MatchState.biome_of(0))
+		var lit: bool = mine.any(func(page: String) -> bool: return Pages.LIGHT_MAKERS.has(page))
+		_verdict(mine.size() == 5 or (dark_start and mine.size() == 6 and lit), "%s: seat %d has five pages in its cluster, and a light besides if it begins in the dark (%d)" % [tag, seat, mine.size()])
+		_verdict(not dark_start or lit, "%s: seat %d starts with a page that makes light where it begins in the dark" % [tag, seat])
 		var fan: PagePickup = clusters[seat]
 		_verdict(fan.fan and fan.spoils.size() == mine.size(), "%s: seat %d's pages lie together as one fan (%d)" % [tag, seat, fan.spoils.size()])
 		for page in mine:

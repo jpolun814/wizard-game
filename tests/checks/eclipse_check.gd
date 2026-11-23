@@ -30,6 +30,12 @@ func _ready() -> void:
 	_verdict(SpellTargets.sight_blocked(tree, feet, feet + Vector2(300.0, 0.0)), "someone inside cannot see far")
 	_verdict(not SpellTargets.sight_blocked(tree, feet, feet + Vector2(40.0, 0.0)), "someone inside sees what is close")
 	_picture(out, "inside")
+	ScreenFlash.strike(tree, feet + Vector2(100.0, 0.0), 0.55)  # a bolt of lightning nearby: for the flash the world is seen in its own light
+	await get_tree().create_timer(0.03).timeout
+	var lifted := ScreenFlash.lifting(tree)
+	_verdict(lifted > 0.8 and not eclipse._veil.visible, "a flash of lightning lifts the eclipse (lifted %.2f, veil shown %s)" % [lifted, eclipse._veil.visible])
+	await _wait(1.0)
+	_verdict(ScreenFlash.lifting(tree) == 0.0 and _veil_strength(eclipse) > 0.9, "and the dark closes again after it")
 	var flare := Flare.new()
 	flare.position = feet + Vector2(220.0, -20.0)
 	world.add_child(flare)

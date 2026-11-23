@@ -27,8 +27,13 @@ func _run_cues(delta: float) -> void:
 		_cues.pop_front()[1].call()
 
 
+## In a game with others a cutscene cannot be skipped (owner, 2026-11-22): one person would get started before the rest.
+func _unskippable() -> bool:
+	return Net.online()
+
+
 func _unhandled_input(event: InputEvent) -> void:
-	if _leaving or not (event is InputEventKey or event is InputEventMouseButton) or not event.is_pressed() or event.is_echo():
+	if _leaving or _unskippable() or not (event is InputEventKey or event is InputEventMouseButton) or not event.is_pressed() or event.is_echo():
 		return
 	get_viewport().set_input_as_handled()
 	_cues.clear()

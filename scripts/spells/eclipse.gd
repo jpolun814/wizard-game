@@ -7,18 +7,18 @@ extends Node2D
 const LIFE := 6.0  # as long as an Earthquake
 const DEEPEN := 1.8  # seconds the dark takes to settle in full
 const SIGHT := 90.0  # how far you can see inside an eclipse
-const VEIL_LIGHTS := 6  # the most lit patches the veil cuts out of the dark at once
+const VEIL_LIGHTS := 16  # the most lit patches the veil cuts out of the dark at once (the nearest to the one watching, when there are more)
 const VEIL_SHADER := """
 shader_type canvas_item;
 uniform vec2 size;
 uniform vec2 center;
 uniform float radius;
 uniform float strength;
-uniform vec4 lights[6];
+uniform vec4 lights[16];
 void fragment() {
 	vec2 p = UV * size;
 	float dark = mix(0.3, 1.0, smoothstep(radius * 0.75, radius * 1.25, distance(p, center)));
-	for (int i = 0; i < 6; i++) {
+	for (int i = 0; i < 16; i++) {
 		dark *= smoothstep(lights[i].z * 0.45, lights[i].z, distance(p, lights[i].xy));
 	}
 	COLOR = vec4(0.02, 0.0, 0.06, dark * strength);
@@ -71,7 +71,7 @@ func _update_veil(delta: float) -> void:
 	var inside := watched != null and not watched.dead
 	var fade := clampf(_age / DEEPEN, 0.0, 1.0) * clampf((LIFE - _age) / 1.0, 0.0, 1.0)
 	_veil_strength = move_toward(_veil_strength, fade if inside else 0.0, delta * 3.0)
-	_veil.visible = _veil_strength > 0.0
+	_veil.visible = _veil_strength > 0.0 and ScreenFlash.lifting(get_tree()) < 1.0
 	if not _veil.visible:
 		return
 	var screen := get_viewport().get_visible_rect().size
@@ -82,12 +82,20 @@ func _update_veil(delta: float) -> void:
 	material.set_shader_parameter("size", screen)
 	material.set_shader_parameter("center", to_screen * watched.center())
 	material.set_shader_parameter("radius", SIGHT * zoom)
-	material.set_shader_parameter("strength", _veil_strength)
+	material.set_shader_parameter("strength", _veil_strength * (1.0 - ScreenFlash.lifting(get_tree())))  # (a flash of lightning lifts the dark: the world is seen as it is)
 	var lights: Array[Vector4] = []
 	for flare in get_tree().get_nodes_in_group("flares"):
 		lights.append(_light_hole(to_screen, flare.global_position, Flare.LIGHT_RADIUS))
 	for light in get_tree().get_nodes_in_group("lights"):
 		lights.append(_light_hole(to_screen, light.global_position, light.light_radius))
+	# Whatever glows in any other dark (a fireball, a wall of fire, a bonfire, lava: the world gives each a light of its own) glows in this one too.
+	for glow in get_tree().get_nodes_in_group("fires"):
+		for child in glow.get_children():
+			if child is PointLight2D and child.visible and child.texture != null:
+				var lamp: PointLight2D = child
+				lights.append(_light_hole(to_screen, lamp.global_position, lamp.texture_scale * lamp.texture.get_width() * 0.5))
+	var watched_spot: Vector2 = to_screen * watched.center()
+	lights.sort_custom(func(a: Vector4, b: Vector4) -> bool: return Vector2(a.x, a.y).distance_to(watched_spot) < Vector2(b.x, b.y).distance_to(watched_spot))
 	while lights.size() < VEIL_LIGHTS:
 		lights.append(Vector4(-10000.0, -10000.0, 1.0, 0.0))  # nowhere on the screen
 	material.set_shader_parameter("lights", lights.slice(0, VEIL_LIGHTS))

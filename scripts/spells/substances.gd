@@ -85,6 +85,26 @@ static func wash(body: Node) -> void:
 			snail.lose_scent()
 
 
+## What a deep rest or a second chance takes off a body: every ill on it but the two that follow it anywhere, a curse (a Hex) and a snail on its heels. A flame, oil,
+## ice, a chill, a tangle, a daze, a held tongue, a fright, a wound and the breath all go. (A Hex and a snail are left to run their course, owner 2026-11-22.)
+static func relieve(body: Node) -> void:
+	if not alive(body):
+		return
+	if body.burning_time > 0.0:
+		put_out(body)
+	body.oiled_time = 0.0
+	for state in ["slow_time", "daze_time", "sink_time", "tangle_time", "rage_time", "fear_time", "drained_time", "mute_time", "root_time", "blind_time"]:
+		if state in body:
+			body.set(state, 0.0)
+	if body.has_method("thaw"):
+		body.thaw()
+	if "lungs" in body:
+		body.lungs.smother(false)
+	var wound := Hemorrhage.on(body.get_tree(), body)
+	if wound != null:
+		wound.queue_free()
+
+
 static func put_out(body: Node) -> void:
 	body.burning_time = 0.0
 	Fx.smoke(body.get_parent(), body.center(), Color(0.88, 0.92, 0.96, 0.5), 3, 18.0, 36.0)

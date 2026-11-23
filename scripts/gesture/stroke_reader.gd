@@ -8,6 +8,7 @@ extends RefCounted
 var recognizer: UnistrokeRecognizer
 var tolerance := 0.70  # minimum $1 score to count as a cast
 var wall_tolerance_deg := 20.0  # straight strokes this close to vertical are walls
+const SPRING_RISE := 0.3  # how far (as a share of its height) the end of a spring must be from where it began, for its sharp turns not to be taken for icicles: a single V is a fair match for it too, and ends where it began
 
 
 func _init(with_recognizer: UnistrokeRecognizer) -> void:
@@ -96,7 +97,8 @@ func _detect(relative: PackedVector2Array, options: Dictionary, reading: StrokeR
 	var spiral := StrokeShapes.inward_spiral(relative) if options.has("spiral") and not star and not slashed else {}
 	var feather := StrokeShapes.feather(relative) if options.has("feather") else {}
 	reading.latin = options.has("latin_cross") and StrokeShapes.is_cross(relative)
-	var ring_split := StrokeShapes.ring_then_line_split(relative) if (options.has("circle_push") or options.has("sphere")) and spiral.is_empty() and feather.is_empty() else -1
+	var peace := gesture == "peace" and firm  # a peace sign is a ring with lines through it, and no ring with a line out of it
+	var ring_split := StrokeShapes.ring_then_line_split(relative) if (options.has("circle_push") or options.has("sphere")) and spiral.is_empty() and feather.is_empty() and not peace else -1
 	if ring_split >= 0 and options.has("sphere") and not options.has("circle_push") and not StrokeMeasure.runs_level(relative.slice(ring_split)):
 		ring_split = -1  # a ball of fire is pushed along the ground: the line out of the ring must run level
 	if ring_split >= 0 and slashed:
@@ -105,7 +107,7 @@ func _detect(relative: PackedVector2Array, options: Dictionary, reading: StrokeR
 	var extent := StrokeMeasure.extent(relative)
 	var closed := relative[0].distance_to(relative[relative.size() - 1]) < 0.3 * maxf(extent.x, extent.y)  # icicles are open V strokes: a loop is never one
 	var peak := gesture == "geyser" and firm  # an arrow pointing up drawn with the water button is a Geyser, not a row of icicles
-	var round_peaks := score >= tolerance - 0.12 and gesture in ["stonefall", "earthquake"] or (gesture == "stick" and firm)  # a circle and a drop, a double arrow and a stick figure also have peaks in them
+	var round_peaks := score >= tolerance - 0.12 and gesture in ["stonefall", "earthquake"] or (gesture == "stick" and firm) or (gesture == "spring" and firm and absf(relative[relative.size() - 1].y - relative[0].y) > SPRING_RISE * extent.y)  # a circle and a drop, a double arrow, a stick figure and a basin with water rising from it also have peaks in them
 	var vine := gesture == "vine" and firm  # a leaf with a vine up from it starts like a tree's trunk would end, so it is not a tree
 	return {
 		"portrait": options.has("portrait") and StrokeShapes.is_portrait_box(relative),

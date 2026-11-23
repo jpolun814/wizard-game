@@ -14,6 +14,7 @@ const SCENES := {
 	"Icicles": {"ceiling": true},
 	"Flare": {"dark": true}, "Dancing Lights": {"dark": true}, "Bathe": {"burning": true}, "Headwind": {"rush": true, "gap": 150.0}, "Glowcap": {"dark": true}, "Moonbeam": {"dark": true},
 	"Adrenaline": {"tired": true}, "Sneak": {"low": true},
+	"Cauterize": {"hurt": true, "gap": 1200.0}, "Breathe": {"hurt": true, "gap": 1200.0}, "Mud Mask": {"hurt": true, "gap": 1200.0}, "Healing Spring": {"hurt": true, "gap": 1200.0},  # (worn down to less than half, with no rival near: it mends)
 	"Hunter's Mark": {"gap": 720.0, "seed": 4}, "Golem": {"gap": 200.0, "hold": true},  # (a spell for a rival close at hand and standing on the ground: the brain keeps away from one that is not, and a rival put on top of it is never on the ground)
 	"Mirage": {"gap": 330.0, "page": true, "page_at": 150.0, "page_spell": "Mirage", "hold": true, "strong": true, "seed": 3},  # a rival some way off (in sight), and a real page for the false one to pass for (one it holds already: a page it wanted, it would go and take first, and then none would be left to pass for)
 	"Scythe": {"gap": 80.0, "rush": true}, "Thunderclap": {"gap": 120.0, "rush": true}, "Silence": {"gap": 270.0}, "Tide Surf": {"gap": 220.0},
@@ -208,6 +209,9 @@ func _try(spell_name: String) -> void:
 		elif scene.get("low", false):
 			tester.max_stamina = minf(tester.max_stamina, 80.0)
 			tester.stamina = maxf(tester.stamina, 40.0)
+		elif scene.get("hurt", false) and tester.mending.kind == "" and HealingSpring.of(tree, tester) == null:
+			tester.max_stamina = minf(tester.max_stamina, 60.0)
+			tester.stamina = maxf(tester.stamina, 50.0)
 		elif scene.get("strong", false):  # (a book with no harm in it feels weak, and a weak wizard soon goes its way rather than fight: whole, it stands)
 			tester.max_stamina = Wizard.MAX_STAMINA
 			tester.stamina = Wizard.MAX_STAMINA

@@ -79,6 +79,9 @@ func _run(world: World) -> void:
 		await get_tree().physics_frame
 	print("   wizard at ", wizard.global_position, " sea ", sea.position, " floor ", floors[deepest], " swim ", wizard.swim_time, " breath ", wizard.lungs.air, " under ", wizard.lungs.submerged())
 	_check(wizard.swim_time > 0.0, "a wizard out of its depth swims")
+	# The sea is water to the things that ride on water (owner, 2026-11-22: a Tide Surf skimmed a pond and not the ocean): its surface is found like a pond's.
+	var over := sea.global_position + Vector2(sea.width * 0.5, 0.0)
+	_check(Pond.surface_below(get_tree(), over.x, over.y - 30.0, 90.0) == sea.global_position.y, "the sea's surface is found as a pond's is, for a wave or a lily pad to ride")
 	_check(wizard.lungs.air < before, "and its breath runs down under the water")
 	# The same wizard in a wreck's air pocket keeps its breath.
 	var wreck: Wreck = world.get_children().filter(func(n: Node) -> bool: return n is Wreck).front()

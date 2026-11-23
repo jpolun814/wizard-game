@@ -9,5 +9,5 @@ school = "Shadow"
 gesture = "portrait"
 targeting = "positional"
 cost = 40.0
-effect = "Create a mirage of what wizards desire most."
+effect = "Create a fake page."
 sounds = {"glass": "mirage__glass"}

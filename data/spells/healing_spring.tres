@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="Spell" format=3]
+
+[ext_resource type="Script" path="res://scripts/core/spell.gd" id="1_spell"]
+
+[resource]
+script = ExtResource("1_spell")
+spell_name = "Healing Spring"
+school = "Water"
+gesture = "spring"
+cost = 40.0
+effect = "A spring wells up that heals anyone standing in it."
+heal = "+2 max stamina/sec"
+applies = Array[String](["wet", "mending"])
+sounds = {"mend": "healing_spring__mend"}

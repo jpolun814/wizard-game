@@ -8,6 +8,6 @@ spell_name = "Fight or Flight"
 school = "Blood"
 gesture = "question"
 cost = 20.0
-effect = "Trigger the target's fight or flight response."
+effect = "Make someone panic, either casting random spells or fleeing from you."
 applies = Array[String](["confused", "fleeing"])
 sounds = {"heartbeat": "fight_or_flight__heartbeat"}

@@ -17,7 +17,7 @@ func _begin(origin: Vector2, aim_angle: float) -> void:
 	aim = Vector2.from_angle(aim_angle)
 	_life = LIFE
 	rotation = aim_angle
-	Sfx.cue("Push", "whoosh", origin)
+	Sfx.cue("Push", "whoosh", origin, -4.0)  # as loud as a Gust (its sound is a copy of the Gust's)
 	var ring := PixelFx.play(get_parent(), origin, "ring", 60.0, maxf(1.0, roundf(zone_radius / 22.0)), SpellData.SCHOOL_COLORS["Air"])  # the same pale wind as a Gust and an Updraft
 	ring.material = Fx.additive()
 
@@ -45,6 +45,9 @@ func _push_everything() -> void:
 			body.knock_back(aim * KNOCK_SPEED * 1.6)
 		else:
 			body.push(aim * KNOCK_SPEED * 1.6)  # lifts the caster well above a jump (a jump is about 140 px)
+	for snail in get_tree().get_nodes_in_group("snails"):
+		if _inside(snail.global_position):
+			snail.push(aim * KNOCK_SPEED * 1.6)
 	for rock in get_tree().get_nodes_in_group("rocks"):
 		if _inside(rock.global_position):
 			rock.push(aim * KNOCK_SPEED * 1.6)

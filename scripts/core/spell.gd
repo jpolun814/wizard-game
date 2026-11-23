@@ -21,6 +21,7 @@ enum Size { NONE, RADIUS, REACH, LINE_WIDTH, LINE_SPAN, LENGTH, STEP_LENGTH, ARE
 @export var applies: Array[String] = []  ## the states it puts on someone (names as in StatusBubbles), for the spellbook
 @export var removes: Array[String] = []  ## the states it takes off someone
 @export var damage := ""            ## a short figure for the spellbook
+@export var heal := ""              ## what a spell that heals mends, as the spellbook writes it where damage goes, with a plus sign ("+55 max stamina", "+3 max stamina/sec")
 @export var sounds := {}  ## the sounds this spell makes, by event (cast, hit...): each a file of its own, owned by this spell alone (see Sfx.cue)
 @export var color := Color(0, 0, 0, 0)  ## the glow of a spell that is not its school's color; transparent means the school's
 @export var size_from := Size.NONE
@@ -75,6 +76,16 @@ func cost_span() -> Vector2:
 ## What the spellbook says it deals ("14 dmg/sec", "30 dmg"), or nothing when it deals no damage.
 func damage_line() -> String:
 	return damage
+
+
+## True for a spell that heals.
+func heals() -> bool:
+	return heal != ""
+
+
+## What a spell that heals mends, written where the damage of the others is.
+func heal_line() -> String:
+	return heal
 
 
 ## What it costs when drawn this big. info is what the gesture measured: radius, reach, line, length, rect, pieces.

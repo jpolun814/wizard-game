@@ -8,5 +8,5 @@ spell_name = "Wild Shape"
 school = "Flora"
 gesture = "eclipse"
 cost = 40.0
-effect = "Transform into a werewolf."
+effect = "Turn into a werewolf."
 sounds = {"hurt": "wild_shape__hurt", "summon": "wild_shape__summon"}

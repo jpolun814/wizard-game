@@ -79,6 +79,11 @@ layout_mode = 2
 theme_type_variation = &"Inscription"
 text = "Tutorial"
 
+[node name="Duel" type="Button" parent="Box/Single"]
+layout_mode = 2
+theme_type_variation = &"Inscription"
+text = "Duel"
+
 [node name="SingleBack" type="Button" parent="Box/Single"]
 layout_mode = 2
 theme_type_variation = &"InscriptionBack"

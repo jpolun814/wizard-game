@@ -7,7 +7,7 @@ extends RefCounted
 ## A copy of a wizard on another machine can only show what the marks carry: frozen, slowed, veiled, wet, burning and oiled.
 
 const ICONS := preload("res://art/fx/status_icons.png")
-const ORDER := ["frozen", "slowed", "dazed", "hexed", "silenced", "holding", "choking", "confused", "fleeing", "bleeding", "veiled", "hasted", "adrenaline", "unlimited", "extra_jump", "wet", "burning", "oiled", "sturdy", "fireproof", "invisible", "unconscious", "pursued", "cross"]
+const ORDER := ["frozen", "slowed", "dazed", "hexed", "silenced", "holding", "choking", "confused", "fleeing", "bleeding", "veiled", "hasted", "adrenaline", "unlimited", "extra_jump", "wet", "burning", "oiled", "sturdy", "fireproof", "invisible", "unconscious", "pursued", "mending", "second_chance", "cross"]
 const ICON := 9.0         # a picture is 9 pixels
 const RADIUS := 5.5       # the bubble
 const RING_COLOR := Color(0.92, 0.95, 1.0, 0.95)
@@ -16,10 +16,10 @@ const PER_ROUND := 21     # bubbles in the first round about the wizard; the nex
 const ROUND_STEP := 11.0
 const WIZARD_RX := 32.0   # the ring lies outside the body, so no bubble covers any of the wizard
 const WIZARD_RY := 46.0
-const NAMES := {"frozen": "Frozen", "slowed": "Slowed", "dazed": "Dazed", "hexed": "Hexed", "silenced": "Silenced", "holding": "Holding breath", "choking": "Choking", "confused": "Confused", "fleeing": "Fleeing", "bleeding": "Bleeding", "veiled": "Veiled", "hasted": "Hasted", "adrenaline": "Adrenaline", "unlimited": "Unlimited stamina", "extra_jump": "Extra jump", "wet": "Wet", "burning": "Burning", "oiled": "Oiled", "sturdy": "Sturdy", "fireproof": "Fireproof", "invisible": "Invisible", "unconscious": "Unconscious", "pursued": "Pursued"}
+const NAMES := {"frozen": "Frozen", "slowed": "Slowed", "dazed": "Dazed", "hexed": "Hexed", "silenced": "Silenced", "holding": "Holding breath", "choking": "Choking", "confused": "Confused", "fleeing": "Fleeing", "bleeding": "Bleeding", "veiled": "Veiled", "hasted": "Hasted", "adrenaline": "Adrenaline", "unlimited": "Unlimited stamina", "extra_jump": "Extra jump", "wet": "Wet", "burning": "Burning", "oiled": "Oiled", "sturdy": "Sturdy", "fireproof": "Fireproof", "invisible": "Invisible", "unconscious": "Unconscious", "pursued": "Pursued", "mending": "Mending", "second_chance": "Second chance"}
 const TIPS := {
-	"wet": "Take increased damage from electricity\nFreeze faster and for longer",
-	"burning": "Take fire damage over time\nIgnite anything else you touch",
+	"wet": "Take more damage from electricity\nFreeze faster and for longer",
+	"burning": "Take fire damage over time\nSet fire to anything else you touch",
 	"oiled": "Burn for longer",
 	"sturdy": "Take less damage",
 	"fireproof": "Immune to fire and lava",
@@ -29,7 +29,7 @@ const TIPS := {
 	"frozen": "Cannot move, act, or breathe",
 	"slowed": "Move slower",
 	"dazed": "Move slower\nCannot cast spells or chant incantations",
-	"hexed": "Take increased damage\nCannot hide from whoever cast it",
+	"hexed": "Take more damage\nCannot hide from whoever cast it",
 	"silenced": "Cannot cast spells or chant incantations",
 	"holding": "Cannot inhale, exhale, or speak\nTurns into choking when your air runs out",
 	"choking": "Out of air\nTake damage over time",
@@ -41,6 +41,9 @@ const TIPS := {
 	"adrenaline": "Run faster\nTake less damage\nDeal more damage",
 	"unlimited": "Spells cost no stamina",
 	"extra_jump": "Jump again in mid-air",
+	"mending": "Regain max stamina over time",
+	"second_chance": "Come back to life if you die
+Only works once",
 }  # what each state does to whoever is in it, as the spellbook says when the mouse rests on its picture
 const MIDDLE := Vector2(0.0, -34.0)
 
@@ -148,6 +151,10 @@ func _states() -> Dictionary:
 		states["invisible"] = wizard.fade_time
 	if wizard.fainted:
 		states["unconscious"] = -1.0
+	if wizard.mending.flowing():
+		states["mending"] = wizard.mending.left()
+	if wizard.mending.is_armed():
+		states["second_chance"] = -1.0
 	for snail: InvincibleSnail in tree.get_nodes_in_group("snails"):
 		if snail.target == wizard:
 			states["pursued"] = -1.0

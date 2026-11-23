@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="Spell" format=3]
+
+[ext_resource type="Script" path="res://scripts/core/spell.gd" id="1_spell"]
+
+[resource]
+script = ExtResource("1_spell")
+spell_name = "Mud Mask"
+school = "Earth"
+gesture = "eight"
+cost = 40.0
+effect = "Regain max stamina for 20 seconds."
+heal = "+2 max stamina/sec"
+applies = Array[String](["mending"])
+sounds = {"mend": "mud_mask__mend"}

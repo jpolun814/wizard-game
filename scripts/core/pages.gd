@@ -8,8 +8,8 @@ extends RefCounted
 ## Where they lie: three lie in the open near the start. Every page that opens a gate is in a hall outside the locked areas, so the way on is never shut behind itself. Pages
 ## that open no gate may also lie in the locked areas, as the reward for getting in.
 
-## What every wizard starts with: one spell to attack, one to move and one to defend, each drawn by chance from its own list, and the
-## incantations of the bonfire and of the rift. Every spell in these lists works alone.
+## What every wizard starts with: one spell to attack, one to move, one to defend and one way to heal, each drawn by chance from its own list, and the
+## incantation of the rift. Every spell in these lists works alone.
 const ATTACKS := ["Ignite", "Fire Breath", "Spark", "Frostbolt", "Stonefall", "Spore Puff", "Firewall", "Stalagmite", "Bramble", "Flytrap",
 		"Barbs", "Pebble", "Hailstorm", "Thorn Whip", "Insect Plague", "Flaming Sphere", "Thunderclap", "Raise Dead",
 		"Eldritch Blast", "Hemorrhage", "Supernova", "Scythe"]
@@ -18,10 +18,23 @@ const ATTACKS := ["Ignite", "Fire Breath", "Spark", "Frostbolt", "Stonefall", "S
 const RANGED := ["Ignite", "Fire Breath", "Spark", "Frostbolt", "Stonefall", "Barbs", "Pebble", "Eldritch Blast", "Spore Puff", "Scythe", "Insect Plague", "Hemorrhage"]
 const MOVES := ["Shadow Step", "Push", "Liana", "Geyser", "Updraft", "Tornado", "Great Oak", "Rocket Jump", "Featherfall", "Tide Surf"]
 const DEFENCES := ["Barrier", "Decoy", "Stone Wall", "Smoke Screen", "Gust", "Eclipse", "Sneak", "Blizzard", "Ice Prison", "Mudslide", "Silence", "Crimson Veil", "Obsidian Armor"]
-const CHANTS := ["chant:bonfire", "chant:rift"]
+## The ways to heal a wizard may start with (owner, 2026-11-22: every wizard starts with at least one, and not every wizard with the long chant): the quick ones and the ones
+## that go on over time, one dealt to each, as many as there are wizards in a match (eight). The long chants and the risky ones (Restoration, Long Rest, Second Chance, Gamble, and the
+## Bonfire) are found, not dealt.
+const HEALS := ["chant:mending", "chant:rest", "chant:recovery", "chant:stitch", "Cauterize", "Breathe", "Mud Mask", "Healing Spring"]
+## What a wizard is dealt of each kind, in the order of the lists in `deal`: an attack, a way to move, a defense and a heal.
+const EACH := [1, 1, 1, 1]
+## The incantation every wizard starts with, whatever else: the Rift.
+const CHANTS := ["chant:rift"]
+## The spells that light the dark, by the game's own lighting: four that are a light (a Flare, a Glowcap, a Moonbeam, Dancing Lights), Fire Breath (it carries a light), and
+## the three that are a fire (Ignite's ball, a Firewall, a Flaming Sphere), since `World` lights every fire while it burns. Ten (Spark and Jolt flash the whole screen like lightning, owner 2026-11-22; Supernova glows greatly but is not counted), enough for the eight seats of a match. (Every wizard
+## is also dealt the Bonfire chant, which makes a fire too, but a chant is slow, standing still.)
+const LIGHT_MAKERS := ["Flare", "Glowcap", "Moonbeam", "Dancing Lights", "Fire Breath", "Ignite", "Firewall", "Flaming Sphere", "Spark", "Jolt"]
+## The worlds that are dark where the wizards start, so each of them starts with a page that lights it (owner, 2026-11-22).
+const DARK_START := ["underground"]
 ## Spells that open no gate, and chants that do not: the ones that may lie in a locked area.
 const LOCKABLE := ["Frostbolt", "Icicles", "Ice Prison", "Blizzard", "Stonefall", "Mudslide", "Earthquake", "Stalagmite", "Bramble", "Spore Puff",
-		"Flytrap", "Hex", "Black Hole", "Tide Surf", "Crimson Veil", "Adrenaline", "Faint", "Vacuum", "Fight or Flight", "Sneak", "Hunter's Mark", "Wild Shape", "Barbs", "Pebble", "Hailstorm", "Featherfall", "Thunderclap", "Thorn Whip", "Insect Plague", "Leech", "Raise Dead", "Invincible Snail", "Golem", "Mirage", "Eldritch Blast", "Hemorrhage", "Supernova", "Scythe", "chant:boundless", "chant:double_jump", "chant:haste", "chant:dowsing", "chant:scrying_eye", "chant:darkvision", "Dancing Lights", "Jolt", "Bathe", "Headwind"]
+		"Flytrap", "Hex", "Black Hole", "Tide Surf", "Crimson Veil", "Adrenaline", "Faint", "Vacuum", "Fight or Flight", "Sneak", "Hunter's Mark", "Wild Shape", "Barbs", "Pebble", "Hailstorm", "Featherfall", "Thunderclap", "Thorn Whip", "Insect Plague", "Leech", "Raise Dead", "Invincible Snail", "Golem", "Mirage", "Eldritch Blast", "Hemorrhage", "Supernova", "Scythe", "chant:boundless", "chant:double_jump", "chant:haste", "chant:dowsing", "chant:scrying_eye", "chant:darkvision", "Dancing Lights", "Jolt", "Bathe", "Headwind", "Cauterize", "Healing Spring", "Breathe", "Mud Mask", "chant:mending", "chant:rest", "chant:recovery", "chant:stitch", "chant:gamble", "chant:long_rest", "chant:second_chance", "chant:restoration"]
 ## How many pages lie in a world of each biome, in a world 1000 tiles wide: the ones with little height to spread through (a volcano's
 ## slopes, the portal fields) hold fewer than those with room to climb or dig. Smaller worlds hold fewer (see count_for). The pages that
 ## are not laid are simply not in that world: nothing carries over. Which pages each world lays is settled when the match begins (see allotment).
@@ -70,7 +83,7 @@ static func openers_of(kind: String) -> Array:
 ## start alike. Some pages are given to no one. `counts` is how many pages each world lays, in order, and `biomes` (the same length, or empty for no leaning)
 ## the biome of each, whose LEAN makes some pages likelier there. Returns {"worlds": a list of pages for each world, "spare": the pages given to no one}.
 static func allotment(match_seed: int, wizards: int, counts: Array[int], biomes: Array = []) -> Dictionary:
-	var dealt := deal(match_seed + 31, wizards)
+	var dealt := deal(match_seed + 31, wizards, EACH, biomes[0] if not biomes.is_empty() else "")
 	var pool: Array[String] = []
 	for page in every():
 		if not dealt.any(func(ledger: Ledger) -> bool: return ledger.knows(page)):
@@ -155,19 +168,29 @@ static func with_openers(allotted: Array[String], spare: Array[String], held: Ar
 
 ## Deals each wizard their starting pages, the same way for the same seed. Wizards are given different spells where the lists are long enough
 ## (a list shorter than the wizards repeats), so a wizard's starter spell is theirs alone, with no page of it on the map for another to find.
-static func deal(seed_value: int, wizards: int) -> Array[Ledger]:
+static func deal(seed_value: int, wizards: int, each := EACH, first_biome := "") -> Array[Ledger]:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed_value
 	var shuffled := []
-	for list: Array in [RANGED, MOVES, DEFENCES]:
+	for list: Array in [RANGED, MOVES, DEFENCES, HEALS]:
 		var copy := list.duplicate()
 		_shuffle(copy, rng)
 		shuffled.append(copy)
-	var out: Array[Ledger] = []
+	var hands: Array = []
 	for k in wizards:
 		var starters := []
-		for copy: Array in shuffled:
-			starters.append(copy[k % copy.size()])
+		for kind in shuffled.size():
+			var copy: Array = shuffled[kind]
+			for j in int(each[kind]):  # (each wizard takes its own run of the shuffled list, so no two are dealt the same page while the list holds out)
+				starters.append(copy[(k * int(each[kind]) + j) % copy.size()])
+		hands.append(starters)
+	if DARK_START.has(first_biome):  # a wizard that has no light is given one that no one else holds, so no page lies in two hands (one each: a seat of eight needs eight)
+		var free: Array = LIGHT_MAKERS.filter(func(page: String) -> bool: return not hands.any(func(hand: Array) -> bool: return hand.has(page)))
+		for k in wizards:
+			if not (hands[k] as Array).any(func(page: String) -> bool: return LIGHT_MAKERS.has(page)) and not free.is_empty():
+				hands[k].append(free.pop_front())
+	var out: Array[Ledger] = []
+	for starters: Array in hands:
 		starters.append_array(CHANTS)
 		out.append(Ledger.of(starters))
 	return out
@@ -182,10 +205,15 @@ static func start_empty(wizards: int) -> Array[Ledger]:
 	return out
 
 
+## What the wizards of a match start with (and lie as the clusters at their spawns): `deal`, with a light for each if the first world (`first_biome`) is dark.
+static func starting_deal(match_seed: int, wizards: int, first_biome := "") -> Array[Ledger]:
+	return deal(match_seed + 31, wizards, EACH, first_biome)
+
+
 ## The pages that lie in a cluster by the spawn of a seat, in the first world of a match: the ones the seat would have been dealt (see deal).
-static func cluster_of(match_seed: int, seat: int, wizards: int) -> Array[String]:
+static func cluster_of(match_seed: int, seat: int, wizards: int, first_biome := "") -> Array[String]:
 	var out: Array[String] = []
-	out.assign(deal(match_seed + 31, wizards)[seat].pages.keys())
+	out.assign(starting_deal(match_seed, wizards, first_biome)[seat].pages.keys())
 	return out
 
 

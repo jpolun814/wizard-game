@@ -55,6 +55,7 @@ func _first_wall(from: Vector2, way: Vector2) -> float:
 ## The bolt: forked lightning, drawn for the game, laid from the staff to where it struck, with a glow at its start.
 func _show_bolt(from: Vector2, tip: Vector2) -> void:
 	BoltLine.lay(get_parent(), from, tip, BoltLine.BOLTS, 0.28)
+	ScreenFlash.strike(get_tree(), tip, 0.4)
 	Fx.pop(get_parent(), from, "circle_05", COLOR, 36.0, 0.2, 1.4)
 
 

@@ -1,7 +1,7 @@
 class_name SparkStrike
 extends SpellEffect
 
-## Spark: a strike from the sky. It comes straight down through the stroke and stops at the first thing it meets,
+## Spark: a strike from the sky (drawn the whole way down, with `BoltLine`). It comes straight down through the stroke and stops at the first thing it meets,
 ## a platform or the ground, so nothing under a platform can be struck from above it.
 
 const LIFE := 0.35
@@ -31,8 +31,10 @@ func _begin(origin: Vector2, _aim_angle: float) -> void:
 	rect.size = Vector2(WIDTH, height)
 	_add_shape(rect, Vector2(0, height * 0.5))
 	# The bolt is a pixel-art strike drawn twice its size, standing on the ground where it lands.
-	var strike := PixelFx.play(get_parent(), ground + Vector2(0, 6), "lightning", 24.0, 2.0, Color(1.0, 1.0, 0.85), true)
-	strike.z_index = 7
+	# (owner, 2026-11-22: it came from the middle of the screen: the picture was a short bolt standing on the ground. It now runs the whole way from the sky, or from the roof
+	# it came down from, and in the open starts above the top of the view.)
+	var sky_top := global_position + (Vector2.ZERO if not roof.is_empty() else Vector2(0.0, -260.0))
+	BoltLine.lay(get_parent(), sky_top, ground + Vector2(0, 6), BoltLine.BOLTS, LIFE)
 	PixelFx.play(get_parent(), ground, "blast_small", 20.0, 1.0, Color(1.0, 0.95, 0.6), true, false, true)
 	Fx.impact(get_parent(), ground, Color("#ffe85a"), 50.0)
 	Fx.burst(get_parent(), ground, Color("#ffe85a"), 20, 240.0, 0.4, true, "spark_04")
@@ -44,6 +46,7 @@ func _begin(origin: Vector2, _aim_angle: float) -> void:
 	for shoal: Piranhas in get_tree().get_nodes_in_group("shoals"):
 		shoal.shock(ground - Vector2(0, 20))  # lightning in the water kills the fish
 	GameCamera.shake_scene(get_tree(), 0.25)
+	ScreenFlash.strike(get_tree(), ground)
 
 
 ## Lightning that lands in a pool runs through the water: whoever stands in it is shocked.

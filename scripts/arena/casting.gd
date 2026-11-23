@@ -68,7 +68,7 @@ func by(spell: String, targeting: String, origin: Vector2, aim: float, info: Dic
 ## aim at. Nothing is paid then. An empty dictionary means nothing is wrong.
 func _refusal(spell: String, info: Dictionary, aim: float, origin: Vector2, wizard: Wizard) -> Dictionary:
 	if spell == "Icicles" and arena.spawner.shapes.icicle_spots(info).is_empty():
-		return {"text": "Aim under a ceiling", "color": Color("#dff6ff"), "sound": true}
+		return {"text": "No ceiling", "color": Color("#dff6ff"), "sound": true}
 	var limit := SpellLimits.refusal(wizard, spell)
 	if limit != "":
 		return {"text": limit, "color": Color("#ffb86b"), "sound": true}

@@ -122,6 +122,8 @@ static func strike(by: Node) -> void:
 static func hit(victim: Node, amount: float, school := "", fatal := false) -> void:
 	var striker := _by
 	_by = null
+	if is_instance_valid(striker) and striker != victim and amount > 0.0:
+		striker.mending.landed()  # a Stitch pays a little for every blow its wizard lands, whoever that wizard is
 	if me == null or amount <= 0.0:
 		return
 	if victim == me:

@@ -161,9 +161,9 @@ func _read_ground() -> void:
 func _water_top(bed: Vector2, from_y: float) -> float:
 	var top := bed.y
 	for pond: Pond in get_tree().get_nodes_in_group("ponds"):
-		if pond.lava or pond.grid == null or not pond.region().has_point(Vector2(bed.x, bed.y - 2.0)):
+		if pond.lava or not pond.region().has_point(Vector2(bed.x, bed.y - 2.0)):
 			continue
-		var level := pond.grid.surface_at(bed.x)
+		var level := pond.level_at(bed.x)
 		if level < top and level > from_y:
 			top = level
 	return top

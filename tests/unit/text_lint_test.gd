@@ -61,10 +61,10 @@ func test_no_line_is_empty() -> void:
 		assert_str(_all()[key]).override_failure_message("%s is empty" % key).is_not_empty()
 
 
-func test_no_figures_in_descriptions() -> void:
-	# The damage and cost lines are written by the game; the description names the thing and gives no number.
-	for key: String in _all():
-		var text: String = _all()[key]
+func test_no_figures_in_tooltips() -> void:
+	# Owner, 2026-11-23: a book description now says what happens, with its durations, so it may hold a number. A state's tooltip still gives none.
+	for key: String in _tips():
+		var text: String = _tips()[key]
 		for ch in text:
 			assert_bool(ch >= "0" and ch <= "9").override_failure_message("%s has a figure: %s" % [key, text]).is_false()
 
@@ -105,7 +105,7 @@ func test_descriptions_are_sentences_that_end_in_a_stop() -> void:
 	for key: String in _spell_lines():
 		var text: String = _spell_lines()[key]
 		assert_bool(text.ends_with(".") or text.ends_with("!") or text.ends_with("?")).override_failure_message("%s does not end like a sentence: %s" % [key, text]).is_true()
-		assert_bool(text.length() <= 120).override_failure_message("%s is long (%d characters): %s" % [key, text.length(), text]).is_true()
+		assert_bool(text.length() <= 150).override_failure_message("%s is long (%d characters): %s" % [key, text.length(), text]).is_true()
 	for key: String in _chant_lines():
 		assert_bool(_chant_lines()[key].ends_with(".")).override_failure_message("%s does not end in a stop" % key).is_true()
 

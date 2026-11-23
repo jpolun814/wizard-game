@@ -9,5 +9,5 @@ school = "Earth"
 gesture = "pit"
 targeting = "shape"
 cost = 35.0
-effect = "Open a sinkhole in the ground."
+effect = "Open up a sinkhole in the ground."
 sounds = {"rocks": "sinkhole__rocks", "rumble": "sinkhole__rumble"}

@@ -9,6 +9,7 @@ const SPEED := 50.0  # a sixth of a wizard's walking pace (300)
 const KILL_REACH := Vector2(14.0, 48.0)  # how near, across and up, the middle of a wizard must be to the snail's middle to be touched
 const REACH := 70.0  # how close to the ring's middle someone must be to be the one hunted
 const DANGER := 48.0
+const SHOVE_DRAG := 1500.0  # how fast a shove dies away, px/s each second
 const FRAMES := [preload("res://art/mobs/snail/frame_0.png"), preload("res://art/mobs/snail/frame_1.png"), preload("res://art/mobs/snail/frame_2.png"), preload("res://art/mobs/snail/frame_3.png")]
 const SLIME := Color("#9ab4a6")
 
@@ -17,6 +18,7 @@ var target: Wizard  # the one it hunts
 var flies := false  # in a world with no ground it drifts through the air toward them
 var _sprite: AnimatedSprite2D
 var _fading := false
+var _shove := Vector2.ZERO  # a push (the Push spell's) carries it along, and dies away
 
 
 ## Whoever is under the ring: the wizard nearest its middle, if near enough (a snail hunts wizards, not creatures, and never the one who conjures it: it is
@@ -108,16 +110,25 @@ func _physics_process(delta: float) -> void:
 	var toward := signf(goal.x - global_position.x)
 	if toward != 0.0:
 		_sprite.flip_h = toward < 0.0  # the picture faces right
+	_shove = _shove.move_toward(Vector2.ZERO, SHOVE_DRAG * delta)
 	if flies:
-		velocity = (goal - global_position).limit_length(SPEED)
+		velocity = (goal - global_position).limit_length(SPEED) + _shove
 	else:
-		velocity.x = toward * SPEED if absf(goal.x - global_position.x) > 4.0 else 0.0
+		velocity.x = (toward * SPEED if absf(goal.x - global_position.x) > 4.0 else 0.0) + _shove.x
 		velocity.y += float(ProjectSettings.get_setting("physics/2d/default_gravity")) * delta
+		if _shove.y != 0.0:
+			velocity.y = _shove.y  # thrown up: gravity takes it from here
+			_shove.y = 0.0
 	move_and_slide()
 	for wizard: Wizard in SpellTargets.wizards(get_tree()):  # a touch is the end of anyone, whoever conjured it too; only a veil that is still up negates it, for a moment
 		var gap := SpellTargets.center_of(wizard) - global_position
 		if absf(gap.x) < KILL_REACH.x and absf(gap.y) < KILL_REACH.y:
 			wizard.take_damage(99999, true)
+
+
+## A shove of air (Push) sends it flying, though nothing else harms or moves it.
+func push(by: Vector2) -> void:
+	_shove = by
 
 
 ## It loses the one it was after (they have washed it away) and fades.

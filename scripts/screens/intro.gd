@@ -158,7 +158,7 @@ func _process(delta: float) -> void:
 	_camera.offset = Vector2(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)) * _shake * 4.0
 	if _following != null:
 		_camera.position = _camera.position.lerp(_following.position + Vector2(70.0, -80.0), minf(delta * 8.0, 1.0))
-	_hint.visible = _t > SKIP_HINT_AFTER and not _leaving
+	_hint.visible = _t > SKIP_HINT_AFTER and not _leaving and not _unskippable()
 	_hint.modulate.a = lerpf(1.0, 0.35, smoothstep(4.0, 6.0, _t))  # it says it once, then keeps out of the way
 	_move_pages(delta)
 	_halo.queue_redraw()

@@ -96,7 +96,7 @@ func _process(delta: float) -> void:
 		_carried.position = _carried.position.lerp(_winner.position + _carried_rest(), follow)
 	if is_instance_valid(_carried_aura):
 		_carried_aura.position = _carried.position + Vector2(0.0, -Lectern.book_height() * 0.5)
-	_hint.visible = _t > 1.0 and not _leaving
+	_hint.visible = _t > 1.0 and not _leaving and not _unskippable()
 
 
 ## Where the book hangs beside the winner: up by their shoulder, bobbing as it floats.

@@ -170,6 +170,8 @@ var surf_dir := 1.0
 var veil := 0  # hits a Crimson Veil will still turn away
 var _veil_cool := 0.0  # a moment after one is turned away, in which a burn or a second blow is turned away with it
 var fainted := false  # knocked out by a Faint: down on the ground for FAINT_TIME
+var asleep := false   # fainted by their own choice (a Long Rest): down until they have mended, or a blow wakes them
+var mending := Mending.new(self)  # the heals over time, the second chance and the rest of what mends the wizard
 var _faint_left := 0.0
 var air_jump_ready := false  # the air jump is spent by one use, and comes back when the wizard lands
 var wind := 0.0  # the push of the air along the ground, set every frame by the world that has wind (the snowy peaks)
@@ -218,7 +220,6 @@ var casts_made := 0       # the spells this wizard has cast, for the tests that 
 var drawn := false  # the portal of a collapsing world is carrying the wizard up: they cast and fight, but cannot walk or fall
 var _art := "wizard"  # the folder of frames it wears now
 var pose := WizardPose.new(self)  # which of a wizard made of parts' many animations to play
-var _tips := {}  # where the gem is in each frame of the magic layer, found once (see tip)
 var _ride_lift := 0.0
 var _magic: MagicLayer  # a wizard made of parts has its gem, its glow and its spell effects on a layer of their own, in the color of the spell (see magic_ramp.gdshader)
 var _gem := Color.WHITE  # the color of the last spell it drew, which the gem shows; a wizard that has cast none shows a school of its own
@@ -412,12 +413,12 @@ func mouth() -> Vector2:
 	return global_position + Vector2(26.0 * facing, -56.0)  # at the front of the wizard, around the face
 
 
-## Where the gem of the staff, wand or scepter is right now, in the world: the end a stream of water or a beam leaves from. It is found in the picture of the
-## magic layer (its brightest, most solid dots are the gem). A wizard without parts, a wolf or a golem has none and gives the mouth.
+## Where the end of the staff, wand or blade is right now, in the world: the place a stream of water or a beam leaves from. The rig that drew the weapon says where
+## it is in every frame (`PartFrames.tip_of`). A wizard without parts, a wolf or a golem has none and gives the mouth.
 func tip() -> Vector2:
 	if _magic == null or not _magic.visible or _magic.sprite_frames == null or golem.shown or wolf.on:
 		return mouth()
-	return _gem_at(String(_magic.animation), _magic.frame, _magic.flip_h)
+	return _tip_at(String(_magic.animation), _magic.frame, _magic.flip_h)
 
 
 ## Where the gem will be a moment from now, when the staff is thrust out as the spell goes off. A spell is made the instant the stroke ends, before the
@@ -427,49 +428,18 @@ func launch_tip() -> Vector2:
 		return mouth()
 	if not PartFrames.ensure(_magic.sprite_frames, "release"):
 		return tip()
-	return _gem_at("release", 1, facing < 0.0)
+	return _tip_at("release", 1, facing < 0.0)
 
 
-## The gem in one frame of the magic layer, in the world, as the body is placed now (turned the way `flipped` says).
-func _gem_at(anim: String, frame: int, flipped: bool) -> Vector2:
-	var frames := _magic.sprite_frames
-	var key := "%d:%s:%d" % [frames.get_instance_id(), anim, frame]
-	if not _tips.has(key):
-		_tips[key] = _gem_in(frames.get_frame_texture(anim, mini(frame, frames.get_frame_count(anim) - 1)))
-	var spot: Variant = _tips[key]
+## The weapon's tip in one frame, in the world, as the body is placed now (turned the way `flipped` says).
+func _tip_at(anim: String, frame: int, flipped: bool) -> Vector2:
+	var spot: Variant = PartFrames.tip_of(String(_magic.sprite_frames.get_meta("weapon", "")), anim, frame)
 	if spot == null:
 		return mouth()
 	var local: Vector2 = spot
 	if flipped:
 		local.x = -local.x
 	return _magic.to_global(local + _magic.offset)
-
-
-const GEM_SPREAD := 0.2  # how much dimmer than the brightest dot a dot may be and still belong to the gem (the whole bulb counts, not only its highlight)
-
-
-## The middle of the brightest solid dots of a picture of the magic layer, from the middle of the picture, or null where there are none.
-func _gem_in(texture: Texture2D) -> Variant:
-	var image := texture.get_image() if texture != null else null
-	if image == null:
-		return null
-	var best := 0.0
-	for y in image.get_height():
-		for x in image.get_width():
-			var color := image.get_pixel(x, y)
-			if color.a >= 0.9:
-				best = maxf(best, (color.r + color.g + color.b) / 3.0)
-	var sum := Vector2.ZERO
-	var count := 0
-	for y in image.get_height():
-		for x in image.get_width():
-			var color := image.get_pixel(x, y)
-			if color.a >= 0.9 and (color.r + color.g + color.b) / 3.0 > best - GEM_SPREAD:
-				sum += Vector2(x, y)
-				count += 1
-	if count == 0 or best < 0.5:
-		return null
-	return sum / count + Vector2(0.5, 0.5) - image.get_size() * 0.5
 
 
 ## The middle of the wizard's body, relative to its feet.
@@ -547,14 +517,49 @@ func restore_stamina(amount: float) -> void:
 	stamina = minf(stamina + amount, max_stamina)
 
 
-func heal(amount: int) -> void:
-	if is_likeness():
+## Mends the wizard: the most stamina they can have rises by this much, and so does the stamina they have (never past the greatest a wizard can have).
+func heal(amount: float) -> void:
+	if is_likeness() or dead:
 		return
 	if wolf.on:
-		wolf.mend(amount)  # a wolf is not mended: the wizard under it is
+		wolf.mend(roundi(amount))  # a wolf is not mended: the wizard under it is
 		return
 	max_stamina = minf(max_stamina + amount, MAX_STAMINA)
 	stamina = minf(stamina + amount, max_stamina)
+
+
+## Takes this much off the most stamina the wizard can have, whatever stands between (no veil, no grace, no armor): a wager lost, a breath run out. It can kill.
+func lose_max(amount: float) -> void:
+	max_stamina -= amount
+	stamina = minf(stamina, maxf(max_stamina, 0.0))
+	mending.lost(amount)
+	_check_death()
+
+
+## A grace in which no blow lands.
+func give_grace(seconds: float) -> void:
+	_grace = maxf(_grace, seconds)
+
+
+## Puts the wizard to sleep: down on the ground as in a Faint, but with their stamina as it was, until something wakes them (a Long Rest: see Mending).
+func fall_asleep() -> void:
+	if dead or fainted or is_likeness():
+		return
+	wolf.end()
+	golem.end()
+	fainted = true
+	asleep = true
+	_faint_left = 1.0e9
+	pen.drop()
+
+
+## The sleeper wakes and stands.
+func wake() -> void:
+	if not asleep:
+		return
+	asleep = false
+	fainted = false
+	_faint_left = 0.0
 
 ## Back on their feet with all their stamina, as if they had not fallen: a place where nothing can end the visit calls this.
 func revive() -> void:
@@ -598,6 +603,8 @@ func take_damage(amount: int, grace_hit := true, projectile := false) -> void:
 	var had := maxf(max_stamina, 0.0)
 	max_stamina -= amount
 	stamina = minf(stamina, maxf(max_stamina, 0.0))
+	mending.lost(amount)
+	mending.struck()
 	_flash = 0.3
 	_hurt_anim = 0.25
 	if grace_hit:
@@ -618,6 +625,8 @@ func _check_death() -> void:
 		wolf.end()  # the wolf is beaten, and not the wizard
 		return
 	if max_stamina <= 0.0 and not dead:
+		if mending.rescue():  # a second chance, armed: every way of dying comes to this question
+			return
 		max_stamina = 0.0
 		dead = true
 		movement_enabled = false
@@ -661,9 +670,7 @@ func soak(surface_y: float, lava: bool) -> void:
 
 ## The breath has run out under water: the most stamina goes, until the wizard breathes again.
 func drown(amount: float) -> void:
-	max_stamina -= amount
-	stamina = minf(stamina, maxf(max_stamina, 0.0))
-	_check_death()
+	lose_max(amount)
 
 
 func apply_debuff(kind: String, seconds: float) -> void:
@@ -860,6 +867,7 @@ func _tick_timers(delta: float) -> void:
 			stamina = maxf(stamina, GET_UP)  # up again
 	lungs.tick(delta)
 	coat.tick(delta)
+	mending.tick(delta)
 	bubbles.tick()
 	_feathers.emitting = feather_time > 0.0
 	rage_time = maxf(rage_time - delta, 0.0)

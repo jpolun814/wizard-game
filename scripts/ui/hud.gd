@@ -14,7 +14,7 @@ const CONTROLS := [
 	["W A S D", "Move"], ["Space", "Jump"],
 	["Mouse buttons", "Hold mouse buttons and draw a spell"], ["Tab", "Open the spellbook"],
 	["Enter", "Speak an incantation"], ["M", "Mute sound"],
-	["F1", "Open the debug menu"], ["Esc", "Pause/Resume"],
+	["F1", "Open the debug menu"], ["Esc", "Pause the game"],
 ]
 
 var player: Node2D

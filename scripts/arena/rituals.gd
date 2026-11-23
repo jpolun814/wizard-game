@@ -60,7 +60,7 @@ func finished(id: String, acc: float, unfinished: bool) -> void:
 
 	arena.show_chant(String(player.name))
 	Net.send(arena, &"show_chant", [String(player.name)])
-	grant(player, id)
+	grant(player, id, power)
 	match id:
 		"rift":
 			_rift()
@@ -84,9 +84,12 @@ func said_by(speaker: Wizard, id: String) -> bool:
 	return true
 
 
-## The chants that give their speaker something, for a while or (see Ledger.LASTING) for the rest of the match.
-func grant(speaker: Wizard, id: String) -> void:
+## The chants that give their speaker something, for a while or (see Ledger.LASTING) for the rest of the match. `power` is how well it was said (1 for a brain).
+func grant(speaker: Wizard, id: String, power := 1.0) -> void:
 	speaker.ledger.settle(id)
+	speaker.mending.act()  # a chant is said: a Rest, which is stillness, is over
+	if Mending.CHANTS.has(id):
+		speaker.mending.say(id, power)
 	match id:
 		"boundless":
 			speaker.grant_unlimited(20.0)

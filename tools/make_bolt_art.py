@@ -20,14 +20,12 @@ def lightning(rng):
     """One piece of lightning: a jagged line from edge to edge, with a fork or two."""
     im = Image.new("RGBA", (SIZE, SIZE), (0, 0, 0, 0))
     d = ImageDraw.Draw(im)
-    xs = [0, 7, 15, 23, 31, 40, 47]
-    ys = [MID] + [MID + rng.choice([-1, 1]) * rng.randint(5, 12) for _ in xs[1:-1]] + [MID]
-    for k in range(2, len(ys) - 1):  # keep it zigzagging: no two kinks leaning the same way twice in a row
-        if (ys[k] - MID) * (ys[k - 1] - MID) > 0 and rng.random() < 0.7:
-            ys[k] = MID - (ys[k] - MID)
+    # (owner, 2026-11-22: it was too back-and-forth.) Few, longer strokes that lean one way for a stretch, so it reads as a bolt and not a zigzag.
+    xs = [0, 13, 25, 36, 47]
+    ys = [MID, MID + rng.randint(-5, 5), MID + rng.randint(-7, 7), MID + rng.randint(-5, 5), MID]
     line = list(zip(xs, ys))
     forks = []
-    for k in rng.sample(range(1, len(line) - 1), 2):
+    for k in rng.sample(range(1, len(line) - 1), 1):
         x, y = line[k]
         angle = rng.choice([-1, 1]) * rng.uniform(0.5, 1.1)  # off to one side, going on the way the bolt goes
         reach = rng.randint(8, 15)

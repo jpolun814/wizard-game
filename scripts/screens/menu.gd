@@ -8,6 +8,7 @@ extends Control
 
 const WAITING_ROOM := "res://scenes/lab.tscn"
 const TUTORIAL := "res://scenes/tutorial.tscn"
+const DUEL := "res://scenes/duel.tscn"
 const LIBRARY := "res://scenes/library.tscn"
 const SETTINGS := "user://settings.cfg"  # remembers the last address typed, so a friend's game is one click away next time
 
@@ -24,12 +25,13 @@ const SETTINGS := "user://settings.cfg"  # remembers the last address typed, so 
 @onready var _join: Button = $Box/Multi/JoinRow/Join
 @onready var _status: Label = $Box/Status
 @onready var _tutorial: Button = $Box/Single/Tutorial
+@onready var _duel: Button = $Box/Single/Duel
 @onready var _library: Button = $Box/Main/Library
 @onready var _options: Button = $Box/Main/Settings
 @onready var _box: VBoxContainer = $Box
 
 const SCENERY := "res://art/backgrounds/cemetery/"
-## The sign of each choice is a picture of what it means: one stroke for one player, a 4 for a game of four, a closed book for the library,
+## The sign of each choice is a picture of what it means: one stroke for one player, a 4 for a game of four, a closed book for the library, a sword for a duel,
 ## a house for hosting a game, an arrow for going on (to play, or to join a game), a question mark for learning, a triangle pointing back for going back and a cross for leaving. Pictures the spells already have are
 ## the game's own (see GestureTemplates); the others are drawn here.
 const SHAPES := {
@@ -38,11 +40,12 @@ const SHAPES := {
 	"four": [Vector2(20, 50), Vector2(20, -50), Vector2(-45, 15), Vector2(50, 15)],  # the stem, the slant, the bar
 	"house": [Vector2(-40, 40), Vector2(-40, -5), Vector2(0, -45), Vector2(40, -5), Vector2(40, 40), Vector2(-40, 40)],  # straight walls and a roof
 	"gear": [Vector2(0, -38), Vector2(6, -50), Vector2(17, -47), Vector2(17, -34), Vector2(27, -27), Vector2(39, -31), Vector2(45, -21), Vector2(36, -12), Vector2(38, 0), Vector2(50, 6), Vector2(47, 17), Vector2(34, 17), Vector2(27, 27), Vector2(31, 39), Vector2(21, 45), Vector2(12, 36), Vector2(0, 38), Vector2(-6, 50), Vector2(-17, 47), Vector2(-17, 34), Vector2(-27, 27), Vector2(-39, 31), Vector2(-45, 21), Vector2(-36, 12), Vector2(-38, 0), Vector2(-50, -6), Vector2(-47, -17), Vector2(-34, -17), Vector2(-27, -27), Vector2(-31, -39), Vector2(-21, -45), Vector2(-12, -36), Vector2(0, -38)],  # a cog: eight teeth round a ring
+	"sword": [Vector2(0, 50), Vector2(0, -50), Vector2(0, -5), Vector2(-32, -5), Vector2(32, -5)],  # a blade and its crossguard: the duel
 	"back": [Vector2(40, -40), Vector2(-40, 0), Vector2(40, 40), Vector2(40, -40)],  # a triangle pointing the way back
 	"quit": [Vector2(-40, -40), Vector2(40, 40), Vector2(-40, 40), Vector2(40, -40)],  # a cross, drawn in one stroke: the way out
 }
 const SIGNS := {  # the recognizer's templates that count as each sign
-	"one": ["menu_one"], "four": ["menu_four"], "book": ["menu_book"], "house": ["menu_house"], "back": ["menu_back"], "quit": ["menu_quit"], "gear": ["menu_gear"],
+	"one": ["menu_one"], "four": ["menu_four"], "book": ["menu_book"], "house": ["menu_house"], "back": ["menu_back"], "quit": ["menu_quit"], "gear": ["menu_gear"], "sword": ["menu_sword"],
 	"arrow": ["arrow", "arrow_r2", "arrow_l", "arrow_l2"], "question": ["question", "question_r"]}
 const LEAST_SCORE := 0.74  # how well a stroke must match a sign to choose it
 const LEAST_STROKE := 60.0  # a stroke shorter than this is a click, not a drawing
@@ -86,6 +89,12 @@ func _ready() -> void:
 	_tutorial.pressed.connect(func() -> void:
 		Sfx.cue("menu", "click")
 		get_tree().change_scene_to_file(TUTORIAL))
+	_duel.pressed.connect(func() -> void:
+		Sfx.cue("menu", "click")
+		Duel.wins = 0
+		Duel.losses = 0
+		Duel.round_number = 0
+		get_tree().change_scene_to_file(DUEL))
 	_library.pressed.connect(func() -> void:
 		Sfx.cue("menu", "click")
 		get_tree().change_scene_to_file(LIBRARY))
@@ -292,7 +301,7 @@ func _show_sign(sign_name: String) -> void:
 ## Each choice with a sign gets it drawn beside it, small, and shows the larger one on the left page when the pointer or the keyboard comes to it.
 func _write_signs() -> void:
 	var table := {_single_player: "one", _multiplayer: "four", $Box/Main/Library: "book", $Box/Main/Settings: "gear", $Box/Main/Quit: "quit",
-			$Box/Single/Play: "arrow", $Box/Single/Tutorial: "question", $Box/Multi/Host: "house", $Box/Multi/JoinRow/Join: "arrow", _single_back: "back", _multi_back: "back"}
+			$Box/Single/Play: "arrow", $Box/Single/Tutorial: "question", $Box/Single/Duel: "sword", $Box/Multi/Host: "house", $Box/Multi/JoinRow/Join: "arrow", _single_back: "back", _multi_back: "back"}
 	for button: Button in table:
 		_signs[button] = table[button]
 		var row := HBoxContainer.new()
@@ -384,7 +393,7 @@ func _on_alone() -> void:
 func _on_host() -> void:
 	Sfx.cue("menu", "click")
 	if Net.host() != OK:
-		_status.text = "Close the other copy of the game that is hosting, then try again."  # the port is taken
+		_status.text = "Another copy of the game is already hosting. Close it and try again."  # the port is taken
 		return
 	get_tree().change_scene_to_file(WAITING_ROOM)
 
@@ -407,7 +416,7 @@ func _on_join() -> void:
 
 ## While joining, the buttons wait for the answer.
 func _set_waiting(waiting: bool) -> void:
-	for button: Button in [_alone, _host, _join, _tutorial, _library, _single_player, _multiplayer, _single_back, _multi_back]:
+	for button: Button in [_alone, _host, _join, _tutorial, _duel, _library, _single_player, _multiplayer, _single_back, _multi_back]:
 		button.disabled = waiting
 	_address.editable = not waiting
 	_join.text = "Joining..." if waiting else "Join"

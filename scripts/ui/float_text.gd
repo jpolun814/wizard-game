@@ -10,7 +10,7 @@ static var _font: Font
 
 
 ## Shows text centerd on a world point. size scales the text: 1 is a normal damage number.
-static func spawn(parent: Node, at: Vector2, text: String, color: Color, size := 1.0) -> FloatText:
+static func spawn(parent: Node, at: Vector2, text: String, color: Color, size := 1.0, life := LIFE) -> FloatText:
 	if parent == null:
 		return null
 	var label := FloatText.new()
@@ -31,8 +31,8 @@ static func spawn(parent: Node, at: Vector2, text: String, color: Color, size :=
 	var tween := label.create_tween()
 	tween.tween_property(label, "scale", Vector2.ONE * 0.62, 0.08)
 	tween.tween_property(label, "scale", Vector2.ONE * 0.5, 0.1)
-	tween.parallel().tween_property(label, "position:y", label.position.y - 26.0, LIFE).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
-	tween.parallel().tween_property(label, "modulate:a", 0.0, LIFE * 0.5).set_delay(LIFE * 0.5)
+	tween.parallel().tween_property(label, "position:y", label.position.y - 26.0, life).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+	tween.parallel().tween_property(label, "modulate:a", 0.0, life * 0.5).set_delay(life * 0.5)
 	tween.tween_callback(label.queue_free)
 	return label
 

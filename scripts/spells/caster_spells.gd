@@ -19,8 +19,23 @@ func recipes() -> Dictionary:
 		"Featherfall": _featherfall, "Rocket Jump": _rocket_jump, "Flaming Sphere": _flaming_sphere, "Barrier": _barrier, "Shadow Step": _shadow_step,
 		"Fire Breath": _fire_breath, "Spore Puff": _spore_puff, "Water Jet": _water_jet, "Flare": _flare, "Dancing Lights": _dancing_lights, "Jolt": _jolt, "Bathe": _bathe, "Headwind": _headwind, "Eldritch Blast": _eldritch_blast, "Scythe": _scythe, "Tide Surf": _tide_surf,
 		"Sneak": _sneak, "Obsidian Armor": _obsidian_armor, "Wild Shape": _wild_shape, "Golem": _golem, "Adrenaline": _adrenaline, "Crimson Veil": _crimson_veil,
-		"Hunter's Mark": _hunters_mark,
+		"Hunter's Mark": _hunters_mark, "Cauterize": _cauterize, "Breathe": _breathe, "Mud Mask": _mud_mask,
 	}
+
+
+## The wounds are seared shut.
+func _cauterize(c: SpellCast) -> void:
+	SelfMending.cauterize(c.caster)
+
+
+## The wizard breathes deeply and mends.
+func _breathe(c: SpellCast) -> void:
+	SelfMending.breathe(c.caster)
+
+
+## The wizard is covered in healing mud.
+func _mud_mask(c: SpellCast) -> void:
+	SelfMending.mud_mask(c.caster)
 
 
 func _featherfall(c: SpellCast) -> void:

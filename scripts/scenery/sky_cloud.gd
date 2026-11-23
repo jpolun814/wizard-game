@@ -144,8 +144,7 @@ func _strike(n: int) -> void:
 	var strip := _strip_for(n, global_position)
 	_flash = 1.0
 	var foot := strip.end - Vector2(strip.size.x * 0.5, 0.0)
-	var picture := PixelFx.play(get_parent(), foot + Vector2(0.0, 6.0), "lightning", 24.0, 2.0, Color(1.0, 1.0, 0.85), true)
-	picture.z_index = 7
+	BoltLine.lay(get_parent(), Vector2(foot.x, strip.position.y), foot + Vector2(0.0, 6.0), BoltLine.BOLTS, 0.35)  # (the whole length from the cloud, not a short picture on the foot of it)
 	Fx.impact(get_parent(), foot, Color("#ffe85a"), 50.0)
 	Sfx.cue("sky_cloud", "thunder", foot, -8.0)
 	GameCamera.shake_scene(get_tree(), 0.12)

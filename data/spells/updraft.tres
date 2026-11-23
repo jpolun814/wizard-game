@@ -8,5 +8,5 @@ spell_name = "Updraft"
 school = "Air"
 gesture = "updraft"
 cost = 30.0
-effect = "A stream of rising air."
+effect = "A column of rising air that lifts anyone up."
 sounds = {"whirl": "updraft__whirl"}

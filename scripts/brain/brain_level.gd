@@ -14,7 +14,7 @@ const LEVELS := 9
 const DEFAULT := 7
 const SKILL := [0.05, 0.14, 0.23, 0.32, 0.41, 0.50, 0.62, 0.80, 1.0]
 const MEMORY := [0.3, 0.4, 0.55, 0.7, 0.85, 1.0, 1.15, 1.6, 2.2]
-const SLOW := [2.6, 2.1, 1.7, 1.4, 1.2, 1.1, 1.0, 0.85, 0.7]
+const SLOW := [2.6, 2.1, 1.7, 1.4, 1.2, 1.1, 1.0, 0.75, 0.6]
 ## How readily a wizard goes looking for a fight and stays close in it, 0 to 1 (owner, 2026-11-20: the wizards were passive enough that a person only had to keep attacking, and never needed to defend or run).
 const AGGRESSION := [0.0, 0.0, 0.05, 0.15, 0.25, 0.35, 0.5, 0.75, 1.0]
 const CLUMSY := [4.0, 3.2, 2.5, 1.9, 1.5, 1.2, 1.0, 0.7, 0.5]

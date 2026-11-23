@@ -158,6 +158,26 @@ func known_count(other: Wizard) -> int:
 	return n
 
 
+## How dangerous it takes a rival to be, 0 to 1, from what it has seen of them and nothing else: the spells it has watched them cast (and how hard those hit), whether they
+## have been casting at it, and whether they look worn down. A rival it has seen nothing of is middling (0.5). Its caution and how much stamina it keeps in hand follow this.
+func threat(other: Wizard) -> float:
+	if not is_instance_valid(other):
+		return 0.5
+	var arms := 0.0
+	for spell_name: String in seen.get(other.get_instance_id(), {}):
+		if _fresh(other, spell_name) and SpellData.SPELLS.has(spell_name):
+			var spell: Spell = SpellData.SPELLS[spell_name]
+			arms += clampf(spell.damage.get_slice(" ", 0).to_float(), 4.0, 40.0) / 40.0
+	var t := 0.5 + (clampf(arms / 2.5, 0.0, 1.0) - 0.4) * 0.5 if arms > 0.0 else 0.5
+	if after_me(other):
+		t += 0.1
+	if hurt(other):
+		t -= 0.2
+	if winded(other) or recovering(other):
+		t -= 0.1
+	return clampf(t, 0.0, 1.0)
+
+
 ## A rival typing a chant: it stands still with the words over its head, and cannot answer a blow.
 func chanting(other: Wizard) -> bool:
 	return is_instance_valid(other) and other.shown_words != ""

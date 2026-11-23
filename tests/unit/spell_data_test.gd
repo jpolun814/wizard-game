@@ -76,9 +76,3 @@ func test_descriptions_have_no_team_words_or_british_spelling() -> void:
 		var words := spell.effect.to_lower().replace(".", " ").replace(",", " ").replace(":", " ").split(" ", false)
 		for word: String in banned:
 			assert_bool(word in words).override_failure_message(_fail(spell, "uses the word " + word)).is_false()
-
-
-func test_descriptions_have_no_figures() -> void:
-	for spell: Spell in _spells():
-		for ch in spell.effect:
-			assert_bool(ch.is_valid_int()).override_failure_message(_fail(spell, "a figure in: " + spell.effect)).is_false()

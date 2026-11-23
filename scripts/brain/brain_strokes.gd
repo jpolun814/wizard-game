@@ -42,6 +42,16 @@ static func usual_stroke(spell_name: String, fallback: float) -> float:
 	return fallback
 
 
+## How long a wizard of this skill takes over a spell's stroke: the middle of what people take for the unskilled, the quick end of what they take for the most skilled,
+## and (the top two levels only, `slow` under 1) a little quicker still. (Owner, 2026-11-22: they drew at the usual person's pace at every level, level 9 too.)
+static func skilled_stroke(spell_name: String, fallback: float, skill: float, slow := 1.0) -> float:
+	var usual := usual_stroke(spell_name, fallback)
+	var quick := quickest_stroke(spell_name)
+	if quick <= 0.0:
+		quick = usual * 0.75  # (no one has been recorded drawing it: three quarters of the usual time, as the quick end is of the others)
+	return lerpf(usual, minf(quick, usual), clampf(skill, 0.0, 1.0)) * (1.0 + minf(slow, 1.0)) * 0.5
+
+
 static func line(a: Vector2, b: Vector2) -> PackedVector2Array:
 	return densify(PackedVector2Array([a, b]))
 
