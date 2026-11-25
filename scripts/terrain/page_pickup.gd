@@ -11,8 +11,8 @@ const FLOAT := 112.0  # how high it floats over the floor
 const PAGE := preload("res://art/props/page.png")  # a page of the spellbook, lying still
 const FLUTTER := preload("res://art/props/page_flutter.png")  # the same page in a breeze: a strip of FLUTTER_FRAMES frames (`tools/prepare_page_frames.py`)
 const FLUTTER_FRAMES := 16
-const FLUTTER_RATE := 10.0
-const FAN_FRAME := 9  # the flutter frame where the page is nearly flat: the pages of a fan lie in it  # frames a second
+const FLUTTER_RATE := 10.0  # frames a second
+const RUSTLE := preload("res://art/props/page_rustle.png")  # the same strip, barely stirring: the pages of a fan, which lie in a hand and only rustle
 const TUMBLE := preload("res://art/props/page_tumble.png")  # a page turning over as it flies: TUMBLE_FRAMES frames
 const TUMBLE_FRAMES := 12
 const BOOK := preload("res://art/props/spellbook.png")  # the whole book, closed: what a fallen wizard leaves
@@ -88,7 +88,7 @@ func _outlined(color: Color) -> ShaderMaterial:
 
 ## How far the card at this place in the hand leans, in radians, left to right.
 func _lean_of(index: int) -> float:
-	return (float(index) - float(spoils.size() - 1) * 0.5) * 0.3
+	return (float(index) - float(spoils.size() - 1) * 0.5) * 0.17
 
 
 ## The pages of a fan lie spread like a hand of cards, each leaning a little more than the one before and outlined in the color of its own school.
@@ -99,10 +99,10 @@ func _fan_out() -> void:
 	for k in count:
 		var lean := _lean_of(k)
 		var card := Sprite2D.new()
-		_set_flutter(card)
-		card.frame = FAN_FRAME  # a hand of cards lies still and flat, so the spread of it is what you see
+		card.texture = RUSTLE
+		card.hframes = FLUTTER_FRAMES
 		card.rotation = lean
-		card.position = Vector2(lean * 66.0, lean * lean * 52.0)  # the outer cards sit a little lower, as a hand of cards does
+		card.position = Vector2(lean * 70.0, lean * lean * 60.0)  # the outer cards sit a little lower, as a hand of cards does
 		card.z_index = k  # later cards over earlier ones
 		var school_color: Color = SpellData.SCHOOL_COLORS[SpellData.SPELLS[spoils[k]].school] if SpellData.SPELLS.has(spoils[k]) else CHANT_COLOR
 		card.material = _outlined(school_color.lightened(0.2))
@@ -121,7 +121,7 @@ func _physics_process(delta: float) -> void:
 	if _sprite.texture == FLUTTER:
 		_sprite.frame = int(_t * FLUTTER_RATE) % FLUTTER_FRAMES
 	for card in _cards:
-		card.rotation = _lean_of(card.z_index) + 0.03 * sin(_t * 1.6 + float(card.z_index) * 2.0)  # each one stirs a little
+		card.frame = (int(_t * FLUTTER_RATE) + card.z_index * 5) % FLUTTER_FRAMES  # (no two cards stir together)
 	_sprite.position = Vector2(0.0, -FLOAT + sin(_t * 2.0) * 6.0)
 	_sprite.rotation = sin(_t * 1.3) * 0.06
 	var strength := 0.75 + 0.25 * sin(_t * 3.0)

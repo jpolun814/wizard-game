@@ -251,6 +251,10 @@ func _lay_out() -> void:
 	_status.custom_minimum_size.x = (RIGHT_PAGE.size.x - 9.0) * _pixel
 	_demo.position = origin + LEFT_PAGE.position * _pixel + Vector2(0.0, 8.0 * _pixel)
 	_demo.size = Vector2(LEFT_PAGE.size.x * _pixel, (LEFT_PAGE.size.y - 16.0) * _pixel)
+	_demo.cell = _pixel / Spellbook.DETAIL   # the signs are laid in pixels of the book they are drawn on
+	_ink.cell = _demo.cell
+	for small: MenuSign in _small_signs.values():
+		small.cell = _demo.cell
 	_ink.position = Vector2.ZERO
 	_ink.size = window
 	_mark.position = Vector2.ZERO
@@ -278,7 +282,7 @@ func _show_page(page: VBoxContainer, focus: Button, forward: bool) -> void:
 	_status.text = ""
 	_box.visible = false
 	_demo.visible = false
-	_book.play([4, 5, 6, Spellbook.OPEN] if forward else [6, 5, 4, Spellbook.OPEN], func() -> void:
+	_book.play(Spellbook.turn_frames(forward), func() -> void:
 		_main.visible = page == _main
 		_single.visible = page == _single
 		_multi.visible = page == _multi

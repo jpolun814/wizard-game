@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1_snail")
-spell_name = "Invincible Snail"
+spell_name = "Immortal Snail"
 school = "Blood"
 gesture = "sphere"
 targeting = "positional"
@@ -12,4 +12,4 @@ cost = 120.0
 effect = "Summon a snail that kills with a touch."
 damage = "Kills"
 applies = Array[String](["pursued"])
-sounds = {"summon": "invincible_snail__summon"}
+sounds = {"summon": "immortal_snail__summon"}

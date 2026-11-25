@@ -124,10 +124,6 @@ func _write_summary(area: Control) -> void:
 	var heading := VBoxContainer.new()
 	heading.add_theme_constant_override("separation", 0)
 	heading.add_child(_ink("Chronicle", Lettering.size_near(44), Spellbook.TEXT_INK, true))
-	var rule := ColorRect.new()
-	rule.color = Spellbook.HEADING
-	rule.custom_minimum_size = Vector2(0.0, Spellbook.SCALE * 0.6)
-	heading.add_child(rule)
 	column.add_child(heading)
 	var gap := Control.new()
 	gap.custom_minimum_size = Vector2(0.0, 24.0)
@@ -443,7 +439,7 @@ func _turn(by: int) -> void:
 	Sfx.cue("library", "page")
 	_spread = turned
 	_writing.visible = false
-	_book.play([4, 5, 6, Spellbook.OPEN] if by > 0 else [6, 5, 4, Spellbook.OPEN], func() -> void:
+	_book.play(Spellbook.turn_frames(by > 0), func() -> void:
 		_show_spread()
 		_writing.visible = true)
 
@@ -486,18 +482,11 @@ func _write_page(area: Control, page: String) -> void:
 	var heading := VBoxContainer.new()
 	heading.add_theme_constant_override("separation", 0)
 	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var name_label := _ink(Pages.title_of(page), Lettering.size_near(38), Spellbook.TEXT_INK, true, true)
-	heading.add_child(name_label)
-	var rule := ColorRect.new()
-	rule.color = Spellbook.HEADING
-	rule.custom_minimum_size = Vector2(0.0, Spellbook.SCALE * 0.6)
-	heading.add_child(rule)
+	var fitted := Lettering.size_near(38)  # a name sits on one line: a size smaller if it would not fit the page
+	while fitted > Lettering.GRID and Lettering.FACE.get_string_size(Pages.title_of(page), HORIZONTAL_ALIGNMENT_LEFT, -1, fitted).x > area.size.x:
+		fitted -= Lettering.GRID
+	heading.add_child(_ink(Pages.title_of(page), fitted, Spellbook.TEXT_INK, true))
 	top.add_child(heading)
-	if not chant:
-		var spell: Spell = SpellData.SPELLS[page]
-		top.add_child(MouseIcon.new(spell.buttons, SpellData.SCHOOL_COLORS[spell.school]))
-	else:
-		top.add_child(KeyCap.new("Enter"))
 	column.add_child(top)
 	if chant:
 		var id := page.trim_prefix("chant:")
@@ -506,8 +495,7 @@ func _write_page(area: Control, page: String) -> void:
 	else:
 		var spell: Spell = SpellData.SPELLS[page]
 		var gesture: String = spell.gesture
-		var picture := StrokePreview.new(GestureTemplates.preview_points(gesture), GestureTemplates.preview_ground(gesture), 140.0)
-		picture.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		var picture := StrokePreview.new(GestureTemplates.preview_points(gesture), GestureTemplates.preview_ground(gesture), 176.0, true)
 		column.add_child(picture)
 		column.add_child(_ink(spell.effect, 22, Spellbook.TEXT_INK, false, true))
 	var gap := Control.new()
@@ -516,6 +504,9 @@ func _write_page(area: Control, page: String) -> void:
 	var rows := [["Found", "pages"], ["Cast", "casts"], ["Won with", "won_with"]]
 	if not chant:
 		rows.append(["Accuracy", "accuracy"])
+	var figures := VBoxContainer.new()  # the counts, with the page's mouse or key at their right, as the spellbook's foot has it
+	figures.add_theme_constant_override("separation", 6)
+	figures.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	for entry in rows:
 		var row := HBoxContainer.new()
 		row.add_child(_ink(entry[0], 20, Spellbook.SUBTLE))
@@ -523,7 +514,14 @@ func _write_page(area: Control, page: String) -> void:
 		count.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		count.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		row.add_child(count)
-		column.add_child(row)
+		figures.add_child(row)
+	var corner: Control = KeyCap.new("Enter") if chant else MouseIcon.new(SpellData.SPELLS[page].buttons, SpellData.SCHOOL_COLORS[SpellData.SPELLS[page].school])
+	corner.size_flags_vertical = Control.SIZE_SHRINK_END
+	var base := HBoxContainer.new()
+	base.add_theme_constant_override("separation", 14)
+	base.add_child(figures)
+	base.add_child(corner)
+	column.add_child(base)
 	var foot := Control.new()  # room above the page number
 	foot.custom_minimum_size = Vector2(0.0, 40.0)
 	column.add_child(foot)
@@ -544,10 +542,6 @@ func _write_match(area: Control, index: int) -> void:
 	var heading := VBoxContainer.new()
 	heading.add_theme_constant_override("separation", 0)
 	heading.add_child(_ink("Victory" if won else "Eliminated", Lettering.size_near(40), Spellbook.HEADING if won else Spellbook.TEXT_INK, true))
-	var rule := ColorRect.new()
-	rule.color = Spellbook.HEADING
-	rule.custom_minimum_size = Vector2(0.0, Spellbook.SCALE * 0.6)
-	heading.add_child(rule)
 	column.add_child(heading)
 	var online := " with friends" if bool(m.get("online", false)) else ""
 	column.add_child(_ink("%s of %d%s, %s" % [_ordinal(int(m.get("place", 0))), int(m.get("field", 0)), online, _date(int(m.get("when", 0)))], 20, Spellbook.SUBTLE, false, true))

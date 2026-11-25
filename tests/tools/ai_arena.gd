@@ -95,9 +95,9 @@ func _ready() -> void:
 	Dice.reset(dice)  # (the same seed and the same dice are the same game, as near as the machine keeps time; dice=N is another game in the same world)
 	MatchState.begin(seed_value)
 	if mode == "duel":  # (a flat open world, by the seed: no portals to carry them apart, no halls to lose each other in)
-		MatchState.forced_biome = ["graveyard", "mountains", "jungle", "ashlands"][seed_value % 4]
+		MatchState.first_biome = ["graveyard", "mountains", "jungle", "ashlands"][seed_value % 4]
 	if forced_biome != "":
-		MatchState.forced_biome = forced_biome
+		MatchState.first_biome = forced_biome
 	World.next_seed = seed_value
 	# (a collapsing world takes the main scene with it, and the match goes on in the next: this stays where it is, above them, as the main scene no longer)
 	await get_tree().process_frame

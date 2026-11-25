@@ -62,7 +62,7 @@ CUTS2 = [
     ("Wild Shape", "summon", "oga", "creature_roar_02", 0.0, 3.0, 0.0, 0.3), ("Decoy", "dark_whoosh", "oga", "sfx100v2_misc_37", 0.0, 3.0, 0.0, 0.2),
     ("Shadow Step", "dark_whoosh", "hor", "woosh", 0.0, 3.0, 0.0, 0.15), ("Eclipse", "dark_whoosh", "hor", "Drone_doom", 0.0, 3.5, 0.6, 1.0),
     ("Moonbeam", "dark_whoosh", "p400", "Musical Effects/music_box_chime_quick", 0.0, 3.0, 0.0, 0.3),
-    ("wizard", "summon", "nox", DRONE, 41.0, 1.6, 0.5, 0.8), ("Invincible Snail", "summon", "hor", "Gore_Wet_4", 0.0, 1.0, 0.0, 0.15),
+    ("wizard", "summon", "nox", DRONE, 41.0, 1.6, 0.5, 0.8), ("Immortal Snail", "summon", "hor", "Gore_Wet_4", 0.0, 1.0, 0.0, 0.15),
 ]
 # The third round: TomMusic's Free Fantasy SFX Pack has ice and rock spells (no licence terms in its readme; the owner gave it to be used, 2026-11-20).
 CUTS3 = [

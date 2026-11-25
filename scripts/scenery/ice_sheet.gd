@@ -4,7 +4,7 @@ extends Node2D
 ## A sheet of bare ice laid over a level stretch of the snowy peaks' ground. A wizard running on it cannot stop or turn quickly: they slide.
 ## Its origin is the top-left of the stretch it covers.
 
-const MELT_SECONDS := 25.0  # a sheet laid by a spell thaws after this long (the peaks' own sheets never do)
+static var MELT_SECONDS: float = Spell.among(SpellData.SPELLS["Frost Bridge"].parts, "slick", "ground")["for"]  # a sheet laid by a spell thaws after this long (the peaks' own sheets never do)
 
 var width := 160.0
 var thaws := false  # laid by a spell: it thaws by itself, and fire melts it

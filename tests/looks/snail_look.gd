@@ -1,6 +1,6 @@
 extends Node
 
-## A picture of the Invincible Snail crawling after a wizard in the waiting room. `-- out=DIR` (needs a window).
+## A picture of the Immortal Snail crawling after a wizard in the waiting room. `-- out=DIR` (needs a window).
 
 
 func _ready() -> void:

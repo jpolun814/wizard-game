@@ -1,7 +1,8 @@
 class_name BookArt
 extends Control
 
-## The book itself, one frame of its sheet at a time. play() runs a list of frames, then calls back.
+## The book itself, one frame of its sheet at a time. play() runs a list of frames, then calls back. The sheet is drawn finer than the layout: each frame is
+## Spellbook.FRAME * Spellbook.DETAIL pixels and is shown at the size of Spellbook.FRAME * pixel.
 
 var frame := Spellbook.OPEN
 var pixel := Spellbook.SCALE  # one pixel of the book is this many screen pixels
@@ -32,5 +33,6 @@ func _process(delta: float) -> void:
 			_done.call()
 
 func _draw() -> void:
-	var source := Rect2(Vector2(frame * Spellbook.FRAME.x, 0), Spellbook.FRAME)
+	var cell := Spellbook.FRAME * Spellbook.DETAIL
+	var source := Rect2(Vector2(frame * cell.x, 0), cell)
 	draw_texture_rect_region(_sheet, Rect2(Vector2.ZERO, Spellbook.FRAME * pixel), source)

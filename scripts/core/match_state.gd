@@ -27,6 +27,7 @@ static var hurry := _hurry_asked()  # a test shortens the time in a world by thi
 static var stage := 0
 static var width_scale := 1.0  # a test of the AI plays its matches in smaller worlds by this much (tools/ai_ladder.py: four wizards in half the room), never under MIN_TEST_WIDTH
 static var seed_base := 0
+static var first_biome := ""  # for a test: the next match to begin begins in this biome, whatever its seed would deal
 static var forced_biome := ""  # the F1 panel's choice of biome for the world being built, whatever the seed would deal (empty: the seed's own)
 static var pending := false  # the next world to load carries a match on, rather than starting one
 static var ledgers: Array[Ledger] = []  # the pages each wizard holds, the player's first
@@ -44,7 +45,8 @@ static func begin(seed_value: int) -> void:
 	stage = 0
 	seed_base = seed_value
 	pending = false
-	forced_biome = ""
+	forced_biome = first_biome
+	first_biome = ""
 	ledgers = []
 	vitals = []
 	snails = []

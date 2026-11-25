@@ -52,15 +52,22 @@ var _effects := {}  # term -> the effect, with its part's own where and when (se
 ## The first effect of this kind that it has, together with where and when its part acts, or nothing.
 func effect_of(term: String) -> Dictionary:
 	if not _effects.has(term):
-		var found := {}
-		for part in parts:
-			for one: Dictionary in part["does"]:
-				if found.is_empty() and one["do"] == term:
-					found = part.duplicate()
-					found.erase("does")
-					found.merge(one, true)
-		_effects[term] = found
+		_effects[term] = among(parts, term)
 	return _effects[term]
+
+
+## The first effect of this kind among these parts, together with where its part `needs` to be (when that is said), and where and when the part acts, or nothing.
+static func among(parts: Array, term: String, needs := "") -> Dictionary:
+	for part: Dictionary in parts:
+		if needs != "" and part.get("needs", "") != needs:
+			continue
+		for one: Dictionary in part["does"]:
+			if one["do"] == term:
+				var found := part.duplicate()
+				found.erase("does")
+				found.merge(one, true)
+				return found
+	return {}
 
 
 ## The mouse buttons that cast it: its school's.

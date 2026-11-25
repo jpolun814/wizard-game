@@ -97,7 +97,7 @@ through `Wizard`. There are 22 states.
 | Icicles | place hung from a roof, 40-240 long · until melted, each 0.5 s: harm 6 cold | ice |
 | Ice Prison | place box 24-160 px · at once: state frozen 4 s | ice |
 | Blizzard | place from a line down · until put out: state slowed 2 s; state frozen after 5 s in it; floor snow, 2 px/s | cloud, water |
-| Frost Bridge | place along water · 25 s or melted: floor; slick **+** place along level ground · 25 s or melted: slick | ice |
+| Frost Bridge | place along water · 30 s or melted: floor; slick **+** place along level ground · 25 s or melted: slick | ice |
 | Geyser | place on ground, 46 x 190 · after 0.7 s, 1.8 s, rests 1.2 s, for good: throw up 1000; harm 1 cold each s *(a scald is heat in life; today its kind is cold, from its school)* | water |
 | Hailstorm | place under a line · for 4.5 s, a stone each 0.07 s: makes the next part **+** shot falls 640 px/s: harm 5 cold | cloud |
 | Tide Surf | self · for 2.5 s; steep ground ends it: drive along 470 px/s; floor on water **+** with 80 px in front · each body every 0.8 s: throw 620 on, 260 up | water |
@@ -178,7 +178,7 @@ through `Wizard`. There are 22 states.
 | Fight or Flight | target within 90 px: chance half and half; state confused 6 s; state fleeing 6 s |  |
 | Hemorrhage | target within 80 px · for 8 s, each 1 s: harm 5 blood; state drained while it bleeds |  |
 | Hunter's Mark | self · for 20 s: tell the way to the nearest wizard |  |
-| Invincible Snail | creature hunts the one it was drawn over, 50 px/s · for good, across worlds: harm kills |  |
+| Immortal Snail | creature hunts the one it was drawn over, 50 px/s · for good, across worlds: harm kills |  |
 | Leech | target along the stroke, 460 px · up to 24 s; out of sight or reach ends it: share_cost half |  |
 | Raise Dead | creature a skeleton (50), serves the caster · until killed, or the caster falls: harm its own blows |  |
 | Scythe | place half circle in front, 170 px · at once: harm 45 blood; throw 260 |  |
@@ -210,7 +210,7 @@ through `Wizard`. There are 22 states.
 
 1. **It fits.** 9 wheres, 33 effects and 11 materials describe all 93. 20 of the effects are shared by two or more; 13 are used by one spell or chant only. Those 13 each need one law and one way for the AI
    to value them, and are then free for any later spell.
-2. **The hardest to fit:** Fight or Flight (a body that casts at random), Invincible Snail (hunts across worlds), Wild Shape and Golem (a body with blows of its own), Leech, Mirage, Decoy (walked by its
+2. **The hardest to fit:** Fight or Flight (a body that casts at random), Immortal Snail (hunts across worlds), Wild Shape and Golem (a body with blows of its own), Leech, Mirage, Decoy (walked by its
    caster) and the chants that deal with the past (Recovery, Second Chance, Stitch). They can be *described*; their behavior stays a script, which the data names.
 3. **Seven `warning` figures are not facts, and must NOT simply be corrected** (checked 2026-11-25). Scythe (0.3), Spark (0.35; really 0.05), Ice Prison (0.4), Black Hole (0.8), Thunderclap (0.3), Silence
    (0.3) and Fight or Flight (0.3) strike at once or nearly (so do Tornado and Bramble, and Flytrap takes 0.5, not 0.3). But the chance to land is worked out from the delay alone (`SpellFacts.chance`), so these

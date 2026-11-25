@@ -180,7 +180,7 @@ Read it as leads: the model hears real recordings of clear things (thunder, a he
 | wizard / step_mud | a single footstep squelching in mud | 0.61 | 10 | 0.68 NOX/Footsteps_Mud_Walk_01.wav; 0.67 NOX/Footsteps_Mud_Walk_08.wav; 0.64 400 Sounds Pack/splat_quick.wav |
 | Flytrap / fire | a plant catching fire | 0.48 | 9 | 0.59 NOX/Ambiance_Firecamp_Small_Loop_Mono.wav; 0.59 NOX/Ambiance_Fire_Big_Loop_Mono.wav; 0.55 Light Torch with Starting Loop 2.wav |
 | Supernova / fire | a roaring blaze of burning fire | 0.52 | 9 | 0.61 NOX/Ambiance_Fire_Big_Loop_Mono.wav; 0.59 NOX/Ambiance_Firecamp_Medium_Loop_Mono.wav; 0.58 NOX/Ambiance_Firecamp_Small_Loop_Mono.wav |
-| Invincible Snail / summon | a slow snail appearing, a slimy wet sound | 0.49 | 7 | 0.55 Gore_mushy.wav; 0.54 400 Sounds Pack/splat_quick.wav; 0.53 oga/bug_04.ogg |
+| Immortal Snail / summon | a slow snail appearing, a slimy wet sound | 0.49 | 7 | 0.55 Gore_mushy.wav; 0.54 400 Sounds Pack/splat_quick.wav; 0.53 oga/bug_04.ogg |
 | Great Oak / fire | a tree catching fire | 0.52 | 6 | 0.59 NOX/Ambiance_Firecamp_Small_Loop_Mono.wav; 0.58 NOX/Ambiance_Fire_Big_Loop_Mono.wav; 0.54 Light Torch with Starting Loop 2.wav |
 | intro / dark_whoosh | a deep dark whoosh, a low sinister sound | 0.42 | 5 | 0.54 oga/creature_monster_03.ogg; 0.53 Creepy_ambience_5.wav; 0.48 Drone_doom.wav |
 | Firewall / fire | fire igniting with a whoomph | 0.58 | 4 | 0.61 NOX/Ambiance_Fire_Big_Loop_Mono.wav; 0.60 oga/LEGIT_FIR_Fire_Staff 19-Audio.wav; 0.59 oga/LEGIT_FIR_Fire_Staff 1-Audio.wav |

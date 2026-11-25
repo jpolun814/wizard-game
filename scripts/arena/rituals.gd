@@ -90,9 +90,9 @@ func grant(speaker: Wizard, id: String, power := 1.0) -> void:
 		"boundless":
 			speaker.grant_unlimited(20.0)
 		"double_jump":
-			speaker.grant_air_jump(20.0)
+			speaker.grant_air_jump(RitualInput.effect_of(id, "state")["for"])
 		"haste":
-			speaker.grant_haste(20.0)
+			speaker.grant_haste(RitualInput.effect_of(id, "state")["for"])
 		"deep_breath":
 			speaker.lungs.grant_deep(Lungs.DEEP_BREATH)
 		"darkvision":

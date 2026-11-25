@@ -7,6 +7,7 @@ var _points := PackedVector2Array()
 var _fade := 0.0
 var _letting_go := false
 var _flare := 0.0
+var cell := Spellbook.CELL   # screen pixels to one pixel of the book's art, as for `MenuSign`
 
 func set_stroke(points: PackedVector2Array) -> void:
 	_points = points.duplicate()
@@ -30,6 +31,8 @@ func _process(delta: float) -> void:
 func _draw() -> void:
 	if _points.size() < 2 or _fade <= 0.0:
 		return
-	draw_polyline(_points, Color(Menu.GLOW, 0.28 * _fade), 12.0, true)
-	draw_polyline(_points, Color(Menu.GLOW, 0.6 * _fade), 6.0, true)
-	draw_polyline(_points, Color(1.0, 0.95, 0.75, _fade), 2.5, true)
+	var core := PixelInk.along(_points, cell)
+	var inner := PixelInk.bleed(core)
+	PixelInk.fill(self, PixelInk.bleed(inner), cell, Color(Menu.GLOW, 0.28 * _fade), inner)
+	PixelInk.fill(self, inner, cell, Color(Menu.GLOW, 0.6 * _fade), core)
+	PixelInk.fill(self, core, cell, Color(1.0, 0.95, 0.75, _fade))

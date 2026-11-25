@@ -19,6 +19,8 @@ var _width := 0
 ## (the tutorial) builds its map from the corner and sets this, and everything asked of the map and given back by it is in the world's tiles.
 var origin := Vector2i.ZERO
 var version := 0  # counts the times the map has been built, so that a wizard can tell the ways have changed
+var _ground: MoveMap
+var _ground_of := {}   # what it is made of, when it is first asked for
 var _tolls := {}  # key -> the ids of the tiles that cross a gate a wizard needs a spell to pass
 var _toll_at := {}  # id -> key
 
@@ -30,6 +32,7 @@ func build(cells: TileGrid, bottom: int, blocked := {}, anchor := Vector2i(-1, -
 	_tolls.clear()
 	_toll_at.clear()
 	version += 1
+	ground_is(cells, bottom, blocked, climbs)
 	_width = cells.size.x
 	_astar.width = _width
 	_ways = Walkways.new(cells, bottom, blocked)
@@ -67,6 +70,19 @@ func build(cells: TileGrid, bottom: int, blocked := {}, anchor := Vector2i(-1, -
 				_tolls[key].append(_id(tile))
 				_toll_at[_id(tile)] = key
 				_astar.set_point_disabled(_id(tile), true)  # (a crossing is walked only when a path is asked for it: see path)
+
+
+## The ground itself, for working out ways by spells (MoveMap): nothing on it is named, and it is made when first asked for.
+func ground() -> MoveMap:
+	if _ground == null:
+		_ground = MoveMap.new(_ground_of["cells"], _ground_of["bottom"], origin, _ground_of["blocked"], _ground_of["climbs"])
+	return _ground
+
+
+## What the ground is made of. A world says it after the map is built, since the map has floors over the crossings that are not there (see WorldBuilder.shut).
+func ground_is(cells: TileGrid, bottom: int, blocked: Dictionary, climbs: Array) -> void:
+	_ground = null
+	_ground_of = {"cells": cells, "bottom": bottom, "blocked": blocked, "climbs": climbs}
 
 
 ## The moves up onto a wall and down off it, for each link: moves no one makes without a lift.

@@ -7,7 +7,8 @@ extends RefCounted
 
 var recognizer: UnistrokeRecognizer
 var tolerance := 0.70  # minimum $1 score to count as a cast
-var wall_tolerance_deg := 20.0  # straight strokes this close to vertical are walls
+const UPRIGHT_DEG := 20.0
+var wall_tolerance_deg := UPRIGHT_DEG  # straight strokes this close to vertical are walls
 const SPRING_RISE := 0.3  # how far (as a share of its height) the end of a spring must be from where it began, for its sharp turns not to be taken for icicles: a single V is a fair match for it too, and ends where it began
 
 
@@ -141,10 +142,7 @@ func _detect(relative: PackedVector2Array, options: Dictionary, reading: StrokeR
 func settle(reading: StrokeReading, relative: PackedVector2Array, options: Dictionary, stroke: PackedVector2Array, anchor: Vector2, on_ground: Callable) -> void:
 	# A straight stroke can mean a wall (vertical), a pull (toward you) or a plain flick, depending on the button.
 	if reading.gesture == "flick":
-		if options.has("wall") and _is_vertical(relative):
-			reading.gesture = "wall"
-		elif options.has("flick_toward") and _points_toward(stroke, anchor):
-			reading.gesture = "flick_toward"
+		reading.gesture = straight_means(options, relative[relative.size() - 1] - relative[0], stroke[0], anchor, wall_tolerance_deg)
 	# Spark's zigzag and Jolt's are one shape turned a quarter, which the recognizer (it ignores rotation) cannot tell apart: the way the stroke runs does. Down is a Spark, across is a Jolt.
 	if (reading.gesture == "zigzag" or reading.gesture == "bolt") and options.has("zigzag") and options.has("bolt"):
 		var run := relative[relative.size() - 1] - relative[0]
@@ -165,12 +163,11 @@ func settle(reading: StrokeReading, relative: PackedVector2Array, options: Dicti
 			reading.score = again.score
 
 
-func _is_vertical(points: PackedVector2Array) -> bool:
-	var dir := points[points.size() - 1] - points[0]
-	return absf(cos(dir.angle())) <= sin(deg_to_rad(wall_tolerance_deg))
-
-
-## True when the stroke moves toward the character: start far, finish near.
-func _points_toward(stroke: PackedVector2Array, anchor: Vector2) -> bool:
-	var dir := stroke[stroke.size() - 1] - stroke[0]
-	return dir.dot(anchor - stroke[0]) > 0.0
+## The gesture a straight stroke is on these buttons: close to upright it is a wall, where they have one, and toward the character (it starts far and finishes near) a pull,
+## where they have that. So how steeply a flick may be drawn is a thing of its buttons, not of its spell.
+static func straight_means(options: Dictionary, along: Vector2, from: Vector2, anchor: Vector2, upright_deg := UPRIGHT_DEG) -> String:
+	if options.has("wall") and absf(cos(along.angle())) <= sin(deg_to_rad(upright_deg)):
+		return "wall"
+	if options.has("flick_toward") and along.dot(anchor - from) > 0.0:
+		return "flick_toward"
+	return "flick"

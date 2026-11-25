@@ -6,7 +6,9 @@ extends Node
 
 const STEP := 16.0          # how finely the ground under the line is read
 const LEVEL := 6.0          # how much the ground may rise or fall along a sheet, in pixels
-const SHORTEST := 48.0      # the least ground worth freezing
+static var WATER := Motion.of("Frost Bridge", "floor")
+static var GROUND := Spell.among(SpellData.SPELLS["Frost Bridge"].parts, "slick", "ground")
+static var SHORTEST: float = GROUND["least"]  # the least ground worth freezing
 
 var line := PackedVector2Array()  # the drawn line, in world points; set before the effect enters the tree
 
@@ -17,7 +19,7 @@ func _ready() -> void:
 	for pond in get_tree().get_nodes_in_group("ponds"):
 		# The line must be drawn near the pond's surface: on it, or a little above or below.
 		var level: float = pond.surface_at(box.get_center().x)
-		if box.end.y < level - 120.0 or box.position.y > level + pond.depth:
+		if box.end.y < level - float(WATER["reach"]) or box.position.y > level + pond.depth:
 			continue
 		if pond.freeze_span(box.position.x, box.end.x):
 			frozen += 1
@@ -32,7 +34,7 @@ func _ready() -> void:
 func _freeze_ground(box: Rect2) -> bool:
 	var world := get_viewport().world_2d
 	var middle := SpellTargets.solid_below(world, Vector2(box.get_center().x, box.position.y - 200.0), 1200.0)
-	if box.end.y < middle.y - 160.0 or box.position.y > middle.y + 60.0:
+	if box.end.y < middle.y - float(GROUND["reach"]) or box.position.y > middle.y + 60.0:
 		return false  # it was drawn in the air, or far under the ground
 	var start := box.position.x
 	var level := SpellTargets.solid_below(world, Vector2(start, middle.y - 200.0), 400.0).y

@@ -12,7 +12,7 @@ func _init(arena: Arena) -> void:
 
 
 func recipes() -> Dictionary:
-	return {"Leech": _leech, "Hemorrhage": _hemorrhage, "Faint": _faint, "Fight or Flight": _fight_or_flight, "Vacuum": _vacuum, "Hex": _hex, "Invincible Snail": _invincible_snail}
+	return {"Leech": _leech, "Hemorrhage": _hemorrhage, "Faint": _faint, "Fight or Flight": _fight_or_flight, "Vacuum": _vacuum, "Hex": _hex, "Immortal Snail": _invincible_snail}
 
 
 ## Whoever a blood spell is aimed at: the one nearest the stroke.

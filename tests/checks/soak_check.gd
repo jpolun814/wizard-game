@@ -42,7 +42,7 @@ func _soak(biome: String) -> void:
 		_scene.queue_free()
 		await get_tree().process_frame
 		await get_tree().process_frame
-	MatchState.forced_biome = biome
+	MatchState.first_biome = biome
 	MatchState.stage = 0
 	World.random_start = false
 	World.arrive_by_portal = false

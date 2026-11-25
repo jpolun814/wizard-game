@@ -7,7 +7,7 @@ const WAYS := ["up", "level", "stroke", "back"]
 ## Each effect, and the numbers it cannot do without.
 const DOES := {
 	"carry": ["most"], "drive": ["speed", "for", "way"], "lift": ["pull", "speed", "wide", "high"], "throw": ["speed", "way"], "turn": ["way"], "climb": ["least", "most", "grab"],
-	"floor": [], "solid": ["least", "most", "thick"], "pit": ["half_least", "half_most", "deep_least", "deep_most"], "state": ["state"], "body": ["pace", "jump"],
+	"floor": [], "slick": [], "solid": ["least", "most", "thick"], "pit": ["half_least", "half_most", "deep_least", "deep_most"], "state": ["state"], "body": ["pace", "jump"],
 }
 
 
@@ -32,6 +32,23 @@ func test_every_part_is_written_in_the_shared_terms() -> void:
 				if term == "state":
 					assert_bool(BodyStates.TABLE.has(one["state"])).override_failure_message(_why(spell, "puts on an unknown state: %s" % [one["state"]])).is_true()
 	assert_int(written).is_greater(15)
+
+
+func test_the_chants_that_move_are_written_in_the_shared_terms() -> void:
+	for id: String in ["double_jump", "haste"]:
+		var state := RitualInput.effect_of(id, "state")
+		assert_bool(BodyStates.TABLE.has(state.get("state", ""))).override_failure_message(id + " puts on no state we know").is_true()
+		assert_float(state.get("for", 0.0)).is_greater(0.0)
+
+
+func test_an_upright_flick_is_moonbeams_and_a_slanted_one_is_not() -> void:
+	var umbramancy: Dictionary = SpellData.bindings()[SpellData.SPELLS["Shadow Step"].buttons]
+	var up := func(degrees: float) -> String: return StrokeReader.straight_means(umbramancy, Vector2.from_angle(deg_to_rad(-degrees)), Vector2.ZERO, Vector2.ZERO)
+	assert_str(up.call(72.0)).is_equal("wall")
+	assert_str(up.call(55.0)).is_equal("flick")
+	assert_str(up.call(0.0)).is_equal("flick")
+	var pyromancy: Dictionary = SpellData.bindings()[SpellData.SPELLS["Ignite"].buttons]
+	assert_str(StrokeReader.straight_means(pyromancy, Vector2.UP, Vector2.ZERO, Vector2.ZERO)).is_equal("flick")
 
 
 func test_an_effect_comes_with_where_and_when_its_part_acts() -> void:

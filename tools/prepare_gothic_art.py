@@ -11,10 +11,8 @@ The downloads dir holds the unzipped packs, each in its own folder:
     x_gothicvania-cemetery-files, x_swamp, x_church, x_town            ansimuz, GothicVania packs (levels)
     x_spells, x_starsteel, x_lightning, x_explosions, x_fire          spell effects
     x_freefx                    CodeManu, Free Pixel Effects Pack     (vortex, rings, ice, wind, bubbles)
-    purple-portal/              Purple Portal Sprite Sheet            (the portal: 8 x 3 grid of 64 px cells)
     icicles                     Kamioo, Pixel Icicles                 (rock spikes)
     x_clouds                    DustDFG, Pixel Art Clouds             (storm and snow clouds)
-    creasta_tornado/            Creasta, Tornado pixel sprite sheet   (the tornado: mytronado.png, 5 x 12 frames)
     pixflame/                   zonked, Pixel Flame VFX (CC0)          (fire-a and fire-b: the breath, trail and wall of fire)
     books/foxel                 Foxel Games, Pixel Art Book           (the spellbook)
     martial-hero-2/             LuizMelo, Martial Hero 2               (the ninjas)
@@ -191,7 +189,6 @@ FX_RECOLOURED = {
 }
 # Effects laid out in a grid, read left to right and top to bottom: name -> (sheet, frame width, frame height).
 FX_GRIDS = {
-    "portal_purple": ("purple-portal/Purple Portal Sprite Sheet.png", 64, 64),
     "flame": ("x_fire/fire5_64_0.png", 64, 64),
 }
 
@@ -492,13 +489,7 @@ def main():
         sheet = Image.open(os.path.join(dl, src)).convert("RGBA")
         cells = [sheet.crop((x, y, x + fw, y + fh)) for y in range(0, sheet.height, fh) for x in range(0, sheet.width, fw)]
         fx[name] = strip(cells, os.path.join(fx_dir, name + ".png"))
-    # The tornado: a 5 x 12 grid of big frames, cut and scaled down to 96 px so it is pixel art at 2x in the game.
-    # Frames 0-15 are its birth and 16-59 its loop (tornado.gd plays them in that order).
-    sheet = Image.open(os.path.join(dl, "creasta_tornado", "mytronado.png")).convert("RGBA")
-    fw, fh = sheet.width // 5, sheet.height // 12
-    cells = [sheet.crop((x * fw, y * fh, (x + 1) * fw, (y + 1) * fh)).resize((96, 96), Image.LANCZOS)
-             for y in range(12) for x in range(5)]
-    fx["tornado"] = strip(cells, os.path.join(fx_dir, "tornado.png"))
+    # (The tornado and the portal are drawn by tools/make_tornado_art.py and tools/make_portal_art.py, not cut from a download.)
     for name, (src, fw, fh, how) in FX_RECOLOURED.items():
         sheet = Image.open(os.path.join(dl, src)).convert("RGBA")
         fx[name] = strip([recolor(f, how) for f in grid_frames(sheet, fw, fh)], os.path.join(fx_dir, name + ".png"))

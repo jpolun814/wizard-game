@@ -33,11 +33,13 @@ func _init(owner: WizardBrain, body: Wizard) -> void:
 
 ## Whether one of them is in brain.hand.
 func busy() -> bool:
-	return not (lift.is_empty() and leap.is_empty() and wade.is_empty())
+	return not (lift.is_empty() and leap.is_empty() and wade.is_empty()) or brain.go.committed()
 
 
 ## Goes on with the one in brain.hand. The speed to go at.
 func tick(delta: float) -> float:
+	if brain.go.committed():
+		return brain.go.go(delta)
 	if not leap.is_empty():
 		return leaping(delta)
 	if not wade.is_empty():

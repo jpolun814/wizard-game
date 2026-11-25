@@ -14,3 +14,4 @@ size_from = 4
 size_unit = 120.0
 size_min = 0.6
 size_max = 2.0
+parts = Array[Dictionary]([{"where": "place", "needs": "water", "reach": 120.0, "for": 30.0, "does": [{"do": "floor"}, {"do": "slick"}]}, {"where": "place", "needs": "ground", "reach": 160.0, "for": 25.0, "does": [{"do": "slick", "least": 48.0}]}])

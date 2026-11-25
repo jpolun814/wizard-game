@@ -8,7 +8,7 @@ extends Area2D
 ## Once someone comes near, the liquid is a LiquidGrid: it really flows, so a pit dug beside it fills and the pool's level drops.
 
 const ICE_THICKNESS := 14.0
-const ICE_SECONDS := 30.0
+static var ICE_SECONDS := Motion.number("Frost Bridge", "floor", "for")
 const EDGE := 28.0  # how far past its columns the fill reaches, to meet the smoothed edges of the hollow
 const TICK := 0.5
 const LAVA_DAMAGE := 8

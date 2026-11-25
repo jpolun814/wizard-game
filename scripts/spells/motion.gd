@@ -34,3 +34,26 @@ static func carried(carry: Dictionary, length: float) -> float:
 ## throw: the shove it gives, along a way (a unit vector). `who` picks the speed for a kind of body that is thrown differently ("creatures", "things"), where the spell has one.
 static func thrown(throw: Dictionary, along: Vector2, who := "speed") -> Vector2:
 	return along * float(throw.get(who, throw["speed"]))
+
+
+# --- how a wizard's body moves by itself ----------------------------------------------------------------------------------
+
+## The speed down of a body in the air, a moment later, where it falls no faster than `most`.
+static func fallen(velocity_y: float, gravity: float, delta: float, most := INF) -> float:
+	return minf(velocity_y + gravity * delta, most) if velocity_y <= most else most
+
+
+## The sideways speed of a body in the air whose keys ask for `wanted`. In a jump of its own it steers as freely as on the ground; once thrown or pulled the keys only add to the
+## speed it has, up to a share of a walking pace.
+static func steered(air_vx: float, wanted: float, launched: bool, delta: float) -> float:
+	if not launched:
+		return move_toward(air_vx, wanted, Wizard.AIR_OWN_ACCEL * delta)
+	var reach := wanted * Wizard.AIR_STEER
+	if wanted != 0.0 and air_vx * signf(wanted) < absf(reach):
+		return move_toward(air_vx, reach, Wizard.AIR_ACCEL * delta)
+	return air_vx
+
+
+## What is left of a shove a moment later: on the ground it dies away at once, in the air there is little to stop it.
+static func shed(shove: Vector2, in_air: bool, delta: float) -> Vector2:
+	return Vector2(move_toward(shove.x, 0.0, (Wizard.AIR_DRAG if in_air else Wizard.SHOVE_SHED) * delta), move_toward(shove.y, 0.0, Wizard.SHOVE_SHED * delta))

@@ -923,9 +923,9 @@ func _fall(delta: float) -> void:
 	elif swim_time > 0.0:
 		velocity.y = move_toward(velocity.y, DIVE_SPEED if pad.dives() else SINK_SPEED, SWIM_GRAVITY * delta)  # in deep water it sinks slowly, or dives
 	elif not is_on_floor():
-		velocity.y += gravity * delta
-		if feather_time > 0.0 and velocity.y > FEATHER_FALL:
-			velocity.y = FEATHER_FALL  # as light as a feather
+		var light := feather_time > 0.0
+		velocity.y = Motion.fallen(velocity.y, gravity, delta, FEATHER_FALL if light else INF)
+		if light and velocity.y >= FEATHER_FALL:  # as light as a feather
 			_feather_motes -= delta
 			if _feather_motes <= 0.0:
 				_feather_motes = 0.35
@@ -957,7 +957,7 @@ func _steer(delta: float, can_move: bool) -> void:
 			Sfx.speak(self, WizardLook.jump_sound(look), global_position)
 		elif _jump_buffer > 0.0 and air_jump_time > 0.0 and air_jump_ready and sink_time <= 0.0 and tangle_time <= 0.0 and not golem.on and not is_on_floor():
 			# The second leap: a jump in the air, free of stamina, once per landing.
-			velocity.y = JUMP_VELOCITY * 0.9
+			velocity.y = JUMP_VELOCITY * float(BodyStates.TABLE["skystep"]["air_jump"])
 			_jump_buffer = 0.0
 			air_jump_ready = false
 			Sfx.speak(self, WizardLook.jump_sound(look), global_position)
@@ -972,12 +972,7 @@ func _steer(delta: float, can_move: bool) -> void:
 		if _in_free_air():
 			# Nothing to push against: the keys only add to the speed the wizard already has, up to half a walking pace, and can turn it slowly.
 			# They never brake a speed already beyond it (a blow's), and letting go of them changes nothing.
-			if not _launched or golem.on:
-				_air_vx = move_toward(_air_vx, wanted, AIR_OWN_ACCEL * delta)  # a jump they chose: they steer, brake and turn as freely as on the ground
-			else:
-				var reach := wanted * AIR_STEER
-				if wanted != 0.0 and _air_vx * signf(wanted) < absf(reach):
-					_air_vx = move_toward(_air_vx, reach, AIR_ACCEL * delta)
+			_air_vx = Motion.steered(_air_vx, wanted, _launched and not golem.on, delta)  # (a jump they chose: they steer, brake and turn as freely as on the ground)
 			velocity.x = _air_vx
 		else:
 			velocity.x = wanted
@@ -1026,8 +1021,7 @@ func _shoved(delta: float, can_move: bool) -> void:
 	if _shove.y < 0.0:
 		velocity.y = minf(velocity.y, _shove.y)
 	# On the ground a shove dies away at once; in the air there is nothing to stop it, so a blow carries the wizard on and the keys cannot cancel it.
-	_shove.x = move_toward(_shove.x, 0.0, (AIR_DRAG if _in_free_air() else SHOVE_SHED) * delta)
-	_shove.y = move_toward(_shove.y, 0.0, SHOVE_SHED * delta)
+	_shove = Motion.shed(_shove, _in_free_air(), delta)
 
 
 ## The step itself: the AI's hop up a ledge, the move, the map's edges and the sound of the steps.

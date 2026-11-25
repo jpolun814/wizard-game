@@ -107,6 +107,7 @@ func _build_map() -> Variant:
 	var shut := WorldBuilder.shut(built, true)
 	nav = WorldNav.new()
 	nav.build(shut["cells"], built["size"].y, shut["barred"], spawn_tiles[0], shut["tolls"], shut["links"], shut["climbs"], spawn_tiles.slice(1))
+	_say_the_ground(built)
 	return built["cells"]
 
 
@@ -503,6 +504,7 @@ func build_nav() -> void:
 	for tile: Vector2i in _dug_tiles:
 		cells.erase(tile)
 	nav.build(cells, _built["size"].y, shut["barred"], spawn_tiles[0], shut["tolls"], shut["links"], shut["climbs"], spawn_tiles.slice(1))
+	_say_the_ground(_built)
 
 
 ## The ground has been dug (a Sinkhole): the tiles it took away are open air to the wizards' map, which is made again.
@@ -607,6 +609,12 @@ func _end_with_epilogue(look: String, palette: int) -> void:
 @rpc("authority", "call_remote", "reliable")
 func _back_to_room() -> void:
 	match_end.back_to_room()
+
+
+## The ground as it is, for the AI wizards' working out of ways (WorldNav.ground): what bars the way bars it, and no crossing has a floor it has not got.
+func _say_the_ground(built: Dictionary) -> void:
+	var bare := WorldBuilder.shut(built, false)
+	nav.ground_is(bare["cells"], built["size"].y, bare["barred"], bare["climbs"])
 
 
 ## A Rift sets the wizard down in another hall, picked by chance, and none behind a gate.

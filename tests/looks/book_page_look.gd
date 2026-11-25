@@ -18,7 +18,7 @@ func _ready() -> void:
 	for k in 30:
 		await get_tree().process_frame
 	lab.spellbook.show_page(page)
-	for k in 90:
+	for k in 100:
 		await get_tree().process_frame
 	get_viewport().get_texture().get_image().save_png(out)
 	Library.clear()

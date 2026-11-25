@@ -5,6 +5,7 @@ extends RefCounted
 ##   pace   the share of its walking speed it keeps (more than 1 is faster)
 ##   fall   the fastest it falls, in pixels a second
 ##   jump   false where it cannot jump
+##   air_jump  the share of a jump it has once more in the air, before it lands
 
 const TABLE := {
 	"slowed": {"pace": 0.5},
@@ -14,6 +15,7 @@ const TABLE := {
 	"heavy": {"pace": 0.75},
 	"drained": {"pace": 0.7},
 	"featherlight": {"fall": 70.0},
+	"skystep": {"air_jump": 0.9},
 }
 
 

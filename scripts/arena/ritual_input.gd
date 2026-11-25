@@ -22,11 +22,11 @@ const RITUALS := {
 	"boundless": {"kind": "ritual", "name": "Blessing of the Wellspring",
 		"text": "vires fluant"},
 	"double_jump": {"kind": "ritual", "name": "Blessing of Skystep",
-		"text": "volo iterum"},
+		"text": "volo iterum", "parts": [{"where": "self", "for": 20.0, "does": [{"do": "state", "state": "skystep"}]}]},
 	"rift": {"kind": "ritual", "name": "Incantation of the Fool's Gate",
 		"text": "locum muta"},
 	"haste": {"kind": "ritual", "name": "Charm of Swift Feet",
-		"text": "celeriter curre"},
+		"text": "celeriter curre", "parts": [{"where": "self", "for": 20.0, "does": [{"do": "state", "state": "hasted"}]}]},
 	"deep_breath": {"kind": "ritual", "name": "Blessing of the Deep Breath",
 		"text": "teneo"},
 	"dowsing": {"kind": "ritual", "name": "Chant of Dowsing",
@@ -53,6 +53,12 @@ const FULL_POWER_AT := 0.9   # accuracy at or above this is full power
 
 var likeness_listens := false  # the waiting room turns this on; in a match the words mean nothing
 var _line: LineEdit
+
+
+## What a chant does, as a spell's `parts` say it (see Spell): the first effect of this kind, or nothing.
+static func effect_of(id: String, term: String) -> Dictionary:
+	return Spell.among(RITUALS[id].get("parts", []), term)
+
 
 
 func _ready() -> void:

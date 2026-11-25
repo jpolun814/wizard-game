@@ -823,7 +823,7 @@ def make_clouds():
 
 
 def make_snail():
-    """The Invincible Snail: four frames of a crawl, 24 x 16, facing right, standing on the bottom row. A dark violet shell with a pale spiral groove, a long grey body
+    """The Immortal Snail: four frames of a crawl, 24 x 16, facing right, standing on the bottom row. A dark violet shell with a pale spiral groove, a long grey body
     that stretches and gathers as it goes, two stalks with small red eyes, a wet shine along the foot, and a trail of slime behind."""
     body = ramp("#aeae98", "#7e7e6c", "#52524a", "#26261f")
     shell = ramp("#7a6a90", "#54486a", "#362c48", "#1a1228")

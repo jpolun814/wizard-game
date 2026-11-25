@@ -1,4 +1,4 @@
-# How an AI wizard works out how to move (design note, 2026-11-25; nothing here is built yet)
+# How an AI wizard works out how to move (2026-11-25; the design, and from section 9 what is built)
 
 **What the owner asked for:** no tricks written spell by spell ("feels like this is cheating... rather than actually teaching it how to use the spells"), and no
 crossings that "have to be explicitly stated in the world rather than just a function of how the AI brain works". All movement, not only crossings.
@@ -140,3 +140,47 @@ rather than run trials to learn about it or go digging around the place... we ju
   other than a wizard (recorded nowhere yet). What Great Oak, Lily Pads, Stone Wall and Sinkhole leave is not in the recorded paths.
 - **Found on the way:** an AI asks for a pace of 300 (`WizardBrain.WALK_SPEED`), and `Pad.walking` holds it to that, so Haste, Adrenaline, Jolt and Wild Shape make no AI faster. To be mended by the planner, which must
   ask for what the body can do; a jump's reach is worked out from the speed, so it is not a matter of changing the constant.
+- **Second part, the same day:** Frost Bridge (two parts: on water, on ground), Skystep and Swift Feet (`RitualInput.RITUALS[id]["parts"]`, `RitualInput.effect_of`). How steep a flick may be is no spell's own: within 20
+  degrees of upright a straight stroke is Moonbeam's on the Umbramancy buttons (`StrokeReader.straight_means`, which the game and the planner both ask). How a body falls, steers in the air and sheds a shove is in `Motion` too.
+- A static figure read from the data must not be read through a script that itself reads the data as it loads (`IceSheet` through `FrostBridge`), nor may `Spell` or `Motion` reach into the arena's scripts: the spells then
+  load before their own script has, with no parts.
+
+## 11. Stage 2 (2026-11-25): the planner on paper, not yet in the brain
+
+- **`MoveMap`** (`scripts/brain/move_map.gd`): the ground as tiles, the moves on foot, the edges of floors, and `edges`: what each spell does from each place, worked out once and kept for all the world's wizards.
+  **`MoveBody`**: a body pictured moving by `Motion`'s laws. **`MovePlan`**: the search. Nothing in them names a spell. `work(units)` goes on a little at a time; the work is counted, not timed, so that the game stays
+  the same on every machine.
+- **Checks:** `tests/unit/move_body_test.gd` sets the pictured body against the real casts recorded by `movement_paths_check` (walk, jump, drive, lift, throw, carry, slow fall: within 26 px, up to 70 late in a Geyser's fall,
+  where the real one is a little higher). `tests/unit/move_plan_test.gd`: **all 24 drills right** (a way in 22, none in the two refusals); a spell made up in the test is used, and refused when too weak; only seen ground; prices.
+  **A way on paper is not a way walked**: that the real body can follow it is what stage 3 proves.
+- **In real worlds** (`tests/tools/plan_cost.tscn`, places wizards start to one of the four nearest pages, four random movement spells): a way in every one of 24 plans in each of six biomes and the two castle seeds; on foot alone
+  9 of 24 and 7 of 24 in the castles (no stairs in this map yet: it is tiles only). Lava and thorns are not in the map yet either, so "on foot" in the open worlds may cross them.
+- **Cost.** At first 4,400 ms a plan. Now in the open worlds median about 10 to 20 ms, worst about 230; in the castle median about 200 to 260 ms, worst about 1.1 s; the same thought again 40 ms. The longest single slice asked to be
+  a millisecond: 6 to 7 ms, most far less. So with 2 ms a frame shared by eight wizards, a castle's first thoughts take some seconds and later ones a few frames.
+- **What the planner does not use yet:** what leaves a floor (Great Oak, Lily Pads, Frost Bridge, Stone Wall) or a pit, what drives along the ground (Tide Surf), other bodies (Wild Shape, Golem), what throws to a side by chance
+  (Tornado) or only ahead (Gust).
+- **To come in stage 3:** stairs, vines and other moves the world has (`links`, `climbs`) with the wait for them as a price; hazards as a bar until stage 4 prices them; planks; the map kept right when ground is dug or walls raised.
+- **Found on the way:** `tests/tools/ai_arena` ignores `biome=` and `mode=duel`'s choice of a flat world: `World` begins the match anew, which clears `MatchState.forced_biome` (asked for jungle and for ashlands, got a castle both
+  times). So the duel trials of `ai_trial` were fought in whatever world the seed gave. And an AI wizard hops at a seam in level ground now and then (recorded after a Shadow Step).
+
+## 12. Stage 3, first part (2026-11-25): an AI wizard goes by its plans
+
+- **`MoveDo`** (`scripts/brain/move_do.gd`, `brain.go`) thinks (a little each frame), walks the legs on foot with `WizardRoute`, stands, draws, leans over at the height the plan said, and thinks again when it comes down
+  elsewhere (`MISS` in a match log says why). A stroke is made from the spell's gesture and how it is aimed. The switch is `movement` (`AI_OFF=movement`). `WorldNav.ground()` is the map (made when first asked for; `World`
+  says what is in it, without the floors the old map pretends over crossings), with the world's own vines and stairs, a stair reckoned at 12 s of waiting.
+- **Asked when:** no page can be walked to (`BrainTravel.take_to_its_spells`), and when it is held up on its way by a stair or by danger (`_take_another_way`). Not yet: choosing where to explore, the chase, fleeing, pits.
+- **The drills: 23 of 24** with the real body (5 before), with each of four sets of dice, though they were looked at while it was made. `loft: Shadow Step` fails: its proof draws strokes at once, and at the speed a stroke is drawn, with the view sliding, it may
+  not be possible. The planner knows that limit (`_steady`: the same measured figures as `BrainHand.drag_ok`).
+- **In real worlds it has not yet cut the standing still.** Castle and jungle, 3 matches of 120 s each, the same dice on and off: still 37% and 35%, for nothing 24% and 24%; pages read 322 and 309; falls
+  7 and 9: no difference that means anything. Why, seen by replaying the very moments: **(1)** in the castle those who stand at a stair mostly hold nothing that would get them up it (Tornado, Featherfall, Tide Surf or nothing), and a stair that swings among
+  two or three landings, 6 to 12 s at each, may be away for 30 s; **(2)** in the jungle they stand before **ponds of piranhas** on their way: the old map's way goes through the pond, the danger check will not let
+  them in, and they hold nothing to cross it with; **(3)** one hangs on a vine for 40 s (`climb_hang`).
+- **A bug mended on the way** (`leapover`): a leap over thorns was never made, because the danger check saw them ahead, backed off, and the jump was already marked as made (`WizardRoute.leaps_over`). It did not change the figures above.
+- **Next:** a price on harm (stage 4), so that a pond or thorns is waded by one who can afford it and no way is planned through one who cannot; exploring by what can be reached with the spells held, and by the stairs that stand
+  ready in sight; the vine.
+
+## 13. The measuring tools were not doing what they said (mended 2026-11-25)
+
+`MatchState.begin` cleared `forced_biome`, so `ai_arena`'s `biome=` and the flat worlds of `mode=duel` did nothing, and `soak_check` played portals for graveyard and sky, jungle for castle, and ashlands for ocean. Now `MatchState.first_biome`
+says where the next match begins. `soak_check` passes in all nine. **Duel trials before this day were fought in whatever world the seed gave.**
+

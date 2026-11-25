@@ -32,7 +32,7 @@ Of the 75 spells only 27 deal damage. The rest need other numbers, and the AI to
 | Healing | Cauterize, Breathe, Mud Mask, Healing Spring, the chants | max stamina given, over how many seconds, what ends it (a blow, moving), cost, how fast it can be used (`Mending.CAP`) | worth = stamina healed per second of exposure and per point paid, against how worn the wizard is |
 | Movement and pathfinding | Rocket Jump, Updraft, Liana, Frost Bridge, Lily Pads, Stone Wall, Sinkhole, Shadow Step, Tide Surf, Push, Great Oak | height lifted (px), distance covered (px), how long it lasts, whether it needs ground or water, cost | `BrainGates` and `BrainMoves` should ask "which spell I hold covers this gap or this wall" by comparing the obstacle's measure (gap width, wall height, pit depth) with the spell's, and take the cheapest that covers it, rather than by lists of tags |
 | Light and sight | Flare, Glowcap, Moonbeam, Dancing Lights, Eclipse, Hunter's Mark, Sneak | light radius, seconds, cost | the brain asks for light when it is dark; the cheapest light that lasts the longest wins |
-| Summons | Raise Dead (50 hp), Invincible Snail, Golem, Mirage, Decoy | health, damage rate, seconds, cost | worth = what the summon does over its life, over cost |
+| Summons | Raise Dead (50 hp), Immortal Snail, Golem, Mirage, Decoy | health, damage rate, seconds, cost | worth = what the summon does over its life, over cost |
 
 ## Order of the work
 

@@ -1,5 +1,5 @@
 """Makes art/props/page.png: a loose page of the spellbook lying flat on the ground. The parchment, its ragged cream edge and its shading are
-cut from the open book (art/ui/book.png, frame 3, top-left corner of the left page, mirrored to make a whole sheet); a few lines of ink are
+cut from the open book (the old sheet, art_source/props/before/book_ui.png, frame 3, top-left corner of the left page, mirrored to make a whole sheet); a few lines of ink are
 added, and the sheet is made small, stood upright and given a dark line and a margin. Run with: python -I tools/prepare_page.py"""
 import os
 import random
@@ -7,7 +7,7 @@ import random
 from PIL import Image
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
-sheet = Image.open(os.path.join(ROOT, "art", "ui", "book.png")).convert("RGBA")
+sheet = Image.open(os.path.join(ROOT, "art_source", "props", "before", "book_ui.png")).convert("RGBA")  # the book's old sheet (190 x 160 frames): art/ui/book.png is drawn finer now, by tools/make_book_art.py
 frame = sheet.crop((3 * 190, 0, 4 * 190, sheet.height))
 quarter = frame.crop((20, 25, 20 + 32, 25 + 46))  # the top-left corner of the left page, ragged edges and all
 page = Image.new("RGBA", (64, 92))

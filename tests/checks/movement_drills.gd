@@ -3,9 +3,9 @@ extends Check
 ## spells named, and nothing in the room is labelled for it. Each drill is played twice: first by a script that moves the real body and casts the real spells, which proves that
 ## there is a way (PROOF), and then by the AI's own mind (PASS or FAIL). "refuse" drills have no way: the AI must not throw itself away trying, or go on wanting the page.
 ##
-##     godot --headless --fixed-fps 60 --path . tests/checks/movement_drills.tscn [-- only=ledge] [proof=only] [ai=only] [trace=1] [labelled=1]
+##     godot --headless --fixed-fps 60 --path . tests/checks/movement_drills.tscn [-- only=ledge] [proof=only] [ai=only] [trace=1] [labelled=1] [dice=N]
 ##
-## On 2026-11-25 most of these fail: they are what the movement planning is for. With `labelled=1` the room reads itself and names its pits and faces for the AI, as rooms do
+## At first (2026-11-25) the AI passed 5 of 24; with the movement planning it passes 23. With `labelled=1` the room reads itself and names its pits and faces for the AI, as rooms do
 ## in the game (RoomScan), which shows how much of what the AI can do today comes from the labels. The planning must do without them.
 
 const ROOM := preload("res://tests/support/drill_room.gd")
@@ -16,6 +16,7 @@ var drills: Array[Dictionary] = []
 var _room: Lab
 var _trace := false
 var _labelled := false
+var _dice := 0
 
 
 ## A wizard that goes the way the script says.
@@ -41,6 +42,8 @@ func _ready() -> void:
 			proof = false
 		elif arg == "trace=1":
 			_trace = true
+		elif arg.begins_with("dice="):
+			_dice = int(arg.substr(5))
 		elif arg == "labelled=1":
 			_labelled = true
 	_list()
@@ -143,7 +146,7 @@ func _goal(drill: Dictionary) -> Vector2:
 
 
 func _enter(drill: Dictionary, scripted: bool) -> void:
-	Dice.reset(hash(drill["name"]))
+	Dice.reset(hash(drill["name"]) + _dice)
 	ROOM.plan = drill["plan"]
 	ROOM.slabs = drill["slabs"]
 	var scene: Node = load("res://scenes/duel.tscn").instantiate()
@@ -182,6 +185,7 @@ func _enter(drill: Dictionary, scripted: bool) -> void:
 	else:
 		wizard.nav = _room.call("plain_map")
 	wizard.brain = ScriptedBrain.new(wizard) if scripted else WizardBrain.new(wizard)
+	wizard.brain.go.told = _trace
 	await _frames(20)
 
 

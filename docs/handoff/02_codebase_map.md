@@ -156,7 +156,7 @@ never block each other.
   shake), `bonfire.gd`, `portal.gd`.
 - **`hud.gd`:** the stamina bar, title, banner, portal arrow, pause and game-over screens. Uses the pixel
   fonts Jersey 15 and Jacquard 24.
-- **`spellbook.gd`:** the pixel book (`art/ui/book.png`, 7 frames), `MouseIcon` and `StrokePreview` drawn on the book's
+- **`spellbook.gd`:** the pixel book (`art/ui/book.png`, 8 frames of 475 x 400, drawn by `tools/make_book_art.py` at `Spellbook.DETAIL` (2.5) times the detail of the layout units every place measures the book in; frames 0 closed, 1-2 swinging open, 3 open, 4-7 a leaf turning, `Spellbook.turn_frames`), `MouseIcon` and `StrokePreview` drawn on the book's
   pixel grid, and the pages.
 - **Other UI:** `minimap.gd`, `debug_panel.gd`.
 

@@ -47,21 +47,28 @@ func _column_of(page: String) -> VBoxContainer:
 	return _book.get("_left") if index % 2 == 0 else _book.get("_right")
 
 
-func _labels(column: VBoxContainer) -> Array:
+func _labels(column: Node) -> Array:
+	# The writing in reading order, including what sits in the foot's own rows (the lines beside a picture in the corner).
 	var out := []
 	for child in column.get_children():
 		if child is Label:
 			out.append(child)
+		elif child is BoxContainer:
+			out.append_array(_labels(child))
 	return out
 
 
 func _fits(column: VBoxContainer, what: String) -> void:
-	# What a reader sees: the lowest line of writing must end above the page number (which sits 56 px up from the foot of the page), and none may be cut at the edge.
+	# What a reader sees: the lowest line of writing must end above the page number (a label on the page's own area, beside the column), and none may be cut at the edge.
+	var number_top: float = column.get_parent().size.y
+	for sibling in column.get_parent().get_children():
+		if sibling is Label:
+			number_top = minf(number_top, sibling.position.y)
 	var lowest := 0.0
 	for child in column.get_children():
 		if child is Label or child is HBoxContainer or child is TextureRect:
 			lowest = maxf(lowest, child.position.y + child.size.y)
-	_verdict(lowest <= column.get_parent().size.y - 56.0 + 4.0, "%s: its writing ends above the page number (%.0f px, the number is at %.0f)" % [what, lowest, column.get_parent().size.y - 56.0])
+	_verdict(lowest <= number_top + 4.0, "%s: its writing ends above the page number (%.0f px, the number is at %.0f)" % [what, lowest, number_top])
 
 
 func _spell_page(spell_name: String) -> void:

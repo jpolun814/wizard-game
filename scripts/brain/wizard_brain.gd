@@ -125,7 +125,7 @@ const USES := {
 	"Stalagmite": "attack", "Bramble": "attack", "Flytrap": "attack", "Icicles": "attack under a ceiling", "Sinkhole": "attack", "Tornado": "attack, and a way up",
 	"Ice Prison": "attack", "Blizzard": "attack", "Mudslide": "attack", "Black Hole": "attack", "Earthquake": "attack", "Hex": "attack", "Vacuum": "attack",
 	"Faint": "attack", "Fight or Flight": "attack", "Silence": "attack", "Tide Surf": "attack", "Thunderclap": "attack",
-	"Barbs": "attack", "Pebble": "attack", "Hailstorm": "attack", "Thorn Whip": "attack", "Insect Plague": "attack", "Leech": "attack", "Raise Dead": "attack", "Golem": "attack, and fights as a golem", "Flaming Sphere": "attack", "Eldritch Blast": "attack", "Hemorrhage": "attack", "Invincible Snail": "attack", "Supernova": "attack", "Scythe": "attack", "Mirage": "attack",
+	"Barbs": "attack", "Pebble": "attack", "Hailstorm": "attack", "Thorn Whip": "attack", "Insect Plague": "attack", "Leech": "attack", "Raise Dead": "attack", "Golem": "attack, and fights as a golem", "Flaming Sphere": "attack", "Eldritch Blast": "attack", "Hemorrhage": "attack", "Immortal Snail": "attack", "Supernova": "attack", "Scythe": "attack", "Mirage": "attack",
 	"Barrier": "defence", "Gust": "defence", "Shadow Step": "defence, and a way over a chasm", "Push": "repel, and a way up", "Rocket Jump": "a way up", "Geyser": "repel, and a way up",
 	"Stone Wall": "tend", "Smoke Screen": "tend", "Decoy": "tend", "Eclipse": "tend", "Crimson Veil": "tend", "Obsidian Armor": "tend, and a way through lava",
 	"Adrenaline": "tend", "Wild Shape": "tend, and fights as a werewolf", "Sneak": "tend", "Hunter's Mark": "tend", "Flare": "tend", "Dancing Lights": "tend", "Bathe": "tend", "Headwind": "tend", "Jolt": "attack", "Glowcap": "tend", "Moonbeam": "tend",
@@ -168,6 +168,7 @@ var mend: BrainMend
 var explore: BrainExplore
 var gates: BrainGates  # the ways over crossings and the clearing of gates
 var moves: BrainMoves  # the leap, the wade and the lift it may have in hand
+var go: MoveDo  # getting somewhere by its spells
 var chant: BrainChant
 var danger: BrainDanger
 var sight: BrainSight
@@ -192,6 +193,7 @@ func _init(body: Wizard) -> void:
 	wizard = body
 	hand = BrainHand.new(self, body)
 	moves = BrainMoves.new(self, body)
+	go = MoveDo.new(self, body)
 	gates = BrainGates.new(self, body)
 	travel = BrainTravel.new(self, body)
 	combat = BrainCombat.new(self, body)
@@ -296,6 +298,8 @@ func _run_clocks(delta: float) -> void:
 	_hurt_age += delta
 	_note_new_pages(delta)
 	travel.dash -= delta
+	if not BrainProfile.off("movement") and wizard.nav != null:
+		go.tick_thought(delta)
 	hand.tick(delta)
 	combat.catch_fall()
 	if chant.is_typing() and _typing_disturbed():  # it breaks off the chant, and will not try it here again for a while

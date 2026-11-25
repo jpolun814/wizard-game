@@ -1,10 +1,12 @@
 class_name MenuSign
 extends Control
 
-## A sign, as a picture in ink: drawn whole, or drawn out stroke by stroke again and again to show how.
+## A sign, as a picture in ink: drawn whole, or drawn out stroke by stroke again and again to show how. It is laid in whole pixels on the grid of the book's own
+## art (`PixelInk`; `cell` is the size of one, which the menu sets to the pixel of the book it is drawn on), as the strokes on a spell's page are.
 
 var gesture := ""
 var animated := false
+var cell := Spellbook.CELL   # screen pixels to one pixel of the art
 var _clock := 0.0
 var _flare := 0.0
 
@@ -40,15 +42,23 @@ func _draw() -> void:
 		var share := clampf(fposmod(_clock, 3.2) / 2.2, 0.0, 1.0)  # drawn out over two seconds, held a moment, then again
 		shown = _part(fitted, share)
 		head = shown[shown.size() - 1]
-	var width := 4.0 if animated else 3.0
 	if shown.size() >= 2:
-		draw_polyline(shown, Color(Menu.INK, 0.82), width, true)
+		var line := PixelInk.along(shown, cell)
+		if animated:
+			PixelInk.fill(self, PixelInk.bleed(line), cell, Color(Menu.INK, 0.38))   # the drawn-out sign is a cell broader
+		else:
+			line = PixelInk.thick(line)   # the little signs beside the buttons are two cells wide, to hold their own against the lettering
+		PixelInk.fill(self, line, cell, Color(Menu.INK, 0.82))
 	if animated:
-		draw_circle(head, 6.0, Color(Menu.GLOW, 0.35))
-		draw_circle(head, 3.0, Color(1.0, 0.92, 0.6, 0.9))
+		var dot := PixelInk.block(head, 1, cell)   # the pen: a small block of light, with a halo a cell wide
+		PixelInk.fill(self, PixelInk.bleed(dot), cell, Color(Menu.GLOW, 0.35))
+		PixelInk.fill(self, dot, cell, Color(1.0, 0.92, 0.6, 0.9))
 	if _flare > 0.0:
-		draw_polyline(fitted, Color(Menu.GLOW, _flare * 0.8), width + 8.0 * _flare, true)
-		draw_polyline(fitted, Color(1.0, 0.95, 0.75, _flare), width, true)
+		var whole := PixelInk.along(fitted, cell)
+		var halo := PixelInk.bleed(whole)
+		PixelInk.fill(self, PixelInk.bleed(halo), cell, Color(Menu.GLOW, _flare * 0.35), halo)
+		PixelInk.fill(self, halo, cell, Color(Menu.GLOW, _flare * 0.8), whole)
+		PixelInk.fill(self, whole, cell, Color(1.0, 0.95, 0.75, _flare))
 
 ## The first share of a line, by its length.
 static func _part(line: PackedVector2Array, share: float) -> PackedVector2Array:

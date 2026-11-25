@@ -18,9 +18,13 @@ const HEADING := Color("#6e1420")
 const SUBTLE := Color("#6b4434")
 const PAPER_DARK := Color("#b88f72")
 const SCALE := 5.0             # one pixel of the book is this many screen pixels
-const FRAME := Vector2(190, 160)
-const OPEN := 3                # the book's frames: 0 closed, 1-2 opening, 3 open, 4-6 a page turning over
-const PAGES := [Rect2(25, 30, 57, 100), Rect2(98, 30, 58, 100)]  # where the writing goes, in book pixels
+const FRAME := Vector2(190, 160)  # the book's frame in LAYOUT units, which every place the book is used (the pages, the menu, the library) is measured in
+const DETAIL := 2.5            # the picture is drawn this many times finer than the layout units: a frame of the sheet is FRAME * DETAIL pixels, so one pixel of the picture is as big as one of the world's sprites
+const CELL := SCALE / DETAIL  # screen pixels to one pixel of the book's art: what the strokes, the mouse and every drawn thing on a page is snapped to
+const OPEN := 3                # the book's frames: 0 closed, 1-2 opening, 3 open, 4-7 a page turning over
+const TURN := [4, 5, 6, 7]     # the frames of a leaf turning over, right to left
+const MARGIN := 6.0            # the writing keeps this far from the edge of the paper on every side: top, bottom and both sides (the paper runs 20 to 90 and 91 to 161 across, 26.4 to 135.2 down)
+const PAGES := [Rect2(26, 33.4, 58, 95.8), Rect2(97, 33.4, 57.8, 95.8)]  # where the writing goes, in book pixels
 const FRAME_TIME := 0.06
 const OPEN_MIDDLE := Vector2(90.5, 83.5)  # the middle of the open book in its frame
 
@@ -243,9 +247,18 @@ func _turn(leaves: int) -> void:
 	_spread = turned
 	# The page flips over with the writing hidden, then the new pages show.
 	_set_writing(false)
-	_book.play([4, 5, 6, OPEN] if direction > 0 else [6, 5, 4, OPEN], func() -> void:
+	_book.play(turn_frames(direction > 0), func() -> void:
 		_show_spread()
 		_set_writing(true))
+
+
+## The frames to play to turn a leaf forward (right to left) or back, ending on the open book.
+static func turn_frames(forward: bool) -> Array:
+	var frames := TURN.duplicate()
+	if not forward:
+		frames.reverse()
+	frames.append(OPEN)
+	return frames
 
 
 func _set_writing(on: bool) -> void:
@@ -276,8 +289,8 @@ func _page_column(page: Rect2) -> VBoxContainer:
 func _page_number(column: VBoxContainer) -> Label:
 	var label := _ink("", 20, SUBTLE)
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	label.size = Vector2(column.size.x, 30)
-	label.position = Vector2(0, column.size.y - 56)
+	label.size = Vector2(column.size.x, 28)
+	label.position = Vector2(0, column.size.y - 28)  # its foot is the foot of the writing, as far from the paper's edge as the heading is from the top
 	column.get_parent().add_child(label)
 	return label
 
@@ -327,12 +340,17 @@ func _title_label(text: String, size: int, color := TEXT_INK) -> Label:
 	return label
 
 
-## A heading in red ink, with a pixel rule under it.
-func _heading(text: String, size := 44) -> VBoxContainer:
+## A heading in the title hand. A name that would not fit the room beside the page's mouse or key on one line is set a size smaller, so no name takes two.
+func _heading(text: String, size := 44, room := 0.0) -> VBoxContainer:
 	var block := VBoxContainer.new()
 	block.add_theme_constant_override("separation", 0)
-	block.add_child(_title_label(text, size, TEXT_INK))
-	block.add_child(_rule(HEADING))
+	var fitted := Lettering.size_near(size)
+	while room > 0.0 and fitted > Lettering.GRID and _title_font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, fitted).x > room:
+		fitted -= Lettering.GRID
+	var label := _title_label(text, fitted, TEXT_INK)
+	if room > 0.0:
+		label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	block.add_child(label)
 	return block
 
 
@@ -396,19 +414,17 @@ func _page_spell(column: VBoxContainer, spell_name: String) -> void:
 	var school: String = s.school
 	var top := HBoxContainer.new()
 	top.add_theme_constant_override("separation", 10)
-	var heading := _heading(spell_name, 42)
+	var heading := _heading(spell_name, 42, PAGES[0].size.x * SCALE)  # the whole width of the page: a name sits on one line
 	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	top.add_child(heading)
-	top.add_child(MouseIcon.new(_school_mask(school), SpellData.SCHOOL_COLORS[school]))
 	column.add_child(top)
 	if _is_new(spell_name):
 		column.add_child(_new_badge())
 	var gesture: String = s.gesture
-	var preview := StrokePreview.new(GestureTemplates.preview_points(gesture), GestureTemplates.preview_ground(gesture), 150.0)
-	preview.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	var preview := StrokePreview.new(GestureTemplates.preview_points(gesture), GestureTemplates.preview_ground(gesture), 176.0, true)
 	column.add_child(preview)
 	column.add_child(_ink(s.effect, 22, TEXT_INK))
-	_foot(column, [s.heal_line() if s.heals() else s.damage_line(), s.cost_line()], s.applies, s.removes)
+	_foot(column, [s.heal_line() if s.heals() else s.damage_line(), s.cost_line()], s.applies, s.removes, MouseIcon.new(_school_mask(school), SpellData.SCHOOL_COLORS[school]))
 
 
 ## True for a spell or chant that this wizard has not cast yet this game (in the waiting room every page is known and nothing is marked).
@@ -452,7 +468,7 @@ static func _sparkle() -> TextureRect:
 
 
 ## An incantation's own page: its name, its words and what it does. Every one is spoken by typing it and pressing Enter,
-## which every page shows as a key, the way the spell pages show the mouse buttons.
+## which every page shows as a key at its foot, where the spell pages show the mouse buttons.
 func _page_incantation(column: VBoxContainer, ritual_id: String) -> void:
 	var r: Dictionary = RitualInput.RITUALS[ritual_id]
 	var top := HBoxContainer.new()
@@ -460,13 +476,12 @@ func _page_incantation(column: VBoxContainer, ritual_id: String) -> void:
 	var heading := _heading(r["name"], 40)
 	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	top.add_child(heading)
-	top.add_child(KeyCap.new("Enter"))
 	column.add_child(top)
 	if _is_new("chant:" + ritual_id):
 		column.add_child(_new_badge())
 	column.add_child(_ink("“%s”" % r["text"], 26, TEXT_INK))
 	column.add_child(_ink(ritual_effect(ritual_id), 20, TEXT_INK))
-	_foot(column, [ritual_heal_line(ritual_id), ritual_cost_line(ritual_id)], [CHANT_STATES[ritual_id]] if CHANT_STATES.has(ritual_id) else [], [])
+	_foot(column, [ritual_heal_line(ritual_id), ritual_cost_line(ritual_id)], [CHANT_STATES[ritual_id]] if CHANT_STATES.has(ritual_id) else [], [], KeyCap.new("Enter"))
 
 
 ## The states a page puts on someone (a picture each), and the ones it takes off (the same picture with a red cross over it). The mouse resting on one says what the
@@ -514,17 +529,28 @@ func _status_picture(name: String) -> AtlasTexture:
 
 ## The figures of a page, always at its foot just above the page number, so a reader knows where to look: damage first, then cost.
 ## Lines that are empty are left out.
-func _foot(column: VBoxContainer, lines: Array, applies := [], removes := []) -> void:
+func _foot(column: VBoxContainer, lines: Array, applies := [], removes := [], corner: Control = null) -> void:
 	var gap := Control.new()
 	gap.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	column.add_child(gap)
+	var block := VBoxContainer.new()
+	block.add_theme_constant_override("separation", 6)
+	block.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	if not applies.is_empty() or not removes.is_empty():
-		column.add_child(_status_row(applies, removes))
+		block.add_child(_status_row(applies, removes))
 	for line: String in lines:
 		if line != "":
-			column.add_child(_ink(line, 20, SUBTLE if line == lines[lines.size() - 1] else TEXT_INK))
+			block.add_child(_ink(line, 20, SUBTLE if line == lines[lines.size() - 1] else TEXT_INK))
+	if corner == null:
+		column.add_child(block)
+	else:  # a picture at the right of the foot, level with its last line (the spell's mouse)
+		var row := HBoxContainer.new()
+		row.add_child(block)
+		corner.size_flags_vertical = Control.SIZE_SHRINK_END
+		row.add_child(corner)
+		column.add_child(row)
 	var margin := Control.new()
-	margin.custom_minimum_size = Vector2(0, 50)  # the room the page number takes
+	margin.custom_minimum_size = Vector2(0, 38)  # the room the page number takes
 	column.add_child(margin)
 
 

@@ -24,14 +24,14 @@ packed into atlases, effects into strips).
 | `art/fx/flame`, `flame_blue` | [Animated Fire](https://opengameart.org/content/animated-fire) by BenHickling | CC0 |
 | `art/fx/enemy_death` | GothicVania Church by ansimuz | CC0 1.0 |
 | `art/fx/vortex`, `ring`, `slash`, `ice_burst`, `freeze`, `wind`, `bubbles` (some recoloured) | [Free Pixel Effects Pack](https://opengameart.org/content/free-pixel-effects-pack) by CodeManu | CC0 |
-| `art/fx/portal_purple` (Purple Portal Sprite Sheet) | Source and licence to confirm (the owner supplied the file) | to confirm |
+| `art/fx/portal_purple` (the portal, 24 frames) | Drawn for the game by `tools/make_portal_art.py` (it replaced a download of unconfirmed licence) | ours |
 | `art/fx/wind_bolt` | Pixel Art Spells by DevWizard | CC0 |
 | `art/fx/splash` (the Geyser's and Tsunami's foam) | [Pixel Art Spells](https://opengameart.org/content/pixel-art-spells) by DevWizard (uncropped copy in `art_source/packs/`) | CC0 |
 | `art/props/great_oak` (cropped from the tree, water strip removed, then darkened and shifted to teal to fit the dark world) | [GothicVania Bridge Expansion Pack 1](https://opengameart.org/content/gothicvania-bridge-expansion-pack-1) by ansimuz (original in `art_source/packs/`) | CC0 |
-| `art/fx/tornado` (born and loop, 60 frames cut from one sheet, scaled to 96 px) | [Tornado pixel sprite sheet](https://creasta.itch.io/tornado-pixel-sprite-sheet) by Creasta | **Licence not stated on the page.** The author's comment says it is free with no credit required. Owner approved its use; get written confirmation of the licence before release |
+| `art/fx/tornado` (born and loop, 60 frames of 96 px) | Drawn for the game by `tools/make_tornado_art.py` (it replaced a download of unstated licence) | ours |
 | `art/props/rock_spike_*` (recoloured to stone) | [Pixel Icicles](https://kamioo.itch.io/pixel-icicles) by Kamioo | CC0 |
 | `art/props/cloud_storm_*`, `cloud_snow_*` (recoloured) | [Pixel Art Clouds](https://opengameart.org/node/159981) by DustDFG | CC0 |
-| `art/ui/book.png` (the spellbook) | [Pixel Art Book](https://foxeldev.itch.io/pixelbooks) by Foxel Games | CC0 1.0 |
+| `art/ui/book.png` (the spellbook, 8 frames of 475 x 400) | Drawn for the game by `tools/make_book_art.py`. It replaced the [Pixel Art Book](https://foxeldev.itch.io/pixelbooks) by Foxel Games (CC0 1.0); the loose page's parchment (`art/props/page.png`) was still cut from that book | ours (the page's parchment CC0 1.0) |
 | `art/tiles/ice`, `art/props/ice_fill` (church stone, recoloured), `art/props/quicksand` (swamp water, recoloured) | GothicVania Church and Swamp by ansimuz | CC0 1.0 |
 | `art/particles/` (soft glows, smoke and sparks behind the pixel effects; the game loads `art/particles_px/`, the same cut down to chunky pixels by `tools/pixelate_particles.py`) | [Kenney – Particle Pack](https://kenney.nl/assets/particle-pack) | CC0 1.0 |
 
@@ -85,7 +85,7 @@ All human-made (the owner's rule: no AI music). Chosen by the owner, 2026-11-20.
 | `shatter` (Ice Prison, ice blocks and plugs) | `glass_breaking_01..03` from [75 CC0 breaking / falling / hit SFX](https://opengameart.org/content/75-cc0-breaking-falling-hit-sfx) by rubberduck | CC0 |
 | `rocks` (Stone Wall), `barrage` (Hailstorm), `cast` (Frostbolt), `shatter` (Icicles), `ice` (Ice Prison) | [Free Fantasy SFX Pack](https://tommusic.itch.io/) by TomMusic (Rock Wall 1, Ice Barrage 1, Ice Throw 1, Ice Wall 1, Ice Freeze 1); its readme gives no licence terms, used because the owner supplied it, 2026-11-20 | owner-approved |
 | `mend` (the heal spells Cauterize, Breathe, Mud Mask and Healing Spring, and the healing chants: `tools/make_heal_sounds.py`, `magical_1`, chosen by CLAP as the nearest to "a gentle magical healing chime") | [Magic spell SFX](https://opengameart.org/content/magic-spell-sfx) by JaggedStone (OpenGameArt) | CC0 |
-| `dark_whoosh` (Shadow Step, Eclipse), `summon` (Invincible Snail) | Horror SFX Free (`woosh`, `Drone_doom`, `Gore_Wet_4`); author and licence not recorded, used because the owner supplied it, 2026-11-20 | owner-approved |
+| `dark_whoosh` (Shadow Step, Eclipse), `summon` (Immortal Snail) | Horror SFX Free (`woosh`, `Drone_doom`, `Gore_Wet_4`); author and licence not recorded, used because the owner supplied it, 2026-11-20 | owner-approved |
 | `wind` (Spore Puff, `human_breathe_out`) | 96 Extra SFX; author and licence not recorded, used because the owner supplied it, 2026-11-20 | owner-approved |
 | `wind` (Lily Pads, `splash_14`), `summon` (Wild Shape, `creature_roar_02`), `dark_whoosh` (Decoy, `sfx100v2_misc_37`), Moonbeam (`music_box_chime_quick`, 400 Sounds Pack) | rubberduck's CC0 OpenGameArt packs, and the 400 Sounds Pack as above | CC0 / owner-approved |
 | `summon` (wizard arriving), `portal_enter` (portals) | Horror SFX Free (`woosh_5`, `Creepy_ambience_5`); licence not recorded, owner-approved 2026-11-20 | owner-approved |
@@ -217,7 +217,7 @@ Drawn pixel by pixel by `tools/make_shot_art.py`. No outside source and nothing 
 
 The lectern stand and plaque, the spellbook, the lily pad, the plank, the quicksand, the rock spikes, the door, the shipwreck and the marble stairs (`art/tiles/podium_marble.png`) were redrawn for the game by an agent at the owner's request (2026-11-17) with `python tools/wizard_parts/props.py`; the previous pictures are in `art_source/props/before/`.
 
-The Invincible Snail (`art/mobs/snail/`) was drawn for the game by an agent at the owner's request (2026-11-17) with `python tools/wizard_parts/props.py snail`.
+The Immortal Snail (`art/mobs/snail/`) was drawn for the game by an agent at the owner's request (2026-11-17) with `python tools/wizard_parts/props.py snail`.
 
 ## Status bubble icons
 art/fx/status_icons.png is drawn for the game (pixel art made by tools/wizard_parts/status_icons.py), with the owner's leave. No outside source.

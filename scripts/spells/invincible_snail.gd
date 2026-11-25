@@ -1,7 +1,7 @@
 class_name InvincibleSnail
 extends CharacterBody2D
 
-## Invincible Snail: a ring with a level line out of it, drawn over someone. A snail crawls after them, very slowly, and never stops. Whatever it touches dies at once, and
+## Immortal Snail: a ring with a level line out of it, drawn over someone. A snail crawls after them, very slowly, and never stops. Whatever it touches dies at once, and
 ## nothing harms it. It is stopped only by the world: a wall in its way, a pit it falls into, a gap it cannot cross, or the one it hunts falling, which makes it fade away.
 ## It goes with its quarry from world to world (see `carry_on` and `arrive`), appearing in the exact middle of the new one.
 
@@ -41,7 +41,7 @@ static func conjure(parent: Node, at: Vector2, hunted: Wizard, by: Wizard, quiet
 	snail.position = at
 	parent.add_child(snail)
 	if not quiet:
-		Sfx.cue("Invincible Snail", "summon", at, -4.0)
+		Sfx.cue("Immortal Snail", "summon", at, -4.0)
 	Fx.burst(parent, at, SpellData.SCHOOL_COLORS["Blood"], 10, 80.0, 0.5, true)
 	return snail
 

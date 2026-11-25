@@ -1,5 +1,5 @@
 extends Check
-## The Invincible Snail: drawn over a wizard it crawls after them, slowly, and kills with a touch; nothing hurts it; it fades when the one it hunts is gone; and one that
+## The Immortal Snail: drawn over a wizard it crawls after them, slowly, and kills with a touch; nothing hurts it; it fades when the one it hunts is gone; and one that
 ## was crawling arrives in the exact middle of the next world.
 ##
 ##     godot --headless --fixed-fps 60 --path . tests/checks/snail_check.tscn
@@ -27,7 +27,7 @@ func _ready() -> void:
 	await _wait(0.5)
 	prey.global_position = _player.global_position + Vector2(200.0, 0.0)
 	await _wait(0.3)
-	_world.spawn_spell("Invincible Snail", "positional", prey.center(), 0.0, {"radius": 30.0, "accuracy": 0.9}, _player)
+	_world.spawn_spell("Immortal Snail", "positional", prey.center(), 0.0, {"radius": 30.0, "accuracy": 0.9}, _player)
 	await _wait(0.3)
 	var snails := get_tree().get_nodes_in_group("snails")
 	_verdict(snails.size() == 1, "one snail crawls after the one it was drawn over")

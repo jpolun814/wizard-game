@@ -3,6 +3,8 @@ extends RefCounted
 
 ## How an AI wizard gets where it is going: choosing a page, a portal, a gate or a rival to go for, planning the way, walking it, swimming, and noticing it is getting nowhere.
 
+const HELD_UP := 0.4           # seconds it waits for danger to pass before it thinks of another way
+
 var assail_commit := 0.0       # seconds it keeps running from a creature after it is out of reach
 var assail_dir := 0.0
 var stair_idle := 0.0          # seconds it has stood at a swinging stair that goes up, whatever it is going there for
@@ -41,6 +43,12 @@ func travel(delta: float) -> float:
 	var holding := held_up(delta)
 	if not is_nan(holding):
 		return holding
+	if brain.go.active():
+		read_page_underfoot()
+		if brain.goal == "" or goal_lost():  # what it was going for is gone
+			brain.go.stop()
+		else:
+			return brain.go.go(delta)
 	var at_the_goal := at_the_goal(delta)
 	if not is_nan(at_the_goal):
 		return at_the_goal
@@ -164,6 +172,8 @@ func follow_route(delta: float) -> float:
 	var hop := _hop_up_the_stairwell(delta)
 	if not is_nan(hop):
 		return hop
+	if brain.route.waiting_for_stair and _take_another_way():
+		return 0.0
 	if brain.route.waiting_for_stair and brain.goal == "explore":
 		stair_wait += delta
 		if stair_wait > WizardBrain.STAIR_PATIENCE:  # a person does not stand at a stair for half a minute just to see what lies past it: they look elsewhere
@@ -181,12 +191,14 @@ func follow_route(delta: float) -> float:
 		stair_wait = 0.0
 	var ahead := signf(steer["dir"])
 	if ahead != 0.0 and wizard.is_on_floor() and dash <= 0.0 and not brain.danger.lethal_at(wizard.global_position + Vector2(0, -6)):
-		var near := brain.danger.lethal_at(brain.combat.over_ground(ahead * 40.0)) or brain.danger.lethal_at(brain.combat.over_ground(ahead * 72.0))
-		if near or brain.danger.lethal_at(brain.combat.over_ground(ahead * 110.0)):
+		var near := _lethal_ahead(ahead * 40.0) or _lethal_ahead(ahead * 72.0)
+		if near or _lethal_ahead(ahead * 110.0):
 			# lava or an eruption lies on the way: it keeps its distance, backing away if it is close, and waits for it to pass or cool; when that takes
 			# too long it looks for another way
 			danger_wait += delta
 			brain.route.wait()
+			if danger_wait > HELD_UP and _take_another_way():
+				return 0.0
 			if danger_wait > WizardBrain.DASH_AFTER and wizard.max_stamina >= WizardBrain.DASH_MIN_MAX and lethal_stretch(ahead) <= WizardBrain.DASH_MAX:  # a narrow stretch is not worth a wait: a person runs over it and takes the hit
 				dash = 1.6
 				danger_wait = 0.0
@@ -213,6 +225,26 @@ func follow_route(delta: float) -> float:
 	wizard.pad.climb = steer["climb"]  # at the foot of a rope ladder, the way up it
 	wizard.pad.let_go = steer["let_go"]  # and the hop off it at the top
 	return steer["dir"] * steer["speed"]
+
+
+## Something deadly lies that far off along the ground, and the way does not go over it in a leap.
+func _lethal_ahead(off: float) -> bool:
+	return brain.danger.lethal_at(brain.combat.over_ground(off)) and (BrainProfile.off("leapover") or not brain.route.leaps_over(wizard.global_position.x + off))
+
+
+## Held up on its way: it thinks of another by its spells to where it is going, and takes it when there is one. True when it has set out.
+func _take_another_way() -> bool:
+	if BrainProfile.off("movement") or not wizard.is_on_floor() or wizard.pen.active() or brain.route.done():
+		return false
+	var end := brain.route.last()
+	if end == WorldNav.NONE:
+		return false
+	var to := brain.go.stand_near(MoveMap.feet(end), 2)
+	if to == WorldNav.NONE or brain.go.ask(to) != "found" or not brain.go.by_spells():
+		return false
+	brain.route.clear()
+	brain.go.set_out()
+	return true
 
 
 ## A person who has stood a while at a stair that is not coming, and has a rocket, uses it: it steps off the landing over the open stairwell, lights the rocket,
@@ -452,6 +484,8 @@ func choose_goal() -> void:
 	var best_page: PagePickup = found["page"]
 	var best_path: Array[Vector2i] = []
 	best_path.assign(found["path"])
+	if best_page == null and take_to_its_spells():
+		return
 	var portal := brain.explore.nearest_portal(start)
 	if portal.has("portal") and (best_page == null or (portal["path"].size() < best_path.size() and brain.rng.randf() < WizardBrain.PORTAL_CHANCE)):
 		brain.goal = "portal"
@@ -487,6 +521,35 @@ func choose_goal() -> void:
 		if not path.is_empty():
 			brain.goal = "foe"
 			brain.route.set_path(path)
+
+
+## No page can be walked to: the nearest it knows of that there is a way to by its spells. True when it has set out, and not while it is still thinking.
+func take_to_its_spells() -> bool:
+	if BrainProfile.off("movement"):
+		return false
+	var best: PagePickup = null
+	var best_tile := WorldNav.NONE
+	for pickup: PagePickup in wizard.get_tree().get_nodes_in_group("pages"):
+		if not pickup.gives(wizard.ledger) or (pickup is Mirage and brain.wise_to_mirages) or (brain.explore.sight_is_limited() and not brain.seen_pages.has(pickup.get_instance_id())):
+			continue
+		var tile := brain.go.stand_near(pickup.global_position, WizardBrain.PAGE_REACH)
+		if tile == WorldNav.NONE or brain.go.ask_before(tile):
+			continue
+		if best == null or pickup.global_position.distance_to(wizard.global_position) < best.global_position.distance_to(wizard.global_position):
+			best = pickup
+			best_tile = tile
+	if best == null:
+		return false
+	match brain.go.ask(best_tile):
+		"found":
+			brain.goal = "page"
+			goal_page = best
+			page_steps = 0.0
+			brain.go.set_out()
+			return true
+		"thinking":
+			brain.goal_timer = 0.2  # (it looks again soon)
+	return false
 
 
 ## The page it was going to has gone: someone else read it, or it has it already.

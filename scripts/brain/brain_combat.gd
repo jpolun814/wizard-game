@@ -11,7 +11,7 @@ const WORTH := {
 }
 
 ## What a rival's drawn spell does, by where it lands: on the place that was drawn. (A bolt is not here: a flick is drawn too quickly to answer, and a spell at arm's length leaves no time.)
-const PLACED := ["Stonefall", "Stalagmite", "Sinkhole", "Firewall", "Bramble", "Flytrap", "Ice Prison", "Black Hole", "Supernova", "Hailstorm", "Blizzard", "Tornado", "Spark", "Silence", "Thunderclap", "Hemorrhage", "Insect Plague", "Icicles", "Invincible Snail"]
+const PLACED := ["Stonefall", "Stalagmite", "Sinkhole", "Firewall", "Bramble", "Flytrap", "Ice Prison", "Black Hole", "Supernova", "Hailstorm", "Blizzard", "Tornado", "Spark", "Silence", "Thunderclap", "Hemorrhage", "Insect Plague", "Icicles", "Immortal Snail"]
 ## The spells a Barrier turns away (it takes only what is thrown): against a rival behind one, or who is known to raise one, the rest are used.
 const SHOTS := ["Ignite", "Frostbolt", "Barbs", "Pebble"]
 ## The spells that land where they are drawn and catch whoever is near there, the caster too, with how near (px) the caster may be to the rival before casting one
@@ -99,7 +99,7 @@ func attack(to_player: Vector2, sees: bool) -> bool:
 		"Eldritch Blast": 1.4 if sees and gap > 120.0 and gap < 560.0 else 0.0,  # slow, and it bends toward you
 		"Jolt": (1.6 if foe.is_wet() else 1.2) if sees and absf(to_player.normalized().x) > 0.8 and gap > 80.0 and gap < 480.0 else 0.0,  # drawn across: a steep bolt would be read as a Spark  # it strikes at once, and a soaked rival takes it hard
 		"Hemorrhage": 1.2 if sees and gap < 420.0 else 0.0,
-		"Invincible Snail": 1.1 if gap > 260.0 and wizard.max_stamina > 150.0 and not wizard.get_tree().get_nodes_in_group("snails").any(func(n: Node) -> bool: return n.caster == wizard) else 0.0,  # slow: it wants a rival who is not about to be on top of you
+		"Immortal Snail": 1.1 if gap > 260.0 and wizard.max_stamina > 150.0 and not wizard.get_tree().get_nodes_in_group("snails").any(func(n: Node) -> bool: return n.caster == wizard) else 0.0,  # slow: it wants a rival who is not about to be on top of you
 		"Supernova": 1.4 if gap < 560.0 and wizard.max_stamina > 140.0 and not sheltered() else 0.0,  # a sun that hangs about: it likes a rival who stays near
 		"Scythe": 2.0 if sees and gap < 110.0 else 0.0,  # only at arm's length
 		"Water Jet": 0.9 if sees and gap < 240.0 and not foe.is_wet() else 0.0,  # it does no harm: it soaks, and a soaked wizard takes lightning hard

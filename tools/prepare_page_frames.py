@@ -1,5 +1,6 @@
 """Makes the animated page strips from art/props/page.png, so a page of the spellbook moves like paper and not like a board:
   art/props/page_flutter.png       16 frames, a page in a breeze: it sways on its edge, bends and settles (a page floating in the world, a page in the sky)
+  art/props/page_rustle.png        16 frames, the same barely stirring (the pages of a fan)
   art/props/page_tumble.png       12 frames, a page turning over and over as it flies (a page flying to its reader)
   art/props/page_tumble_small.png 12 frames, the same at the size of a page in the opening scene
 Each frame is a row cell; the game reads a strip as `hframes`. The page is turned about its upright axis (narrower, one edge nearer and taller),
@@ -125,14 +126,16 @@ CELL = (34, 48)
 bend_big, lean_big = 1.8, 1.2
 # A breeze: it sways about +-0.55 radians on its edge and its bend runs along it, never turning over.
 # Two rhythms laid over each other (a slow sway and a quicker shiver), so the loop does not read as one regular wobble.
-def breeze(i: int) -> dict:
+def breeze(i: int, gentle: float = 1.0) -> dict:
+    """`gentle` calms the sway: the pages of a fan use a fifth of it, so they stir and the hand keeps its shape."""
     a = math.tau * i / 16
-    return dict(turn=0.5 * math.sin(a) + 0.14 * math.sin(2 * a + 1.0),
-                bend=bend_big * (0.45 + 0.4 * abs(math.sin(a + 0.6)) + 0.15 * math.sin(3 * a)),
-                lean=lean_big * math.sin(a + 1.0) + 0.6 * math.sin(2 * a), phase=a + 0.5 * math.sin(2 * a))
+    return dict(turn=gentle * (0.5 * math.sin(a) + 0.14 * math.sin(2 * a + 1.0)),
+                bend=gentle * bend_big * (0.45 + 0.4 * abs(math.sin(a + 0.6)) + 0.15 * math.sin(3 * a)),
+                lean=gentle * (lean_big * math.sin(a + 1.0) + 0.6 * math.sin(2 * a)), phase=a + 0.5 * math.sin(2 * a))
 
 
 strip("page_flutter.png", world, CELL, [breeze(i) for i in range(16)])
+strip("page_rustle.png", world, CELL, [breeze(i, 0.2) for i in range(16)])
 # A tumble: a whole turn over and the bend traveling down it, as a thrown sheet does.
 strip("page_tumble.png", world, CELL, [
     dict(turn=math.tau * i / 12, bend=bend_big, lean=lean_big * math.sin(math.tau * i / 12), phase=math.tau * i / 6) for i in range(12)])
