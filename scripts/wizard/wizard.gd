@@ -657,6 +657,10 @@ func _check_death() -> void:
 		wolf.end()  # the wolf is beaten, and not the wizard
 		return
 	if max_stamina <= 0.0 and not dead:
+		var world := get_tree().get_first_node_in_group(&"world") as World
+		if world != null and world.leaving:  # who goes on to the next world is settled: no one is beaten while this one fades
+			max_stamina = 1.0
+			return
 		if mending.rescue():  # a second chance, armed: every way of dying comes to this question
 			return
 		max_stamina = 0.0

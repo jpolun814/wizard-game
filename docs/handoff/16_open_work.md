@@ -7,6 +7,14 @@ is in git. Any player-facing line follows section 0 of `CLAUDE.md`, and no new s
 
 The next AI work is laid out step by step in `docs/handoff/22_ai_testing_plan.md` (Phase 0: make the measuring trustworthy; Phase 1: find which part of the numbers-based spell choice made the AI worse in the one royale test; Phase 2: improvements borrowed from other games; Phase 3: guards against slipping back). Start at its section 0.
 
+## AI movement: what is left of the plan (2026-11-25)
+
+Stages 0 to 4 of `23_movement_planning.md` are built (its section 14 is the latest). Left, in order:
+
+1. Stage 5: the chase, fleeing and dodging, and getting out of pits, by the planner.
+2. Stage 6: deleting the old per-spell lists in `scripts/brain` (`WizardBrain.WAYS`, `CLEARS`, the lifts and the like), and moving `Pages.openers_of` into data. `brain_names_test` holds the count of quoted spell names; it may only fall.
+3. Seen in the measurements, and not looked into: castle stands (15% for nothing on seeds 521 to 524, mostly waiting at stairs), a wizard held by a mob without answering, pages found a little fewer than the old movement on those seeds (461 against 487) and more on others (487 against 441).
+
 ## Waiting on the owner
 
 - **More attacking spells** (about 60% of spells able to do damage was the aim): on hold. Propose ideas as `CLAUDE.md` section 6 says; build only what the owner picks.

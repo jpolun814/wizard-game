@@ -7,6 +7,14 @@ extends Check
 
 
 
+## Walks up and down.
+class Pacer extends WizardBrain:
+	var dir := 1.0
+
+	func think(_delta: float) -> void:
+		wizard.walk(dir * WizardBrain.WALK_SPEED)
+
+
 func _ready() -> void:
 	World.random_start = false
 	World.arrive_by_portal = false
@@ -91,6 +99,37 @@ func _ready() -> void:
 	for k in 30:
 		await get_tree().physics_frame
 	_verdict(not is_instance_valid(bramble) or bramble.is_queued_for_deletion() or bramble.is_burning(), "lightning sets a Bramble alight")
+
+	for old in get_tree().get_nodes_in_group("flora"):
+		old.queue_free()
+	await get_tree().physics_frame
+	var lost := []  # one thicket, and then four lying over one another: a walk through them costs the same
+	for layers: int in [1, 4]:
+		var thickets := []
+		for k in layers:
+			var thicket := Bramble.new()
+			thicket.line = PackedVector2Array([feet + Vector2(-70.0, 0.0), feet + Vector2(70.0, 0.0)])
+			world.add_child(thicket)
+			thickets.append(thicket)
+			for wait in 5:  # (not all on one beat)
+				await get_tree().physics_frame
+		victim.max_stamina = 200.0
+		victim.stamina = 200.0
+		victim.global_position = feet + Vector2(0.0, -2.0)
+		var pacer := Pacer.new(victim)
+		var own_brain: WizardBrain = victim.brain
+		victim.brain = pacer
+		for k in 120:
+			pacer.dir = 1.0 if (k / 24) % 2 == 0 else -1.0
+			await get_tree().physics_frame
+		victim.brain = own_brain
+		lost.append(200.0 - victim.max_stamina)
+		for thicket: Bramble in thickets:
+			thicket.queue_free()
+		for wait in 40:
+			await get_tree().physics_frame
+	print("thorns: one thicket %.0f, four %.0f" % lost)
+	_verdict(lost[0] > 0.0 and lost[1] <= lost[0] + Bramble.DAMAGE, "four thickets over one another prick a walker no more than one (%.0f and %.0f)" % lost)
 
 	var whirl := Tornado.new()
 	var whirl_at := SpellTargets.ground_below(world.get_world_2d(), feet + Vector2(250.0, -300.0))

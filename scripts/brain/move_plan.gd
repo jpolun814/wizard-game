@@ -17,6 +17,9 @@ const SETTLE := 0.15                    # seconds to come to rest before a strok
 const RIDE_MOST := 44                   # columns of water it thinks of going over at once
 const LAID_AT_ONCE := 260.0             # pixels of floor it lays at a time: what it can draw of it on its screen
 const RIDE_FROM := 3                    # columns from the water's edge it sets out
+const TILTS: Array[float] = [-36.0, -6.0]  # degrees a slab is leaned: as steep as a body walks up, and near enough level
+const FOOT_AHEAD := 10.0
+const STEP_UP := 112.0                  # pixels: a step no higher than this is hopped up onto
 const SIGHT := 420.0                    # how far off it draws a thing where it wants it
 const STATE_BITS := 6
 const PERILS_MOST := 6                  # how many things in the way it bears in mind that it might put an end to
@@ -91,6 +94,7 @@ var _perils: Array[Dictionary] = []    # {"node", "box", "undone"}: what lies in
 var _peril_on := {}                    # tile -> [[which, harm a second, pace]], found once asked for
 var _rides: Array[Dictionary] = []     # the spells that take it along the top of water
 var _waters: Array[Node] = []
+var _stands: Array[Dictionary] = []    # the spells that leave something to stand on and leap from: {"tilts": slabs leaned up at an angle} or {"steps": branches at a height}
 var _touches: Array[Dictionary] = []   # the spells that reach somewhere, and the stuff they are made of
 var _per_harm := HARM
 var _worth := HURT_MOST
@@ -135,7 +139,7 @@ func _init(over: MoveMap, from: Vector2i, to: Vector2i, kit: Dictionary) -> void
 	start.ends.resize(_states.size())
 	_best[start.key] = start
 	_push(start)
-	if not (_carries.is_empty() and _launches.is_empty() and _states.is_empty() and _climbs.is_empty() and _touches.is_empty() and _rides.is_empty()):
+	if not (_carries.is_empty() and _launches.is_empty() and _states.is_empty() and _climbs.is_empty() and _touches.is_empty() and _rides.is_empty() and _stands.is_empty()):
 		var bare := kit.duplicate()
 		bare["spells"] = []
 		_walk = MovePlan.new(over, from, to, bare)
@@ -169,7 +173,14 @@ func _learn(spells: Array, draw: Callable) -> void:
 							_launches.append(move)
 						elif part["where"] == "self" and one.get("way", "") == "level" and _floats(spell):
 							_rides.append({"spell": spell, "cost": dear, "draw": base["draw"], "speed": float(one["speed"]), "lasts": lasts, "laid": false})
+					"solid":
+						if spell.targeting == "raised":  # a slab from the ground, as the stroke leans: walked up like a ramp
+							var long: float = one["most"]
+							_stands.append({"spell": spell, "cost": _dear_of(spell, long), "draw": base["draw"], "after": 0.6, "long": long, "half": float(one["thick"]) * 0.5})
 					"floor":
+						for ledge: Array in one.get("ledges", []):
+							if float(ledge[0]) <= STEP_UP and part.get("needs", "") == "ground":
+								_stands.append({"spell": spell, "cost": dear, "draw": base["draw"], "after": float(part.get("after", 0.0)) + 0.2, "ledge": ledge})
 						if part["where"] == "place" and part.get("needs", "") == "water":
 							_rides.append({"spell": spell, "cost": dear, "draw": base["draw"], "speed": _pace, "lasts": lasts, "laid": true, "wide": float(one.get("wide", 0.0)), "after": float(part.get("after", 0.0))})
 					"lift":
@@ -210,6 +221,52 @@ static func _floats(spell: Spell) -> bool:
 			if one["do"] == "floor" and part["where"] == "with" and one.get("over", "") == "water":
 				return true
 	return false
+
+
+## The price of a spell drawn so long.
+static func _dear_of(spell: Spell, long: float) -> float:
+	return spell.cost_for({"line": PackedVector2Array([Vector2.ZERO, Vector2(long, 0.0)]), "length": long, "reach": long})
+
+
+## Up onto what a spell leaves to stand on, and a leap from there.
+func _stand_on(body: MoveBody, stand: Dictionary) -> void:
+	for dir: int in [1, -1]:
+		for tilt: float in (TILTS if stand.has("long") else [0.0]):
+			var foot := body.at
+			var tip := Vector2.ZERO
+			var way := Vector2(dir, 0.0)
+			if stand.has("long"):
+				way = Vector2.from_angle(deg_to_rad(tilt)) * Vector2(dir, 1.0)
+				foot = body.at + Vector2(dir * FOOT_AHEAD, 4.0)
+				if not map.solid_at(foot + Vector2(0.0, 12.0)) or not map.solid_at(foot + Vector2(dir * 60.0, 12.0)):
+					continue  # (it stands on the ground)
+				tip = foot + way * float(stand["long"]) + Vector2(-dir * 14.0, -float(stand["half"]))
+			else:
+				var ledge: Array = stand["ledge"]
+				tip = body.at + Vector2((float(ledge[1]) + float(ledge[2])) * 0.5 - dir * 0.0, -float(ledge[0]))
+				if dir < 0:
+					tip.x = body.at.x + (float(ledge[1]) + float(ledge[2])) * 0.5
+			if not _open(body.at, tip):
+				continue
+			var up := body.copy()
+			up.at = tip
+			up.grounded = true
+			var lead := float(stand["draw"]) + SETTLE + float(stand["after"]) + absf(tip.x - body.at.x) / up.pace + (0.5 if stand.has("ledge") else 0.2)
+			var cast := {"spell": stand["spell"], "way": way, "far": 0.0, "at": body.at, "when": 0.0, "tip": tip - body.at, "after": stand["after"]}
+			if stand.has("long"):
+				cast["foot"] = foot - body.at
+				cast["long"] = stand["long"]
+			up.jump()
+			up.air_x = dir * up.pace
+			_fly(up, float(dir), [cast], [{"dir": float(dir), "from": lead, "lead": lead}], lead, float(stand["cost"]) + Wizard.JUMP_COST, true)
+
+
+## Whether a body can go up in a straight line from one place to another: nothing solid in the way of its feet, middle or head.
+func _open(from: Vector2, to: Vector2) -> bool:
+	for up: float in [-14.0, -34.0, -56.0]:
+		if not _clear(from + Vector2(0.0, up), to + Vector2(0.0, up)):
+			return false
+	return true
 
 
 ## Along the top of water to the bank at the far side: on a wave that carries it, or on a floor laid there.
@@ -285,7 +342,7 @@ func _perils_on(tile: Vector2i) -> Array:
 					if does.is_empty():
 						does = _perils[k]["node"].peril_at(feet + off)
 				if not does.is_empty():
-					found.append([k, float(does["harm"]), float(does["pace"]), does.get("jump", true), float(does.get("after", 0.0))])
+					found.append([k, float(does["harm"]), float(does["pace"]), does.get("jump", true), float(does.get("after", 0.0)), String(does.get("shared", ""))])
 		_peril_on[tile] = found
 	return _peril_on[tile]
 
@@ -294,11 +351,17 @@ func _perils_on(tile: Vector2i) -> Array:
 func _toll(tile: Vector2i, seconds: float, buffs: int) -> Vector2:
 	var slow := 1.0
 	var harm := 0.0
+	var as_one := {}  # what harms as one, however much of it lies there
 	for one: Array in _perils_on(tile):
 		if one[0] < PERILS_MOST and buffs & (1 << (STATE_BITS + int(one[0]))) != 0:
 			continue
 		slow = minf(slow, one[2])
-		harm += one[1]
+		if one[5] == "":
+			harm += one[1]
+		else:
+			as_one[one[5]] = maxf(as_one.get(one[5], 0.0), one[1])
+	for shared: String in as_one:
+		harm += as_one[shared]
 	var long := seconds / slow
 	return Vector2(long - seconds, harm * long)
 
@@ -458,14 +521,14 @@ func _from_ground(here: Place) -> void:
 		leg.hurt = toll.y + _after(here.tile, to, here.buffs)
 		leg.seconds += toll.x
 		_come(here, to, null, leg, seconds + toll.x + (JUMP_CARE if jumps else 0.0), Wizard.JUMP_COST if jumps else 0.0, here.buffs)
-	if _carries.is_empty() and _launches.is_empty() and _states.is_empty() and _climbs.is_empty() and _touches.is_empty() and _rides.is_empty():
+	if _carries.is_empty() and _launches.is_empty() and _states.is_empty() and _climbs.is_empty() and _touches.is_empty() and _rides.is_empty() and _stands.is_empty():
 		return
 	var near := _near_peril(here.tile, here.buffs)
 	if near:
 		_undo(here)
 		for ride in _rides:
 			_ride(here, ride)
-	if not near and not map.turns(here.tile, 6 if not _carries.is_empty() else 3):
+	if not near and not map.turns(here.tile, 9 if not _stands.is_empty() else (6 if not _carries.is_empty() else 3)):
 		return
 	if not _perils_on(here.tile).is_empty() and _toll(here.tile, 1.0, here.buffs).y > 0.0:
 		return  # (no one stands in it to draw)
@@ -479,6 +542,8 @@ func _from_ground(here: Place) -> void:
 			_think(here, "%s %s %s" % [_id_of(move), _carry_names, way], func() -> void: _launch(here.tile, _standing(here), move, way))
 	for move in _climbs:
 		_think(here, _id_of(move), func() -> void: _climb(_standing(here), move))
+	for stand in _stands:
+		_think(here, "stand %s" % stand["spell"].spell_name, func() -> void: _stand_on(_standing(here), stand))
 	if not _carries.is_empty() or here.buffs != 0:
 		for dir: float in [1.0, -1.0]:
 			_think(here, "leap%d %s" % [int(dir), _carry_names], func() -> void: _leap(_standing(here), dir))

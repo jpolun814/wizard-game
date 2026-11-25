@@ -29,6 +29,8 @@ const OUT_EVERY := 20          # frames between two thoughts of a way out
 const LEAST_LAID := 210.0
 const HOP_ON := 0.45
 const LAID_FOR := 0.4          # seconds it gives a floor to be there
+const MOUNT_LONGEST := 4.0     # seconds it may take to get up onto what it has made
+const SCREEN_EDGE := 10.0
 const WAY_OUT := 24            # columns it looks for the edge of what harms it
 const MISSES := 3              # times it thinks again before it gives the place up
 
@@ -260,7 +262,7 @@ func active() -> bool:
 
 ## It is in the middle of a leg that cannot be dropped: in the air, or drawing.
 func committed() -> bool:
-	return active() and (_stage == "cast" or _stage == "go")
+	return active() and _stage in ["cast", "go", "mount"]
 
 
 ## Sets out on the way it has found (see ask).
@@ -306,9 +308,38 @@ func go(delta: float) -> float:
 			return _settle(leg, delta)
 		"cast":
 			return _wait_for_cast(leg)
+		"mount":
+			return _mount(leg, delta)
 	if leg.kind == "ride":
 		return _ride(leg, delta)
 	return _fly(leg, delta)
+
+
+## Up onto what it has just made, to the end of it, and a leap from there.
+func _mount(leg: MovePlan.Leg, delta: float) -> float:
+	_t += delta
+	var cast: Dictionary = leg.casts[0]
+	if _t < float(cast["after"]):
+		return 0.0
+	if _t > float(cast["after"]) + MOUNT_LONGEST:
+		return _miss("it did not get up onto it")
+	var tip: Vector2 = (cast["at"] as Vector2) + (cast["tip"] as Vector2)
+	var dir: float = leg.holds[0]["dir"]
+	var off := tip.x - wizard.global_position.x
+	var up := absf(wizard.global_position.y - tip.y) < 16.0
+	if wizard.is_on_floor() and up and (off * dir < 10.0 if cast.has("long") else absf(off) < 22.0):
+		wizard.request_jump()
+		_stage = "go"
+		_t = 0.0
+		_left = false
+		return dir * WizardBrain.WALK_SPEED
+	if not cast.has("long") and wizard.is_on_floor() and not up and absf(off) < 30.0:
+		wizard.request_jump()  # up through the branch
+	if cast.has("long") and wizard.is_on_floor() and wizard.is_on_wall() and absf(off) > 60.0:
+		wizard.request_jump(0.3)  # over the foot of the slab
+	if not cast.has("long") and absf(off) < 8.0:
+		return 0.0
+	return signf(off) * minf(WizardBrain.WALK_SPEED, absf(off) * 8.0 + 60.0)
 
 
 ## Along the top of water, the way the leg goes, to the bank.
@@ -484,6 +515,11 @@ func stroke_of(cast: Dictionary) -> PackedVector2Array:
 		_laid_to = far
 		_hopped = false
 		return brain.hand.bridge_stroke(spell.spell_name, Rect2(minf(near, far), whole.position.y, absf(far - near), whole.size.y))
+	if cast.has("long"):
+		var foot: Vector2 = (cast["at"] as Vector2) + (cast["foot"] as Vector2)
+		return BrainStrokes.line(foot, foot + (cast["way"] as Vector2) * float(cast["long"]))
+	if cast.has("tip"):
+		return BrainStrokes.offset(GestureTemplates.preview_points(spell.gesture), wizard.global_position + Vector2(0.0, -GestureTemplates.bounds(GestureTemplates.preview_points(spell.gesture)).size.y * 0.5), 1.0)
 	if _legs[_at].kind == "ride":
 		return stroke_at(spell, wizard.center() + (cast["way"] as Vector2) * 200.0)
 	var middle := wizard.center()
@@ -492,7 +528,8 @@ func stroke_of(cast: Dictionary) -> PackedVector2Array:
 		"flick":
 			var most: float = spell.effect_of("carry").get("most", 0.0)
 			var far: float = cast["far"]
-			return BrainStrokes.line(middle, middle + (cast["way"] as Vector2) * (far * FULL_STROKE if far >= most - 1.0 else far))
+			var line := BrainStrokes.line(middle, middle + (cast["way"] as Vector2) * (far * FULL_STROKE if far >= most - 1.0 else far))
+			return _on_its_screen(line) if spell.targeting == "directional" else line
 		"circle_push":
 			return brain.hand.push_stroke(middle, cast["way"])
 		"vine":
@@ -500,6 +537,24 @@ func stroke_of(cast: Dictionary) -> PackedVector2Array:
 		"feather":
 			return brain.hand.tend_stroke(spell.spell_name, Vector2.ZERO)
 	return BrainStrokes.offset(GestureTemplates.preview_points(spell.gesture), middle, 0.6)
+
+
+## A stroke that says only which way and how far, drawn where there is room for it on the screen.
+func _on_its_screen(stroke: PackedVector2Array) -> PackedVector2Array:
+	var box := GestureTemplates.bounds(stroke)
+	var screen: Rect2 = wizard.eyes.rect().grow(-SCREEN_EDGE)
+	var shift := Vector2.ZERO
+	for axis: int in 2:
+		if box.size[axis] > screen.size[axis]:
+			return stroke  # (there is no room for it anywhere)
+		if box.position[axis] < screen.position[axis]:
+			shift[axis] = screen.position[axis] - box.position[axis]
+		elif box.end[axis] > screen.end[axis]:
+			shift[axis] = screen.end[axis] - box.end[axis]
+	var out := PackedVector2Array()
+	for point in stroke:
+		out.append(point + shift)
+	return out
 
 
 ## The stroke of a spell that is to reach a point: along a line to it, out of the mouth toward it, or drawn over it, as the spell is aimed.
@@ -541,7 +596,7 @@ func _wait_for_cast(leg: MovePlan.Leg) -> float:
 		_casts = 1
 		_tell("cast")
 		_t = 0.0
-		_stage = "go"
+		_stage = "mount" if leg.casts[0].has("tip") else "go"
 		_waited = 0.0
 		if leg.hangs and leg.casts.size() == 1:
 			return _done(leg)

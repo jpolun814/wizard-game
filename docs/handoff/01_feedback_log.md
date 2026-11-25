@@ -239,5 +239,7 @@ always show the motion as GIFs.
 
 ### 2026-11-25: hazards, and a hung run
 
+- "one prick per footstep": overlapping Brambles prick a walker once a footfall, however many lie there (`Bramble._footfall`; `interaction_check` guards it).
+
 - "i dont want you to code those specific interactions into the game, i want you to give AI enough information about the spells and interactions generally that it can intuitively decide to be creative". Chapter 23, section 14.
 - "dont you dare let things hang for 2.5 hours again. 5 minute check-ins always". Four replays could not end (a debug script replaced `_physics_process` without `super(delta)`). Every run has a hard time limit; nothing is left going unwatched; a word to the owner at least every 5 minutes. A time limit that cuts a test run short makes its checks fail with exit code 143: that is not a failure of the game, run them alone.

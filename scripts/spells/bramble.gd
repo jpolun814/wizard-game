@@ -79,6 +79,8 @@ func _physics_process(delta: float) -> void:
 			_stride[body] = _stride.get(body, STEP * 0.5) + delta
 			if _stride[body] >= STEP:
 				_stride[body] = 0.0
+				if not _footfall(body):
+					continue
 				if body.is_in_group("wizards"):
 					MatchStats.strike(self)
 					body.take_damage(DAMAGE, false)  # every footfall counts: the wizard's pause after a hit would let some through
@@ -88,6 +90,16 @@ func _physics_process(delta: float) -> void:
 		if not caught.has(body):
 			_stride.erase(body)
 	_burn(delta, _box)
+
+
+## One footfall pricks once, however many thickets lie over one another there (owner, 2026-11-25). True when this one is not counted yet.
+static func _footfall(body: Node) -> bool:
+	var now := Engine.get_physics_frames()
+	var last: int = body.get_meta(&"thorn_step", -1000)
+	if now >= last and now - last < roundi(STEP * Engine.physics_ticks_per_second) - 1:
+		return false
+	body.set_meta(&"thorn_step", now)
+	return true
 
 
 ## True for a walker standing in the thorns: on the ground within the thicket (whatever the slope under it), not jumping over it.
@@ -117,7 +129,7 @@ func danger_at(point: Vector2) -> bool:
 
 ## What going through it does (see Perils).
 func peril_at(point: Vector2) -> Dictionary:
-	return {"harm": DAMAGE / STEP, "still": 0.0, "pace": BodyStates.pace("tangled"), "jump": BodyStates.jumps("tangled")} if danger_at(point) else {}
+	return {"harm": DAMAGE / STEP, "still": 0.0, "shared": "thorns", "pace": BodyStates.pace("tangled"), "jump": BodyStates.jumps("tangled")} if danger_at(point) else {}
 
 
 func peril_box() -> Rect2:
