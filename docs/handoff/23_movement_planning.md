@@ -184,3 +184,17 @@ rather than run trials to learn about it or go digging around the place... we ju
 `MatchState.begin` cleared `forced_biome`, so `ai_arena`'s `biome=` and the flat worlds of `mode=duel` did nothing, and `soak_check` played portals for graveyard and sky, jungle for castle, and ashlands for ocean. Now `MatchState.first_biome`
 says where the next match begins. `soak_check` passes in all nine. **Duel trials before this day were fought in whatever world the seed gave.**
 
+## 14. Stage 4: harm on the way, what ends it, and the top of water (2026-11-25)
+
+Nothing here pairs a spell with a thing. A thing in the way says what it does; a spell says what it is made of; the planner puts the two together.
+
+- **Perils** (`scripts/spells/perils.gd`). Anything that harms or hinders whoever goes through it answers `peril_at(point)` (`harm` a second, `pace` kept, `jump` false where it holds a body, `after`: what it loses for having got in at all, `kind`), `peril_box()` and `undone_by()` (the stuffs that end it). Thorns, piranhas, spikes, gas, lava ponds and mud do. A new one answers the three and is in one of the groups `danger`, `shoals`, `perils`, `ponds`.
+- **Spells** have `made_of` (from chapter 24) and, where they reach somewhere, a part with `{"do": "touch"}`. An `undo` leg casts whatever is made of a stuff that ends the thing.
+- **The price.** A harm costs seconds (`MovePlan.HARM`, dearer the more worn), and a crossing may cost at most a share of all it has that depends on what it is for (`MoveDo.WORTH`) and grows while it is held up (`balked`). What is begun is finished unless it hurts far more than reckoned.
+- **Rides.** A spell that lays a floor over water (`floor`, `needs: water`) or carries one along (`with`, `over: water`) gives a `ride` leg. A laid floor is drawn a stretch at a time (what is on the screen), priced at its drawn size.
+- **Getting out** (`MoveDo.get_out`): the nearest harmless standing place, by any means, for 2.5 s, and then the old reflex has it. Letting the plan answer before the reflex was tried and was worse (63 bites against 34): do not repeat it.
+- **Laws made general on the way:** lightning shocks what lives in water and lights plants (`Elements.lightning`), so Jolt does as Spark does; an unseen pool has a level (`Pond.level_at`), so an AI off the person's screen can grow Lily Pads.
+
+**What the measurements taught.** A goal at the bottom of a pond was the cause of nearly all the worst bites (it "arrived" there). A body slowed by water was thought to leap nine tiles. Wizards stood on branches of great trees that the map of the ways has not got, straight over their next step, for ever: they drop now (`WizardRoute.steer`). A wizard jammed in rock and struggling is put back where it last stood (`Wizard._get_out_of_rock`); it must never move one that stands quietly (the world's tiles call some open ground rock: it yanked a person's wizard in `raise_dead_check`).
+
+**Final figures** (castle and jungle, four matches each, for nothing): castle 24% to 9%, jungle 27% to 13%. Bites 24 against 34, pages 487 against 441, falls 27 against 19 (not explained yet). Not used by the planner: Gust, Great Oak, Stone Wall, Sinkhole, Wild Shape, Golem. The drill "loft: Shadow Step" still fails (its proof draws instantly, so it may be impossible at a hand's speed).

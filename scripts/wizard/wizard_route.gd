@@ -171,7 +171,16 @@ func steer(body: CharacterBody2D, delta: float) -> Dictionary:
 		return out
 	if grounded and down >= 2 and across <= 1 and _stuck > 0.3 and feet.y < float(goal_tile.y) * TILE - 24.0:
 		out["drop"] = true  # the way down lies through the wooden platform it stands on
-	if grounded and leaps and not _jumped:
+	if grounded and out["dir"] == 0.0 and _stuck > 0.2 and feet.y < float(goal_tile.y) * TILE - 24.0:
+		out["drop"] = true  # it stands straight over where it is going, on something the map has not got there (a branch of a great tree)
+	var held: bool = body is Wizard and (body.tangle_time > 0.0 or body.sink_time > 0.0)
+	if grounded and leaps and held:
+		_jumped = false  # a tangled body cannot jump: the leap is still to be made
+	var past := (feet.x - (from.x + 0.5) * TILE) * signf(goal_tile.x - from.x)
+	if grounded and leaps and not _jumped and _stuck > 0.3 and past > TILE:
+		out["dir"] = -signf(goal_tile.x - from.x)  # it has come past where the leap begins: back to it
+		return _track(out, feet, goal_tile, delta)
+	if grounded and leaps and not _jumped and not held:
 		out["jump"] = true
 		out["speed"] = _air_speed_for(absf(gap), float(from.y - goal_tile.y) * TILE)
 		_air_speed = out["speed"]

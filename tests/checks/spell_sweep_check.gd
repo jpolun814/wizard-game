@@ -102,7 +102,7 @@ func _state(w: Wizard) -> Array:
 
 
 func _clear_world() -> void:
-	for group in ["lasting", "walls", "rocks", "fires", "flora", "clouds", "shots", "projectiles"]:
+	for group in ["lasting", "walls", "rocks", "fires", "flora", "clouds", "shots", "projectiles", "eclipses", "sight_blockers"]:  # (the dark and the smoke too: they hide one wizard from another)
 		for node in get_tree().get_nodes_in_group(group):
 			if not node is Pond:
 				node.queue_free()
@@ -128,7 +128,8 @@ func _cast(spell_name: String) -> void:
 	var ground := GestureTemplates.preview_ground(data.gesture)
 	var middle := player.center() + Vector2(150.0, -20.0)
 	if spell_name in TARGETED:  # (drawn over someone)
-		_lab._partner.global_position = player.global_position + Vector2(150.0, 0.0)  # (to the right of the caster, the way a stroke that is drawn pointing runs: where the partner has wandered to is not the spell's business)
+		_lab._partner.global_position = player.global_position + Vector2(44.0, 0.0)  # (a block of the room stands 48 px along, and hides what is past it)
+		# (to the right of the caster, the way a stroke that is drawn pointing runs: where the partner has wandered to is not the spell's business)
 		_lab._partner.velocity = Vector2.ZERO
 		_lab._partner.reset_physics_interpolation()
 		await get_tree().physics_frame

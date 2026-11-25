@@ -16,6 +16,7 @@ var stair_held := 0.0
 
 const RUNS_ON := 72.0
 const CLEAR_OF := 40.0
+const CLEAR_FOR := 45  # frames it goes on for that
 const HELD_UP := 0.4           # seconds it waits for danger to pass before it thinks of another way
 
 var assail_commit := 0.0       # seconds it keeps running from a creature after it is out of reach
@@ -214,6 +215,18 @@ func follow_route(delta: float) -> float:
 			brain.route.clear()
 	else:
 		stair_wait = 0.0
+	if not BrainProfile.off("movement") and brain.goal == "explore" and not brain.route.done():
+		var last := brain.route.last()
+		if last != WorldNav.NONE and brain.go.knows(MoveMap.feet(last)) and brain.go.harms(last):  # what it was going to look at is seen now, and is no place to be
+			if not _take_another_way():
+				if brain.go.thinking():
+					brain.route.wait()
+					return 0.0
+				brain.explore.explored[brain.explore.square_of(MoveMap.feet(last))] = true
+				brain.goal = ""
+				brain.goal_timer = 0.0
+				brain.route.clear()
+			return 0.0
 	var ahead := signf(steer["dir"])
 	balked = maxf(balked - delta * 0.1, 0.0)
 	var planned := not BrainProfile.off("movement")
@@ -221,16 +234,22 @@ func follow_route(delta: float) -> float:
 	if within:
 		danger_wait += delta  # it has got into something that harms it without having meant to: it backs out, and thinks again
 		brain.route.wait()
-		if _take_another_way():
+		if _out == 0.0 and brain.go.get_out():
 			return 0.0
 		if _out == 0.0:
 			_out = _out_of_harm()
 		if _out != 0.0:
 			_out_at = Engine.get_physics_frames()
+			if wizard.is_on_wall() and wizard.is_on_floor():
+				wizard.request_jump()
 			return _out * WizardBrain.WALK_SPEED
 	elif wizard.is_on_floor() and _out != 0.0:
-		if not _harms_at(brain.combat.over_ground(-_out * CLEAR_OF)):
+		if not harms_at(brain.combat.over_ground(-_out * CLEAR_OF)) or Engine.get_physics_frames() - _out_at > CLEAR_FOR:
 			_out = 0.0
+		else:  # it goes on till it is well clear, or it would only step back into it
+			if wizard.is_on_wall():
+				wizard.request_jump()
+			return _out * WizardBrain.WALK_SPEED
 	if ahead != 0.0 and wizard.is_on_floor() and dash <= 0.0 and (planned or not brain.danger.lethal_at(wizard.global_position + Vector2(0, -6))):
 		var near := _lethal_ahead(ahead * 40.0) or _lethal_ahead(ahead * 72.0)
 		var into: bool = steer["jump"] and not BrainProfile.off("leapover") and _lands_in_harm()  # the leap it is about to make
@@ -285,7 +304,7 @@ func getting_out() -> bool:
 ## It stands in what harms it (the same measure, whether it is stepping in or stepping out).
 func _harmed_here() -> bool:
 	for up: float in [-6.0, -10.0]:
-		if _harms_at(wizard.global_position + Vector2(0.0, up)):
+		if harms_at(wizard.global_position + Vector2(0.0, up)):
 			return true
 	return false
 
@@ -295,7 +314,7 @@ func _out_of_harm() -> float:
 	var off := 16.0
 	while off < 600.0:
 		for side: float in [-1.0, 1.0]:
-			if not _harms_at(brain.combat.over_ground(side * off)):
+			if not harms_at(brain.combat.over_ground(side * off)):
 				return side
 		off += 16.0
 	return 0.0
@@ -312,7 +331,7 @@ func _lands_in_harm() -> bool:
 	if BrainProfile.off("movement"):
 		return false
 	var on := signf(there.x - wizard.global_position.x) * RUNS_ON  # (it runs on a little where it comes down)
-	return _harms_at(there) or _harms_at(brain.combat.over_ground(there.x + on - wizard.global_position.x))
+	return harms_at(there) or harms_at(brain.combat.over_ground(there.x + on - wizard.global_position.x))
 
 
 ## Something deadly lies that far off along the ground, and the way does not go over it in a leap.
@@ -321,11 +340,11 @@ func _lethal_ahead(off: float) -> bool:
 	var landing := WorldNav.NONE if BrainProfile.off("leapover") else brain.route.leap_over(wizard.global_position.x + off)
 	if landing != WorldNav.NONE:
 		there = MoveMap.feet(landing) + Vector2(0.0, -10.0)  # (it is where the leap comes down that matters)
-	return brain.danger.lethal_at(there) or (not BrainProfile.off("movement") and _harms_at(there))
+	return brain.danger.lethal_at(there) or (not BrainProfile.off("movement") and harms_at(there))
 
 
 ## Something it has seen harms whoever walks there (Perils), and it does not bear that.
-func _harms_at(point: Vector2) -> bool:
+func harms_at(point: Vector2) -> bool:
 	var now := Engine.get_physics_frames()
 	if now - _perils_seen > 20 or now < _perils_seen:
 		_perils_seen = now
@@ -347,6 +366,8 @@ func _take_another_way() -> bool:
 	if end == WorldNav.NONE:
 		return false
 	var to := brain.go.stand_near(MoveMap.feet(end), 2)
+	if to != WorldNav.NONE and brain.go.harms(to):  # nobody goes to stand in what harms them: it is the far side of it that is meant
+		to = brain.go.safe_beside(to, 1 if end.x >= brain.tile_of(wizard.global_position).x else -1, MoveDo.WAY_OUT)
 	if to == WorldNav.NONE or brain.go.ask(to) != "found" or (brain.route.waiting_for_stair and not brain.go.by_spells()):  # (at a stair, a way on foot is the way it is on already)
 		return false
 	brain.route.clear()

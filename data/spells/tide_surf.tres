@@ -13,5 +13,5 @@ effect = "Ride a wave along the ground, shoving anyone aside."
 applies = Array[String](["wet"])
 removes = Array[String](["burning"])
 sounds = {"sea": "tide_surf__sea"}
-parts = Array[Dictionary]([{"where": "self", "for": 2.5, "does": [{"do": "drive", "way": "level", "speed": 470.0}]}, {"where": "with", "ahead": 80.0, "for": 2.5, "does": [{"do": "throw", "way": "level", "speed": 620.0, "up": 260.0, "every": 0.8}]}])
+parts = Array[Dictionary]([{"where": "self", "for": 2.5, "does": [{"do": "drive", "way": "level", "speed": 470.0}]}, {"where": "with", "ahead": 80.0, "for": 2.5, "does": [{"do": "throw", "way": "level", "speed": 620.0, "up": 260.0, "every": 0.8}]}, {"where": "with", "for": 2.5, "does": [{"do": "floor", "over": "water"}]}])
 made_of = Array[String](["water"])

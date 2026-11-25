@@ -391,11 +391,12 @@ func bridge_stroke(spell_name: String, span: Rect2) -> PackedVector2Array:
 			var x := span.size.x * i / steps
 			out.append(Vector2(span.position.x + x, level + 14.0 * sin(x / 22.0)))
 	else:
-		var loops := maxi(roundi(span.size.x / 31.0), 2)  # small loops, two to a pad, so that the pad's height is the line's own
-		var steps := loops * 16
+		var r := 30.0  # a ring (the pad), and then a level line across the water where they are to grow
+		var steps := 24
 		for i in steps + 1:
-			var angle := TAU * loops * i / steps
-			out.append(Vector2(span.position.x + span.size.x * i / steps - 10.0 * sin(angle), level - 8.0 - 10.0 * cos(angle)))
+			var angle := -PI * 0.5 + TAU * i / steps
+			out.append(Vector2(span.position.x - 48.0 + r * cos(angle), level - 8.0 + r + r * sin(angle)))  # (the first of the line is taken for the ring)
+		out.append(Vector2(span.end.x, level - 8.0))
 	return BrainStrokes.densify(out)
 
 

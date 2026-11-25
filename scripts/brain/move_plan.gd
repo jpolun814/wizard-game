@@ -14,6 +14,9 @@ const FLY_MOST := 7.0                   # seconds of a flight it thinks ahead
 const STEEPS := [0.0, -20.0, -40.0, -55.0, 25.0]  # the slants of a stroke it thinks of (degrees, below 0 is up)
 const THROWS := [-90.0, -65.0, -45.0]
 const SETTLE := 0.15                    # seconds to come to rest before a stroke on the ground
+const RIDE_MOST := 44                   # columns of water it thinks of going over at once
+const LAID_AT_ONCE := 260.0             # pixels of floor it lays at a time: what it can draw of it on its screen
+const RIDE_FROM := 3                    # columns from the water's edge it sets out
 const SIGHT := 420.0                    # how far off it draws a thing where it wants it
 const STATE_BITS := 6
 const PERILS_MOST := 6                  # how many things in the way it bears in mind that it might put an end to
@@ -21,7 +24,7 @@ const HARM := 0.5                       # seconds it would rather lose than take
 const HURT_MOST := 0.3                  # the share of all it has that it will never go through with losing, where no one says what the goal is worth
 const UNDO_WAIT := 2.2                  # seconds it reckons to wait for a thing to burn, blow or die away
 const NEAR_PERIL := 9                   # columns: it thinks of its spells when what is in the way is this near
-const LEAP_MOST := 10                   # columns a body at its full pace can leap
+const WADE_LEAP := 2                    # columns a body can leap out of what slows it
 const CHANCE_HARM := 15.0               # the harm it reckons on where chance may set it down in what is in the way
 const RISK := 2.5                       # seconds it would rather not trust to chance
 const JUMP_CARE := 0.6                  # seconds it would rather walk than jump: a jump can be missed
@@ -86,6 +89,8 @@ var _price := Callable()           # what standing on a tile costs, in seconds (
 var _pace := Wizard.SPEED
 var _perils: Array[Dictionary] = []    # {"node", "box", "undone"}: what lies in the way that harms or hinders (Perils)
 var _peril_on := {}                    # tile -> [[which, harm a second, pace]], found once asked for
+var _rides: Array[Dictionary] = []     # the spells that take it along the top of water
+var _waters: Array[Node] = []
 var _touches: Array[Dictionary] = []   # the spells that reach somewhere, and the stuff they are made of
 var _per_harm := HARM
 var _worth := HURT_MOST
@@ -130,7 +135,7 @@ func _init(over: MoveMap, from: Vector2i, to: Vector2i, kit: Dictionary) -> void
 	start.ends.resize(_states.size())
 	_best[start.key] = start
 	_push(start)
-	if not (_carries.is_empty() and _launches.is_empty() and _states.is_empty() and _climbs.is_empty() and _touches.is_empty()):
+	if not (_carries.is_empty() and _launches.is_empty() and _states.is_empty() and _climbs.is_empty() and _touches.is_empty() and _rides.is_empty()):
 		var bare := kit.duplicate()
 		bare["spells"] = []
 		_walk = MovePlan.new(over, from, to, bare)
@@ -162,6 +167,11 @@ func _learn(spells: Array, draw: Callable) -> void:
 					"drive":
 						if part["where"] == "self" and one.get("way", "") == "up":
 							_launches.append(move)
+						elif part["where"] == "self" and one.get("way", "") == "level" and _floats(spell):
+							_rides.append({"spell": spell, "cost": dear, "draw": base["draw"], "speed": float(one["speed"]), "lasts": lasts, "laid": false})
+					"floor":
+						if part["where"] == "place" and part.get("needs", "") == "water":
+							_rides.append({"spell": spell, "cost": dear, "draw": base["draw"], "speed": _pace, "lasts": lasts, "laid": true, "wide": float(one.get("wide", 0.0)), "after": float(part.get("after", 0.0))})
 					"lift":
 						_launches.append(move)
 					"throw":
@@ -188,7 +198,79 @@ func _bear_in_mind(nodes: Array, from: Vector2i) -> void:
 	var sorted := nodes.duplicate()
 	sorted.sort_custom(func(one: Node, two: Node) -> bool: return far[one] < far[two])
 	for node: Node in sorted:
+		if node.has_method("is_water") and node.is_water():
+			_waters.append(node)
 		_perils.append({"node": node, "box": node.peril_box(), "undone": node.undone_by()})
+
+
+## Whether a spell carries a floor over water along with whoever casts it.
+static func _floats(spell: Spell) -> bool:
+	for part in spell.parts:
+		for one: Dictionary in part["does"]:
+			if one["do"] == "floor" and part["where"] == "with" and one.get("over", "") == "water":
+				return true
+	return false
+
+
+## Along the top of water to the bank at the far side: on a wave that carries it, or on a floor laid there.
+func _ride(here: Place, ride: Dictionary) -> void:
+	for dir: int in [1, -1]:
+		var row := here.tile.y
+		var most := int(float(ride["speed"]) * float(ride["lasts"]) * 0.8 / MoveMap.TILE)
+		var wet_from := INF
+		var wet_to := INF
+		var level := 0.0
+		for k in range(1, mini(most, RIDE_MOST)):
+			var x := here.tile.x + dir * k
+			var mid := (x + 0.5) * MoveMap.TILE
+			var feet := MoveMap.feet(Vector2i(x, row)).y
+			var top := INF
+			for water in _waters:
+				if not is_instance_valid(water):
+					continue
+				var box: Rect2 = water.peril_box()
+				if mid > box.position.x and mid < box.end.x:
+					var at: float = water.surface_at(mid)
+					if at > feet - 10.0 and at < feet + 52.0:
+						top = minf(top, at)
+			var dry := WorldNav.NONE
+			for dy in [0, -1, 1]:
+				var tile := Vector2i(x, row + dy)
+				if map.can_stand(tile) and MoveMap.feet(tile).y <= top + 6.0:
+					dry = tile
+					break
+			if dry != WorldNav.NONE:
+				row = dry.y
+				if wet_from < INF:
+					var leg := Leg.new()
+					leg.kind = "ride"
+					leg.to = dry
+					leg.seconds = float(ride["draw"]) + SETTLE + (0.5 if ride["laid"] else 0.0) + k * MoveMap.TILE / float(ride["speed"])
+					var cast := {"spell": ride["spell"], "way": Vector2(dir, 0.0), "far": 0.0, "at": MoveMap.feet(here.tile), "when": 0.0}
+					if ride["laid"]:
+						var a := minf(wet_from, wet_to) - MoveMap.TILE
+						cast["after"] = ride["after"]
+						cast["wide"] = ride["wide"]  # (a floor in pieces may end a piece short)
+						cast["span"] = Rect2(a, level, absf(wet_to - wet_from) + 2.0 * MoveMap.TILE, 8.0)
+					leg.casts.append(cast)
+					leg.holds.append({"dir": float(dir), "from": 0.0})
+					var dear: float = ride["cost"]
+					if ride["laid"]:  # a stretch at a time, as much as it can draw at once
+						var stretches := ceilf((cast["span"] as Rect2).size.x / LAID_AT_ONCE)
+						var long := minf((cast["span"] as Rect2).size.x, LAID_AT_ONCE)
+						dear = float(ride["spell"].cost_for({"line": PackedVector2Array([Vector2.ZERO, Vector2(long, 0.0)]), "length": long, "rect": Rect2(0.0, 0.0, long, 8.0), "radius": long * 0.5})) * stretches
+						leg.seconds += (stretches - 1.0) * (float(ride["draw"]) + 0.6)
+					_come(here, dry, null, leg, leg.seconds, dear, here.buffs)
+					break
+			elif top < INF and not map.solid(Vector2i(x, row)):
+				if wet_from == INF:
+					if k > RIDE_FROM:
+						break  # (it walks up to the water first)
+					wet_from = mid
+					level = top
+				wet_to = mid
+			else:
+				break
 
 
 ## What goes on at a tile: each thing in the way that is there.
@@ -197,7 +279,7 @@ func _perils_on(tile: Vector2i) -> Array:
 		var found := []
 		var feet := MoveMap.feet(tile) + Vector2(0.0, -6.0)
 		for k in _perils.size():
-			if (_perils[k]["box"] as Rect2).grow(20.0).has_point(feet):
+			if is_instance_valid(_perils[k]["node"]) and (_perils[k]["box"] as Rect2).grow(20.0).has_point(feet):  # (it thinks over many frames, and a flow may be gone by then)
 				var does: Dictionary = {}
 				for off: Vector2 in [Vector2.ZERO, Vector2(-14.0, 0.0), Vector2(14.0, 0.0), Vector2(0.0, -20.0)]:
 					if does.is_empty():
@@ -363,8 +445,8 @@ func _from_ground(here: Place) -> void:
 		var rise := here.tile.y - to.y
 		var climbs := map.climbs(here.tile, to)
 		var jumps := not climbs and (across >= 2 or rise >= 2)
-		if jumps and (here.left < Wizard.JUMP_COST or not free or (pace < 1.0 and across > LEAP_MOST * pace)):
-			continue  # (what slows a body slows its leap)
+		if jumps and (here.left < Wizard.JUMP_COST or not free or (pace < 1.0 and across > WADE_LEAP)):
+			continue  # (what slows a body slows its leap: in it, a body wades, and hops up onto what is beside it)
 		var seconds := Vector2(to - here.tile).length() * MoveMap.TILE / walk
 		if climbs:
 			seconds = absf(rise) * MoveMap.TILE / CLIMB_SPEED if across <= 2 else seconds + STAIR_WAIT
@@ -376,11 +458,13 @@ func _from_ground(here: Place) -> void:
 		leg.hurt = toll.y + _after(here.tile, to, here.buffs)
 		leg.seconds += toll.x
 		_come(here, to, null, leg, seconds + toll.x + (JUMP_CARE if jumps else 0.0), Wizard.JUMP_COST if jumps else 0.0, here.buffs)
-	if _carries.is_empty() and _launches.is_empty() and _states.is_empty() and _climbs.is_empty() and _touches.is_empty():
+	if _carries.is_empty() and _launches.is_empty() and _states.is_empty() and _climbs.is_empty() and _touches.is_empty() and _rides.is_empty():
 		return
 	var near := _near_peril(here.tile, here.buffs)
 	if near:
 		_undo(here)
+		for ride in _rides:
+			_ride(here, ride)
 	if not near and not map.turns(here.tile, 6 if not _carries.is_empty() else 3):
 		return
 	if not _perils_on(here.tile).is_empty() and _toll(here.tile, 1.0, here.buffs).y > 0.0:
@@ -476,7 +560,7 @@ func _undo(here: Place) -> void:
 	var eye := feet + Vector2(0.0, -40.0)
 	for k in mini(_perils.size(), PERILS_MOST):
 		var bit := 1 << (STATE_BITS + k)
-		if here.buffs & bit != 0:
+		if here.buffs & bit != 0 or not is_instance_valid(_perils[k]["node"]):
 			continue
 		var box: Rect2 = _perils[k]["box"]
 		var near := Vector2(clampf(feet.x, box.position.x, box.end.x), clampf(feet.y - 10.0, box.position.y, box.end.y))
@@ -748,7 +832,7 @@ func _come(here: Place, tile: Vector2i, body: MoveBody, leg: Leg, seconds: float
 	if body == null and _price.is_valid():
 		price += _price.call(tile)
 	var hurt := leg.hurt
-	if body == null and leg.kind == "fly" and not _perils.is_empty():  # it comes down in it, and has to get out
+	if body == null and leg.kind in ["fly", "ride"] and not _perils.is_empty():  # it comes down in it, and has to get out
 		hurt = _toll(tile, 0.3, buffs).y + _after(here.tile, tile, buffs)
 		if leg.chancy and _near_peril(here.tile, here.buffs):
 			hurt += CHANCE_HARM

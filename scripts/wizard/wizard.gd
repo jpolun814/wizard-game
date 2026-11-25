@@ -220,7 +220,11 @@ var _dice: RandomNumberGenerator  # see dice()
 var _dice_of := -1
 const WEDGED_SPEED := 700.0  # falling this fast and going nowhere, this long, a body is caught in rock
 const WEDGED_FOR := 0.6
+const STRUGGLES := 100.0  # and one that goes nowhere at this speed, inside rock, is caught in it (one standing quietly is well where it is)
 var _wedged := 0.0
+var _was_last := Vector2.ZERO
+var _rock_look := 0.0
+var _rock_about := false
 var _firm := Vector2.INF   # where it last stood firmly
 var _firm_for := 0.0
 var casts_made := 0       # the spells this wizard has cast, for the tests that watch a match
@@ -1062,21 +1066,40 @@ func _move_on(delta: float) -> void:
 			Sfx.cue("wizard", "step_mud" if sink_time > 0.0 else _ground_sound("step"), global_position)  # in mud, a squelch
 
 
-## Squeezed into rock (by a stair swinging shut, say), a body falls and falls and goes nowhere: it is put back where it last stood firmly.
+## Squeezed into rock (by a stair swinging shut, say), a body falls or stands there and goes nowhere: it is put back where it last stood firmly, in the open.
 func _get_out_of_rock(delta: float, was_at: Vector2) -> void:
-	if is_on_floor():
-		_wedged = 0.0
-		_firm_for += delta
-		if _firm_for > 0.3:
-			_firm = global_position
+	if flying or drawn or is_likeness():
 		return
-	_firm_for = 0.0
-	_wedged = _wedged + delta if velocity.y > WEDGED_SPEED and not flying and not drawn and global_position.distance_squared_to(was_at) < 4.0 else 0.0
-	if _wedged > WEDGED_FOR and _firm != Vector2.INF and not is_likeness():
+	if was_at.distance_squared_to(_was_last) > 250000.0:  # put somewhere far off (a portal, a Rift): what went before is not where it belongs (a step through the shadows goes less far)
+		_firm = Vector2.INF
 		_wedged = 0.0
+	_was_last = global_position
+	var still := global_position.distance_squared_to(was_at) < 4.0
+	if is_on_floor() and velocity.length_squared() < 1.0:
+		_firm_for += delta
+		if _firm_for > 0.3 and not _in_rock():
+			_firm = global_position
+			_firm_for = 0.0
+			_wedged = 0.0
+	else:
+		_firm_for = 0.0
+	_rock_look -= delta
+	if _rock_look <= 0.0:
+		_rock_look = 0.2
+		_rock_about = _in_rock()
+	_wedged = _wedged + delta if still and (velocity.y > WEDGED_SPEED or (_rock_about and velocity.length() > STRUGGLES)) else 0.0
+	if _wedged > WEDGED_FOR and _firm != Vector2.INF:
+		_wedged = 0.0
+		_rock_about = false
 		global_position = _firm
 		velocity = Vector2.ZERO
 		reset_physics_interpolation()
+
+
+## The middle of its body is inside rock, as the world has it (its rock is outlines: physics cannot say what is inside one).
+func _in_rock() -> bool:
+	var world := get_tree().get_first_node_in_group(&"world") as World
+	return world != null and world.in_rock(global_position + Vector2(0.0, -24.0)) and world.in_rock(global_position + Vector2(0.0, -40.0))
 
 
 ## The name of the sound a wizard makes on the ground under them: kind is "step" or "land".

@@ -237,3 +237,7 @@ always show the motion as GIFs.
 - **2026-11-25, "All random things should be based off the world's seed."** Said when Tornado's throws were found to hang on whatever else had rolled dice. Every roll in `scripts/` was moved to `Dice`, and a test forbids any
   other. A world a person starts alone now starts them in the place its seed says (it was chosen at random before).
 
+### 2026-11-25: hazards, and a hung run
+
+- "i dont want you to code those specific interactions into the game, i want you to give AI enough information about the spells and interactions generally that it can intuitively decide to be creative". Chapter 23, section 14.
+- "dont you dare let things hang for 2.5 hours again. 5 minute check-ins always". Four replays could not end (a debug script replaced `_physics_process` without `super(delta)`). Every run has a hard time limit; nothing is left going unwatched; a word to the owner at least every 5 minutes. A time limit that cuts a test run short makes its checks fail with exit code 143: that is not a failure of the game, run them alone.

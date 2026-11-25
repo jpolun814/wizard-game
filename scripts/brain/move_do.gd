@@ -16,13 +16,20 @@ const AT_A_FACE := 28.0        # pixels: the foot of a face is rounded, and a bo
 const CAST_WAIT := 2.5         # seconds it waits for its spell to go off before it thinks again
 const LEG_LONGEST := 14.0
 const AIR_TRIES := 0.35        # seconds it goes on trying to begin a stroke in the air
-const FORGET := 12.0           # seconds it remembers that it found no way somewhere
+const FORGET := 6.0           # seconds it remembers that it found no way somewhere
 const WORTH := {"page": 0.3, "foe": 0.2, "explore": 0.16}  # the share of all it has it would lose to get there, by what it goes for
 const WORTH_ELSE := 0.2
-const HELD_LONG := 8.0        # seconds held up by harm on its way, and how much more it would lose by then to be past it
-const HELD_WORTH := 0.2
+const HELD_LONG := 10.0        # seconds held up by harm on its way, and how much more it would lose by then to be past it
+const HELD_WORTH := 0.3
 const MORE_THAN_RECKONED := 1.5
 const HARM_SLACK := 12.0
+const OUT_LONGEST := 2.5       # seconds a way out may take
+const OUT_REST := 240          # frames it then leaves it to its reflexes
+const OUT_EVERY := 20          # frames between two thoughts of a way out
+const LEAST_LAID := 210.0
+const HOP_ON := 0.45
+const LAID_FOR := 0.4          # seconds it gives a floor to be there
+const WAY_OUT := 24            # columns it looks for the edge of what harms it
 const MISSES := 3              # times it thinks again before it gives the place up
 
 var brain: WizardBrain
@@ -30,6 +37,7 @@ var wizard: Wizard
 var goal := WorldNav.NONE
 var braving := false           # it goes through something that harms it, and has reckoned the price
 var fails := 0
+var desperate := false         # it is getting out of harm it is in already: nothing is too dear
 var last_miss := ""            # why it last thought again, for the logs
 var told := false              # it says what it does, for a person looking into it
 var _plan: MovePlan
@@ -48,6 +56,9 @@ var _left := false             # it has left the ground in this leg
 var _from_y := 0.0
 var _climbed := false
 var _hops := 0
+var _next_out := 0
+var _hopped := false
+var _laid_to := 0.0            # how far the floor it is laying goes so far
 var _bears := 0.0              # below this much maximum stamina it gives up what it is braving
 
 
@@ -82,6 +93,10 @@ func ask(to: Vector2i) -> String:
 var _plan_from := WorldNav.NONE
 
 
+func thinking() -> bool:
+	return _plan != null and not _plan.finished
+
+
 ## It has thought of going there lately, and there is no way.
 func ask_before(to: Vector2i) -> bool:
 	return _no_way.has(to)
@@ -111,7 +126,7 @@ func kit() -> Dictionary:
 			spells.append(spell)
 	var out := {"spells": spells, "stamina": wizard.stamina, "most": wizard.max_stamina, "draw": draw_time, "keep": brain.reserve() if brain.opponent != null else 0.0}
 	out["perils"] = Perils.all(wizard.get_tree()).filter(func(node: Node) -> bool: return knows(wizard.center().clamp(node.peril_box().position, node.peril_box().end)) and not (wizard.lava_proof() and _is_heat(node)))
-	out["worth"] = WORTH.get(brain.goal, WORTH_ELSE) + clampf(brain.travel.balked / HELD_LONG, 0.0, 1.0) * HELD_WORTH
+	out["worth"] = 1.0 if desperate else WORTH.get(brain.goal, WORTH_ELSE) + clampf(brain.travel.balked / HELD_LONG, 0.0, 1.0) * HELD_WORTH
 	if brain.explore.sight_is_limited():
 		out["knows"] = func(tile: Vector2i) -> bool: return brain.explore.explored.has(brain.explore.square_of(MoveMap.feet(tile)))
 	return out
@@ -137,9 +152,60 @@ func toward(to: Vector2i, from: Vector2i) -> Vector2i:
 		var at := Vector2i(Vector2(from).lerp(Vector2(to), float(k) / steps).round())
 		for dy in [0, 1, -1, 2, -2, 3, -3, 5, -5, 7, -7]:
 			var there := at + Vector2i(0, dy)
-			if ground.can_stand(there) and knows(MoveMap.feet(there)):
+			if ground.can_stand(there) and knows(MoveMap.feet(there)) and not harms(there):
 				return there
 	return to
+
+
+## Whether what lies on a tile harms whoever stands there.
+func harms(tile: Vector2i) -> bool:
+	return brain.travel.harms_at(MoveMap.feet(tile) + Vector2(0.0, -10.0))
+
+
+## The place to stand and stay nearest a tile, on a side of it (-1 or 1), or NONE within so many columns.
+func safe_beside(tile: Vector2i, side: int, columns: int) -> Vector2i:
+	var ground := wizard.nav.ground()
+	var row := tile.y
+	for k in columns + 1:
+		for dy in [0, -1, 1, -2, 2, -3, 3, -4, 4, -5, 5, -6, 6, -7, 7]:
+			var there := Vector2i(tile.x + side * k, row + dy)
+			if ground.can_stand(there):
+				if not harms(there):
+					return there
+				row = there.y
+				break
+	return WorldNav.NONE
+
+
+## It is in what harms it: it thinks of the quickest way out of it, whatever that costs, and takes it. True when it has set out.
+func get_out() -> bool:
+	var here := _standing_on()
+	if here == WorldNav.NONE or Engine.get_physics_frames() < _next_out or not harms(here):
+		return false
+	_next_out = Engine.get_physics_frames() + OUT_EVERY
+	var best := WorldNav.NONE
+	for side: int in [-1, 1]:
+		var there := safe_beside(here, side, WAY_OUT)
+		if there != WorldNav.NONE and (best == WorldNav.NONE or absi(there.x - here.x) < absi(best.x - here.x)):
+			best = there
+	if best == WorldNav.NONE:
+		return false
+	desperate = true
+	_no_way.erase(best)
+	var plan := MovePlan.new(wizard.nav.ground(), here, best, kit())
+	plan.work()
+	desperate = false
+	if not plan.found:
+		return false
+	_plan_from = here
+	_plan_to = best
+	goal = best
+	fails = 0
+	_plan = plan
+	desperate = true
+	_take_up(plan)
+	desperate = active()
+	return active()
 
 
 func draw_time(spell: Spell) -> float:
@@ -209,6 +275,7 @@ func stop() -> void:
 	_at = 0
 	_stage = ""
 	braving = false
+	desperate = false
 	brain.travel.out_is(0.0)
 	wizard.pad.climb = false
 	wizard.pad.let_go = false
@@ -239,7 +306,37 @@ func go(delta: float) -> float:
 			return _settle(leg, delta)
 		"cast":
 			return _wait_for_cast(leg)
+	if leg.kind == "ride":
+		return _ride(leg, delta)
 	return _fly(leg, delta)
+
+
+## Along the top of water, the way the leg goes, to the bank.
+func _ride(leg: MovePlan.Leg, delta: float) -> float:
+	_t += delta
+	var dir: float = leg.holds[0]["dir"]
+	if leg.casts[0].has("span") and _t < LAID_FOR + float(leg.casts[0]["after"]):
+		return 0.0
+	var left := (MoveMap.feet(leg.to).x - wizard.global_position.x) * dir
+	if wizard.is_on_floor() and left < 16.0 and wizard.surf_time <= 0.0:
+		return _done(leg)
+	if leg.casts[0].has("span") and (_laid_to - wizard.global_position.x) * dir < 34.0 + float(leg.casts[0]["wide"]) and left > 90.0:  # the end of what is laid: the next stretch
+		_still = _still + delta if absf(wizard.velocity.x) < 4.0 else 0.0
+		if _still > STILL_FOR and not wizard.pen.active() and wizard.stamina >= _dear(leg.casts[0]) and _draw(leg.casts[0]):
+			_stage = "cast"
+			_waited = 0.0
+			_still = 0.0
+		return 0.0 if _t < LEG_LONGEST else _miss("it could not lay more")
+	if float(leg.casts[0].get("wide", 0.0)) > 0.0 and not _hopped and wizard.is_on_floor() and absf(wizard.velocity.x) > 100.0:
+		_hopped = true  # a floor in pieces begins a step out from the edge: it hops onto it
+		wizard.request_jump(HOP_ON)
+	if wizard.is_on_wall() and wizard.is_on_floor() or (left < 80.0 and wizard.is_on_wall()):
+		wizard.request_jump()  # up onto the bank
+	if _t > leg.seconds * 1.6 + 4.0:
+		return _miss("the ride did not end")
+	if (MoveMap.feet(leg.to).x - wizard.global_position.x) * dir < -40.0 and wizard.surf_time > 0.0:
+		return 0.0  # (the wave carries it on a little)
+	return dir * WizardBrain.WALK_SPEED
 
 
 func _begin_leg(leg: MovePlan.Leg) -> void:
@@ -250,7 +347,7 @@ func _begin_leg(leg: MovePlan.Leg) -> void:
 	_left = false
 	_climbed = false
 	_hops = 0
-	if leg.kind == "undo":
+	if leg.kind == "undo" or leg.kind == "ride":
 		_stage = "settle"
 	elif leg.kind != "fly":
 		braving = false
@@ -262,7 +359,8 @@ func _begin_leg(leg: MovePlan.Leg) -> void:
 			braving = braving or _legs[k].hurt > 0.0
 			reckoned += _legs[k].hurt
 			k += 1
-		_bears = wizard.max_stamina - reckoned * MORE_THAN_RECKONED - HARM_SLACK
+		braving = braving or desperate
+		_bears = 0.0 if desperate else wizard.max_stamina - reckoned * MORE_THAN_RECKONED - HARM_SLACK
 		brain.route.set_path(tiles)
 		_stage = "walk"
 	elif _at > 0 and _legs[_at - 1].hangs:
@@ -274,6 +372,10 @@ func _begin_leg(leg: MovePlan.Leg) -> void:
 
 
 func _walk(delta: float) -> float:
+	if desperate and _waited > OUT_LONGEST and harms(_standing_on()):  # it is not getting out this way: the reflex has it
+		_next_out = Engine.get_physics_frames() + OUT_REST
+		stop()
+		return 0.0
 	if braving and wizard.max_stamina < _bears:  # it hurts more than it reckoned: it gives it up, and does not think of it again for a while
 		_no_way[goal] = FORGET
 		brain.goal = ""
@@ -368,6 +470,22 @@ func stroke_of(cast: Dictionary) -> PackedVector2Array:
 	var spell: Spell = cast["spell"]
 	if _legs[_at].kind == "undo":
 		return stroke_at(spell, _legs[_at].point)
+	if cast.has("span"):
+		var whole: Rect2 = cast["span"]
+		var dir: float = cast["way"].x
+		var far := whole.end.x if dir > 0.0 else whole.position.x
+		var near := whole.position.x if dir > 0.0 else whole.end.x
+		if (wizard.global_position.x - near) * dir > 0.0:
+			near = wizard.global_position.x + dir * 8.0
+		if (far - near) * dir > MovePlan.LAID_AT_ONCE:
+			far = near + dir * MovePlan.LAID_AT_ONCE
+		if (far - near) * dir < LEAST_LAID:  # (a stroke too short to be read goes back over what is laid)
+			near = far - dir * LEAST_LAID
+		_laid_to = far
+		_hopped = false
+		return brain.hand.bridge_stroke(spell.spell_name, Rect2(minf(near, far), whole.position.y, absf(far - near), whole.size.y))
+	if _legs[_at].kind == "ride":
+		return stroke_at(spell, wizard.center() + (cast["way"] as Vector2) * 200.0)
 	var middle := wizard.center()
 	var feet := wizard.global_position
 	match spell.gesture:

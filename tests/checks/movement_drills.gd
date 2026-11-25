@@ -113,10 +113,10 @@ func _list() -> void:
 	drills[-1]["thorns"] = Vector2i(18, 34)
 	drills[-1]["max"] = 60.0
 	drills[-1]["refuse"] = true
-	for held: String in ["Spark", "Jolt", "Rocket Jump", "Push", "Shadow Step"]:
+	for held: String in ["Spark", "Jolt", "Rocket Jump", "Push", "Shadow Step", "Tide Surf", "Frost Bridge", "Lily Pads"]:
 		_add("shoal: worn, " + held, _ground([[18, 30, 3.0]]), 8, 42, [held], [])
 		drills[-1]["shoal"] = Vector2i(18, 29)
-		drills[-1]["max"] = 60.0
+		drills[-1]["max"] = 120.0 if held in ["Lily Pads", "Frost Bridge"] else 60.0  # (two stretches of them, at what they cost)
 	for held: String in ["", "Ignite"]:  # (fire does nothing to fish)
 		_add("refuse: shoal, worn, " + (held if held != "" else "with nothing"), _ground([[18, 30, 3.0]]), 8, 42, [held] if held != "" else [], [])
 		drills[-1]["shoal"] = Vector2i(18, 29)

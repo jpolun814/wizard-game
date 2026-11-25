@@ -15,5 +15,5 @@ size_unit = 120.0
 size_min = 0.6
 size_max = 2.0
 sounds = {"fire": "lily_pads__fire", "wind": "lily_pads__wind"}
-parts = Array[Dictionary]([{"where": "place", "needs": "water", "for": 8.0, "does": [{"do": "floor", "wide": 52.0}]}])
+parts = Array[Dictionary]([{"where": "place", "needs": "water", "after": 0.7, "for": 8.0, "does": [{"do": "floor", "wide": 52.0}]}])
 made_of = Array[String](["plant"])

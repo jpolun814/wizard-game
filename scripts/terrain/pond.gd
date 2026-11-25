@@ -367,7 +367,7 @@ func level_at(x: float) -> float:
 		return INF
 	if grid != null:
 		return grid.surface_at(x)
-	if deep and x >= global_position.x and x <= global_position.x + width:
+	if x >= global_position.x and x <= global_position.x + width:  # nobody has seen it yet, so its liquid has not begun to flow: it lies as it was dug
 		return global_position.y
 	return INF
 
@@ -804,6 +804,10 @@ func fire_profile() -> Array:
 	for point in heat_points():
 		fires.append({"at": point, "heat": 1.0, "size": LiquidGrid.CELL if grid != null else width * 0.5, "shot": false})
 	return fires
+
+
+func is_water() -> bool:
+	return not molten()
 
 
 ## What going through it does (see Perils): lava burns; water only slows.
