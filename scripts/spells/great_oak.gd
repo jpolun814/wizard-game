@@ -10,14 +10,15 @@ const TREE := preload("res://art/props/great_oak.png")  # 208 x 234; its trunk's
 const HEALTH := 220.0
 const BURN_DAMAGE := 75.0  # per second, while it burns
 ## The ledges, as [height above the base, left edge, right edge], each one under a branch of the drawing.
-const LEDGES := [[30.0, -36.0, -10.0], [112.0, -44.0, -12.0], [156.0, 30.0, 90.0], [212.0, -26.0, 44.0]]  # at the picture's own size; scaled by SIZE
-const GROW_SECONDS := 0.8
+static var LEDGES: Array = Motion.of("Great Oak", "floor")["ledges"]
+static var GROW_SECONDS := Motion.number("Great Oak", "floor", "after")
 const CREAK_SECONDS := 1.3
 const FALL_SECONDS := 0.9
 const CRUSH_DAMAGE := 35
 const HEIGHT := 234.0 * SIZE
 const WIDTH := 44.0 * SIZE  # how wide the falling trunk crushes
 
+var _dice := Dice.branch()  # from the cast
 var _health := HEALTH
 var _state := "growing"  # growing, standing, creaking, falling, fallen
 var _t := 0.0
@@ -63,7 +64,7 @@ func ledge_tops() -> Array[Rect2]:
 	if _state != "standing":
 		return out
 	for ledge in LEDGES:
-		out.append(Rect2(global_position.x + ledge[1] * SIZE, global_position.y - ledge[0] * SIZE, (ledge[2] - ledge[1]) * SIZE, 10.0))
+		out.append(Rect2(global_position.x + ledge[1], global_position.y - ledge[0], ledge[2] - ledge[1], 10.0))
 	return out
 
 
@@ -76,9 +77,9 @@ func _stand() -> void:
 	for ledge in LEDGES:
 		var plank := CollisionShape2D.new()
 		var rect := RectangleShape2D.new()
-		rect.size = Vector2(ledge[2] - ledge[1], 10.0) * Vector2(SIZE, 1.0)
+		rect.size = Vector2(ledge[2] - ledge[1], 10.0)
 		plank.shape = rect
-		plank.position = Vector2((ledge[1] + ledge[2]) * 0.5 * SIZE, -ledge[0] * SIZE + 5.0)
+		plank.position = Vector2((ledge[1] + ledge[2]) * 0.5, -ledge[0] + 5.0)
 		plank.one_way_collision = true
 		plank.one_way_collision_margin = 6.0
 		ledges.add_child(plank)
@@ -93,7 +94,7 @@ func _physics_process(delta: float) -> void:
 			if is_burning():
 				_health -= BURN_DAMAGE * delta
 				if _health <= 0.0:
-					_topple(1.0 if randf() < 0.5 else -1.0)
+					_topple(1.0 if _dice.randf() < 0.5 else -1.0)
 			_burn(delta, Rect2(global_position + Vector2(-60.0 * SIZE, -HEIGHT), Vector2(150.0 * SIZE, HEIGHT)))
 		"creaking":
 			var sway := sin(_t * 18.0) * 0.015 + _lean * 0.07 * (_t / CREAK_SECONDS)
@@ -168,7 +169,7 @@ func _land() -> void:
 
 ## Burning down means falling, not vanishing: a tree that has burned through topples.
 func _burned_down() -> void:
-	_topple(1.0 if randf() < 0.5 else -1.0)
+	_topple(1.0 if _dice.randf() < 0.5 else -1.0)
 
 
 ## The fall's path is dangerous from the moment it starts to creak.

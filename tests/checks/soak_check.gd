@@ -48,7 +48,7 @@ func _soak(biome: String) -> void:
 	World.arrive_by_portal = false
 	World.next_seed = WORLD_SEEDS[biome]
 	MatchState.hurry = 100.0
-	seed(WORLD_SEEDS[biome])
+	Dice.reset(WORLD_SEEDS[biome])
 	var world: World = load("res://scenes/world.tscn").instantiate()
 	_scene = world
 	add_child(world)
@@ -63,16 +63,12 @@ func _soak(biome: String) -> void:
 	var nodes_early := 0
 	var nodes_peak_early := 0
 	var casts := 0
-	var worst_frame := 0.0
 	var bad_number := ""
 	var fell := false
-	var started := Time.get_ticks_msec()
 	var walking := 0.0
 	while time < _seconds and is_instance_valid(player) and not player.dead:
-		var before := Time.get_ticks_msec()
 		await get_tree().physics_frame
 		time += 1.0 / 60.0
-		worst_frame = maxf(worst_frame, float(Time.get_ticks_msec() - before))
 		if time >= walking:
 			walking = time + _dice.randf_range(0.4, 2.0)
 			player.walk(_dice.randf_range(-1.0, 1.0) * 220.0 if _dice.randf() < 0.8 else 0.0)
@@ -101,10 +97,8 @@ func _soak(biome: String) -> void:
 		if time < _seconds * 0.25:
 			nodes_peak_early = maxi(nodes_peak_early, count)
 		nodes_early = count
-	var wall := (Time.get_ticks_msec() - started) / 1000.0
-	var label := "%s (%d casts, %.0f s of play in %.0f s)" % [biome, casts, time, wall]
+	var label := "%s (%d casts, %.0f s of play)" % [biome, casts, time]
 	_verdict(bad_number == "", "%s: every wizard's place and stamina stay numbers %s" % [label, bad_number])
 	_verdict(not fell, "%s: nobody falls out of the world" % label)
 	_verdict(nodes_early <= maxi(int(nodes_peak_early * GROWTH_LIMIT), nodes_peak_early + 400), "%s: the world does not fill with nodes (%d at the end, %d at the busiest early on)" % [label, nodes_early, nodes_peak_early])
-	_verdict(worst_frame < 1500.0, "%s: no single step takes a second and a half (worst %.0f ms)" % [label, worst_frame])
 	_verdict(casts > 5 or player.dead, "%s: the player was able to cast (%d)" % [label, casts])

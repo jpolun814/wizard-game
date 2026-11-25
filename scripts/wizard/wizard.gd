@@ -11,8 +11,6 @@ signal debuff_applied(kind: String)
 signal died
 
 const SPEED := 300.0
-const DRAINED_SPEED := 0.7  # how much of its pace a wizard keeps while a wound drains it (Hemorrhage)
-const HASTE := 1.6  # how much faster the Chant of Swift Feet makes the wizard
 const JUMP_VELOCITY := -520.0
 const JUMP_COST := 5.0  # stamina a jump takes; with less than this, you can't jump
 const RUN_COST := 0.12   # stamina per second of walking or running on the ground
@@ -33,11 +31,10 @@ const STEP_SOUNDS := {"graveyard": "step_dirt", "mountains": "step_snow", "jungl
 const LAND_SPEED := 380.0
 const OIL_GRIP := 90.0        # and on oil, which is more slippery still
 const ICE_GRIP := 150.0        # how fast a wizard on ice can change speed, in pixels a second each second
-const OBSIDIAN_SPEED := 0.75    # how fast the wizard walks in black glass
-const OBSIDIAN_SECONDS := 20.0  # how long the black glass holds
+static var OBSIDIAN_SECONDS := Motion.number("Obsidian Armor", "state", "for")  # how long the black glass holds
 const VEIL_BLOWS := 2           # how many blows a Crimson Veil turns away
 const OBSIDIAN_SHOTS := 0.5     # and how much of a shot's damage gets through
-const SURF_SPEED := 470.0       # how fast a wave carries the wizard
+static var SURF := Motion.of("Tide Surf", "drive")       # how fast a wave carries the wizard
 const GET_UP := 10.0            # a wizard who has fainted stands up with this much stamina
 const FAINT_TIME := 4.0         # seconds a Faint keeps someone down: it costs the caster maximum stamina, so it has to be worth it
 const BODY_HEIGHT := 78.0     # from the feet to the top of the hood
@@ -70,7 +67,7 @@ const OLD_ART := ["wizard", "dark_wizard", "pyre_wizard", "bone_wizard"]  # the 
 const SPAWN_TIME := 0.7       # a wizard summoned into the world arrives out of a circle this long
 const FALL_LIMIT := 800.0     # a wizard below this has fallen off the map (in a world, the bottom of it)
 
-const FEATHER_FALL := 70.0  # the fastest a wizard falls under a Featherfall, in pixels a second
+static var FEATHER_FALL := BodyStates.fall("featherlight")  # the fastest a wizard falls under a Featherfall, in pixels a second
 # Swimming (the ocean, chapter 20): out of its depth in a sea a wizard sinks slowly, each tap of jump is a stroke that lifts it, and S dives.
 const SWIM_STROKE := 300.0   # the speed a stroke lifts the wizard at, in pixels a second
 const SWIM_GRAVITY := 450.0  # how quickly it slows from that, and sinks again
@@ -219,6 +216,8 @@ var _coyote := 0.0
 var _jump_buffer := 0.0
 var _step := 0.0
 var casting := false      # true while the caster has a stroke in progress (set by the arena)
+var _dice: RandomNumberGenerator  # see dice()
+var _dice_of := -1
 var casts_made := 0       # the spells this wizard has cast, for the tests that watch a match
 var drawn := false  # the portal of a collapsing world is carrying the wizard up: they cast and fight, but cannot walk or fall
 var _art := "wizard"  # the folder of frames it wears now
@@ -932,8 +931,7 @@ func _fall(delta: float) -> void:
 				_feather_motes = 0.35
 				Fx.burst(get_parent(), center() + Vector2(0, -20), Color(0.92, 0.95, 1.0), 2, 25.0, 0.8, false, "star_04")
 	if rocket_time > 0.0:
-		var burned := 1.0 - rocket_time / RocketJump.BURN
-		velocity.y = -RocketJump.TOP * burned * burned  # a rocket: barely off the ground at first, then quicker and quicker
+		velocity.y = -Motion.drive_speed(RocketJump.DRIVE, RocketJump.BURN - rocket_time)  # a rocket: barely off the ground at first, then quicker and quicker
 		if is_on_ceiling():
 			rocket_time = 0.0
 	_coyote = COYOTE_TIME if is_on_floor() else _coyote - delta
@@ -1007,13 +1005,13 @@ func _in_free_air() -> bool:
 ## How fast the wizard walks now: half of it when out of stamina, and each thing that slows, mires, tangles, hastens, armors or changes the wizard
 ## on top of that.
 func _walking_speed() -> float:
-	return (SPEED if stamina > 0.0 or wolf.on else SPEED * 0.5) * (0.5 if slow_time > 0.0 else 1.0) * (0.4 if sink_time > 0.0 else 1.0) * (0.3 if tangle_time > 0.0 else 1.0) * (HASTE if haste_time > 0.0 else 1.0) * (OBSIDIAN_SPEED if obsidian_time > 0.0 else 1.0) * (WildShape.SPEED if wolf.on else 1.0) * (GolemForm.SPEED if golem.on else 1.0) * (DRAINED_SPEED if drained_time > 0.0 else 1.0)
+	return (SPEED if stamina > 0.0 or wolf.on else SPEED * 0.5) * (BodyStates.pace("slowed") if slow_time > 0.0 else 1.0) * (BodyStates.pace("mired") if sink_time > 0.0 else 1.0) * (BodyStates.pace("tangled") if tangle_time > 0.0 else 1.0) * (BodyStates.pace("hasted") if haste_time > 0.0 else 1.0) * (BodyStates.pace("heavy") if obsidian_time > 0.0 else 1.0) * (WildShape.SPEED if wolf.on else 1.0) * (GolemForm.SPEED if golem.on else 1.0) * (BodyStates.pace("drained") if drained_time > 0.0 else 1.0)
 
 
 ## What moves the wizard that it did not choose: a wave, ice, fear, a shove and the wind.
 func _shoved(delta: float, can_move: bool) -> void:
 	if surf_time > 0.0 and not dead and not fainted:
-		velocity.x = surf_dir * SURF_SPEED  # a wave does not wait for the wizard
+		velocity.x = surf_dir * Motion.drive_speed(SURF, 0.0)  # a wave does not wait for the wizard
 	var grip := OIL_GRIP if OilSlick.under(get_tree(), global_position) else (ICE_GRIP if IceSheet.under(get_tree(), global_position) else 0.0)
 	if is_on_floor() and can_move and grip > 0.0:
 		_slide = move_toward(_slide, velocity.x, grip * delta)  # on ice a wizard cannot stop or turn quickly
@@ -1079,7 +1077,7 @@ func _fly(delta: float) -> void:
 	var ask := 0.0
 	if free:
 		ask = pad.flying_ask()
-	var pace := FLY_SPEED * (0.5 if slow_time > 0.0 else 1.0) * (0.3 if tangle_time > 0.0 else 1.0) * (HASTE if haste_time > 0.0 else 1.0)
+	var pace := FLY_SPEED * (BodyStates.pace("slowed") if slow_time > 0.0 else 1.0) * (BodyStates.pace("tangled") if tangle_time > 0.0 else 1.0) * (BodyStates.pace("hasted") if haste_time > 0.0 else 1.0)
 	velocity.y = move_toward(velocity.y, ask * pace if ask != 0.0 else FLY_DRIFT, FLY_ACCEL * delta)
 
 
@@ -1111,6 +1109,14 @@ func pull(force: Vector2, delta: float) -> void:
 	_shove += force * delta
 	if _uses_parts():
 		pose.pulled(force)
+
+
+## What chance does to this wizard (see Dice).
+func dice() -> RandomNumberGenerator:
+	if _dice == null or _dice_of != Dice.begun:
+		_dice = Dice.of(["wizard", String(name)])
+		_dice_of = Dice.begun
+	return _dice
 
 
 func push(impulse: Vector2) -> void:

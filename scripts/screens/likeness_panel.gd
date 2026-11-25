@@ -15,7 +15,7 @@ const NAMES := {
 		"parka": "Fur parka", "plague_coat": "Plague coat", "witch_dress": "Witch dress", "druid": "Leaf tunic", "shaman": "Shaman's garb",
 		"slicked": "Slicked back", "pompadour": "Pompadour", "undercut": "Undercut", "bangs": "Bangs", "curls": "Curls", "afro": "Afro", "dreadlocks": "Dreadlocks", "topknot": "Topknot", "space_buns": "Space buns", "braid_long": "Long braid",
 		"pencil": "Pencil mustache", "van_dyke": "Van Dyke", "mutton_chops": "Mutton chops", "dwarf": "Braided beard",
-		"top_hat": "Top hat", "bowler": "Bowler", "fez": "Fez", "bard_cap": "Feathered cap", "tricorn": "Tricorn", "jester": "Jester cap", "goggles": "Goggles", "plague_mask": "Plague mask", "antlers": "Antlers", "headdress": "Feather headdress",
+		"top_hat": "Top hat", "bowler": "Bowler", "fez": "Fez", "bard_cap": "Feathered cap", "tricorn": "Tricorn", "jester": "Jester cap", "goggles": "Goggles", "plague_mask": "Plague mask", "antlers": "Antlers", "headdress": "Feather headdress", "devil_horns": "Devil horns", "ram_horns": "Ram horns", "halo": "Halo",
 		"classic_wand": "Magic wand", "cane": "Cane", "athame": "Athame", "rapier": "Rapier", "scythe": "Scythe", "ankh": "Ankh", "tarot_fan": "Tarot cards", "skull_hand": "Skull", "broom": "Broom", "trident": "Trident", "lightsaber": "Lightsaber",
 	"none": "None", "short": "Short", "long": "Long", "ponytail": "Ponytail", "bun": "Bun", "goatee": "Goatee", "mohawk": "Mohawk", "braids": "Braid", "balding": "Balding", "wild": "Wild",
 	"handlebar": "Handlebar", "stubble": "Stubble",
@@ -327,7 +327,7 @@ func _choose(option: String, value: String) -> void:
 func _randomize() -> void:
 	Sfx.cue("likeness_panel", "click")
 	var rng := RandomNumberGenerator.new()
-	rng.randomize()
+	rng.seed = Dice.fresh()
 	GameSettings.set_value("look", PartsLook.encode(PartsLook.random_config(rng)))
 	_changed()
 

@@ -52,18 +52,13 @@ static func held_by(tree: SceneTree, wizard: Wizard) -> Leech:
 	return null
 
 
-## Called on every machine each time a wizard casts a spell that costs stamina: whoever is on the tether pays their half. The caster's own
-## half is paid by `cost_after` on the machine that drives them. A wizard on a tether who is a likeness here pays nothing; their own machine does.
-static func charge_target(tree: SceneTree, wizard: Wizard, cost: float) -> void:
-	var leech := held_by(tree, wizard)
-	if leech != null and is_instance_valid(leech.target):
-		leech.target.drain(cost * SHARE)
-		Fx.burst(leech.get_parent(), leech.target.center(), SpellData.SCHOOL_COLORS["Blood"], 6, 70.0, 0.4, true)
-
-
-## What the caster pays of a spell's cost: all of it, or the half left to them when they hold a tether.
-static func cost_after(tree: SceneTree, wizard: Wizard, cost: float) -> float:
-	return cost * (1.0 - SHARE) if held_by(tree, wizard) != null else cost
+## The other end of a tether pays its half of a spell, on the machine that drives it (a likeness pays nothing). Whether there was a tether is the caster's machine's to
+## say, which paid the first half (see Casting.by): each end looking for itself could charge one spell one and a half times, or half.
+static func charge(target: Wizard, cost: float) -> void:
+	if target == null or target.dead:
+		return
+	target.drain(cost * SHARE)
+	Fx.burst(target.get_parent(), target.center(), SpellData.SCHOOL_COLORS["Blood"], 6, 70.0, 0.4, true)
 
 
 func _ready() -> void:

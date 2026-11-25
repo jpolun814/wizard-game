@@ -23,9 +23,9 @@ func _ready() -> void:
 	for i in 10:
 		_shards.append({
 			"pos": Vector2.ZERO,
-			"vel": Vector2.from_angle(randf() * TAU) * randf_range(90.0, 220.0),
-			"rot": randf() * TAU,
-			"size": randf_range(3.0, 6.5),
+			"vel": Vector2.from_angle(Dice.looks.randf() * TAU) * Dice.looks.randf_range(90.0, 220.0),
+			"rot": Dice.looks.randf() * TAU,
+			"size": Dice.looks.randf_range(3.0, 6.5),
 		})
 
 

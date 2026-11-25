@@ -110,26 +110,21 @@ SPELLS = {name: school_ramp(col) for name, col in SCHOOL_COLORS.items()}
 # The order here is the order the character creator shows: plainest first, the fantastical last; colors run round the wheel and then the neutrals.
 OPTIONS = {
     "skin": ["pale", "fair", "light", "olive", "tan", "bronze", "brown", "deep", "ebony", "orc", "zombie", "duergar", "vampire", "frostborn", "infernal", "spectral", "bone"],
-    "outfit": ["rags", "tunic", "coat", "robe", "cloak", "gown", "bodice", "gothic", "armored", "vest", "pelt", "sash", "toga", "waistcoat", "tuxedo", "trench",
-               "doublet", "alchemist", "habit", "desert", "parka", "plague_coat", "witch_dress", "druid", "shaman", "vampire"],
+    "outfit": ["robe", "cloak", "habit", "gothic", "vampire", "druid", "shaman", "witch_dress", "alchemist", "plague_coat", "gown", "bodice", "tunic", "coat", "vest", "sash", "toga", "pelt", "desert", "rags", "parka", "trench", "doublet", "waistcoat", "tuxedo", "armored"],
     "color": ["crimson", "rust", "umber", "fawn", "gold", "emerald", "teal", "blue", "purple", "lavender", "rose", "ivory", "charcoal", "black"],
     "trim": ["crimson", "rust", "umber", "fawn", "gold", "emerald", "teal", "blue", "purple", "lavender", "rose", "ivory", "charcoal", "black"],
-    "hair": ["none", "balding", "tonsure", "short", "bob", "long", "wavy", "ponytail", "pigtails", "braids", "bun", "updo", "mohawk", "wild",
-             "slicked", "pompadour", "undercut", "bangs", "curls", "afro", "dreadlocks", "topknot", "space_buns", "braid_long"],
+    "hair": ["none", "long", "wild", "wavy", "braid_long", "braids", "ponytail", "dreadlocks", "curls", "afro", "topknot", "bun", "updo", "pigtails", "space_buns", "bob", "bangs", "short", "slicked", "pompadour", "undercut", "mohawk", "tonsure", "balding"],
     "hair_color": ["white", "silver", "gray", "blonde", "ginger", "auburn", "chestnut", "brown", "black", "midnight", "crimson", "ember", "gold", "emerald", "aqua", "frost", "violet"],
-    "beard": ["none", "stubble", "goatee", "handlebar", "short", "long", "pencil", "van_dyke", "mutton_chops", "dwarf"],
+    "beard": ["none", "long", "dwarf", "short", "goatee", "van_dyke", "pencil", "handlebar", "mutton_chops", "stubble"],
     "beard_color": ["white", "silver", "gray", "blonde", "ginger", "auburn", "chestnut", "brown", "black", "midnight", "crimson", "ember", "gold", "emerald", "aqua", "frost", "violet"],
-    "hat": ["none", "hood", "headscarf", "turban", "pointy", "wide", "top_hat", "bowler", "fez", "bard_cap", "tricorn", "jester", "goggles", "plague_mask",
-            "mushroom", "circlet", "tiara", "crown", "laurel", "flower_crown", "horned", "antlers", "headdress", "skull"],
+    "hat": ["none", "pointy", "wide", "hood", "turban", "headscarf", "fez", "circlet", "tiara", "crown", "laurel", "flower_crown", "halo", "horned", "devil_horns", "ram_horns", "antlers", "headdress", "skull", "tricorn", "top_hat", "bowler", "bard_cap", "jester", "mushroom", "plague_mask", "goggles"],
     "hat_color": ["crimson", "rust", "umber", "fawn", "gold", "emerald", "teal", "blue", "purple", "lavender", "rose", "ivory", "charcoal", "black"],
     "boots": ["brown", "black", "tan", "gray", "red", "green", "bare"],
-    "weapon": ["wand", "classic_wand", "rose_wand", "bone_wand", "scepter", "cane", "athame", "rapier", "scythe", "ankh", "crook", "book",
-               "tarot_fan", "orb_hand", "skull_hand", "broom", "trident", "lightsaber", "staff_branch", "staff_flower", "staff_orb", "staff_crystal", "staff_moon",
-               "staff_lantern", "staff_skull"],
+    "weapon": ["wand", "classic_wand", "rose_wand", "bone_wand", "scepter", "staff_orb", "staff_crystal", "staff_moon", "staff_branch", "staff_flower", "staff_lantern", "staff_skull", "crook", "book", "orb_hand", "tarot_fan", "ankh", "skull_hand", "cane", "broom", "athame", "rapier", "scythe", "trident", "lightsaber"],
 }
 TRIMS = {name: COLORS[name]["main"] for name in COLORS}  # an outfit can be edged in any of the colors it can be made in
 assert all(set(OPTIONS[k]) == set(v) for k, v in {"skin": SKINS, "color": COLORS, "trim": TRIMS, "hair_color": HAIRS, "hat_color": COLORS}.items())
-HAT_NO_COLOR = ("none", "skull", "laurel", "flower_crown", "antlers")  # hats that have no color of their own to choose
+HAT_NO_COLOR = ("none", "skull", "laurel", "flower_crown", "antlers", "halo", "ram_horns")  # hats that have no color of their own to choose
 HAT_TRIMMED = ("headscarf", "pointy", "wide", "top_hat", "bowler", "bard_cap", "tricorn", "jester", "headdress")  # hats with metal or a band that takes the trim's color
 CAP_HAIR = ("short", "long", "ponytail", "bun", "braids", "wild", "bob", "pigtails", "wavy", "updo", "dreadlocks", "curls", "pompadour", "space_buns", "braid_long", "bangs")  # styles that draw the cap of hair over the head
 BACK_COAT = ("coat", "cloak", "gothic", "vampire", "tuxedo", "trench", "plague_coat", "parka", "habit")  # outfits with a piece behind the legs
@@ -1391,6 +1386,9 @@ def magic(cv, g, p, extra, kind, frame):
         elif name == "jet":
             fx_blast(cv, c, kw["length"], spread=kw.get("spread", 20), ang=kw.get("ang", 0))
         elif name == "ball":
+            # owner: no colored ball on a weapon whose design has none (athame, cane, rapier...); a ball over the open hand stays
+            if kw.get("at", "tip") == "tip" and p["staff"] and (p.get("no_gem") or not WEAPONS[kind].get("gem", True)):
+                continue
             fx_glowball(cv, c, kw["r"], t=frame * 0.7)
         elif name == "sparks":
             fx_sparks(cv, c, kw["n"], kw["spread"], kw["seed"], drift=kw.get("drift", (0, 0)))
@@ -1731,7 +1729,8 @@ def more_weapon(cv, g, p, kind):
 
 
 # ---------------------------------------------------------------- hats
-MORE_HATS = ("top_hat", "bowler", "fez", "bard_cap", "tricorn", "jester", "goggles", "plague_mask", "antlers", "headdress")
+MORE_HATS = ("top_hat", "bowler", "fez", "bard_cap", "tricorn", "jester", "goggles", "plague_mask", "antlers", "headdress", "devil_horns", "ram_horns", "halo")
+RAM_HORN = ramp("#d8c8a0", "#a89468", "#6e5c3a", "#32281a")
 
 
 def more_hat(cv, g, p, style, main, trim):
@@ -1795,6 +1794,17 @@ def more_hat(cv, g, p, style, main, trim):
             cv.paint(limb(beam, [1.7, 1.5, 1.3, 0.6]), ANTLER, hi=0.5, lo=-0.1, inner_outline=False, bias=bias)
             for a0, a1 in (((-3.0, -7.4), (1.0, -10.6)), ((-4.8, -12.0), (-0.4, -15.8)), ((-6.0, -16.6), (-1.8, -20.6))):
                 cv.paint(limb([q(*a0), q(*a1)], [1.1, 0.5]), ANTLER, hi=0.5, lo=-0.1, inner_outline=False, bias=bias)
+    elif style == "devil_horns":  # two short horns curving forward from the crown of the head, in the hat's color
+        for pts in (((-3.2, -4.2), (-4.4, -7.4), (-3.4, -10.6)), ((1.6, -4.4), (2.4, -7.6), (4.4, -10.2))):
+            cv.paint(limb([R(*q) for q in pts], [1.9, 1.4, 0.4]), main, hi=0.5, lo=-0.1, inner_outline=False)
+    elif style == "ram_horns":  # a great horn curling round each side of the head, the far one behind
+        for pts, rad in ((((3.4, -4.6), (3.0, -9.4), (-0.4, -12.2), (-3.6, -9.6), (-2.2, -7.2)), [1.9, 1.9, 1.6, 1.2, 0.4]),
+                         (((-1.0, -4.2), (-3.8, -9.6), (-9.0, -9.8), (-11.2, -5.0), (-8.0, -2.6)), [2.3, 2.3, 2.0, 1.5, 0.5])):
+            cv.paint(limb([R(*q) for q in pts], rad), RAM_HORN, hi=0.5, lo=-0.1, inner_outline=True)
+    elif style == "halo":  # a thin gold ring floating over the head
+        outer = cv.ellipse(R(-0.9, -14.0), 6.8, 2.4, math.radians(rot))
+        inner = cv.ellipse(R(-0.9, -14.0), 5.0, 1.2, math.radians(rot))[0]
+        cv.paint((outer[0] & ~inner, outer[1]), BRASS, hi=0.6, lo=0.0, inner_outline=False)
     elif style == "headdress":  # a band and a fan of feathers
         feathers = [(-4.4, -3.6, -3.2, -15.2, main), (-5.2, -3.4, 0.4, -14.6, trim), (-3.2, -3.8, -7.6, -14.0, trim), (-2.0, -3.9, -11.4, -11.0, FEATHER),
                     (-1.0, -3.9, -13.6, -6.8, main)]

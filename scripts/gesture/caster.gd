@@ -14,6 +14,8 @@ const MIN_STROKE_LENGTH := 20.0  # shorter strokes are ignored as clicks
 const MIN_POINT_SPACING := 2.0
 
 ## Where the caster's character is, so a flick drawn toward it can be told from one drawn away.
+var _dice: RandomNumberGenerator  # how the hand shakes
+var _strokes := 0
 var anchor := Vector2.ZERO
 var hide_trail := false  # set while the player is blinded
 var ground_check := Callable()  # set by the arena: true when a point is on solid ground
@@ -129,13 +131,15 @@ func clear_stroke() -> void:
 
 
 func _begin() -> void:
+	_strokes += 1
+	_dice = Dice.of(["hand", _strokes])
 	_origin = get_global_mouse_position()
 	_stroke = PackedVector2Array([_origin])
 	_stroke_color = Color.WHITE
 
 
 func _extend() -> void:
-	var p := get_global_mouse_position() + Vector2(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)) * tremor
+	var p := get_global_mouse_position() + Vector2(_dice.randf_range(-1.0, 1.0), _dice.randf_range(-1.0, 1.0)) * tremor
 	if p.distance_to(_stroke[_stroke.size() - 1]) >= MIN_POINT_SPACING:
 		_stroke.append(p)
 

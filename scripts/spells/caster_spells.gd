@@ -205,7 +205,7 @@ func _shadow_step(c: SpellCast) -> void:
 	var caster := c.caster
 	var dir := Vector2.from_angle(c.aim)
 	var start: Vector2 = caster.global_position
-	var end := start + dir * minf(float(c.info.get("length", 0.0)), SpellData.STEP_MAX)
+	var end := start + dir * Motion.carried(Motion.of("Shadow Step", "carry"), float(c.info.get("length", 0.0)))
 	var query := PhysicsRayQueryParameters2D.create(start + Vector2(0, -20), end + Vector2(0, -20))
 	query.collision_mask = 1
 	var hit := _arena.get_world_2d().direct_space_state.intersect_ray(query)

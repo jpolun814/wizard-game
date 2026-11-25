@@ -256,7 +256,7 @@ func give_at_once(amount: float) -> void:
 
 ## Three in four it mends 30 maximum stamina, one in four it takes 30, and that can kill.
 func _gamble() -> void:
-	if randf() < GAMBLE_ODDS:
+	if wizard.dice().randf() < GAMBLE_ODDS:
 		give_at_once(GAMBLE_STAKE)
 		return
 	Fx.burst(wizard.get_parent(), wizard.center(), Color("#ff5a5a"), 14, 140.0, 0.4, true)

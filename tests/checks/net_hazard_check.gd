@@ -7,52 +7,22 @@ extends Node
 ##     godot --headless --path . tests/checks/net_hazard_check.tscn -- role=client seed=2
 ## seed=2 is a graveyard first, seed=5 the ashlands (the order of biomes follows the seed: `MatchState.biome_of(0)`). Run in real time (no --fixed-fps).
 
-const WAITING_ROOM := "res://scenes/lab.tscn"
-const WORLD := "res://scenes/world.tscn"
-const GIVE_UP := 120.0
-
 
 func _ready() -> void:
-	var driver := Driver.new()
 	for arg in OS.get_cmdline_user_args():
-		if arg.begins_with("role="):
-			driver.role = arg.get_slice("=", 1)
-		elif arg.begins_with("seed="):
+		if arg.begins_with("seed="):
 			World.next_seed = int(arg.get_slice("=", 1))
-	get_tree().root.add_child.call_deferred(driver)
+	NetDriver.start(self, Driver.new())
 
 
-class Driver extends Node:
+class Driver extends NetDriver:
 	var _lost_page := ""
 	var _struck_name := ""
-	var role := "host"
 
-	func _ready() -> void:
-		get_tree().create_timer(GIVE_UP).timeout.connect(func() -> void:
-			print("%s: gave up waiting" % role)
-			get_tree().quit(1))
-		if role == "host":
-			Net.host()
-		else:
-			await _seconds(1.0)
-			Net.join("127.0.0.1")
-			await Net.roster_changed
-		get_tree().change_scene_to_file(WAITING_ROOM)
-		var room: Node = await _scene(WAITING_ROOM)
-		await _until(func() -> bool: return Net.peers_here().size() == 1)
+	func _play() -> void:
+		var room: Node = await _into_the_room(2)
 		await _seconds(1.0)
-		var portal: Node2D = get_tree().get_first_node_in_group("portals")
-		if role == "client":
-			await _seconds(2.0)
-		room.player.global_position = portal.global_position + Vector2(0, -30)
-		await _until(func() -> bool: return get_tree().current_scene == null or get_tree().current_scene.scene_file_path != WAITING_ROOM)
-		await _seconds(1.5)
-		var key := InputEventKey.new()
-		key.keycode = KEY_SPACE
-		key.pressed = true
-		Input.parse_input_event(key)
-		var world: Node = await _scene(WORLD)
-		await _until(func() -> bool: return Net.peers_here().size() == 1)
+		var world: Node = await _into_the_world(room, 1)
 		MatchState.hurry = 100.0  # no collapse while we watch
 		print("%s: world seed %d, biome %s" % [role, world.seed_value, world.graph.surface["biomes"][0]["name"]])
 		for second in 40:
@@ -80,9 +50,7 @@ class Driver extends Node:
 				var had := false
 				for page: Node in get_tree().get_nodes_in_group("pages"):
 					had = had or String(page.name) == _lost_page
-				print("%s  %s: has the page (%s) before the host loses it" % ["PASS" if had else "FAIL", role, _lost_page])
-				if not had:
-					get_tree().quit(1)
+				_check(had, "has the page (%s) before the host loses it" % _lost_page)
 			if second == 9 and role == "host" and _lost_page != "":
 				for page: Node in get_tree().get_nodes_in_group("pages"):
 					if String(page.name) == _lost_page:
@@ -92,17 +60,13 @@ class Driver extends Node:
 				var still := false
 				for page: Node in get_tree().get_nodes_in_group("pages"):
 					still = still or String(page.name) == _lost_page
-				print("%s  %s: a page the host lost is off the ground here too (%s)" % ["PASS" if not still else "FAIL", role, _lost_page])
-				if still:
-					get_tree().quit(1)
+				_check(not still, "a page the host lost is off the ground here too (%s)" % _lost_page)
 			if second == 25 and _struck_name != "":
 				var gone := true
 				for mob: Node in get_tree().get_nodes_in_group("mobs"):
 					if String(mob.name) == _struck_name and not mob.is_dead():
 						gone = false
-				print("%s  %s: the guard that fell on the host has fallen here too (%s)" % ["PASS" if gone else "FAIL", role, _struck_name])
-				if not gone:
-					get_tree().quit(1)
+				_check(gone, "the guard that fell on the host has fallen here too (%s)" % _struck_name)
 			if second == 20 or second == 38:  # the pages still lying about: the same ones here as on the host
 				var lying := []
 				for page: Node in get_tree().get_nodes_in_group("pages"):
@@ -119,14 +83,11 @@ class Driver extends Node:
 				print("%s ALL %d: %s" % [role, all.size(), " ".join(all)])
 				for mob: Node in get_tree().get_nodes_in_group("mobs"):  # one the host has lost must be lost here too, and not left standing at the corner of the map
 					if String(mob.name).begins_with("Dead") and mob.global_position.length() < 50.0 and not mob.is_dead():
-						print("FAIL  %s: %s stands at the corner of the map" % [role, mob.name])
-						get_tree().quit(1)
+						_check(false, "%s stands at the corner of the map" % mob.name)
 			for child in (world.get_children() if is_instance_valid(world) else []):
 				if child is Eruption:
 					line += " %s=%s" % [child.name, "ERUPT" if child.is_erupting() else "-"]
 			print(line)
-		print("%s: done" % role)
-		get_tree().quit(0)
 
 	## The first skeleton of a crypt that is still standing: it does not roam, and is the same one on both machines.
 	func _a_guard() -> Mob:
@@ -144,13 +105,4 @@ class Driver extends Node:
 			return "[no sprite]"
 		return "[%s a=%.1f%s]" % [sprite.animation, sprite.modulate.a * sprite.self_modulate.a, "" if sprite.visible else " HIDDEN"]
 
-	func _scene(path: String) -> Node:
-		await _until(func() -> bool: return get_tree().current_scene != null and get_tree().current_scene.scene_file_path == path and get_tree().current_scene.is_node_ready())
-		return get_tree().current_scene
 
-	func _seconds(seconds: float) -> void:
-		await get_tree().create_timer(seconds).timeout
-
-	func _until(condition: Callable) -> void:
-		while not condition.call():
-			await get_tree().process_frame

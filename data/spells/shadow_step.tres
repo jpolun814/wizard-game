@@ -15,3 +15,4 @@ size_from = 6
 size_unit = 100.0
 size_min = 2.0
 sounds = {"dark_whoosh": "shadow_step__dark_whoosh"}
+parts = Array[Dictionary]([{"where": "self", "does": [{"do": "carry", "way": "stroke", "most": 300.0}]}])

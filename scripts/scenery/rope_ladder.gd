@@ -12,7 +12,7 @@ var texture: Texture2D = TEXTURE  # what it is made of: rope, or a jungle's vine
 
 var sway := false  # a jungle vine swings a little in the wind
 var _sprite: Sprite2D
-var _t := randf() * TAU
+var _t := Dice.looks.randf() * TAU
 var _top := Vector2.ZERO
 var _bottom := Vector2.ZERO
 

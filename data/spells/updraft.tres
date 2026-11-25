@@ -10,3 +10,4 @@ gesture = "updraft"
 cost = 30.0
 effect = "A column of rising air that lifts anyone up."
 sounds = {"whirl": "updraft__whirl"}
+parts = Array[Dictionary]([{"where": "place", "needs": "ground", "wide": 70.0, "high": 520.0, "does": [{"do": "lift", "pull": 2700.0, "speed": 420.0}]}])

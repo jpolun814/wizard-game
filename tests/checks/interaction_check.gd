@@ -16,6 +16,12 @@ func _ready() -> void:
 	add_child(world)
 	await get_tree().process_frame
 	await get_tree().process_frame
+	var victim: Wizard = null  # the other one: it stands where it is put, and does only what is done to it
+	for other: Wizard in SpellTargets.wizards(get_tree()):
+		if other != world.player:
+			victim = other
+	_put_away_all_but([world.player, victim])
+	victim.brain.dormant = true
 	var feet: Vector2 = world.player.global_position
 	var spot := feet + Vector2(0.0, -20.0)
 
@@ -120,6 +126,8 @@ func _ready() -> void:
 	_verdict(not is_instance_valid(drawn) or drawn.is_queued_for_deletion() or not drawn.is_inside_tree(), "a Firewall drawn into a pond goes out")
 
 	var wiz: Wizard = world.player
+	pond.queue_free()  # (a wizard still standing in it would hold their breath)
+	await _fresh(wiz, feet)
 	_verdict(wiz.haste_time < 100.0 and wiz.air_jump_time < 100.0, "before the chants are said, neither Swift Feet nor the Second Leap holds")
 	wiz.ledger.settle("haste")
 	wiz.ledger.settle("double_jump")
@@ -135,10 +143,7 @@ func _ready() -> void:
 	wiz.lungs.smother(false)
 	_verdict(not wiz.lungs.holding(), "and they breathe again when it is let back in")
 
-	var victim: Wizard = null
-	for other: Wizard in SpellTargets.wizards(get_tree()):
-		if other != wiz:
-			victim = other
+	await _fresh(wiz, feet)
 	world.spawn_spell("Vacuum", "positional", victim.center() + Vector2(20.0, -10.0), 0.0, {}, wiz)
 	await get_tree().physics_frame
 	_verdict(victim.lungs.smothered and victim.lungs.holding(), "a Vacuum drawn over someone smothers them")
@@ -154,6 +159,7 @@ func _ready() -> void:
 	await get_tree().physics_frame
 	_verdict(not victim.lungs.smothered, "and lets go when its caster casts something else")
 
+	await _fresh(wiz, feet)
 	var column := Updraft.new()
 	column.global_position = wiz.global_position
 	world.add_child(column)
@@ -170,6 +176,7 @@ func _ready() -> void:
 	await get_tree().physics_frame
 	_verdict(not wiz.silenced(), "and is not once they have stepped out")
 
+	await _fresh(wiz, feet)
 	var seer: Wizard = world.player
 	seer.ledger = Ledger.of(["Ignite"])  # (the waiting room's book holds everything; this one holds almost nothing)
 	seer.ledger.learn("chant:dowsing")
@@ -186,12 +193,14 @@ func _ready() -> void:
 		await get_tree().process_frame
 		_verdict(get_tree().get_nodes_in_group("dowsings").is_empty() or get_tree().get_nodes_in_group("dowsings")[0].is_queued_for_deletion(), "and the arrow goes once that page is read")
 
+	victim.ledger = Ledger.of(["Ignite", "Frostbolt", "Barbs", "Pebble"])  # (spells that can be cast anywhere: one of its own five may be refused where it stands, a ceiling wanted or someone to aim at)
 	var fought := false
 	var fled := false
 	for trial in 12:
 		victim.rage_time = 0.0
 		victim.fear_time = 0.0
 		victim.last_spell = ""
+		victim.thaw()  # (whatever was done to it before: one shut in ice casts nothing, of its own accord or not)
 		victim.stamina = victim.max_stamina
 		var stir := FightOrFlight.new()
 		stir.target = victim
@@ -209,8 +218,8 @@ func _ready() -> void:
 		if fought and fled:
 			break
 	_verdict(fought and fled, "Fight or Flight sends them one way or the other by chance (fought %s, fled %s)" % [fought, fled])
-	victim.rage_time = 0.0
-	victim.fear_time = 0.0
+	await _fresh(victim, victim.global_position)
+	await _fresh(wiz, feet)
 
 	var geyser := Geyser.new()
 	world.add_child(geyser)
@@ -249,3 +258,20 @@ func _ready() -> void:
 	get_tree().quit(1 if _failures > 0 else 0)
 
 
+## Whatever the step before left is cleared away (what a spell made, and what it did to this wizard), and the wizard stands whole where the next step wants it.
+func _fresh(wizard: Wizard, at: Vector2) -> void:
+	for group in ["lasting", "fires", "flares", "winds", "clouds", "shots", "projectiles", "rocks"]:
+		for node in get_tree().get_nodes_in_group(group):
+			if not node is Pond:
+				node.queue_free()
+	for k in 2:  # (what is being freed acts once more: it is gone before anyone is put in place)
+		await get_tree().physics_frame
+	Substances.wash(wizard)
+	Substances.relieve(wizard)
+	wizard.wet_time = 0.0
+	wizard.max_stamina = Wizard.MAX_STAMINA
+	wizard.stamina = wizard.max_stamina
+	wizard.global_position = at
+	wizard.velocity = Vector2.ZERO
+	for k in 30:
+		await get_tree().physics_frame

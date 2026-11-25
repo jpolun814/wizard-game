@@ -114,42 +114,31 @@ func _ready() -> void:
 	Sfx.speak(self, "hurt_voice_5", Vector2.ZERO)
 	var sounding := 0
 	for child in Sfx.get_children():
-		if child is AudioStreamPlayer2D and child.playing:
+		if child.has_meta("speaker") and not child.is_queued_for_deletion():
 			sounding += 1
 	_verdict(sounding == 1, "a voice never speaks over itself: a new sound cuts the one before (%d sounding)" % sounding)
 	Sfx.speak(self, "hurt_voice_5", Vector2.ZERO)
 	var first: Node = Sfx._voices.get(get_instance_id())
 	Sfx.speak(self, "hurt_voice_5", Vector2.ZERO)
-	_verdict(Sfx._voices.get(get_instance_id()) == first and first.playing, "the same sound asked for again carries on, it is not restarted")
+	_verdict(Sfx._voices.get(get_instance_id()) == first and not first.is_queued_for_deletion(), "the same sound asked for again carries on, it is not restarted")
 	_verdict(PartsLook.is_valid(look) and not PartsLook.is_valid("parts:2:x.x.x.x.x.x.x.x.x.x.x"), "a look is valid only if every value is a part")
 	_verdict(WizardLook.is_look(look) and not WizardLook.is_look("pyre_wizard") and not WizardLook.is_look("garbage"), "the game takes a look made of parts, and not the old figures")
 
 	# Every animation of the manifest, with its frames.
 	var every := PartFrames.body(look)
 	var bad := 0
-	var started := Time.get_ticks_usec()
-	var slowest := 0.0
-	var slowest_name := ""
 	for anim: String in m["animations"]:
 		PartFrames.ensure(every, anim)
-		if PartFrames._last_ms > slowest and every.get_frame_count(anim) > 0:
-			slowest = PartFrames._last_ms
-			slowest_name = anim
 		var spec: Dictionary = m["animations"][anim]
 		if every.get_frame_count(anim) != int(spec["count"]) or not is_equal_approx(every.get_animation_speed(anim), float(spec["fps"])) or every.get_animation_loop(anim) != bool(spec["loop"]):
 			bad += 1
 	_verdict(bad == 0 and every.get_animation_names().size() == 48, "all 48 animations are there with the manifest's frames, speed and looping (%d wrong)" % bad)
-	print("   (all of them made in %.0f ms; the slowest single one was %s, %.1f ms)" % [(Time.get_ticks_usec() - started) / 1000.0, slowest_name, slowest])
 
 	# What a new look costs: its core animations, and what one more animation costs.
-	var costs := PackedFloat64Array()
 	for k in 5:
 		var other := PartsLook.seeded_look(100 + k)
-		var t0 := Time.get_ticks_usec()
 		var frames := PartFrames.body(other)
-		costs.append((Time.get_ticks_usec() - t0) / 1000.0)
 		PartFrames.ensure(frames, "cower")
-		print("   a new look: %.0f ms with its first fourteen animations; one more (cower): %.1f ms" % [costs[k], PartFrames._last_ms])
 	var memory := Performance.get_monitor(Performance.RENDER_TEXTURE_MEM_USED) / 1048576.0
 	print("   texture memory now: %.0f MB (the look and 5 more, all 48 animations of the first)" % memory)
 

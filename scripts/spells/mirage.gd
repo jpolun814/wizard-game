@@ -24,7 +24,7 @@ var _fading := false        # not there to be had: going, gone from sight, or en
 static func conjure(parent: Node, feet: Vector2) -> Mirage:
 	var mirage := Mirage.new()
 	var names: Array = SpellData.SPELLS.keys()
-	mirage.page = names[randi() % names.size()]  # the dice are the same on every machine of a match, so it looks the same on each
+	mirage.page = names[Dice.branch().randi() % names.size()]  # (the cast's dice, so it looks the same on every machine)
 	mirage.position = feet
 	parent.add_child(mirage)
 	return mirage

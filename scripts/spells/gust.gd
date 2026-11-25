@@ -4,12 +4,10 @@ extends SpellEffect
 ## A blast of wind along the stroke. It carries light things: shots are turned along it, smoke and spores are blown clear,
 ## and wizards and creatures are shoved sideways (never up: only Push lifts). A giant does not move.
 
-const LIFE := 0.7
-const LENGTH := 340.0
-const WIDTH := 130.0
-const SPEED := 620.0  # how hard the wind blows; creatures and wizards feel a share of it
-const WALKER_SHARE := 0.35
-const PLAYER_SHARE := 0.7
+static var WIND := Motion.of("Gust", "throw")
+static var LIFE: float = WIND["for"]
+static var LENGTH: float = WIND["long"]
+static var WIDTH: float = WIND["wide"]
 
 var _aim := Vector2.RIGHT
 var _turned := {}  # shots already turned, so each is sent along once
@@ -50,20 +48,19 @@ func _act(delta: float) -> void:
 		_blow(body, delta)
 	for item in get_tree().get_nodes_in_group("items"):
 		if _reaches(item.global_position):
-			item.knock(_aim * SPEED * 0.4)
+			item.knock(Motion.thrown(WIND, _aim, "things"))
 
 
 ## Shoves one body along the wind. Only sideways: whatever way the stroke points, the push is horizontal.
 func _blow(body: Node2D, delta: float) -> void:
 	if not SpellTargets.affects(body):
 		return
-	var along := Vector2(signf(_aim.x) * absf(_aim.x), 0.0) * SPEED
+	var along := Vector2(_aim.x, 0.0)
 	if body.is_in_group("mobs"):
-		var share := 0.0 if body.KINDS[body.kind].effect == "smash" else WALKER_SHARE
-		if share > 0.0:
-			body.knock_back(along * share)
+		if body.KINDS[body.kind].effect != "smash":  # (a giant does not move)
+			body.knock_back(Motion.thrown(WIND, along, "creatures"))
 	else:
-		body.push(Vector2(along.x * PLAYER_SHARE, 0.0))
+		body.push(Motion.thrown(WIND, along))
 
 
 ## True when a point lies in the gust's path.

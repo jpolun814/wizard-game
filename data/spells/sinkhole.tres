@@ -14,3 +14,4 @@ share = 0.8
 warning = 0.9
 effect = "Open up a sinkhole in the ground."
 sounds = {"rocks": "sinkhole__rocks", "rumble": "sinkhole__rumble"}
+parts = Array[Dictionary]([{"where": "place", "needs": "ground", "after": 0.9, "does": [{"do": "pit", "half_least": 50.0, "half_most": 130.0, "deep_least": 56.0, "deep_most": 120.0}]}])

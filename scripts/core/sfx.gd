@@ -19,6 +19,7 @@ const LEVELS := "res://data/sound_levels.json"
 const MAX_DISTANCE := 1400.0  # world sounds farther than this from the camera are not heard
 const POLYPHONY := 24         # how many sounds can play at once; the oldest are cut off beyond that
 const BUS := &"SFX"
+const STEADY_SECONDS := 0.5   # how long every sound lasts in a run that must come out the same each time (see SteadyRun)
 
 var muted := false
 var _files := {}      # name -> Array of file paths, one per variant
@@ -110,10 +111,14 @@ func play(sound: String, at: Variant = null, volume_db := 0.0, pitch_spread := 0
 	player.bus = BUS
 	player.pitch_scale = pitch
 	player.volume_db = _levels.get(sound, VOLUME.get(sound, 0.0)) + volume_db
-	player.finished.connect(_done.bind(player))
+	if SteadyRun.on:
+		get_tree().create_timer(STEADY_SECONDS).timeout.connect(_over.bind(player.get_instance_id()))  # (the sound card keeps real time, which a test must not depend on)
+	else:
+		player.finished.connect(_done.bind(player))
 	_live += 1
 	add_child(player)
-	player.play()
+	if not SteadyRun.on:
+		player.play()  # (a test keeps its sounds, for as long as they would last, without a sound card mixing them on another core)
 	return player
 
 
@@ -122,7 +127,7 @@ func play(sound: String, at: Variant = null, volume_db := 0.0, pitch_spread := 0
 func speak(speaker: Node, sound: String, at: Vector2) -> void:
 	var id := speaker.get_instance_id()
 	var old: Node = _voices.get(id)
-	if is_instance_valid(old) and old.playing:
+	if is_instance_valid(old) and (old.playing or SteadyRun.on):
 		if old.get_meta("sound") == sound:
 			return
 		old.stop()  # (a stopped player does not announce that it finished)
@@ -132,6 +137,13 @@ func speak(speaker: Node, sound: String, at: Vector2) -> void:
 		player.set_meta("speaker", id)
 		player.set_meta("sound", sound)
 		_voices[id] = player
+
+
+## In a steady run: a sound's time is up, unless it was cut short before.
+func _over(id: int) -> void:
+	var player := instance_from_id(id) as Node
+	if player != null and not player.is_queued_for_deletion():
+		_done(player)
 
 
 func _done(player: Node) -> void:

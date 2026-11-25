@@ -9,6 +9,7 @@ const EVERY := 0.07           # seconds between two stones
 const CLOUDS := [preload("res://art/props/cloud_storm_big.png"), preload("res://art/props/cloud_storm_small_1.png"), preload("res://art/props/cloud_storm_small_2.png")]
 const FALL_DANGER := 520.0    # how far under the cloud the stones may be met
 
+var _dice := Dice.branch()  # from the cast
 var line := PackedVector2Array()  # the cloud's line, from where it was drawn: its two ends, in the world
 var _left := 0.0
 var _right := 0.0
@@ -34,7 +35,7 @@ func _act(delta: float) -> void:
 		var stone := HailStone.new()
 		stone.caster = caster
 		get_parent().add_child(stone)
-		stone.global_position = Vector2(randf_range(_left, _right), _y + 8.0)
+		stone.global_position = Vector2(_dice.randf_range(_left, _right), _y + 8.0)
 
 
 ## True where the stones fall: under the cloud, down as far as they carry.

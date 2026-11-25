@@ -37,7 +37,7 @@ static func is_world_name(text: String) -> bool:
 static func seed_of(text: String) -> int:
 	var cleaned := text.strip_edges().to_lower()
 	if cleaned.is_empty():
-		return randi() % seed_count()
+		return Dice.fresh() % seed_count()
 	var words := cleaned.split(" ", false)
 	if words.size() == COUNT:
 		var value := 0

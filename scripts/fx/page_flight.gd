@@ -50,7 +50,9 @@ func _launch(page: String, index: int) -> void:
 		return
 	var color := color_of(page)
 	var sprite := Sprite2D.new()
-	sprite.texture = PagePickup.PAGE
+	sprite.texture = PagePickup.TUMBLE
+	sprite.hframes = PagePickup.TUMBLE_FRAMES
+	sprite.frame = (index * 5) % PagePickup.TUMBLE_FRAMES
 	var outline := ShaderMaterial.new()
 	outline.shader = PagePickup.OUTLINE
 	outline.set_shader_parameter("outline_color", color.lightened(0.2))
@@ -70,7 +72,8 @@ func _fly(progress: float, sprite: Sprite2D, start: Vector2, index: int) -> void
 		return
 	var target := SpellTargets.center_of(wizard) if is_instance_valid(wizard) else start
 	sprite.global_position = start.lerp(target, progress) + Vector2(0.0, -sin(progress * PI) * 50.0)
-	sprite.rotation = progress * TAU * (1.0 if index % 2 == 0 else -1.0)
+	sprite.frame = (int(progress * 18.0) + index * 5) % PagePickup.TUMBLE_FRAMES  # it turns over as it flies, as paper does, and no longer spins like a board
+	sprite.rotation = sin(progress * TAU + float(index)) * 0.5
 	sprite.scale = Vector2.ONE * (1.0 - 0.45 * progress)
 
 

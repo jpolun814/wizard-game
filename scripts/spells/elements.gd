@@ -126,7 +126,7 @@ static func shield_turns(shot: Node, body: Node) -> bool:
 	if not (body.is_in_group("wizards") and body.has_shield()):
 		return false
 	if shot.has_method("reflect"):
-		shot.reflect(Vector2.from_angle(randf() * TAU))
+		shot.reflect(Vector2.from_angle((body as Wizard).dice().randf() * TAU))
 	elif shot.has_method("deflected"):
 		shot.deflected()
 	else:

@@ -4,7 +4,7 @@ extends Node
 ## Each drill is run with the idea on and with it off (AI_OFF=name), so a pass means the idea makes the difference, not that the AI happened to do it.
 ##
 ##     godot --headless --fixed-fps 60 --path . tests/checks/ai_drills_check.tscn
-##     (a name after `--` runs only that drill, e.g. `-- read_stonefall`)
+##     (a name after `--` runs only that drill, e.g. `-- read_stonefall`; `-- shard=0/4` runs every fourth)
 
 const TRIALS := 16
 
@@ -25,10 +25,19 @@ func _ready() -> void:
 	_lab._levels.set_level(8)
 	_lab.hold_partner = true  # (the room would put it back in its place whenever the player is out of the court)
 	_floor = _lab._partner.global_position.y
-	var only := OS.get_cmdline_user_args()
+	var only := Array(OS.get_cmdline_user_args())
+	var share := 0
+	var shares := 1
+	for arg: String in only.duplicate():
+		if arg.begins_with("shard="):  # (every drill throws dice of its own, so it comes out the same whichever drills are run before it)
+			share = arg.trim_prefix("shard=").get_slice("/", 0).to_int()
+			shares = arg.get_slice("/", 1).to_int()
+			only.erase(arg)
+	var number := 0
 	for drill: Array in _drills():
-		if only.is_empty() or drill[0] in only:
+		if (only.is_empty() or drill[0] in only) and number % shares == share:
 			await _run(drill)
+		number += 1
 	Library.clear()
 	get_tree().quit(1 if _failed else 0)
 
@@ -90,7 +99,7 @@ func _reset() -> Dictionary:
 				node.queue_free()
 	var partner: Wizard = _lab._partner
 	partner.brain.rng.seed = _trial_no * 7919 + 13  # (the same dice in the run with an idea and the run without it)
-	seed(_trial_no)
+	Dice.reset(_trial_no)
 	var floor_y := _floor
 	partner.max_stamina = Wizard.MAX_STAMINA
 	partner.stamina = partner.max_stamina

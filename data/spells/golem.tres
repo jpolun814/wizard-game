@@ -11,3 +11,4 @@ cost = 60.0
 effect = "Become a golem of stone."
 applies = Array[String](["holding", "sturdy"])
 sounds = {"rocks": "golem__rocks", "rumble": "golem__rumble"}
+parts = Array[Dictionary]([{"where": "self", "for": 10.0, "does": [{"do": "body", "pace": 0.5, "jump": 0.7, "takes": 0.5}]}])

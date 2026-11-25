@@ -67,7 +67,8 @@ func play_for(where: String) -> void:
 	player.volume_db = SILENT
 	player.set_meta("file", wanted["file"])
 	add_child(player)
-	player.play()
+	if not SteadyRun.on:
+		player.play()
 	_fade(player, LEVEL + float(wanted["db"]))
 	_now = player
 

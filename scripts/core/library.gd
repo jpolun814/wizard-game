@@ -38,7 +38,7 @@ static func stats() -> Dictionary:
 static func _counts() -> bool:
 	if force:
 		return true
-	if dedicated:
+	if dedicated or OS.get_environment("WIZARD_CHECK") != "":  # (the test runner marks every program it starts: a check that moves to the real waiting room or world is still a check)
 		return false
 	var scene := (Engine.get_main_loop() as SceneTree).current_scene
 	return scene != null and not scene.scene_file_path.begins_with("res://tests/") and not scene.scene_file_path.ends_with("tutorial.tscn")  # the tutorial is not a match

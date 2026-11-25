@@ -49,7 +49,7 @@ func _physics_process(delta: float) -> void:
 	_bubble -= delta
 	if into < BUBBLING and into > BUBBLING - 1.6 and _bubble <= 0.0:  # it bubbles before it swells
 		_bubble = 0.2
-		Fx.burst(get_parent(), global_position + Vector2(randf() * width, 0.0), Color(1.0, 0.5, 0.15), 4, 60.0, 0.5, true)
+		Fx.burst(get_parent(), global_position + Vector2(Dice.looks.randf() * width, 0.0), Color(1.0, 0.5, 0.15), 4, 60.0, 0.5, true)
 	_tick -= delta
 	if up > 0.5 and _tick <= 0.0:
 		_tick = TICK

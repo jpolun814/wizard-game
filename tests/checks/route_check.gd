@@ -30,7 +30,7 @@ func _ready() -> void:
 			_trace = [int(arg.get_slice(",", 0).substr(6)), int(arg.get_slice(",", 1)), int(arg.get_slice(",", 2)), int(arg.get_slice(",", 3))]
 		elif arg.begins_with("look="):
 			look = arg.substr(5)
-	seed(seed_value)
+	Dice.reset(seed_value)
 	World.next_seed = seed_value
 	_world = load("res://scenes/world.tscn").instantiate()
 	add_child(_world)
@@ -98,7 +98,7 @@ func _run(body: Wizard) -> void:
 				print(text)
 	if _on_ledges > 0:
 		print("%d moves ended on the ledge of a great tree standing over their landing, and are not counted as failures" % _on_ledges)
-	print("FAIL  some moves do not work" if bad else "every kind of move works")
+	print("FAIL  some moves do not work" if bad else "PASS  every kind of move works")
 	get_tree().quit(1 if bad else 0)
 
 

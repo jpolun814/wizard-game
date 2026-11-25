@@ -199,7 +199,7 @@ func exit_of(portal: FieldPortal) -> FieldPortal:
 	if others.is_empty():
 		return null
 	var rng := RandomNumberGenerator.new()
-	rng.seed = seed_value + int(seconds * 10.0) + portal.get_instance_id()
+	rng.seed = seed_value + int(seconds * 10.0) + portal.id * 7919  # (its number in the schedule, which every machine of a match has the same: what an object is called in memory is not)
 	return others[rng.randi_range(0, others.size() - 1)]
 
 

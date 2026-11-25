@@ -11,6 +11,7 @@ const NEAR := 24.0          # how close to the caster a light may appear, and ho
 const FAR := 90.0
 const COLORS := [Color("#ff6fae"), Color("#6fd8ff"), Color("#ffe36f"), Color("#8fff8f"), Color("#c18fff"), Color("#ff9a5a")]
 
+var _dice := Dice.branch()  # from the cast
 var caster: Wizard  # set by the arena before it enters the tree
 var _age := 0.0
 var _next := 0.0
@@ -41,10 +42,10 @@ func _physics_process(delta: float) -> void:
 ## Somewhere close round the caster, a light comes up and goes out again.
 func _appear() -> void:
 	var mote := Mote.new()
-	mote.color = COLORS[randi() % COLORS.size()]
+	mote.color = COLORS[_dice.randi() % COLORS.size()]
 	mote.own = not is_instance_valid(caster) or caster.brain == null
 	get_parent().add_child(mote)
-	mote.global_position = global_position + Vector2.from_angle(randf() * TAU) * randf_range(NEAR, FAR) * Vector2(1.0, 0.8) + Vector2(0.0, -10.0)
+	mote.global_position = global_position + Vector2.from_angle(_dice.randf() * TAU) * _dice.randf_range(NEAR, FAR) * Vector2(1.0, 0.8) + Vector2(0.0, -10.0)
 	Sfx.cue("Dancing Lights", "twinkle", mote.global_position, -5.0, 0.12)  # every light that pops up twinkles, each a little differently
 
 

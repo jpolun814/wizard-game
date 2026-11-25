@@ -23,6 +23,7 @@ func _ready() -> void:
 	add_child(world)
 	await get_tree().process_frame
 	await get_tree().process_frame
+	_put_away_all_but([world.player])  # (nobody else is being checked)
 	var ridges: MountainRidges = null
 	for node in world.get_children():
 		if node is MountainRidges:

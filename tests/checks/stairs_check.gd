@@ -14,6 +14,7 @@ func _ready() -> void:
 	add_child(world)
 	await get_tree().process_frame
 	await get_tree().process_frame
+	_put_away_all_but([world.player])  # (nobody else is being checked)
 	var stair: SwingStair = get_tree().get_nodes_in_group("swing_stairs")[0]
 	var player: Wizard = world.player
 	player.movement_enabled = true

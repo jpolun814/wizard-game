@@ -29,19 +29,19 @@ func _process(delta: float) -> void:
 	_t += delta
 	_crackle -= delta
 	if _crackle <= 0.0:
-		_crackle = lerpf(0.35, 0.06, clampf(_t / (GROW + PULL), 0.0, 1.0)) * randf_range(0.6, 1.4)
+		_crackle = lerpf(0.35, 0.06, clampf(_t / (GROW + PULL), 0.0, 1.0)) * Dice.looks.randf_range(0.6, 1.4)
 		var bolt := AnimatedSprite2D.new()
 		bolt.sprite_frames = PixelFx.frames("lightning", 24.0, false)
 		bolt.material = Fx.additive()
 		bolt.modulate = CRACKLE_COLOR
-		bolt.scale = Vector2.ONE * randf_range(1.0, 2.2)
+		bolt.scale = Vector2.ONE * Dice.looks.randf_range(1.0, 2.2)
 		bolt.offset = Vector2(0.0, -100.0)  # the bolt leaves from the portal
-		bolt.rotation = randf() * TAU
+		bolt.rotation = Dice.looks.randf() * TAU
 		bolt.z_index = 6
 		bolt.animation_finished.connect(bolt.queue_free)
 		add_child(bolt)
 		bolt.play("default")
-		if randf() < 0.5:
+		if Dice.looks.randf() < 0.5:
 			Sfx.cue("portal_collapse", "thunder", global_position, -14.0)
 	_trail -= delta
 	if _trail <= 0.0:

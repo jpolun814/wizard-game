@@ -137,7 +137,9 @@ func _supernova() -> void:
 	sun.position = _spot + Vector2(300.0, -20.0)
 	_world.add_child(sun)
 	await _wait(Supernova.RISE + 2.0)
-	_verdict(_hurt(near) >= Supernova.BURN, "a sun scorches whoever is close (%d hurt)" % _hurt(near))
+	_verdict(near.is_burning() and _hurt(near) >= Substances.BURN_DAMAGE, "a sun sets whoever is close alight (%d hurt)" % _hurt(near))
+	var most := roundi((2.0 / Substances.BURN_GAP + 1.0) * Substances.BURN_DAMAGE)
+	_verdict(_hurt(near) <= most, "and does them no harm but the burn until it blows up (%d hurt, at most %d)" % [_hurt(near), most])
 	_verdict(_player.global_position.x > came_from + 10.0, "and draws a wizard some way off toward it (%.0f px)" % (_player.global_position.x - came_from))
 	_verdict(_hurt(distant) == 0, "and leaves those well away alone")
 	var before := near.hp

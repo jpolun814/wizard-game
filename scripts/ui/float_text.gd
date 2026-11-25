@@ -25,7 +25,7 @@ static func spawn(parent: Node, at: Vector2, text: String, color: Color, size :=
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	parent.add_child(label)
 	label.size = Vector2(160, 30)
-	label.position = at - Vector2(80, 15) + Vector2(randf_range(-6.0, 6.0), 0)
+	label.position = at - Vector2(80, 15) + Vector2(Dice.looks.randf_range(-6.0, 6.0), 0)
 	label.scale = Vector2.ONE * 0.5
 	label.pivot_offset = label.size * 0.5
 	var tween := label.create_tween()

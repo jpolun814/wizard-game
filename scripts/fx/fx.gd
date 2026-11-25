@@ -131,7 +131,7 @@ static func pop(parent: Node, pos: Vector2, texture: String, color: Color, size 
 	s.texture = soft(texture) if smooth else tex(texture)
 	s.global_position = pos
 	s.modulate = color
-	s.rotation = randf() * TAU if spin != 0.0 else 0.0
+	s.rotation = Dice.looks.randf() * TAU if spin != 0.0 else 0.0
 	s.scale = Vector2.ONE * size / TEX_SIZE
 	if glow:
 		s.material = additive()

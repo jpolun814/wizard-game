@@ -30,6 +30,7 @@ func _ready() -> void:
 	var from: Vector2i = ways[0]["from"]
 	_clear_others(left)
 	var player: Wizard = world.player
+	_put_away_all_but([player])
 	player.movement_enabled = true
 	player.infinite_time = 600.0
 	var stand := Vector2((from.x + 0.5) * 32.0, (from.y + 1) * 32.0)

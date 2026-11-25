@@ -3,7 +3,7 @@ extends RefCounted
 
 ## Featherfall: the caster falls as slowly as a feather for a while. This holds what the cast does (see Wizard.feather_time for the fall itself).
 
-const SECONDS := 15.0
+static var SECONDS := Motion.number("Featherfall", "state", "for")
 
 
 const FEATHERS := preload("res://art/fx/feathers.png")

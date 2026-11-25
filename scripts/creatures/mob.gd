@@ -36,6 +36,7 @@ const CREATURE_ANIMATIONS := {
 
 ## Every kind of enemy, by the name it is summoned by, each a MobKind resource read from res://data/mobs/ in the order they are meant to be listed.
 static var KINDS: Dictionary = _load_kinds()
+var _dice: RandomNumberGenerator  # its own (see Dice)
 var kind := "basic"  # set before the mob enters the tree
 var stomp := Stomp.new(self)  # a giant's stomp
 var player: Node2D
@@ -138,7 +139,8 @@ func _ready() -> void:
 	_overlay.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
 	add_child(_overlay)
 	_build_creature(data)
-	_shot_timer = 0.8 + randf() * 1.2
+	_dice = Dice.of(["creature", kind, Vector2i(global_position)])
+	_shot_timer = 0.8 + _dice.randf() * 1.2
 	if rises:
 		_spawn = RISE_TIME  # (see _climb_out)
 		Fx.debris(get_parent(), global_position, Color("#6a5240"), 12, 150.0)  # (the sound is the spell's own: Raise Dead plays "summon")
@@ -159,7 +161,7 @@ func _climb_out() -> void:
 		_visual.pause()
 		_visual.set_frame_and_progress(clampi(roundi((1.0 - t) * last), 0, last), 0.0)
 	modulate.a = 1.0
-	if randf() < 0.12:
+	if Dice.looks.randf() < 0.12:
 		Fx.debris(get_parent(), global_position, Color("#6a5240"), 2, 60.0)
 
 
@@ -182,7 +184,7 @@ func _build_creature(data: MobKind) -> void:
 	_set_walker_body(Vector2(body.size.x * 0.85, body.size.y * 0.95) * _base_scale)
 	hitbox.position = _body_center
 	_start_animating()
-	_visual.frame = randi() % maxi(1, _visual.sprite_frames.get_frame_count("idle"))
+	_visual.frame = Dice.looks.randi() % maxi(1, _visual.sprite_frames.get_frame_count("idle"))
 
 
 ## A walker's hitbox: a box of this size standing on its feet.
@@ -435,8 +437,8 @@ func _struck_by_the_dead(amount: int) -> void:
 func _amble(delta: float, speed: float) -> void:
 	_wander_time -= delta
 	if _wander_time <= 0.0:
-		_wander_time = randf_range(1.5, 4.0)
-		_wander = [-1.0, 0.0, 1.0][randi() % 3]
+		_wander_time = _dice.randf_range(1.5, 4.0)
+		_wander = [-1.0, 0.0, 1.0][_dice.randi() % 3]
 	if is_on_wall():
 		_wander = -_wander
 	velocity.x = _wander * speed * 0.35 + _knock_x + _drift.x
@@ -833,4 +835,4 @@ func _draw_overlay() -> void:
 func _quake_target(origin: Vector2, target: Vector2) -> Vector2:
 	if not Earthquake.is_shaking(get_tree()):
 		return target
-	return origin + (target - origin).rotated(deg_to_rad(randf_range(-Earthquake.AIM_DEGREES, Earthquake.AIM_DEGREES)))
+	return origin + (target - origin).rotated(deg_to_rad(_dice.randf_range(-Earthquake.AIM_DEGREES, Earthquake.AIM_DEGREES)))

@@ -67,9 +67,10 @@ func _ready() -> void:
 
 	# A Water Jet washes an oil slick away.
 	await _reset()
-	_slick(_target.global_position + Vector2(90.0, 0.0), 160.0)
+	var oil := _target.global_position + Vector2(90.0, 0.0)
+	_slick(oil, 160.0)
 	await _frames(10)
-	_jet(_target)
+	_jet_at(oil)  # (aimed at the oil, as a person would: water aimed at the wizard standing this side of it only sometimes falls on it)
 	await _frames(40)
 	_verdict(get_tree().get_nodes_in_group("oil_slicks").is_empty(), "a Water Jet washes an oil slick away")
 
@@ -83,7 +84,11 @@ func _slick(at: Vector2, width: float) -> void:
 
 
 func _jet(target: Wizard) -> void:
-	_world.spawn_spell("Water Jet", "cone", _caster.center(), (target.center() - _caster.launch_tip()).angle(), {"spread": 0.5, "reach": 230.0}, _caster)  # (the water leaves the gem of the staff: it is aimed from there)
+	_jet_at(target.center())
+
+
+func _jet_at(point: Vector2) -> void:
+	_world.spawn_spell("Water Jet", "cone", _caster.center(), (point - _caster.launch_tip()).angle(), {"spread": 0.5, "reach": 230.0}, _caster)  # (the water leaves the gem of the staff: it is aimed from there)
 
 
 func _reset() -> void:
@@ -92,6 +97,7 @@ func _reset() -> void:
 	for node in get_tree().get_nodes_in_group("fires"):
 		if node is Hazard:
 			node.queue_free()
+	await _frames(2)  # (a jet that is being freed pushes once more: it is gone before anyone is put in place)
 	for body: Wizard in [_target, _caster]:
 		body.wet_time = 0.0
 		body.burning_time = 0.0

@@ -5,7 +5,7 @@ extends RefCounted
 ## the pool is gone, from time, swipes or blows, the wizard is back with what they had. Reached as `wizard.wolf`.
 
 const STAMINA := 1.0   # the wolf has a pool of strength of its own, and the wizard keeps theirs aside: a single blow ends the shape, and nothing else does
-const SPEED := 1.25    # how much faster a werewolf runs
+static var SPEED := Motion.number("Wild Shape", "body", "pace")    # how much faster a werewolf runs
 const SCALE := 1.4     # the werewolf is drawn this large
 const CLAW_DAMAGE := 12
 const CLAW_COOLDOWN := 0.55

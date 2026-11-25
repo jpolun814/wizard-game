@@ -8,11 +8,12 @@ extends Node2D
 ## and spills it where the ride ends.
 
 const WATER := 2.0           # how much liquid the wave carries (a cell holds 1)
-const SECONDS := 2.5
+static var RIDDEN := Motion.of("Tide Surf", "drive")
+static var SHOVED := Motion.of("Tide Surf", "throw")
+static var SECONDS: float = RIDDEN["for"]
 const LENGTH := 150.0        # how far the wave reaches behind its crest
-const FRONT := 80.0          # how far ahead of the caster it shoves
-const SHOVE := Vector2(620.0, -260.0)
-const SHOVE_GAP := 0.8       # seconds before it shoves the same one again
+static var FRONT: float = SHOVED["ahead"]          # how far ahead of the caster it shoves
+static var SHOVE_GAP: float = SHOVED["every"]       # seconds before it shoves the same one again
 const HEIGHT := 44.0         # how tall the crest stands
 const FOAM := Color(0.92, 0.98, 1.0, 0.9)
 
@@ -108,7 +109,7 @@ func _physics_process(delta: float) -> void:
 		if body == caster or _shoved.has(body) or not front.has_point(SpellTargets.center_of(body)):
 			continue
 		_shoved[body] = SHOVE_GAP
-		var impulse := Vector2(SHOVE.x * direction, SHOVE.y)
+		var impulse := Motion.thrown(SHOVED, Vector2(direction, 0.0)) + Vector2(0.0, -float(SHOVED["up"]))
 		if body.is_in_group("mobs"):
 			body.knock_back(impulse)
 		else:
@@ -200,7 +201,8 @@ func _start_sound() -> void:
 	_sound.max_distance = Sfx.MAX_DISTANCE
 	_sound.attenuation = 0.6
 	add_child(_sound)
-	_sound.play()
+	if not SteadyRun.on:
+		_sound.play()
 
 
 func _end(crashed := false) -> void:

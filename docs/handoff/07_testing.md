@@ -19,12 +19,36 @@ It runs the unit tests first and stops if one fails; counts any `SCRIPT ERROR` a
 and ends with one summary (what failed, the error text, the log's path, the slowest checks). Exit code is the number of failures. Run it before you say
 anything is done, and put the result in your report.
 
-**Logs (2026-11-24):** each run writes into a folder of its own, `%TEMP%\wizard_checks\<project>_<hash>
-un_<date>_<pid>\` (the path is printed first; the
-last eight runs are kept), so two runs at once, or a run in another worktree, no longer write over each other's logs (that once sent an agent after a failure that was
-not there). The checks' times, which decide the order they start in, are kept one level up (`times.json`). `run_checks.TIMEOUTS` gives a check more than the 150 s
-others get. **The AI drills are in `--full` only now** (they measure the brain over many trials and take over two minutes; under the load of the whole suite they ran out
-of time): run `python tools/test.py --full ai_drills` after a change to `scripts/brain/`.
+## Every check comes out the same every time (2026-11-25)
+
+The owner: "good tests should never ever be flaky, because there's no reason for them to be. tests shouldn't rely on expected performance or compute capacity or timing or
+network ports." Until then 56 of the 150 checks had failed once and passed again, for causes they shared and no one check could be cured of. Now:
+
+| What used to differ | What holds now | Where |
+|---|---|---|
+| the dice (a different game every run) | every run starts from a seed (`WIZARD_SEED`, 1) | `scripts/core/steady_run.gd`, the first autoload |
+| the length of a frame, the real clock | frames of a fixed length; nothing in the game reads the real clock to decide anything | `--fixed-fps 60`, `rules_check` |
+| loading on other cores, sounds that end when the sound card says | not done, or timed by the game, in a test | `Warmup`, `Sfx` (`SteadyRun.on`) |
+| the person's own save folder, shared by every check at once | an empty one for each check, thrown away after | `tools/steady.py` |
+| files another session was writing | a private copy of the project, as it was when the run began | `steady.project_copy` |
+| network checks in real time, over fixed ports | the copies go frame by frame together, through the runner (`SteadyPeer` stands in for ENet) | `Hub` in `steady.py`, `tests/support/` |
+| a deadline on the clock | a check is stuck when it has done far too much work, or none at all for minutes | `steady.run_copies` |
+| a second try, and excuses for crashes | run once: a check that fails has failed | `run_checks.run_one` |
+
+- **`python tools/run_checks.py --twice [names]`** runs each check twice with the same dice and compares them frame by frame (places, stamina, the number of nodes, a throw of the
+  dice): it names the first frame they part at. **Run it on a new check, and on anything that looks flaky: they must never part.** `WIZARD_TRACE_EVERY=1` traces every frame.
+  It found a real bug the day it was made: a portal's way out was drawn from an object's id in memory, which no two machines of a match share.
+- **`python tools/run_checks.py --seeds 2-6 [names]`** plays five other games. The seed is fixed so that a result can be repeated, not so that a check may pass by luck: a check that
+  holds only for seed 1 is badly written, or has found a bug that shows in some games only.
+- **Writing one.** Extend `Check`, or `NetDriver` for a network check. Wait for the thing itself (`_until(condition, "what")`), or for a number of frames when it is how long something
+  lasts that is being checked. Put away whatever is not being checked (rivals, weather) instead of hoping it stays out of the way. Compare with what was so before, not with a number that
+  the dice may change. Say PASS for each thing that held: a check that says nothing fails. Never judge speed: how fast the game runs is measured by hand, on a machine doing nothing else.
+- **A network check** names its roles in `run_checks.py` (`"host,client"`, `"server,client"`); each is one copy of the game. A message arrives one frame after it was sent. Real ENet is
+  used only by the game itself.
+- A check can still fail after a change that has nothing to do with it, when it throws the dice in a new order. If it then holds for most `--seeds` and not for one, it is leaning on luck: cure the check.
+
+**Logs:** each run writes into a folder of its own (the path is printed first; the last twelve are kept). The checks' times, which decide the order they start in, are kept one level up
+(`times.json`). **The AI drills are in `--full` only**: run `python tools/test.py --full ai_drills` after a change to `scripts/brain/`.
 
 **Is the AI better? (`tools/ai_trial.py`, 2026-11-24; read its header).** One change against the brain without it, in rungs of growing cost: `duel` (1 against 1, for
 fighting alone), `quad` (2 against 2 in a match of four on worlds half as wide, `players=4 width=0.5`; the main screen) and `royale` (4 against 4, to confirm). Groups are
@@ -77,14 +101,14 @@ it threw away six of the eight places and was too noisy.
 - **`spellbook_check`**: every spell and chant page rendered in the real book; its writing ends above the page number, damage comes before cost, the cost is last, the NEW mark shows and goes.
   (A container is laid out only while it is visible: the check waits for the book to open once. The page's fixed height is the parent's, because the column grows to fit.)
 - **`soak_check`**: random play (random spells at random places, random walking and jumping, the rivals playing) in each of the nine biomes (`MatchState.forced_biome`); fails on any
-  error, a place or stamina that is not a number, a wizard that falls out of the world, nodes that pile up, a step over a second and a half. Quick: three worlds for 12 s; `--full`: all nine for 40 s.
+  error, a place or stamina that is not a number, a wizard that falls out of the world, nodes that pile up. Quick: three worlds for 12 s; `--full`: all nine for 40 s.
   Seeded (`-- seed=N`), so a failure comes again.
 - **Engine `ERROR:` lines now fail a check** (`engine_errors` in `run_checks.py`; the shutdown noise, "resources still in use at exit" and the like, is ignored). They are not script errors
   and used to pass silently: this found a `get_meta(key, null)` in `Substances.live` (a null default is read by the engine as no default) and the pond's empty mesh. Never `get_meta(k, null)`.
 - **Mutation testing** (`python tools/mutate.py FILE --count 20 [--with laws_check]`): breaks one comparison, sign or condition at a time and runs the tests; a SURVIVOR is a line nothing
   guards. Slow (a test run each); run it on the laws and the spell scripts now and then and write a test for what survives.
-- **Flake tracker**: every run of `test.py` appends each check's result to `reports/test_history.jsonl`; `python tools/flakes.py` lists checks that have both passed and failed, or needed
-  their second try, and checks that are getting slower.
+- **History**: every run of `test.py` appends each check's result to `reports/test_history.jsonl`; `python tools/flakes.py` lists checks that have both passed and failed, and checks that are
+  getting slower.
 - **`controls_check`**: the controls table of CLAUDE.md as a test: every action bound to the keys the table gives and no others, no two actions on one key (W is shared by design:
   jump and climb), and in the waiting room A/D walk and stop, W/Space jump, Tab opens and shuts the book, Enter opens the chant box, Esc closes it and pauses, M mutes. When the owner
   changes a key, change `BINDINGS` in the check and the table in CLAUDE.md together.
@@ -106,8 +130,7 @@ it threw away six of the eight places and was too noisy.
   when it starts passing). Nothing is quarantined without a reason written down. Today: nothing is quarantined (the list is empty).
 - **A check must be proved able to fail.** After writing one, break the thing it guards (comment out the fix) and watch it go red, then put the fix back. The lifecycle check,
   the laws matrix and the pictures were each proved this way; the matrix's first version passed for the wrong reason (clouds that die on their own), which is why it has controls.
-- **A flaky check is a bug in the check or in the game.** Run it ten times; find the cause (here: a tornado left standing from the last trial, a partner burning in lava, a
-  caster still busy). Do not add retries to hide it, and do not loosen it.
+- **A check that does not give the same answer twice is a bug in the check or in the game.** `--twice` says where the two runs part: find what differs there. Never add a retry, a longer wait or a looser bar.
 - **Prefer the sweep to a hand-picked case.** If a rule holds for every spell, loop over `SpellData.SPELLS` rather than naming three.
 - **Sound:** a check can say a cue was asked for (`Sfx.recording`, `Sfx.heard`), how often and at what level; it cannot say how it sounds. That stays with the owner's ears.
 - **A bug the suite found when it was built:** wind never reached a Spore Puff (the cloud's origin is at the world's); a cloud now says where it is with `extent()`.
@@ -319,3 +342,9 @@ spells (Push, Tornado, Spore Puff) with the creator switched off too, while the 
 - `punch_check`: the P key: 1 damage in reach and in front, none out of reach or behind, 0.25 s cooldown, no safety window started.
 - `hit_source_check`: per-source hit windows: one cast cannot hit a wizard twice inside `HURT_GRACE`, another cast can, a hit with no source uses the shared window.
 - `heal_check` (`tests/checks/heal_check.tscn`): the heals (`Mending`): each chant and spell does what its page says; every heal over time shares one allowance; one at a time; a hit ends a Breathe and wakes a sleeper; moving ends a Rest; Stitch pays per blow landed; Recovery, Gamble, Long Rest; a second chance turns away any death, once, and brings the wizard back where they last stood safely; Cauterize does nothing on a wet wizard; the Healing Spring mends and wets whoever stands in it, rivals too, and a wizard has one.
+
+## Dice (2026-11-25)
+
+All chance comes from the world's seed through `Dice` (CLAUDE.md, rule 15). A test that wants one certain run, or another run in the same world, calls `Dice.reset(number)` before it begins (not `seed()`). `tests/tools/ai_arena`
+run twice with the same `seed=` and `--fixed-fps` is the same match to the last line of its log (40 s and two of 120 s, eight wizards); `dice=N` is another match in the same world (`tools/still_share.py` uses it).
+

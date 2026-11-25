@@ -54,11 +54,14 @@ func _ready() -> void:
 		await get_tree().physics_frame
 	rival.stamina = 20.0
 	var dry_casts := [0]
-	var dry_from := [Time.get_ticks_msec()]  # (a spell whose stroke was already finished goes off a moment later: that one is not counted)
+	var dry_from := [Engine.get_physics_frames()]  # (a spell whose stroke was already finished goes off a moment later: that one is not counted)
 	rival.ensure_caster().cast_resolved.connect(func(spell: String, _t: String, _o: Vector2, _a: float, _i: Dictionary) -> void:
-		if spell in Pages.RANGED and Time.get_ticks_msec() - dry_from[0] > 300:
+		if spell in Pages.RANGED and Engine.get_physics_frames() - dry_from[0] > 18:
 			dry_casts[0] += 1)  # (attacks: Adrenaline, the spell for being worn out, and a shield against a shot coming are still cast)
-	await get_tree().create_timer(2.5).timeout
+	for k in 150:  # (the person is kept well away from it: someone who stands on top of it is thrown off whatever its stamina, which is not an attack)
+		var away := -1.0 if rival.global_position.x > duel.global_position.x + ArenaGen.column_x((ArenaGen.FIRST_COL + ArenaGen.right_wall) / 2) else 1.0
+		duel.player.global_position.x = ArenaGen.column_x(ArenaGen.FIRST_COL + 4) if away < 0.0 else ArenaGen.column_x(ArenaGen.right_wall - 5)
+		await get_tree().physics_frame
 	_verdict(dry_casts[0] == 0 and rival.brain.recharging, "run dry, the AI holds its attacks and gets its stamina back (%d casts, stamina %.0f)" % [dry_casts[0], rival.stamina])
 	for k in 60 * 10:  # (it stands only while nothing makes it move; ten seconds is plenty)
 		await get_tree().physics_frame

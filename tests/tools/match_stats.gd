@@ -38,7 +38,7 @@ func _ready() -> void:
 	for argument in OS.get_cmdline_user_args():
 		if argument.begins_with("seed="):
 			_seed = int(argument.trim_prefix("seed="))
-	seed(_seed)
+	Dice.reset(_seed)
 	MatchState.hurry = 1.0
 	World.random_start = false
 	World.arrive_by_portal = false

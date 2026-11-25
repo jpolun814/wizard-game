@@ -299,7 +299,7 @@ func shaken(points: PackedVector2Array) -> PackedVector2Array:
 		return points
 	var shaken := PackedVector2Array()
 	for p in points:
-		shaken.append(p + Vector2(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)) * px)
+		shaken.append(p + Vector2(brain.rng.randf_range(-1.0, 1.0), brain.rng.randf_range(-1.0, 1.0)) * px)
 	return shaken
 
 

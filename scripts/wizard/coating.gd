@@ -93,11 +93,11 @@ func _show(delta: float, burning: bool) -> void:
 	var at := wizard.center()
 	var parent := wizard.get_parent()
 	if wizard.is_wet():
-		Fx.burst(parent, at + Vector2(randf_range(-10.0, 10.0), -8.0), Color(0.6, 0.8, 1.0, 0.9), 2, 30.0, 0.5, false)
+		Fx.burst(parent, at + Vector2(Dice.looks.randf_range(-10.0, 10.0), -8.0), Color(0.6, 0.8, 1.0, 0.9), 2, 30.0, 0.5, false)
 	if wizard.is_oiled():
-		Fx.burst(parent, at + Vector2(randf_range(-10.0, 10.0), -4.0), Color(0.08, 0.06, 0.1, 0.95), 2, 22.0, 0.6, false)
+		Fx.burst(parent, at + Vector2(Dice.looks.randf_range(-10.0, 10.0), -4.0), Color(0.08, 0.06, 0.1, 0.95), 2, 22.0, 0.6, false)
 	if burning:
-		Fx.burst(parent, at + Vector2(randf_range(-12.0, 12.0), -6.0), Color(1.0, 0.55, 0.15, 0.95), 4, 70.0, 0.5, true)
+		Fx.burst(parent, at + Vector2(Dice.looks.randf_range(-12.0, 12.0), -6.0), Color(1.0, 0.55, 0.15, 0.95), 4, 70.0, 0.5, true)
 
 
 ## True under open sky while a downpour is falling.

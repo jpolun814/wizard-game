@@ -6,10 +6,9 @@ extends Check
 ## It prints PASS or FAIL for each spell and exits with code 1 if any failed.
 
 const WATCH := 1.6        # seconds each cast is followed for
-const TOLERANCE := 0.15   # how far apart the two may be, as a share of the larger, plus a few pixels
-const CHANCE_TOLERANCE := 0.6  # the same, for a spell whose throw is by chance
+const TOLERANCE := 0.01   # how far apart the two may be, as a share of the larger, plus a pixel or two
 const REST := 1.5          # seconds a body is left to come to rest after a cast
-const SLACK := 25.0       # pixels (or stamina) of difference that no share is asked of
+const SLACK := 2.0         # pixels (or stamina) of difference that no share is asked of
 
 
 
@@ -80,7 +79,7 @@ func _set_down(body: Wizard, all: Array, spot: Vector2, caster: Wizard) -> void:
 
 ## Casts a spell at a wizard and follows it: {"rise": the most it was lifted, "side": the most it was thrown sideways, "lost": the stamina it lost}.
 func _cast_at(world: World, spell: String, target: Wizard, caster: Wizard) -> Dictionary:
-	seed(7)  # the same chance for each of them (a tornado flings to either side by chance)
+	Dice.reset(7)  # the same chance for each of them (a tornado flings to either side by chance)
 	var start := target.global_position
 	var before := target.max_stamina + target.stamina
 	var middle := target.center()
@@ -105,8 +104,9 @@ func _cast_at(world: World, spell: String, target: Wizard, caster: Wizard) -> Di
 		await get_tree().physics_frame
 		rise = maxf(rise, start.y - target.global_position.y)
 		side = maxf(side, absf(target.global_position.x - start.x))
-	for effect in get_tree().get_nodes_in_group("lasting"):
-		effect.queue_free()
+	for group in ["lasting", "winds"]:  # (a tornado is a wind and not a lasting thing: one left standing would fling the next one set down as well)
+		for effect in get_tree().get_nodes_in_group(group):
+			effect.queue_free()
 	target.surf_time = 0.0  # a surf would otherwise carry it on after the next one is set down
 	for i in int(REST * 60.0):  # a push has to run out before the body is put away, or it runs out when it is put back
 		await get_tree().physics_frame
@@ -115,11 +115,10 @@ func _cast_at(world: World, spell: String, target: Wizard, caster: Wizard) -> Di
 
 func _compare(spell: String, person: Dictionary, brain: Dictionary) -> void:
 	var same := true
-	var tolerance := CHANCE_TOLERANCE if spell == "Tornado" else TOLERANCE  # it flings each to either side and as high as it likes, by chance
 	for key: String in person:
 		var a: float = person[key]
 		var b: float = brain[key]
-		same = same and absf(a - b) <= maxf(1.0 if key == "lost" else SLACK, tolerance * maxf(absf(a), absf(b)))
+		same = same and absf(a - b) <= maxf(1.0 if key == "lost" else SLACK, TOLERANCE * maxf(absf(a), absf(b)))
 	if spell == "Ignite":  # a shot that missed would match by doing nothing to either
 		same = same and person["lost"] > 0.0
 	_verdict(same, "%s: a person's wizard %s, the brain's %s" % [spell, _show(person), _show(brain)])

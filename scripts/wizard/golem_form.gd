@@ -5,12 +5,13 @@ extends RefCounted
 ## man of stone. For a while they are slow and heavy, cannot cast, take half of every blow, jump low and shake the ground where they land, and have two
 ## blows: a click slams a fist, a right click brings both down with their whole weight. When the time is up the stone falls away. Reached as `wizard.golem`.
 
-const DURATION := 10.0   # seconds the stone stays on, after it has risen
+static var FORM := Motion.of("Golem", "body")
+static var DURATION: float = FORM["for"]   # seconds the stone stays on, after it has risen
 const RISE_TIME := 0.55  # the ground grows up around the wizard this long before the golem shows
 const STAND_TIME := 0.6  # and the golem gets to its feet this long
-const SPEED := 0.5       # how much of a wizard's walking pace a golem has
-const JUMP := 0.7        # how much of a wizard's jump a golem has
-const TAKEN := 0.5       # the share of every blow that gets through the stone
+static var SPEED: float = FORM["pace"]       # how much of a wizard's walking pace a golem has
+static var JUMP: float = FORM["jump"]        # how much of a wizard's jump a golem has
+static var TAKEN: float = FORM["takes"]       # the share of every blow that gets through the stone
 const SLAM_DAMAGE := 40
 const SLAM_COOLDOWN := 0.8
 const SLAM_REACH := 90.0   # from the middle of the body, to the front

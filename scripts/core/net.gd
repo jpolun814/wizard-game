@@ -68,7 +68,8 @@ func _ready() -> void:
 
 ## Opens the game for others and goes to the waiting room, with nobody at the machine. Quits at once if the port is taken.
 func _start_dedicated() -> void:
-	Engine.max_fps = 60  # (a window-less game would otherwise run flat out)
+	if not SteadyRun.on:
+		Engine.max_fps = 60  # (a window-less game would otherwise run flat out)
 	var error := host()
 	if error != OK:
 		print("server: could not open port %d (error %d)" % [port(), error])
@@ -127,10 +128,15 @@ func my_id() -> int:
 
 ## Opens a game for others to join. OK, or the error when the port is taken.
 func host() -> Error:
-	var peer := ENetMultiplayerPeer.new()
-	var error := peer.create_server(port(), SEATS - 1)
-	if error != OK:
-		return error
+	var peer: MultiplayerPeer
+	if SteadyRun.on:
+		peer = _steady_line().serve(SEATS - 1)
+	else:
+		var enet := ENetMultiplayerPeer.new()
+		var error := enet.create_server(port(), SEATS - 1)
+		if error != OK:
+			return error
+		peer = enet
 	multiplayer.multiplayer_peer = peer
 	multiplayer.refuse_new_connections = false
 	roster = [1]
@@ -149,15 +155,25 @@ func join(address: String) -> Error:
 		host_name = host_name.get_slice(":", 0)
 	if host_name == "":
 		return ERR_INVALID_PARAMETER
-	var peer := ENetMultiplayerPeer.new()
-	var error := peer.create_client(host_name, use_port)
-	if error != OK:
-		return error
-	peer.get_peer(1).set_timeout(0, GIVE_UP_MS / 2, GIVE_UP_MS)  # a wrong address, or a host that is gone, is known in seconds, not half a minute
+	var peer: MultiplayerPeer
+	if SteadyRun.on:
+		peer = _steady_line().call_up()
+	else:
+		var enet := ENetMultiplayerPeer.new()
+		var error := enet.create_client(host_name, use_port)
+		if error != OK:
+			return error
+		enet.get_peer(1).set_timeout(0, GIVE_UP_MS / 2, GIVE_UP_MS)  # a wrong address, or a host that is gone, is known in seconds, not half a minute
+		peer = enet
 	multiplayer.multiplayer_peer = peer
 	roster = []
 	_scenes = {}
 	return OK
+
+
+## The line the copies of the game in a network check talk over (it is in tests/support, which a built game does not need).
+static func _steady_line() -> GDScript:
+	return load("res://tests/support/steady_peer.gd")
 
 
 ## Leaves the game, or closes it for everyone when this machine hosts it. Back to playing alone.

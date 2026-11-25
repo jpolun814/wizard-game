@@ -45,8 +45,8 @@ func _record(c: SpellCast) -> void:
 		caster.break_sneak()
 	if c.spell != "Vacuum":
 		Vacuum.release(_arena.get_tree(), caster)  # a caster who casts something else lets go of whoever they were smothering
-	if SpellData.SPELLS.has(c.spell) and not SpellData.SPELLS[c.spell].pays_max():
-		Leech.charge_target(_arena.get_tree(), caster, SpellData.SPELLS[c.spell].cost_for(c.info))  # the other end of a tether pays its half, on every machine
+	if c.info.has("leeched"):
+		Leech.charge(_arena.get_node_or_null(NodePath(String(c.info["leeched"]))) as Wizard, SpellData.SPELLS[c.spell].cost_for(c.info))  # the other end of a tether pays its half
 
 
 ## A spell that appears somewhere else (a stone that rises, a storm that gathers) is sent there from the gem of the staff, in a streak of its school's color.

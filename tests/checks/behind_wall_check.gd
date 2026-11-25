@@ -29,7 +29,7 @@ func _ready() -> void:
 	partner.global_position = Vector2(ArenaGen.column_x(-25), floor_y)
 	lab.player.global_position = Vector2(ArenaGen.column_x(-16), floor_y)
 	partner.brain.rng.seed = 4242  # (the same dice every time: the check proves the idea, not the luck)
-	seed(4242)
+	Dice.reset(4242)
 	var spent := 0.0
 	var last := partner.stamina
 	var casts := 0

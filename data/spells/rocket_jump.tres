@@ -10,3 +10,4 @@ gesture = "rocket"
 cost = 30.0
 effect = "Launch into the sky like a rocket."
 sounds = {"breath": "rocket_jump__breath"}
+parts = Array[Dictionary]([{"where": "self", "for": 1.5, "does": [{"do": "drive", "way": "up", "speed": 600.0, "grows": 2.0}]}])

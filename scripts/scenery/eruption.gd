@@ -19,6 +19,7 @@ const CRATER_SPAN := 16.0 * 32.0  # how wide the bowl in the top of the mountain
 const SHAKE_REACH := 2400.0  # how far off the ground still shakes under a wizard
 
 var _phase := 0.0  # seconds left in the sleep, the rumble or the eruption
+var _wakes: RandomNumberGenerator  # when it wakes, and the seed of each eruption
 var _rng := RandomNumberGenerator.new()  # seeded the same on every machine when the volcano wakes
 var _state := "sleeping"
 var _throw := 0.0
@@ -32,7 +33,8 @@ var _pour := 0.0
 
 func _ready() -> void:
 	add_to_group("danger")
-	_phase = randf_range(SLEEP_MIN * 0.3, SLEEP_MAX)  # the volcanoes of a world do not wake together (only the host's is used)
+	_wakes = Dice.of(["volcano", Vector2i(global_position)])
+	_phase = _wakes.randf_range(SLEEP_MIN * 0.3, SLEEP_MAX)  # the volcanoes of a world do not wake together (only the host's is used)
 	_vent = PixelFx.sprite("fire_puff", 14.0, true, 1)
 	_vent.scale = Vector2.ONE * 2.0
 	_vent.offset = Vector2(0, -PixelArt.FX["fire_puff"]["size"].y * 0.5)
@@ -52,7 +54,7 @@ func _physics_process(delta: float) -> void:
 	match _state:
 		"sleeping":
 			if _phase <= 0.0:
-				var seed_value := randi()
+				var seed_value := _wakes.randi()
 				Net.send(self, &"_wake", [seed_value])
 				_wake(seed_value)
 		"rumbling":
@@ -79,7 +81,7 @@ func _physics_process(delta: float) -> void:
 				Fx.smoke(get_parent(), global_position + Vector2(0, -40), Color(0.2, 0.17, 0.17, 0.6), 2, 26.0, 60.0)
 			if _phase <= 0.0:
 				_state = "sleeping"
-				_phase = randf_range(SLEEP_MIN, SLEEP_MAX)
+				_phase = _wakes.randf_range(SLEEP_MIN, SLEEP_MAX)
 				_vent.visible = false
 				if _plume != null:
 					_plume.release()

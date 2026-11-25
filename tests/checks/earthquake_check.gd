@@ -15,6 +15,7 @@ func _ready() -> void:
 	add_child(world)
 	await get_tree().process_frame
 	await get_tree().process_frame
+	_put_away_all_but([world.player])  # (nobody else is being checked)
 	var camera := get_tree().get_first_node_in_group("game_camera") as GameCamera
 	camera._trauma = 0.0
 	camera.shake(0.6)

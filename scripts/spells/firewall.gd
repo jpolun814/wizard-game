@@ -55,7 +55,7 @@ func _add_flames() -> void:
 
 func _act(delta: float) -> void:
 	if not _lit:
-		_flames[0].modulate.a = 0.45 + 0.4 * randf()  # the foot of the wall gutters
+		_flames[0].modulate.a = 0.45 + 0.4 * Dice.looks.randf()  # the foot of the wall gutters
 		if _age < WARN:
 			return
 		_lit = true

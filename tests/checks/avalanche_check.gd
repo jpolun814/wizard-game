@@ -14,6 +14,8 @@ func _ready() -> void:
 	MatchState.hurry = 100.0
 	var world: World = load("res://scenes/world.tscn").instantiate()
 	add_child(world)
+	await get_tree().process_frame
+	_put_away_all_but([world.player])  # (nobody else is being checked)
 	await _frames(3)
 	var slides := world.get_children().filter(func(n: Node) -> bool: return n is Avalanche)
 	_verdict(slides.size() == 1, "the peaks have an avalanche")

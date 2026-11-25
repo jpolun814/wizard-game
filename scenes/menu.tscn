@@ -49,6 +49,11 @@ layout_mode = 2
 theme_type_variation = &"Inscription"
 text = "Multiplayer"
 
+[node name="Tutorial" type="Button" parent="Box/Main"]
+layout_mode = 2
+theme_type_variation = &"Inscription"
+text = "Tutorial"
+
 [node name="Library" type="Button" parent="Box/Main"]
 layout_mode = 2
 theme_type_variation = &"Inscription"
@@ -73,11 +78,6 @@ theme_override_constants/separation = 16
 layout_mode = 2
 theme_type_variation = &"Inscription"
 text = "Play"
-
-[node name="Tutorial" type="Button" parent="Box/Single"]
-layout_mode = 2
-theme_type_variation = &"Inscription"
-text = "Tutorial"
 
 [node name="Duel" type="Button" parent="Box/Single"]
 layout_mode = 2

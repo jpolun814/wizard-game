@@ -18,6 +18,7 @@ const PUSH := 760.0        # the speed it shoves a wizard along: a wizard on the
 const PUSH_UP := 140.0      # and a little up, so a wizard is lifted off the ground
 const MOB_PUSH := 620.0
 
+var _dice := Dice.branch()  # from the cast
 var caster: Wizard
 var aim := 0.0
 var spread := 0.5
@@ -87,8 +88,8 @@ func _direction() -> Vector2:
 
 
 func _spawn_drop(head_start: float) -> void:
-	var velocity := _direction().rotated(randf_range(-0.5, 0.5) * spread) * DROP_SPEED * randf_range(0.85, 1.1)
-	_drops.append({"pos": _mouth + velocity * head_start, "vel": velocity, "age": 0.0, "life": reach / DROP_SPEED * 1.3, "size": randf_range(0.8, 1.3), "stopped": false})
+	var velocity := _direction().rotated(_dice.randf_range(-0.5, 0.5) * spread) * DROP_SPEED * _dice.randf_range(0.85, 1.1)
+	_drops.append({"pos": _mouth + velocity * head_start, "vel": velocity, "age": 0.0, "life": reach / DROP_SPEED * 1.3, "size": _dice.randf_range(0.8, 1.3), "stopped": false})
 
 
 func _move_drops(delta: float) -> void:
@@ -109,7 +110,7 @@ func _move_drops(delta: float) -> void:
 			drop["pos"] = hit["position"]
 			drop["stopped"] = true
 			drop["age"] = maxf(drop["age"], drop["life"] * 0.7)
-			if randf() < 0.25:
+			if Dice.looks.randf() < 0.25:
 				Fx.burst(get_parent(), drop["pos"], Color(0.75, 0.9, 1.0, 0.9), 3, 70.0, 0.3, false)
 	_drops = _drops.filter(func(drop: Dictionary) -> bool: return drop["age"] < drop["life"])
 

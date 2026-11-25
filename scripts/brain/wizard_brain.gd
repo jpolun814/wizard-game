@@ -44,6 +44,7 @@ const MEND_UNTIL := 0.92
 const MEND_MAX := 40.0     # seconds it rests at most
 const STUCK_RADIUS := 260.0  # pixels it must get from where it was in STUCK_FOR seconds, or it has got nowhere
 const STUCK_FOR := 20.0
+const RESERVE_OF_MAX := 0.55  # the most of its maximum stamina that it keeps in hand (see reserve)
 const VOLCANO_KEEP_OFF := 520.0  # pixels: a page this near a volcano that is awake is left alone
 const VOLCANO_FLEE := 440.0     # pixels: it goes away from a volcano that is awake when it is this near
 const ASSAIL_REACH := 150.0   # how near a creature must come before it is dealt with
@@ -200,7 +201,7 @@ func _init(body: Wizard) -> void:
 	danger = BrainDanger.new(self, body)
 	sight = BrainSight.new(self, body)
 	profile = BrainProfile.new(self, body)
-	rng.seed = randi()  # from the global dice, which a game starts at random and a test can set, so that a run it sees fail comes again
+	rng = Dice.of(["brain", String(body.name), Vector2i(body.position)])
 	skill = GameSettings.rival_skill()
 	style = ["aggressive", "sniper", "trapper", "turtle"][rng.randi() % 4]
 
@@ -592,7 +593,10 @@ func caution() -> float:
 ## How much stamina it wants in hand before it spends more, as a person feels it: more against a rival it takes for dangerous (it may need to answer), little
 ## against one it has seen worn down (a time to press).
 func reserve() -> float:
-	return lerpf(BrainProfile.knob("res_lo", 14.0), BrainProfile.knob("res_hi", 56.0), rival_threat())
+	var want := lerpf(BrainProfile.knob("res_lo", 14.0), BrainProfile.knob("res_hi", 56.0), rival_threat())
+	if BrainProfile.off("lowmax"):
+		return want
+	return minf(want, wizard.max_stamina * RESERVE_OF_MAX)  # (a wizard worn down to a small maximum cannot keep a reserve of more than it can hold: it stood still for good to "recharge" what was already full, and let itself be burned and shot)
 
 
 ## Whether a wizard cannot move freely: rooted, or slowed.

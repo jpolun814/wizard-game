@@ -4,8 +4,8 @@ extends RefCounted
 ## Rocket Jump: flame pours from the caster's feet and, like a rocket taking off, lifts them slowly at first and then faster and faster, high into the air.
 ## This holds what the cast does; the climb itself is in Wizard (see rocket_time).
 
-const BURN := 1.5   # seconds the flame pours and the climb quickens
-const TOP := 600.0  # the speed up, in pixels a second, when the flame dies: about 480 px of height in all
+static var DRIVE := Motion.of("Rocket Jump", "drive")  # (about 480 px of height in all)
+static var BURN: float = DRIVE["for"]  # seconds the flame pours and the climb quickens
 
 
 static func cast(caster: Wizard) -> void:

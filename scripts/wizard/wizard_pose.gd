@@ -33,13 +33,11 @@ var _cast_face := false  # the body is turned to where the last spell was drawn 
 var _was_floor := true
 var _fall_speed := 0.0
 var _last_facing := 1.0
-var _rng := RandomNumberGenerator.new()
 
 
 func _init(owner_wizard: Wizard) -> void:
 	wizard = owner_wizard
-	_rng.randomize()
-	_fidget_at = _rng.randf_range(FIDGET_AFTER.x, FIDGET_AFTER.y)
+	_fidget_at = Dice.looks.randf_range(FIDGET_AFTER.x, FIDGET_AFTER.y)
 
 
 ## The seconds an animation takes to play once.
@@ -220,7 +218,7 @@ func pick(delta: float) -> String:
 	_idle_for += delta
 	if _idle_for >= _fidget_at:
 		_idle_for = 0.0
-		_fidget_at = _rng.randf_range(FIDGET_AFTER.x, FIDGET_AFTER.y)
+		_fidget_at = Dice.looks.randf_range(FIDGET_AFTER.x, FIDGET_AFTER.y)
 		_low = "idle_fidget"
 		_low_left = length_of("idle_fidget")
 		restart = true

@@ -17,6 +17,7 @@ config/icon="res://icon.svg"
 
 [autoload]
 
+Steady="*res://scripts/core/steady_run.gd"
 Sfx="*res://scripts/core/sfx.gd"
 Music="*res://scripts/core/music.gd"
 Net="*res://scripts/core/net.gd"

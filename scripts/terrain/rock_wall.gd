@@ -31,7 +31,7 @@ func _gone() -> void:
 	Sfx.cue("rock_wall", "rumble", _box.get_center())
 	GameCamera.shake_scene(get_tree(), 0.5)
 	for k in 4:
-		Fx.debris(get_parent(), _box.position + Vector2(randf() * _box.size.x, randf() * _box.size.y), Color("#6b5a6e"), 8, 220.0)
+		Fx.debris(get_parent(), _box.position + Vector2(Dice.looks.randf() * _box.size.x, Dice.looks.randf() * _box.size.y), Color("#6b5a6e"), 8, 220.0)
 	Fx.smoke(get_parent(), _box.get_center(), Color(0.5, 0.45, 0.5, 0.6), 10, 40.0, 40.0)
 	queue_free()
 

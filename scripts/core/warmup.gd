@@ -13,6 +13,9 @@ var _kept: Array = []
 
 
 func _ready() -> void:
+	if SteadyRun.on:
+		set_process(false)
+		return  # (nothing is loaded on other cores in a test: what finished first would be a matter of luck)
 	for folder in FOLDERS:
 		_queue(folder)
 	set_process(not _waiting.is_empty() or not _scripts.is_empty())

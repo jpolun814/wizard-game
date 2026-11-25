@@ -7,12 +7,13 @@ extends Node2D
 ## through to the floor below.
 
 const HALF_WIDTH := 80.0  # the width of a pit drawn with no U to go by
-const LEAST := 50.0       # and the narrowest and widest a drawn U can make it
-const MOST := 130.0
+static var PIT := Motion.of("Sinkhole", "pit")
+static var LEAST: float = PIT["half_least"]       # and the narrowest and widest a drawn U can make it
+static var MOST: float = PIT["half_most"]
 const DEPTH := 96.0  # and how deep a pit drawn with no U to go by is
-const SHALLOWEST := 56.0
-const DEEPEST := 120.0  # a wizard's jump clears a little more than this, so nobody can be left at the bottom of a pit with straight sides
-const WARNING := 0.9   # seconds the ground trembles before it gives way
+static var SHALLOWEST: float = PIT["deep_least"]
+static var DEEPEST: float = PIT["deep_most"]  # a wizard's jump clears a little more than this, so nobody can be left at the bottom of a pit with straight sides
+static var WARNING: float = PIT["after"]   # seconds the ground trembles before it gives way
 
 var ground: Terrain
 var ridge: MountainRidges  # set when the pit opens in a ridge's top

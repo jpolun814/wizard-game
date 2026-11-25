@@ -11,7 +11,8 @@ var _clock := 0.0
 var _world_clock := 0.0
 var _last: World
 var _total_pages := 0
-var _held_at_start := 0
+var _standing: Array[bool] = []  # by seat, in the last moment of the world before: who had not been beaten (they fight on the way, and some are)
+var _books: Array = []           # and the pages each held
 var _biomes_seen: Array[String] = []
 
 
@@ -36,12 +37,25 @@ func _process(delta: float) -> void:
 	var scene := get_tree().current_scene
 	if scene is World and scene != _last and scene.player != null and scene.ledgers.size() > 0 and scene.nav != null:
 		_arrived(scene)
+	if is_instance_valid(_last) and scene == _last:
+		_note(_last)
 	if _last != null and is_instance_valid(_last) and _worlds_seen == MatchState.STAGES.size() and _world_clock > 15.0:
 		_verdict(not _last.leaving and MatchState.pending == false, "the last world does not collapse")
 		_finish()
 	if _world_clock > 120.0:
 		_verdict(false, "stuck in world %d" % _worlds_seen)
 		_finish()
+
+
+## What each seat is and holds now, to be set against what comes into the next world. The person, who only stands there, is kept on their feet: a person beaten ends the match.
+func _note(world: World) -> void:
+	world.player.max_stamina = Wizard.MAX_STAMINA
+	_standing = []
+	_books = []
+	for seat in world.seats.size():
+		var wizard: Wizard = world.seats[seat]
+		_standing.append(is_instance_valid(wizard) and not wizard.dead)
+		_books.append(world.ledgers[seat].pages.keys())
 
 
 func _arrived(world: World) -> void:
@@ -75,16 +89,16 @@ func _arrived(world: World) -> void:
 		for seat in 4:
 			starting += Pages.cluster_of(MatchState.seed_base, seat, 4).size()  # the first world also holds each seat's starting pages
 	_verdict(lying <= Pages.count_for(MatchState.biome_of(stage), WorldGraph.size.x) + starting + 2, "a world lays no more pages than it is meant to (%d lying, %d held)" % [lying, held])
-	if stage == 0:
-		_held_at_start = held
-	else:
-		_verdict(held >= _held_at_start, "no page has been lost (%d held, %d at the start)" % [held, _held_at_start])
+	for seat in _books.size():
+		var lost: Array = _books[seat].filter(func(page: String) -> bool: return not world.ledgers[seat].pages.has(page))
+		_verdict(lost.is_empty(), "seat %d still holds every page it had (%d; lost %s)" % [seat, _books[seat].size(), lost])
 	var wizards := 0
 	for wizard: Wizard in get_tree().get_nodes_in_group("wizards"):
 		if wizard != world.player:
 			wizards += 1
 			_verdict(wizard.global_position.x > 0.0 and wizard.global_position.x < ArenaGen.world_size.x * 32.0, "a wizard stands inside world %d" % (stage + 1))
-	_verdict(wizards == World.WIZARDS - 1, "the rival wizards in world %d (%d)" % [stage + 1, wizards])
+	var expected := World.WIZARDS - 1 if stage == 0 else _standing.slice(1).count(true)
+	_verdict(wizards == expected, "every rival that was standing is in world %d (%d of %d)" % [stage + 1, wizards, expected])
 	var spread: Array[float] = [world.player.global_position.x]
 	for wizard: Wizard in get_tree().get_nodes_in_group("wizards"):
 		if wizard != world.player:

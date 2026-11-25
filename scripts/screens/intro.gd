@@ -11,7 +11,6 @@ extends CutScene
 ## The same scene plays whether the other seven wizards are AI or real players: on each machine the first wizard is the person at it. Any key skips it.
 
 const LOADING := "res://scenes/loading.tscn"
-const PAGE := preload("res://art/props/page.png")
 const FLOOR_Y := float(ArenaGen.GROUND_Y)
 const PILE_X := -16.0
 const PORTAL_X := -16.0  # the portal is in the ceiling, right over the pile
@@ -20,7 +19,6 @@ const PORTAL_HEIGHT := 260.0  # how far over the top of the stairs
 const PORTAL_SCALE := 1.5  # the ring is drawn at two times its size, so this makes it three: whole pixels
 const TORN_SCALE := 2.5    # and torn wide, five
 const PAGES_IN_PILE := 26
-const PAGE_SCALE := 0.4  # a page is about as big as a hand
 const CRACKLE_COLOR := Color(0.55, 0.25, 1.0)  # the portal's violet
 const GRAVITY := 760.0  # what a page falls with
 const BLAST_REACH := 150.0  # how far from a blast the pages are knocked about
@@ -155,7 +153,7 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	_run_cues(delta)
 	_shake = maxf(_shake - delta * 1.6, 0.0)
-	_camera.offset = Vector2(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)) * _shake * 4.0
+	_camera.offset = Vector2(Dice.looks.randf_range(-1.0, 1.0), Dice.looks.randf_range(-1.0, 1.0)) * _shake * 4.0
 	if _following != null:
 		_camera.position = _camera.position.lerp(_following.position + Vector2(70.0, -80.0), minf(delta * 8.0, 1.0))
 	_hint.visible = _t > SKIP_HINT_AFTER and not _leaving and not _unskippable()
@@ -192,9 +190,7 @@ func _build_pile(rng: RandomNumberGenerator) -> void:
 	add_child(_halo)
 	for i in PAGES_IN_PILE:
 		var page := IntroPage.new()
-		page.texture = PAGE
-		page.offset = Vector2(0.0, -PAGE.get_height() * 0.5)
-		page.scale = Vector2.ONE * PAGE_SCALE
+		page.offset = Vector2(0.0, -IntroPage.STRIP.get_height() * 0.5)  # (the page is drawn at the size of a hand, in whole pixels)
 		page.position = Vector2(PILE_X + rng.randf_range(-16.0, 16.0), PILE_Y - 1.0 - float(i) * 0.4)
 		page.rotation = rng.randf_range(-1.35, 1.35)
 		page.modulate = Color(0.9 + rng.randf() * 0.1, 0.85 + rng.randf() * 0.1, 0.8)
@@ -291,24 +287,24 @@ func _build_portal() -> void:
 func _destabilise(delta: float) -> void:
 	if _portal == null or _leaving or not _opened or not _portal.visible:
 		return
-	_portal.position = _portal_home + Vector2(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)) * _unrest * 3.0
+	_portal.position = _portal_home + Vector2(Dice.looks.randf_range(-1.0, 1.0), Dice.looks.randf_range(-1.0, 1.0)) * _unrest * 3.0
 	_crackle -= delta
 	if _crackle > 0.0:
 		return
-	_crackle = lerpf(0.5, 0.12, _unrest) * randf_range(0.6, 1.4)
+	_crackle = lerpf(0.5, 0.12, _unrest) * Dice.looks.randf_range(0.6, 1.4)
 	var bolt := AnimatedSprite2D.new()
 	bolt.sprite_frames = PixelFx.frames("lightning", 24.0, false)
 	bolt.material = Fx.additive()
 	bolt.modulate = CRACKLE_COLOR
-	bolt.scale = Vector2.ONE * randf_range(0.5, 0.9)
+	bolt.scale = Vector2.ONE * Dice.looks.randf_range(0.5, 0.9)
 	bolt.offset = Vector2(0.0, -100.0)  # the bolt leaves from the portal, down into the hall
-	bolt.rotation = randf_range(PI - 1.1, PI + 1.1)
+	bolt.rotation = Dice.looks.randf_range(PI - 1.1, PI + 1.1)
 	bolt.position = _portal.position
 	bolt.z_index = 2
 	bolt.animation_finished.connect(bolt.queue_free)
 	add_child(bolt)
 	bolt.play("default")
-	if randf() < 0.4:
+	if Dice.looks.randf() < 0.4:
 		Sfx.cue("intro", "thunder", _portal.position, -24.0)
 
 
@@ -433,7 +429,7 @@ func _the_hall_cracks() -> void:
 	_book.visible = false
 	_lectern.quiet()
 	for page: IntroPage in _pile:  # the pages burst out of it, where it hung
-		page.position = at + Vector2(randf_range(-10.0, 10.0), randf_range(-14.0, 14.0))
+		page.position = at + Vector2(Dice.looks.randf_range(-10.0, 10.0), Dice.looks.randf_range(-14.0, 14.0))
 		page.visible = true
 	_blast(at, 2.2)
 	Fx.burst(self, at, GOLD, 30, 260.0, 0.7, true)
@@ -506,7 +502,7 @@ func _make_bolt(at: Vector2, color: Color) -> Node2D:
 
 ## Every shot in the scene makes the sound of a real attack spell being cast (a fireball, an ice spear, a stone, thorns, a dark blast, a spark), a different one each time.
 func _cast_sound(at: Vector2, volume_db: float) -> void:
-	var spell: Array = _CASTS[randi() % _CASTS.size()]
+	var spell: Array = _CASTS[Dice.looks.randi() % _CASTS.size()]
 	Sfx.cue(spell[0], spell[1], at, volume_db)
 
 
@@ -590,10 +586,10 @@ func _blast(at: Vector2, power: float) -> void:
 			continue
 		near *= power
 		var vel: Vector2 = page.vel
-		vel += away.normalized() * 260.0 * near + Vector2(randf_range(-40.0, 40.0), -randf_range(180.0, 380.0) * near)
+		vel += away.normalized() * 260.0 * near + Vector2(Dice.looks.randf_range(-40.0, 40.0), -Dice.looks.randf_range(180.0, 380.0) * near)
 		page.vel = vel
 		page.landed = false
-		page.spin += randf_range(-14.0, 14.0) * near
+		page.spin += Dice.looks.randf_range(-14.0, 14.0) * near
 
 
 ## A bolt that misses and lands on the floor at x, and throws the pages about where it lands.
@@ -640,15 +636,17 @@ func _move_pages(delta: float) -> void:
 				continue
 		page.position += vel * delta
 		if drawn:
-			page.rotation += page.spin * delta
+			page.rotation += page.spin * delta * 0.25  # (it turns over more than it spins)
+			page.flutter += delta * (6.0 + absf(page.spin) * 0.5)
+			page.turn_to(page.flutter)
 		if page.position.y >= floor_y - 1.0 and vel.y > 0.0 and not _torn:
 			page.position.y = floor_y - 1.0  # it lands flat, with no bounce, slides a little, and lies still
 			vel = Vector2(vel.x * 0.5 if not page.landed else move_toward(vel.x, 0.0, 420.0 * delta), 0.0)
 			if not page.landed:
 				page.landed = true
 				var settle := create_tween().set_parallel(true)
-				settle.tween_property(page, "rotation", randf_range(-1.2, 1.2), 0.25)
-				settle.tween_property(page, "scale:x", PAGE_SCALE, 0.25)
+				settle.tween_property(page, "rotation", Dice.looks.randf_range(-1.2, 1.2), 0.25)
+				page.turn_to(0.0)  # it lies flat
 			if absf(vel.x) < 12.0:
 				vel = Vector2.ZERO
 		page.vel = vel
@@ -665,7 +663,7 @@ func _flutter(page: IntroPage, vel: Vector2, delta: float) -> Vector2:
 	vel.y = minf(vel.y + GRAVITY * 0.5 * delta, FLUTTER_FALL)
 	vel.x += cos(phase) * FLUTTER_SWAY * delta
 	page.rotation = lerp_angle(page.rotation, sin(phase) * 0.9, minf(delta * 8.0, 1.0))  # tips with the sway
-	page.scale.x = PAGE_SCALE * maxf(absf(cos(phase * 0.8)), 0.08)  # turns over
+	page.turn_to(phase * 0.8)  # turns over
 	return vel
 
 

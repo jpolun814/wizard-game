@@ -5,7 +5,8 @@ extends SpellEffect
 ## caster, loose rocks, and shots (which are turned back).
 
 const LIFE := 0.5
-const KNOCK_SPEED := 700.0
+static var SHOVE := Motion.of("Push", "throw")  # (it lifts the caster well above a jump, which is about 140 px)
+static var DELAY: float = SHOVE["after"]
 
 var zone_radius := 40.0  # set by the arena from the drawn circle
 var aim := Vector2.RIGHT
@@ -23,7 +24,7 @@ func _begin(origin: Vector2, aim_angle: float) -> void:
 
 
 func _act(_delta: float) -> void:
-	if not _pushed and _age > 0.05:
+	if not _pushed and _age > DELAY:
 		_pushed = true
 		_push_everything()
 
@@ -42,15 +43,15 @@ func _push_everything() -> void:
 		if not (_inside(SpellTargets.center_of(body)) or _inside(body.global_position)):
 			continue
 		if body.is_in_group("mobs"):
-			body.knock_back(aim * KNOCK_SPEED * 1.6)
+			body.knock_back(Motion.thrown(SHOVE, aim))
 		else:
-			body.push(aim * KNOCK_SPEED * 1.6)  # lifts the caster well above a jump (a jump is about 140 px)
+			body.push(Motion.thrown(SHOVE, aim))
 	for snail in get_tree().get_nodes_in_group("snails"):
 		if _inside(snail.global_position):
-			snail.push(aim * KNOCK_SPEED * 1.6)
+			snail.push(Motion.thrown(SHOVE, aim))
 	for rock in get_tree().get_nodes_in_group("rocks"):
 		if _inside(rock.global_position):
-			rock.push(aim * KNOCK_SPEED * 1.6)
+			rock.push(Motion.thrown(SHOVE, aim))
 	for node in get_tree().get_nodes_in_group("shots"):
 		if _inside(node.global_position):
 			node.reflect(aim)

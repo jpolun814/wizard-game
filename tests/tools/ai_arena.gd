@@ -11,6 +11,7 @@ extends Node
 ## Each run appends one line of JSON to result=FILE: who played with which brain, and when each wizard fell (-1 for one still standing at the end).
 
 var seed_value := 7
+var dice := 0
 var mode := "royale"
 var seconds := 1100.0  # of play, all the worlds of the match
 var old_seats: Array[int] = []
@@ -46,6 +47,8 @@ func _ready() -> void:
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("seed="):
 			seed_value = int(arg.substr(5))
+		elif arg.begins_with("dice="):
+			dice = int(arg.substr(5))
 		elif arg.begins_with("mode="):
 			mode = arg.substr(5)
 		elif arg.begins_with("seconds="):
@@ -89,7 +92,7 @@ func _ready() -> void:
 		elif arg.begins_with("matchlog="):  # matchlog=DIR: every wizard and thing of the match is written down there (see MatchRecorder)
 			MatchRecorder.force = true
 			MatchRecorder.folder = arg.substr(9)
-	seed(seed_value)
+	Dice.reset(dice)  # (the same seed and the same dice are the same game, as near as the machine keeps time; dice=N is another game in the same world)
 	MatchState.begin(seed_value)
 	if mode == "duel":  # (a flat open world, by the seed: no portals to carry them apart, no halls to lose each other in)
 		MatchState.forced_biome = ["graveyard", "mountains", "jungle", "ashlands"][seed_value % 4]

@@ -10,3 +10,4 @@ gesture = "feather"
 cost = 18.0
 effect = "Fall slowly, as light as a feather."
 sounds = {"whoosh": "featherfall__whoosh"}
+parts = Array[Dictionary]([{"where": "self", "for": 15.0, "does": [{"do": "state", "state": "featherlight"}]}])

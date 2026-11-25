@@ -99,7 +99,7 @@ func _someone() -> Wizard:
 	for wizard: Wizard in SpellTargets.wizards(get_tree()):
 		if wizard != arena.player:
 			others.append(wizard)
-	return null if others.is_empty() else others[randi() % others.size()]
+	return null if others.is_empty() else others[arena.player.dice().randi() % others.size()]
 
 
 func _watch(wizard: Wizard) -> void:

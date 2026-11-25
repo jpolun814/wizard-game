@@ -12,57 +12,27 @@ extends Node
 ## Each prints what it saw, then PASS or FAIL, and exits with code 1 on a failure. Run in real time (no --fixed-fps): the two copies
 ## talk over the network, which keeps the clock on the wall.
 
-const WAITING_ROOM := "res://scenes/lab.tscn"
-const WORLD := "res://scenes/world.tscn"
-const GIVE_UP := 300.0  # (eight wizards in a wider world: a whole match takes longer to load and to play)
-
 
 func _ready() -> void:
 	var driver := Driver.new()
 	for arg in OS.get_cmdline_user_args():
-		if arg.begins_with("role="):
-			driver.role = arg.get_slice("=", 1)
-		elif arg.begins_with("out="):
+		if arg.begins_with("out="):
 			driver.out = arg.get_slice("=", 1)
 		elif arg == "leave":
 			driver.leave = true
-	get_tree().root.add_child.call_deferred(driver)  # the driver outlives every scene of the match
+	NetDriver.start(self, driver)
 
 
-class Driver extends Node:
-	var role := "host"
+class Driver extends NetDriver:
 	var out := ""  # a folder for pictures of what each copy sees (needs a window: leave out --headless)
 	var leave := false  # the one who joined leaves the game in the second world, rather than falling there
-	var _failures := 0
 
-	func _ready() -> void:
-		get_tree().create_timer(GIVE_UP).timeout.connect(func() -> void:
-			print("%s: gave up waiting" % role)
-			get_tree().quit(1))
-		if role == "host":
-			Net.host()
-		else:
-			await _seconds(1.0)
-			Net.join("127.0.0.1")
-			await Net.roster_changed
-		get_tree().change_scene_to_file(WAITING_ROOM)
-		var room: Node = await _scene(WAITING_ROOM)
-		await _until(func() -> bool: return Net.peers_here().size() == 1)
+	func _play() -> void:
+		var room: Node = await _into_the_room(2)
 		await _seconds(1.0)
-		# Into the portal. The host goes first, and must wait for the other.
-		var portal: Node2D = get_tree().get_first_node_in_group("portals")
 		if role == "client":
-			await _seconds(2.0)
-		room.player.global_position = portal.global_position + Vector2(0, -30)
-		await _until(func() -> bool: return get_tree().current_scene == null or get_tree().current_scene.scene_file_path != WAITING_ROOM)
-		print("%s: left the waiting room (%.0f s)" % [role, Time.get_ticks_msec() / 1000.0])
-		await _seconds(1.5)
-		var key := InputEventKey.new()  # any key skips the cut-scene
-		key.keycode = KEY_SPACE
-		key.pressed = true
-		Input.parse_input_event(key)
-		var world: Node = await _scene(WORLD)
-		await _until(func() -> bool: return Net.peers_here().size() == 1)
+			await _seconds(2.0)  # (the host goes to the book first, and must wait for the other)
+		var world: Node = await _into_the_world(room, 1)
 		await _seconds(2.0)
 		_check_world(world, 0)
 		if out != "":
@@ -100,36 +70,30 @@ class Driver extends Node:
 		# The collapse: the host hurries its clock; the other machine must follow the host's.
 		if role == "host":
 			MatchState.hurry = 0.01
-		await _until(func() -> bool: return get_tree().current_scene != world)
-		print("%s: the world collapsed (%.0f s)" % [role, Time.get_ticks_msec() / 1000.0])
+		await _until(func() -> bool: return get_tree().current_scene != world, "the world to collapse")
 		var next: Node = await _scene(WORLD)
-		await _until(func() -> bool: return Net.peers_here().size() == 1)
+		await _until(func() -> bool: return Net.peers_here().size() == 1, "the other in the second world")
 		await _seconds(2.0)
 		MatchState.hurry = 100.0  # no second collapse while the rest is checked
 		_check(MatchState.stage == 1, "in the second world of the match (stage %d)" % MatchState.stage)
 		_check_world(next, 1)
+		if role == "host":  # the brains are put away: one that reads the fallen book before it is looked for would spoil what is checked
+			for wizard: Wizard in get_tree().get_nodes_in_group("wizards"):
+				if wizard.brain != null:
+					wizard.set_physics_process(false)
+					wizard.global_position = Vector2(-9000.0, -9000.0)
 		# In the second world the books are carried over: a page read there is read, and gone, on both machines.
 		await _read_a_page(next, next.get_node(reader_name), false, "in the second world")
 		# The one who joined falls: its book lies where it fell, on both machines.
 		var fallen: Wizard = next.get_node(reader_name)
 		if role == "client" and leave:
 			Net.leave()
-			print("client: left the game")
-			await _seconds(1.0)
-			get_tree().quit(0)
 			return
 		if role == "client":
 			fallen.take_damage(9999)
 		await _seconds(2.0)
 		_check(fallen.dead, "the one who joined has fallen, as seen here")
-		# (the book's arrival is a network message: on a busy machine it can come later than the two seconds above, so wait for it a little longer; the wait ends
-		# if the world has gone, which the check then reports as a failure rather than crashing on a freed node)
-		var book_wait := 0.0
-		while is_instance_valid(next) and next.get_node_or_null("Spoils" + reader_name) == null and book_wait < 6.0:
-			await _seconds(0.5)
-			book_wait += 0.5
-		var arrived := is_instance_valid(next) and next.get_node_or_null("Spoils" + reader_name) != null
-		_check(arrived, "its book lies where it fell")
+		_check(next.get_node_or_null("Spoils" + reader_name) != null, "its book lies where it fell")
 		if out != "":
 			await _snap("fallen")
 		# The host beats the brains, and is the last standing: everyone goes back to the waiting room.
@@ -142,19 +106,13 @@ class Driver extends Node:
 				await _seconds(1.0)
 				for screen: Node in get_tree().root.find_children("*", "StatsScreen", true, false):
 					screen.hide()
-		get_tree().create_timer(120.0).timeout.connect(func() -> void:
-			print("%s: the match did not end and send everyone back to the waiting room" % role)
-			get_tree().quit(1))
 		await _scene(WAITING_ROOM)
 		_check(true, "back in the waiting room after the match")
 		if leave:
 			await _seconds(1.0)
 			_check(Net.roster == [1], "the seat of the one who left is given up (roster %s)" % [Net.roster])
 		else:
-			await _until(func() -> bool: return Net.peers_here().size() == 1)
-		print("%s: %s" % [role, "PASS" if _failures == 0 else "%d FAILED" % _failures])
-		await _seconds(1.0)
-		get_tree().quit(1 if _failures > 0 else 0)
+			await _until(func() -> bool: return Net.peers_here().size() == 1, "the other back in the room")
 
 	## The same world on both machines: the seed, four seats, brains on the host and likenesses of them on the other.
 	func _check_world(world: Node, stage: int) -> void:
@@ -208,18 +166,5 @@ class Driver extends Node:
 		_check(known, "%s: all of it is in that wizard's book here (%s)" % [where, ", ".join(pages)])
 
 
-	func _check(ok: bool, what: String) -> void:
-		print("%s: %s %s" % [role, "ok  " if ok else "FAIL", what])
-		if not ok:
-			_failures += 1
 
-	func _scene(path: String) -> Node:
-		await _until(func() -> bool: return get_tree().current_scene != null and get_tree().current_scene.scene_file_path == path and get_tree().current_scene.is_node_ready())
-		return get_tree().current_scene
 
-	func _seconds(seconds: float) -> void:
-		await get_tree().create_timer(seconds).timeout
-
-	func _until(condition: Callable) -> void:
-		while not condition.call():
-			await get_tree().process_frame

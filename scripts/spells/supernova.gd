@@ -1,7 +1,7 @@
 class_name Supernova
 extends Node2D
 
-## Supernova: a small sun that appears where it was drawn and hangs there for a little while. It burns whoever is close and pulls everything
+## Supernova: a small sun that appears where it was drawn and hangs there for a little while. It sets whoever is close alight (the burn is all the harm it does until it blows up) and pulls everything
 ## toward it, a little, so running is hard. Then it blows up: everything near is hurt and thrown away from the middle. The caster is hurt and thrown
 ## like anyone else (spells have no sides). Walls and ceilings still stop what it pulls.
 
@@ -9,9 +9,8 @@ const SUN: Texture2D = preload("res://art/fx/sun.png")
 const RISE := 0.8             # seconds for the sun to swell into being
 const HANG := 5.0             # seconds it hangs there before it blows
 const BLAST := 0.5            # seconds the explosion shows
-const BURN_RADIUS := 170.0    # who is close enough to be burned while it hangs
-const BURN := 3
-const BURN_GAP := 0.5
+const BURN_RADIUS := 170.0    # who is close enough to be set alight while it hangs
+const BURN_GAP := 0.5         # how often it lights them afresh
 const HOLD := 1500.0          # a wizard sheds this much pull each second, so a pull under it is not felt at all
 const PULL := 1500.0          # the pull at the sun itself; less the farther off
 const REACH := 560.0          # how far the pull reaches
@@ -102,8 +101,11 @@ func _pull(delta: float) -> void:
 			shot.pull(to_sun.normalized() * PULL * (1.0 - gap / REACH), delta)
 
 
+## Whoever is close is alight (the law of fire: not the wet, nor what fire cannot hurt), and the burn is the harm.
 func _scorch() -> void:
-	SpellTargets.hurt_within(get_tree(), global_position, BURN_RADIUS, BURN, "Fire", false, false, self)
+	for body in SpellTargets.all(get_tree()):
+		if SpellTargets.center_of(body).distance_to(global_position) <= BURN_RADIUS:
+			Substances.ignite(body, Substances.BURN_SECONDS, self)
 
 
 func _explode() -> void:

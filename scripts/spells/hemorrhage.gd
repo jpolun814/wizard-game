@@ -67,7 +67,7 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	_age += delta
 	if not SpellTargets.affects(target) or _age >= SECONDS:
-		if target is Wizard:
+		if is_instance_valid(target) and target is Wizard:
 			var hand: Caster = _arena_caster(target)
 			if hand != null:
 				hand.tremor = 0.0

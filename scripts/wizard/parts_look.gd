@@ -26,7 +26,7 @@ const DEFAULT := {
 }
 
 
-const HAT_NO_COLOR := ["none", "skull", "laurel", "flower_crown", "antlers"]  # hats with no color of their own (keep in step with tools/wizard_parts/parts.py)
+const HAT_NO_COLOR := ["none", "skull", "laurel", "flower_crown", "antlers", "halo", "ram_horns"]  # hats with no color of their own (keep in step with tools/wizard_parts/parts.py)
 const DEFAULT_LOOK := "parts:3:tan.coat.blue.charcoal.short.auburn.short.auburn.wide.blue.brown.staff_orb.voice_1"  # DEFAULT, written down
 
 

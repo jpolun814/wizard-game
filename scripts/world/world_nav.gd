@@ -25,7 +25,7 @@ var _toll_at := {}  # id -> key
 
 ## Builds the map of the ways. blocked is {Vector2i: true}: tiles that bar the way (lava, a gate), which no path goes through. Only the tiles that can
 ## be left as well as come to, from the tile the map is anchored on, are kept: a wizard that drops into a pit with no way out would be there for good.
-func build(cells: TileGrid, bottom: int, blocked := {}, anchor := Vector2i(-1, -1), tolls := {}, links := [], climbs := []) -> void:
+func build(cells: TileGrid, bottom: int, blocked := {}, anchor := Vector2i(-1, -1), tolls := {}, links := [], climbs := [], more_anchors := []) -> void:
 	_astar.clear()
 	_tolls.clear()
 	_toll_at.clear()
@@ -51,6 +51,8 @@ func build(cells: TileGrid, bottom: int, blocked := {}, anchor := Vector2i(-1, -
 	_add_lifts(links, standing, out, back)
 	_add_climbs(climbs, standing, out, back)
 	var keep := _keep_the_ways_home(tiles, out, back, anchor)
+	for other: Vector2i in more_anchors:  # every other place a wizard starts keeps its own ground too (one walled in by thorns would else have no map at all and stand still)
+		keep.merge(_keep_the_ways_home(tiles, out, back, other))
 	_astar.reserve_space(keep.size())
 	for id: int in keep:
 		_astar.add_point(id, Vector2(_tile(id)))

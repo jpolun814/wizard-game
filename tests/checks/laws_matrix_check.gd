@@ -72,7 +72,8 @@ func _reset() -> void:
 		for node in get_tree().get_nodes_in_group(group):
 			if not node is Pond and not _baseline.has(node):
 				node.queue_free()
-	await get_tree().physics_frame
+	for k in 2:  # (what is being freed pushes once more: it is gone before anyone is put in place)
+		await get_tree().physics_frame
 	var player: Wizard = _lab.player
 	player.stamina = player.max_stamina
 	player.global_position = Vector2(ArenaGen.column_x(-16), _floor)
@@ -97,15 +98,10 @@ func _reset() -> void:
 func _cast(spell_name: String, at: Vector2) -> void:
 	var data: Spell = SpellData.SPELLS[spell_name]
 	var shape := GestureTemplates.preview_points(data.gesture)
-	for attempt in 4:  # (the caster is sometimes still busy with the last stroke: a person would just draw it again)
-		_resolved = ""
-		_lab.caster.cast_stroke(data.buttons, BrainStrokes.offset(shape, at, 1.0))
-		for k in 6:
-			await get_tree().physics_frame
-		if _resolved == spell_name:
-			return
-		for k in 25:
-			await get_tree().physics_frame
+	_resolved = ""
+	_lab.caster.cast_stroke(data.buttons, BrainStrokes.offset(shape, at, 1.0))
+	for k in 6:
+		await get_tree().physics_frame
 
 
 func _alive(group: String) -> Array:
@@ -227,14 +223,9 @@ func _barrier_on_shot(shot: String) -> void:
 	var before := partner.stamina + partner.max_stamina
 	var data: Spell = SpellData.SPELLS[shot]
 	var from: Vector2 = _lab.player.center()
-	for attempt in 4:
-		_resolved = ""
-		_lab.caster.cast_stroke(data.buttons, BrainStrokes.line(from + Vector2(20.0, 0.0), partner.center() + Vector2(0.0, 0.0)))
-		await get_tree().physics_frame
-		if _resolved == shot:
-			break
-		for k in 25:
-			await get_tree().physics_frame
+	var to := partner.center()
+	_resolved = ""
+	_lab.caster.cast_stroke(data.buttons, BrainStrokes.line(from, from + from.direction_to(to) * 90.0))
 	for k in 120:
 		await get_tree().physics_frame
 	_verdict(_resolved == shot, "%s was cast at a wizard under a Barrier (read as '%s')" % [shot, _resolved])

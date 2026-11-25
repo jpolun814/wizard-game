@@ -24,28 +24,27 @@ const SETTINGS := "user://settings.cfg"  # remembers the last address typed, so 
 @onready var _address: LineEdit = $Box/Multi/JoinRow/Address
 @onready var _join: Button = $Box/Multi/JoinRow/Join
 @onready var _status: Label = $Box/Status
-@onready var _tutorial: Button = $Box/Single/Tutorial
+@onready var _tutorial: Button = $Box/Main/Tutorial
 @onready var _duel: Button = $Box/Single/Duel
 @onready var _library: Button = $Box/Main/Library
 @onready var _options: Button = $Box/Main/Settings
 @onready var _box: VBoxContainer = $Box
 
 const SCENERY := "res://art/backgrounds/cemetery/"
-## The sign of each choice is a picture of what it means: one stroke for one player, a 4 for a game of four, a closed book for the library, a sword for a duel,
-## a house for hosting a game, an arrow for going on (to play, or to join a game), a question mark for learning, a triangle pointing back for going back and a cross for leaving. Pictures the spells already have are
+## The sign of each choice is a picture of what it means: one stroke for one player, an 8 for a game of eight (the spell Mud Mask's figure of eight), a 2 for a duel, a closed book for the library,
+## a house for hosting a game, an arrow for going on (to play, or to join a game), a question mark for learning (the tutorial), a triangle pointing back for going back and a cross for leaving. Pictures the spells already have are
 ## the game's own (see GestureTemplates); the others are drawn here.
 const SHAPES := {
 	"one": [Vector2(0, -50), Vector2(0, 50)],
+	"two": [Vector2(-35, -22), Vector2(-24, -41), Vector2(0, -50), Vector2(24, -41), Vector2(35, -22), Vector2(24, 2), Vector2(-35, 50), Vector2(36, 50)],  # a 2: the curve over the top, the slant, the base (the duel: two fighters)
 	"book": [Vector2(0, 40), Vector2(0, -20), Vector2(-50, -30), Vector2(-50, 30), Vector2(0, 40), Vector2(50, 30), Vector2(50, -30), Vector2(0, -20)],  # an open book: the spine, a page either side
-	"four": [Vector2(20, 50), Vector2(20, -50), Vector2(-45, 15), Vector2(50, 15)],  # the stem, the slant, the bar
 	"house": [Vector2(-40, 40), Vector2(-40, -5), Vector2(0, -45), Vector2(40, -5), Vector2(40, 40), Vector2(-40, 40)],  # straight walls and a roof
 	"gear": [Vector2(0, -38), Vector2(6, -50), Vector2(17, -47), Vector2(17, -34), Vector2(27, -27), Vector2(39, -31), Vector2(45, -21), Vector2(36, -12), Vector2(38, 0), Vector2(50, 6), Vector2(47, 17), Vector2(34, 17), Vector2(27, 27), Vector2(31, 39), Vector2(21, 45), Vector2(12, 36), Vector2(0, 38), Vector2(-6, 50), Vector2(-17, 47), Vector2(-17, 34), Vector2(-27, 27), Vector2(-39, 31), Vector2(-45, 21), Vector2(-36, 12), Vector2(-38, 0), Vector2(-50, -6), Vector2(-47, -17), Vector2(-34, -17), Vector2(-27, -27), Vector2(-31, -39), Vector2(-21, -45), Vector2(-12, -36), Vector2(0, -38)],  # a cog: eight teeth round a ring
-	"sword": [Vector2(0, 50), Vector2(0, -50), Vector2(0, -5), Vector2(-32, -5), Vector2(32, -5)],  # a blade and its crossguard: the duel
 	"back": [Vector2(40, -40), Vector2(-40, 0), Vector2(40, 40), Vector2(40, -40)],  # a triangle pointing the way back
 	"quit": [Vector2(-40, -40), Vector2(40, 40), Vector2(-40, 40), Vector2(40, -40)],  # a cross, drawn in one stroke: the way out
 }
 const SIGNS := {  # the recognizer's templates that count as each sign
-	"one": ["menu_one"], "four": ["menu_four"], "book": ["menu_book"], "house": ["menu_house"], "back": ["menu_back"], "quit": ["menu_quit"], "gear": ["menu_gear"], "sword": ["menu_sword"],
+	"one": ["menu_one"], "two": ["menu_two"], "eight": ["eight_top_cw", "eight_top_ccw", "eight_mid_cw", "eight_mid_ccw"], "book": ["menu_book"], "house": ["menu_house"], "back": ["menu_back"], "quit": ["menu_quit"], "gear": ["menu_gear"],
 	"arrow": ["arrow", "arrow_r2", "arrow_l", "arrow_l2"], "question": ["question", "question_r"]}
 const LEAST_SCORE := 0.74  # how well a stroke must match a sign to choose it
 const LEAST_STROKE := 60.0  # a stroke shorter than this is a click, not a drawing
@@ -64,12 +63,15 @@ var _title: Label
 var _book: BookArt
 var _demo: MenuSign  # on the left page: the sign of the choice the pointer or the keyboard is on, drawn out again and again
 var _ink: MenuInk   # the stroke being drawn
+var _mark: MenuMark  # the ink marking the inscription the pointer or the keyboard is on
+var _pointed: Button  # that inscription
 var _recognizer := UnistrokeRecognizer.new()
 var _signs: Dictionary = {}  # Button -> the name of its sign
 var _small_signs: Dictionary = {}  # Button -> the little drawing of its sign beside it
 var _pixel := 4
 var _stroke := PackedVector2Array()
 var _drawing := false
+var _joining := false  # a join is waiting for the host's answer
 var _busy := false  # a choice has been made and is being carried out
 var _clock := 0.0
 
@@ -127,6 +129,10 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	_clock += delta
+	_status.visible = _status.text != ""  # a line with nothing in it takes no room, so the choices stand in the middle of the page
+	if _mark != null:
+		var on := _pointed != null and _pointed.is_visible_in_tree() and _box.visible and not _pointed.disabled
+		_mark.target = _pointed.get_global_rect() if on else Rect2()
 	if _title != null:
 		_title.modulate.a = 0.9 + sin(_clock * 1.6) * 0.1  # the title's glow breathes
 	if _wizard != null:
@@ -191,6 +197,9 @@ func _dress() -> void:
 	_demo.animated = true
 	_demo.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_demo)
+	_mark = MenuMark.new()
+	_mark.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_mark)
 	_ink = MenuInk.new()
 	_ink.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_ink)
@@ -207,6 +216,7 @@ func _dress() -> void:
 	_title.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_title)
 	move_child(_wizard, _demo.get_index() + 1)  # the wizard stands in front of the book, not behind it
+	move_child(_mark, get_child_count() - 1)
 	move_child(_box, get_child_count() - 1)  # the inscriptions stay on top of it all
 	move_child(_ink, get_child_count() - 1)  # and the stroke over them
 
@@ -231,14 +241,24 @@ func _lay_out() -> void:
 	_book.size = Spellbook.FRAME * _pixel
 	_book.queue_redraw()
 	_box.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	_box.position = origin + RIGHT_PAGE.position * _pixel + Vector2(0.0, 6.0 * _pixel)
-	_box.size = Vector2(RIGHT_PAGE.size.x * _pixel, (RIGHT_PAGE.size.y - 8.0) * _pixel)
+	# The writing keeps a margin all round, as a page's does: the inscriptions lie between 9 and 9 pixels of the book from the top and the bottom of the parchment,
+	# 4 from the spine and 5 from the edge.
+	_box.position = origin + Vector2(RIGHT_PAGE.position.x + 4.0, 35.0) * _pixel
+	_box.size = Vector2(RIGHT_PAGE.size.x - 9.0, 86.0) * _pixel
+	for page: VBoxContainer in [_main, _single, _multi]:
+		page.add_theme_constant_override("separation", _pixel * 3)
 	_box.alignment = BoxContainer.ALIGNMENT_CENTER
-	_status.custom_minimum_size.x = RIGHT_PAGE.size.x * _pixel
+	_status.custom_minimum_size.x = (RIGHT_PAGE.size.x - 9.0) * _pixel
 	_demo.position = origin + LEFT_PAGE.position * _pixel + Vector2(0.0, 8.0 * _pixel)
 	_demo.size = Vector2(LEFT_PAGE.size.x * _pixel, (LEFT_PAGE.size.y - 16.0) * _pixel)
 	_ink.position = Vector2.ZERO
 	_ink.size = window
+	_mark.position = Vector2.ZERO
+	_mark.size = window
+	_mark.cell = _pixel
+	var letters := Lettering.GRID * maxi(1, floori(_pixel / 3.0))  # lettering only keeps its pixels whole at a whole number of its grid
+	for button: Button in _signs:
+		button.add_theme_font_size_override("font_size", letters)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -251,6 +271,9 @@ func _unhandled_input(event: InputEvent) -> void:
 func _show_page(page: VBoxContainer, focus: Button, forward: bool) -> void:
 	if _busy:
 		return
+	if _joining:  # going back while a join waits gives it up
+		Net.leave()
+		_set_waiting(false)
 	Sfx.cue("menu", "click")
 	_status.text = ""
 	_box.visible = false
@@ -293,6 +316,12 @@ func _live() -> Dictionary:
 	return out
 
 
+## The pointer or the keyboard has come to an inscription: the left page draws its sign and the ink marks it.
+func _point_at(button: Button) -> void:
+	_pointed = button
+	_show_sign(_signs[button])
+
+
 func _show_sign(sign_name: String) -> void:
 	_demo.gesture = sign_name
 	_demo.restart()
@@ -300,8 +329,8 @@ func _show_sign(sign_name: String) -> void:
 
 ## Each choice with a sign gets it drawn beside it, small, and shows the larger one on the left page when the pointer or the keyboard comes to it.
 func _write_signs() -> void:
-	var table := {_single_player: "one", _multiplayer: "four", $Box/Main/Library: "book", $Box/Main/Settings: "gear", $Box/Main/Quit: "quit",
-			$Box/Single/Play: "arrow", $Box/Single/Tutorial: "question", $Box/Single/Duel: "sword", $Box/Multi/Host: "house", $Box/Multi/JoinRow/Join: "arrow", _single_back: "back", _multi_back: "back"}
+	var table := {_single_player: "one", _multiplayer: "eight", $Box/Main/Tutorial: "question", $Box/Main/Library: "book", $Box/Main/Settings: "gear", $Box/Main/Quit: "quit",
+			$Box/Single/Play: "arrow", $Box/Single/Duel: "two", $Box/Multi/Host: "house", $Box/Multi/JoinRow/Join: "arrow", _single_back: "back", _multi_back: "back"}
 	for button: Button in table:
 		_signs[button] = table[button]
 		var row := HBoxContainer.new()
@@ -311,15 +340,15 @@ func _write_signs() -> void:
 		parent.move_child(row, button.get_index())
 		var small := MenuSign.new()
 		small.gesture = table[button]
-		small.custom_minimum_size = Vector2(48, 48)
+		small.custom_minimum_size = Vector2(40, 40)
 		small.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		button.reparent(row, false)
 		row.add_child(small)
 		row.move_child(small, 0)
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		button.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		button.focus_entered.connect(_show_sign.bind(table[button]))
-		button.mouse_entered.connect(_show_sign.bind(table[button]))
+		button.focus_entered.connect(_point_at.bind(button))
+		button.mouse_entered.connect(_point_at.bind(button))
 		_small_signs[button] = small
 
 
@@ -416,7 +445,8 @@ func _on_join() -> void:
 
 ## While joining, the buttons wait for the answer.
 func _set_waiting(waiting: bool) -> void:
-	for button: Button in [_alone, _host, _join, _tutorial, _duel, _library, _single_player, _multiplayer, _single_back, _multi_back]:
+	_joining = waiting
+	for button: Button in [_alone, _host, _join, _tutorial, _duel, _library, _single_player, _multiplayer]:  # Back stays: it gives the join up
 		button.disabled = waiting
 	_address.editable = not waiting
 	_join.text = "Joining..." if waiting else "Join"

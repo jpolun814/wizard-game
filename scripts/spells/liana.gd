@@ -4,9 +4,10 @@ extends FloraSpell
 ## Liana: a vine grows up out of the ground where the line began, as high as the line you drew. Stand at it and press W to take
 ## hold, then W and S to climb. It stays until fire burns it.
 
-const MAX_RISE := 420.0   # the highest the vine climbs above the ground
-const MIN_RISE := 90.0    # even a short line grows a vine you can climb
-const GRAB_WIDTH := 18.0  # how close to the vine you must be to take hold
+static var VINE := Motion.of("Liana", "climb")
+static var MAX_RISE: float = VINE["most"]   # the highest the vine climbs above the ground
+static var MIN_RISE: float = VINE["least"]    # even a short line grows a vine you can climb
+static var GRAB_WIDTH: float = VINE["grab"]  # how close to the vine you must be to take hold
 const LINK := 50.0        # each piece of vine, from the pixel art, is this long
 
 var line := PackedVector2Array()  # the drawn leaf and line, in world points; set before the vine enters the tree

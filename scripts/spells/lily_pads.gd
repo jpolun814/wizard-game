@@ -5,9 +5,9 @@ extends FloraSpell
 ## surface of the pool below the line (owner, 2026-11-16: they should never hang in the air or lie over a dry pit). Each one holds your weight, so you can walk
 ## across water on them. After 8 seconds they sink. Fire burns them, and a flood washes them away.
 
-const SECONDS := 8.0
+static var SECONDS := Motion.number("Lily Pads", "floor", "for")
 const SINK_SECONDS := 1.0
-const PAD_WIDTH := 52.0
+static var PAD_WIDTH := Motion.number("Lily Pads", "floor", "wide")
 const PAD_FLOAT_REACH := 320.0  # how far below the drawn line a pool's surface can be for the leaf to settle on it
 const LEAF := preload("res://art/props/lily_pad.png")  # made by tools/prepare_vines.py
 

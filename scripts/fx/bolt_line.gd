@@ -20,7 +20,7 @@ static func lay(parent: Node, from: Vector2, tip: Vector2, sheet: Texture2D, lif
 	var fit := length / (count * PIECE)  # the last stretch is squeezed or stretched a little so the line ends exactly on its tip
 	var last := -1
 	for i in count:
-		var variant := randi() % variants
+		var variant := Dice.looks.randi() % variants
 		if variant == last:
 			variant = (variant + 1) % variants  # (no two pieces the same one after another)
 		last = variant
@@ -33,7 +33,7 @@ static func lay(parent: Node, from: Vector2, tip: Vector2, sheet: Texture2D, lif
 		piece.z_index = 6
 		piece.global_position = from + way * (PIECE * fit * (i + 0.5))
 		piece.rotation = way.angle()
-		piece.scale = Vector2(fit, 1.0 if randf() < 0.5 else -1.0)
+		piece.scale = Vector2(fit, 1.0 if Dice.looks.randf() < 0.5 else -1.0)
 		parent.add_child(piece)
 		var fade := piece.create_tween()
 		fade.tween_property(piece, "modulate:a", 0.0, life).set_ease(Tween.EASE_IN)

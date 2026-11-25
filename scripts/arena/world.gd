@@ -59,10 +59,14 @@ func _music_place() -> String:
 	return String(MatchState.plan()["biome"])
 
 
+func _seed_of_place() -> int:
+	seed_value = next_seed if next_seed >= 0 else Dice.fresh() % Incantation.seed_count()
+	next_seed = -1
+	return seed_value
+
+
 ## The world's tiles, built from the seed. Everything the generator decides comes from this one rng.
 func _build_map() -> Variant:
-	seed_value = next_seed if next_seed >= 0 else randi() % Incantation.seed_count()
-	next_seed = -1
 	carried = MatchState.pending  # a world the last one collapsed into: the match goes on, rather than begins
 	MatchState.pending = false
 	if not carried:
@@ -99,10 +103,10 @@ func _build_map() -> Variant:
 	start_tile = built["start"]
 	spawn_tiles = built["spawns"]
 	if random_start and not Net.online():
-		start_tile = spawn_tiles[randi() % spawn_tiles.size()]  # not seeded, so the same world starts you somewhere new
+		start_tile = spawn_tiles[Dice.of(["start"]).randi() % spawn_tiles.size()]
 	var shut := WorldBuilder.shut(built, true)
 	nav = WorldNav.new()
-	nav.build(shut["cells"], built["size"].y, shut["barred"], spawn_tiles[0], shut["tolls"], shut["links"], shut["climbs"])
+	nav.build(shut["cells"], built["size"].y, shut["barred"], spawn_tiles[0], shut["tolls"], shut["links"], shut["climbs"], spawn_tiles.slice(1))
 	return built["cells"]
 
 
@@ -498,7 +502,7 @@ func build_nav() -> void:
 	var cells: TileGrid = shut["cells"]
 	for tile: Vector2i in _dug_tiles:
 		cells.erase(tile)
-	nav.build(cells, _built["size"].y, shut["barred"], spawn_tiles[0], shut["tolls"], shut["links"], shut["climbs"])
+	nav.build(cells, _built["size"].y, shut["barred"], spawn_tiles[0], shut["tolls"], shut["links"], shut["climbs"], spawn_tiles.slice(1))
 
 
 ## The ground has been dug (a Sinkhole): the tiles it took away are open air to the wizards' map, which is made again.
@@ -614,7 +618,7 @@ func rift_spot(from: Vector2) -> Vector2:
 		var spot := stand_at(markers[room["id"]])
 		if spot.distance_to(from) > 400.0:
 			spots.append(spot)
-	return spots[randi() % spots.size()] if not spots.is_empty() else from
+	return spots[player.dice().randi() % spots.size()] if not spots.is_empty() else from
 
 
 ## The top of the floor under a point (out of the rock first when it is in it), asked of the tiles, which are there before the ground is built.

@@ -16,6 +16,7 @@ func _ready() -> void:
 	add_child(world)
 	await get_tree().process_frame
 	await get_tree().process_frame
+	_put_away_all_but([world.player])  # (nobody else is being checked)
 	var feet: Vector2 = world.player.global_position
 	var space := world.get_world_2d()
 	var spot := feet
@@ -56,7 +57,6 @@ func _ready() -> void:
 	_verdict(middle > 0.95 and edge < middle - 0.2, "and it is deepest in the middle, shallower at the edge (%.2f, %.2f)" % [middle, edge])
 	var above := Sinkhole.fit(space, hung)
 	_verdict(absf(float(above["depth"]) - 100.0) < 10.0, "a U drawn in the open air is let down onto the ground, as deep as it is tall (%.0f px, drawn 100 tall)" % float(above["depth"]))
-	var began := Time.get_ticks_msec()
 	world.spawn_spell("Sinkhole", "positional", spot + Vector2(0.0, -20.0), 0.0, {}, world.player)
 	for k in int(Sinkhole.WARNING * 60.0) + 10:
 		await get_tree().physics_frame
@@ -70,9 +70,7 @@ func _ready() -> void:
 	var floor_tile := pit_floor
 	_verdict(world.nav.can_stand(floor_tile), "the wizards' map has the floor of the pit to stand on (tile %s)" % floor_tile)
 	var made: int = world.nav.version
-	var timed := Time.get_ticks_usec()
 	world.build_nav()
-	print("INFO  the map of the ways was made %d time(s) so far; making it again takes %d ms" % [made, (Time.get_ticks_usec() - timed) / 1000])
 	# A second pit dug close beside the first must not leave a thin wall of rock between them.
 	for gap in [25.0, 60.0]:
 		var level_y := before + 8.0
@@ -94,7 +92,6 @@ func _ready() -> void:
 				run = 0.0
 				seen_air = true
 		_verdict(thinnest >= 48.0, "a pit dug %d px from another leaves no thin wall (thinnest %.0f px)" % [gap, thinnest if thinnest < INF else 0.0])
-	print("INFO  the pit opened %d ms after it was cast" % (Time.get_ticks_msec() - began))
 	for argument in OS.get_cmdline_user_args():
 		if argument.begins_with("out="):
 			await RenderingServer.frame_post_draw

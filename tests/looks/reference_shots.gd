@@ -45,7 +45,7 @@ func _swap(scene: Node) -> void:
 		_scene.queue_free()
 		await get_tree().process_frame
 	_scene = scene
-	seed(7)  # (before the scene is built: it scatters its props with the global dice)
+	Dice.reset(7)  # (before the scene is built: it scatters its props with the global dice)
 	add_child(scene)
 	for k in 60:
 		await get_tree().physics_frame

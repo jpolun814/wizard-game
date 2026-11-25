@@ -50,7 +50,8 @@ func _build_map() -> Variant:
 
 func _begin_encounter(camera: Camera2D) -> void:
 	round_number += 1
-	var seed_value := randi()
+	var seed_value := Dice.fresh()
+	Dice.begin(seed_value)  # (every round is its own)
 	var dealt := Pages.deal(seed_value, 2, BOOK)
 	var left := ArenaGen.FIRST_COL + START_IN
 	var right := ArenaGen.right_wall - START_IN

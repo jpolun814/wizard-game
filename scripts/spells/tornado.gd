@@ -6,10 +6,9 @@ extends Area2D
 ## Creasta sheet: it is born, then turns on its tip for as long as it lasts.
 
 const FUNNEL_BANDS := [Rect2(-99, -117, 174, 36), Rect2(-96, -81, 171, 36), Rect2(-84, -45, 129, 36), Rect2(-87, -9, 84, 36), Rect2(-87, 27, 63, 36), Rect2(-63, 63, 48, 36), Rect2(-96, 99, 153, 36)]  # the funnel's solid core, in bands, in its own coordinates (its tip on the ground at TIP)
-const LIFE := 6.0
-const FLING_UP := 800.0   # how hard anyone who walks into it is thrown up
-const FLING_SIDE := 560.0 # and to one side or the other, by chance
-const FLING_GAP := 1.2    # seconds before it can throw the same one again
+static var FLING := Motion.of("Tornado", "throw")
+static var LIFE: float = FLING["for"]
+static var FLING_GAP: float = FLING["every"]    # seconds before it can throw the same one again
 const WHIRL_TICK := 0.5   # a fire whirl burns this often
 const WHIRL_DAMAGE := 4
 const TIP := 135.0  # the funnel's narrow end is this far below its middle
@@ -19,6 +18,7 @@ var _age := 0.0
 var _flung := {}  # who it has thrown lately -> seconds until it can again
 var _funnel: AnimatedSprite2D
 var _dying := false
+var _dice := Dice.branch()  # its own, from the cast: how it flings does not hang on what else throws dice meanwhile
 var ablaze := false  # a funnel that has drawn up a fire is a fire whirl: it burns, and sets plants alight
 var _scorch := 0.0
 var _shots := {}  # a shot that entered the funnel -> where it came in, or null once it has been turned
@@ -101,7 +101,7 @@ func _physics_process(delta: float) -> void:
 	for body in get_overlapping_bodies():
 		if SpellTargets.affects(body) and not _flung.has(body):
 			_flung[body] = FLING_GAP
-			var impulse := Vector2(randf_range(-1.0, 1.0) * FLING_SIDE, -randf_range(0.8, 1.0) * FLING_UP)  # upward, to either side by chance
+			var impulse := Vector2(_dice.randf_range(-1.0, 1.0) * float(FLING["aside"]), 0.0) + Motion.thrown(FLING, Vector2.UP) * _dice.randf_range(FLING["least"], 1.0)  # upward, to either side by chance
 			if body.is_in_group("mobs"):
 				body.knock_back(impulse)
 			else:

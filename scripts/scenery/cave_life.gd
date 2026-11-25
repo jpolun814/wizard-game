@@ -29,6 +29,7 @@ var _hangers: Array[Dictionary] = []  # {"sprite", "state": "hanging" | "shaking
 var _slot := -1
 var _spot := 0.0
 var _dust := 0.0
+var _fall: RandomNumberGenerator  # this cave-in's dice
 var _rocks_left := 0
 
 
@@ -120,7 +121,7 @@ func _watch_stalactites(delta: float) -> void:
 						break
 			"shaking":
 				hanger["wait"] -= delta
-				sprite.position = hanger["home"] + Vector2(randf_range(-2.0, 2.0), 0.0)
+				sprite.position = hanger["home"] + Vector2(Dice.looks.randf_range(-2.0, 2.0), 0.0)
 				if hanger["wait"] <= 0.0:
 					hanger["state"] = "gone"
 					hanger["wait"] = REGROW
@@ -145,21 +146,20 @@ func _cave_in(delta: float) -> void:
 	var into := seconds - CAVE_IN_FIRST - slot * CAVE_IN_PERIOD
 	if slot != _slot:
 		_slot = slot
-		var rng := RandomNumberGenerator.new()
-		rng.seed = seed_value + slot * 7717
-		_spot = player.global_position.x + rng.randf_range(-420.0, 420.0)
+		_fall = Dice.of(["cave-in", slot])
+		_spot = player.global_position.x + _fall.randf_range(-420.0, 420.0)
 		_rocks_left = CAVE_IN_ROCKS
 	var column := int(_spot / float(ArenaGen.TILE))
 	if into < CAVE_IN_WARNING:
 		_dust -= delta
 		if _dust <= 0.0:
 			_dust = 0.2
-			Fx.smoke(get_parent(), Vector2(_spot + randf_range(-CAVE_IN_SPREAD, CAVE_IN_SPREAD), roof_y(column) + 20.0), Color(0.5, 0.47, 0.45, 0.6), 2, 40.0, -20.0)
+			Fx.smoke(get_parent(), Vector2(_spot + Dice.looks.randf_range(-CAVE_IN_SPREAD, CAVE_IN_SPREAD), roof_y(column) + 20.0), Color(0.5, 0.47, 0.45, 0.6), 2, 40.0, -20.0)
 		return
 	if _rocks_left > 0 and into >= CAVE_IN_WARNING + (CAVE_IN_ROCKS - _rocks_left) * 0.16:
 		_rocks_left -= 1
 		var rock := FallingRock.new()
-		rock.position = Vector2(_spot + randf_range(-CAVE_IN_SPREAD, CAVE_IN_SPREAD), roof_y(column) + 24.0)
+		rock.position = Vector2(_spot + _fall.randf_range(-CAVE_IN_SPREAD, CAVE_IN_SPREAD), roof_y(column) + 24.0)
 		rock.tint = _tint
 		get_parent().add_child(rock)
 		GameCamera.shake_scene(get_tree(), 0.15)

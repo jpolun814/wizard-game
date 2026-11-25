@@ -112,16 +112,7 @@ func _raise() -> void:
 	await _wait(0.3)
 	_cast_by(_player, _spot + Vector2(60.0, 0.0))
 	_cast_by(_rival, _spot + Vector2(240.0, 0.0))
-	await _wait(0.2)
-	for tries in 5:  # (a cast may be refused while the wizard is still busy with the last)
-		if not _risen_of(_rival).is_empty() and not _risen_of(_player).is_empty():
-			break
-		for who: Wizard in [_player, _rival]:
-			if _risen_of(who).is_empty():
-				who.max_stamina = 200.0  # (a cast that was only slow to show must not be paid for twice)
-				who.stamina = who.max_stamina
-				_cast_by(who, _spot + Vector2(60.0 if who == _player else 240.0, 0.0))
-		await _wait(0.3)
+	await _wait(0.5)
 	var a: Mob = _risen_of(_player)[0]
 	var b: Mob = _risen_of(_rival)[0]
 	await _wait(8.0)
@@ -132,13 +123,10 @@ func _raise() -> void:
 	# (A skeleton goes for another master's wizard as well as for its skeletons, so what a master loses to the other's is not looked at; that it never strikes its own is, above.)
 	await _clear_risen()
 	# The master's end is theirs.
-	for tries in 5:  # (a cast may be refused while the wizard is still busy with the last)
-		_player.max_stamina = 200.0
-		_player.stamina = 200.0
-		_cast_by(_player, _spot + Vector2(80.0, 0.0))
-		await _wait(0.3)
-		if not _risen_of(_player).is_empty():
-			break
+	_player.max_stamina = 200.0
+	_player.stamina = 200.0
+	_cast_by(_player, _spot + Vector2(80.0, 0.0))
+	await _wait(0.5)
 	var doomed: Mob = _risen_of(_player)[0]
 	_player.dead = true
 	await _wait(1.5)

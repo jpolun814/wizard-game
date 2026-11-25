@@ -5,9 +5,6 @@ const LEFT := 1
 const RIGHT := 2
 const MIDDLE := 4
 
-## The farthest a Shadow Step carries the caster, in pixels.
-const STEP_MAX := 300.0
-
 ## Color of each school: used to tint the enemies of that school and to glow the spells.
 const SCHOOL_COLORS := {
 	"Fire": Color("#ff6a2a"),
@@ -45,6 +42,9 @@ const SCHOOL_BUTTONS := {
 ## Every fast spell, by name, each a Spell resource read from res://data/spells/. The caster, arena and spellbook all read from here.
 ## Each gesture is a picture of what the spell does.
 static var SPELLS: Dictionary = _load_spells()
+
+## The farthest a Shadow Step carries the caster, in pixels.
+static var STEP_MAX: float = SPELLS["Shadow Step"].effect_of("carry")["most"]
 
 
 ## The name of a school as the player reads it.

@@ -22,6 +22,7 @@ const HIT_SCALE := 2.0     # the splash where the flame lands is drawn at twice 
 const HIT_GAP := 0.25      # the least time between one splash on a wall and the next
 const DRAG := 1.2          # puffs slow as they spread out
 
+var _dice := Dice.branch()  # from the cast
 var caster: Wizard
 var aim := 0.0             # the drawn direction, for the way the caster faced when casting
 var spread := 0.8
@@ -118,9 +119,9 @@ func _direction() -> Vector2:
 
 
 func _spawn_puff() -> void:
-	var velocity := _direction().rotated(randf_range(-0.5, 0.5) * spread) * PUFF_SPEED * randf_range(0.85, 1.1)
+	var velocity := _direction().rotated(_dice.randf_range(-0.5, 0.5) * spread) * PUFF_SPEED * _dice.randf_range(0.85, 1.1)
 	var life := reach / PUFF_SPEED * 1.25
-	_puffs.append({"pos": _mouth, "vel": velocity, "age": 0.0, "life": life, "size": randf_range(0.8, 1.25), "stopped": false})
+	_puffs.append({"pos": _mouth, "vel": velocity, "age": 0.0, "life": life, "size": _dice.randf_range(0.8, 1.25), "stopped": false})
 
 
 ## Each puff flies on until its time is up, or until it hits something solid, where it stops and flares.

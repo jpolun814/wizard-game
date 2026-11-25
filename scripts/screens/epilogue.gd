@@ -194,7 +194,7 @@ func _strike(blow: int) -> void:
 		var at := _target()
 		Sfx.cue("epilogue", "blow_last" if blow == BLOWS.size() - 1 else "blow", at, -2.0)
 		Fx.burst(self, at, Color("#ffd890"), 20 if blow == BLOWS.size() - 1 else 10, 120.0, 0.3, true)
-		_camera.offset = Vector2(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)) * 2.0
+		_camera.offset = Vector2(Dice.looks.randf_range(-1.0, 1.0), Dice.looks.randf_range(-1.0, 1.0)) * 2.0
 		get_tree().create_timer(0.08).timeout.connect(func() -> void: _camera.offset = Vector2.ZERO)
 		if blow == 0:
 			plaque = _lectern.hang_second_plaque()

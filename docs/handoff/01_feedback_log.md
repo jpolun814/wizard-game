@@ -233,3 +233,7 @@ always show the motion as GIFs.
 4. **Art quality and cohesion.** No placeholder shapes, one art style, one pixel size.
 5. **Short text.**
 6. **They enjoy depth that is learnable,** like the wizard drawing its spells where you can see them.
+
+- **2026-11-25, "All random things should be based off the world's seed."** Said when Tornado's throws were found to hang on whatever else had rolled dice. Every roll in `scripts/` was moved to `Dice`, and a test forbids any
+  other. A world a person starts alone now starts them in the place its seed says (it was chosen at random before).
+

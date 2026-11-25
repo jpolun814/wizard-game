@@ -48,7 +48,8 @@ func _ready() -> void:
 	player.look = Net.look_of(Net.my_id())
 	player.palette = Net.palette_of(Net.my_id())
 	# A new random arena each run, in the level's land. Build it before anything that reads the terrain.
-	_rng.randomize()
+	Dice.begin(_seed_of_place())
+	_rng = Dice.of(["arena"])
 	var biome := _biome()
 	_cells = _build_map()
 	Music.play_for(_music_place())
@@ -278,16 +279,21 @@ func add_wizard(look: String, feet: Vector2, seat_name := "") -> Wizard:
 	var wizard: Wizard = WIZARD_SCENE.instantiate()
 	wizard.look = look
 	wizard.human = false
-	wizard.brain = new_brain(wizard)
-	wizard.flying = flies()
-	wizard.fly_box = fly_box()
 	wizard.position = feet
 	if seat_name != "":
 		wizard.name = seat_name
+	wizard.brain = new_brain(wizard)  # (after its place and name, which its dice come from)
+	wizard.flying = flies()
+	wizard.fly_box = fly_box()
 	add_child(wizard)
 	if seat_name != "" and Net.online():
 		wizard.share()
 	return wizard
+
+
+## The seed everything left to chance here is thrown from (see Dice). A room has a new one each time; a world has its own.
+func _seed_of_place() -> int:
+	return Dice.fresh()
 
 
 ## The brain that plays a wizard here: the one that walks. A world with no ground has a brain of its own (World.new_brain).
@@ -494,7 +500,7 @@ func chant_by(speaker: Wizard, id: String) -> bool:
 
 ## Where a Rift sets the wizard down: somewhere along the floor of this room. A world picks one of its halls instead.
 func rift_spot(from: Vector2) -> Vector2:
-	return Vector2(randf_range(ArenaGen.left_edge() + 80.0, ArenaGen.right_edge() - 80.0), from.y)
+	return Vector2(player.dice().randf_range(ArenaGen.left_edge() + 80.0, ArenaGen.right_edge() - 80.0), from.y)
 
 
 func _on_player_damaged(_amount: int) -> void:

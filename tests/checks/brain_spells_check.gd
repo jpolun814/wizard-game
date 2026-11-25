@@ -110,7 +110,7 @@ func _try(spell_name: String) -> void:
 	World.arrive_by_portal = false
 	World.next_seed = scene.get("seed", 8)
 	var tree := get_tree()
-	seed(spell_name.hash() + _dice)  # the same dice for the same spell, so that a failure comes again
+	Dice.reset(spell_name.hash() + _dice)  # the same dice for the same spell, so that a failure comes again
 	var world: World = load("res://scenes/world.tscn").instantiate()
 	add_child(world)
 	await tree.process_frame

@@ -63,7 +63,7 @@ func _swap(scene: Node) -> void:
 		_scene.queue_free()
 		await get_tree().process_frame
 	_scene = scene
-	seed(7)
+	Dice.reset(7)
 	add_child(scene)
 	for k in 60:
 		await get_tree().physics_frame

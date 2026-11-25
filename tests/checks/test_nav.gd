@@ -1,10 +1,10 @@
-extends SceneTree
+extends Node
 
 ## Checks the wizards' way about a world: the map of the ways (WorldNav) agrees with the generator's own test of what can be walked, every
 ## step of a path is a move that exists, and the map is built fast enough to be made while a world loads.
 ##
 ## Run from the project folder:
-##     godot --headless -s tests/checks/test_nav.gd            (add `-- seeds=N first=K` for others)
+##     godot --headless --fixed-fps 60 --path . tests/checks/test_nav.tscn            (add `-- seeds=N first=K` for others)
 ## It prints each failure and exits with code 1 if anything failed.
 
 var seeds := 4
@@ -13,7 +13,7 @@ var _failures := 0
 var _checks := 0
 
 
-func _initialize() -> void:
+func _ready() -> void:
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("seeds="):
 			seeds = int(arg.substr(6))
@@ -28,11 +28,9 @@ func _initialize() -> void:
 		var cells: TileGrid = shut["cells"]
 		var bottom: int = world["size"].y
 		var nav := WorldNav.new()
-		var started := Time.get_ticks_msec()
 		nav.build(cells, bottom, shut["barred"])
-		var seconds := (Time.get_ticks_msec() - started) / 1000.0
 		var ways := Walkways.new(cells, bottom, shut["barred"])
-		print("seed %d: %d tiles to stand on, the map of the ways built in %.1fs" % [s, nav.size(), seconds])
+		print("seed %d: %d tiles to stand on" % [s, nav.size()])
 		_check(nav.size() > 1000, "seed %d: only %d tiles to stand on" % [s, nav.size()])
 		var spawns: Array[Vector2i] = world["spawns"]
 		var picker := RandomNumberGenerator.new()
@@ -78,7 +76,7 @@ func _initialize() -> void:
 		print("   anchored: %d of the %d tiles can be left as well as come to" % [anchored.size(), nav.size()])
 	print("%d checks" % _checks)
 	print("all navigation checks passed" if _failures == 0 else "%d FAILED" % _failures)
-	quit(1 if _failures > 0 else 0)
+	get_tree().quit(1 if _failures > 0 else 0)
 
 
 func _check(ok: bool, message: String) -> void:

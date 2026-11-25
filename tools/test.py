@@ -9,6 +9,7 @@
     python tools/test.py pond sphere     only the checks with these words in the name (unit suites by file name)
 
 What it does that the pieces alone do not:
+  * runs everything in a copy of the project as it was when the run began (tools/steady.py), so nothing written in the working folder meanwhile can reach it;
   * runs the unit tests first, and stops there when they fail: a broken rule is not worth four minutes of worlds;
   * counts a SCRIPT ERROR or a crash in any output as a failure, whatever the check printed;
   * keeps a list of quarantined checks (tools/quarantine.json: name -> why). They still run and are shown, but they do not fail the run, and one
@@ -26,7 +27,9 @@ import tempfile
 import time
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-GODOT = os.environ.get("GODOT", "C:/Users/Jordan Polun/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_console.exe")
+sys.path.insert(0, os.path.join(ROOT, "tools"))
+import steady
+
 ANSI = re.compile(r"\x1b\[[0-9;]*m")
 QUARANTINE = os.path.join(ROOT, "tools", "quarantine.json")
 
@@ -44,7 +47,7 @@ def unit_suites(words):
     return [f for f in files if not words or any(w in os.path.basename(f) for w in words)]
 
 
-def run_unit(files, folder):
+def run_unit(files, folder, project):
     """Runs the gdUnit4 suites, a few processes at once. Returns (failures: [(suite, text)], tests, seconds)."""
     started = time.time()
     if not files:
@@ -53,16 +56,12 @@ def run_unit(files, folder):
 
     def one(path):
         name = os.path.basename(path)
-        command = [GODOT, "--headless", "--path", ROOT, "-s", "-d", "res://addons/gdUnit4/bin/GdUnitCmdTool.gd", "--add", "res://tests/unit/" + name, "--ignoreHeadlessMode"]
-        try:
-            done = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=ROOT, timeout=120, stdin=subprocess.DEVNULL)
-        except subprocess.TimeoutExpired as late:  # (a suite that does not finish, most often one with a parse error that left the debugger waiting)
-            text = ANSI.sub("", (late.stdout or b"").decode("utf-8", "replace")) + chr(10) + "SCRIPT ERROR: the suite did not finish in two minutes (a parse error in it waits in the debugger?)"
-            open(os.path.join(folder, "unit_%s.txt" % name), "w", encoding="utf-8").write(text)
-            return name, 124, text
-        text = ANSI.sub("", done.stdout.decode("utf-8", "replace"))
-        open(os.path.join(folder, "unit_%s.txt" % name), "w", encoding="utf-8").write(text)
-        return name, done.returncode, text
+        command = [steady.GODOT, "--headless", "--path", project, "-s", "-d", "res://addons/gdUnit4/bin/GdUnitCmdTool.gd", "--add", "res://tests/unit/" + name, "--ignoreHeadlessMode"]
+        codes, texts, stuck, _ = steady.run_copies([command], folder, "unit_" + name[:-3], project, 1)
+        text = ANSI.sub("", texts[0]) + ("\nSCRIPT ERROR: %s (a parse error in it waits in the debugger?)" % stuck if stuck else "")
+        with open(os.path.join(folder, "unit_%s.txt" % name), "w", encoding="utf-8") as out:
+            out.write(text)
+        return name, codes[0], text
     failures, tests = [], 0
     with ThreadPoolExecutor(max(1, min(4, len(files)))) as pool:
         for name, code, text in pool.map(one, files):
@@ -137,25 +136,26 @@ def checks_for(words):
     return sorted(picked)
 
 
-def run_integration(words, full, folder, skip):
+def run_integration(words, full, folder, skip, project):
     command = [sys.executable, os.path.join(ROOT, "tools", "run_checks.py")] + (["--full"] if full else []) + (["--skip", ",".join(skip)] if skip else []) + words
-    env = dict(os.environ, CHECK_OUT=folder)
-    done = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=ROOT, env=env)
-    text = done.stdout.decode("utf-8", "replace")
-    print(text)
+    env = dict(os.environ, CHECK_OUT=folder, WIZARD_PROJECT=project, PYTHONUNBUFFERED="1")
+    lines = []
+    with subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=ROOT, env=env) as running:
+        for line in running.stdout:  # (shown as each check ends, not all at the end)
+            lines.append(line.decode("utf-8", "replace").replace("\r\n", "\n"))
+            print(lines[-1], end="", flush=True)
+    text = "".join(lines)
     failed = re.findall(r"^FAILED\s+(\S+)\s+([\d.]+)s.*?see (\S+)", text, re.M)
-    flaky = re.findall(r"FLAKY", text)
     times = re.findall(r"^(?:ok|FAILED)\s+(\S+)\s+([\d.]+)s", text, re.M)
     record_history(text)
-    return failed, times, len(flaky)
+    return failed, times
 
 
 def record_history(text):
-    """Keeps what each check did in this run (ok, failed, or flaky: failed once and passed again) in reports/test_history.jsonl, one line a run,
-    so that tools/flakes.py can say which checks do not give the same answer twice."""
+    """Keeps what each check did in this run (ok or failed, and how long it took) in reports/test_history.jsonl, one line a run."""
     results = {}
     for m in re.finditer(r"^(ok|FAILED)\s+(\S+)\s+([\d.]+)s(.*)$", text, re.M):
-        status = "flaky" if "FLAKY" in m.group(4) else ("ok" if m.group(1) == "ok" else "failed")
+        status = "ok" if m.group(1) == "ok" else "failed"
         results[m.group(2)] = {"status": status, "seconds": float(m.group(3))}
     if not results:
         return
@@ -174,11 +174,12 @@ def main():
     parser.add_argument("--quarantined", action="store_true", help="also run the quarantined checks (they are left out of the everyday run: they are known to fail)")
     parser.add_argument("--pictures", action="store_true")
     options = parser.parse_args()
-    sys.path.insert(0, os.path.join(ROOT, "tools"))
     import run_checks
     folder = run_checks.log_folder()  # (a folder of this run's own: two runs at once no longer write over each other's logs)
     print("logs: " + folder)
     started = time.time()
+    project = steady.project_copy()
+    print("running in a copy of the project (%.0fs to bring it up to date)" % (time.time() - started), flush=True)
     problems = []
 
     words = options.only
@@ -186,7 +187,7 @@ def main():
         changed = changed_words()
         words = checks_for(changed)
         print("changed: %s\n -> checks: %s\n" % (", ".join(changed) or "nothing", ", ".join(words) or "none (unit tests only)"))
-    failures, tests, seconds = run_unit(unit_suites(options.only if not options.changed else []), folder)
+    failures, tests, seconds = run_unit(unit_suites(options.only if not options.changed else []), folder, project)
     print("unit tests: %d tests, %d suites failed, %.1fs" % (tests, len(failures), seconds))
     for name, text in failures:
         print("  FAILED %s\n    %s" % (name, text.replace("\n", "\n    ")))
@@ -201,7 +202,7 @@ def main():
         return len(failures) + len(static_failures)
     slow_times = []
     if not options.unit and not (options.changed and not words):
-        failed, slow_times, flaky = run_integration(words, options.full, folder, [] if (options.full or options.quarantined) else list(quarantined()))
+        failed, slow_times = run_integration(words, options.full, folder, [] if (options.full or options.quarantined) else list(quarantined()), project)
         held = quarantined()
         passing_again = []
         for name, _, path in failed:
@@ -217,8 +218,6 @@ def main():
         passing_again = [b for b in held if b in ran and b not in bad]
         for b in passing_again:
             print("quarantined but PASSING: %s (take it off tools/quarantine.json)" % b)
-        if flaky:
-            print("%d check(s) were flaky this run: they failed once and passed on a second try" % flaky)
     if options.pictures:
         done = subprocess.run([sys.executable, os.path.join(ROOT, "tools", "look_compare.py")], cwd=ROOT)
         if done.returncode:

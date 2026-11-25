@@ -34,6 +34,9 @@ enum Size { NONE, RADIUS, REACH, LINE_WIDTH, LINE_SPAN, LENGTH, STEP_LENGTH, ARE
 @export var pellets := 1     ## how many pieces one cast sends (a volley of thorns)
 @export var spread := 0.0    ## the angle those pieces fan across, in radians
 @export var reach := 0.0     ## how far it carries or reaches, in pixels; zero when that does not matter
+## What it does, in the terms of docs/handoff/24_spell_terms.md: each part says where it acts, when (`after`, `for`, `every`, `again`, in seconds), and what it `does`, a list of effects
+## each with its `do` (the term) and its numbers. The game runs on these and the AI reads them; a figure here is kept nowhere else. (So far: how a spell moves a body.)
+@export var parts: Array[Dictionary] = []
 @export var sounds := {}  ## the sounds this spell makes, by event (cast, hit...): each a file of its own, owned by this spell alone (see Sfx.cue)
 @export var color := Color(0, 0, 0, 0)  ## the glow of a spell that is not its school's color; transparent means the school's
 @export var size_from := Size.NONE
@@ -41,6 +44,23 @@ enum Size { NONE, RADIUS, REACH, LINE_WIDTH, LINE_SPAN, LENGTH, STEP_LENGTH, ARE
 @export var size_min := 1.0
 @export var size_max := 1.0
 @export_file("*.gd") var effect_path := ""  ## the SpellEffect script that makes it, for spells placed as one effect; a path, so reading a spell never compiles it
+
+
+var _effects := {}  # term -> the effect, with its part's own where and when (see effect_of)
+
+
+## The first effect of this kind that it has, together with where and when its part acts, or nothing.
+func effect_of(term: String) -> Dictionary:
+	if not _effects.has(term):
+		var found := {}
+		for part in parts:
+			for one: Dictionary in part["does"]:
+				if found.is_empty() and one["do"] == term:
+					found = part.duplicate()
+					found.erase("does")
+					found.merge(one, true)
+		_effects[term] = found
+	return _effects[term]
 
 
 ## The mouse buttons that cast it: its school's.

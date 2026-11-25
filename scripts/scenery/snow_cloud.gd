@@ -66,7 +66,8 @@ func _lay_snow() -> void:
 	if hit.is_empty() or absf(hit["normal"].x) > 0.5:  # not on a steep slope, where snow would not lie
 		return
 	var drift := SnowDrift.new()
-	drift.width = randf_range(36.0, 60.0)
-	drift.height = randf_range(6.0, 11.0)
+	var dice := Dice.of(["drift", Vector2i(hit["position"])])
+	drift.width = dice.randf_range(36.0, 60.0)
+	drift.height = dice.randf_range(6.0, 11.0)
 	drift.position = hit["position"]
 	get_parent().add_child(drift)

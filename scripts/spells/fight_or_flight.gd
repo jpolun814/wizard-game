@@ -13,6 +13,7 @@ const FIGHT := Color("#ff3a3a")
 const FLIGHT := Color("#d8ecff")
 const QUESTION := preload("res://art/fx/question_mark.png")  # a question mark in pixels, made for the game (tools/make_marks.py)
 
+var _dice := Dice.branch()  # from the cast
 var target: Wizard
 var caster: Wizard
 var fights := false
@@ -28,7 +29,7 @@ static func nearest_under(tree: SceneTree, point: Vector2) -> Wizard:
 
 func _ready() -> void:
 	add_to_group("lasting")
-	fights = randf() < 0.5
+	fights = _dice.randf() < 0.5
 	z_index = 9
 	var color := FIGHT if fights else FLIGHT
 	_mark = Sprite2D.new()
@@ -74,7 +75,7 @@ func _cast_at_random() -> void:
 			known.append(spell)
 	if known.is_empty():
 		return
-	var pick: Spell = known[randi() % known.size()]
+	var pick: Spell = known[_dice.randi() % known.size()]
 	var shape := GestureTemplates.preview_points(pick.gesture)
 	if shape.size() < 2:
 		return
@@ -84,8 +85,8 @@ func _cast_at_random() -> void:
 		low = low.min(point)
 		high = high.max(point)
 	var middle := (low + high) * 0.5
-	var flip := -1.0 if randf() < 0.5 else 1.0
-	var at := target.center() + Vector2(randf_range(60.0, 220.0) * flip, randf_range(-70.0, 10.0))
+	var flip := -1.0 if _dice.randf() < 0.5 else 1.0
+	var at := target.center() + Vector2(_dice.randf_range(60.0, 220.0) * flip, _dice.randf_range(-70.0, 10.0))
 	var stroke := PackedVector2Array()
 	for point in shape:
 		stroke.append(at + Vector2((point.x - middle.x) * flip, point.y - middle.y))

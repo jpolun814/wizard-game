@@ -14,3 +14,4 @@ share = 0.5
 warning = 0.5
 effect = "Summon a whirlwind that flings away anything that walks into it."
 sounds = {"whirl": "tornado__whirl"}
+parts = Array[Dictionary]([{"where": "place", "needs": "ground", "for": 6.0, "does": [{"do": "throw", "way": "up", "speed": 800.0, "least": 0.8, "aside": 560.0, "every": 1.2}, {"do": "turn", "way": "back"}]}])

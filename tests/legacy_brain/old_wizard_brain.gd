@@ -176,7 +176,7 @@ func _init(body: Wizard) -> void:
 	chant = OldBrainChant.new(self, body)
 	danger = OldBrainDanger.new(self, body)
 	sight = OldBrainSight.new(self, body)
-	rng.randomize()
+	rng = Dice.of(["brain", String(body.name), Vector2i(body.position)])
 	skill = GameSettings.rival_skill()
 
 

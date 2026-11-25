@@ -1,9 +1,9 @@
-extends SceneTree
+extends Node
 
 ## Checks every world a match plays through (see MatchState), in every biome: each is built, its ground can be walked from every starting place to every hall
 ## that no gate shuts off, the starting places are well apart, and every page the wizards do not hold has a place to lie.
 ##
-##     godot --headless --path . -s tests/checks/test_stages.gd -- seeds=6 first=0
+##     godot --headless --fixed-fps 60 --path . tests/checks/test_stages.tscn -- seeds=6 first=0
 
 var seeds := 6
 var first := 0
@@ -11,7 +11,7 @@ var _checks := 0
 var _failures := 0
 
 
-func _initialize() -> void:
+func _ready() -> void:
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("seeds="):
 			seeds = int(arg.substr(6))
@@ -23,14 +23,12 @@ func _initialize() -> void:
 		for s in range(first, first + seeds):
 			var rng := RandomNumberGenerator.new()
 			rng.seed = s * 31 + stage
-			var started := Time.get_ticks_msec()
 			var last: bool = stage == MatchState.STAGES.size() - 1
 			var pool: Array = SurfaceGen.OPEN_BIOMES if last else SurfaceGen.BIOMES  # the last world is all open sky
 			var biome: String = pool[(stage + s) % pool.size()]  # every biome gets its turn
 			var halls: bool = SurfaceGen.has_halls(biome)
 			var world := WorldBuilder.make(rng, biome, halls)
 			var graph: WorldGraph = world["graph"]
-			var seconds := (Time.get_ticks_msec() - started) / 1000.0
 			var label := "stage %d seed %d" % [stage, s]
 			_check(world["size"].x == plan["width"], "%s: %s tiles wide" % [label, world["size"]])
 			_check(world["spawns"].size() == WorldGraph.PLAYERS, "%s: %d starting places" % [label, world["spawns"].size()])
@@ -62,10 +60,10 @@ func _initialize() -> void:
 				for page in ledger.pages:
 					known[page] = true
 			_check(layout.size() + known.size() == Pages.every().size(), "%s: %d pages laid, %d held, of %d" % [label, layout.size(), known.size(), Pages.every().size()])
-			print("%s: %d mouths, %d halls, %d tiles to stand on, built in %.1fs, spawns %d apart" % [label, graph.rooms[0]["mouths"].size(), graph.rooms.size(), nav.size(), seconds, apart])
+			print("%s: %d mouths, %d halls, %d tiles to stand on, spawns %d apart" % [label, graph.rooms[0]["mouths"].size(), graph.rooms.size(), nav.size(), apart])
 	print("%d checks" % _checks)
 	print("all stage checks passed" if _failures == 0 else "%d FAILED" % _failures)
-	quit(1 if _failures > 0 else 0)
+	get_tree().quit(1 if _failures > 0 else 0)
 
 
 func _check(ok: bool, message: String) -> void:

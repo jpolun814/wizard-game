@@ -13,6 +13,8 @@ const FALL_SPEED := 60.0   # how fast to drift across while falling
 const MAX_AIR_SPEED := 330.0
 const LEAN := 10.0          # pixels past the middle of a tile that a jump aims at
 const ARRIVE_X := 18.0      # how close to the middle of a tile counts as being at it
+const ON_THE_SPOT := 0.6  # seconds over a tile, getting no nearer to its floor, before standing there counts as having come to it
+const RIDGE_OVER := 72.0  # and how far the ground there may be from the tile's floor
 const ARRIVE_Y := 28.0
 const STUCK_AFTER := 2.0    # seconds without getting closer before the route gives up
 const CLIMB_ROWS := 8        # a move up this many rows is a vine, or a stair if it goes as far across
@@ -141,6 +143,11 @@ func steer(body: CharacterBody2D, delta: float) -> Dictionary:
 		goal_x += signf(goal_tile.x - from.x) * LEAN  # the edge of a ledge is rounded off: land a little way in
 	var gap := goal_x - feet.x
 	out["dir"] = 0.0 if absf(gap) < 4.0 else signf(gap)
+	if grounded and not leaps and _stuck > ON_THE_SPOT and absf(gap) < ARRIVE_X and absf(feet.y - float(goal_tile.y + 1) * TILE) < RIDGE_OVER:
+		_next += 1  # it stands over the very tile, on ground a little off the tile's floor (a ridge of the peaks runs above its tiles): it is there
+		_stuck = 0.0
+		_best = INF
+		return out
 	if grounded and down >= 2 and across <= 1 and _stuck > 0.3 and feet.y < float(goal_tile.y) * TILE - 24.0:
 		out["drop"] = true  # the way down lies through the wooden platform it stands on
 	if grounded and leaps and not _jumped:

@@ -1,16 +1,16 @@
-extends SceneTree
+extends Node
 
 ## Checks the pages: what each wizard is dealt, that a ledger knows only what it holds, and that the waiting room's ledger holds everything.
 ##
 ## Run from the project folder:
-##     godot --headless -s tests/checks/test_pages.gd
+##     godot --headless --fixed-fps 60 --path . tests/checks/test_pages.tscn
 ## It prints each failure and exits with code 1 if anything failed.
 
 var _failures := 0
 var _checks := 0
 
 
-func _initialize() -> void:
+func _ready() -> void:
 	for seed_value in 200:
 		var first := Pages.deal(seed_value, 4)
 		var again := Pages.deal(seed_value, 4)
@@ -180,7 +180,7 @@ func _initialize() -> void:
 	_check(Pages.LIGHT_MAKERS.size() >= 8 and Pages.LIGHT_MAKERS.all(func(held: String) -> bool: return Pages.every().has(held)), "there are eight spells that make light, and each is a page of the game")
 	print("%d checks" % _checks)
 	print("all page checks passed" if _failures == 0 else "%d FAILED" % _failures)
-	quit(1 if _failures > 0 else 0)
+	get_tree().quit(1 if _failures > 0 else 0)
 
 
 func _check(ok: bool, message: String) -> void:

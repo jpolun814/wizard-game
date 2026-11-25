@@ -100,7 +100,7 @@ func _finish() -> void:
 func _pages_in_view() -> Array[Sprite2D]:
 	var out: Array[Sprite2D] = []
 	for child in _intro.get_children():
-		if child is Sprite2D and child.texture == Intro.PAGE:
+		if child is IntroPage:
 			out.append(child)
 	return out
 

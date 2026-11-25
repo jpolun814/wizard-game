@@ -7,22 +7,24 @@ extends Node2D
 ## The water is real (see LiquidGrid): a burst lifts what water there is at its foot, and it falls back as the column sinks. On dry ground the
 ## first burst brings a little up from below, which then runs over the ground and is lifted again.
 
-const WARNING := 0.7
+static var JET := Motion.of("Geyser", "throw")
+static var WARNING: float = JET["after"]
 const LIFE := 1.8  # one burst, from the first bubble to the column gone
-const REST := 1.2  # the quiet before the ground starts to bubble again
+static var REST: float = JET["again"] - LIFE  # the quiet before the ground starts to bubble again
 const SHAKE_REACH := 300.0  # how far off the ground still shakes under a wizard (a faint tremor: it once shook the screen like a quake, owner 2026-11-15)
-const WIDTH := 46.0
-const WIZARD_LAUNCH := 1000.0
-const MOB_LAUNCH := 820.0
-const COLUMN_HEIGHT := 190.0
+static var WIDTH: float = JET["wide"]
+const SCALD_GAP := 1.0   # seconds between scalds of one body
+static var THROW_GAP: float = JET["every"]  # and between throws
+static var COLUMN_HEIGHT: float = JET["high"]
 const RISE := 0.2   # how fast the column shoots up
-const DROP := WARNING + 1.0  # when the column starts to sink
+static var DROP: float = WARNING + JET["for"]  # when the column starts to sink
 const LIFT := 1.6     # how much liquid a burst lifts (a cell holds 1)
 const SPRING := 1.6   # and how much comes up from below the first time, where there was none
 const SCALD := 1      # damage a second to whoever is in the column
 
 var ground: Terrain  # the ground the geyser stands in; the water it spills runs over it
 var _age := 0.0
+var _clock := 0.0   # the game seconds since it was cast (its age begins again with each burst); it stands still while the game is paused
 var _burst := false
 var _lifted := 0.0   # water in the column, on its way back down
 var _sprung := false # true once water has come up from below
@@ -88,6 +90,7 @@ func _begin_cycle() -> void:
 
 func _physics_process(delta: float) -> void:
 	_age += delta
+	_clock += delta
 	queue_redraw()
 	if _age >= LIFE + REST:
 		_begin_cycle()
@@ -130,19 +133,18 @@ func wets(point: Vector2) -> bool:
 func _carry_riders() -> void:
 	if _age >= DROP:
 		return
-	var now := Time.get_ticks_msec()
 	var column := Rect2(global_position + Vector2(-WIDTH * 0.5 - 8.0, -_height()), Vector2(WIDTH + 16.0, _height() + 30.0))
 	for body in SpellTargets.all(get_tree()):
-		if column.has_point(SpellTargets.center_of(body)) and now - int(_scalded.get(body, -10000)) >= 1000:
-			_scalded[body] = now
+		if column.has_point(SpellTargets.center_of(body)) and _clock - float(_scalded.get(body, -10.0)) >= SCALD_GAP:
+			_scalded[body] = _clock
 			SpellTargets.hurt(body, SCALD, "Water", false, false, self)
-		if not column.has_point(SpellTargets.center_of(body)) or now - int(_riders.get(body, -10000)) < 350:
+		if not column.has_point(SpellTargets.center_of(body)) or _clock - float(_riders.get(body, -10.0)) < THROW_GAP:
 			continue
-		_riders[body] = now
+		_riders[body] = _clock
 		if body is Wizard:
-			body.push(Vector2(0.0, -WIZARD_LAUNCH))
+			body.push(Motion.thrown(JET, Vector2.UP))
 		else:
-			body.knock_back(Vector2(0.0, -MOB_LAUNCH))  # (a creature, a risen skeleton among them)
+			body.knock_back(Motion.thrown(JET, Vector2.UP, "creatures"))  # (a creature, a risen skeleton among them)
 
 
 ## True when this burst found no water at its foot and brought a little up from below (so the world holds that much more water than before it).
@@ -215,9 +217,9 @@ func _erupt() -> void:
 	for body in SpellTargets.all(get_tree()):
 		if _on_the_spot(body):
 			if body is Wizard:
-				body.push(Vector2(0.0, -WIZARD_LAUNCH))
+				body.push(Motion.thrown(JET, Vector2.UP))
 			else:
-				body.knock_back(Vector2(0.0, -MOB_LAUNCH))
+				body.knock_back(Motion.thrown(JET, Vector2.UP, "creatures"))
 
 
 ## True for a body whose feet are on the geyser's spot, on the ground.

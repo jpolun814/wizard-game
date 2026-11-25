@@ -96,7 +96,7 @@ func _ready() -> void:
 			_plain = true
 		elif arg == "keep=1":
 			keep_player = true
-	seed(seed_value)  # the starting places are chosen with the global rng
+	Dice.reset(seed_value)
 	World.next_seed = seed_value
 	if _stage > 0:
 		MatchState.begin(seed_value)

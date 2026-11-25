@@ -6,9 +6,9 @@ extends SpellEffect
 ## what it grows from (see RockArt), lumpy and rough at its far end, and it is drawn sliding out of its foot.
 
 const LENGTH := 140.0  # a wall drawn without a length of its own
-const MIN_LENGTH := 60.0
-const MAX_LENGTH := 240.0
-const THICKNESS := 22.0
+static var MIN_LENGTH := Motion.number("Stone Wall", "solid", "least")
+static var MAX_LENGTH := Motion.number("Stone Wall", "solid", "most")
+static var THICKNESS := Motion.number("Stone Wall", "solid", "thick")
 
 var wall_length := 0.0  # the length of the drawn stroke, set by the arena (0 for the default)
 var wall_texture: Texture2D  # the level's earth, set by the arena

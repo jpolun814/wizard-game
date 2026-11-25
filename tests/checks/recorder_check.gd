@@ -6,7 +6,7 @@ func _ready() -> void:
 	var dir := "user://recorder_check_logs"
 	MatchRecorder.force = true
 	MatchRecorder.folder = dir
-	seed(5)
+	Dice.reset(5)
 	World.next_seed = 5
 	var world: Node = load("res://scenes/world.tscn").instantiate()
 	add_child(world)

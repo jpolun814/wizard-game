@@ -497,8 +497,6 @@ func _stepped_in(rating: float) -> void:
 
 ## On the host: once every person has touched the book, the match begins.
 func _start_if_all_in() -> void:
-	if Net.dedicated:
-		print("server: the book is touched by %s; waiting for %s; here: %s" % [_touched.keys(), _waiting_for(), Net.peers_here()])
 	if _touched.is_empty() or not _waiting_for().is_empty():
 		return
 	if Net.dedicated and Net.roster.filter(func(peer: int) -> bool: return peer != 0 and peer != Net.my_id()).is_empty():
@@ -509,7 +507,7 @@ func _start_if_all_in() -> void:
 		for peer in _ratings:
 			total += float(_ratings[peer])
 		BrainLevel.match_level = clampi(roundi(total / _ratings.size()), 1, BrainLevel.LEVELS)
-	var seed_value := World.next_seed if World.next_seed >= 0 else randi() % Incantation.seed_count()
+	var seed_value := World.next_seed if World.next_seed >= 0 else Dice.fresh() % Incantation.seed_count()
 	for peer in Net.peers_here():
 		_go.rpc_id(peer, seed_value)
 	_go(seed_value)

@@ -32,6 +32,7 @@ var mass := PackedFloat32Array()
 var asleep := true
 var version := 0  # goes up whenever the liquid changes, so a drawing can tell it is out of date
 
+var _worked_here := false  # the steps were worked out at once, on this core (see SteadyRun)
 var _task := -1  # the pool task working out steps (see step_later), or -1
 var _job_times := 0
 var _job_from := PackedFloat32Array()
@@ -303,20 +304,26 @@ func step_later(times: int) -> void:
 	_job_times = times
 	_job_from = mass
 	_job_band = _band
+	if SteadyRun.on:  # (a test does nothing on another core: the answer is the same, and is taken at the same step)
+		_work()
+		_worked_here = true
+		return
 	_task = WorkerThreadPool.add_task(_work)
 
 
 ## Whether steps are being worked out on another core.
 func working() -> bool:
-	return _task >= 0
+	return _task >= 0 or _worked_here
 
 
 ## Waits for the steps that `step_later` started (if any), and takes their answer.
 func settle() -> void:
-	if _task < 0:
+	if not working():
 		return
-	WorkerThreadPool.wait_for_task_completion(_task)
+	if _task >= 0:
+		WorkerThreadPool.wait_for_task_completion(_task)
 	_task = -1
+	_worked_here = false
 	_commit(_job_mass, _job_passes)
 	_job_from = PackedFloat32Array()
 	_job_mass = PackedFloat32Array()

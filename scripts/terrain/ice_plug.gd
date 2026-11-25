@@ -17,8 +17,8 @@ func _physics_process(delta: float) -> void:
 	var heat := SpellTargets.fire_heat_near(get_tree(), _box, 6.0)
 	if heat > 0.0:
 		_health -= heat * MELT * delta
-		if randf() < delta * 6.0:
-			Fx.smoke(get_parent(), _box.position + Vector2(randf() * _box.size.x, randf() * _box.size.y), Color(0.9, 0.95, 1.0, 0.5), 2, 18.0, 30.0)
+		if Dice.looks.randf() < delta * 6.0:
+			Fx.smoke(get_parent(), _box.position + Vector2(Dice.looks.randf() * _box.size.x, Dice.looks.randf() * _box.size.y), Color(0.9, 0.95, 1.0, 0.5), 2, 18.0, 30.0)
 	elif SpellTargets.fire_touching(get_tree(), _box):
 		_health -= HEALTH  # a fireball
 	if _health <= 0.0:

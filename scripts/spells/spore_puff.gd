@@ -19,6 +19,7 @@ const DRAG := 1.4           # they slow quickly, then hang in the air
 const LIFE := 4.5           # how long one puff lives
 const FADE := 0.7           # how long it takes to thin away when the wind takes it
 
+var _dice := Dice.branch()  # from the cast
 var caster: Wizard
 var aim := 0.0
 var spread := 0.8
@@ -94,8 +95,8 @@ func _direction() -> Vector2:
 
 
 func _spawn_puff() -> void:
-	var velocity := _direction().rotated(randf_range(-0.5, 0.5) * spread) * SPEED * (reach / 160.0) * randf_range(0.7, 1.1)
-	_puffs.append({"pos": _mouth, "vel": velocity, "born": _mouth, "age": 0.0, "size": randf_range(0.8, 1.25), "stopped": false})
+	var velocity := _direction().rotated(_dice.randf_range(-0.5, 0.5) * spread) * SPEED * (reach / 160.0) * _dice.randf_range(0.7, 1.1)
+	_puffs.append({"pos": _mouth, "vel": velocity, "born": _mouth, "age": 0.0, "size": _dice.randf_range(0.8, 1.25), "stopped": false})
 
 
 ## Each puff drifts on, slowing, until it hangs in the air; a wall or the ground stops it where it hits.

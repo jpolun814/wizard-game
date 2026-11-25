@@ -4,10 +4,9 @@ extends Node2D
 ## Updraft: a column of rising air that stands where it was drawn for the rest of the world. Anyone who walks into it is carried up, and
 ## the wind lets go of them at the top. Any number can be raised.
 
-const WIDTH := 70.0
-const HEIGHT := 520.0
-const LIFT := 2700.0    # pixels a second, each second, the air adds to a body on its way up (gravity pulls back)
-const MAX_RISE := 420.0 # the fastest it carries anyone up
+static var RISE := Motion.of("Updraft", "lift")
+static var WIDTH: float = RISE["wide"]
+static var HEIGHT: float = RISE["high"]
 
 const STREAKS := 7
 var _streaks: Array[AnimatedSprite2D] = []  # gusts of the same pale wind as a Gust and a Push, climbing the column
@@ -39,7 +38,7 @@ func _physics_process(delta: float) -> void:
 			continue
 		if body is Wizard and body.is_likeness():
 			continue  # the machine that plays them lifts them
-		body.velocity.y = maxf(body.velocity.y - LIFT * delta, -MAX_RISE)
+		body.velocity.y = Motion.lifted(RISE, body.velocity.y, delta)
 		if body is Wizard:
 			body.free_from_ground()
 

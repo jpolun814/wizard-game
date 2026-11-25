@@ -1,11 +1,11 @@
-extends SceneTree
+extends Node
 
 ## Holds the AI wizards to what a person could know. A brain may read another wizard only through what a person sees: its eyes, what was cast in view, what it
 ## says over its head. It may not read a rival's strength, book or health, count who is left in the match, ask whether a rival is a person, or look at the
 ## match's clock. This reads the brain's scripts and fails on any line that does. (A line that must break the rule, for a reason that is written beside it,
 ## ends with `# knows:` and the reason.)
 ##
-## Run from the project folder:  godot --headless -s tests/checks/knowledge_check.gd
+## Run from the project folder:  godot --headless --fixed-fps 60 --path . tests/checks/knowledge_check.tscn
 
 ## Each needle is something a person at the screen could not know, and why. (The first group is made up of every rival's name for itself and every private fact.)
 const WHO := ["foe", "opponent", "other", "rival", "target"]
@@ -24,7 +24,7 @@ const KNOWN := [
 ]
 
 
-func _init() -> void:
+func _ready() -> void:
 	var failures := 0
 	var scanned := 0
 	var dir := DirAccess.open("res://scripts/brain")
@@ -56,4 +56,4 @@ func _init() -> void:
 					failures += 1
 					print("FAIL %s:%d  %s -- %s" % [file, i + 1, needles[needle], line.strip_edges()])
 	print("%d brain lines break what a person could know" % failures if failures > 0 else "ok knowledge_check (%d scripts read)" % scanned)
-	quit(1 if failures > 0 else 0)
+	get_tree().quit(1 if failures > 0 else 0)

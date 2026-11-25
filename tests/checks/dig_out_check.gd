@@ -1,4 +1,4 @@
-extends Node
+extends Check
 
 ## The underground world is shut in by a roof of rock with sky past it, and a Sinkhole drawn at the underside of the roof digs up through it.
 ##
@@ -30,6 +30,8 @@ func _ready() -> void:
 	World.next_seed = seed_value
 	var world: World = load("res://scenes/world.tscn").instantiate()
 	add_child(world)
+	await get_tree().process_frame
+	_put_away_all_but([world.player])  # (nobody else is being checked)
 	for k in 6:
 		await get_tree().process_frame
 	var ground: Terrain = world._ground

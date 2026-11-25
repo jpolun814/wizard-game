@@ -1,4 +1,4 @@
-extends Node
+extends Check
 
 ## A wizard goes into a Sinkhole dug in the castle: dropped over its middle, it sinks to the bottom and stays there, and where the pit was dug through
 ## a floor, it falls on to the floor below. It prints each spot's floor before and after, and where the wizard comes to rest.
@@ -9,7 +9,6 @@ const SPOTS := {
 	"first_floor": [24, 11], "ground_solid": [24, 0], "ground_over_cellar": [50, 0], "cellar": [50, -11],
 	"second_floor": [76, 22],
 }
-var _failures := 0
 
 
 func _ready() -> void:
@@ -22,6 +21,7 @@ func _ready() -> void:
 	await _frames(2)
 	var ground: int = world.graph.rooms[0]["cy"]
 	var player: Wizard = world.player
+	_put_away_all_but([player])
 	player.infinite_time = 600.0
 	player.max_stamina = 9999.0
 	var space := player.get_world_2d()
@@ -54,12 +54,6 @@ func _ready() -> void:
 		player.set_physics_process(false)
 	print("a wizard goes into a castle pit" if _failures == 0 else "%d FAILED" % _failures)
 	get_tree().quit(1 if _failures > 0 else 0)
-
-
-func _verdict(ok: bool, text: String) -> void:
-	print(("ok   " if ok else "FAIL ") + text)
-	if not ok:
-		_failures += 1
 
 
 func _frames(count: int) -> void:

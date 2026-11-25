@@ -1,4 +1,4 @@
-extends Node
+extends Check
 
 ## What falls from the sky goes through the leaves of a jungle's great trees: a Spark's bolt lands on the ground under a tree's ledges, not on them, and a
 ## boulder dropped over them falls to the ground. The ledges still hold a wizard (they are platforms): only the sky spells pass.
@@ -6,7 +6,6 @@ extends Node
 ##     godot --headless --fixed-fps 60 --path . tests/checks/canopy_check.tscn
 ## It prints PASS or FAIL and exits with code 1 if any failed.
 
-var _failures := 0
 
 
 func _ready() -> void:
@@ -18,6 +17,7 @@ func _ready() -> void:
 	add_child(world)
 	await get_tree().process_frame
 	await get_tree().process_frame
+	_put_away_all_but([world.player])  # (nobody else is being checked)
 	var leaves := get_tree().get_nodes_in_group("canopy")
 	_check(not leaves.is_empty(), "the jungle has great trees with ledges (%d)" % leaves.size())
 	if leaves.is_empty():

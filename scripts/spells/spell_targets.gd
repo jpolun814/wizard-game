@@ -11,7 +11,7 @@ static var _fires_tree: SceneTree
 
 
 ## True when a spell can hurt the body: a wizard, or an enemy, still standing.
-static func affects(body: Node) -> bool:
+static func affects(body) -> bool:  # (no type: a body freed a moment ago must reach the check below, and a typed argument refuses it before that, as an error every frame)
 	if not is_instance_valid(body):
 		return false
 	if body.is_in_group("wizards"):
@@ -114,6 +114,13 @@ static func surface_over(world: World2D, point: Vector2) -> Vector2:
 			var below := world.direct_space_state.intersect_ray(down)
 			if not below.is_empty():
 				return below["position"]
+		# No ground below: the point is inside a hill (a world's rock is outlines, which have no inside for the query above to find), whose surface is over it.
+		for reach in [64.0, 800.0]:
+			var up := PhysicsRayQueryParameters2D.create(point + Vector2(0.0, -reach), point)
+			up.collision_mask = 1
+			var above := world.direct_space_state.intersect_ray(up)
+			if not above.is_empty():
+				return above["position"]
 		return Vector2(point.x, ArenaGen.GROUND_Y)
 	# A point inside the ground is over the nearest surface above it (the ground it is in), and only failing that the first one far above (never a platform overhead
 	# when the ground right here is near).

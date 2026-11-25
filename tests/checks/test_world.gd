@@ -108,7 +108,9 @@ func _ready() -> void:
 			if not WorldBuilder.reachable(world["cells"], east, world["size"].y, world["hazards"]).has(west):
 				_fail("seed %d: the castle cannot be walked through from the east" % s)
 		var dealt := Pages.deal(s, 4)
-		var layout := Pages.plan(graph, RandomNumberGenerator.new(), dealt)
+		var dice := RandomNumberGenerator.new()
+		dice.seed = s
+		var layout := Pages.plan(graph, dice, dealt)
 		var page_rooms := {}
 		for entry: Dictionary in layout:
 			page_rooms[entry["room"]] = true

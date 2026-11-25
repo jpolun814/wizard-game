@@ -43,7 +43,11 @@ func by(spell: String, targeting: String, origin: Vector2, aim: float, info: Dic
 	var spell_data: Spell = SpellData.SPELLS[spell]
 	var cost := spell_data.cost_for(info)
 	if not spell_data.pays_max():
-		cost = Leech.cost_after(arena.get_tree(), wizard, cost)  # on a tether, half of it falls on the other end
+		var tether := Leech.held_by(arena.get_tree(), wizard)
+		if tether != null and is_instance_valid(tether.target):  # on a tether, half of it falls on the other end
+			info = info.duplicate()
+			info["leeched"] = String(tether.target.name)  # (said to every machine with the cast: the tether may have snapped on one and not yet on another)
+			cost *= 1.0 - Leech.SHARE
 	var color := spell_data.glow()
 	var paid := wizard.pay_max(cost) if spell_data.pays_max() else wizard.spend(cost)
 	if not paid:
@@ -88,9 +92,9 @@ func _say(text: String, color: Color, at: Vector2, wizard: Wizard, sound: bool, 
 ## A cast goes off on every machine of a network game, sent by the one that drives the wizard: the same spell in the same place, with the same throw of the dice
 ## for whatever it scatters. Each machine then decides what it does to the wizards that machine drives.
 func _everywhere(spell: String, targeting: String, origin: Vector2, aim: float, info: Dictionary, wizard: Wizard) -> void:
-	var luck := randi()
+	var luck := Dice.luck_of(String(wizard.name), wizard.casts_made)
 	Net.send(arena, &"spawn_seen", [spell, targeting, origin, aim, info, String(wizard.name), luck])
-	seed(luck)
+	Dice.cast(luck)
 	arena.spawn_spell(spell, targeting, origin, aim, info, wizard)
 
 
@@ -99,7 +103,7 @@ func seen(spell: String, targeting: String, origin: Vector2, aim: float, info: D
 	var wizard := arena.get_node_or_null(NodePath(wizard_name)) as Wizard
 	if wizard == null or wizard.get_multiplayer_authority() != arena.multiplayer.get_remote_sender_id():
 		return
-	seed(luck)
+	Dice.cast(luck)
 	arena.spawn_spell(spell, targeting, origin, aim, info, wizard)
 
 

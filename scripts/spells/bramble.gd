@@ -34,8 +34,7 @@ func _ready() -> void:
 		while x <= span.end.x:
 			_surface.append(_ground_at(Vector2(x, span.get_center().y)))
 			x += SPACING
-	var rng := RandomNumberGenerator.new()
-	rng.randomize()
+	var rng := Dice.branch()
 	for i in _surface.size():
 		var foot := _surface[i]
 		var sprite := Sprite2D.new()

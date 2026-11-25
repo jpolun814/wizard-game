@@ -5,6 +5,7 @@ extends RigidBody2D
 ## downhill, can be shoved by a Push, and is solid until enough shots have struck it that it crumbles.
 
 const RADIUS := 18.0
+const BUMP_GAP := 0.6  # seconds before the same body can be bumped again
 const LANDING_RADIUS := 36.0
 const SPEED_PER_DAMAGE := 24.0  # a blow takes off one point for each this many pixels a second it was moving: a fall of 260 px lands for about 30
 const MOST_DAMAGE := 100
@@ -22,6 +23,7 @@ var _health := HEALTH
 var _landed := false
 var _speed := 0.0  # how fast it was moving just before it struck, which is how hard it hits
 var _recent: Array[float] = []  # its speed over the last few steps
+var _clock := 0.0  # the game seconds it has been moving (real time goes on while the game is paused)
 var _last_bump := {}  # when each body was last bumped, so one push does not hurt it every frame
 
 
@@ -71,6 +73,7 @@ func _ready() -> void:
 ## How fast it has been moving over the last few steps. A strike is reported after it has happened, when the body has already been stopped, so the speed it struck
 ## with is the fastest of the steps just before.
 func _integrate_forces(state: PhysicsDirectBodyState2D) -> void:
+	_clock += state.step
 	_recent.push_back(state.linear_velocity.length())
 	if _recent.size() > RECENT_STEPS:
 		_recent.pop_front()
@@ -96,10 +99,9 @@ func _integrate_forces(state: PhysicsDirectBodyState2D) -> void:
 ## ground, it hurts whoever is under it in the same proportion: a boulder drawn high lands hard, and one drawn on the ground hardly hurts.
 func _on_contact(body: Node) -> void:
 	if body.is_in_group("mobs") or body.is_in_group("wizards"):
-		var now := Time.get_ticks_msec()
-		if _speed < RUNNING_SLOWEST or now - int(_last_bump.get(body, -10000)) < 600:
+		if _speed < RUNNING_SLOWEST or _clock - float(_last_bump.get(body, -10.0)) < BUMP_GAP:
 			return
-		_last_bump[body] = now
+		_last_bump[body] = _clock
 		if body.is_in_group("wizards") and Elements.shield_turns(self, body):  # a Barrier turns it away
 			return
 		SpellTargets.hurt(body, _blow(), "Earth", false, false, self)

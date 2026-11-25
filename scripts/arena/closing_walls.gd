@@ -82,7 +82,7 @@ func _process(_delta: float) -> void:
 		var flame := PixelFx.sprite("fire_wall", 12.0, true, 2)  # (from the third picture on: the first ones are the spark it starts from)
 		flame.scale = Vector2(FLAME_SCALE, FLAME_SCALE)
 		flame.material = Fx.additive()
-		flame.frame = randi() % 5
+		flame.frame = Dice.looks.randi() % 5
 		flame.z_index = 41
 		add_child(flame)
 		_flames.append(flame)
