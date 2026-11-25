@@ -2,7 +2,7 @@
 (docs/handoff/23_movement_planning.md, section 4).
 
     python -I tools/still_share.py LOG_OR_FOLDER ...            what the logs say
-    python -I tools/still_share.py --play SEED[,SEED] [--times 4] [--seconds 120] [--out FOLDER]
+    python -I tools/still_share.py --play SEED[/BIOME][,SEED...] [--times 4] [--seconds 120] [--out FOLDER]
                                                                 plays those matches' first worlds with AI wizards only, several times each with different dice, and reports
 
 Only AI wizards are counted, while they are alive and in a world (not the waiting room or a duel). Still: less than 6 px in half a second. It says apart how much of that was
@@ -92,9 +92,9 @@ def play(seeds, times, seconds, out):
     while jobs or running:
         while jobs and len(running) < 3:
             seed, k = jobs.pop(0)
-            folder = os.path.join(out, "%d_%d" % (seed, k))
+            folder = os.path.join(out, "%s_%d" % (seed.replace("/", "_"), k))
             os.makedirs(folder, exist_ok=True)
-            running.append(subprocess.Popen([GODOT, "--headless", "--fixed-fps", "60", "--path", ROOT, "tests/tools/ai_arena.tscn", "--", "mode=royale", "seed=%d" % seed, "dice=%d" % k, "seconds=%d" % seconds,
+            running.append(subprocess.Popen([GODOT, "--headless", "--fixed-fps", "60", "--path", ROOT, "tests/tools/ai_arena.tscn", "--", "mode=royale", "seed=" + seed.split("/")[0], "biome=" + (seed.split("/") + [""])[1], "dice=%d" % k, "seconds=%d" % seconds,
                                              "lv=9,9,9,9,9,9,9,9", "players=8", "matchlog=" + folder, "result=" + os.path.join(folder, "result.jsonl")], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL))
         running[0].wait()
         running = [job for job in running if job.poll() is None]
@@ -113,5 +113,5 @@ if __name__ == "__main__":
     for name in options.logs:
         found += sorted(glob.glob(os.path.join(name, "match_*.log"))) if os.path.isdir(name) else [name]
     if options.play:
-        found += play([int(s) for s in options.play.split(",")], options.times, options.seconds, options.out)
+        found += play(options.play.split(","), options.times, options.seconds, options.out)
     report(found)

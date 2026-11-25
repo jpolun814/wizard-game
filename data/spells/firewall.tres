@@ -18,3 +18,5 @@ applies = Array[String](["burning"])
 sounds = {"burn": "firewall__burn", "fire": "firewall__fire"}
 warning = 1
 span = 4
+made_of = Array[String](["fire"])
+parts = Array[Dictionary]([{"where": "place", "needs": "ground", "after": 1.0, "reach": 420.0, "does": [{"do": "touch"}]}])

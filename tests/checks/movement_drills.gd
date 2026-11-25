@@ -103,6 +103,25 @@ func _list() -> void:
 	drills[-1]["thorns"] = Vector2i(20, 23)
 	_add("thorns: eight columns, healthy and with no fire", _ground([]), 6, 38, [], [["go", 1, 16.0]])
 	drills[-1]["thorns"] = Vector2i(18, 26)
+	for held: String in ["Ignite", "Fire Breath", "Firewall", "Spark", "Jolt", "Flaming Sphere", "Rocket Jump", "Push", "Shadow Step", "Updraft"]:
+		_add("thicket: worn, " + held, _ground([]), 8, 42, [held], [])
+		drills[-1]["thorns"] = Vector2i(18, 30)
+		drills[-1]["max"] = 60.0
+	_add("thicket: whole, with nothing (it may wade)", _ground([]), 8, 42, [], [])
+	drills[-1]["thorns"] = Vector2i(18, 24)
+	_add("refuse: thicket, worn, with nothing", _ground([]), 8, 42, [], [])
+	drills[-1]["thorns"] = Vector2i(18, 34)
+	drills[-1]["max"] = 60.0
+	drills[-1]["refuse"] = true
+	for held: String in ["Spark", "Jolt", "Rocket Jump", "Push", "Shadow Step"]:
+		_add("shoal: worn, " + held, _ground([[18, 30, 3.0]]), 8, 42, [held], [])
+		drills[-1]["shoal"] = Vector2i(18, 29)
+		drills[-1]["max"] = 60.0
+	for held: String in ["", "Ignite"]:  # (fire does nothing to fish)
+		_add("refuse: shoal, worn, " + (held if held != "" else "with nothing"), _ground([[18, 30, 3.0]]), 8, 42, [held] if held != "" else [], [])
+		drills[-1]["shoal"] = Vector2i(18, 29)
+		drills[-1]["max"] = 60.0
+		drills[-1]["refuse"] = true
 	_add("refuse: a gap and nothing to cross it with", gap, 6, 40, [], [])
 	drills[-1]["refuse"] = true
 	_add("refuse: a ledge, and too worn for a Rocket Jump", ledge, 8, 40, ["Rocket Jump"], [])
@@ -175,6 +194,8 @@ func _enter(drill: Dictionary, scripted: bool) -> void:
 			x += Bramble.SPACING
 		thorns.planted_ground = points
 		_room.add_child(thorns)
+	if drill.has("shoal"):
+		_pond_of_fish(drill["shoal"])
 	var pickup := PagePickup.new()
 	pickup.page = "Glowcap"
 	pickup.position = _goal(drill)
@@ -185,8 +206,27 @@ func _enter(drill: Dictionary, scripted: bool) -> void:
 	else:
 		wizard.nav = _room.call("plain_map")
 	wizard.brain = ScriptedBrain.new(wizard) if scripted else WizardBrain.new(wizard)
+	if wizard.brain == null or wizard.brain.go == null:
+		printerr("no brain: the scripts do not load, so no drill means anything")
+		get_tree().quit(1)
+		OS.crash("no brain")
 	wizard.brain.go.told = _trace
 	await _frames(20)
+
+
+func _pond_of_fish(span: Vector2i) -> void:
+	var t := float(ArenaGen.TILE)
+	var pond := Pond.new()
+	pond.width = (span.y - span.x + 1) * t
+	pond.depth = 3.0 * t + 16.0
+	pond.position = Vector2((ArenaGen.FIRST_COL + span.x) * t, ArenaGen.GROUND_Y)
+	pond.ground = _room._ground
+	_room.add_child(pond)
+	var shoal := Piranhas.new()
+	shoal.water = Rect2(pond.position, Vector2(pond.width, pond.depth))
+	shoal.pond = pond
+	shoal.count = 4
+	_room.add_child(shoal)
 
 
 func _leave() -> void:

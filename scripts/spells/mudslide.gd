@@ -168,3 +168,16 @@ func _draw() -> void:
 	for i in SAMPLES:
 		shade.append(Color(0.35, 0.3, 0.25, fade) if sink > SINK_DEPTH else Color(1, 1, 1, fade))
 	draw_polygon(edge, shade, all_uvs, SAND)
+
+
+## What going through it does (see Perils).
+func peril_at(point: Vector2) -> Dictionary:
+	return {"harm": 0.0, "pace": BodyStates.pace("mired"), "jump": BodyStates.jumps("mired")} if danger_at(point) else {}
+
+
+func peril_box() -> Rect2:
+	return Rect2(global_position - Vector2(160.0, 60.0), Vector2(320.0, 120.0))
+
+
+func undone_by() -> Array:
+	return []

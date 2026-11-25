@@ -17,3 +17,4 @@ size_max = 1.4
 applies = Array[String](["wet"])
 removes = Array[String](["burning"])
 sounds = {"jet": "water_jet__jet"}
+made_of = Array[String](["water"])

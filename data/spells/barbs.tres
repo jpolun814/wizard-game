@@ -17,3 +17,4 @@ speed = 560
 pellets = 5
 spread = 0.5
 reach = 450
+made_of = Array[String](["plant", "shot"])

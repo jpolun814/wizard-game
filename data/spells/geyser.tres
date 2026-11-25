@@ -15,3 +15,4 @@ applies = Array[String](["wet"])
 removes = Array[String](["burning"])
 sounds = {"geyser": "geyser__geyser", "ice": "geyser__ice", "whoosh": "geyser__whoosh", "wind": "geyser__wind"}
 parts = Array[Dictionary]([{"where": "place", "needs": "ground", "wide": 46.0, "high": 190.0, "after": 0.7, "for": 1.0, "again": 3.0, "does": [{"do": "throw", "way": "up", "speed": 1000.0, "creatures": 820.0, "every": 0.35}]}])
+made_of = Array[String](["water"])

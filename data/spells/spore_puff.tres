@@ -20,3 +20,4 @@ sounds = {"wind": "spore_puff__wind"}
 speed = 260
 span = 2
 reach = 230
+made_of = Array[String](["cloud"])

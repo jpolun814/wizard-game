@@ -13,3 +13,4 @@ effect = "Icicles grow down from the ceiling."
 damage = "12 dmg/sec"
 size_from = 8
 sounds = {"shatter": "icicles__shatter"}
+made_of = Array[String](["ice"])

@@ -46,6 +46,8 @@ func test_every_drill_with_a_way_is_found_and_the_others_refused() -> void:
 	var wrong := PackedStringArray()
 	var slowest := 0
 	for drill: Dictionary in list.drills:
+		if (drill.has("thorns") or drill.has("shoal")) and drill.get("refuse", false):
+			continue  # (there are no thorns or fish in these rooms, which are no more than tiles)
 		var map := _map(drill["plan"], drill["slabs"])
 		var spells: Array[Spell] = []
 		for spell_name: String in drill["spells"]:
@@ -112,3 +114,55 @@ func test_a_price_on_the_ground_is_paid_or_gone_round() -> void:
 	var step := MovePlan.new(map, _floor(map, 6), _floor(map, 40), {"spells": [SpellData.SPELLS["Shadow Step"]], "price": func(tile: Vector2i) -> float: return 30.0 if tile.x >= 22 and tile.x < 26 else 0.0})
 	step.work()
 	assert_bool(step.found).is_true()
+
+
+## Something in the way that harms whoever walks through it, in a stretch of columns.
+class Peril extends Node:
+	var box := Rect2()
+	var harm := 25.0
+	var slow := 0.5
+	var ends: Array = []
+	var jump := false
+
+	func peril_at(point: Vector2) -> Dictionary:
+		return {"harm": harm, "pace": slow, "jump": jump} if box.has_point(point) else {}
+
+	func peril_box() -> Rect2:
+		return box
+
+	func undone_by() -> Array:
+		return ends
+
+
+## What it does about a stretch of harm this wide, holding these: "walks", or the spells it casts, or "no way".
+func _about(width: int, ends: Array, held: Array, most := 200.0) -> String:
+	var level := PackedFloat32Array()
+	level.resize(60)
+	var map := _map(level, [])
+	var peril := Peril.new()
+	peril.ends = ends
+	peril.box = Rect2(20 * 32.0, BASE * 32.0 - 34.0, width * 32.0, 40.0)
+	var spells: Array[Spell] = []
+	for spell_name: String in held:
+		spells.append(SpellData.SPELLS[spell_name])
+	var plan := MovePlan.new(map, _floor(map, 14), _floor(map, 20 + width + 4), {"spells": spells, "most": most, "stamina": most, "perils": [peril]})
+	plan.work()
+	var out := _say(plan) if plan.found else "no way"
+	peril.free()
+	return "walks" if out == "" else out
+
+
+func test_what_harms_is_jumped_waded_gone_over_or_put_an_end_to() -> void:
+	print("PERIL narrow, nothing held: ", _about(4, [], []))
+	for width: int in [12, 16]:
+		for held: Array in [[], ["Rocket Jump"], ["Push"], ["Geyser"], ["Shadow Step"], ["Updraft"], ["Tornado"], ["Ignite"], ["Fire Breath"], ["Firewall"], ["Spark"], ["Jolt"], ["Flaming Sphere"], ["Frostbolt"]]:
+			print("PERIL %2d wide, plants, %-18s whole: %-28s worn: %s" % [width, held, _about(width, Perils.PLANT, held), _about(width, Perils.PLANT, held, 45.0)])
+	assert_str(_about(4, [], [])).is_equal("walks")   # (a jump is a move on foot)
+	assert_str(_about(16, Perils.PLANT, ["Ignite"])).contains("Ignite")
+	assert_str(_about(16, Perils.LIVES_IN_WATER, ["Ignite"])).not_contains("Ignite")   # fire does nothing to fish
+	assert_str(_about(16, Perils.LIVES_IN_WATER, ["Spark"])).contains("Spark")
+	assert_str(_about(16, Perils.LIVES_IN_WATER, ["Jolt"])).contains("Jolt")
+	for held: String in ["Rocket Jump", "Push", "Tornado", "Updraft", "Shadow Step"]:  # (a Geyser throws straight up, and a thrown body steers too weakly to clear so much)
+		assert_str(_about(16, [], [held])).override_failure_message("%s would carry it over, and it did not think of that: %s" % [held, _about(16, [], [held])]).contains(held)
+	assert_str(_about(16, [], [], 45.0)).override_failure_message("worn to 45, it would wade through what would kill it").is_equal("no way")
+

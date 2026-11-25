@@ -43,8 +43,7 @@ func _begin(origin: Vector2, _aim_angle: float) -> void:
 	add_to_group("fires")  # lightning sets plants alight
 	add_to_group("lightning")  # and strikes a wet body harder (see SpellTargets.hurt)
 	_shock_pond(ground)
-	for shoal: Piranhas in get_tree().get_nodes_in_group("shoals"):
-		shoal.shock(ground - Vector2(0, 20))  # lightning in the water kills the fish
+	Elements.lightning(get_tree(), ground - Vector2(0, 20), ground - Vector2(0, 20))
 	GameCamera.shake_scene(get_tree(), 0.25)
 	ScreenFlash.strike(get_tree(), ground)
 

@@ -60,15 +60,25 @@ func ahead(moves: int) -> Vector2i:
 
 
 ## The last tile of the way, or NONE when there is none.
-## Whether the way goes over this place in a leap, and not on foot (what lies on the ground there is nothing to it).
-func leaps_over(x: float) -> bool:
+## The leap it was about to make is not made after all.
+func hold_leap() -> void:
+	_jumped = false
+
+
+## Where the leap it is at goes to.
+func leap_to() -> Vector2i:
+	return _path[_next] if _next < _path.size() else WorldNav.NONE
+
+
+## Where the leap comes down that takes the way over this place, or WorldNav.NONE where it is gone over on foot (what lies on the ground under a leap is nothing to it).
+func leap_over(x: float) -> Vector2i:
 	var column := floori(x / TILE)
 	for k in range(maxi(_next, 1), mini(_next + 8, _path.size())):
 		var from := _path[k - 1]
 		var to := _path[k]
 		if absi(to.x - from.x) >= 2 and to.y - from.y < absi(to.x - from.x) and column > mini(from.x, to.x) and column < maxi(from.x, to.x):
-			return true
-	return false
+			return to
+	return WorldNav.NONE
 
 
 func last() -> Vector2i:

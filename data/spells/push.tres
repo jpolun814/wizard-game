@@ -16,3 +16,4 @@ effect_path = "res://scripts/spells/push_zone.gd"
 effect = "Push away everything inside the circle."
 sounds = {"whoosh": "push__whoosh"}
 parts = Array[Dictionary]([{"where": "place", "shape": "circle", "after": 0.05, "does": [{"do": "throw", "way": "stroke", "speed": 1120.0}, {"do": "turn", "way": "stroke"}]}])
+made_of = Array[String](["wind"])

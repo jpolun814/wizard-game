@@ -12,3 +12,4 @@ effect = "Drop a boulder from above."
 damage = "33 dmg"
 sounds = {"rocks": "stonefall__rocks", "rumble": "stonefall__rumble"}
 warning = 0.6
+made_of = Array[String](["rock", "shot"])

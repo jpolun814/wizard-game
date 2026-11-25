@@ -15,3 +15,4 @@ effect_path = "res://scripts/spells/ice_spear.gd"
 applies = Array[String](["slowed"])
 sounds = {"cast": "frostbolt__cast", "shatter": "frostbolt__shatter", "turned": "frostbolt__turned"}
 speed = 600
+made_of = Array[String](["ice", "shot"])

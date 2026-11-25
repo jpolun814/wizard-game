@@ -15,3 +15,5 @@ applies = Array[String](["burning"])
 sounds = {"fire": "flaming_sphere__fire"}
 speed = 170
 span = 5
+made_of = Array[String](["fire", "shot"])
+parts = Array[Dictionary]([{"where": "shot", "needs": "ground", "reach": 1200.0, "does": [{"do": "touch"}]}])

@@ -486,7 +486,7 @@ func _react(delta: float, fighting: bool, to_player: Vector2) -> void:
 		elif not shot.is_empty() and combat.defend_cooldown <= 0.0:
 			combat.threat_dir = shot["dir"]
 			_plan(combat.choose_defence(shot["eta"], shot["speed"]), _reaction_time())
-		elif (travel.dash <= 0.0 and danger.scorched()) or danger.bitten() or (_push_through <= 0.0 and (danger.in_danger(wizard.global_position + Vector2(0, -6)) or danger.in_danger(wizard.center()))):
+		elif not go.braving and not travel.getting_out() and ((travel.dash <= 0.0 and danger.scorched()) or danger.bitten()) or (not go.braving and not travel.getting_out() and _push_through <= 0.0 and (danger.in_danger(wizard.global_position + Vector2(0, -6)) or danger.in_danger(wizard.center()))):
 			_plan("escape", _reaction_time() * 0.6)
 			settle = 0.0  # nobody stands in the fire to finish a chant
 			chant.typing = ""

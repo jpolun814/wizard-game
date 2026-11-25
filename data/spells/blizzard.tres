@@ -19,3 +19,4 @@ size_min = 0.5
 size_max = 4.0
 applies = Array[String](["frozen", "slowed"])
 sounds = {"wind": "blizzard__wind"}
+made_of = Array[String](["cloud", "water"])

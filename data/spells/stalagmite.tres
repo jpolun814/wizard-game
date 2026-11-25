@@ -14,3 +14,4 @@ damage = "12 dmg/sec"
 sounds = {"rocks": "stalagmite__rocks"}
 warning = 0.3
 span = 2
+made_of = Array[String](["rock"])

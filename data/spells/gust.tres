@@ -13,3 +13,4 @@ effect = "Blow a gust of wind."
 effect_path = "res://scripts/spells/gust.gd"
 sounds = {"whoosh": "gust__whoosh"}
 parts = Array[Dictionary]([{"where": "place", "shape": "along", "long": 340.0, "wide": 130.0, "for": 0.7, "does": [{"do": "throw", "way": "level", "speed": 434.0, "creatures": 217.0, "things": 248.0}, {"do": "turn", "way": "stroke"}]}])
+made_of = Array[String](["wind"])

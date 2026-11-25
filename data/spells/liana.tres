@@ -12,3 +12,4 @@ cost = 18.0
 effect = "Grow a vine you can climb."
 sounds = {"fire": "liana__fire", "rustle": "liana__rustle"}
 parts = Array[Dictionary]([{"where": "place", "needs": "ground", "does": [{"do": "climb", "least": 90.0, "most": 420.0, "grab": 18.0}]}])
+made_of = Array[String](["plant"])

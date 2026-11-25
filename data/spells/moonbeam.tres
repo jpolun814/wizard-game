@@ -10,3 +10,4 @@ gesture = "wall"
 cost = 16.0
 effect = "Call down a moonbeam that lights up the ground."
 sounds = {"dark_whoosh": "moonbeam__dark_whoosh"}
+made_of = Array[String](["light"])

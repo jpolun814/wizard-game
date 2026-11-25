@@ -19,3 +19,5 @@ sounds = {"breath": "fire_breath__breath"}
 speed = 430
 span = 1.1
 reach = 230
+made_of = Array[String](["fire"])
+parts = Array[Dictionary]([{"where": "spray", "reach": 200.0, "does": [{"do": "touch"}]}])

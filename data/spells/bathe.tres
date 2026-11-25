@@ -12,3 +12,4 @@ effect = "Wash yourself clean in a shower of water."
 applies = Array[String](["wet"])
 removes = Array[String](["burning", "oiled", "slowed", "hexed", "bleeding", "dazed", "pursued"])
 sounds = {"shower": "bathe__shower"}
+made_of = Array[String](["water"])

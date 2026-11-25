@@ -20,3 +20,4 @@ size_min = 0.6
 size_max = 2.0
 applies = Array[String](["slowed"])
 sounds = {"fire": "bramble__fire", "rustle": "bramble__rustle"}
+made_of = Array[String](["plant"])

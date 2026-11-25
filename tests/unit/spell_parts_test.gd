@@ -7,7 +7,7 @@ const WAYS := ["up", "level", "stroke", "back"]
 ## Each effect, and the numbers it cannot do without.
 const DOES := {
 	"carry": ["most"], "drive": ["speed", "for", "way"], "lift": ["pull", "speed", "wide", "high"], "throw": ["speed", "way"], "turn": ["way"], "climb": ["least", "most", "grab"],
-	"floor": [], "slick": [], "solid": ["least", "most", "thick"], "pit": ["half_least", "half_most", "deep_least", "deep_most"], "state": ["state"], "body": ["pace", "jump"],
+	"floor": [], "slick": [], "touch": ["reach"], "solid": ["least", "most", "thick"], "pit": ["half_least", "half_most", "deep_least", "deep_most"], "state": ["state"], "body": ["pace", "jump"],
 }
 
 
@@ -49,6 +49,19 @@ func test_an_upright_flick_is_moonbeams_and_a_slanted_one_is_not() -> void:
 	assert_str(up.call(0.0)).is_equal("flick")
 	var pyromancy: Dictionary = SpellData.bindings()[SpellData.SPELLS["Ignite"].buttons]
 	assert_str(StrokeReader.straight_means(pyromancy, Vector2.UP, Vector2.ZERO, Vector2.ZERO)).is_equal("flick")
+
+
+func test_what_a_spell_is_made_of_is_a_stuff_we_know() -> void:
+	var stuffs := ["fire", "water", "ice", "wind", "lightning", "cloud", "plant", "rock", "shot", "light", "oil"]
+	var said := 0
+	for spell: Spell in SpellData.SPELLS.values():
+		for stuff in spell.made_of:
+			said += 1
+			assert_bool(stuff in stuffs).override_failure_message(_why(spell, "made of an unknown stuff: " + stuff)).is_true()
+	assert_int(said).is_greater(30)
+	for kind: Array in [Perils.PLANT, Perils.LIVES_IN_WATER, Perils.GAS]:
+		for stuff: String in kind:
+			assert_bool(stuff in stuffs).is_true()
 
 
 func test_an_effect_comes_with_where_and_when_its_part_acts() -> void:

@@ -17,11 +17,18 @@ const CAST_WAIT := 2.5         # seconds it waits for its spell to go off before
 const LEG_LONGEST := 14.0
 const AIR_TRIES := 0.35        # seconds it goes on trying to begin a stroke in the air
 const FORGET := 12.0           # seconds it remembers that it found no way somewhere
+const WORTH := {"page": 0.3, "foe": 0.2, "explore": 0.16}  # the share of all it has it would lose to get there, by what it goes for
+const WORTH_ELSE := 0.2
+const HELD_LONG := 8.0        # seconds held up by harm on its way, and how much more it would lose by then to be past it
+const HELD_WORTH := 0.2
+const MORE_THAN_RECKONED := 1.5
+const HARM_SLACK := 12.0
 const MISSES := 3              # times it thinks again before it gives the place up
 
 var brain: WizardBrain
 var wizard: Wizard
 var goal := WorldNav.NONE
+var braving := false           # it goes through something that harms it, and has reckoned the price
 var fails := 0
 var last_miss := ""            # why it last thought again, for the logs
 var told := false              # it says what it does, for a person looking into it
@@ -41,6 +48,7 @@ var _left := false             # it has left the ground in this leg
 var _from_y := 0.0
 var _climbed := false
 var _hops := 0
+var _bears := 0.0              # below this much maximum stamina it gives up what it is braving
 
 
 func _init(owner: WizardBrain, body: Wizard) -> void:
@@ -82,7 +90,7 @@ func ask_before(to: Vector2i) -> bool:
 func _begin_thought(from: Vector2i, to: Vector2i) -> void:
 	_plan_to = to
 	_plan_from = from
-	_plan = MovePlan.new(wizard.nav.ground(), from, to, kit())
+	_plan = MovePlan.new(wizard.nav.ground(), from, toward(to, from), kit())
 
 
 ## A frame's thinking, and the forgetting.
@@ -102,9 +110,36 @@ func kit() -> Dictionary:
 		if not spell.parts.is_empty() and wizard.ledger.knows_spell(spell.spell_name):
 			spells.append(spell)
 	var out := {"spells": spells, "stamina": wizard.stamina, "most": wizard.max_stamina, "draw": draw_time, "keep": brain.reserve() if brain.opponent != null else 0.0}
+	out["perils"] = Perils.all(wizard.get_tree()).filter(func(node: Node) -> bool: return knows(wizard.center().clamp(node.peril_box().position, node.peril_box().end)) and not (wizard.lava_proof() and _is_heat(node)))
+	out["worth"] = WORTH.get(brain.goal, WORTH_ELSE) + clampf(brain.travel.balked / HELD_LONG, 0.0, 1.0) * HELD_WORTH
 	if brain.explore.sight_is_limited():
 		out["knows"] = func(tile: Vector2i) -> bool: return brain.explore.explored.has(brain.explore.square_of(MoveMap.feet(tile)))
 	return out
+
+
+## Heat harms no one whom black glass covers.
+func _is_heat(node: Node) -> bool:
+	return node is Pond and node.molten()
+
+
+## Whether it has seen the place (in a room all of it is in view).
+func knows(point: Vector2) -> bool:
+	return not brain.explore.sight_is_limited() or brain.explore.explored.has(brain.explore.square_of(point))
+
+
+## The place to stand nearest one it has not seen that it has: as far as it knows of, on the straight line there.
+func toward(to: Vector2i, from: Vector2i) -> Vector2i:
+	if knows(MoveMap.feet(to)):
+		return to
+	var ground := wizard.nav.ground()
+	var steps := maxi(absi(to.x - from.x), absi(to.y - from.y))
+	for k in range(steps, 0, -1):
+		var at := Vector2i(Vector2(from).lerp(Vector2(to), float(k) / steps).round())
+		for dy in [0, 1, -1, 2, -2, 3, -3, 5, -5, 7, -7]:
+			var there := at + Vector2i(0, dy)
+			if ground.can_stand(there) and knows(MoveMap.feet(there)):
+				return there
+	return to
 
 
 func draw_time(spell: Spell) -> float:
@@ -173,6 +208,8 @@ func stop() -> void:
 	_legs.clear()
 	_at = 0
 	_stage = ""
+	braving = false
+	brain.travel.out_is(0.0)
 	wizard.pad.climb = false
 	wizard.pad.let_go = false
 
@@ -213,12 +250,19 @@ func _begin_leg(leg: MovePlan.Leg) -> void:
 	_left = false
 	_climbed = false
 	_hops = 0
-	if leg.kind != "fly":
+	if leg.kind == "undo":
+		_stage = "settle"
+	elif leg.kind != "fly":
+		braving = false
+		var reckoned := 0.0
 		var tiles: Array[Vector2i] = [_from]
 		var k := _at
-		while k < _legs.size() and _legs[k].kind != "fly":
+		while k < _legs.size() and _legs[k].kind in ["walk", "jump"]:
 			tiles.append(_legs[k].to)
+			braving = braving or _legs[k].hurt > 0.0
+			reckoned += _legs[k].hurt
 			k += 1
+		_bears = wizard.max_stamina - reckoned * MORE_THAN_RECKONED - HARM_SLACK
 		brain.route.set_path(tiles)
 		_stage = "walk"
 	elif _at > 0 and _legs[_at - 1].hangs:
@@ -230,11 +274,18 @@ func _begin_leg(leg: MovePlan.Leg) -> void:
 
 
 func _walk(delta: float) -> float:
+	if braving and wizard.max_stamina < _bears:  # it hurts more than it reckoned: it gives it up, and does not think of it again for a while
+		_no_way[goal] = FORGET
+		brain.goal = ""
+		brain.goal_timer = 0.0
+		stop()
+		return 0.0
 	var steer := brain.route.steer(wizard, delta)
 	if steer["replan"] or _waited > LEG_LONGEST * 4.0:
 		return _miss("walk: " + brain.route.status())
 	if brain.route.done():
-		while active() and _legs[_at].kind != "fly":
+		braving = false
+		while active() and _legs[_at].kind in ["walk", "jump"]:
 			_from = _legs[_at].to
 			_at += 1
 		_stage = ""
@@ -277,7 +328,7 @@ func _settle(leg: MovePlan.Leg, delta: float) -> float:
 		return 0.0
 	_from_y = wizard.global_position.y
 	if _leaps(leg):  # it goes with a leap, and casts in the air if at all
-		if wizard.stamina < Wizard.JUMP_COST:
+		if wizard.stamina < Wizard.JUMP_COST or wizard.tangle_time > 0.0 or wizard.sink_time > 0.0:
 			_waited = 0.0
 			return 0.0
 		wizard.request_jump()
@@ -315,6 +366,8 @@ func _draw(cast: Dictionary) -> bool:
 ## The stroke of a spell, from its picture and how it is aimed.
 func stroke_of(cast: Dictionary) -> PackedVector2Array:
 	var spell: Spell = cast["spell"]
+	if _legs[_at].kind == "undo":
+		return stroke_at(spell, _legs[_at].point)
 	var middle := wizard.center()
 	var feet := wizard.global_position
 	match spell.gesture:
@@ -331,7 +384,41 @@ func stroke_of(cast: Dictionary) -> PackedVector2Array:
 	return BrainStrokes.offset(GestureTemplates.preview_points(spell.gesture), middle, 0.6)
 
 
+## The stroke of a spell that is to reach a point: along a line to it, out of the mouth toward it, or drawn over it, as the spell is aimed.
+func stroke_at(spell: Spell, point: Vector2) -> PackedVector2Array:
+	var middle := wizard.center()
+	var way := (point - middle).normalized()
+	match spell.targeting:
+		"cone":
+			return brain.hand.breath_stroke(point)
+		"angled":
+			return brain.hand.push_stroke(point, Vector2(signf(way.x), 0.0))
+		"pointed":
+			var shape := GestureTemplates.preview_points(spell.gesture)
+			return BrainStrokes.offset(brain.hand.turned(shape, way.angle() - (shape[shape.size() - 1] - shape[0]).angle()), middle, 0.9)
+		"directional":
+			if spell.gesture == "flick":
+				return BrainStrokes.line(middle, middle + way * 90.0)
+			var shape := GestureTemplates.preview_points(spell.gesture)
+			if way.x < 0.0:
+				for k in shape.size():
+					shape[k].x = -shape[k].x
+			return BrainStrokes.offset(shape, middle, 0.8)
+	return BrainStrokes.offset(GestureTemplates.preview_points(spell.gesture), point + Vector2(0.0, -70.0), 0.9)
+
+
+## It has cast at what is in the way, and waits to see it go.
+func _see_it_end(leg: MovePlan.Leg) -> float:
+	if not is_instance_valid(leg.undoes) or leg.undoes.is_queued_for_deletion() or leg.undoes.peril_at(leg.point).is_empty():
+		return _done(leg)
+	if _waited > CAST_WAIT + MovePlan.UNDO_WAIT:
+		return _miss("it did not end")
+	return 0.0
+
+
 func _wait_for_cast(leg: MovePlan.Leg) -> float:
+	if wizard.casts_made > _made and leg.kind == "undo":
+		return _see_it_end(leg)
 	if wizard.casts_made > _made:
 		_casts = 1
 		_tell("cast")
@@ -343,7 +430,7 @@ func _wait_for_cast(leg: MovePlan.Leg) -> float:
 		if leg.holds.is_empty() and not _moves(leg):
 			return _done(leg)  # it has put something on itself: that is the leg
 		return 0.0
-	if not wizard.pen.active() and _waited > 0.3 or _waited > CAST_WAIT:
+	if wizard.casts_made == _made and (not wizard.pen.active() and _waited > 0.3 or _waited > CAST_WAIT):
 		return _miss("the stroke did not go off")
 	return 0.0
 
@@ -465,7 +552,7 @@ func _miss(why: String) -> float:
 	last_miss = why
 	if told:
 		print("      miss: %s" % why)
-	MatchRecorder.event("MISS %d %s" % [wizard.get_instance_id(), why.replace(" ", "_")])
+	MatchRecorder.event("ASTRAY %d %s" % [wizard.get_instance_id(), why.replace(" ", "_")])
 	stop()
 	fails += 1
 	if fails >= MISSES:

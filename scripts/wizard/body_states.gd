@@ -24,6 +24,11 @@ static func pace(state: String) -> float:
 	return TABLE[state].get("pace", 1.0)
 
 
+## Whether a body in this state can jump.
+static func jumps(state: String) -> bool:
+	return TABLE[state].get("jump", true)
+
+
 ## The fastest a body in this state falls (as fast as it likes, when the state says nothing of it).
 static func fall(state: String) -> float:
 	return TABLE[state].get("fall", INF)

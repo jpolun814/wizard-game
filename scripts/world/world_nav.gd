@@ -172,7 +172,8 @@ func nearest(tile: Vector2i, standing := false) -> Vector2i:
 
 ## The tiles to go through, from one tile to another, the first being where it starts; empty when there is no way. `shut` lists the
 ## crossings (by key) that the one asking cannot pass: the way does not go over them, and nearest() never lands on one.
-func path(from: Vector2i, to: Vector2i, shut := []) -> Array[Vector2i]:
+## `without` are tiles it does not go through this once.
+func path(from: Vector2i, to: Vector2i, shut := [], without := []) -> Array[Vector2i]:
 	var out: Array[Vector2i] = []
 	from -= origin
 	to -= origin
@@ -181,8 +182,14 @@ func path(from: Vector2i, to: Vector2i, shut := []) -> Array[Vector2i]:
 	for key: String in _tolls:
 		for id in _tolls[key]:
 			_astar.set_point_disabled(id, shut.has(key))
+	for tile: Vector2i in without:
+		if _astar.has_point(_id(tile - origin)) and tile - origin != to and tile - origin != from:
+			_astar.set_point_disabled(_id(tile - origin), true)
 	for id in _astar.get_id_path(_id(from), _id(to)):
 		out.append(_tile(id) + origin)
+	for tile: Vector2i in without:
+		if _astar.has_point(_id(tile - origin)):
+			_astar.set_point_disabled(_id(tile - origin), false)
 	for key: String in _tolls:
 		for id in _tolls[key]:
 			_astar.set_point_disabled(id, true)

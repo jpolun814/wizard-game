@@ -37,6 +37,7 @@ enum Size { NONE, RADIUS, REACH, LINE_WIDTH, LINE_SPAN, LENGTH, STEP_LENGTH, ARE
 ## What it does, in the terms of docs/handoff/24_spell_terms.md: each part says where it acts, when (`after`, `for`, `every`, `again`, in seconds), and what it `does`, a list of effects
 ## each with its `do` (the term) and its numbers. The game runs on these and the AI reads them; a figure here is kept nowhere else. (So far: how a spell moves a body.)
 @export var parts: Array[Dictionary] = []
+@export var made_of: Array[String] = []  ## fire, water, ice, wind, lightning, cloud, plant, rock, shot, light, oil: how the world's laws treat it, and what it can undo (Perils)
 @export var sounds := {}  ## the sounds this spell makes, by event (cast, hit...): each a file of its own, owned by this spell alone (see Sfx.cue)
 @export var color := Color(0, 0, 0, 0)  ## the glow of a spell that is not its school's color; transparent means the school's
 @export var size_from := Size.NONE

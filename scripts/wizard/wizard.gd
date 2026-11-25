@@ -218,6 +218,11 @@ var _step := 0.0
 var casting := false      # true while the caster has a stroke in progress (set by the arena)
 var _dice: RandomNumberGenerator  # see dice()
 var _dice_of := -1
+const WEDGED_SPEED := 700.0  # falling this fast and going nowhere, this long, a body is caught in rock
+const WEDGED_FOR := 0.6
+var _wedged := 0.0
+var _firm := Vector2.INF   # where it last stood firmly
+var _firm_for := 0.0
 var casts_made := 0       # the spells this wizard has cast, for the tests that watch a match
 var drawn := false  # the portal of a collapsing world is carrying the wizard up: they cast and fight, but cannot walk or fall
 var _art := "wizard"  # the folder of frames it wears now
@@ -1032,7 +1037,9 @@ func _move_on(delta: float) -> void:
 	if drawn:
 		velocity = Vector2.ZERO
 	var fell_at := velocity.y if not is_on_floor() else 0.0  # how fast they were falling as they reached the ground, if they did
+	var was_at := global_position
 	move_and_slide()
+	_get_out_of_rock(delta, was_at)
 	if is_on_floor() and fell_at > LAND_SPEED and not flying and swim_time <= 0.0 and surf_time <= 0.0:
 		Sfx.cue("wizard", "land_mud" if sink_time > 0.0 else _ground_sound("land"), global_position, minf((fell_at - LAND_SPEED) / 400.0, 1.0) * 4.0)
 	if is_on_wall():
@@ -1053,6 +1060,23 @@ func _move_on(delta: float) -> void:
 		if _step <= 0.0:
 			_step = STEP_EVERY
 			Sfx.cue("wizard", "step_mud" if sink_time > 0.0 else _ground_sound("step"), global_position)  # in mud, a squelch
+
+
+## Squeezed into rock (by a stair swinging shut, say), a body falls and falls and goes nowhere: it is put back where it last stood firmly.
+func _get_out_of_rock(delta: float, was_at: Vector2) -> void:
+	if is_on_floor():
+		_wedged = 0.0
+		_firm_for += delta
+		if _firm_for > 0.3:
+			_firm = global_position
+		return
+	_firm_for = 0.0
+	_wedged = _wedged + delta if velocity.y > WEDGED_SPEED and not flying and not drawn and global_position.distance_squared_to(was_at) < 4.0 else 0.0
+	if _wedged > WEDGED_FOR and _firm != Vector2.INF and not is_likeness():
+		_wedged = 0.0
+		global_position = _firm
+		velocity = Vector2.ZERO
+		reset_physics_interpolation()
 
 
 ## The name of the sound a wizard makes on the ground under them: kind is "step" or "land".

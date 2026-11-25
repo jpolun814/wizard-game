@@ -10,6 +10,7 @@ const WIDTH := 18.0
 const HASTE_SECONDS := 1.5
 const COLOR := Color("#ffe85a")
 
+var _tip := Vector2.ZERO
 var caster: Wizard
 var aim := 0.0
 
@@ -17,6 +18,11 @@ var aim := 0.0
 ## This spell is one cast, and so one source of harm: it cannot hit the same wizard again for a moment, and another spell can (see Wizard.take_damage).
 func hit_source() -> Object:
 	return self
+
+
+## Where the bolt struck, as fire (SpellTargets.fire_points): the moment of it, as for any lightning.
+func fire_profile() -> Array:
+	return [{"at": _tip, "heat": 3.0, "size": 14.0, "shot": true}]
 
 
 func _ready() -> void:
@@ -37,6 +43,9 @@ func _ready() -> void:
 			target = body
 	var tip := from + way * along
 	_show_bolt(from, tip)
+	Elements.lightning(get_tree(), from, tip)
+	_tip = tip
+	add_to_group("fires")  # lightning sets plants alight
 	if target != null:
 		SpellTargets.hurt(target, HARM, "Fire", false, false, self)
 		if is_instance_valid(target) and target is Wizard and not target.dead:

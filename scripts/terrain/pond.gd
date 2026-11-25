@@ -804,3 +804,16 @@ func fire_profile() -> Array:
 	for point in heat_points():
 		fires.append({"at": point, "heat": 1.0, "size": LiquidGrid.CELL if grid != null else width * 0.5, "shot": false})
 	return fires
+
+
+## What going through it does (see Perils): lava burns; water only slows.
+func peril_at(point: Vector2) -> Dictionary:
+	return {"harm": LAVA_DAMAGE / TICK, "pace": BodyStates.pace("slowed"), "kind": "heat", "after": Substances.BURN_SECONDS / Substances.BURN_GAP * Substances.BURN_DAMAGE} if molten() and danger_at(point) else {}
+
+
+func peril_box() -> Rect2:
+	return region()
+
+
+func undone_by() -> Array:
+	return []

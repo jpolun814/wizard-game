@@ -13,3 +13,5 @@ damage = "14 dmg"
 applies = Array[String](["hasted"])
 sounds = {"zap": "jolt__zap"}
 reach = 520
+made_of = Array[String](["lightning"])
+parts = Array[Dictionary]([{"where": "ray", "reach": 520.0, "does": [{"do": "touch"}]}])

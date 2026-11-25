@@ -10,3 +10,4 @@ gesture = "pentagram"
 cost = 14.0
 effect = "Conjure colorful lights that dance around you."
 sounds = {"twinkle": "dancing_lights__twinkle"}
+made_of = Array[String](["light"])

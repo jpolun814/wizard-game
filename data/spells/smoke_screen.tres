@@ -14,3 +14,4 @@ size_unit = 120.0
 size_min = 0.6
 size_max = 2.0
 sounds = {"fire": "smoke_screen__fire"}
+made_of = Array[String](["cloud"])

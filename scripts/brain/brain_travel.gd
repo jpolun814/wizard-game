@@ -3,6 +3,19 @@ extends RefCounted
 
 ## How an AI wizard gets where it is going: choosing a page, a portal, a gate or a rival to go for, planning the way, walking it, swimming, and noticing it is getting nowhere.
 
+var balked := 0.0  # seconds it has been held up by harm on its way, lately
+var _out_at := -1000
+var _out := 0.0  # the side it is getting out of harm by: one, till it is out
+var _perils: Array[Node] = []
+var _perils_seen := -1000
+
+const STAIR_LOOKS_ELSEWHERE := 2.5  # seconds it stands at a stair that is not there, only looking about, before it thinks of going elsewhere
+const STAIR_AWAY := 14.0            # and how long it then reckons it away
+var away := {}                      # landing tile -> seconds it still reckons the stair to it away
+var stair_held := 0.0
+
+const RUNS_ON := 72.0
+const CLEAR_OF := 40.0
 const HELD_UP := 0.4           # seconds it waits for danger to pass before it thinks of another way
 
 var assail_commit := 0.0       # seconds it keeps running from a creature after it is out of reach
@@ -45,7 +58,7 @@ func travel(delta: float) -> float:
 		return holding
 	if brain.go.active():
 		read_page_underfoot()
-		if brain.goal == "" or goal_lost():  # what it was going for is gone
+		if (brain.goal == "" or goal_lost()) and not brain.go.braving:  # what it was going for is gone (what it has waded into it wades out of first)
 			brain.go.stop()
 		else:
 			return brain.go.go(delta)
@@ -174,6 +187,18 @@ func follow_route(delta: float) -> float:
 		return hop
 	if brain.route.waiting_for_stair and _take_another_way():
 		return 0.0
+	for tile: Vector2i in away.keys():
+		away[tile] -= delta
+		if away[tile] <= 0.0:
+			away.erase(tile)
+	stair_held = stair_held + delta if brain.route.waiting_for_stair else 0.0
+	if stair_held > STAIR_LOOKS_ELSEWHERE and brain.goal == "explore" and not brain.route.waiting_way.is_empty() and not BrainProfile.off("stairaway"):
+		stair_held = 0.0  # the stair is not there: is there somewhere else to look, by what stands ready?
+		away[brain.route.waiting_way["to"]] = STAIR_AWAY
+		brain.goal = ""
+		brain.goal_timer = 0.0
+		brain.route.clear()
+		return 0.0
 	if brain.route.waiting_for_stair and brain.goal == "explore":
 		stair_wait += delta
 		if stair_wait > WizardBrain.STAIR_PATIENCE:  # a person does not stand at a stair for half a minute just to see what lies past it: they look elsewhere
@@ -190,12 +215,32 @@ func follow_route(delta: float) -> float:
 	else:
 		stair_wait = 0.0
 	var ahead := signf(steer["dir"])
-	if ahead != 0.0 and wizard.is_on_floor() and dash <= 0.0 and not brain.danger.lethal_at(wizard.global_position + Vector2(0, -6)):
+	balked = maxf(balked - delta * 0.1, 0.0)
+	var planned := not BrainProfile.off("movement")
+	var within := planned and wizard.is_on_floor() and dash <= 0.0 and _harmed_here()
+	if within:
+		danger_wait += delta  # it has got into something that harms it without having meant to: it backs out, and thinks again
+		brain.route.wait()
+		if _take_another_way():
+			return 0.0
+		if _out == 0.0:
+			_out = _out_of_harm()
+		if _out != 0.0:
+			_out_at = Engine.get_physics_frames()
+			return _out * WizardBrain.WALK_SPEED
+	elif wizard.is_on_floor() and _out != 0.0:
+		if not _harms_at(brain.combat.over_ground(-_out * CLEAR_OF)):
+			_out = 0.0
+	if ahead != 0.0 and wizard.is_on_floor() and dash <= 0.0 and (planned or not brain.danger.lethal_at(wizard.global_position + Vector2(0, -6))):
 		var near := _lethal_ahead(ahead * 40.0) or _lethal_ahead(ahead * 72.0)
-		if near or _lethal_ahead(ahead * 110.0):
+		var into: bool = steer["jump"] and not BrainProfile.off("leapover") and _lands_in_harm()  # the leap it is about to make
+		if into:
+			brain.route.hold_leap()
+		if near or into or _lethal_ahead(ahead * 110.0):
 			# lava or an eruption lies on the way: it keeps its distance, backing away if it is close, and waits for it to pass or cool; when that takes
 			# too long it looks for another way
 			danger_wait += delta
+			balked = minf(balked + delta, 60.0)
 			brain.route.wait()
 			if danger_wait > HELD_UP and _take_another_way():
 				return 0.0
@@ -216,20 +261,82 @@ func follow_route(delta: float) -> float:
 				brain.route.clear()
 			return -ahead * WizardBrain.WALK_SPEED * 0.8 if near else 0.0
 		danger_wait = maxf(danger_wait - delta * 0.15, 0.0)  # (backing off and coming back does not start the waiting over)
-	else:
+	elif not planned:
 		danger_wait = 0.0
 	if steer["drop"]:
 		wizard.drop_through()
 	if steer["jump"] and wizard.is_on_floor():
 		wizard.request_jump()
 	wizard.pad.climb = steer["climb"]  # at the foot of a rope ladder, the way up it
-	wizard.pad.let_go = steer["let_go"]  # and the hop off it at the top
+	wizard.pad.let_go = steer["let_go"] or (wizard.vine.hanging() and not steer["climb"])  # and the hop off it at the top, or wherever its way no longer goes up it
 	return steer["dir"] * steer["speed"]
+
+
+func out_is(side: float) -> void:
+	_out = side
+
+
+## It is on its way out of something that harms it.
+func getting_out() -> bool:
+	var ago := Engine.get_physics_frames() - _out_at
+	return _out != 0.0 and ago >= 0 and ago < 4
+
+
+## It stands in what harms it (the same measure, whether it is stepping in or stepping out).
+func _harmed_here() -> bool:
+	for up: float in [-6.0, -10.0]:
+		if _harms_at(wizard.global_position + Vector2(0.0, up)):
+			return true
+	return false
+
+
+## Which way the nearer edge of the harm it stands in lies.
+func _out_of_harm() -> float:
+	var off := 16.0
+	while off < 600.0:
+		for side: float in [-1.0, 1.0]:
+			if not _harms_at(brain.combat.over_ground(side * off)):
+				return side
+		off += 16.0
+	return 0.0
+
+
+## The leap it is at comes down in something that kills or harms.
+func _lands_in_harm() -> bool:
+	var tile := brain.route.leap_to()
+	if tile == WorldNav.NONE:
+		return false
+	var there := MoveMap.feet(tile) + Vector2(0.0, -10.0)
+	if brain.danger.lethal_at(there):
+		return true
+	if BrainProfile.off("movement"):
+		return false
+	var on := signf(there.x - wizard.global_position.x) * RUNS_ON  # (it runs on a little where it comes down)
+	return _harms_at(there) or _harms_at(brain.combat.over_ground(there.x + on - wizard.global_position.x))
 
 
 ## Something deadly lies that far off along the ground, and the way does not go over it in a leap.
 func _lethal_ahead(off: float) -> bool:
-	return brain.danger.lethal_at(brain.combat.over_ground(off)) and (BrainProfile.off("leapover") or not brain.route.leaps_over(wizard.global_position.x + off))
+	var there := brain.combat.over_ground(off)
+	var landing := WorldNav.NONE if BrainProfile.off("leapover") else brain.route.leap_over(wizard.global_position.x + off)
+	if landing != WorldNav.NONE:
+		there = MoveMap.feet(landing) + Vector2(0.0, -10.0)  # (it is where the leap comes down that matters)
+	return brain.danger.lethal_at(there) or (not BrainProfile.off("movement") and _harms_at(there))
+
+
+## Something it has seen harms whoever walks there (Perils), and it does not bear that.
+func _harms_at(point: Vector2) -> bool:
+	var now := Engine.get_physics_frames()
+	if now - _perils_seen > 20 or now < _perils_seen:
+		_perils_seen = now
+		_perils = Perils.all(wizard.get_tree())
+	for node in _perils:
+		if not is_instance_valid(node) or node.is_queued_for_deletion() or not (node.peril_box() as Rect2).grow(8.0).has_point(point):
+			continue
+		var does: Dictionary = node.peril_at(point)
+		if does.get("harm", 0.0) > 0.0 and not (does.get("kind", "") == "heat" and wizard.lava_proof()):
+			return true
+	return false
 
 
 ## Held up on its way: it thinks of another by its spells to where it is going, and takes it when there is one. True when it has set out.
@@ -240,7 +347,7 @@ func _take_another_way() -> bool:
 	if end == WorldNav.NONE:
 		return false
 	var to := brain.go.stand_near(MoveMap.feet(end), 2)
-	if to == WorldNav.NONE or brain.go.ask(to) != "found" or not brain.go.by_spells():
+	if to == WorldNav.NONE or brain.go.ask(to) != "found" or (brain.route.waiting_for_stair and not brain.go.by_spells()):  # (at a stair, a way on foot is the way it is on already)
 		return false
 	brain.route.clear()
 	brain.go.set_out()
@@ -409,6 +516,10 @@ func raw_path(from: Vector2i, to: Vector2i) -> Array[Vector2i]:
 		for crossing: Dictionary in world.crossings():
 			if brain.gates.way_over(crossing) == "" or brain.gates.cannot.has(crossing["key"]):
 				shut.append(crossing["key"])
+	if not away.is_empty():
+		var round_about := wizard.nav.path(from, to, shut, away.keys())
+		if not round_about.is_empty():
+			return round_about
 	return wizard.nav.path(from, to, shut)
 
 

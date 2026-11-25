@@ -22,6 +22,7 @@ var _boxes: Array[Rect2] = []
 
 
 func _ready() -> void:
+	add_to_group("perils")
 	_tint = _tint_of(rock)
 	collision_mask = 6  # the player and enemies
 	var t := float(ArenaGen.TILE)
@@ -114,3 +115,22 @@ func _lit() -> bool:
 ## Is the strip of spikes at this point in view now.
 func shown() -> bool:
 	return _seen > 0.0
+
+
+## What going through it does (see Perils).
+func peril_at(point: Vector2) -> Dictionary:
+	for box in _boxes:
+		if box.grow(4.0).has_point(point):
+			return {"harm": DAMAGE / GAP, "pace": 1.0}
+	return {}
+
+
+func peril_box() -> Rect2:
+	var all := _boxes[0] if not _boxes.is_empty() else Rect2()
+	for box in _boxes:
+		all = all.merge(box)
+	return all
+
+
+func undone_by() -> Array:
+	return []

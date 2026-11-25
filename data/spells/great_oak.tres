@@ -13,3 +13,4 @@ effect = "Grow a great oak tree."
 damage = "35 dmg"
 sounds = {"fire": "great_oak__fire", "rocks": "great_oak__rocks", "rumble": "great_oak__rumble", "rustle": "great_oak__rustle"}
 parts = Array[Dictionary]([{"where": "place", "needs": "ground", "after": 0.8, "does": [{"do": "floor", "ledges": [[60.0, -72.0, -20.0], [224.0, -88.0, -24.0], [312.0, 60.0, 180.0], [424.0, -52.0, 88.0]]}]}])
+made_of = Array[String](["plant"])

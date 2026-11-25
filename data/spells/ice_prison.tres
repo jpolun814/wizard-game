@@ -19,3 +19,4 @@ size_min = 0.6
 size_max = 2.5
 applies = Array[String](["frozen"])
 sounds = {"ice": "ice_prison__ice", "shatter": "ice_prison__shatter"}
+made_of = Array[String](["ice"])

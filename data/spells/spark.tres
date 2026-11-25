@@ -13,3 +13,5 @@ damage = "30 dmg"
 effect_path = "res://scripts/spells/spark_strike.gd"
 sounds = {"spark": "spark__spark"}
 warning = 0.35
+made_of = Array[String](["lightning"])
+parts = Array[Dictionary]([{"where": "place", "reach": 420.0, "does": [{"do": "touch"}]}])

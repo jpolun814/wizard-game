@@ -232,3 +232,16 @@ func shock(point: Vector2) -> void:
 			_fish.erase(fish)
 	if _fish.is_empty():
 		queue_free()  # no fish left: the pit is only water
+
+
+## What going through it does (see Perils).
+func peril_at(point: Vector2) -> Dictionary:
+	return {"harm": BITE / BITE_GAP, "pace": BodyStates.pace("slowed"), "after": float(BITE)} if alive() and is_biting_at(point) else {}
+
+
+func peril_box() -> Rect2:
+	return water.grow(8.0)
+
+
+func undone_by() -> Array:
+	return Perils.LIVES_IN_WATER

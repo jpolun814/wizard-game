@@ -19,6 +19,7 @@ var _emitter: CPUParticles2D
 
 
 func _ready() -> void:
+	add_to_group("perils")
 	add_to_group("clouds")
 	collision_mask = 6  # the player and enemies
 	var t := float(ArenaGen.TILE)
@@ -120,3 +121,22 @@ func dissipate() -> void:
 	if _thinning < 0.0:
 		_thinning = FADE
 		_emitter.emitting = false
+
+
+## What going through it does (see Perils).
+func peril_at(point: Vector2) -> Dictionary:
+	return {"harm": DAMAGE / TICK, "pace": 1.0} if peril_box().has_point(point) else {}
+
+
+func peril_box() -> Rect2:
+	var t := float(ArenaGen.TILE)
+	var low := 0
+	var high := 1 << 20
+	for k in floors.size():
+		low = maxi(low, floors[k])
+		high = mini(high, tops[k])
+	return Rect2(column * t, high * t, floors.size() * t, (low - high) * t) if not floors.is_empty() else Rect2()
+
+
+func undone_by() -> Array:
+	return Perils.GAS

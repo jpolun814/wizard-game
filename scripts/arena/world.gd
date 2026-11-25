@@ -614,7 +614,12 @@ func _back_to_room() -> void:
 ## The ground as it is, for the AI wizards' working out of ways (WorldNav.ground): what bars the way bars it, and no crossing has a floor it has not got.
 func _say_the_ground(built: Dictionary) -> void:
 	var bare := WorldBuilder.shut(built, false)
-	nav.ground_is(bare["cells"], built["size"].y, bare["barred"], bare["climbs"])
+	var barred := {}  # what can only be gone round (what merely harms is no bar: see Perils)
+	for gate: Dictionary in built["gates"]:
+		if not gate.get("open", false) and gate["kind"] in ["sentinel", "flood"]:
+			for cell: Vector2i in gate["blocks"]:
+				barred[cell] = true
+	nav.ground_is(bare["cells"], built["size"].y, barred, bare["climbs"])
 
 
 ## A Rift sets the wizard down in another hall, picked by chance, and none behind a gate.

@@ -33,6 +33,15 @@ func _physics_process(_delta: float) -> void:
 				break
 
 
+## Lightning runs along here: whatever lives in the water it strikes is shocked.
+static func lightning(tree: SceneTree, from: Vector2, to: Vector2) -> void:
+	var steps := maxi(1, int(from.distance_to(to) / 24.0))
+	for shoal: Piranhas in tree.get_nodes_in_group("shoals"):
+		for k in steps + 1:
+			if is_instance_valid(shoal) and not shoal.is_queued_for_deletion():
+				shoal.shock(from.lerp(to, float(k) / steps))
+
+
 ## True when something that puts fire out is at this point: any source of water.
 static func wet_at(tree: SceneTree, point: Vector2) -> bool:
 	return _wet(tree.get_nodes_in_group("waters"), point)
