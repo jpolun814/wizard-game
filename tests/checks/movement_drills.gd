@@ -107,6 +107,9 @@ func _list() -> void:
 		_add("thicket: worn, " + held, _ground([]), 8, 42, [held], [])
 		drills[-1]["thorns"] = Vector2i(18, 30)
 		drills[-1]["max"] = 60.0
+	_add("thicket: standing in it, worn, with Ignite (it keeps still, and burns its way or wades)", _ground([]), 22, 42, ["Ignite"], [])
+	drills[-1]["thorns"] = Vector2i(18, 28)
+	drills[-1]["max"] = 120.0
 	_add("thicket: whole, with nothing (it may wade)", _ground([]), 8, 42, [], [])
 	drills[-1]["thorns"] = Vector2i(18, 24)
 	_add("refuse: thicket, worn, with nothing", _ground([]), 8, 42, [], [])

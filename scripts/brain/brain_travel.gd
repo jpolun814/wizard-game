@@ -16,6 +16,7 @@ var stair_held := 0.0
 
 const RUNS_ON := 72.0
 const CLEAR_OF := 40.0
+const QUIET_LONG := 14.0  # seconds it keeps quiet in what harms only a mover, before it goes out of it anyhow
 const CLEAR_FOR := 45  # frames it goes on for that
 const HELD_UP := 0.4           # seconds it waits for danger to pass before it thinks of another way
 
@@ -231,6 +232,12 @@ func follow_route(delta: float) -> float:
 	balked = maxf(balked - delta * 0.1, 0.0)
 	var planned := not BrainProfile.off("movement")
 	var within := planned and wizard.is_on_floor() and dash <= 0.0 and _harmed_here()
+	if within and not _harmed_here(true) and balked < QUIET_LONG:  # it is in what harms only whoever moves in it: it keeps quiet there, and thinks of a way out that is worth it
+		balked = minf(balked + delta, 60.0)
+		brain.route.wait()
+		_out = 0.0
+		_take_another_way()
+		return 0.0
 	if within:
 		danger_wait += delta  # it has got into something that harms it without having meant to: it backs out, and thinks again
 		brain.route.wait()
@@ -301,10 +308,10 @@ func getting_out() -> bool:
 	return _out != 0.0 and ago >= 0 and ago < 4
 
 
-## It stands in what harms it (the same measure, whether it is stepping in or stepping out).
-func _harmed_here() -> bool:
+## It stands in what harms it (the same measure, whether it is stepping in or stepping out): in what harms whoever is there, or only whoever moves in it.
+func _harmed_here(still := false) -> bool:
 	for up: float in [-6.0, -10.0]:
-		if harms_at(wizard.global_position + Vector2(0.0, up)):
+		if harms_at(wizard.global_position + Vector2(0.0, up), still):
 			return true
 	return false
 
@@ -344,7 +351,7 @@ func _lethal_ahead(off: float) -> bool:
 
 
 ## Something it has seen harms whoever walks there (Perils), and it does not bear that.
-func harms_at(point: Vector2) -> bool:
+func harms_at(point: Vector2, still := false) -> bool:
 	var now := Engine.get_physics_frames()
 	if now - _perils_seen > 20 or now < _perils_seen:
 		_perils_seen = now
@@ -353,7 +360,8 @@ func harms_at(point: Vector2) -> bool:
 		if not is_instance_valid(node) or node.is_queued_for_deletion() or not (node.peril_box() as Rect2).grow(8.0).has_point(point):
 			continue
 		var does: Dictionary = node.peril_at(point)
-		if does.get("harm", 0.0) > 0.0 and not (does.get("kind", "") == "heat" and wizard.lava_proof()):
+		var harm: float = does.get("still", does.get("harm", 0.0)) if still else does.get("harm", 0.0)
+		if harm > 0.0 and not (does.get("kind", "") == "heat" and wizard.lava_proof()):
 			return true
 	return false
 

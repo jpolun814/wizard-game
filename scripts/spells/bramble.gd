@@ -117,7 +117,7 @@ func danger_at(point: Vector2) -> bool:
 
 ## What going through it does (see Perils).
 func peril_at(point: Vector2) -> Dictionary:
-	return {"harm": DAMAGE / STEP, "pace": BodyStates.pace("tangled"), "jump": BodyStates.jumps("tangled")} if danger_at(point) else {}
+	return {"harm": DAMAGE / STEP, "still": 0.0, "pace": BodyStates.pace("tangled"), "jump": BodyStates.jumps("tangled")} if danger_at(point) else {}
 
 
 func peril_box() -> Rect2:
