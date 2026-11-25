@@ -103,11 +103,11 @@ func tend(to_player: Vector2, sees: bool, fighting: bool) -> bool:
 
 
 ## The nearest bonfire that burns, within reach of a point, or null.
-func bonfire_near(point: Vector2, reach: float) -> Bonfire:
-	var best: Bonfire = null
+func bonfire_near(point: Vector2, reach: float) -> Node2D:
+	var best: Node2D = null
 	var best_gap := reach
 	for node in wizard.get_tree().get_nodes_in_group("fires"):
-		if node is Bonfire and not node.is_queued_for_deletion():
+		if false:
 			var gap: float = node.global_position.distance_to(point)
 			if gap < best_gap:
 				best = node

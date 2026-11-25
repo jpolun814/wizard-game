@@ -37,28 +37,39 @@ class Driver extends Node:
 			await Net.roster_changed
 		get_tree().change_scene_to_file(WAITING_ROOM)
 		await _until(func() -> bool: return get_tree().current_scene != null and get_tree().current_scene.scene_file_path == WAITING_ROOM)
-		var room: Node = get_tree().current_scene
 		await _until(func() -> bool: return Net.roster.size() == 3 and Net.peers_here().size() == 2 and _others().size() == 2)
-		var first: Wizard = room.get_node(Wizard.name_for(Net.roster[1]))
-		var before: float = first.max_stamina  # read at once: the copies are not in step, and the shot comes later
+		var first_name := Wizard.name_for(Net.roster[1])
+		var before: float = _first().max_stamina  # read at once: the copies are not in step, and the shot comes later
 		await _seconds(1.5)
-		var looks := {room.player.look: true}
+		var looks := {_room().player.look: true}
 		for other in _others():
 			looks[other.look] = true
 		_check(looks.size() == 3, "three wizards, three looks (%s)" % [looks.keys()])
 		if Net.my_id() == Net.roster[2]:  # whichever copy joined second
 			await _seconds(1.5)  # the other two have read the first's stamina by now
-			var from: Vector2 = room.player.center()
-			var to := first.center()
+			var from: Vector2 = _room().player.center()
+			var to := _first().center()
 			var points := PackedVector2Array()
 			for i in 16:
 				points.append(from.lerp(to, i / 15.0) + Vector2(0, -2))
-			room.caster.cast_stroke(SpellData.LEFT, points)  # Ignite, at the first to join
+			_room().caster.cast_stroke(SpellData.LEFT, points)  # Ignite, at the first to join
 		await _seconds(3.5)
-		_check(first.max_stamina < before, "the second's fireball hurt the first, as seen here (%.0f -> %.0f)" % [before, first.max_stamina])
+		var first := _first()  # (looked up again: a likeness is made anew when the roster changes, and the one held from before may be gone)
+		_check(first != null and first.max_stamina < before, "the second's fireball hurt the first, as seen here (%.0f -> %.0f)" % [before, first.max_stamina if first != null else -1.0])
 		print("%s: %s" % [role, "PASS" if _failures == 0 else "%d FAILED" % _failures])
-		await _seconds(1.5)
+		await _seconds(1.5 if Net.my_id() == Net.roster[2] else 6.0)  # (the one that fires is last to finish: the others stay on the line until it has, or it is dropped to the menu under its own check)
 		get_tree().quit(1 if _failures > 0 else 0)
+
+	func _first() -> Wizard:  # the first to join, found by whose it is: a likeness made anew beside the one being freed has a changed name
+		for wizard: Wizard in get_tree().get_nodes_in_group("wizards"):
+			if wizard.is_queued_for_deletion():
+				continue
+			if wizard.peer == Net.roster[1] or (Net.my_id() == Net.roster[1] and wizard.peer == 0 and wizard.human):  # (on its own machine its peer is 0)
+				return wizard
+		return null
+
+	func _room() -> Node:
+		return get_tree().current_scene
 
 	func _others() -> Array[Wizard]:
 		var out: Array[Wizard] = []

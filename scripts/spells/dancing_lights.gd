@@ -67,7 +67,7 @@ class Mote extends Node2D:
 		material = Fx.additive()
 		if own and get_tree().get_first_node_in_group("darkness") != null:
 			_light = PointLight2D.new()
-			_light.texture = Fx.tex("light_01")
+			Fx.lamp(_light)
 			_light.texture_scale = LIGHT_RADIUS * 2.0 / Fx.TEX_SIZE
 			_light.color = color
 			_light.energy = 0.0

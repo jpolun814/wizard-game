@@ -124,7 +124,7 @@ func _on_hit(body: Node2D) -> void:
 
 ## What a wizard is dealt: the hit, which a thorn's volley lets land through the moment of safety that follows a blow.
 func _hurt_wizard(wizard: Wizard) -> void:
-	wizard.take_damage(damage(), not lands_through_grace(), true)
+	wizard.take_damage(damage(), not lands_through_grace(), true, null if lands_through_grace() else self)  # (a shot is one cast, one blow: it has a safety of its own)
 
 
 ## What a creature is dealt.

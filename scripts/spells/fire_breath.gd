@@ -64,7 +64,7 @@ func _ready() -> void:
 	_glow.draw.connect(_draw_glow)
 	add_child(_glow)
 	_light = PointLight2D.new()
-	_light.texture = Fx.tex("light_01")
+	Fx.lamp(_light)
 	_light.texture_scale = 260.0 * 2.0 / Fx.TEX_SIZE
 	_light.color = Color(1.0, 0.6, 0.25)
 	_light.energy = 1.1
@@ -245,3 +245,8 @@ func fire_profile() -> Array:
 	for point in flame_points():
 		fires.append({"at": point, "heat": 1.0, "size": -10.0, "shot": false})
 	return fires
+
+
+## This spell is one cast, and so one source of harm: it cannot hit the same wizard again for a moment, and another spell can (see Wizard.take_damage).
+func hit_source() -> Object:
+	return self

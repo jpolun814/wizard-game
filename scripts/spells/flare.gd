@@ -13,6 +13,7 @@ var caster: Wizard  # set by the arena before the flare enters the tree
 var unseen := false
 var _age := 0.0
 var _flame: AnimatedSprite2D
+var _sight_light: PointLight2D
 
 
 func _ready() -> void:
@@ -31,15 +32,51 @@ func _ready() -> void:
 	# In a dark place the flare is a real light. Elsewhere only its glow shows. Darkvision lights only its speaker's own screen, and shows no light of its own.
 	if get_tree().get_first_node_in_group("darkness") != null and (not unseen or (is_instance_valid(caster) and caster.brain == null)):
 		var light := PointLight2D.new()
-		light.texture = Fx.tex("light_01")
+		Fx.lamp(light)
 		light.texture_scale = LIGHT_RADIUS * 2.0 / Fx.TEX_SIZE
-		light.color = Color(0.9, 0.93, 1.0) if unseen else Color(1.0, 0.7, 0.4)  # (sight is no flame: it is not warm)
+		light.color = Color(1.0, 0.7, 0.4)
 		light.energy = 1.3
+		if unseen:  # sight is not a glow (owner: "I just want to see in the dark normally"): a flat white light that brings the dark back to just its normal brightness, with no bright heart and no tint
+			light.texture = _sight_texture()
+			light.texture_scale = LIGHT_RADIUS * 2.0 / float(SIGHT_TEXTURE)
+			light.color = Color.WHITE
+			_sight_light = light
+			_match_dark()
 		light.shadow_enabled = false
 		add_child(light)
 	if not unseen:
 		Sfx.cue("Flare", "fire", global_position, -8.0)
 		Fx.burst(get_parent(), global_position, Color("#ff9a40"), 6, 60.0, 0.4, true)
+
+
+const SIGHT_TEXTURE := 256
+const SIGHT_FLAT := 0.7  # the share of the radius that is lit evenly, before the edge fades
+static var _sight: Texture2D
+
+
+## The light of sight: the same brightness across most of its radius, fading only at the edge, so what it shows looks as it would in daylight and the wizard does not shine.
+static func _sight_texture() -> Texture2D:
+	if _sight == null:
+		var gradient := Gradient.new()
+		gradient.offsets = PackedFloat32Array([0.0, SIGHT_FLAT, 1.0])
+		gradient.colors = PackedColorArray([Color.WHITE, Color.WHITE, Color(1, 1, 1, 0)])
+		var texture := GradientTexture2D.new()
+		texture.gradient = gradient
+		texture.fill = GradientTexture2D.FILL_RADIAL
+		texture.fill_from = Vector2(0.5, 0.5)
+		texture.fill_to = Vector2(1.0, 0.5)
+		texture.width = SIGHT_TEXTURE
+		texture.height = SIGHT_TEXTURE
+		_sight = texture
+	return _sight
+
+
+## The light of sight is exactly what the dark takes away, so it brings the world back to normal brightness (the dark's color changes with depth, so this is kept up).
+func _match_dark() -> void:
+	var dark := get_tree().get_first_node_in_group("darkness") as CanvasModulate
+	var shade: Color = dark.color if dark != null else Color.BLACK
+	_sight_light.color = Color(1.0 - shade.r, 1.0 - shade.g, 1.0 - shade.b)  # exactly what the dark takes away, in each color, so what it lights looks as it does by day
+	_sight_light.energy = 1.0
 
 
 ## In front of the caster, where they face, bobbing a little.
@@ -55,6 +92,8 @@ func _rest_spot() -> Vector2:
 
 func _physics_process(delta: float) -> void:
 	_age += delta
+	if _sight_light != null:
+		_match_dark()
 	global_position = global_position.lerp(_rest_spot(), clampf(FOLLOW * delta, 0.0, 1.0))
 	if not unseen:
 		queue_redraw()

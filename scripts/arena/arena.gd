@@ -27,9 +27,18 @@ var _rng := RandomNumberGenerator.new()
 var debug_panel: DebugPanel  # F1 opens it: buttons that summon enemies for testing
 var _cells: Variant = {}  # the generated arena's tiles: a Dictionary (see ArenaGen) or a TileGrid
 var _ground: Terrain
+
+
+## The ground of this world, for whoever needs to look at it (the match recorder draws its outline).
+func ground() -> Terrain:
+	return _ground
+
+
 var spawner := SpellSpawner.new(self)  # what each spell makes
 var rituals := Rituals.new(self)  # the chants
 var casting := Casting.new(self)  # what happens when a stroke has been read
+var _taken_pages: Array[String] = []  # the pages read in this scene so far, for a machine that comes in late
+var _told_peers: Array[int] = []      # the machines already told which are gone
 var tiled_ground := false  # true when the ground is tiles all the way, as in a generated world; set by _build_map
 
 func _ready() -> void:
@@ -80,7 +89,7 @@ func _ready() -> void:
 	add_child(ritual)
 	ritual.finished.connect(rituals.finished)
 	player.damaged.connect(_on_player_damaged)
-	PlayRecorder.attach(self, player, ritual)  # F9 records how this person plays, through every world (see PlayRecorder)
+	MatchRecorder.attach(self)  # every wizard and everything in the world, and the person's hands, for reading a match afterwards (see MatchRecorder)
 	player.debuff_applied.connect(_on_debuff_applied)
 	player.died.connect(_on_player_died)
 
@@ -94,6 +103,8 @@ func _ready() -> void:
 	if Net.online():
 		player.share()
 		Net.enter_scene(_scene_name())  # only now is anything about this scene sent here
+		Net.scenes_changed.connect(_peers_changed)
+		_peers_changed()
 
 
 func _exit_tree() -> void:
@@ -151,6 +162,29 @@ func _ask_to_read(pickup_name: String) -> void:
 	read_page(pickup, asker)
 
 
+## On the host: a machine that has come into this scene after pages were read in it is told which are gone, so that it does not offer a page that is no longer there.
+func _peers_changed() -> void:
+	if not Net.online() or not Net.is_host():
+		return
+	var here := Net.peers_here()
+	for peer in here:
+		if not _told_peers.has(peer):
+			_told_peers.append(peer)
+			if not _taken_pages.is_empty():
+				_pages_gone.rpc_id(peer, _taken_pages)
+	for peer in _told_peers.duplicate():
+		if not here.has(peer):
+			_told_peers.erase(peer)
+
+
+@rpc("authority", "call_remote", "reliable")
+func _pages_gone(names: Array) -> void:
+	for pickup_name: String in names:
+		var pickup := get_node_or_null(NodePath(pickup_name)) as PagePickup
+		if pickup != null and not pickup.is_queued_for_deletion():
+			pickup.queue_free()
+
+
 ## A page is read into a wizard's book and taken off the ground. The person whose wizard it is sees it go into their book.
 @rpc("authority", "call_remote", "reliable")
 func _page_read(pickup_name: String, wizard_name: String) -> void:
@@ -162,6 +196,8 @@ func _page_read(pickup_name: String, wizard_name: String) -> void:
 	var coming := pickup.new_pages(wizard.ledger)
 	var from := pickup.global_position + Vector2(0.0, -PagePickup.FLOAT)
 	var page := pickup.take(wizard.ledger)
+	if pickup.is_queued_for_deletion() and not _taken_pages.has(pickup_name):
+		_taken_pages.append(pickup_name)  # (kept to tell a machine that comes into the scene late, see `_peers_changed`)
 	if fresh:
 		PageFlight.send(self, from, wizard, coming)  # each page flies to the reader, one at a time, and its name rises beside them
 	if wizard == player:
@@ -432,12 +468,6 @@ func spawn_spell(spell: String, targeting: String, origin: Vector2, aim: float, 
 		get_child(index).set_meta("caster", caster_node)  # whatever the spell made belongs to its caster, for the count of what each wizard has done (see MatchStats)
 
 
-
-
-## A bonfire burns at a spot, on every machine of a network game.
-@rpc("any_peer", "call_remote", "reliable")
-func kindle(spot: Vector2, power: float) -> void:
-	rituals.kindle(spot, power)
 
 
 ## A little eye floats over a wizard while another watches them through the Chant of the Scrying Eye. Every machine shows it.

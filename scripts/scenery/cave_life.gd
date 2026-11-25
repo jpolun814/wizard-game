@@ -57,7 +57,7 @@ func _ready() -> void:
 		crystal.z_index = -1
 		add_child(crystal)
 		var light := PointLight2D.new()
-		light.texture = Fx.tex("light_01")
+		Fx.lamp(light)
 		light.texture_scale = 300.0 / Fx.TEX_SIZE
 		light.color = Color(0.45, 0.85, 1.0)
 		light.energy = 0.9

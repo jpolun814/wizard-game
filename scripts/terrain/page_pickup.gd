@@ -169,6 +169,11 @@ func take(ledger: Ledger) -> String:
 		var reader := get_tree().get_first_node_in_group("player") as Wizard
 		for each in fresh:
 			ledger.learn(each)
+			var reader_id := 0
+			for w: Wizard in get_tree().get_nodes_in_group("wizards"):
+				if is_instance_valid(w) and w.ledger == ledger:
+					reader_id = w.get_instance_id()
+			MatchRecorder.event("PAGE %d %s %d %d" % [reader_id, each.replace(" ", "_"), global_position.x, global_position.y])
 			if reader != null and reader.ledger == ledger:
 				Library.record_page(each)  # a page the person at this machine found
 		Fx.burst(get_parent(), global_position + Vector2(0, -FLOAT), _color, 14, 130.0, 0.5, true)

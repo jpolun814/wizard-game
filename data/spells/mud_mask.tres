@@ -12,3 +12,4 @@ effect = "Regain max stamina for 20 seconds."
 heal = "+2 max stamina/sec"
 applies = Array[String](["mending"])
 sounds = {"mend": "mud_mask__mend"}
+span = 20

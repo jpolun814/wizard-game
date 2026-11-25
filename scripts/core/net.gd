@@ -307,7 +307,7 @@ func send(node: Node, method: StringName, args: Array = []) -> void:
 		node.callv(&"rpc_id", [peer, method] + args)
 
 
-# --- Play logs (see PlayRecorder) -------------------------------------------------------------------------------------
+# --- Play logs (see MatchRecorder) -------------------------------------------------------------------------------------
 
 
 ## Sends a finished play log (already packed) to the machine that keeps the game, and deletes the local file once that machine says it has it.

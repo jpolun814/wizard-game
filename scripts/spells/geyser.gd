@@ -145,6 +145,11 @@ func _carry_riders() -> void:
 			body.knock_back(Vector2(0.0, -MOB_LAUNCH))  # (a creature, a risen skeleton among them)
 
 
+## True when this burst found no water at its foot and brought a little up from below (so the world holds that much more water than before it).
+func sprang() -> bool:
+	return _sprung
+
+
 ## The burst lifts the water at its foot: from a pool, or, the first time on dry ground, from below.
 func _lift() -> void:
 	var area := Rect2(global_position + Vector2(-WIDTH * 0.5 - 16.0, -96.0), Vector2(WIDTH + 32.0, 112.0))
@@ -269,3 +274,8 @@ func _draw_crest(height: float, fade: float) -> void:
 		var flung := Vector2(side * (14.0 + 62.0 * strength) * t, -(95.0 + 60.0 * fposmod(float(k) * 0.37, 1.0)) * t + 190.0 * t * t)
 		var at := top + flung * spread
 		draw_texture_rect(drop, Rect2(at.round() - Vector2(2.0, 2.5), Vector2(4.0, 5.0)), false, Color(1.0, 1.0, 1.0, clampf((1.0 - life) * 1.6, 0.0, 1.0) * fade * 0.95))
+
+
+## This spell is one cast, and so one source of harm: it cannot hit the same wizard again for a moment, and another spell can (see Wizard.take_damage).
+func hit_source() -> Object:
+	return self

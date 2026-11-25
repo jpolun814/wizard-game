@@ -35,6 +35,33 @@ func _ready() -> void:
 					wrong += 1
 	_verdict(wrong == 0, "every choice of every option finds its layers or draws nothing where that is meant (%d gaps, %d wrong)" % [gaps, wrong])
 
+	# The two hand-kept lists of hats with no color of their own (the rig's and the game's) are one.
+	var rig_list: Array = m.get("hat_no_color", [])
+	var game_list: Array = PartsLook.HAT_NO_COLOR
+	_verdict(rig_list.size() == game_list.size() and rig_list.all(func(h: String) -> bool: return game_list.has(h)), "the rig and the game agree which hats have no color (%s | %s)" % [str(rig_list), str(game_list)])
+
+	# Where a shot leaves a weapon (tips.json, from the rig) lies on the weapon as drawn: a solid dot of the body picture is within a few pixels of it, for every weapon.
+	var stray := []
+	for weapon: String in PartsLook.options_of_all()["weapon"]:
+		var held := PartFrames.body(PartsLook.with_option(PartsLook.encode(PartsLook.default_config()), "weapon", weapon))
+		PartFrames.ensure(held, "release")
+		var picture := held.get_frame_texture("release", 1).get_image()
+		var spot: Variant = PartFrames.tip_of(weapon, "release", 1)
+		if spot == null:
+			stray.append(weapon + " (no tip)")
+			continue
+		var at := Vector2i(Vector2(spot) + Vector2(picture.get_size()) * 0.5)
+		var near := false
+		for dy in range(-4, 5):
+			for dx in range(-4, 5):
+				var x := at.x + dx
+				var y := at.y + dy
+				if x >= 0 and y >= 0 and x < picture.get_width() and y < picture.get_height() and picture.get_pixel(x, y).a > 0.9:
+					near = true
+		if not near:
+			stray.append(weapon)
+	_verdict(stray.is_empty(), "a shot leaves every weapon at its tip, on the picture drawn (off the weapon: %s)" % str(stray))
+
 	# The default look, stacked, against the frames the art was made with.
 	var config := PartsLook.default_config()
 	var look := PartsLook.encode(config)
@@ -148,8 +175,8 @@ func _flat(body: Texture2D, glow: Texture2D, ramp: Array) -> Image:
 
 ## Where a slot is meant to draw nothing for a choice of parts (a bare arm for an outfit with sleeves, a cuff for one without).
 func _gap_is_meant(slot: String, config: Dictionary) -> bool:
-	var sleeveless: bool = ["vest", "pelt", "sash", "toga"].has(config["outfit"])
-	var bare_legs: bool = ["pelt", "toga"].has(config["outfit"])
+	var sleeveless: bool = ["vest", "pelt", "sash", "toga", "shaman"].has(config["outfit"])
+	var bare_legs: bool = ["pelt", "toga", "shaman"].has(config["outfit"])
 	match slot:
 		"far_sleeve", "near_sleeve", "far_cuff", "near_cuff":
 			return sleeveless
@@ -160,17 +187,17 @@ func _gap_is_meant(slot: String, config: Dictionary) -> bool:
 		"far_bare_leg", "near_bare_leg":
 			return not bare_legs
 		"back_coat":
-			return not ["cloak", "gothic"].has(config["outfit"])  # (a coat's flaps are all in the trim's color)
+			return not ["cloak", "gothic", "vampire", "tuxedo", "trench", "plague_coat", "parka", "habit"].has(config["outfit"])  # (a coat's flaps are all in the trim's color)
 		"back_trim":
-			return not ["coat", "cloak", "gothic"].has(config["outfit"])
+			return not ["coat", "cloak", "gothic", "vampire", "trench", "plague_coat", "parka", "habit"].has(config["outfit"])
 		"front_coat":
-			return ["coat", "cloak", "gothic", "vest", "sash"].has(config["outfit"])
+			return ["coat", "cloak", "gothic", "vampire", "vest", "sash", "waistcoat", "alchemist", "doublet"].has(config["outfit"])
 		"belt":
-			return ["rags", "tunic", "bodice", "sash", "toga"].has(config["outfit"])  # (their belts are cloth in the trim's color)
+			return ["rags", "tunic", "bodice", "sash", "toga", "tuxedo", "habit", "desert"].has(config["outfit"])  # (their belts are cloth in the trim's color)
 		"hat":
 			return config["hat"] == "none"
 		"hat_trim":
-			return not ["circlet", "tiara", "crown", "horned", "headscarf", "pointy", "wide"].has(config["hat"])
+			return not ["headscarf", "pointy", "wide", "top_hat", "bowler", "bard_cap", "tricorn", "jester", "headdress"].has(config["hat"])  # (the circlet, tiara, crown and horned helm take the hat's own color for their metal)
 		"beard":
 			return config["beard"] == "none"
 		"hair_back":

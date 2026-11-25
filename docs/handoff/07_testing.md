@@ -19,6 +19,21 @@ It runs the unit tests first and stops if one fails; counts any `SCRIPT ERROR` a
 and ends with one summary (what failed, the error text, the log's path, the slowest checks). Exit code is the number of failures. Run it before you say
 anything is done, and put the result in your report.
 
+**Logs (2026-11-24):** each run writes into a folder of its own, `%TEMP%\wizard_checks\<project>_<hash>
+un_<date>_<pid>\` (the path is printed first; the
+last eight runs are kept), so two runs at once, or a run in another worktree, no longer write over each other's logs (that once sent an agent after a failure that was
+not there). The checks' times, which decide the order they start in, are kept one level up (`times.json`). `run_checks.TIMEOUTS` gives a check more than the 150 s
+others get. **The AI drills are in `--full` only now** (they measure the brain over many trials and take over two minutes; under the load of the whole suite they ran out
+of time): run `python tools/test.py --full ai_drills` after a change to `scripts/brain/`.
+
+**Is the AI better? (`tools/ai_trial.py`, 2026-11-24; read its header).** One change against the brain without it, in rungs of growing cost: `duel` (1 against 1, for
+fighting alone), `quad` (2 against 2 in a match of four on worlds half as wide, `players=4 width=0.5`; the main screen) and `royale` (4 against 4, to confirm). Groups are
+equal, each world is played twice with the groups' seats swapped (a mirrored pair), every rung has a fixed list of worlds, and it stops when a sequential test (SPRT, as
+chess engines are tested) says PASS or FAIL. It decides on mean place, vetoes a change that wins less, and reports winner-weighted points. `none` is an A/A test (must come out
+even) and `legacy` sets the brain against the frozen old one. Each test adds a line to `reports/ai_tests.jsonl`; `recheck` plays every past PASS again on new worlds; `--logs`
+names the worst games' match logs (`tools/replay_match.py`, `tools/analyze_royales.py`). The old `tools/ai_ab.py` (one seat of eight against its neighbor) is superseded:
+it threw away six of the eight places and was too noisy.
+
 ## The four layers
 
 1. **Unit tests** (`tests/unit/*_test.gd`, gdUnit4 in `addons/gdUnit4`, no world, milliseconds). Pure rules and data audits: `spell_data_test` (every spell is complete:
@@ -182,7 +197,7 @@ first seconds; `off=` switches things off to find the cause).
 
 **Eruption stress test (`tests/tools/eruption_perf.tscn`, needs a window):** every volcano erupting over and over, the ash storm raining fire all the time, and all four wizards with every page together. `-- seed=5 seconds=60 [near=1] [calm=1]` prints frame rates and, twice, the per-frame cost of each kind of node. It found that every check for fire (`SpellTargets.fire_points`, asked by mud, thorns, plants, wizards and more, many times a frame) rebuilt a list with a point for each column of every lava pool, and each point cost a scan of the pool's grid: the cost grew with the lava, wherever the player was looking. A lava pool now keeps its heat points until its liquid changes (`Pond.heat_points`), and the list is kept for the frame.
 
-**Eight wizards (`WorldGraph.PLAYERS`, read by `World.WIZARDS` and `Net.SEATS`):** the worlds are wider (`MatchState.STAGES`: 900, 660, 480 and 360 columns; the castle's share is 0.6), `SurfaceGen._starts` spreads the starts evenly over the free ground (never in a volcano's cone; three spots to a castle), and `Net.rival_palette` gives the brains beyond the fourth figure another set of colours. Checks that set a wizard down at the player's start and send a spell across the ground depend on what lies there: with the starts moved, `group_a_check` and `blizzard_freeze_check` use seed 3 (flat to the east), `raise_dead_check` lays a slab to walk to, and `ridge_check` picks a crest that no other ridge hides. `brains_start_check` skips a wizard that was beaten on the way.
+**Eight wizards (`WorldGraph.PLAYERS`, read by `World.WIZARDS` and `Net.SEATS`):** the worlds are wider (`MatchState.STAGES`: 900, 560, 340 and 240 columns (owner, 2026-11-23: shrunk more, to force fights; the earlier sizes were 900, 660, 480 and 360), the last world closes in (`ClosingWalls`); the castle's share is 0.6), `SurfaceGen._starts` spreads the starts evenly over the free ground (never in a volcano's cone; three spots to a castle), and `Net.rival_palette` gives the brains beyond the fourth figure another set of colours. Checks that set a wizard down at the player's start and send a spell across the ground depend on what lies there: with the starts moved, `group_a_check` and `blizzard_freeze_check` use seed 3 (flat to the east), `raise_dead_check` lays a slab to walk to, and `ridge_check` picks a crest that no other ridge hides. `brains_start_check` skips a wizard that was beaten on the way.
 
 ## Lessons from the eight-wizard work (2026-11-06)
 - A check that waits for a timer is slow to fail: give every wait its own short limit and print what it waited for (`net_match_check` took 20 minutes to fail, and about a minute to pass once the real cause was found: the winner's stats screen holds the ending until someone puts it away, and no one is there).
@@ -291,7 +306,7 @@ GODOT="/c/Users/Jordan Polun/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.
 - **Coverage:** `python tools/run_checks.py --all --cov` runs the scene checks in a scratch copy of the game with `gd-tools` (see `tools/coverage_run.py` for the setup) counting the lines that ran, and prints the scripts that ran least. It takes ten minutes or more. `gd-tools` cannot read about twenty of the scripts (it names them), so they are left out of the figure; a check run with `-s` has no autoloads, so the gesture, page, navigation and stage checks are not counted either.
 - **Other scenarios:** `world`, `kinds`, `ui` (portal, spellbook pages, pause, game over), `wizard` (a duel), `brawl`, and the other scenarios named at the top of `tests/looks/showcase.gd`.
 
-- `tests/checks/ai_drills_check.gd` (quick set): situation drills for the AI. Each builds one small scene in the waiting room (a rival drawing a boulder over the partner, standing at a ledge, frozen, behind a Barrier) and asks the partner's brain what it would do, with the idea on and with it off (`AI_OFF=read,terrain,shatter,shield,kit,brace,rocket,water,window,burn,landing,habit,stone,ambush,decoy,reserve,recover,thicket,range_memory,caution`, `BrainProfile.off`). It reads the brain's choice, not its legs, so it is quick and steady. Add a drill here for every new sensible thing the AI is taught: `-- name` runs one. The room's `hold_partner` keeps the partner where a drill puts it.
+- `tests/checks/ai_drills_check.gd` (`--full`): situation drills for the AI. Each builds one small scene in the waiting room (a rival drawing a boulder over the partner, standing at a ledge, frozen, behind a Barrier) and asks the partner's brain what it would do, with the idea on and with it off (`AI_OFF=read,terrain,shatter,shield,kit,brace,rocket,water,window,burn,landing,habit,stone,ambush,decoy,reserve,recover,thicket,range_memory,caution`, `BrainProfile.off`). It reads the brain's choice, not its legs, so it is quick and steady. Add a drill here for every new sensible thing the AI is taught: `-- name` runs one. The room's `hold_partner` keeps the partner where a drill puts it.
 
 
 ## The character creator (2026-11-17)
@@ -301,4 +316,6 @@ spells (Push, Tornado, Spore Puff) with the creator switched off too, while the 
 
 `laws_check` and `interaction_check` prove the laws of the world (handoff 03, "The world has laws") with stand-ins that are no spell: a source of water, a wind and a shot. `laws_check` also proves that a creature is soaked, lit, oiled and shocked by the same rules as a wizard. A new interaction gets a case like these.
 
+- `punch_check`: the P key: 1 damage in reach and in front, none out of reach or behind, 0.25 s cooldown, no safety window started.
+- `hit_source_check`: per-source hit windows: one cast cannot hit a wizard twice inside `HURT_GRACE`, another cast can, a hit with no source uses the shared window.
 - `heal_check` (`tests/checks/heal_check.tscn`): the heals (`Mending`): each chant and spell does what its page says; every heal over time shares one allowance; one at a time; a hit ends a Breathe and wakes a sleeper; moving ends a Rest; Stitch pays per blow landed; Recovery, Gamble, Long Rest; a second chance turns away any death, once, and brings the wizard back where they last stood safely; Cauterize does nothing on a wet wizard; the Healing Spring mends and wets whoever stands in it, rivals too, and a wizard has one.

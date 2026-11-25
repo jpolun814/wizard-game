@@ -18,6 +18,7 @@ const SHOTS := ["Ignite", "Frostbolt", "Barbs", "Pebble"]
 ## at them would catch the caster as well. A person learns this the first time their own swarm turns on them (owner's duel, 2026-11-21: an AI cast seven Insect
 ## Plagues at a rival a hundred pixels off and was stung by its own swarm).
 const OWN_HARM := {"Insect Plague": 170.0, "Stonefall": 90.0, "Blizzard": 200.0, "Hailstorm": 140.0, "Supernova": 340.0, "Black Hole": 220.0, "Firewall": 90.0, "Tornado": 120.0, "Spark": 70.0, "Earthquake": 0.0}
+const THRIFT_BITE := 6.0  # how hard what a spell costs weighs on the choice (1 was the first try; the cheap-shot bot tied the level-9 brain, so cost matters more)
 const REVERSE_HOLD := 0.6  # seconds before it turns the other way after it has turned
 var defend_cooldown := 0.0
 var escape_commit := 0.0     # seconds it keeps the way it chose out of danger
@@ -26,6 +27,7 @@ var escape_time := 0.0
 var strafe := 0.0
 var strafe_timer := 0.0
 var threat_dir := Vector2.ZERO
+var numbered: Array[String] = []  # the spells whose worth this time was worked out from their own numbers (see SpellFacts), so the old table and the thrift do not count again
 var recent: Array[String] = []  # its last two attacks, which it avoids repeating
 var roof_dir := 0.0   # the way it chose to a roof, which it keeps for a moment (see roof_walk)
 var roof_timer := 0.0
@@ -42,10 +44,14 @@ func _init(owner: WizardBrain, body: Wizard) -> void:
 	wizard = body
 
 
+## The weights the last choice of an attack was made from, spell by spell (what the drills read: the share a spell had of them is the exact chance it was cast with).
+var last_scores := {}
+
+
 ## Picks an attack for the situation and starts drawing it. Returns false if nothing is worth casting now.
 func attack(to_player: Vector2, sees: bool) -> bool:
 	var foe: Wizard = brain.opponent
-	if absf(to_player.x) > WizardBrain.ATTACK_RANGE:
+	if absf(to_player.x) > BrainProfile.knob("range", WizardBrain.ATTACK_RANGE):
 		return false  # too far off to aim at you: it waits for you to come within reach
 	var gap := absf(to_player.x)
 	var still: bool = foe.velocity.length() < 30.0
@@ -124,16 +130,25 @@ func attack(to_player: Vector2, sees: bool) -> bool:
 		scores["Barbs"] = maxf(scores["Barbs"], 1.0) if sees else 0.0
 		scores["Frostbolt"] = maxf(scores["Frostbolt"], 1.0) if sees else 0.0
 	else:
+		var plain := scores.duplicate()
 		_cleverness(scores, foe, gap)
+		var wise := scores.duplicate()  # (what it knows of this rival and the laws has been put on the scores: a flame against plants, ice against water)
 		_thrift(scores, foe)
+		if not BrainProfile.off("facts"):
+			numbered = _by_numbers(scores, plain, wise, foe, gap, still, stuck)
 	for spell_name in scores.keys():
-		scores[spell_name] *= WORTH.get(spell_name, 1.0)
+		if not numbered.has(spell_name):
+			scores[spell_name] *= WORTH.get(spell_name, 1.0)
 		if not brain.ready_to_cast(spell_name):
 			scores[spell_name] = 0.0
 		elif spell_name in recent:
-			scores[spell_name] *= 0.25  # it does not keep repeating itself
+			scores[spell_name] *= BrainProfile.knob("repeat", 0.25)  # it does not keep repeating itself
+	var shoves := brink and brain.ready_to_cast("Push")  # (it sees the kill, and may shove instead of what it chose: see below)
+	var shove_odds := minf(brain.skill * 1.3, 1.0) if shoves else 0.0
+	last_scores = _odds(scores, shove_odds)
 	var choice := pick(scores)
-	if brink and brain.ready_to_cast("Push") and brain.rng.randf() < minf(brain.skill * 1.3, 1.0):
+	MatchRecorder.decision(wizard, choice, scores, gap, sees)
+	if shoves and brain.rng.randf() < shove_odds:
 		choice = "Push"  # it sees the kill: a shove sends the rival over, and nothing else it holds is worth as much just then
 	if choice == "":
 		return false
@@ -145,6 +160,19 @@ func attack(to_player: Vector2, sees: bool) -> bool:
 	return true
 
 
+## The chance each spell has of being the one cast: its share of the weights, less the part that a shove takes when it sees the kill (`shove_odds`). What the drills read.
+func _odds(scores: Dictionary, shove_odds: float) -> Dictionary:
+	var total := 0.0
+	for spell_name: String in scores:
+		total += maxf(scores[spell_name], 0.0)
+	var odds := {}
+	for spell_name: String in scores:
+		odds[spell_name] = maxf(scores[spell_name], 0.0) / total * (1.0 - shove_odds) if total > 0.0 else 0.0
+	if shove_odds > 0.0:
+		odds["Push"] = odds.get("Push", 0.0) + shove_odds
+	return odds
+
+
 ## What a spell costs weighs on the choice, and more the less it has in hand: a person who spams a cheap shot keeps their stamina for the moment it counts, and one who throws
 ## a dear spell every time is dry when the fight is decided (owner's duels, 2026-11-21: the owner kept 62% of their stamina in hand, the AI 29%, and the owner's cheap
 ## shots landed more often). A spell paid in blood is judged elsewhere.
@@ -152,10 +180,52 @@ func _thrift(scores: Dictionary, foe: Wizard) -> void:
 	var prof := brain.profile
 	if BrainProfile.off("thrift") or foe.is_frozen() or foe.daze_time > 0.0 or foe.fainted or foe.is_rooted() or prof.chanting(foe) or prof.cast_age(foe) < 1.0:
 		return  # (a rival who cannot answer is the time for the dear spell: see the `window` idea in _cleverness)
-	var bite := 0.35 + 0.65 * clampf(1.0 - wizard.stamina / 120.0, 0.0, 1.0)
+	var bite := (0.35 + 0.65 * clampf(1.0 - wizard.stamina / 120.0, 0.0, 1.0)) * BrainProfile.knob("thrift", THRIFT_BITE)
 	for spell_name in scores.keys():
 		if scores[spell_name] > 0.0 and SpellData.SPELLS.has(spell_name) and not SpellData.SPELLS[spell_name].pays_max():
-			scores[spell_name] *= clampf(pow(16.0 / maxf(SpellData.SPELLS[spell_name].cost, 6.0), bite), 0.45, 1.8)
+			scores[spell_name] *= clampf(pow(16.0 / maxf(SpellData.SPELLS[spell_name].cost, 6.0), bite), 0.2, 3.0)
+
+
+## Gives each attack that has damage figures the worth its own numbers give it (`SpellFacts.worth`) in place of the old hand-set weight, for the ones the situation allows
+## (the scores so far say which those are: zero is out; what the wizard knows of this rival and of the world's laws, which `_cleverness` put on the scores, is kept as a multiplier on the worth). The weights are then scaled so that together they weigh what the old ones did against the other spells (a golem, a snail, a trap),
+## which have no figures yet: this chooses between the attacks, not between attacking and the rest. Returns the spells it worked out.
+func _by_numbers(scores: Dictionary, plain: Dictionary, wise: Dictionary, foe: Wizard, gap: float, still: bool, stuck: bool) -> Array[String]:
+	var done: Array[String] = []
+	var fresh := {}
+	var old_sum := 0.0
+	var new_sum := 0.0
+	var scarcity := 0.35 + 0.65 * clampf(1.0 - wizard.stamina / 120.0, 0.0, 1.0)
+	var minding := BrainProfile.knob("minding", 1.0)
+	var open: Array = scores.keys().filter(func(n: String) -> bool: return scores[n] > 0.0)
+	var rate := SpellFacts.damage_rate(open, gap)  # what a rival held down could be made to take, a second at a time
+	var touch: bool = foe.wolf.on and not BrainProfile.off("wolf")  # (a werewolf has one point of strength: any blow that lands turns it back)
+	var hopeless: Array[String] = []
+	for spell_name: String in scores.keys():
+		if scores[spell_name] > 0.0 and SpellFacts.known(spell_name):
+			if BrainProfile.off("nb_control") if SpellFacts.controls(spell_name) else BrainProfile.off("nb_attack"):
+				continue  # (this kind of spell is weighed the old way for a seat that has its switch off: it is not worked out here, so its old weight stands)
+			var knowing: float = float(wise[spell_name]) / float(plain[spell_name]) if float(plain.get(spell_name, 0.0)) > 0.0 else 1.0  # what knowing the rival and the laws made of it
+			var held_for := rate
+			if SpellFacts.controls(spell_name) and not BrainProfile.off("affordable"):  # the attacks it would follow a hold with are paid for from what it has left after this spell
+				held_for = SpellFacts.damage_rate(open, gap, maxf(wizard.stamina - SpellData.SPELLS[spell_name].cost, 0.0), SpellData.SPELLS[spell_name].hold)
+			if not touch and not BrainProfile.off("floor") and SpellFacts.expected_harm(spell_name, gap, stuck, still, false, held_for) < SpellFacts.MIN_EXPECTED:
+				hopeless.append(spell_name)  # (it could do next to nothing: it is not cast, and not left to the old weight either)
+				continue
+			var worth := SpellFacts.worth(spell_name, gap, stuck, still, scarcity, minding, touch, held_for) * knowing
+			if worth > 0.0:
+				fresh[spell_name] = worth
+				old_sum += float(scores[spell_name]) * WORTH.get(spell_name, 1.0)  # what the old weight (and thrift) made of it
+				new_sum += worth
+	for spell_name in hopeless:
+		scores[spell_name] = 0.0
+		done.append(spell_name)
+	if new_sum <= 0.0:
+		return done
+	var scale := old_sum / new_sum
+	for spell_name: String in fresh.keys():
+		scores[spell_name] = fresh[spell_name] * scale
+		done.append(spell_name)
+	return done
 
 
 ## Whether something harmful it cast itself is about the rival now (it sees its own spells as anyone would).
@@ -367,13 +437,13 @@ func lava_beyond(foe: Wizard) -> bool:
 func near_limit() -> float:
 	var close := brain.profile.closeness(brain.opponent)
 	var style_shift := -50.0 if brain.style == "aggressive" else (40.0 if brain.style == "sniper" else 0.0)
-	var press := 0.0 if BrainProfile.off("press") else 60.0 * brain.aggression * (1.0 - brain.caution())  # a bold wizard stays close, while it is whole enough
+	var press := 0.0 if BrainProfile.off("press") else 60.0 * brain.aggression * BrainProfile.knob("aggr", 1.0) * (1.0 - brain.caution())  # a bold wizard stays close, while it is whole enough
 	return WizardBrain.NEAR + style_shift - press + 90.0 * maxf(close, 0.0) * minf(brain.skill / 0.65, 1.0) + 80.0 * brain.caution()  # (and a wounded one keeps farther off)
 
 
 ## How far it lets a rival get before it closes in: a sniper keeps its distance, an aggressive wizard does not.
 func far_limit() -> float:
-	var press := 0.0 if BrainProfile.off("press") else 90.0 * brain.aggression * (1.0 - brain.caution())
+	var press := 0.0 if BrainProfile.off("press") else 90.0 * brain.aggression * BrainProfile.knob("aggr", 1.0) * (1.0 - brain.caution())
 	return WizardBrain.FAR + (-60.0 if brain.style == "aggressive" else (70.0 if brain.style == "sniper" else 0.0)) - press + 80.0 * brain.caution()
 
 

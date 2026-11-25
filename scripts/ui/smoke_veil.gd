@@ -8,9 +8,8 @@ extends CanvasLayer
 
 const COLS := 64   # the haze is worked out for this many cells across the screen, and made smooth
 const ROWS := 36
-const EVERY := 3   # and only on every this many frames: it changes slowly, and working it out is the costly part
+const EVERY := 4   # and only on every this many frames: it changes slowly, and working it out is the costly part
 const FEATHER := 70.0  # how much more smoke than DEPTH it takes for the haze to be complete
-const NEAR := 1800.0  # a plume farther than this from the wizard is nowhere near the screen
 const HAZE := preload("res://art/particles_px/smoke_07.png")
 const SHADER := """
 shader_type canvas_item;
@@ -68,10 +67,14 @@ func _process(delta: float) -> void:
 		return
 	var camera := get_viewport().get_camera_2d()
 	var viewer := _viewer(camera)
+	var to_world := get_viewport().get_canvas_transform().affine_inverse()
+	var size := get_viewport().get_visible_rect().size
+	var seen := Rect2(to_world * Vector2.ZERO, Vector2.ZERO).expand(to_world * size)  # what the screen shows of the world
 	var near := false
 	for plume: Node2D in plumes:
-		near = near or plume.global_position.distance_to(viewer) < NEAR
-	if not near:  # no plume within a screen or two: nothing is hidden
+		# A line from the viewer to a point on the screen stays on the screen, so it can only cross smoke that is on the screen too.
+		near = near or seen.intersects(Rect2(plume.global_position + Vector2(-SmokePlume.WIDTH * 0.5, -SmokePlume.HEIGHT), Vector2(SmokePlume.WIDTH, SmokePlume.HEIGHT)))
+	if not near:  # no smoke on the screen: nothing is hidden
 		if _shown:
 			_image.fill(Color(0.0, 0.0, 0.0))
 			_mask.update(_image)
@@ -83,8 +86,6 @@ func _process(delta: float) -> void:
 	_frame += 1
 	if _frame % EVERY != 0:
 		return
-	var to_world := get_viewport().get_canvas_transform().affine_inverse()
-	var size := get_viewport().get_visible_rect().size
 	for y in ROWS:
 		for x in COLS:
 			var point: Vector2 = to_world * (Vector2((x + 0.5) / COLS, (y + 0.5) / ROWS) * size)

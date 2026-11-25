@@ -3,6 +3,10 @@
 What the owner has asked for or decided that is not built yet, and what is known to be wrong. Everything finished has been taken out of this list; the history
 is in git. Any player-facing line follows section 0 of `CLAUDE.md`, and no new spell is built without the owner approving the idea first.
 
+## The AI testing plan (2026-11-24)
+
+The next AI work is laid out step by step in `docs/handoff/22_ai_testing_plan.md` (Phase 0: make the measuring trustworthy; Phase 1: find which part of the numbers-based spell choice made the AI worse in the one royale test; Phase 2: improvements borrowed from other games; Phase 3: guards against slipping back). Start at its section 0.
+
 ## Waiting on the owner
 
 - **More attacking spells** (about 60% of spells able to do damage was the aim): on hold. Propose ideas as `CLAUDE.md` section 6 says; build only what the owner picks.

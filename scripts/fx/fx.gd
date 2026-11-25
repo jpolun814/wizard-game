@@ -37,6 +37,13 @@ static func soft(texture_name: String) -> Texture2D:
 	return _textures["soft:" + texture_name]
 
 
+## Gives a light the soft round falloff it should have: the chunky pixel cut of `tex` is stepped into bands, and a light is a big thing (hundreds of pixels across), so those steps
+## showed as blocks in the dark (owner, 2026-11-23: "the glow is very pixely"). A light's texture is also smoothed when it is made larger, not left as hard squares.
+static func lamp(light: PointLight2D) -> void:
+	light.texture = soft("light_01")
+	light.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+
+
 static func tex(texture_name: String) -> Texture2D:
 	if not _textures.has(texture_name):
 		_textures[texture_name] = load("res://art/particles_px/%s.png" % texture_name)

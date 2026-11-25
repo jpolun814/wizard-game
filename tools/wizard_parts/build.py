@@ -12,7 +12,7 @@ from PIL import Image
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-from parts import SLOTS, OPTIONS, KEY, SPELLS, variant_key, render_layer, W, H  # noqa: E402
+from parts import SLOTS, OPTIONS, KEY, SPELLS, variant_key, render_layer, W, H, head_point, skeleton, HAT_NO_COLOR  # noqa: E402
 from poses import ANIMS, all_frames  # noqa: E402
 
 COLS = 9
@@ -69,6 +69,26 @@ def job(args):
     return slot, key, True
 
 
+def write_tips(out):
+    """tips.json: where a shot leaves each weapon, in every frame of every animation, as the rig knows it (`head_point`). The game reads it
+    (`PartFrames.tip_of`) instead of guessing from the picture. Each entry is [x, y] from the middle of the frame, or null where the wizard holds no weapon
+    (or its light is hidden) and a shot leaves the mouth. Facing left, the game turns x round."""
+    frames = all_frames()
+    skeletons = [skeleton(p) if p["staff"] else None for _, _, p, _ in frames]
+    tips = {}
+    for weapon in OPTIONS["weapon"]:
+        table = {}
+        for (anim, i, p, _), g in zip(frames, skeletons):
+            if g is None or p.get("no_gem"):
+                spot = None
+            else:
+                x, y = head_point(p, g, weapon)
+                spot = [round(x + 0.5 - W / 2, 2), round(y + 0.5 - H / 2, 2)]
+            table.setdefault(anim, []).append(spot)
+        tips[weapon] = table
+    json.dump(tips, open(os.path.join(out, "tips.json"), "w"), separators=(",", ":"))
+
+
 def main():
     out = os.path.abspath(sys.argv[1] if len(sys.argv) > 1 else os.path.join(HERE, "..", "..", "art_source", "parts_sheets"))
     only = sys.argv[2:]  # optional: limit to some slots
@@ -105,6 +125,7 @@ def main():
         feet="bottom row of the frame, centred at x=127; the figure faces right",
         animations=frames,
         options=OPTIONS,
+        hat_no_color=list(HAT_NO_COLOR),  # hats with no color of their own: the game keeps the same list (PartsLook.HAT_NO_COLOR) and parts_check compares them
         magic=dict(slot="magic", key_greys=[list(k) for k in KEY], white=[255, 255, 255],
                    rule="each pixel of the magic slot is one of these greys; replace by the cast spell's ramp "
                         "(near-white, light, mid, deep); pure white stays white. See godot/magic_ramp.gdshader.",
@@ -115,6 +136,7 @@ def main():
         draw_order="slots are listed back to front",
     )
     json.dump(manifest, open(manifest_path, "w"), indent=1)
+    write_tips(out)
     print(f"done: {sum(len(v) for v in written.values())} sheets in {time.time() - t0:.0f}s -> {out}")
 
 

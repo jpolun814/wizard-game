@@ -177,3 +177,8 @@ func danger_at(point: Vector2) -> bool:
 		var reach := _lean * (point.x - global_position.x)
 		return reach > -WIDTH and reach < HEIGHT and point.y > global_position.y - HEIGHT and point.y < global_position.y + 10.0
 	return false
+
+
+## This spell is one cast, and so one source of harm: it cannot hit the same wizard again for a moment, and another spell can (see Wizard.take_damage).
+func hit_source() -> Object:
+	return self

@@ -6,6 +6,7 @@ extends RefCounted
 
 const LEAP_AIR_MAX := 4.0     # seconds in the air after which a leap is given up
 const LEAP_DRAW := 0.15       # seconds to draw one: it falls the while
+const STAIRWELL_DRIFT := 0.4     # the share of a walk it drifts across at while the rocket is still lifting it
 const LIFT_WAIT := 1.6         # seconds it stands on a Geyser it has drawn, waiting to be thrown, before it takes it for a miss
 const SHOVE_WAIT := 1.0         # seconds it waits to be off the ground after shoving itself up, before it takes it for a miss
 const VINE_SCALE := 2.4          # how much bigger than its picture it draws a vine, to grow it taller than a wall
@@ -126,6 +127,8 @@ func leaping(delta: float) -> float:
 		leap["steps"] -= 1
 		var start: Vector2 = wizard.center()
 		brain.hand.begin_cast("Shadow Step", BrainStrokes.line(start, start + Vector2(dir * SpellData.STEP_MAX, -10.0).normalized() * SpellData.STEP_MAX), LEAP_DRAW)
+	if leap.has("rise_to") and wizard.global_position.y > float(leap["rise_to"]):
+		return dir * WizardBrain.WALK_SPEED * STAIRWELL_DRIFT  # going up a stairwell it climbs first and drifts across, and crosses at speed only once it is above the landing
 	return dir * WizardRoute.MAX_AIR_SPEED
 
 

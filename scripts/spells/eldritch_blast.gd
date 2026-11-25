@@ -13,6 +13,11 @@ var caster: Wizard
 var aim := 0.0
 
 
+## This spell is one cast, and so one source of harm: it cannot hit the same wizard again for a moment, and another spell can (see Wizard.take_damage).
+func hit_source() -> Object:
+	return self
+
+
 func _ready() -> void:
 	var from: Vector2 = caster.launch_tip() if is_instance_valid(caster) else global_position  # the beam leaves the gem of the staff
 	var way := Vector2.from_angle(aim)

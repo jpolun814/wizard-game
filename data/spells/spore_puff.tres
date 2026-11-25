@@ -17,3 +17,6 @@ size_min = 0.7
 size_max = 1.4
 applies = Array[String](["slowed"])
 sounds = {"wind": "spore_puff__wind"}
+speed = 260
+span = 2
+reach = 230

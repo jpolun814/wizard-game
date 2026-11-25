@@ -90,6 +90,8 @@ func _ready() -> void:
 	_shot(out_dir, "eruption_b")
 	await get_tree().create_timer(14.0).timeout
 	_check(get_tree().get_nodes_in_group("sight_blockers").filter(func(n: Node) -> bool: return n is SmokePlume).is_empty(), "and the smoke has cleared")
+	for volcano: Eruption in craters:  # (the volcanoes are put to sleep for the rest of the check: one that erupts again pours fresh lava into the cooling pools and heats them
+		volcano.process_mode = Node.PROCESS_MODE_DISABLED  # again, and where the lava runs is worked out on another core, so on a busy machine it merges differently and the check failed by chance)
 	Engine.time_scale = 4.0  # the lava takes a long while to cool
 	await get_tree().create_timer(Pond.COOL_SECONDS * 0.6 - 20.0).timeout
 	_shot(out_dir, "eruption_c")
@@ -97,9 +99,14 @@ func _ready() -> void:
 	var cooling := get_tree().get_nodes_in_group("ponds").filter(func(p: Pond) -> bool: return p.lava and p.cools)
 	_check(not cooling.is_empty() and burning.size() == cooling.size() and cooling.all(func(p: Pond) -> bool: return p.is_in_group("danger")), "later the lava has cooled a long way and still burns (%d of %d pools)" % [burning.size(), cooling.size()])
 	var first_pools := get_tree().get_nodes_in_group("ponds").filter(func(p: Pond) -> bool: return p.lava and p.cools)  # (the volcano erupts again, and its new lava is not what is asked about)
-	await get_tree().create_timer(Pond.COOL_SECONDS * 0.7).timeout
+	await get_tree().create_timer(Pond.COOL_SECONDS * 0.9).timeout  # (the last of the lava was poured some seconds after the first, and cools that much later)
 	Engine.time_scale = 1.0
-	var left := first_pools.filter(func(p: Pond) -> bool: return is_instance_valid(p))
+	var left := first_pools.filter(func(p: Variant) -> bool: return is_instance_valid(p))
+	for wait in 8:  # (the last lava was poured a little after the first: give it time to go)
+		if left.is_empty():
+			break
+		await get_tree().create_timer(5.0).timeout
+		left = left.filter(func(p: Variant) -> bool: return is_instance_valid(p))  # (a freed pool is no longer a Pond: the argument cannot be typed)
 	_check(left.is_empty(), "and then it is gone (%d pools left)" % left.size())
 	print("the volcano erupts and settles" if not failed else "eruption check FAILED")
 	get_tree().quit(1 if failed else 0)

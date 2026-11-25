@@ -34,6 +34,8 @@ const LAND_SPEED := 380.0
 const OIL_GRIP := 90.0        # and on oil, which is more slippery still
 const ICE_GRIP := 150.0        # how fast a wizard on ice can change speed, in pixels a second each second
 const OBSIDIAN_SPEED := 0.75    # how fast the wizard walks in black glass
+const OBSIDIAN_SECONDS := 20.0  # how long the black glass holds
+const VEIL_BLOWS := 2           # how many blows a Crimson Veil turns away
 const OBSIDIAN_SHOTS := 0.5     # and how much of a shot's damage gets through
 const SURF_SPEED := 470.0       # how fast a wave carries the wizard
 const GET_UP := 10.0            # a wizard who has fainted stands up with this much stamina
@@ -212,6 +214,7 @@ var facing := 1.0
 var look_dir := 0.0  # which way a wizard made of parts is drawn facing, when that is not the way it goes (a pull, a shove: the animation has them come from the front); 0 is the way it faces
 var _flash := 0.0        # red flash after being hit
 var _grace := 0.0        # time left of the safety after a hit
+var _source_grace := {}  # hit source (instance id) -> time left before that source can hit this wizard again (see take_damage)
 var _coyote := 0.0
 var _jump_buffer := 0.0
 var _step := 0.0
@@ -225,7 +228,8 @@ var _magic: MagicLayer  # a wizard made of parts has its gem, its glow and its s
 var _gem := Color.WHITE  # the color of the last spell it drew, which the gem shows; a wizard that has cast none shows a school of its own
 
 var _layer_alive := 0
-var wolf := WildShape.new(self)  # the werewolf shape (Wild Shape), when the wizard has taken it
+var punch := Punch.new(self)  # a blow with the weapon, for no stamina (P)
+var wolf := WildShape.new(self) # the werewolf shape (Wild Shape), when the wizard has taken it
 var golem := GolemForm.new(self)  # the body of stone (Golem), when the wizard has taken it
 var _releasing := 0.0     # time left of the thrust that plays when a spell goes off
 var _hurt_anim := 0.0     # time left of the flinch after a hit
@@ -524,8 +528,11 @@ func heal(amount: float) -> void:
 	if wolf.on:
 		wolf.mend(roundi(amount))  # a wolf is not mended: the wizard under it is
 		return
+	var before := max_stamina
 	max_stamina = minf(max_stamina + amount, MAX_STAMINA)
 	stamina = minf(stamina + amount, max_stamina)
+	if max_stamina > before and amount >= 1.0:
+		MatchRecorder.event("HEAL %d %.1f" % [get_instance_id(), max_stamina - before])
 
 
 ## Takes this much off the most stamina the wizard can have, whatever stands between (no veil, no grace, no armor): a wager lost, a breath run out. It can kill.
@@ -575,13 +582,30 @@ func revive() -> void:
 	modulate.a = 1.0
 
 
+## True while a hit from this source (or, with none, from anything without one) would be turned away.
+func _safe_from(source: Object) -> bool:
+	if source == null:
+		return _grace > 0.0
+	return _source_grace.get(source.get_instance_id(), 0.0) > 0.0
+
+
+## The safety that follows a hit: this source's own, or the general one when the hit names none.
+func _begin_grace(source: Object) -> void:
+	if source == null:
+		_grace = HURT_GRACE
+	else:
+		_source_grace[source.get_instance_id()] = HURT_GRACE
+
+
 ## A hit lowers your most stamina and then gives a short grace, in which no other hit lands. A burn (grace_hit false) takes
 ## it without starting that grace, so a burn and a blow can both land.
-func take_damage(amount: int, grace_hit := true, projectile := false) -> void:
+## A hit that names its `source` (whatever struck: one spell's cast, see SpellTargets.hit_source_of) has a safety of its own: that source cannot hit this wizard again for
+## HURT_GRACE, but a different source can land at once, and the safety that follows a hit with no source does not stop it. A hit with no source works as it always did.
+func take_damage(amount: int, grace_hit := true, projectile := false, source: Object = null) -> void:
 	if is_likeness():
 		MatchStats.hit(self, minf(float(amount), maxf(max_stamina, 0.0)), "", float(amount) >= max_stamina)  # a blow this machine's person struck is theirs, though it lands on the other machine
 		return  # the machine that drives this wizard decides what a hit does, and shows it here (see _show_hurt)
-	if (projectile and _shield_time > 0.0) or dead or (grace_hit and _grace > 0.0) or amount <= 0:
+	if (projectile and _shield_time > 0.0) or dead or (grace_hit and _safe_from(source)) or amount <= 0:
 		return
 	if veil > 0 or _veil_cool > 0.0:
 		if _veil_cool <= 0.0:
@@ -591,7 +615,7 @@ func take_damage(amount: int, grace_hit := true, projectile := false) -> void:
 			Sfx.cue("Crimson Veil", "glass", center(), -4.0)
 			FloatText.spawn(get_parent(), center() + Vector2(0, -44), "Negated", Color("#ff6b7a"), 1.0)
 		if grace_hit:
-			_grace = HURT_GRACE
+			_begin_grace(source)
 		return
 	if projectile and obsidian_time > 0.0:
 		amount = maxi(1, roundi(amount * OBSIDIAN_SHOTS))  # black glass takes half of what a shot would
@@ -608,7 +632,7 @@ func take_damage(amount: int, grace_hit := true, projectile := false) -> void:
 	_flash = 0.3
 	_hurt_anim = 0.25
 	if grace_hit:
-		_grace = HURT_GRACE
+		_begin_grace(source)
 	Sfx.speak(self, WizardLook.hurt_sound(look), center())
 	_shake_own_screen(0.35 + amount * 0.02)
 	FloatText.spawn(get_parent(), center() + Vector2(0, -24), "-%d" % amount, Color("#ff5a5a"), 1.1)
@@ -857,6 +881,10 @@ func _physics_process(delta: float) -> void:
 ## The timers and the stamina of a frame: what runs out, what comes back, the breath.
 func _tick_timers(delta: float) -> void:
 	_grace -= delta
+	for id: int in _source_grace.keys():
+		_source_grace[id] -= delta
+		if _source_grace[id] <= 0.0:
+			_source_grace.erase(id)
 	drained_time = maxf(drained_time - delta, 0.0)
 	_veil_cool -= delta
 	if fainted:
@@ -880,6 +908,7 @@ func _tick_timers(delta: float) -> void:
 	_since_spend += delta
 	if golem.on:
 		golem.tick(delta)
+	punch.tick(delta)
 	if wolf.on:
 		wolf.tick(delta)
 	elif _since_spend >= REGEN_DELAY and not _stepping:  # it comes back the moment the wizard stops moving their body

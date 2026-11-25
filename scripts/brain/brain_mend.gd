@@ -1,9 +1,9 @@
 class_name BrainMend
 extends RefCounted
 
-## How an AI wizard looks after itself: resting to get its strength back, camping at a bonfire, and the small things it tends to (a light in the dark, its health, the scent of whoever it has lost).
+## How an AI wizard looks after itself: resting to get its strength back, camping at its spring, and the small things it tends to (a light in the dark, its health, the scent of whoever it has lost).
 
-var camped := false             # it rests by a bonfire to mend
+var camped := false             # it rests by its spring to mend
 var camped_for := 0.0
 var mend_wait := 0.0
 var resting := false            # it has stopped to get its breath back
@@ -22,7 +22,7 @@ func _init(owner: WizardBrain, body: Wizard) -> void:
 	wizard = body
 
 
-## Wounds: a wizard worn down to a small maximum, with no one at its heels, lights a bonfire (or goes to one that burns) and rests by it until it has
+## Wounds: a wizard worn down to a small maximum, with no one at its heels, says a chant, or goes to its spring, and rests until it has
 ## mended, as a person does. Returns the speed to walk at, or NAN when it is not mending.
 func mend(delta: float, fighting: bool) -> float:
 	mend_wait -= delta
@@ -152,6 +152,11 @@ func tend(to_player: Vector2, sees: bool, fighting: bool) -> bool:
 			weights["Obsidian Armor"] = 0.8
 		if sees and gap > 200.0:
 			weights["Eclipse"] = 0.6 + 0.3 * brain.pressure
+	if not BrainProfile.off("facts"):
+		if not BrainProfile.off("nb_heal"):
+			_heals_by_numbers(weights)
+		if not BrainProfile.off("nb_defense"):
+			_defenses_by_numbers(weights)
 	for spell_name in weights.keys():
 		if not brain.ready_to_cast(spell_name):
 			weights[spell_name] = 0.0
@@ -166,10 +171,51 @@ func tend(to_player: Vector2, sees: bool, fighting: bool) -> bool:
 	return true
 
 
+## The spells that mend are weighed by what they give for what they cost (`SpellFacts.heal_worth`) in place of the hand weights, scaled to weigh together what those did against the rest.
+func _heals_by_numbers(weights: Dictionary) -> void:
+	var fresh := {}
+	var old_sum := 0.0
+	var new_sum := 0.0
+	var deficit := Wizard.MAX_STAMINA - wizard.max_stamina
+	for spell_name in ["Mud Mask", "Breathe", "Healing Spring", "Cauterize"]:
+		if weights.get(spell_name, 0.0) > 0.0:
+			var worth := SpellFacts.heal_worth(spell_name, deficit, wizard.is_wet())
+			if worth > 0.0:
+				fresh[spell_name] = worth
+				old_sum += float(weights[spell_name])
+				new_sum += worth
+	if new_sum <= 0.0:
+		return
+	for spell_name: String in fresh.keys():
+		weights[spell_name] = fresh[spell_name] * old_sum / new_sum
+
+
+## The spells that shield are weighed by the harm they take away for what they cost (`SpellFacts.defense_worth`), scaled to weigh together what the hand weights did. The harm
+## coming at it is what it has been taking: the shots thrown at it lately (`pressure`) at a blow each, and what it has lost in the last seconds.
+func _defenses_by_numbers(weights: Dictionary) -> void:
+	var fresh := {}
+	var old_sum := 0.0
+	var new_sum := 0.0
+	var blow := SpellFacts.TYPICAL_BLOW
+	var incoming := maxf(brain.pressure, 0.3) * blow / SpellFacts.BLOW_GAP + wizard.mending.recent_loss() / 10.0
+	var scarcity := 0.35 + 0.65 * clampf(1.0 - wizard.stamina / 120.0, 0.0, 1.0)
+	for spell_name in weights.keys():
+		if weights[spell_name] > 0.0 and SpellFacts.defends(spell_name):
+			var worth := SpellFacts.defense_worth(spell_name, incoming, blow, scarcity, BrainProfile.knob("minding", 1.0))
+			if worth > 0.0:
+				fresh[spell_name] = worth
+				old_sum += float(weights[spell_name])
+				new_sum += worth
+	if new_sum <= 0.0:
+		return
+	for spell_name: String in fresh.keys():
+		weights[spell_name] = fresh[spell_name] * old_sum / new_sum
+
+
 ## The chant it says to mend, or "": the greatest it holds first. A Recovery is said only after a wound it could bring back, a Long Rest only where no one is about to
 ## find it asleep, and a Stitch or a Gamble never (a person does not stake the little strength they have left on a throw).
 func heal_chant() -> String:
-	for id: String in ["restoration", "bonfire", "mending", "recovery", "long_rest", "rest"]:
+	for id: String in ["restoration", "mending", "recovery", "long_rest", "rest"]:
 		if not brain.knows("chant:" + id):
 			continue
 		if id == "recovery" and wizard.mending.recent_loss() < 12.0:
@@ -180,16 +226,10 @@ func heal_chant() -> String:
 	return ""
 
 
-## The nearest place it can mend by that burns or runs, within reach of a point (a bonfire, or a spring it raised), or null.
+## The place it can mend by, within reach of a point (a spring it raised), or null.
 func camp_near(point: Vector2, reach: float) -> Node2D:
 	var best: Node2D = null
 	var best_gap := reach
-	for node in wizard.get_tree().get_nodes_in_group("fires"):
-		if node is Bonfire and not node.is_queued_for_deletion():
-			var gap: float = node.global_position.distance_to(point)
-			if gap < best_gap:
-				best = node
-				best_gap = gap
 	var spring := HealingSpring.of(wizard.get_tree(), wizard)
 	if spring != null and spring.global_position.distance_to(point) < best_gap:
 		best = spring

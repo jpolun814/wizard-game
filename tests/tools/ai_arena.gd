@@ -17,7 +17,8 @@ var old_seats: Array[int] = []
 var swap := false
 var need: Array[String] = []  # need=A,B: these are in both books of a duel, whatever else the seed picks
 var weak := -1  # weak=K: seat K begins worn down to a maximum of 60, for studying how a wounded wizard behaves
-var off_seat := {0: "", 1: ""}  # off0=a,b / off1=a,b: changes turned off for that seat's brain alone (BrainProfile.off), to set one version of the brain against another
+var off_seat := {0: "", 1: ""}  # off0=a,b / off1=a,b: changes turned off for that seat's brain alone (BrainProfile.off), to set one version of the brain against another; offseats=0,3:a,b turns them off for several seats
+var players := 8  # players=N (royale): only the first N seats play, the rest are put away in every world (a match of four, for tools/ai_ladder.py)
 var levels: Array[int] = []  # lv=A,B,...: seat k plays the new brain at level lv[k] (see BrainLevel); in a duel, none plays the old brain
 var bait := false  # bait=1: all but seat 0 are put away, and a page is laid in the middle of a pond with piranhas, with seat 0 a little way off (does it wade in?)
 var _bait_page: PagePickup
@@ -28,7 +29,6 @@ var result_file := ""
 var log_file := ""  # log=FILE: every cast and wound, and where each wizard is every half second, for studying how they fight
 var _log: FileAccess
 var _log_t := 0.0
-var _bonfires := 0
 var fine := false  # fine=1: also a line of what everyone and every shot is doing, ten times a second (P and F lines)
 var _fine_t := 0.0
 var _world: World
@@ -42,6 +42,7 @@ var _settle := 0
 
 
 func _ready() -> void:
+	MatchRecorder.silent = true  # a simulated game writes no match log unless matchlog=DIR asks for one (it would fill the person's own folder)
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("seed="):
 			seed_value = int(arg.substr(5))
@@ -65,6 +66,15 @@ func _ready() -> void:
 			off_seat[0] = arg.substr(5)
 		elif arg.begins_with("off1="):
 			off_seat[1] = arg.substr(5)
+		elif arg.begins_with("offseats="):  # offseats=0,3:facts
+			var parts := arg.substr(9).split(":")
+			if parts.size() == 2 and parts[0] != "":
+				for part in parts[0].split(","):
+					off_seat[int(part)] = parts[1]
+		elif arg.begins_with("players="):
+			players = clampi(int(arg.substr(8)), 2, 8)
+		elif arg.begins_with("width="):
+			MatchState.width_scale = float(arg.substr(6))
 		elif arg == "swap=1":
 			swap = true
 		elif arg.begins_with("log="):
@@ -76,6 +86,9 @@ func _ready() -> void:
 			forced_biome = arg.substr(6)
 		elif arg.begins_with("result="):
 			result_file = arg.substr(7)
+		elif arg.begins_with("matchlog="):  # matchlog=DIR: every wizard and thing of the match is written down there (see MatchRecorder)
+			MatchRecorder.force = true
+			MatchRecorder.folder = arg.substr(9)
 	seed(seed_value)
 	MatchState.begin(seed_value)
 	if mode == "duel":  # (a flat open world, by the seed: no portals to carry them apart, no halls to lose each other in)
@@ -104,6 +117,8 @@ func _attach() -> void:
 		if levels.size() < 2:
 			old_seats.append(0 if swap else 1)
 		_set_up_duel()
+	elif players < 8:
+		_put_away(players)
 	for k in _seats.size():
 		if mode == "duel" and levels.size() == 1:  # (one level named in a duel: it is the new brain's, against the old)
 			if k == 1 - old_seats[0] and _seats[k] != null and _seats[k].brain is WizardBrain:
@@ -121,7 +136,7 @@ func _attach() -> void:
 		if _seats[k] != null:
 			var seat := k
 			_seats[k].damaged.connect(func(amount: int) -> void:
-				_taken[seat] = _taken.get(seat, 0) + amount
+				_taken[seat] = _taken.get(seat, 0) + mini(amount, 200)  # (a hazard that kills outright deals 100000: no wizard has more than 200 to lose, so no more than that is counted)
 				_last_hit[seat] = _cause_of(_seats[seat]))
 	if weak >= 0 and _worlds == 1 and weak < _seats.size() and _seats[weak] != null:
 		_seats[weak].max_stamina = 60.0
@@ -134,6 +149,22 @@ func _attach() -> void:
 			var seat := k
 			w.ensure_caster().cast_resolved.connect(func(spell: String, _t: String, _o: Vector2, _a: float, _i: Dictionary) -> void: _log.store_line("C %.2f %d %s" % [_clock, seat, spell]))
 			w.damaged.connect(func(amount: int) -> void: _log.store_line("D %.2f %d %d %d %d %d" % [_clock, seat, amount, 1 if w.pen.active() else 0, int(w.velocity.length()), 1 if w.is_on_floor() else 0]))  # (then: drawing, how fast it moves, on the ground)
+
+
+## Every seat from `first` on is taken out of the world (far off, still, counted as gone), in every world of the match.
+func _put_away(first: int) -> void:
+	for k in range(first, _seats.size()):
+		if _seats[k] == null:
+			continue
+		_seats[k].set_physics_process(false)
+		_seats[k].global_position = Vector2(-9000.0, -9000.0 - 200.0 * k)
+		_seats[k].dead = true
+		_seats[k].hide()
+
+
+## How many seats play in this match.
+func _playing() -> int:
+	return 2 if mode == "duel" else players
 
 
 ## One wizard, a pond with piranhas, and a page lying in the water: the others are put away.
@@ -162,13 +193,7 @@ func _set_up_bait() -> void:
 
 ## Two wizards face to face on level ground with the same spells; everyone else is put away.
 func _set_up_duel() -> void:
-	for k in range(2, _seats.size()):
-		if _seats[k] == null:
-			continue
-		_seats[k].set_physics_process(false)
-		_seats[k].global_position = Vector2(-9000.0, -9000.0 - 200.0 * k)
-		_seats[k].dead = true
-		_seats[k].hide()
+	_put_away(2)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed_value * 977 + 13
 	var spells: Array = need.duplicate()  # three attacks, a way about and a defence, as a match's first pages come
@@ -207,10 +232,6 @@ func _physics_process(delta: float) -> void:
 	_log_t += delta
 	if _log != null and _log_t >= 0.5:
 		_log_t = 0.0
-		var fires := get_tree().get_nodes_in_group("fires").filter(func(n: Node) -> bool: return n is Bonfire).size()
-		if fires != _bonfires:
-			_log.store_line("B %.1f %d" % [_clock, fires])
-			_bonfires = fires
 		for k in _seats.size():
 			var w: Wizard = _seats[k]
 			if is_instance_valid(w) and not w.dead:
@@ -231,7 +252,7 @@ func _physics_process(delta: float) -> void:
 		var w: Wizard = _seats[k] if k < _seats.size() else null
 		if is_instance_valid(w) and not w.dead:
 			standing += 1
-		elif not _fell.has(k) and (mode == "royale" or k < 2):
+		elif not _fell.has(k) and k < _playing():
 			_fell[k] = _clock
 			if is_instance_valid(w):
 				_deaths.append({"seat": k, "t": snappedf(_clock, 0.1), "x": int(w.global_position.x), "y": int(w.global_position.y), "cause": _death_cause(k, w)})
@@ -285,7 +306,7 @@ func _finish() -> void:
 	_done = true
 	var line := {"mode": mode, "seed": seed_value, "old": old_seats, "levels": levels, "seconds": snappedf(_clock, 0.1), "worlds": _worlds, "taken": _taken, "fell": {}, "stamina": {}, "book": _duel_book, "deaths": _deaths, "pages": {}, "water_pages": _water_pages(), "bait_taken": bait and not is_instance_valid(_bait_page)}
 	for k in 8:
-		if mode == "duel" and k > 1:
+		if k >= _playing():
 			continue
 		var w: Wizard = _seats[k] if k < _seats.size() else null
 		line["fell"][str(k)] = snappedf(_fell[k], 0.1) if _fell.has(k) else -1.0

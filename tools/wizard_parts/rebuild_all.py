@@ -8,7 +8,7 @@
 Steps (docs/handoff/20_making_wizard_parts.md explains each):
  1. build.py           draw the sheets            -> art_source/parts_sheets/<slot>/<variant>.png + manifest.json
  2. (full builds only) delete sheets/packed files of variants that no longer exist
- 3. copy manifest.json                            -> art/parts/manifest.json (the game reads this copy)
+ 3. copy manifest.json and tips.json             -> art/parts/ (the game reads these copies; tips.json is where a shot leaves each weapon)
  4. tools/pack_parts.gd pack sheets for the game  -> art/parts/<slot>/<variant>.parts   (Godot, headless)
  5. make_test.py       compose the test character + lineup from the sheets, write the preview GIFs
                                                   -> art_source/wizard_parts_preview/
@@ -64,6 +64,7 @@ def main():
     print("\n=== 3. copy manifest.json into art/parts")
     os.makedirs(PACKED, exist_ok=True)
     shutil.copyfile(os.path.join(SHEETS, "manifest.json"), os.path.join(PACKED, "manifest.json"))
+    shutil.copyfile(os.path.join(SHEETS, "tips.json"), os.path.join(PACKED, "tips.json"))  # where a shot leaves each weapon
 
     if "--no-pack" not in flags:
         step("4. pack the sheets for the game", [GODOT, "--headless", "--path", ".", "-s", "tools/pack_parts.gd", "--"] + slots,

@@ -3,7 +3,7 @@ extends Node
 
 ## The laws of the world, in one place, so that a thing does what it does because of WHAT it is and never because of which spell it came from.
 ## Water puts fire out, wherever the water came from (a pond, a jet, a geyser, a snowstorm, a wave, a splash of ice) and whatever the fire is (a fireball,
-## a wall of flame, a breath, a rolling sphere, a bonfire, burning ground, a flare).
+## a wall of flame, a breath, a rolling sphere, burning ground, a flare).
 ##
 ## How a thing takes part:
 ##   water   joins the group "waters" and answers `wets(point) -> bool`: is there water at this point now?

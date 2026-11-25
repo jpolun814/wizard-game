@@ -16,3 +16,5 @@ size_max = 5.0
 effect_path = "res://scripts/spells/firewall.gd"
 applies = Array[String](["burning"])
 sounds = {"burn": "firewall__burn", "fire": "firewall__fire"}
+warning = 1
+span = 4

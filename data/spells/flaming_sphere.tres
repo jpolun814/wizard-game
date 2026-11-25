@@ -13,3 +13,5 @@ effect = "Launch a rolling ball of fire."
 damage = "10 dmg + 6 dmg/sec"
 applies = Array[String](["burning"])
 sounds = {"fire": "flaming_sphere__fire"}
+speed = 170
+span = 5

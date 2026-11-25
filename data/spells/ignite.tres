@@ -13,3 +13,5 @@ damage = "5 dmg + 6 dmg/sec"
 effect_path = "res://scripts/spells/fireball.gd"
 applies = Array[String](["burning"])
 sounds = {"cast": "ignite__cast", "fire": "ignite__fire", "turned": "ignite__turned"}
+speed = 700
+span = 5

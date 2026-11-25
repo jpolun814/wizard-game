@@ -176,3 +176,8 @@ func _exit_tree() -> void:
 
 func danger_at(point: Vector2) -> bool:
 	return _state == "waiting" and absf(point.x - global_position.x) < REACH + 12.0 and absf(point.y - global_position.y) < 30.0
+
+
+## This spell is one cast, and so one source of harm: it cannot hit the same wizard again for a moment, and another spell can (see Wizard.take_damage).
+func hit_source() -> Object:
+	return self

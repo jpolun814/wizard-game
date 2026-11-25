@@ -13,3 +13,7 @@ effect = "Fling a volley of thorns."
 damage = "4 dmg"
 effect_path = "res://scripts/spells/barbs.gd"
 sounds = {"turned": "barbs__turned", "whoosh": "barbs__whoosh"}
+speed = 560
+pellets = 5
+spread = 0.5
+reach = 450

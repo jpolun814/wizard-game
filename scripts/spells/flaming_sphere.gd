@@ -194,3 +194,8 @@ func pull(force: Vector2, delta: float) -> void:
 func reflect(way: Vector2) -> void:
 	if absf(way.x) > 0.1:
 		direction = signf(way.x)
+
+
+## This spell is one cast, and so one source of harm: it cannot hit the same wizard again for a moment, and another spell can (see Wizard.take_damage).
+func hit_source() -> Object:
+	return self

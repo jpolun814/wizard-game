@@ -5,7 +5,7 @@ extends Node
 ##     godot --path . tests/looks/book_look.tscn -- out=DIR [spells=Supernova,Leech]     (needs a window)
 
 var out_dir := "user://book_look"
-var spells := ["Supernova", "Leech", "Firewall", "Insect Plague", "Flaming Sphere", "Vacuum", "Eldritch Blast", "Push", "chant:bonfire", "chant:rift"]
+var spells := ["Supernova", "Leech", "Firewall", "Insect Plague", "Flaming Sphere", "Vacuum", "Eldritch Blast", "Push", "chant:rift"]
 
 
 func _ready() -> void:

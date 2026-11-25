@@ -64,8 +64,8 @@ func _ready() -> void:
 	# Time and swipes do not end it; a single blow does, and does not kill the wizard.
 	await _wait(6.0)
 	_verdict(_player.wolf.on and _player.max_stamina == WildShape.STAMINA, "the shape stays as long as no blow lands")
-	_player.heal(20)  # a bonfire by the wolf mends the wizard under it, not the wolf
-	_verdict(_player.max_stamina == WildShape.STAMINA, "a bonfire does not mend the wolf")
+	_player.heal(20)  # a heal by the wolf mends the wizard under it, not the wolf
+	_verdict(_player.max_stamina == WildShape.STAMINA, "a heal does not mend the wolf")
 	had += 20.0
 	_player.take_damage(1)
 	await _wait(0.2)

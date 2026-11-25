@@ -19,6 +19,29 @@ static func off(change: String) -> bool:
 ## The same, for one wizard only (the measuring arena sets `WizardBrain.off_here`, and each wizard's turn to think puts it here): two brains that differ by one change play each other.
 static var seat_off := ""
 
+## A number of the brain that a measurement may change for one seat alone: `kn_NAME=VALUE` among the seat's switches (`off0=kn_thrift=3.0,kn_gap_q=0.5`), else the figure stored in
+## data/ai/knobs.json, else the one given. (tools/ai_tune.py moves them one at a time and keeps what wins.) The brain's own constants stay the figures it plays with.
+const KNOB_FILE := "res://data/ai/knobs.json"
+static var _stored := {}
+static var _stored_read := false
+static var _knob_source := "<unset>"
+static var _knobs := {}
+
+
+static func knob(name: String, base: float) -> float:
+	if not _stored_read:
+		_stored_read = true
+		var file := FileAccess.open(KNOB_FILE, FileAccess.READ)
+		var parsed = JSON.parse_string(file.get_as_text()) if file != null else null
+		_stored = parsed if parsed is Dictionary else {}
+	if seat_off != _knob_source:
+		_knob_source = seat_off
+		_knobs = {}
+		for token in seat_off.split(","):
+			if token.begins_with("kn_") and token.contains("=") and token.get_slice("=", 1).is_valid_float():
+				_knobs[token.get_slice("=", 0).substr(3)] = token.get_slice("=", 1).to_float()
+	return float(_knobs.get(name, _stored.get(name, base)))
+
 
 var seen := {}     # rival instance id -> {spell name -> {"n": times, "at": time last seen}}
 var aimed := {}    # rival instance id -> time on the brain's clock it last cast toward it

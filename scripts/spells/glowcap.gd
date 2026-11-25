@@ -38,7 +38,7 @@ func _ready() -> void:
 	create_tween().tween_property(_sprite, "scale:y", 1.0, GROW_SECONDS).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	if get_tree().get_first_node_in_group("darkness") != null:
 		_light = PointLight2D.new()
-		_light.texture = Fx.tex("light_01")
+		Fx.lamp(_light)
 		_light.texture_scale = light_radius * 2.0 / Fx.TEX_SIZE
 		_light.color = GREEN
 		_light.energy = 0.0

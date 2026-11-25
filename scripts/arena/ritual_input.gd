@@ -19,8 +19,6 @@ const RITUALS := {
 		"text": "terram ostende"},
 	"insight": {"kind": "toggle", "module": "insight", "name": "Chant of Insight",
 		"text": "hostes vide"},
-	"bonfire": {"kind": "ritual", "name": "Incantation of the Hearthfire",
-		"text": "ignis ardeat in tenebris et calorem det mihi dum noctem semper expello"},
 	"boundless": {"kind": "ritual", "name": "Blessing of the Wellspring",
 		"text": "vires fluant"},
 	"double_jump": {"kind": "ritual", "name": "Blessing of Skystep",

@@ -201,6 +201,8 @@ func _begin_encounter(camera: Camera2D) -> void:
 	scenery.grow_trees()
 	scenery.raise_the_gale()
 	scenery.raise_biome_life()
+	if MatchState.stage == MatchState.STAGES.size() - 1:
+		add_child(ClosingWalls.new())  # the last world closes in (see ClosingWalls)
 	scenery.wash_out_the_color()
 	grade_biome = SurfaceGen.biome_at(graph.surface, graph.surface["start"])
 	add_child(Grade.for_biome(grade_biome))
@@ -430,7 +432,7 @@ func light_level_at(point: Vector2) -> float:
 
 func _make_light(radius: float, color: Color, energy: float) -> PointLight2D:
 	var light := PointLight2D.new()
-	light.texture = Fx.tex("light_01")
+	Fx.lamp(light)
 	light.texture_scale = radius * 2.0 / Fx.TEX_SIZE
 	light.color = color
 	light.energy = energy
@@ -440,7 +442,7 @@ func _make_light(radius: float, color: Color, energy: float) -> PointLight2D:
 
 ## Every fire lights the dark round it while it lasts, and lava glows.
 func _on_node_added(node: Node) -> void:
-	if node is Pond or node is Hazard or node is Bonfire or node is Projectile or node is Firewall or node is LavaBall or node is FlamingSphere:
+	if node is Pond or node is Hazard or node is Projectile or node is Firewall or node is LavaBall or node is FlamingSphere:
 		_light_when_ready.call_deferred(node)
 
 

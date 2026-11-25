@@ -27,7 +27,7 @@ func _ready() -> void:
 	position = Vector2(0, -34)  # about the middle of the body
 	if get_tree().get_first_node_in_group("darkness") != null:
 		var light := PointLight2D.new()
-		light.texture = Fx.tex("light_01")
+		Fx.lamp(light)
 		light.texture_scale = LIGHT_RADIUS * 2.0 / Fx.TEX_SIZE
 		light.color = GREEN
 		light.energy = 0.9

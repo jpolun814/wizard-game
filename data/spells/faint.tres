@@ -8,5 +8,7 @@ spell_name = "Faint"
 school = "Blood"
 gesture = "spiral"
 cost = 30.0
+hold = 4.0
+share = 1.0
 effect = "Knock the target unconscious."
 applies = Array[String](["unconscious"])

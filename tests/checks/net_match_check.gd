@@ -122,7 +122,14 @@ class Driver extends Node:
 			fallen.take_damage(9999)
 		await _seconds(2.0)
 		_check(fallen.dead, "the one who joined has fallen, as seen here")
-		_check(next.get_node_or_null("Spoils" + reader_name) != null, "its book lies where it fell")
+		# (the book's arrival is a network message: on a busy machine it can come later than the two seconds above, so wait for it a little longer; the wait ends
+		# if the world has gone, which the check then reports as a failure rather than crashing on a freed node)
+		var book_wait := 0.0
+		while is_instance_valid(next) and next.get_node_or_null("Spoils" + reader_name) == null and book_wait < 6.0:
+			await _seconds(0.5)
+			book_wait += 0.5
+		var arrived := is_instance_valid(next) and next.get_node_or_null("Spoils" + reader_name) != null
+		_check(arrived, "its book lies where it fell")
 		if out != "":
 			await _snap("fallen")
 		# The host beats the brains, and is the last standing: everyone goes back to the waiting room.

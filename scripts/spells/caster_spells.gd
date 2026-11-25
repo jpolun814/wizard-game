@@ -159,7 +159,7 @@ func _sneak(c: SpellCast) -> void:
 
 
 func _obsidian_armor(c: SpellCast) -> void:
-	c.caster.raise_obsidian(20.0)
+	c.caster.raise_obsidian(Wizard.OBSIDIAN_SECONDS)
 	Fx.burst(_arena, c.caster.center(), Color(0.45, 0.4, 0.6), 16, 120.0, 0.5, true)
 	Sfx.cue("Obsidian Armor", "glass", c.caster.center())
 
@@ -179,7 +179,7 @@ func _adrenaline(c: SpellCast) -> void:
 
 
 func _crimson_veil(c: SpellCast) -> void:
-	c.caster.veil = 2
+	c.caster.veil = Wizard.VEIL_BLOWS
 	Fx.burst(_arena, c.caster.center(), SpellData.SCHOOL_COLORS["Blood"], 16, 120.0, 0.5, true)
 	Sfx.cue("Crimson Veil", "blood", c.caster.center(), -4.0)
 

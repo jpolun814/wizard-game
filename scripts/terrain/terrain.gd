@@ -378,6 +378,7 @@ static func pit_share(u: float, profile: PackedFloat32Array) -> float:
 
 
 func dig(at: Vector2, half_width: float, depth: float, profile := PackedFloat32Array()) -> bool:
+	MatchRecorder.event("DIG %d %d %d %d" % [at.x, at.y, half_width, depth])
 	var area := Rect2(at - Vector2(half_width + 16.0, 48.0), Vector2(half_width * 2.0 + 32.0, depth + 112.0))
 	if tiled:
 		if _rock_world == null:

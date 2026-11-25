@@ -207,6 +207,10 @@
  "page_pickup": {
   "rustle": "page_pickup__rustle"
  },
+ "punch": {
+  "swing": "punch__swing",
+  "hit": "punch__hit"
+ },
  "pond": {
   "ice": "pond__ice"
  },

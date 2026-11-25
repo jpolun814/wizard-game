@@ -12,3 +12,5 @@ cost = 30.0
 effect = "Swing a scythe."
 damage = "45 dmg"
 sounds = {"swing": "scythe__swing"}
+warning = 0.3
+reach = 170

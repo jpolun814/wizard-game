@@ -8,5 +8,7 @@ spell_name = "Decoy"
 school = "Shadow"
 gesture = "stick"
 cost = 20.0
+lasts = 24.0
+absorbs = 0.5
 effect = "Conjure a shadow of yourself."
 sounds = {"dark_whoosh": "decoy__dark_whoosh"}

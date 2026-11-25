@@ -22,6 +22,18 @@ enum Size { NONE, RADIUS, REACH, LINE_WIDTH, LINE_SPAN, LENGTH, STEP_LENGTH, ARE
 @export var removes: Array[String] = []  ## the states it takes off someone
 @export var damage := ""            ## a short figure for the spellbook
 @export var heal := ""              ## what a spell that heals mends, as the spellbook writes it where damage goes, with a plus sign ("+55 max stamina", "+3 max stamina/sec")
+## What the AI wizards work a spell's worth out from (see SpellFacts): the damage figures above and these, all in the game's own units. Zero is "does not apply".
+@export var speed := 0.0     ## pixels a second the spell travels at; zero for one that strikes at once or lands where it was drawn
+@export var warning := 0.0   ## seconds between the cast and the harm, for a spell that takes a moment to land (a boulder falling, a wall catching light)
+@export var span := 0.0      ## seconds the harm keeps on coming, for a spell that burns, bleeds or lingers: the "per sec" figure runs this long
+@export var hold := 0.0      ## seconds a rival is held or hobbled by a spell that controls (frozen, put down, slowed, silenced): what the spell is worth when it deals no harm of its own
+@export var share := 1.0     ## how much of what the rival could do is taken away for those seconds: 1 is all of it (frozen solid), a half is a rival slowed down
+@export var lasts := 0.0     ## seconds a defense stands, for a spell that protects for a time (black glass, a wind, a shadow to throw blows at)
+@export var absorbs := 0.0   ## the share of the harm that comes at the wizard which it takes away while it stands (a half for black glass), or from each blow it turns away
+@export var blows := 0       ## how many blows it turns away, for a spell that stands until they have come (a Crimson Veil)
+@export var pellets := 1     ## how many pieces one cast sends (a volley of thorns)
+@export var spread := 0.0    ## the angle those pieces fan across, in radians
+@export var reach := 0.0     ## how far it carries or reaches, in pixels; zero when that does not matter
 @export var sounds := {}  ## the sounds this spell makes, by event (cast, hit...): each a file of its own, owned by this spell alone (see Sfx.cue)
 @export var color := Color(0, 0, 0, 0)  ## the glow of a spell that is not its school's color; transparent means the school's
 @export var size_from := Size.NONE

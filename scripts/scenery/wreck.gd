@@ -53,7 +53,7 @@ func _ready() -> void:
 	pocket.position = Vector2(HOLD.x * side, HOLD.y)
 	add_child(pocket)
 	var light := PointLight2D.new()  # the hollow glows a little: air, lit by what little reaches it
-	light.texture = Fx.tex("light_01")
+	Fx.lamp(light)
 	light.texture_scale = 300.0 / Fx.TEX_SIZE
 	light.color = Color(0.7, 0.9, 1.0)
 	light.energy = 0.55

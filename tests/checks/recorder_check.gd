@@ -1,50 +1,38 @@
 extends Node
 
-## F9 starts a recording of a person's play: a file with the keys pressed and the wizard's state, and F9 again ends it.
+## The match recorder writes a world: every wizard, the person's keys and hands, a cast, a blow and the things in the world, and closes the file at the end.
 
 func _ready() -> void:
-	var arena: Node = load("res://scenes/lab.tscn").instantiate()
-	add_child(arena)
-	await get_tree().create_timer(1.0).timeout
-	var recorder: PlayRecorder = get_tree().root.get_node_or_null("PlayRecorder")
-	var ok := recorder != null
+	var dir := "user://recorder_check_logs"
+	MatchRecorder.force = true
+	MatchRecorder.folder = dir
+	seed(5)
+	World.next_seed = 5
+	var world: Node = load("res://scenes/world.tscn").instantiate()
+	add_child(world)
+	await get_tree().create_timer(2.0).timeout
+	var recorder: MatchRecorder = world.get_node_or_null("MatchRecorder")
+	var ok := recorder != null and recorder._file != null
+	var path := recorder._path if recorder != null else ""
 	if ok:
-		var f9 := InputEventKey.new()
-		f9.keycode = KEY_F9
-		f9.physical_keycode = KEY_F9
-		f9.pressed = true
-		recorder._input(f9)
 		var d := InputEventKey.new()
 		d.physical_keycode = KEY_D
 		d.keycode = KEY_D
 		d.pressed = true
 		recorder._input(d)
-		await get_tree().create_timer(1.0).timeout
-		var second: Node = load("res://scenes/lab.tscn").instantiate()  # the next world: the recording goes on in it
-		arena.queue_free()
-		add_child(second)
-		await get_tree().create_timer(0.5).timeout
-		recorder._input(f9)
-		var dir := DirAccess.open("user://play_logs")
-		var text := ""
-		if dir != null:
-			var newest := ""
-			for name in dir.get_files():
-				if name.begins_with("play_") and name > newest:
-					newest = name
-			text = FileAccess.get_file_as_string("user://play_logs/" + newest)
-		ok = text.contains("K key D down") and text.contains(" S ") and text.contains(" G ") and text.contains(" O ") and text.contains(" A ") and text.contains(" P ") and text.contains("WORLD") and text.contains("END") and text.count("WORLD") >= 2
-		if not ok:
-			print("log was: ", text.substr(0, 600))
-	print("PASS recorder writes keys and state" if ok else "FAIL recorder")
+		world.player.stamina = 150.0
+		MatchStats.strike(world.player)
+		world.player.take_damage(3)
+		world.player.daze_time = 2.0
+		world.caster.cast_resolved.emit("Ignite", "directional", world.player.center(), 0.0, {})
+		world.ritual.finished.emit("minimap", 0.9, false)
+		await get_tree().create_timer(0.6).timeout
+		MatchRecorder.finish(get_tree())
+	var text := FileAccess.get_file_as_string(path) if path != "" else ""
+	ok = ok and text.contains("HEAD seed") and text.contains(" WZ ") and text.contains(" S ") and text.contains(" M ") and text.contains(" A ") and text.contains("K key D down") \
+		and text.contains(" HIT ") and text.contains(" OB ") and text.contains("END") and text.contains(" CAST %d Ignite" % world.player.get_instance_id()) and text.contains(" ST %d dazed" % world.player.get_instance_id()) and text.contains(" SAY ") and text.contains("TERR ") and text.contains(" TR ") and recorder._file == null
+	if not ok:
+		print("log was: ", text.substr(0, 500))
+	DirAccess.remove_absolute(path)
+	print("PASS the match recorder writes wizards, hands, blows and the world" if ok else "FAIL match recorder")
 	get_tree().quit()
-
-
-func _find(node: Node) -> PlayRecorder:
-	for child in node.get_children():
-		if child is PlayRecorder:
-			return child
-		var found := _find(child)
-		if found != null:
-			return found
-	return null

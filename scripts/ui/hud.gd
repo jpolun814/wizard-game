@@ -13,7 +13,7 @@ const INK := Color(0.07, 0.04, 0.1)
 const CONTROLS := [
 	["W A S D", "Move"], ["Space", "Jump"],
 	["Mouse buttons", "Hold mouse buttons and draw a spell"], ["Tab", "Open the spellbook"],
-	["Enter", "Speak an incantation"], ["M", "Mute sound"],
+	["Enter", "Speak an incantation"], ["P", "Punch"], ["M", "Mute sound"],
 	["F1", "Open the debug menu"], ["Esc", "Pause the game"],
 ]
 

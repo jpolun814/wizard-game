@@ -1,15 +1,15 @@
 """Measures the limits of a person's body from the play recordings, for holding the AI wizards to them.
 
-Reads every recording (the person's own in user://play_logs, and the gzipped ones other players sent from network matches in
+Reads every match log (the person's own in user://match_logs, written by MatchRecorder, and the gzipped ones other players sent from network matches in
 user://received_logs) and prints, with the median and the middle half (25th to 75th percentile) of each:
 
-- stroke time: a mouse button down to the last button up, for strokes that cast a spell (a C line just after), per spell;
+- stroke time: a mouse button down to the last button up, for strokes that cast a spell (a CAST of theirs just after), per spell;
 - chord gap: in a stroke drawn with two or three buttons, the time from the first button down to the last one down;
 - typing: seconds a letter, from the R lines (the chant words as they are typed);
-- reading: from a new page in the book (a P line that adds a spell) to the first cast of that spell (mostly how long until it was wanted);
+- reading: from a new page in the book (a BOOK line of theirs that adds a spell) to the first cast of that spell (mostly how long until it was wanted);
 - look: how long the book stays open at a new page (Tab reads a page and opens the book at it; the next Tab or Escape shuts it);
-- reaction: from a shot thrown by someone else appearing near the person (an X Projectile line not by the person) or from being hurt
-  (a D line) to the person's next key or button going down.
+- reaction: from a shot thrown by someone else appearing near the person (a NEW line, a shot, not by the person) or from being hurt
+  (a HIT line on them) to the person's next key or button going down.
 
 Writes the figures as JSON (default data/ai/human_limits.json) for the brains to read.
 
@@ -50,6 +50,14 @@ def spread(values):
     return {"n": len(values), "median": round(statistics.median(values), 3), "p25": round(q[0], 3), "p75": round(q[2], 3)}
 
 
+def person_of(path):
+    """The id of the person in a log: the first wizard whose kind is person (a network log may hold likenesses of others, which are not asked about)."""
+    for t, kind, rest in lines_of(path):
+        if kind == "WZ" and len(rest) >= 3 and rest[2] == "person":
+            return rest[0]
+    return None
+
+
 def measure(paths):
     strokes = {}      # spell -> [seconds]
     chord_gaps = []
@@ -58,6 +66,9 @@ def measure(paths):
     reactions = []
     looks = []
     for path in paths:
+        me = person_of(path)
+        if me is None:
+            continue
         look_from = None  # a new page came into the book at this time, and the book has not been opened since
         held = set()
         stroke_start = None
@@ -65,11 +76,10 @@ def measure(paths):
         last_up = None
         stroke_time = None
         pending_gap = None
-        book = set()
+        book = None
         new_pages = {}    # spell -> time it came into the book
         typing_prev = None
         stimuli = []      # times of things to react to, waiting for the next key down
-        me = None
         for t, kind, rest in lines_of(path):
             if kind == "K" and len(rest) >= 3:
                 what, code, state = rest[0], rest[1], rest[2]
@@ -98,8 +108,8 @@ def measure(paths):
                             stroke_start = None
                             pending_gap = gap
                             continue
-            elif kind == "C" and rest:
-                spell = " ".join(rest).replace("_", " ")
+            elif kind == "CAST" and len(rest) >= 2 and rest[0] == me:
+                spell = rest[1].replace("_", " ")
                 if last_up is not None and t - last_up < 0.2 and stroke_time is not None:
                     strokes.setdefault(spell, []).append(stroke_time)
                     if pending_gap is not None:
@@ -112,20 +122,17 @@ def measure(paths):
                 if typing_prev is not None and len(words) == len(typing_prev[1]) + 1 and t - typing_prev[0] < 2.0:
                     letters.append(t - typing_prev[0])
                 typing_prev = (t, words)
-            elif kind == "P" and rest:
-                pages = set(p.replace("_", " ") for p in rest[0].split("|") if p and not p.startswith("chant:"))
-                for p in pages - book:
-                    if book or len(pages) <= 1:  # (the first P line is the starting book: nothing new to read)
+            elif kind == "BOOK" and len(rest) >= 2 and rest[0] == me:
+                pages = set(p.replace("_", " ") for p in rest[1].split("|") if p and p != "-" and not p.startswith("chant:"))
+                for p in pages - (book or set()):
+                    if book is not None:  # (the first line is the starting book: nothing new to read)
                         new_pages[p] = t
                         look_from = t
                 book = pages
-            elif kind == "X" and rest and rest[0] == "Projectile":
-                by = next((r[3:] for r in rest if r.startswith("by:")), "")
-                if me is None and last_up is not None and t - last_up < 0.3:
-                    me = by  # a shot that appears as the person lets go of a stroke is theirs: that names the person
-                if by and me is not None and by != me:
+            elif kind == "NEW" and len(rest) >= 5 and rest[4] == "shot":
+                if rest[2] not in ("-", me):
                     stimuli.append(t)
-            elif kind == "D":
+            elif kind == "HIT" and len(rest) >= 1 and rest[0] == me:
                 stimuli.append(t)
     return {
         "strokes": {k: spread(v) for k, v in sorted(strokes.items())},
@@ -142,10 +149,13 @@ def main():
     parser.add_argument("--out", default="data/ai/human_limits.json")
     args = parser.parse_args()
     root = user_dir()
-    paths = sorted(glob.glob(os.path.join(root, "play_logs", "*.log")) + glob.glob(os.path.join(root, "received_logs", "*.gz")))
+    paths = sorted(glob.glob(os.path.join(root, "match_logs", "match_*.log")) + glob.glob(os.path.join(root, "received_logs", "*.gz")))
     paths = [p for p in paths if os.path.getsize(p) > 5000]
     result = measure(paths)
     result["files"] = len(paths)
+    if not any(result["strokes"].values()):
+        print("no person's strokes found in %d match logs: not writing %s (play a match first)" % (len(paths), args.out))
+        return
     print(json.dumps({k: v for k, v in result.items() if k != "strokes"}, indent=1))
     for spell, s in result["strokes"].items():
         print("%-16s %s" % (spell, s))

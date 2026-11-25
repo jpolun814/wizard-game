@@ -35,16 +35,18 @@ func _ready() -> void:
 
 ## [name, what it is, the change that is switched off for the control, a Callable that plays one trial and returns a number, and the change that must show: a share
 ## less than the control (a negative number) or a number more (a positive one)]
+## (The needed rises were cut when the control spells and defenses joined the attacks in being weighed by their numbers, 2026-11-24: more spells share the choice, so each share is smaller,
+## though the idea still roughly doubles it: 0.21 against 0.10, 0.36 against 0.15, 0.07 against 0.05.)
 func _drills() -> Array:
 	return [
 		["read_stonefall", "steps out from under a boulder it saw drawn", "read,wary", _trial_stonefall, 0.5],
 		["push_off_ledge", "chooses a shove for a rival standing at a ledge", "terrain", _trial_ledge, 0.3],
 		["beyond_barrier", "casts what is not thrown at a rival behind a Barrier", "shield", _trial_shield, 0.3],
-		["barrier_habit", "leans on what is not thrown at a rival it has seen raise a Barrier", "shield", _trial_habit, 0.15],
+		["barrier_habit", "leans on what is not thrown at a rival it has seen raise a Barrier", "shield", _trial_habit, 0.08],
 		["kit_pages", "goes for a page of a school it lacks over an equal one of a school it has", "kit", _trial_kit, 0.5],
 		["brace_chant", "says the chant that fills its strength once a rival has been shooting at it and is not yet on it", "brace", _trial_brace, 0.5],
 		["rocket_away", "lifts itself clear with a rocket of flame when a rival is on it", "rocket", _trial_rocket, 0.1],
-		["safe_window", "keeps its dear spells for a rival who is dazed and cannot answer", "window", _trial_window, 0.04],
+		["safe_window", "keeps its dear spells for a rival who is dazed and cannot answer", "window", _trial_window, 0.02],  # (the shares are exact now, and the rise is steady at 0.040 to 0.042 (0.097 against 0.057): half of it is the bar)
 		["burn_bridge", "reaches for fire against a rival on lily pads", "burn", _trial_bridge, 0.1],
 		["land_shot", "aims where a rival in the air will come down", "landing", _trial_landing, 30.0],
 		["habit_lean", "aims to the side a rival has always stepped to", "habit", _trial_habit_lean, 10.0],
@@ -52,9 +54,10 @@ func _drills() -> Array:
 		["falling_stone", "steps aside from a boulder it sees falling on it", "stone", _trial_stone, 0.5],
 		["ambush_sneak", "goes unseen toward a rival it knows of, off a way", "ambush", _trial_ambush, 0.5],
 		["decoy_bait", "gives a rival with heavy blows a shadow to throw them at", "decoy", _trial_decoy, 0.5],
-		["shatter_ice", "chooses a heavy blow for a rival frozen in ice", "shatter", _trial_ice, 0.25],
+		["shatter_ice", "chooses a heavy blow for a rival frozen in ice", "shatter", _trial_ice, 0.18],
+		["wolf_touch", "chooses a quick cheap shot at a werewolf, which one blow undoes", "wolf", _trial_wolf, 0.05],  # (a rise of 0.08: the spells with no figures yet still take their share, which keeps it modest),
 		["keep_reserve", "keeps its dear spells back when it is running low", "reserve", _trial_reserve, -0.2],
-		["press_recovery", "throws a quick shot at a rival just seen to cast a dear spell", "recover", _trial_recover, 0.04],
+		["press_recovery", "throws a quick shot at a rival just seen to cast a dear spell", "recover", _trial_recover, 0.02],
 		["burn_thicket", "reaches for fire against a rival standing in thorns", "thicket", _trial_thicket, 0.06],  # (the effect is about 0.18 against 0.08, more than double; 0.1 sat right on it and the drill flipped from run to run)
 		["worn_caution", "keeps its distance from a rival when it is worn down to a small maximum", "caution", _trial_worn, -0.2],
 		["range_memory", "stops casting what has missed twice at this range", "range_memory", _trial_range, -0.15],
@@ -180,7 +183,7 @@ func _stonefall_drawn(known: bool) -> float:
 func _share(partner: Wizard, wanted: Array, asks := 40, stamina := -1.0) -> float:
 	var b: WizardBrain = partner.brain
 	b.dormant = true
-	var hits := 0
+	var chance := 0.0
 	for k in asks:
 		partner.pen.drop()
 		b.rest.clear()
@@ -189,10 +192,17 @@ func _share(partner: Wizard, wanted: Array, asks := 40, stamina := -1.0) -> floa
 		partner.stamina = partner.max_stamina if stamina < 0.0 else stamina
 		b.opponent = _lab.player
 		b.sight.look_about(0.1)
-		if b.combat.attack(_lab.player.global_position - partner.global_position, true) and b.combat.recent[0] in wanted:
-			hits += 1
+		b.combat.last_scores = {}
+		b.combat.attack(_lab.player.global_position - partner.global_position, true)
+		var total := 0.0
+		var share := 0.0
+		for spell_name: String in b.combat.last_scores:  # the chance it cast one of them is their share of the weights it chose from: exact, with nothing to draw by luck
+			total += maxf(b.combat.last_scores[spell_name], 0.0)
+			if spell_name in wanted:
+				share += maxf(b.combat.last_scores[spell_name], 0.0)
+		chance += share / total if total > 0.0 else 0.0
 		partner.pen.drop()
-	return float(hits) / asks
+	return chance / asks
 
 
 ## The rival at the end of a high ledge, the partner on it too, a few steps off.
@@ -228,6 +238,19 @@ func _trial_ice() -> float:
 	await _wait(0.3)
 	var share := _share(partner, ["Stonefall", "Earthquake", "Scythe", "Supernova", "Spark"])
 	_lab.player.thaw()
+	return share
+
+
+## The rival is a werewolf: one point of strength, which any blow that lands turns back. Of what the partner chooses to cast, how much is a quick cheap shot.
+func _trial_wolf() -> float:
+	var s := _reset()
+	var partner: Wizard = s["partner"]
+	partner.global_position = Vector2(ArenaGen.column_x(-24), s["floor"])
+	_lab.player.global_position = Vector2(ArenaGen.column_x(-24) + 260.0, s["floor"])
+	_lab.player.wolf.begin()
+	await _wait(0.3)
+	var share := _share(partner, ["Pebble", "Eldritch Blast", "Jolt", "Frostbolt", "Ignite", "Barbs"])
+	_lab.player.wolf.end()
 	return share
 
 

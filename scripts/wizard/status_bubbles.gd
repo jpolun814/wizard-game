@@ -81,6 +81,10 @@ func tick() -> void:
 
 
 ## Every state the wizard is in now, with the seconds it has left (-1 when it is not on a clock).
+func states() -> Dictionary:
+	return _states()
+
+
 func _states() -> Dictionary:
 	var states := {}
 	if wizard.dead:

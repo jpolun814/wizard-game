@@ -12,6 +12,8 @@ const ORDER_2 := ["skin", "outfit", "color", "hair", "hair_color", "beard", "bea
 const ORDER_1 := ["skin", "outfit", "color", "hair", "hair_color", "beard", "beard_color", "hat", "hat_color", "weapon"]
 ## Beards that were taken out because they looked like another, and the one each is read as.
 const BEARD_NOW := {"braided": "short", "wispy": "goatee"}
+## Values of the other options that were taken out for the same reason, and the one each is read as: option -> {old value -> value now}.
+const TAKEN_OUT := {"outfit": {"ceremonial": "robe"}, "hair": {"straight": "long"}, "weapon": {"staff_root": "staff_branch", "sickle": "scythe", "carved_wand": "wand"}, "beard": {"forked": "short", "soul_patch": "none"}}
 ## What an outfit of the older games was edged in: gold, but silver (here the nearest, ivory) for these colors.
 const SILVER_TRIMMED := ["charcoal", "black", "lavender", "gold"]
 ## The voices (not art, so not in the manifest): the sounds a wizard makes when it jumps and when it is hurt. See WizardLook.jump_sound and hurt_sound.
@@ -24,7 +26,7 @@ const DEFAULT := {
 }
 
 
-const HAT_NO_COLOR := ["none", "skull", "laurel", "flower_crown"]  # hats with no color of their own (keep in step with tools/wizard_parts/parts.py)
+const HAT_NO_COLOR := ["none", "skull", "laurel", "flower_crown", "antlers"]  # hats with no color of their own (keep in step with tools/wizard_parts/parts.py)
 const DEFAULT_LOOK := "parts:3:tan.coat.blue.charcoal.short.auburn.short.auburn.wide.blue.brown.staff_orb.voice_1"  # DEFAULT, written down
 
 
@@ -84,6 +86,9 @@ static func decode(look: String) -> Dictionary:
 		config[order[k]] = values[k]
 	if config.get("voice") == "voice_2":
 		config["voice"] = "voice_1"
+	for option: String in TAKEN_OUT:
+		if config.has(option):
+			config[option] = (TAKEN_OUT[option] as Dictionary).get(config[option], config[option])
 	if order != ORDER:  # a look from an older game: what it had not yet chosen is what it was drawn with
 		config["trim"] = "ivory" if SILVER_TRIMMED.has(config["color"]) else "gold"
 		config["boots"] = "brown"

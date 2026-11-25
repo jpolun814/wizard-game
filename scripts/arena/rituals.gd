@@ -1,7 +1,7 @@
 class_name Rituals
 extends RefCounted
 
-## The chants of the person at this machine, and of the brains: opening the box, what each chant does when it is said, the bonfire, the Rift, the Scrying Eye.
+## The chants of the person at this machine, and of the brains: opening the box, what each chant does when it is said, the Rift, the Scrying Eye.
 ## Reached as `arena.rituals`. What other machines are shown (`kindle`, `show_chant`, `show_eye`) is sent from the arena's own rpc calls, which must stay on the node.
 
 const RIFT_WEAR := 35.0  # what a Rift takes off the most stamina you can have
@@ -66,13 +66,9 @@ func finished(id: String, acc: float, unfinished: bool) -> void:
 			_rift()
 		"dowsing":
 			_dowse()
-		"bonfire":
-			var spot := bonfire_spot()  # beside the wizard, not under them
-			kindle(spot, power)
-			Net.send(arena, &"kindle", [spot, power])
 
 
-## A brain's wizard says one of the chants that give a gift, or lights a bonfire (the others make marks and portals, which have only the player's own).
+## A brain's wizard says one of the chants that give a gift, (the others make marks and portals, which have only the player's own).
 ## It says it perfectly. False when it does not know the chant, cannot speak or is under water.
 func said_by(speaker: Wizard, id: String) -> bool:
 	if not is_instance_valid(speaker) or speaker.dead or not speaker.ledger.knows_chant(id) or speaker.is_muted() or speaker.is_frozen() or speaker.lungs.holding():
@@ -101,11 +97,6 @@ func grant(speaker: Wizard, id: String, power := 1.0) -> void:
 			speaker.lungs.grant_deep(Lungs.DEEP_BREATH)
 		"darkvision":
 			give_sight(speaker)
-		"bonfire":
-			if speaker.brain != null:  # (the person's own bonfire is made by their ritual, with the power of how well they said it)
-				var spot := bonfire_spot(speaker)
-				kindle(spot, 1.0)
-				Net.send(arena, &"kindle", [spot, 1.0])
 
 
 ## The light of the Chant of Darkvision, a flare with no flame, on a wizard: it lasts until they fall, and a later world of the match gives it again (the chant, once
@@ -123,17 +114,6 @@ func has_sight(speaker: Wizard) -> bool:
 		if flare.unseen and flare.caster == speaker and not flare.is_queued_for_deletion():
 			return true
 	return false
-
-
-## A bonfire burns at a spot (every machine of a network game is told to).
-func kindle(spot: Vector2, power: float) -> void:
-	if Bonfire.drowned(arena.get_tree(), spot):  # under water it is out as soon as it is lit: a puff of steam, as a fire shot that falls in
-		Fx.smoke(arena, spot + Vector2(0.0, -12.0), Color(0.9, 0.95, 1.0, 0.6), 5, 24.0, 40.0)
-		return
-	var fire := Bonfire.new()
-	arena.add_child(fire)
-	fire.power = power
-	fire.global_position = spot
 
 
 ## A chant takes hold: a ring of light under the speaker.
@@ -157,17 +137,6 @@ func show_eye(wizard_name: String, on: bool) -> void:
 		wizard.add_child(mark)
 	elif not on and mark != null:
 		mark.queue_free()
-
-
-## Where a bonfire is made: on the ground 80 px in front of the wizard, or behind them when there is a drop or a wall there.
-func bonfire_spot(of: Wizard = null) -> Vector2:
-	var who: Wizard = of if of != null else arena.player
-	for side: float in [float(who.facing), -float(who.facing)]:
-		var from: Vector2 = who.global_position + Vector2(side * 80.0, -48.0)  # above the ground there, even where it rises
-		var hit := arena.ground_below(from)
-		if hit.y < from.y + 200.0 and absf(hit.y - who.global_position.y) < 120.0:
-			return hit
-	return who.global_position
 
 
 ## The Chant of Dowsing: an arrow points to the nearest page the player has not read, until they read it. Chanting again looks for another.

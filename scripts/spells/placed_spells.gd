@@ -45,8 +45,10 @@ func _firewall(c: SpellCast) -> void:
 	var x_from := line[0].x
 	var x_to := line[1].x
 	var columns := maxi(1, ceili(absf(x_to - x_from) / Firewall.SPACING))
+	var wall := RefCounted.new()  # (the columns of one wall hit as one source)
 	for i in columns:
 		var column := Firewall.new()
+		column.cast_source = wall
 		c.add(column)
 		column.setup(c.spell, Vector2(lerpf(x_from, x_to, (i + 0.5) / columns), (line[0].y + line[1].y) * 0.5), 0.0)  # looking for the ground from a little over the line, so that a stroke drawn in the ground still stands the wall on it
 

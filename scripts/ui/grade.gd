@@ -18,7 +18,7 @@ const CASTS := {
 	"sky": {"shadow": Vector3(0.05, 0.07, 0.15), "light": Vector3(0.98, 1.0, 1.06), "vignette": 0.3},
 }
 
-var biome := ""  # the place it is laid over, which others ask for (see Bonfire)
+var biome := ""  # the place it is laid over, which others ask for
 
 
 ## The wash of gray that takes the color out of the graveyard, as a layer to lay over a view of the world (the screen's own, and the Scrying Eye's window).

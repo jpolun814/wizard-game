@@ -31,6 +31,15 @@ static func striker_of(by: Node) -> Wizard:
 	return null
 
 
+## What a blow counts as having come from, for the safety that follows it (see Wizard.take_damage): the thing that struck, when it says it is one whole
+## cast by having a `hit_source()` (a spell that is a single node, or one that shares a source among the many nodes of one cast); otherwise nothing, and
+## the blow works under the one safety every blow without a source shares. A spell is moved over by giving it that method.
+static func hit_source_of(by: Node) -> Object:
+	if is_instance_valid(by) and by.has_method("hit_source"):
+		return by.hit_source()
+	return null
+
+
 ## Hurts the body. Enemies take school damage (weak, resisted); a wizard, whoever plays it, takes it plain. A shot's hurt
 ## (shot true) is stopped by a wizard's Barrier, as every shot is.
 static func hurt(body: Node, amount: int, school: String, shot := false, lava := false, by: Node = null) -> void:
@@ -50,7 +59,7 @@ static func hurt(body: Node, amount: int, school: String, shot := false, lava :=
 			Shatter.spawn(body.get_parent(), body.center(), Color("#cdeeff"))
 			Sfx.cue("ice_block", "shatter", body.center())
 		MatchStats.strike(by)  # (whose blow it is, for the count of what each wizard has done)
-		body.take_damage(amount, true, shot)
+		body.take_damage(amount, true, shot, hit_source_of(by))
 	else:
 		MatchStats.strike(by)
 		body.take_damage(amount, school, shot)

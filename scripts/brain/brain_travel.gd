@@ -5,6 +5,8 @@ extends RefCounted
 
 var assail_commit := 0.0       # seconds it keeps running from a creature after it is out of reach
 var assail_dir := 0.0
+var stair_idle := 0.0          # seconds it has stood at a swinging stair that goes up, whatever it is going there for
+var stair_cool := 0.0          # seconds before it tries to get up a stairwell by itself again, after it has tried
 var stair_wait := 0.0          # seconds it has stood at a swinging stair on its way to look at somewhere new
 var danger_wait := 0.0       # seconds it has stood waiting for danger on its way to pass
 var dash := 0.0               # seconds it runs on across lava, whatever it does to it
@@ -158,6 +160,10 @@ func follow_route(delta: float) -> float:
 	if steer["replan"]:
 		brain.stuck_at.append("%s %s" % [str(brain.tile_of(wizard.global_position)), brain.route.status()])
 		stuck_on_goal()
+	stair_cool = maxf(stair_cool - delta, 0.0)
+	var hop := _hop_up_the_stairwell(delta)
+	if not is_nan(hop):
+		return hop
 	if brain.route.waiting_for_stair and brain.goal == "explore":
 		stair_wait += delta
 		if stair_wait > WizardBrain.STAIR_PATIENCE:  # a person does not stand at a stair for half a minute just to see what lies past it: they look elsewhere
@@ -207,6 +213,41 @@ func follow_route(delta: float) -> float:
 	wizard.pad.climb = steer["climb"]  # at the foot of a rope ladder, the way up it
 	wizard.pad.let_go = steer["let_go"]  # and the hop off it at the top
 	return steer["dir"] * steer["speed"]
+
+
+## A person who has stood a while at a stair that is not coming, and has a rocket, uses it: it steps off the landing over the open stairwell, lights the rocket,
+## and comes down on the landing above. NAN when it is not doing this, otherwise the speed to go at.
+func _hop_up_the_stairwell(delta: float) -> float:
+	var way: Dictionary = brain.route.waiting_way
+	if way.is_empty() or BrainProfile.off("stairs") or not wizard.is_on_floor():
+		stair_idle = 0.0 if way.is_empty() else stair_idle
+		return NAN
+	var from: Vector2i = way["from"]
+	var to: Vector2i = way["to"]
+	var rise := from.y - to.y
+	if rise < WizardRoute.CLIMB_ROWS or not brain.knows("Rocket Jump"):
+		return NAN
+	stair_idle += delta
+	if stair_idle < WizardBrain.STAIR_IMPATIENCE or stair_cool > 0.0 or wizard.pen.active() or brain.react > 0.0:
+		return NAN
+	var cost: float = SpellData.SPELLS["Rocket Jump"].cost + (SpellData.SPELLS["Featherfall"].cost if brain.knows("Featherfall") else 0.0)
+	if wizard.stamina < cost + 10.0:
+		return NAN
+	var dir := 1 if to.x > from.x else -1
+	var tile := float(WizardRoute.TILE)
+	var near := float(from.x + 1) * tile if dir > 0 else float(from.x) * tile  # the edge of the landing, over the stairwell
+	var far := float(to.x) * tile if dir > 0 else float(to.x + 1) * tile  # the edge of the landing above
+	if (near - wizard.global_position.x) * dir > 20.0:
+		return dir * WizardBrain.WALK_SPEED  # walks out to the edge first
+	if wizard.rocket_time <= 0.0:  # it lights the rocket standing at the edge, still (a stroke drawn on the move is dragged out of shape, and the rocket lifts slowly at first)
+		brain.hand.begin_cast("Rocket Jump", BrainStrokes.offset(GestureTemplates.preview_points("rocket"), wizard.center(), 0.6), WizardBrain.QUICK_DRAW)
+		return 0.0
+	var shaft := Rect2(minf(near, far), float(to.y + 1) * tile, absf(far - near), float(rise) * tile)
+	var helpers: Array = ["Featherfall"] if brain.knows("Featherfall") else []
+	brain.moves.start_leap("stair %s %s" % [from, to], shaft, dir, {"steps": 0, "helpers": helpers, "jumped": true, "rise_to": float(to.y + 1) * tile - 40.0})  # the rocket is lit: it goes out over the stairwell as it climbs and drifts down on a feather
+	stair_idle = 0.0
+	stair_cool = 25.0  # (whether it gets across or not: it does not try again at once)
+	return 0.0
 
 
 ## Out of its depth there is no walking: it swims, as a person does, the jump key a stroke at a time and S to dive (Wizard.swim). The map of ways
@@ -343,6 +384,12 @@ func raw_path(from: Vector2i, to: Vector2i) -> Array[Vector2i]:
 ## speed to walk at, or NAN when nothing is upon it.
 func assailed(delta: float) -> float:
 	assail_commit -= delta
+	var douse := _toward_water()
+	if douse != 0.0:
+		MatchRecorder.event("DOUSE %d %d" % [wizard.get_instance_id(), douse])
+		brain.settle = 0.0  # nobody stands typing while alight
+		brain.chant.typing = ""
+		return douse * WizardBrain.WALK_SPEED * 1.2
 	var mob := brain.assailant()
 	if mob == null:
 		if assail_commit > 0.0 and assail_dir != 0.0:
@@ -373,6 +420,25 @@ func assailed(delta: float) -> float:
 	return away * WizardBrain.WALK_SPEED * 1.2
 
 
+## Which way to run to put out a fire it is burning with: toward water it can see, near enough to reach before the fire is out (the match logs showed a burn lasting
+## its full length, about 4 to 5 s and 30 damage, every time: nobody ran to a pond). 0 when it is not alight, or sees no water in reach.
+func _toward_water() -> float:
+	if BrainProfile.off("nodouse") or not wizard.is_burning() or wizard.burning_time < 1.0 or wizard.swim_time > 0.0:
+		return 0.0
+	var reach := minf(wizard.burning_time * WizardBrain.WALK_SPEED * 0.8, 360.0)
+	var best := INF
+	var dir := 0.0
+	for water in wizard.get_tree().get_nodes_in_group("waters"):
+		if not is_instance_valid(water) or not water.has_method("wets"):
+			continue
+		for step in range(-12, 13):
+			var point: Vector2 = Vector2(wizard.global_position.x + step * 30.0, wizard.global_position.y + 10.0)
+			if absf(step * 30.0) < best and absf(step * 30.0) <= reach and water.wets(point) and wizard.eyes.sees_point(point):
+				best = absf(step * 30.0)
+				dir = signf(step) if step != 0 else 0.0
+	return dir if best < INF else 0.0
+
+
 ## Picks what to go for: the page nearest by the way it must walk, and when there is none to be had, the nearest wizard.
 func choose_goal() -> void:
 	brain.goal_timer = WizardBrain.GOAL_EVERY
@@ -393,7 +459,7 @@ func choose_goal() -> void:
 		portal_jumping = 0.0
 		brain.route.set_path(portal["path"])
 		return
-	if brain.opponent != null and brain.strength >= WizardBrain.BOLD_ABOVE and (best_page == null or best_path.size() > WizardBrain.HUNT_PAGE_NEAR or (brain.aggression >= 0.5 and not BrainProfile.off("press"))):  # feeling strong, it goes after a rival rather than a page that lies far off
+	if brain.opponent != null and brain.strength >= BrainProfile.knob("bold", WizardBrain.BOLD_ABOVE) and (best_page == null or best_path.size() > WizardBrain.HUNT_PAGE_NEAR or (brain.aggression * BrainProfile.knob("aggr", 1.0) >= 0.5 and not BrainProfile.off("press") and BrainProfile.off("oldhunt"))):  # feeling strong, it goes after a rival rather than a page that lies far off
 		var hunt: Array[Vector2i] = find_path(start, wizard.nav.nearest(brain.tile_of(brain.sight.foe_feet())))
 		if not hunt.is_empty():
 			brain.goal = "foe"

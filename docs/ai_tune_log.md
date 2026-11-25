@@ -1,0 +1,77 @@
+# What the tuning run tried (tools/ai_tune.py)
+
+Share = the damage the changed seat dealt of all the damage in the duels (0.5 is a tie; about 0.04 is noise at 40 games).
+
+- 21:13  bold 0.45 (stored 0.62): 39 duels, share 0.506 +- 0.029, won 11 lost 13, 3 min -> no difference
+- 21:17  res_exit 5.0 (stored 2.4): 40 duels, share 0.462 +- 0.036, won 9 lost 13, 4 min -> no difference
+- 21:20  repeat 0.5 (stored 0.25): 40 duels, share 0.534 +- 0.026, won 11 lost 11, 3 min -> no difference
+- 21:23  gap_s 2.2 (stored 1.6): 40 duels, share 0.480 +- 0.034, won 11 lost 16, 3 min -> no difference
+- 21:26  thrift 4.5 (stored 6.0): 40 duels, share 0.512 +- 0.028, won 14 lost 8, 3 min -> no difference
+- 22:37  close 140.0 (stored 95.0): 40 duels, share 0.511 +- 0.030, won 16 lost 6, 3 min -> no difference
+- 22:41  res_hi 110.0 (stored 56.0): 40 duels, share 0.499 +- 0.028, won 12 lost 9, 3 min -> no difference
+- 22:44  aggr 1.5 (stored 1.0): 40 duels, share 0.501 +- 0.026, won 12 lost 11, 3 min -> no difference
+- 22:47  gap_q 0.5 (stored 0.8): 40 duels, share 0.496 +- 0.032, won 14 lost 12, 3 min -> no difference
+- 22:50  aggr 2.0 (stored 1.0): 39 duels, share 0.494 +- 0.036, won 8 lost 12, 3 min -> no difference
+- 22:53  bold 0.8 (stored 0.62): 39 duels, share 0.414 +- 0.028, won 8 lost 17, 3 min -> worse
+- 22:56  close 60.0 (stored 95.0): 40 duels, share 0.454 +- 0.030, won 11 lost 16, 3 min -> no difference
+- 22:59  thrift 3.0 (stored 6.0): 40 duels, share 0.516 +- 0.031, won 13 lost 9, 3 min -> no difference
+- 23:03  range 700.0 (stored 460.0): 39 duels, share 0.513 +- 0.029, won 11 lost 11, 3 min -> no difference
+- 23:05  res_exit 1.5 (stored 2.4): 40 duels, share 0.547 +- 0.032, won 15 lost 13, 3 min -> no difference
+- 23:08  thrift 10.0 (stored 6.0): 40 duels, share 0.555 +- 0.031, won 21 lost 8, 3 min -> no difference
+- 23:11  res_hi 80.0 (stored 56.0): 40 duels, share 0.462 +- 0.032, won 8 lost 14, 3 min -> no difference
+- 23:14  res_lo 6.0 (stored 14.0): 40 duels, share 0.500 +- 0.025, won 20 lost 8, 3 min -> no difference
+- 23:18  gap_s 1.0 (stored 1.6): 40 duels, share 0.429 +- 0.030, won 6 lost 11, 3 min -> worse
+- 23:21  range 360.0 (stored 460.0): 40 duels, share 0.428 +- 0.030, won 8 lost 16, 3 min -> worse
+- 23:24  res_hi 30.0 (stored 56.0): 40 duels, share 0.502 +- 0.020, won 16 lost 13, 3 min -> no difference
+- 23:27  range 560.0 (stored 460.0): 40 duels, share 0.473 +- 0.027, won 10 lost 17, 3 min -> no difference
+- 23:30  repeat 0.8 (stored 0.25): 40 duels, share 0.486 +- 0.029, won 9 lost 16, 3 min -> no difference
+- 23:33  res_lo 22.0 (stored 14.0): 40 duels, share 0.482 +- 0.025, won 11 lost 17, 3 min -> no difference
+- 23:36  gap_q 1.1 (stored 0.8): 39 duels, share 0.515 +- 0.037, won 13 lost 9, 3 min -> no difference
+- 23:39  thrift 8.0 (stored 6.0): 40 duels, share 0.451 +- 0.030, won 10 lost 16, 3 min -> no difference
+- 23:42  aggr 0.5 (stored 1.0): 40 duels, share 0.538 +- 0.031, won 13 lost 10, 3 min -> no difference
+- 23:46  res_exit 3.5 (stored 2.4): 40 duels, share 0.456 +- 0.031, won 10 lost 17, 3 min -> no difference
+- 23:49  repeat 0.1 (stored 0.25): 40 duels, share 0.517 +- 0.023, won 11 lost 15, 3 min -> no difference
+- 23:52  gap_q 1.5 (stored 0.8): 40 duels, share 0.518 +- 0.031, won 14 lost 13, 3 min -> no difference
+- 23:55  res_lo 30.0 (stored 14.0): 40 duels, share 0.434 +- 0.028, won 8 lost 15, 3 min -> no difference
+- 23:58  close 200.0 (stored 95.0): 40 duels, share 0.502 +- 0.034, won 14 lost 15, 3 min -> no difference
+- 00:01  res_exit 1.5 (stored 2.4): 40 duels, share 0.503 +- 0.038, won 15 lost 10, 3 min -> no difference
+- 00:04  repeat 0.5 (stored 0.25): 40 duels, share 0.519 +- 0.031, won 14 lost 14, 3 min -> no difference
+- 00:07  bold 0.45 (stored 0.62): 40 duels, share 0.522 +- 0.025, won 15 lost 7, 3 min -> no difference
+- 00:10  thrift 8.0 (stored 6.0): 39 duels, share 0.450 +- 0.024, won 11 lost 13, 3 min -> no difference
+- 00:14  res_lo 22.0 (stored 14.0): 40 duels, share 0.504 +- 0.031, won 12 lost 12, 3 min -> no difference
+- 00:17  close 140.0 (stored 95.0): 40 duels, share 0.481 +- 0.031, won 10 lost 10, 4 min -> no difference
+- 00:21  close 200.0 (stored 95.0): 40 duels, share 0.479 +- 0.028, won 9 lost 17, 4 min -> no difference
+- 00:24  gap_q 1.5 (stored 0.8): 40 duels, share 0.480 +- 0.031, won 7 lost 13, 3 min -> no difference
+- 00:27  res_lo 30.0 (stored 14.0): 40 duels, share 0.480 +- 0.028, won 11 lost 16, 3 min -> no difference
+- 00:31  res_hi 30.0 (stored 56.0): 40 duels, share 0.529 +- 0.031, won 14 lost 10, 4 min -> no difference
+- 00:35  thrift 3.0 (stored 6.0): 39 duels, share 0.548 +- 0.029, won 16 lost 7, 3 min -> no difference
+- 00:38  thrift 4.5 (stored 6.0): 40 duels, share 0.518 +- 0.031, won 10 lost 12, 4 min -> no difference
+- 00:41  gap_s 1.0 (stored 1.6): 40 duels, share 0.560 +- 0.033, won 13 lost 10, 3 min -> no difference
+- 00:45  gap_s 2.2 (stored 1.6): 40 duels, share 0.500 +- 0.031, won 7 lost 12, 4 min -> no difference
+- 00:48  res_exit 5.0 (stored 2.4): 40 duels, share 0.504 +- 0.033, won 14 lost 9, 3 min -> no difference
+- 00:52  gap_q 0.5 (stored 0.8): 40 duels, share 0.501 +- 0.035, won 10 lost 9, 4 min -> no difference
+- 00:55  close 60.0 (stored 95.0): 40 duels, share 0.523 +- 0.029, won 18 lost 10, 3 min -> no difference
+- 00:58  gap_q 1.1 (stored 0.8): 40 duels, share 0.513 +- 0.026, won 13 lost 10, 3 min -> no difference
+- 01:01  res_hi 110.0 (stored 56.0): 40 duels, share 0.447 +- 0.032, won 12 lost 17, 3 min -> no difference
+- 01:04  repeat 0.8 (stored 0.25): 40 duels, share 0.492 +- 0.029, won 16 lost 9, 3 min -> no difference
+- 01:07  aggr 1.5 (stored 1.0): 40 duels, share 0.497 +- 0.035, won 10 lost 14, 3 min -> no difference
+- 01:11  aggr 2.0 (stored 1.0): 40 duels, share 0.477 +- 0.023, won 10 lost 10, 3 min -> no difference
+- 01:14  res_exit 3.5 (stored 2.4): 40 duels, share 0.512 +- 0.032, won 16 lost 16, 3 min -> no difference
+- 01:17  res_hi 80.0 (stored 56.0): 40 duels, share 0.417 +- 0.026, won 8 lost 19, 3 min -> worse
+- 01:20  range 560.0 (stored 460.0): 40 duels, share 0.604 +- 0.028, won 19 lost 9, 3 min -> KEPT
+- 01:23  range 700.0 (stored 560.0): 39 duels, share 0.517 +- 0.031, won 15 lost 12, 3 min -> no difference
+- 01:26  range 360.0 (stored 560.0): 40 duels, share 0.449 +- 0.026, won 11 lost 9, 3 min -> no difference
+- 01:29  thrift 10.0 (stored 6.0): 40 duels, share 0.525 +- 0.028, won 17 lost 12, 3 min -> no difference
+- 01:32  bold 0.8 (stored 0.62): 40 duels, share 0.494 +- 0.028, won 10 lost 14, 3 min -> no difference
+- 01:35  repeat 0.1 (stored 0.25): 40 duels, share 0.467 +- 0.025, won 8 lost 14, 3 min -> no difference
+- 01:38  res_lo 6.0 (stored 14.0): 40 duels, share 0.517 +- 0.030, won 12 lost 9, 3 min -> no difference
+- 01:42  aggr 0.5 (stored 1.0): 40 duels, share 0.540 +- 0.028, won 14 lost 9, 3 min -> no difference
+- 01:45  res_hi 80.0 (stored 56.0): 40 duels, share 0.452 +- 0.037, won 13 lost 14, 3 min -> no difference
+- 02:17  thrift 8.0 (stored 6.0): 40 duels, share 0.532 +- 0.030, won 20 lost 8, 4 min -> no difference
+- 02:26  repeat 0.8 (stored 0.25): 40 duels, share 0.509 +- 0.034, won 14 lost 13, 4 min -> no difference
+- 02:29  gap_q 1.1 (stored 0.8): 40 duels, share 0.526 +- 0.033, won 11 lost 10, 3 min -> no difference
+- 02:32  bold 0.45 (stored 0.62): 40 duels, share 0.504 +- 0.032, won 10 lost 14, 3 min -> no difference
+- 02:46  res_exit 5.0 (stored 2.4): 40 duels, share 0.507 +- 0.030, won 13 lost 13, 3 min -> no difference
+- 02:49  close 60.0 (stored 95.0): 40 duels, share 0.464 +- 0.034, won 9 lost 16, 3 min -> no difference
+- 02:53  repeat 0.5 (stored 0.25): 40 duels, share 0.487 +- 0.028, won 13 lost 12, 3 min -> no difference
+- 03:37  res_hi 30.0 (stored 56.0): 39 duels, share 0.488 +- 0.027, won 7 lost 15, 3 min -> no difference

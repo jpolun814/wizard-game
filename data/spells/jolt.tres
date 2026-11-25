@@ -12,3 +12,4 @@ effect = "Shoot a crackling bolt of lightning."
 damage = "14 dmg"
 applies = Array[String](["hasted"])
 sounds = {"zap": "jolt__zap"}
+reach = 520

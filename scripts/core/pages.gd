@@ -19,16 +19,14 @@ const RANGED := ["Ignite", "Fire Breath", "Spark", "Frostbolt", "Stonefall", "Ba
 const MOVES := ["Shadow Step", "Push", "Liana", "Geyser", "Updraft", "Tornado", "Great Oak", "Rocket Jump", "Featherfall", "Tide Surf"]
 const DEFENCES := ["Barrier", "Decoy", "Stone Wall", "Smoke Screen", "Gust", "Eclipse", "Sneak", "Blizzard", "Ice Prison", "Mudslide", "Silence", "Crimson Veil", "Obsidian Armor"]
 ## The ways to heal a wizard may start with (owner, 2026-11-22: every wizard starts with at least one, and not every wizard with the long chant): the quick ones and the ones
-## that go on over time, one dealt to each, as many as there are wizards in a match (eight). The long chants and the risky ones (Restoration, Long Rest, Second Chance, Gamble, and the
-## Bonfire) are found, not dealt.
+## that go on over time, one dealt to each, as many as there are wizards in a match (eight). The long chants and the risky ones (Restoration, Long Rest, Second Chance and Gamble) are found, not dealt.
 const HEALS := ["chant:mending", "chant:rest", "chant:recovery", "chant:stitch", "Cauterize", "Breathe", "Mud Mask", "Healing Spring"]
 ## What a wizard is dealt of each kind, in the order of the lists in `deal`: an attack, a way to move, a defense and a heal.
 const EACH := [1, 1, 1, 1]
 ## The incantation every wizard starts with, whatever else: the Rift.
 const CHANTS := ["chant:rift"]
 ## The spells that light the dark, by the game's own lighting: four that are a light (a Flare, a Glowcap, a Moonbeam, Dancing Lights), Fire Breath (it carries a light), and
-## the three that are a fire (Ignite's ball, a Firewall, a Flaming Sphere), since `World` lights every fire while it burns. Ten (Spark and Jolt flash the whole screen like lightning, owner 2026-11-22; Supernova glows greatly but is not counted), enough for the eight seats of a match. (Every wizard
-## is also dealt the Bonfire chant, which makes a fire too, but a chant is slow, standing still.)
+## the three that are a fire (Ignite's ball, a Firewall, a Flaming Sphere), since `World` lights every fire while it burns. Ten (Spark and Jolt flash the whole screen like lightning, owner 2026-11-22; Supernova glows greatly but is not counted), enough for the eight seats of a match.
 const LIGHT_MAKERS := ["Flare", "Glowcap", "Moonbeam", "Dancing Lights", "Fire Breath", "Ignite", "Firewall", "Flaming Sphere", "Spark", "Jolt"]
 ## The worlds that are dark where the wizards start, so each of them starts with a page that lights it (owner, 2026-11-22).
 const DARK_START := ["underground"]

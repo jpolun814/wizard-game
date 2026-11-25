@@ -1,7 +1,7 @@
 class_name Mending
 extends RefCounted
 
-## How a wizard heals, other than by the Bonfire: the quick chants, the heals that go on over time, sleep, the wound that is bought back, the stitch that pays
+## How a wizard heals, other than by a Glowcap: the quick chants, the heals that go on over time, sleep, the wound that is bought back, the stitch that pays
 ## for each blow struck, the gamble, and the second chance. Reached as `wizard.mending`. Healing is always maximum stamina (`Wizard.heal`), never more than the
 ## wizard started with.
 ##
@@ -17,7 +17,7 @@ const MENDING_GIVES := 5.0        # the quick chant
 const RECOVERY_WINDOW := 10.0     # seconds back that a Recovery looks for what was lost
 const RECOVERY_MOST := 40.0       # and the most it gives back
 const STITCH_PER_HIT := 3.0
-const STITCH_SECONDS := 15.0
+const STITCH_SECONDS := 30.0
 const GAMBLE_STAKE := 30.0        # won three times in four, lost one in four (and a loss can kill)
 const GAMBLE_ODDS := 0.75
 const RESTORATION_GIVES := 120.0  # the long chant, said perfectly
@@ -60,7 +60,7 @@ func is_on(which: String) -> bool:
 	return kind == which
 
 
-## True while anything is mending the wizard over time: a heal of their own, a Bonfire's warmth or a spring they stand in (for the status bubble).
+## True while anything is mending the wizard over time: a heal of their own or a spring they stand in (for the status bubble).
 func flowing() -> bool:
 	return kind != "" or _clock - _poured_at < 0.3
 

@@ -38,10 +38,11 @@ func _ready() -> void:
 	add_to_group("danger")
 	position = Vector2.ZERO  # the puffs live in world space
 	z_index = 3
-	if is_nan(aim) or is_nan(spread) or is_nan(reach):  # (a cone drawn with no width or length: it pours straight ahead)
-		aim = 0.0 if is_nan(aim) else aim
-		spread = MIN_SPREAD if is_nan(spread) else spread
-		reach = MIN_REACH if is_nan(reach) else reach
+	if not (is_finite(aim) and is_finite(spread) and is_finite(reach)):  # (a cone drawn with no width or length, or one that arrived over the network spoiled: it pours straight ahead)
+		push_warning("Spore Puff: a cone with aim %s, spread %s, reach %s: poured straight ahead" % [aim, spread, reach])
+		aim = 0.0 if not is_finite(aim) else aim
+		spread = MIN_SPREAD if not is_finite(spread) else spread
+		reach = MIN_REACH if not is_finite(reach) else reach
 	spread = clampf(spread, MIN_SPREAD, MAX_SPREAD)
 	reach = clampf(reach, MIN_REACH, MAX_REACH)
 	_texture = Fx.tex("smoke_01")
@@ -73,13 +74,17 @@ func _physics_process(delta: float) -> void:
 
 
 func _facing() -> float:
-	if not is_instance_valid(caster) or caster.facing == 0.0:
+	if not is_instance_valid(caster) or caster.facing == 0.0 or not is_finite(caster.facing):
 		return 1.0
 	return caster.facing
 
 
 func _mouth_position() -> Vector2:
-	return caster.mouth() if is_instance_valid(caster) else _mouth
+	var at: Vector2 = caster.mouth() if is_instance_valid(caster) else _mouth
+	if not at.is_finite():
+		push_warning("Spore Puff: the caster's mouth is at %s: the spores pour from where the last ones did" % at)
+		return _mouth
+	return at
 
 
 ## The way the spores leave the mouth now, mirrored to face wherever the wizard faces, as Fire Breath does.
@@ -179,3 +184,8 @@ func _draw() -> void:
 		draw_set_transform(puff["pos"], puff["age"] * 0.4 * (1.0 if puff["size"] > 1.0 else -1.0), Vector2.ONE)
 		draw_texture_rect(_texture, Rect2(-half, -half, half * 2.0, half * 2.0), false, color)
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+
+## This spell is one cast, and so one source of harm: it cannot hit the same wizard again for a moment, and another spell can (see Wizard.take_damage).
+func hit_source() -> Object:
+	return self

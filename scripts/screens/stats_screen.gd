@@ -56,7 +56,10 @@ func show_stats(place: int, of_total: int, watching: bool) -> void:
 	add_child(_ball)
 	_face = Control.new()
 	_face.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_face.draw.connect(_draw_face)
+	var face := _face
+	_face.draw.connect(func() -> void:
+		if face == _face:  # (a face that has been replaced draws once more before it goes: its pictures must not land on the new one)
+			_draw_face())
 	add_child(_face)
 	_button = Button.new()
 	_button.text = "Keep watching" if watching else "Continue"

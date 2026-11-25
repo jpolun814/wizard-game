@@ -12,3 +12,4 @@ effect = "Call down a bolt of lightning from the sky."
 damage = "30 dmg"
 effect_path = "res://scripts/spells/spark_strike.gd"
 sounds = {"spark": "spark__spark"}
+warning = 0.35

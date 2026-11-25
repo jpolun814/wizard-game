@@ -13,3 +13,5 @@ effect = "Lash at someone with a thorny vine and drag them toward you."
 damage = "8 dmg"
 effect_path = "res://scripts/spells/thorn_whip.gd"
 sounds = {"whoosh": "thorn_whip__whoosh"}
+warning = 0.12
+reach = 380

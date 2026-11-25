@@ -23,7 +23,7 @@ func _ready() -> void:
 	SmokeVeil.ensure(get_tree())
 	z_index = 3
 	_puffs = CPUParticles2D.new()
-	_puffs.amount = 70  # (each puff is a big soft square, so the number of them is what the picture costs)
+	_puffs.amount = 50  # (each puff is a big soft square, so the number of them is what the picture costs)
 	_puffs.lifetime = 5.0
 	_puffs.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
 	_puffs.emission_rect_extents = Vector2(WIDTH * 0.5 - 40.0, 6.0)

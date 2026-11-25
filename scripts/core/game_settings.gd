@@ -14,7 +14,8 @@ const DEFAULTS := {
 	"master": 1.0, "effects": 1.0, "music": 1.0,
 	"window": WINDOWED, "vsync": true, "frame_cap": 0,
 	"skip_opening": false, "skip_ending": false,
-	"share_logs": true,  # after a match in a network game, how this person played is sent to the machine that keeps the game (see PlayRecorder)
+	"share_logs": true,  # after a match in a network game, how this person played is sent to the machine that keeps the game (see MatchRecorder)
+	"wall_level": 0,  # the level the person last set on the waiting room's wall of crystals, so it is there when they come back (0: none yet, the rating is used)
 	"look": "", "palette": 0,  # the wizard this person plays (see WizardLook); no look chosen yet is ""
 }
 
@@ -73,6 +74,8 @@ static func _under_test() -> bool:
 
 
 static func save() -> void:
+	if _under_test() and path == "user://options.cfg":  # a test must never write over what the person at this machine chose
+		return
 	var file := ConfigFile.new()
 	for key: String in values:
 		file.set_value("options", key, values[key])

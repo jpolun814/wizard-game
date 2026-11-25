@@ -13,3 +13,4 @@ effect = "Hurl a pebble."
 damage = "5 dmg"
 effect_path = "res://scripts/spells/pebble.gd"
 sounds = {"rocks": "pebble__rocks", "turned": "pebble__turned", "whoosh": "pebble__whoosh"}
+speed = 1050

@@ -37,10 +37,10 @@ CHECKS = [
     ("test_liquid", "script", ""),
     ("knowledge_check", "script", ""),
 ] + [(name, "scene", "") for name in (
-    "scripts_load_check", "sound_ownership_check", "sound_cues_check", "flow_check", "tutorial_check", "tutorial_path_check", "menu_check", "settings_check", "lab_revive_check", "level_wall_check", "dither_check", "behind_wall_check", "ai_drills_check", "likeness_check", "parts_check", "pose_check", "stairs_check", "stairwell_check", "castle_spells_check", "castle_sinkhole_fall_check",
+    "scripts_load_check", "sound_ownership_check", "sound_cues_check", "flow_check", "tutorial_check", "tutorial_path_check", "menu_check", "settings_check", "lab_revive_check", "level_wall_check", "dither_check", "behind_wall_check", "likeness_check", "parts_check", "pose_check", "stairs_check", "stairwell_check", "castle_spells_check", "castle_sinkhole_fall_check",
     "biome_jump_check", "page_underfoot_check", "earthquake_check", "stonefall_check", "sinkhole_check", "sinkhole_biomes_check", "ridge_check", "stalagmite_check", "parity_check", "air_momentum_check", "coating_check", "laws_check", "spell_sweep_check", "lifecycle_check", "laws_matrix_check", "mob_sweep_check", "spellbook_check", "controls_check", "forced_stroke_check", "bubbles_check", "combo_check", "interaction_check",
-    "ritual_check", "library_screen_check", "avalanche_check", "pieces_check", "spellbook_order_check", "arrival_check", "sneak_check", "decoy_hint_check", "lights_check", "frost_ground_check", "page_flight_check", "duel_check", "new_spells_check", "heal_check", "limits_check",
-    "cluster_check", "brains_start_check", "blizzard_freeze_check", "blizzard_melt_check", "group_a_check", "group_d_check", "flytrap_check", "snail_check", "podium_check", "group_c_check", "group_b_check", "leech_check", "raise_dead_check", "golem_check", "mirage_check", "recorder_check", "log_upload_check", "solo_record_check", "sphere_check", "lab_sphere_check", "eye_check", "puppet_swing_check",
+    "ritual_check", "library_screen_check", "avalanche_check", "pieces_check", "spellbook_order_check", "arrival_check", "sneak_check", "decoy_hint_check", "lights_check", "frost_ground_check", "page_flight_check", "duel_check", "new_spells_check", "heal_check", "punch_check", "hit_source_check", "limits_check",
+    "cluster_check", "brains_start_check", "blizzard_freeze_check", "blizzard_melt_check", "group_a_check", "group_d_check", "flytrap_check", "snail_check", "podium_check", "group_c_check", "group_b_check", "leech_check", "raise_dead_check", "golem_check", "mirage_check", "recorder_check", "log_upload_check", "sphere_check", "lab_sphere_check", "eye_check", "puppet_swing_check",
 )] + [("route_check", "scene", "seed=7 moves=90"), ("soak_check", "scene", "seconds=12 only=graveyard,ocean,sky")] + [("brain_spells_check#%d" % k, "scene", "shard=%d/4" % k) for k in range(4)]
 
 # Slower checks, or ones that need arguments: run with --full. (route_check goes on to more moves than the quick set's.)
@@ -48,10 +48,38 @@ SLOW = [("soak_check#a", "scene", "seconds=40 only=graveyard,mountains,jungle"),
         ("net_check", "net", "host,client"), ("net_crowd_check", "net", "host,first,second"), ("net_hazard_check", "net", "host seed=2,client seed=2"),
         ("net_match_check", "net", "host,client"), ("dedicated_check", "net", "run"), ("net_spells_check", "net", "host,client"), ("test_world#1", "scene", "seeds=5 first=0"), ("test_world#2", "scene", "seeds=5 first=5"), ("test_world#3", "scene", "seeds=5 first=10"), ("test_world#4", "scene", "seeds=5 first=15"), ("test_world#5", "scene", "seeds=5 first=20"), ("test_world#6", "scene", "seeds=5 first=25"), ("showcase:checks", "scene", "scenario=checks"), ("showcase:newspells", "scene", "scenario=newspells"),
         ("showcase:spells", "scene", "scenario=spells"), ("showcase:soak", "scene", "scenario=soak")] + [(name, "scene", "") for name in (
-    "collapse_check", "gate_check", "follow_check", "geyser_check", "wall_liquid_check", "eruption_check", "dark_check", "spectate_check", "stats_check",
+    "ai_drills_check", "collapse_check", "gate_check", "follow_check", "geyser_check", "wall_liquid_check", "eruption_check", "dark_check", "spectate_check", "stats_check",
     "pull_check", "spark_check", "canopy_check", "regen_check", "sentinel_check", "knight_check", "wild_shape_check", "liquid_world_check", "dig_out_check", "lab_sinkhole_check", "page_count_check",
     "portal_world_check", "ocean_world_check", "sky_world_check", "spell_fixes_check", "spoils_check", "stage_jump_check", "intro_check", "epilogue_check", "epilogue_jump_check", "eclipse_check", "minimap_check",
 )]
+
+
+# Seconds a check may take before it is called stuck (150 for the rest). The AI drills measure the brain over many trials and take over two minutes alone.
+TIMEOUTS = {"route_check": 240, "ai_drills_check": 480}
+
+
+def log_folder():
+    """Where this run writes its logs: a folder of its own under one for this copy of the project, so that two runs at once (or a run in another
+    worktree) never write over each other's logs. The times of the checks (times.json) are kept one level up, shared by the runs of this copy."""
+    folder = os.environ.get("CHECK_OUT")
+    if folder:
+        return folder
+    base = project_folder()
+    folder = os.path.join(base, "run_%s_%d" % (time.strftime("%m%d_%H%M%S"), os.getpid()))
+    os.makedirs(folder, exist_ok=True)
+    runs = sorted(d for d in os.listdir(base) if d.startswith("run_"))
+    for old in runs[:-8]:  # (the last eight runs are kept)
+        shutil.rmtree(os.path.join(base, old), ignore_errors=True)
+    return folder
+
+
+def project_folder():
+    """The logs' folder for this copy of the project (its path, cut short, names it)."""
+    import hashlib
+    tag = os.path.basename(ROOT) + "_" + hashlib.md5(ROOT.lower().encode()).hexdigest()[:6]
+    base = os.path.join(tempfile.gettempdir(), "wizard_checks", tag)
+    os.makedirs(base, exist_ok=True)
+    return base
 
 
 def test_file(name, extension):
@@ -116,8 +144,14 @@ def engine_errors(text):
     """How many lines the engine printed as an ERROR that are not shutdown noise: a mesh built from nothing, a polygon that cannot be filled, a bad parameter.
     They are not script errors and they do not stop the game, so nothing failed on them until they were counted."""
     count = 0
-    for line in text.splitlines():
+    lines = text.splitlines()
+    for k, line in enumerate(lines):
         if line.startswith("ERROR:") and not any(n in line for n in SHUTDOWN_NOISE):
+            # The headless renderer (the dummy one) now and then fails to start a texture ("Parameter "t" is null" at dummy/storage/texture_storage.h), on whatever picture
+            # or viewport the game was making at the time: seen in two unrelated places (a wizard's frames, a mirror's viewport), a handful of times in hundreds of runs,
+            # with every check of the game passing. It is the engine's, not the game's, and the real renderer does not print it: so that one engine line is not counted.
+            if line == 'ERROR: Parameter "t" is null.' and k + 1 < len(lines) and "dummy/storage/texture_storage.h" in lines[k + 1]:
+                continue
             count += 1
     return count
 
@@ -138,7 +172,7 @@ def run_one(check, folder, project, extra_env, instrumented):
     started = time.time()
     for launch in range(3):  # Godot sometimes crashes in starting, before it has printed a line (more often with many starting at once): that is not the check's, so it is started again
         try:
-            done = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=1200 if instrumented else (240 if name.startswith("route_check") else 150), env=env, cwd=project,
+            done = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=1200 if instrumented else TIMEOUTS.get(name.split("#")[0].split(":")[0], 150), env=env, cwd=project,
                                   creationflags=0x4000 if sys.platform == "win32" else 0)  # below normal priority, so that the checks of two copies, which run in real time, are not starved by them
             text = done.stdout.decode("utf-8", "replace")
             code = done.returncode
@@ -168,7 +202,7 @@ def main():
     parser.add_argument("--skip", default="", help="comma-separated names of checks to leave out (tools/test.py leaves out the quarantined ones)")
     parser.add_argument("--cov", action="store_true", help="measure line coverage in a scratch copy of the project")
     options = parser.parse_args()
-    folder = os.environ.get("CHECK_OUT") or os.path.join(tempfile.gettempdir(), "wizard_checks")
+    folder = log_folder()
     os.makedirs(folder, exist_ok=True)
     quick = [c for c in CHECKS if not (options.all and c[0] == "route_check")]  # the long route check replaces the short one
     skipped = [s for s in options.skip.split(",") if s]
@@ -178,7 +212,7 @@ def main():
         import coverage_run
         project, extra_env = coverage_run.prepare(folder)
         checks = [c for c in checks if c[1] in ("scene", "net") and c[0] not in ("route_check", "test_world")]  # these two take too long counted line by line  # a script run with -s has no autoloads, so the counter cannot be there
-    times_path = os.path.join(folder, "times.json")
+    times_path = os.environ.get("CHECK_TIMES") or os.path.join(os.path.dirname(folder) if os.path.basename(folder).startswith("run_") else folder, "times.json")
     try:
         times = json.load(open(times_path))
     except (OSError, ValueError):
@@ -199,7 +233,8 @@ def main():
         again = run_one(check, folder, project, extra_env, options.cov)  # once more
         return (again[0], again[1], result[2] + again[2], result[3] if not again[1] else again[3], again[4], again[1])
     # The checks of two or three copies of the game run in real time: when the others take the cores, the game time of a copy falls behind
-    # the clock and the other copy gives up waiting. So they go first, all together, with nothing else running, and the rest after them.
+    # the clock and the other copy gives up waiting. So they go first, one check at a time (a check's own two or three copies share the machine, and no other check's do:
+    # six at once put thirteen copies on six cores and made every one of them flaky), with nothing else running, and the rest after them.
     nets = [c for c in checks if c[1] == "net"]
     rest = [c for c in checks if c[1] != "net"]
 
@@ -214,7 +249,7 @@ def main():
             note += "  FLAKY: failed once, passed on a second try" if was_flaky else ""
             print(("ok      %-30s %5.1fs%s" if good else "FAILED  %-30s %5.1fs%s  see " + path) % (name, seconds, note), flush=True)
             failed += 0 if good else 1
-    with concurrent.futures.ThreadPoolExecutor(max(1, len(nets))) as net_pool:
+    with concurrent.futures.ThreadPoolExecutor(1) as net_pool:
         report([net_pool.submit(run_steady, check) for check in nets])
     with concurrent.futures.ThreadPoolExecutor(options.j) as pool:
         report([pool.submit(run_steady, check) for check in rest])

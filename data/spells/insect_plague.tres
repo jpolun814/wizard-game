@@ -12,3 +12,4 @@ effect = "Summon a swarm of stinging insects."
 damage = "3 dmg/sec"
 effect_path = "res://scripts/spells/insect_plague.gd"
 sounds = {"hurt": "insect_plague__hurt", "summon": "insect_plague__summon"}
+span = 5

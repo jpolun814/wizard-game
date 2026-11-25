@@ -10,9 +10,9 @@ extends RefCounted
 ## Whether it has halls underground depends on the biome (SurfaceGen.has_halls): only the castle and the underground do.
 const STAGES := [
 	{"width": 900, "seconds": 180.0},
-	{"width": 660, "seconds": 180.0},
-	{"width": 480, "seconds": 180.0},
-	{"width": 360, "seconds": 0.0},
+	{"width": 560, "seconds": 150.0},
+	{"width": 340, "seconds": 120.0},
+	{"width": 240, "seconds": 0.0},
 ]
 const LATER_BIOMES := ["portals", "ocean", "sky"]  # the biomes dealt in after the others are shuffled, in the order they were added (see biome_of)
 const CASTLE_SHARE := 0.6  # the share of a stage's width that a castle world takes
@@ -20,10 +20,12 @@ const UNDERGROUND_SHARE := 0.6  # and the underground (owner, 2026-11-21: too wi
 const SKY_SHARE := 0.35    # and an open sky (owner, 2026-11-12: too large, twice: it was 1.0, then 0.5): it is open every way, up and down as well as along, so the same width is far more room
 const OCEAN_SHARE := 0.5   # and the ocean (owner, 2026-11-15: too large, a wizard went the whole world without seeing anyone: swimming is slow and a screen sees little through the water)
 const HEIGHT := 380  # every world is this deep, in tiles
+const MIN_TEST_WIDTH := 160  # the narrowest world a smaller test match is made
 const WARNING := 18.0 # seconds of shaking and a warning before a world collapses
 
 static var hurry := _hurry_asked()  # a test shortens the time in a world by this much (a program of its own, like a dedicated server, is told so by WIZARD_HURRY)
 static var stage := 0
+static var width_scale := 1.0  # a test of the AI plays its matches in smaller worlds by this much (tools/ai_ladder.py: four wizards in half the room), never under MIN_TEST_WIDTH
 static var seed_base := 0
 static var forced_biome := ""  # the F1 panel's choice of biome for the world being built, whatever the seed would deal (empty: the seed's own)
 static var pending := false  # the next world to load carries a match on, rather than starting one
@@ -66,6 +68,8 @@ static func plan_of(at: int) -> Dictionary:
 		plan["width"] = roundi(plan["width"] * SKY_SHARE)
 	elif biome == "ocean":
 		plan["width"] = roundi(plan["width"] * OCEAN_SHARE)
+	if width_scale != 1.0:
+		plan["width"] = maxi(roundi(plan["width"] * width_scale), MIN_TEST_WIDTH)
 	return plan
 
 

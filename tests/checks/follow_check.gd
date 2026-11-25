@@ -20,6 +20,9 @@ func _ready() -> void:
 	add_child(world)
 	await get_tree().process_frame
 	await get_tree().process_frame
+	for wizard: Wizard in get_tree().get_nodes_in_group("wizards"):
+		if wizard.brain != null:
+			wizard.brain.dormant = true  # (the rivals would cast their own Geysers to cross walls, and each brings water up from below: this is a check of one pool and one geyser)
 	var shoals := get_tree().get_nodes_in_group("shoals").filter(func(n: Node) -> bool: return n.pond != null)
 	if shoals.is_empty():
 		print("SKIP  seed %d has no pond with piranhas" % seed_value)
@@ -55,18 +58,17 @@ func _ready() -> void:
 	# A Geyser standing in the pool lifts its water and lets it fall back: the pool loses none.
 	for k in 120:
 		await get_tree().physics_frame
-	var before: float = pond.grid.total()
+	var water_before := _all_water()  # (the whole of it, in this pool and in whatever has spilled loose: some already lay loose, and the check is that none is lost or made)
 	var geyser := Geyser.new()
 	geyser.ground = world._ground
 	geyser.position = Vector2(middle + 60.0, pond.global_position.y + pond.depth - 10.0)
 	world.add_child(geyser)
 	for k in int((Geyser.LIFE + 1.0) * 60.0):
 		await get_tree().physics_frame
-	var loose := 0.0
-	for other: Pond in get_tree().get_nodes_in_group("ponds"):
-		if other.loose:
-			loose += other.grid.total()
-	_verdict(absf(pond.grid.total() + loose - before) < 0.1, "a geyser in the pool gives back the water it lifts (%.2f before, %.2f after, %.2f spilt elsewhere)" % [before, pond.grid.total(), loose])
+	var water_after := _all_water()
+	var sprang := geyser.sprang()  # (where the pool had drawn back from its foot, a burst brings a little up from below, once: that much is new, by design, and nothing else may be)
+	var expected := water_before + (Geyser.SPRING if sprang else 0.0)
+	_verdict(absf(water_after - expected) < 0.1, "a geyser in the pool gives back the water it lifts (%.2f of water before, %.2f after, %s)" % [water_before, water_after, "it brought %.1f up from below" % Geyser.SPRING if sprang else "it lifted from the pool"])
 	geyser.queue_free()
 
 	# Lily Pads drawn a little above the water float on it.
@@ -102,3 +104,12 @@ func _ready() -> void:
 	_verdict(not is_instance_valid(shoal) or shoal.is_queued_for_deletion(), "the fish are stranded when the water is gone")
 	print("the fish follow the water" if _failures == 0 else "%d FAILED" % _failures)
 	get_tree().quit(1 if _failures > 0 else 0)
+
+
+## All the water in every pool of the world, the pools that have spilled loose included.
+func _all_water() -> float:
+	var total := 0.0
+	for each: Pond in get_tree().get_nodes_in_group("ponds"):
+		if each.grid != null:
+			total += each.grid.total()
+	return total

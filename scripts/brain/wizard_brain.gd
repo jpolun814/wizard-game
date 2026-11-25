@@ -39,7 +39,7 @@ const READ_MIN := 0.87       # seconds a new page is looked at before its spell 
 const READ_MAX := 1.55
 const LONG_FALL := 300.0  # a drop this deep below its feet is a long fall, worth a Featherfall
 const HASTE_FROM := 160      # moves left on a journey before it says the chant of swift feet (it takes 30 words a minute to say: shorter than this it saves no time)
-const MEND_BELOW := 0.5    # a wizard worn down below this share of the greatest maximum lights a bonfire and rests by it
+const MEND_BELOW := 0.5    # a wizard worn down below this share of the greatest maximum says a chant and rests
 const MEND_UNTIL := 0.92
 const MEND_MAX := 40.0     # seconds it rests at most
 const STUCK_RADIUS := 260.0  # pixels it must get from where it was in STUCK_FOR seconds, or it has got nowhere
@@ -47,6 +47,7 @@ const STUCK_FOR := 20.0
 const VOLCANO_KEEP_OFF := 520.0  # pixels: a page this near a volcano that is awake is left alone
 const VOLCANO_FLEE := 440.0     # pixels: it goes away from a volcano that is awake when it is this near
 const ASSAIL_REACH := 150.0   # how near a creature must come before it is dealt with
+const STAIR_IMPATIENCE := 4.0  # seconds it waits at a stair that goes up before it thinks of getting up some other way: a rocket, over the open stairwell
 const STAIR_PATIENCE := 10.0  # seconds it waits for a stair when it is only looking round, before it looks the other way
 const DASH_AFTER := 2.0        # seconds it waits at lava on its way before it runs across, if the lava is narrow
 const DASH_MAX := 150.0        # pixels of lava that it will run across (a hit or two) rather than wait
@@ -141,6 +142,7 @@ var slow := 1.0               # how much slower than the usual it reacts and how
 var clumsy := 1.0             # how much wider than the usual its aim and its hand stray (see BrainLevel); never under 1
 var strength := 0.5          # 0 to 1: how strong it thinks it is (see _feel_strength); a strong wizard hunts, a weak one looks for pages and keeps away
 var _strength_in := 0.0
+var _punch_in := 0.0  # time until it may press P again (see _try_punch)
 var _daunted := 0.0           # seconds it has faced a rival it feels too weak for, at a distance: it hesitates (and may cast to hide or mend) before it turns away
 var cast_cooldown := 1.8
 var _wary_of := -1          # the stroke it last stepped out from under, so it answers each once
@@ -348,7 +350,7 @@ func _sense(delta: float) -> void:
 	profile.tick(delta)
 	sight.track_shots()
 	sight.look_about(delta)
-	sight.notice_decoys()
+	sight.notice_decoys(delta)
 	opponent = sight.lure.caster if sight.lure != null else sight.nearest_foe()
 	_strength_in -= delta
 	if _strength_in <= 0.0:
@@ -372,6 +374,15 @@ func _alone(delta: float) -> void:
 		wizard.walk(mending)
 		return
 	wizard.walk(travel.travel(delta))  # (it cannot tell whether anyone is left: a won match simply ends)
+
+
+## A rival right in front of it, in plain sight, and a hand free of a spell: it presses P, as a person would, about three or four times a second at the most (a person
+## measured 7.9 presses a second at best; the brain is no quicker than a tired thumb, and each press waits on the punch's own cooldown).
+func _try_punch(to_player: Vector2) -> void:
+	if _punch_in > 0.0 or wizard.pen.active() or absf(to_player.x) > Punch.REACH or absf(to_player.y) > Punch.HEIGHT * 0.8 or to_player.x * wizard.facing < 0.0:
+		return
+	if wizard.punch.swing():
+		_punch_in = 0.28 + rng.randf() * 0.12
 
 
 ## A rival in mind: it reacts to what comes at it, looks after itself, and keeps its footing, its journey or its fight.
@@ -419,7 +430,7 @@ func _with_a_rival(delta: float) -> void:
 	if not moves.lift.is_empty():
 		run = moves.lifting(delta)  # a throw, a climb or a lift up to you goes on, fight or no
 	else:
-		var daunted := fighting and strength < TIMID_BELOW and to_player.length() > TIMID_STAND
+		var daunted := fighting and strength < TIMID_BELOW and to_player.length() > TIMID_STAND and (BrainProfile.off("wolf") or not foe.wolf.on)  # (a werewolf runs faster than any wizard: running from it is no way to get away)
 		_daunted = _daunted + delta if daunted else 0.0
 		var standing_to_fight := fighting and (not daunted or _daunted < TIMID_HESITATE)  # (one that feels weak, after a moment, goes on with its journey and keeps away)
 		if standing_to_fight and wizard.swim_time > 0.0:
@@ -430,6 +441,9 @@ func _with_a_rival(delta: float) -> void:
 	# A wizard faces the way it runs; it turns to its rival only while standing still or drawing a spell, so it never backpedals.
 	var running := run != 0.0 and not wizard.pen.active()
 	wizard.facing = signf(run) if running else (signf(to_player.x) if fighting or wizard.pen.active() else wizard.facing)
+	_punch_in -= delta
+	if fighting and sees:
+		_try_punch(to_player)
 	if not fighting or (strength < TIMID_BELOW and to_player.length() > TIMID_STAND and _daunted >= TIMID_HESITATE):
 		return
 
@@ -478,7 +492,7 @@ func _react(delta: float, fighting: bool, to_player: Vector2) -> void:
 				_escapes = 0.0
 		elif combat.defend_cooldown <= 0.0 and not watchers().is_empty():
 			_plan("cover", _reaction_time())
-		elif fighting and to_player.length() < TOO_CLOSE and combat.defend_cooldown <= 0.0:
+		elif fighting and to_player.length() < BrainProfile.knob("close", TOO_CLOSE) and combat.defend_cooldown <= 0.0:
 			_plan(combat.choose_repel(), _reaction_time())
 
 
@@ -490,7 +504,7 @@ func _attack(foe: Wizard, to_player: Vector2, sees: bool) -> void:
 		var want := reserve()
 		if wizard.stamina < want:
 			recharging = true
-		elif wizard.stamina >= minf(want * 2.4, wizard.max_stamina * 0.9):
+		elif wizard.stamina >= minf(want * BrainProfile.knob("res_exit", 2.4), wizard.max_stamina * 0.9):
 			recharging = false
 		var window: bool = foe.is_frozen() or foe.fainted or profile.chanting(foe)
 		if recharging and not window:
@@ -501,7 +515,7 @@ func _attack(foe: Wizard, to_player: Vector2, sees: bool) -> void:
 		elif foe.has_shield() and BrainProfile.off("shield"):
 			cast_cooldown = 0.3  # nothing gets through a Barrier; wait it out (it does not now: see BrainCombat.attack, which leaves the thrown spells out and casts the rest)
 		elif combat.attack(to_player, sees):
-			cast_cooldown = (lerpf(ATTACK_GAP_SLOW, ATTACK_GAP_QUICK, skill) + rng.randf() * ATTACK_GAP_SPREAD) * slow * _pause_after(combat.recent[0] if not combat.recent.is_empty() else "")
+			cast_cooldown = (lerpf(BrainProfile.knob("gap_s", ATTACK_GAP_SLOW), BrainProfile.knob("gap_q", ATTACK_GAP_QUICK), skill) + rng.randf() * ATTACK_GAP_SPREAD) * slow * _pause_after(combat.recent[0] if not combat.recent.is_empty() else "")
 		else:
 			cast_cooldown = 0.4
 
@@ -550,7 +564,7 @@ func _feel_strength(_rival: Wizard) -> float:
 	var edge := clampf(0.5 + (wizard.max_stamina - Wizard.MAX_STAMINA * 0.75) / 200.0, 0.0, 1.0)
 	var bold := (0.15 if style == "aggressive" else (-0.08 if style == "turtle" else 0.0))
 	var spirit := 1.0 - caution()  # boldness goes as the wounds come
-	bold += 0.25 * aggression * spirit if not BrainProfile.off("press") else 0.0  # a bolder wizard thinks itself fit for a fight sooner
+	bold += 0.25 * aggression * BrainProfile.knob("aggr", 1.0) * spirit if not BrainProfile.off("press") else 0.0  # a bolder wizard thinks itself fit for a fight sooner
 	bold += 0.1 if (is_instance_valid(_rival) and profile.hurt(_rival)) else 0.0  # a rival it has seen worn down is a rival to go after
 	var feel := minf(armed * 0.5 + health * 0.3 + edge * 0.2 + bold, 1.0)
 	# Badly wounded, a person gets out and looks for a place to mend, however good their spells (a strong book used to keep a wizard at a twentieth of its
@@ -578,7 +592,7 @@ func caution() -> float:
 ## How much stamina it wants in hand before it spends more, as a person feels it: more against a rival it takes for dangerous (it may need to answer), little
 ## against one it has seen worn down (a time to press).
 func reserve() -> float:
-	return lerpf(14.0, 56.0, rival_threat())
+	return lerpf(BrainProfile.knob("res_lo", 14.0), BrainProfile.knob("res_hi", 56.0), rival_threat())
 
 
 ## Whether a wizard cannot move freely: rooted, or slowed.
@@ -598,13 +612,10 @@ func tile_of(feet: Vector2) -> Vector2i:
 	return Vector2i(floori(feet.x / WizardRoute.TILE), floori((feet.y - 1.0) / WizardRoute.TILE))
 
 
-## What a chant just said sets going: a bonfire it camps by, an eye it looks through.
+## What a chant just said sets going: an eye it looks through.
 func _chant_said(id: String) -> void:
 	if id == "" or not chant.said[id]:
 		return
-	if id == "bonfire":
-		mend.camped = true
-		mend.camped_for = 0.0
 	if id == "scrying_eye":
 		_eye_time = EYE_SECONDS
 		chant.said.erase(id)

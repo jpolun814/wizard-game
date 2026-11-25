@@ -34,6 +34,8 @@ var _ride_time := 0.0
 
 ## True while it stands at the landing of a swinging stair, waiting for it to come.
 var waiting_for_stair := false
+## The two landings of the stair it waits at, {"from": tile, "to": tile}, while it waits (empty when it does not).
+var waiting_way := {}
 
 
 ## Sets out along a path (its first tile is where the wizard stands).
@@ -91,6 +93,7 @@ func goal() -> Vector2i:
 func steer(body: CharacterBody2D, delta: float) -> Dictionary:
 	var out := {"dir": 0.0, "speed": WALK, "jump": false, "replan": false, "climb": false, "let_go": false, "drop": false}
 	waiting_for_stair = false
+	waiting_way = {}
 	_hop = maxf(_hop - delta, 0.0)
 	var feet := body.global_position
 	var grounded := body.is_on_floor()
@@ -123,6 +126,8 @@ func steer(body: CharacterBody2D, delta: float) -> Dictionary:
 			_ride_time = 0.0
 		_stuck = 0.0  # waiting is not being stuck
 		waiting_for_stair = at_landing
+		if at_landing:
+			waiting_way = {"from": from, "to": goal_tile}
 		return out
 	if -down >= CLIMB_ROWS and across <= 2:
 		_climb(feet, grounded, from, goal_tile, out)

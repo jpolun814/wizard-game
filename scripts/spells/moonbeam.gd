@@ -27,7 +27,7 @@ func _ready() -> void:
 	z_index = 4
 	if get_tree().get_first_node_in_group("darkness") != null:
 		var light := PointLight2D.new()
-		light.texture = Fx.tex("light_01")
+		Fx.lamp(light)
 		light.texture_scale = light_radius * 2.0 / Fx.TEX_SIZE
 		light.color = PALE
 		light.energy = 0.7

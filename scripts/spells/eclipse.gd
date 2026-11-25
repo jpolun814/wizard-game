@@ -81,14 +81,18 @@ func _update_veil(delta: float) -> void:
 	var material := _veil.material as ShaderMaterial
 	material.set_shader_parameter("size", screen)
 	material.set_shader_parameter("center", to_screen * watched.center())
-	material.set_shader_parameter("radius", SIGHT * zoom)
+	var sees_far := false  # Darkvision is not a light: it only widens the ring the watched wizard sees in, as far as a flare's light would have reached
+	for flare: Flare in get_tree().get_nodes_in_group("flares"):
+		sees_far = sees_far or (flare.unseen and flare.caster == watched and not flare.is_queued_for_deletion())
+	material.set_shader_parameter("radius", (Flare.LIGHT_RADIUS if sees_far else SIGHT) * zoom)
 	material.set_shader_parameter("strength", _veil_strength * (1.0 - ScreenFlash.lifting(get_tree())))  # (a flash of lightning lifts the dark: the world is seen as it is)
 	var lights: Array[Vector4] = []
-	for flare in get_tree().get_nodes_in_group("flares"):
-		lights.append(_light_hole(to_screen, flare.global_position, Flare.LIGHT_RADIUS))
+	for flare: Flare in get_tree().get_nodes_in_group("flares"):
+		if not flare.unseen:  # (sight cuts no hole of its own: it widened the ring above)
+			lights.append(_light_hole(to_screen, flare.global_position, Flare.LIGHT_RADIUS))
 	for light in get_tree().get_nodes_in_group("lights"):
 		lights.append(_light_hole(to_screen, light.global_position, light.light_radius))
-	# Whatever glows in any other dark (a fireball, a wall of fire, a bonfire, lava: the world gives each a light of its own) glows in this one too.
+	# Whatever glows in any other dark (a fireball, a wall of fire, lava: the world gives each a light of its own) glows in this one too.
 	for glow in get_tree().get_nodes_in_group("fires"):
 		for child in glow.get_children():
 			if child is PointLight2D and child.visible and child.texture != null:

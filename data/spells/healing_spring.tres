@@ -12,3 +12,4 @@ effect = "A spring wells up that heals anyone standing in it."
 heal = "+2 max stamina/sec"
 applies = Array[String](["wet", "mending"])
 sounds = {"mend": "healing_spring__mend"}
+span = 15

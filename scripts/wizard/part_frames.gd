@@ -21,6 +21,21 @@ static var _indexes := {}   # path of a packed file -> [[offset, packed size, ra
 static var _last_ms := 0.0  # how long the last animation took to make, for the tests
 
 
+static var _tips := {}  # weapon -> animation -> the place a shot leaves it in each frame (tips.json, written by the rig)
+
+
+## Where a shot leaves a weapon in one frame of an animation, from the middle of the picture (x runs forward when the wizard faces right), or null where the
+## wizard holds nothing (the shot then leaves the mouth). The rig knows this exactly (`head_point` in tools/wizard_parts/parts.py); nothing is guessed from the picture.
+static func tip_of(weapon: String, anim: String, frame: int) -> Variant:
+	if _tips.is_empty():
+		_tips = JSON.parse_string(FileAccess.get_file_as_string(DIR + "tips.json"))
+	var spots: Array = _tips.get(weapon, {}).get(anim, [])
+	if spots.is_empty():
+		return null
+	var spot: Variant = spots[clampi(frame, 0, spots.size() - 1)]
+	return null if spot == null else Vector2(spot[0], spot[1])
+
+
 static func manifest() -> Dictionary:
 	if _manifest.is_empty():
 		_manifest = JSON.parse_string(FileAccess.get_file_as_string(DIR + "manifest.json"))
@@ -85,6 +100,8 @@ static func ensure(frames: SpriteFrames, anim: String) -> bool:
 	var height: int = manifest()["frame_size"][1]
 	var count: int = spec["count"]
 	var strip := Image.create(width * count, height, false, Image.FORMAT_RGBA8)
+	if count <= 0 or strip == null or strip.is_empty():
+		return false  # (nothing to make a picture of: a texture made from an empty image is an engine error, and there is no animation to play anyway)
 	for path: String in _layers(frames):
 		var layer := _unpack(path, anim, width * count, height)
 		if layer != null:

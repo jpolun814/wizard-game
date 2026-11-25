@@ -230,7 +230,7 @@ func _begin_encounter(camera: Camera2D) -> void:
 	add_child(_night)
 	add_child(Grade.new())  # the same color grade as every world
 	_player_light = PointLight2D.new()
-	_player_light.texture = Fx.tex("light_01")
+	Fx.lamp(_player_light)
 	_player_light.texture_scale = 2.4
 	_player_light.energy = 0.7
 	_player_light.enabled = false
@@ -271,7 +271,8 @@ func _add_targets() -> void:
 func _add_sparring_section() -> void:
 	_levels = LevelWall.new()
 	add_child(_levels)
-	var start := clampi(roundi(Library.rating()), 1, BrainLevel.LEVELS)
+	var remembered := int(GameSettings.get_value("wall_level"))
+	var start := clampi(remembered if remembered > 0 else roundi(Library.rating()), 1, BrainLevel.LEVELS)
 	var face_x := float((TOWER.y + 1) * ArenaGen.TILE)  # the face of the tall wall that looks onto the court
 	_levels.build(face_x, _floor_y(TOWER.y + 3), start, 1.0)
 	BrainLevel.match_level = start
@@ -302,6 +303,7 @@ func _reset_court() -> void:
 
 func _on_level_chosen(level: int) -> void:
 	BrainLevel.match_level = level
+	GameSettings.set_value("wall_level", level)
 	if _partner != null and is_instance_valid(_partner):
 		_partner.brain.set_level(level)
 
@@ -495,6 +497,8 @@ func _stepped_in(rating: float) -> void:
 
 ## On the host: once every person has touched the book, the match begins.
 func _start_if_all_in() -> void:
+	if Net.dedicated:
+		print("server: the book is touched by %s; waiting for %s; here: %s" % [_touched.keys(), _waiting_for(), Net.peers_here()])
 	if _touched.is_empty() or not _waiting_for().is_empty():
 		return
 	if Net.dedicated and Net.roster.filter(func(peer: int) -> bool: return peer != 0 and peer != Net.my_id()).is_empty():

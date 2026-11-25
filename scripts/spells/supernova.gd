@@ -29,6 +29,11 @@ var _sun: Sprite2D
 var _glow := 0.0
 
 
+## This spell is one cast, and so one source of harm: it cannot hit the same wizard again for a moment, and another spell can (see Wizard.take_damage).
+func hit_source() -> Object:
+	return self
+
+
 func _ready() -> void:
 	add_to_group("danger")
 	z_index = 3

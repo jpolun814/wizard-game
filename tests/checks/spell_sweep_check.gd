@@ -15,7 +15,7 @@ const SELF_ONLY := ["Adrenaline", "Barrier", "Crimson Veil", "Obsidian Armor", "
 ## Spells that stay in the world for good by design: they are not expected to be gone.
 ## Spells drawn over someone.
 const TARGETED := ["Hemorrhage", "Insect Plague", "Vacuum", "Leech", "Faint", "Hex", "Invincible Snail", "Hunter's Mark", "Fight or Flight"]
-const LASTING := ["Updraft", "Stone Wall", "Great Oak", "Liana", "Sinkhole", "Stalagmite", "Mudslide", "Oil Slick", "Bramble", "Lily Pads", "Frost Bridge", "Glowcap", "Flytrap", "Moonbeam", "Eclipse", "Raise Dead", "Invincible Snail", "Bonfire", "Mirage", "Icicles", "Ice Prison", "Blizzard", "Geyser"]  # (a Blizzard snows until it is put out; a Geyser leaves its water in the pond)
+const LASTING := ["Updraft", "Stone Wall", "Great Oak", "Liana", "Sinkhole", "Stalagmite", "Mudslide", "Oil Slick", "Bramble", "Lily Pads", "Frost Bridge", "Glowcap", "Flytrap", "Moonbeam", "Eclipse", "Raise Dead", "Invincible Snail", "Mirage", "Icicles", "Ice Prison", "Blizzard", "Geyser"]  # (a Blizzard snows until it is put out; a Geyser leaves its water in the pond)
 
 var _lab: Lab
 var _resolved := ""

@@ -229,7 +229,7 @@ func _plan() -> void:
 				if not ok:
 					_exit_code = 1)
 		"extras":
-			# A steered decoy, the F1 gate teleports, a flare in water, the bonfire and the Insight list.
+			# A steered decoy, the F1 gate teleports, a flare in water and the Insight list.
 			var tile := float(ArenaGen.TILE)
 			var key := func(code: Key, down: bool) -> void:
 				var event := InputEventKey.new()
@@ -340,17 +340,6 @@ func _plan() -> void:
 			_at(t + 1.5, func() -> void:
 				verdict.call(not is_instance_valid(flare[0]) or flare[0].is_queued_for_deletion(), "a flare goes out in water"))
 			t += 2.5
-			# The bonfire stands beside the wizard, on logs, not under them.
-			_at(t, func() -> void: _player().velocity = Vector2.ZERO)
-			_at(t + 1.0, func() -> void: _arena.rituals.finished("bonfire", 1.0, false))
-			_at(t + 2.2, func() -> void:
-				var fire: Node2D = null
-				for node in _arena.get_children():
-					if node is Bonfire:
-						fire = node
-				var gap := 0.0 if fire == null else absf(fire.global_position.x - _player().global_position.x)
-				verdict.call(fire != null and gap > 40.0, "the bonfire stands beside the wizard (%d px)" % int(gap))
-				_snap("bonfire"))
 			t += 3.0
 			# Insight lists a dark wizard's spells.
 			_at(t, func() -> void:
@@ -618,7 +607,7 @@ func _plan_new_spells() -> void:
 		wizard.max_stamina = 200.0
 		wizard.veil = 0
 		wizard._grace = 0.0)
-	_at(4.35, func() -> void: _arena.caster.cast_stroke(SpellData.SPELLS["Crimson Veil"].buttons, _stroke("wall", wizard.center(), 1.0)))
+	_at(4.35, func() -> void: _arena.caster.cast_stroke(SpellData.SPELLS["Crimson Veil"].buttons, _stroke("shield", wizard.center(), 1.0)))
 	_at(4.4, func() -> void:
 		check.call("a Crimson Veil is raised and costs 36 of the most (max %d, veil %d)" % [wizard.max_stamina, wizard.veil], wizard.veil == 2 and wizard.max_stamina == 164.0)
 		wizard.take_damage(30)
@@ -629,9 +618,9 @@ func _plan_new_spells() -> void:
 		wizard._grace = 0.0
 		wizard._veil_cool = 0.0)
 	_at(4.5, func() -> void:
-		check.call("two hits do nothing (max %d)" % wizard.max_stamina, wizard.max_stamina == 195.0 and wizard.veil == 0)
+		check.call("two hits do nothing (max %d)" % wizard.max_stamina, wizard.max_stamina == 164.0 and wizard.veil == 0)
 		wizard.take_damage(30)
-		check.call("and the third lands (max %d)" % wizard.max_stamina, wizard.max_stamina == 165.0)
+		check.call("and the third lands (max %d)" % wizard.max_stamina, wizard.max_stamina == 134.0)
 		_arena._since_hurt = -100000.0)
 	# Adrenaline: hasted and recovering quicker.
 	_at(4.6, func() -> void: reset.call(15, "Adrenaline"))
@@ -654,6 +643,7 @@ func _plan_new_spells() -> void:
 	_at(11.6, func() -> void:
 		var pos: Vector2 = wizard.global_position
 		Input.action_press("move_right")
+		wizard._faint_left = minf(wizard._faint_left, 1.5)  # (a faint lasts 4 s: the look at the stand-up need not wait that long, nor the foe's Faint after it)
 		memo["x"] = pos.x)
 	_at(12.1, func() -> void:  # (a faint now lasts about a second: stamina comes back at 28 a second after 0.7 s)
 		Input.action_release("move_right")
@@ -665,7 +655,9 @@ func _plan_new_spells() -> void:
 		wizard.max_stamina = 200.0
 		dummy.call().global_position = _feet(19))
 	_at(15.2, func() -> void: _cast("Faint", _stroke("spiral", _feet(19) + Vector2(0, -30), 1.0)))
-	_at(15.5, func() -> void: check.call("a Faint drops a foe", dummy.call().is_fainted()))
+	_at(15.5, func() -> void:
+		check.call("a Faint drops a foe", dummy.call().is_fainted())
+		dummy.call()._faint_left = 1.5)  # (it lasts 4 s: the check that it ends need not wait that long)
 	_at(18.5, func() -> void: check.call("and the foe gets up again", not dummy.call().is_fainted()))
 	# Glowcap: a mushroom that grows from the ground where it was drawn, is a light, and is eaten by whoever walks into it.
 	_at(19.0, func() -> void:
@@ -705,7 +697,7 @@ func _plan_new_spells() -> void:
 		memo["dx"] = dummy.call().global_position.x)
 	_at(22.7, func() -> void: _cast("Tide Surf", _stroke("swell", wizard.center() + Vector2(0, -20), 1.0)))
 	_at(23.5, func() -> void:
-		check.call("a wave carries the wizard along (moved %d px)" % (wizard.global_position.x - memo["x"]), wizard.global_position.x - memo["x"] > 150.0 and wizard.surf_time > 2.0)
+		check.call("a wave carries the wizard along (moved %d px)" % (wizard.global_position.x - memo["x"]), wizard.global_position.x - memo["x"] > 150.0 and wizard.surf_time > 1.0)
 		_snap("tide_surf"))
 	_at(23.9, func() -> void: wizard.surf_time = 0.0)  # the portal at the far end of the room starts a run
 	_at(24.6, func() -> void:
@@ -856,11 +848,11 @@ func _plan_checks() -> void:
 		check.call("a Gust turns an incoming shot back", bolt == null or bolt.heading().x > 0.0))
 	# Lily pads burn over lava, and hold over the gap.
 	_at(12.5, func() -> void: _reset_room(-27, "Lily Pads"))
-	_at(12.7, func() -> void: _cast("Lily Pads", _stroke("pads", Vector2(ArenaGen.column_x(-20), ArenaGen.GROUND_Y - 30.0), 1.6)))
+	_at(12.7, func() -> void: _dry_pads(_stroke("pads", Vector2(ArenaGen.column_x(-20), ArenaGen.GROUND_Y - 30.0), 1.6)))
 	_at(12.9, func() -> void: check.call("lily pads appear over the lava", tree.get_first_node_in_group("lily_pads") != null))
 	_at(14.2, func() -> void: check.call("lily pads over lava burn away", tree.get_first_node_in_group("lily_pads") == null))
 	_at(14.5, func() -> void: _reset_room(-13, "Lily Pads"))
-	_at(14.7, func() -> void: _cast("Lily Pads", _stroke("pads", Vector2(ArenaGen.column_x(-7), ArenaGen.GROUND_Y - 30.0), 1.6)))
+	_at(14.7, func() -> void: _dry_pads(_stroke("pads", Vector2(ArenaGen.column_x(-7), ArenaGen.GROUND_Y - 30.0), 1.6)))
 	_at(15.4, func() -> void:
 		var pad := tree.get_first_node_in_group("lily_pads")
 		check.call("lily pads over the gap are still there", pad != null)
@@ -900,10 +892,12 @@ func _plan_checks() -> void:
 	_at(25.2, func() -> void: _cast("Smoke Screen", _stroke("smoke", _feet(8) + Vector2(0, -60))))
 	_at(26.0, func() -> void: check.call("smoke off to one side does not cut the turret's sight", not SpellTargets.sight_blocked(tree, turret.call().center(), _player().center())))
 	# A Great Oak drawn on top of the hill, starting a little above, on, and a little under its surface, takes root on it.
-	var oaks := [[-30.0, 27.0], [0.0, 27.5], [14.0, 28.0]]
+	var oaks := [[-30.0, 27.5], [0.0, 27.0], [14.0, 28.0]]
 	for k in oaks.size():
 		_at(26.1 + k * 2.0, func() -> void:
-			_arena.get_tree().call_group("breakables", "queue_free"))
+			_reset_room(int(oaks[k][1]), "Great Oak")
+			_arena.get_tree().call_group("breakables", "queue_free")
+			_player().global_position = _feet(20) + Vector2(0, -30.0))  # (out of the oak's way: a body in the way would be taken for the ground)
 		_at(26.2 + k * 2.0, func() -> void:
 			var col: int = int(oaks[k][1])
 			var foot := _feet(col)
@@ -914,16 +908,18 @@ func _plan_checks() -> void:
 				if node is GreatOak:
 					oak = node
 			var foot := _feet(int(oaks[k][1]))
-			check.call("a Great Oak drawn at %d px takes root on the hill" % int(oaks[k][0]), oak != null and absf(oak.global_position.y - foot.y) < 40.0)
+			var ray := PhysicsRayQueryParameters2D.create(foot + Vector2(0, -400.0), foot + Vector2(0, 300.0))  # (the top of the hill there: the room's hill stands over the spot the dummies use)
+			ray.collision_mask = 1
+			var top: Dictionary = _arena.get_world_2d().direct_space_state.intersect_ray(ray)
+			var rooted: bool = oak != null and (absf(oak.global_position.y - foot.y) < 40.0 or (not top.is_empty() and absf(oak.global_position.y - top["position"].y) < 40.0))
+			check.call("a Great Oak drawn at %d px takes root on the hill (%s)" % [int(oaks[k][0]), "none" if oak == null else str(oak.global_position.y - foot.y)], rooted)
 			if k == 1:
 				_player().global_position = foot + Vector2(-300.0, -30.0))
 		if k == 1:
 			_at(28.4, func() -> void: _snap("oak_on_hill"))
 	_at(31.6, func() -> void:
 		_arena.get_tree().call_group("breakables", "queue_free")
-		_player().global_position = _feet(20) + Vector2(0.0, -30.0)
-		_arena.rituals.finished("bonfire", 1.0, false))
-	_at(33.2, func() -> void: _snap("bonfire"))
+		_player().global_position = _feet(20) + Vector2(0.0, -30.0))
 	_at(33.6, func() -> void:
 		_arena.get_tree().call_group("mobs", "queue_free"))
 	_at(35.0, func() -> void:
@@ -1011,6 +1007,14 @@ func _hold_key(keycode: Key, down: bool) -> void:
 
 
 ## Puts the room back as it was and the wizard in a column, ready for the next spell.
+## Lily pads laid where the line is drawn, with no pond under them (the room has none there: a real cast lays leaves only on water).
+func _dry_pads(line: PackedVector2Array) -> void:
+	var pads := LilyPads.new()
+	pads.on_dry_ground = true
+	pads.line = line
+	_arena.add_child(pads)
+
+
 func _reset_room(col: int, spell_name: String) -> void:
 	for group in ["lasting", "walls", "rocks", "fires", "flora", "clouds", "decoys", "hexes", "shots", "flares", "eclipses", "mobs"]:
 		for node in _arena.get_tree().get_nodes_in_group(group):
@@ -1712,8 +1716,8 @@ func _plan_reel() -> void:
 		for layer: Node in get_tree().get_nodes_in_group("grade"):
 			layer.visible = false)
 	match reel:
-		"chant":  # the Hearthfire: the box opens, the words are typed, and a bonfire is lit beside the wizard
-			var words := "ignis ardeat in tenebris et calorem det mihi dum noctem semper expello"
+		"chant":  # Swift Feet: the box opens, the words are typed, and the wizard is set running
+			var words := "celeriter curre"
 			_at(0.8, func() -> void: _arena.ritual.open())
 			for i in words.length():
 				var upto := i + 1

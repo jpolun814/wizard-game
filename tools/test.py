@@ -174,8 +174,10 @@ def main():
     parser.add_argument("--quarantined", action="store_true", help="also run the quarantined checks (they are left out of the everyday run: they are known to fail)")
     parser.add_argument("--pictures", action="store_true")
     options = parser.parse_args()
-    folder = os.environ.get("CHECK_OUT") or os.path.join(tempfile.gettempdir(), "wizard_checks")
-    os.makedirs(folder, exist_ok=True)
+    sys.path.insert(0, os.path.join(ROOT, "tools"))
+    import run_checks
+    folder = run_checks.log_folder()  # (a folder of this run's own: two runs at once no longer write over each other's logs)
+    print("logs: " + folder)
     started = time.time()
     problems = []
 

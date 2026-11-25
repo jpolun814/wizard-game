@@ -2,7 +2,7 @@ extends Node
 
 ## Where the gem of each weapon is found, marked on a picture of the wizard in the pose a spell is cast from. `-- out=DIR` (needs a window).
 
-const WEAPONS := ["wand", "bone_wand", "rose_wand", "scepter", "staff_orb", "staff_crystal", "staff_flower", "staff_lantern", "staff_moon", "staff_root", "staff_skull", "staff_branch", "crook", "book", "orb_hand"]
+const WEAPONS := ["wand", "bone_wand", "rose_wand", "scepter", "staff_orb", "staff_crystal", "staff_flower", "staff_lantern", "staff_moon", "staff_skull", "staff_branch", "crook", "book", "orb_hand", "classic_wand", "cane", "athame", "rapier", "scythe", "ankh", "tarot_fan", "skull_hand", "broom", "trident", "lightsaber"]
 
 
 class Mark:

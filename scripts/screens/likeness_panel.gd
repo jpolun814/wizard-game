@@ -10,15 +10,20 @@ signal closed
 const COLOR_ROWS := ["skin", "color", "trim", "hair_color", "hat_color", "boots"]
 ## What each value is called to the person choosing.
 const NAMES := {
-	"coat": "Coat", "robe": "Robe", "tunic": "Tunic", "cloak": "Cloak", "ceremonial": "Ceremonial robe", "rags": "Rags", "gothic": "Gothic coat", "armored": "Armor",
-	"vest": "Vest", "pelt": "Pelt", "sash": "Sash", "toga": "Toga",
-	"none": "None", "short": "Short", "long": "Long", "ponytail": "Ponytail", "bun": "Bun", "goatee": "Goatee", "mohawk": "Mohawk", "braids": "Braid", "straight": "Straight", "balding": "Balding", "wild": "Wild",
+	"coat": "Coat", "robe": "Robe", "tunic": "Tunic", "cloak": "Cloak", "rags": "Rags", "gothic": "Gothic coat", "armored": "Armor",
+	"vest": "Vest", "pelt": "Pelt", "sash": "Sash", "toga": "Toga", "vampire": "Vampire cape", "tuxedo": "Tuxedo", "waistcoat": "Waistcoat", "trench": "Trench coat", "doublet": "Doublet", "alchemist": "Alchemist's apron", "habit": "Monk's habit", "desert": "Desert wrap",
+		"parka": "Fur parka", "plague_coat": "Plague coat", "witch_dress": "Witch dress", "druid": "Leaf tunic", "shaman": "Shaman's garb",
+		"slicked": "Slicked back", "pompadour": "Pompadour", "undercut": "Undercut", "bangs": "Bangs", "curls": "Curls", "afro": "Afro", "dreadlocks": "Dreadlocks", "topknot": "Topknot", "space_buns": "Space buns", "braid_long": "Long braid",
+		"pencil": "Pencil mustache", "van_dyke": "Van Dyke", "mutton_chops": "Mutton chops", "dwarf": "Braided beard",
+		"top_hat": "Top hat", "bowler": "Bowler", "fez": "Fez", "bard_cap": "Feathered cap", "tricorn": "Tricorn", "jester": "Jester cap", "goggles": "Goggles", "plague_mask": "Plague mask", "antlers": "Antlers", "headdress": "Feather headdress",
+		"classic_wand": "Magic wand", "cane": "Cane", "athame": "Athame", "rapier": "Rapier", "scythe": "Scythe", "ankh": "Ankh", "tarot_fan": "Tarot cards", "skull_hand": "Skull", "broom": "Broom", "trident": "Trident", "lightsaber": "Lightsaber",
+	"none": "None", "short": "Short", "long": "Long", "ponytail": "Ponytail", "bun": "Bun", "goatee": "Goatee", "mohawk": "Mohawk", "braids": "Braid", "balding": "Balding", "wild": "Wild",
 	"handlebar": "Handlebar", "stubble": "Stubble",
 	"pointy": "Pointed hat", "wide": "Witch hat", "hood": "Hood", "circlet": "Circlet", "horned": "Horned helm", "skull": "Skull crown", "laurel": "Laurel", "turban": "Turban", "mushroom": "Mushroom cap", "crown": "Crown",
 	"voice_1": "Man 1", "voice_3": "Man 2", "voice_4": "Woman 1", "voice_5": "Woman 2",
 	"staff_orb": "Orb staff", "staff_crystal": "Crystal staff", "staff_branch": "Branch staff", "wand": "Wand", "scepter": "Scepter",
 	"gown": "Gown", "bodice": "Bodice", "bob": "Bob", "pigtails": "Pigtails", "wavy": "Wavy", "updo": "Updo", "tonsure": "Tonsure", "tiara": "Tiara", "flower_crown": "Flower crown", "headscarf": "Headscarf", "rose_wand": "Rose wand", "staff_flower": "Flower staff",
-	"staff_skull": "Skull staff", "staff_moon": "Moon staff", "staff_root": "Root staff", "staff_lantern": "Lantern staff", "crook": "Crook", "book": "Spellbook", "orb_hand": "Orb", "bone_wand": "Bone wand",
+	"staff_skull": "Skull staff", "staff_moon": "Moon staff", "staff_lantern": "Lantern staff", "crook": "Crook", "book": "Spellbook", "orb_hand": "Orb", "bone_wand": "Bone wand",
 }
 ## The color shown beside a value that is a color (the middle shade of the parts' own).
 const SWATCHES := {
@@ -27,7 +32,7 @@ const SWATCHES := {
 	"charcoal": "#4a4a60", "ivory": "#d6cdb4", "rose": "#d0607e", "lavender": "#a688d6", "gold": "#f0c040", "teal": "#2a9ca0", "rust": "#b85a2c", "white": "#d4cecd",
 	"gray": "#86848f", "black": "#30303c", "auburn": "#9a3e26", "blonde": "#d8b868", "ginger": "#cc6a2e", "chestnut": "#7a4630", "midnight": "#38447c", "orc": "#667e3e",
 	"zombie": "#7c8a6c", "duergar": "#78748c", "vampire": "#bcc6da", "frostborn": "#86b2d6", "infernal": "#a03a38", "spectral": "#6ee0d0", "bone": "#f1ecde",
-	"ember": "#ff8a30", "aqua": "#60e8d8",
+	"ember": "#ff8a30", "aqua": "#60e8d8", "umber": "#76502f", "fawn": "#c29a64",
 }
 ## Boots are colored apart from the cloth and the hair, and share some of their names ("brown", "black"), so they have squares of their own. (Trim is colored like the cloth.)
 const BOOT_SWATCHES := {"brown": "#4b2c18", "black": "#2c2c36", "tan": "#a06e3c", "gray": "#6e6e7c", "red": "#8a2e3a", "green": "#466a3c"}

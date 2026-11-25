@@ -22,6 +22,11 @@ func _init(owner: WizardBrain, body: Wizard) -> void:
 	wizard = body
 
 
+## The spells that can do a job, in the order to try them: the cheapest first (`SpellFacts.cheapest_first`), or as they are listed for a seat that has `nb_ways` off.
+func _ordered(names: Array) -> Array:
+	return names if BrainProfile.off("nb_ways") else SpellFacts.cheapest_first(names)
+
+
 ## The crossing the way goes over soon, if the way over it is not made: {"kind", "key", "span", "post"}. A pit counts when it is the next few tiles
 ## off, a sentinel from much farther, for it sees a long way.
 func crossing_ahead() -> Dictionary:
@@ -209,7 +214,7 @@ func cross_by_pads(crossing: Dictionary, spell_name: String, span: Rect2, dir: i
 
 ## Draws what keeps a sentinel from hitting it: smoke over the statue, or a Barrier, or a Decoy. The name of the spell, or "" when it can do none.
 func cover(post: Node2D, many := false) -> String:
-	for spell_name: String in (WizardBrain.COVER_ALL if many else WizardBrain.COVERS):  # (a screen over one shooter does nothing against the rest: a shield goes with the wizard)
+	for spell_name: String in _ordered(WizardBrain.COVER_ALL if many else WizardBrain.COVERS):  # (a screen over one shooter does nothing against the rest: a shield goes with the wizard)
 		if not brain.knows(spell_name) or wizard.stamina < SpellData.SPELLS[spell_name].cost:
 			continue
 		var around: Vector2 = wizard.center()
@@ -229,7 +234,7 @@ func cover(post: Node2D, many := false) -> String:
 
 ## The way it will go over this crossing, the one it likes best of those it knows and that will carry it so far, or "".
 func way_over(crossing: Dictionary) -> String:
-	for spell_name: String in WizardBrain.WAYS.get(crossing["kind"], []):
+	for spell_name: String in _ordered(WizardBrain.WAYS.get(crossing["kind"], [])):
 		if usable(spell_name) and (spell_name != "chant:double_jump" or (crossing["span"] as Rect2).size.x <= WizardBrain.DOUBLE_JUMP_REACH):
 			return spell_name
 	return ""
@@ -237,7 +242,7 @@ func way_over(crossing: Dictionary) -> String:
 
 ## The spell it will make its way over a crossing with, the one it likes best of those it knows, or "".
 func way(kind: String) -> String:
-	for spell_name: String in WizardBrain.WAYS.get(kind, []):
+	for spell_name: String in _ordered(WizardBrain.WAYS.get(kind, [])):
 		if usable(spell_name):
 			return spell_name
 	return ""
@@ -324,7 +329,7 @@ func creature_ahead() -> Dictionary:
 
 ## The spell it will clear this kind of gate with: one it knows and can pay for, or "".
 func clearing_spell(kind: String) -> String:
-	for spell_name: String in WizardBrain.CLEARS.get(kind, []):
+	for spell_name: String in _ordered(WizardBrain.CLEARS.get(kind, [])):
 		if brain.knows(spell_name) and wizard.stamina >= SpellData.SPELLS[spell_name].cost:
 			return spell_name
 	return ""

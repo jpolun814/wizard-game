@@ -11,3 +11,4 @@ cost = 30.0
 effect = "Drop a boulder from above."
 damage = "33 dmg"
 sounds = {"rocks": "stonefall__rocks", "rumble": "stonefall__rumble"}
+warning = 0.6

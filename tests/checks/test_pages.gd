@@ -144,7 +144,7 @@ func _initialize() -> void:
 	_check(Pages.weight_of("Barbs", Pages.LEAN["jungle"]) > 1.0, "a spell takes its school's weight")
 	# Nobody starts with a page: what they would have been dealt lies in a cluster by their spawn.
 	var empty := Pages.start_empty(4)
-	_check(empty.size() == 4 and empty.all(func(l: Ledger) -> bool: return l.pages.is_empty() and not l.knows("Ignite") and not l.knows("chant:bonfire")), "four wizards start with empty books")
+	_check(empty.size() == 4 and empty.all(func(l: Ledger) -> bool: return l.pages.is_empty() and not l.knows("Ignite")), "four wizards start with empty books")
 	for seed_value in 50:
 		var dealt_seed := Pages.deal(seed_value + 31, 4)
 		var allotted := Pages.allotment(seed_value, 4, [10, 10, 10, 10])

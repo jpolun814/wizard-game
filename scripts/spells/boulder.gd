@@ -25,6 +25,11 @@ var _recent: Array[float] = []  # its speed over the last few steps
 var _last_bump := {}  # when each body was last bumped, so one push does not hurt it every frame
 
 
+## This spell is one cast, and so one source of harm: it cannot hit the same wizard again for a moment, and another spell can (see Wizard.take_damage).
+func hit_source() -> Object:
+	return self
+
+
 func _ready() -> void:
 	add_to_group("rocks")
 	add_to_group("breakables")

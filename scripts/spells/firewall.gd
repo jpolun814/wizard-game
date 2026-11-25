@@ -14,6 +14,7 @@ const SPACING := 26.0  # a wall drawn wide is a row of these, this far apart
 var _flames: Array[AnimatedSprite2D] = []
 var _embers: CPUParticles2D
 var _lit := false
+var cast_source: Object  # the one source the whole wall hits as: it is one cast, so standing in two columns is not two blows
 
 
 func _begin(origin: Vector2, _aim_angle: float) -> void:
@@ -97,3 +98,8 @@ func fire_profile() -> Array:
 	for point in flame_points():
 		fires.append({"at": point, "heat": 1.0, "size": 12.0, "shot": false})
 	return fires
+
+
+## One wall is one source of harm, however many columns it is made of (see Wizard.take_damage).
+func hit_source() -> Object:
+	return cast_source if cast_source != null else self

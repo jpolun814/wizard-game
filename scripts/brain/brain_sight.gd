@@ -9,13 +9,15 @@ const ATTENTION_CONE := 0.8  # radians either side of the way to its rival that 
 const WARY_SIZE := 110.0   # a stroke this long on the screen is a shape, not a flick
 const WARY_REACH := 60.0   # how far to the side of a stroke's span it still counts as being over it
 const READ_SHARE := 0.7      # how much of a rival's stroke must show on the screen before it is known for the spell it is
-const ATTENTION_LAG := 0.25  # seconds before it takes in a shot from elsewhere (on top of the time it takes to answer it)
+const LOSE_TRACK := 1.2  # seconds out of sight before a shadow it knew for one is no longer known (see notice_decoys)
+const ATTENTION_LAG := 0.25 # seconds before it takes in a shot from elsewhere (on top of the time it takes to answer it)
 
 var first_seen := {}             # shot instance id -> the time on clock it first came on its screen (see noticed)
 var seen_shots := {}
 var lure: Decoy                 # a shadow it takes for a rival, and deals with as if it were them (see notice_decoys)
 var shadows := {}                # decoy instance id -> true when it knows it for a shadow, false when it is fooled
-var known := {}                  # rival instance id -> {"wizard", "at" (feet when last seen), "age" (seconds since)} (see look_about)
+var unseen := {}                # decoy instance id -> seconds it has been out of its sight since it last saw it
+var known := {}                # rival instance id -> {"wizard", "at" (feet when last seen), "age" (seconds since)} (see look_about)
 
 var brain: WizardBrain
 var wizard: Wizard
@@ -68,7 +70,9 @@ func seen_center(other: Wizard) -> Vector2:
 
 ## A Decoy looks like any wizard to everyone but its caster. It takes one for its caster unless it saw it come out of nothing, or it is its own;
 ## the nearest figure it sees, real or shadow, is the one it deals with. A shadow that wears through is known for what it was.
-func notice_decoys() -> void:
+## A shadow it watched appear is known for one only while it keeps it in view: a person who looks away, or loses it behind a wall, for more than a moment can
+## no longer say which figure is the shadow and which the wizard (owner, 2026-11-24: the AI told the decoy from the caster far too easily).
+func notice_decoys(delta: float) -> void:
 	if lure != null and (not is_instance_valid(lure) or lure.is_dead()):
 		lure = null
 	var nearest_gap := INF
@@ -84,6 +88,12 @@ func notice_decoys() -> void:
 		var seen := wizard.eyes.sees_point(decoy.center())
 		if seen and not shadows.has(id):
 			shadows[id] = decoy.age() < 0.4  # it watched it come: it knows it for a shadow
+		if seen:
+			unseen[id] = 0.0
+		else:
+			unseen[id] = unseen.get(id, 0.0) + delta
+			if shadows.get(id, false) and unseen[id] > LOSE_TRACK:
+				shadows[id] = false  # it looked away too long: now it cannot tell which one is the shadow
 		if not seen or shadows.get(id, true):
 			continue
 		var gap := wizard.global_position.distance_to(decoy.global_position)
@@ -95,6 +105,7 @@ func notice_decoys() -> void:
 		known[lure.caster.get_instance_id()] = {"wizard": lure.caster, "at": lure.global_position, "age": 0.0}
 	if shadows.size() > 64:
 		shadows.clear()
+		unseen.clear()
 
 
 ## How many other wizards it sees now within reach of its eyes, and the middle of them (x): a crowd is a place to be out of.

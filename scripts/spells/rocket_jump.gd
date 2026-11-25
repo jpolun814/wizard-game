@@ -27,13 +27,17 @@ static func cast(caster: Wizard) -> void:
 	smoke.initial_velocity_min = 40.0
 	smoke.initial_velocity_max = 110.0
 	caster.add_child(smoke)
-	jet.get_tree().create_timer(BURN).timeout.connect(func() -> void:
-		if is_instance_valid(jet):
-			jet.emitting = false
-			jet.get_tree().create_timer(0.6).timeout.connect(jet.queue_free)
-		if is_instance_valid(smoke):
-			smoke.emitting = false
-			smoke.get_tree().create_timer(2.0).timeout.connect(smoke.queue_free))
+	# (each is timed by a tween of its own: if the wizard goes with the world before the flame is out, the tween goes with the flame, and nothing is called on what is freed)
+	var jet_tween := jet.create_tween()
+	jet_tween.tween_interval(BURN)
+	jet_tween.tween_callback(func() -> void: jet.emitting = false)
+	jet_tween.tween_interval(0.6)
+	jet_tween.tween_callback(jet.queue_free)
+	var smoke_tween := smoke.create_tween()
+	smoke_tween.tween_interval(BURN)
+	smoke_tween.tween_callback(func() -> void: smoke.emitting = false)
+	smoke_tween.tween_interval(2.0)
+	smoke_tween.tween_callback(smoke.queue_free)
 	if caster.is_likeness():
 		return  # the machine that drives this wizard lifts them
 	caster.free_from_ground()

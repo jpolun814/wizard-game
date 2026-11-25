@@ -6,7 +6,7 @@ extends Node2D
 
 const SECONDS := 8.0
 const TICK := 1.0
-const HARM := 3
+const HARM := 5
 const REACH := 80.0
 const TREMOR := 9.0  # how far a drained hand wanders from the line it draws, in pixels
 
@@ -84,3 +84,8 @@ func _physics_process(delta: float) -> void:
 		_clock = TICK
 		SpellTargets.hurt(target, HARM, "Blood", false, false, self)
 		Fx.burst(get_parent(), global_position, Color("#c4162f"), 9, 90.0, 0.5, false)
+
+
+## This spell is one cast, and so one source of harm: it cannot hit the same wizard again for a moment, and another spell can (see Wizard.take_damage).
+func hit_source() -> Object:
+	return self

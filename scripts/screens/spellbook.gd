@@ -534,8 +534,6 @@ static func ritual_effect(ritual_id: String) -> String:
 			return "Reveal a map of the world."
 		"insight":
 			return "See how strong creatures are and what spells wizards know."
-		"bonfire":
-			return "Kindle a bonfire and heal your wounds."
 		"boundless":
 			return "Gain unlimited stamina for a short amount of time."
 		"double_jump":

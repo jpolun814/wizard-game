@@ -27,6 +27,6 @@ func _ready() -> void:
 			await get_tree().process_frame
 		var screen := get_viewport().get_visible_rect().size
 		var gap := screen.x - (map.position.x + map.size.x)
-		_check(absf(gap - Minimap.MARGIN) < 1.0 and absf(map.position.y - (Minimap.MARGIN + 60.0)) < 1.0, "at %s the map is in the top right corner (%.0f from the right edge of %.0f)" % [size, gap, screen.x])
+		_check(absf(gap - (Minimap.MARGIN + Minimap.FRAME)) < 1.0 and absf(map.position.y - (Minimap.MARGIN + 60.0 + Minimap.FRAME)) < 1.0, "at %s the map is in the top right corner (%.0f from the right edge of %.0f)" % [size, gap, screen.x])
 	print("the map keeps its corner" if not failed else "minimap check FAILED")
 	get_tree().quit(1 if failed else 0)

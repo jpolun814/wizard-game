@@ -27,10 +27,6 @@ func _ready() -> void:
 	_verdict(player.haste_time > 0.0, "Swift Feet: faster on foot")
 	_say("double_jump")
 	_verdict(player.air_jump_time > 0.0, "the Second Leap: a jump in the air is allowed")
-	# A bonfire burns beside the wizard.
-	_say("bonfire")
-	await _frames(3)
-	_verdict(get_tree().get_nodes_in_group("fires").any(func(n: Node) -> bool: return n is Bonfire), "the Bonfire kindles a fire")
 	# The rift tears the wizard away, wearing them down.
 	var before: Vector2 = player.global_position
 	var wear: float = player.max_stamina
@@ -42,7 +38,7 @@ func _ready() -> void:
 	player.global_position = before  # the rift put them anywhere, perhaps somewhere that hurts
 	player.velocity = Vector2.ZERO
 	for fire in get_tree().get_nodes_in_group("fires"):
-		fire.queue_free()  # the bonfire from before would mend the wound being measured
+		fire.queue_free()
 	await _frames(90)  # the rift's own wound leaves a moment of grace
 	var health: float = player.max_stamina
 	_arena.player.stamina = player.max_stamina

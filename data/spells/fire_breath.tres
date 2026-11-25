@@ -16,3 +16,6 @@ size_min = 0.7
 size_max = 1.4
 applies = Array[String](["burning"])
 sounds = {"breath": "fire_breath__breath"}
+speed = 430
+span = 1.1
+reach = 230

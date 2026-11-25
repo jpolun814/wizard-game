@@ -27,6 +27,7 @@ static var world_starts: Array = []    # [biome, seconds into the match] for eac
 static var recorded := false          # the Chronicle already has this match
 static var _clock := 0.0
 static var _by: Wizard                # who is striking, for the blow that is about to land
+static var _by_class := ""            # what struck, for the match recorder
 
 
 ## A new match: everything is forgotten.
@@ -116,12 +117,21 @@ static func owner_of(thing: Variant) -> Wizard:
 ## The next blow that lands is struck by whoever this thing belongs to.
 static func strike(by: Node) -> void:
 	_by = owner_of(by)
+	_by_class = String(by.get_script().get_global_name()) if is_instance_valid(by) and by.get_script() != null else ""
+
+
+## True when no blow is waiting to be credited to anyone: it has been used, or the one who was to be credited is gone.
+static func last_striker_is_cleared() -> bool:
+	return not is_instance_valid(_by)
 
 
 ## A body has taken a blow of this much. Credited to whoever struck it (if anyone), and counted against the person if it was them.
 static func hit(victim: Node, amount: float, school := "", fatal := false) -> void:
-	var striker := _by
+	var striker: Node = _by if is_instance_valid(_by) else null  # (the one who struck last may be gone with the world it was in: a blow at the start of the next has no striker)
+	var striker_class := _by_class
 	_by = null
+	_by_class = ""
+	MatchRecorder.blow(victim, striker, striker_class, amount)
 	if is_instance_valid(striker) and striker != victim and amount > 0.0:
 		striker.mending.landed()  # a Stitch pays a little for every blow its wizard lands, whoever that wizard is
 	if me == null or amount <= 0.0:

@@ -180,3 +180,8 @@ func fire_profile() -> Array:
 	for point in flame_points():
 		fires.append({"at": point, "heat": 1.0, "size": 30.0, "shot": false})
 	return fires
+
+
+## This spell is one cast, and so one source of harm: it cannot hit the same wizard again for a moment, and another spell can (see Wizard.take_damage).
+func hit_source() -> Object:
+	return self
